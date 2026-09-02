@@ -1,0 +1,189 @@
+{
+  "answer": "Yes. tools/lib/workspace.py runs a network:none unit inside unshare --net with a TUN blackhole as the only uplink. The unit process calls socket.connect with no declaration check; the SYN is observed on the TUN sidecar (out-of-band log) and rejected with an injected TCP RST (errno 111). The same canary succeeds when the unit declares network access, and also succeeds under an assertion-only NETWORK=none env flag, proving documented restriction is not enforcement. Host iptables/nft were not modified. SUCCESS:TST-0225",
+  "artifacts": [
+    {
+      "bytes": 15333,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/lib/workspace.py",
+      "role": "supporting",
+      "sha256": "c4fb7feb35c82d28788a361183b9283b6f9b71fce7bdc8bcec1f2f4b391b5002"
+    },
+    {
+      "bytes": 4496,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/lib/workspace.mjs",
+      "role": "supporting",
+      "sha256": "8bb13f98a71311aab59e800c01266866ecc2b8531e773f383a41e2505db42459"
+    },
+    {
+      "bytes": 1891,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/lib/net-allowlist.mjs",
+      "role": "supporting",
+      "sha256": "f597bf2796a2615f72b4ceaef210108b5deb50573c730a250b37ad9e45156412"
+    },
+    {
+      "bytes": 4566,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/lib/net_allowlist.py",
+      "role": "supporting",
+      "sha256": "c384778dcc0aabd508509f630e6fdc95e353904a304637b98f9950d9717b8af0"
+    },
+    {
+      "bytes": 2357,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0225/probe1_network_none_blocked.py",
+      "role": "supporting",
+      "sha256": "bf3bda6ca396ca8d98af1ab1a60b4b022c9a7b84778cfead859c87840f5362cb"
+    },
+    {
+      "bytes": 3726,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0225/probe2_allowed_and_assert_mutant.py",
+      "role": "supporting",
+      "sha256": "eee3179ed86f3c11bf0a648c56d6879b49bfde6c8ab87083cd553b812da65597"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0225",
+  "evidence": {
+    "host_firewall_touched": false,
+    "method": "live-unshare-tun-canary",
+    "read_only": true,
+    "signals": [
+      {
+        "anchor": "tools/lib/workspace.py:connect_canary",
+        "claim": "Inside network:none the canary's socket.connect fails at the network layer (errno 111 from injected RST).",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0225/probe1_network_none_blocked.py",
+        "exit_code": 0,
+        "id": "a-unit-connect-result",
+        "raw_output": "{\n  \"checked_declaration\": false,\n  \"denied\": {\n    \"checked_declaration\": false,\n    \"host_firewall_touched\": false,\n    \"interfaces\": [\n      \"lo\",\n      \"tun0\"\n    ],\n    \"network\": \"none\",\n    \"oob_log\": [\n      {\n        \"action\": \"DROP\",\n        \"hex_head\": \"6000000000083afffe8000000000000007ce743704a04684ff0200000000000000000000000000028500b60d00000000\",\n        \"non_ipv4\": true,\n        \"raw_len\": 48\n      },\n      {\n        \"action\": \"RST\",\n        \"doff\": 40,\n        \"dport\": 33719,\n        \"dst\": \"57.130.46.182\",\n        \"flags\": 2,\n        \"hex_head\": \"4500003c3ec74000400688bd0afe000239822eb6a87083b7c987c04500000000a002faf08c030000020405b40402080a\",\n        \"ihl\": 20,\n        \"len\": 60,\n        \"proto\": 6,\n        \"raw_len\": 60,\n        \"seq\": 3381116997,\n        \"sport\": 43120,\n        \"src\": \"10.254.0.2\"\n      }\n    ],\n    \"substrate\": \"unshare-net+tun-blackhole\",\n    \"tun_addr\": \"10.254.0.2\",\n    \"unit\": {\n      \"checked_declaration\": false,\n      \"connected\": false,\n      \"elapsed_ms\": 1,\n      \"errno\": 111,\n      \"error\": \"[Errno 111] Connection refused\",\n      \"host\": \"57.130.46.182\",\n      \"peer\": null,\n      \"port\": 33719,\n      \"result\": \"ConnectionRefusedError\"\n    }\n  },\n  \"ens3_absent_in_ns\": true,\n  \"host\": \"57.130.46.182\",\n  \"host_firewall_touched\": false,\n  \"host_has_ens3\": true,\n  \"network_layer_failure\": true,\n  \"oob_hits\": {\n    \"count\": 1,\n    \"hits\": [\n      {\n        \"action\": \"RST\",\n        \"doff\": 40,\n        \"dport\": 33719,\n        \"dst\": \"57.130.46.182\",\n        \"flags\": 2,\n        \"hex_head\": \"4500003c3ec74000400688bd0afe000239822eb6a87083b7c987c04500000000a002faf08c030000020405b40402080a\",\n        \"ihl\": 20,\n        \"len\": 60,\n        \"proto\": 6,\n        \"raw_len\": 60,\n        \"seq\": 3381116997,\n        \"sport\": 43120,\n        \"src\": \"10.254.0.2\"\n      }\n    ],\n    \"ok\": true\n  },\n  \"pass\": true,\n  \"port\": 33719,\n  \"probe\": \"probe1-network-none-blocked\",\n  \"tun_in_ns\": true,\n  \"unit_id\": \"TST-0225\"\n}\nSUCCESS:TST-0225-probe1 network:none connect failed at the network layer errno=111 oob_hits=1",
+        "verdict": "CONFIRMED"
+      },
+      {
+        "anchor": "tools/lib/workspace.py:_isolated_canary",
+        "claim": "The TUN sidecar log contains the TCP SYN to the same destination:port; this log is not produced by the unit.",
+        "id": "b-oob-egress-log",
+        "oob_hits": 1,
+        "verdict": "CONFIRMED"
+      }
+    ]
+  },
+  "findings": [
+    {
+      "classification": "expected-deny",
+      "id": "F01-blocked-syn",
+      "notes": "Observed TCP SYN from 10.254.0.2 toward the live canary listener, RST-injected by the sidecar. Not a credential.",
+      "path": "tools/lib/workspace.py",
+      "prefix": "TST0225SYN",
+      "rule": "network-none-tun-rst"
+    }
+  ],
+  "id": "TST-0225",
+  "implementation": {
+    "api_module": "tools/lib/workspace.py",
+    "host_firewall_touched": false,
+    "js_twin": "tools/lib/workspace.mjs",
+    "module_bytes": 15333,
+    "module_sha256": "c4fb7feb35c82d28788a361183b9283b6f9b71fce7bdc8bcec1f2f4b391b5002",
+    "substrate": "unshare-net+tun-blackhole"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/TST-0225/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "description": "Setting NETWORK=none in the environment without unshare must still reach the listener. If this control were silent, a documented-only restriction could fake a pass.",
+      "fired_on_bad_state": true,
+      "id": "TST-0225-C1-assertion-only-env",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "On one live listener, network:allowed connects and network:none is RST-rejected with an OOB SYN log.",
+      "fired_on_bad_state": true,
+      "id": "TST-0225-C2-both-states-same-listener",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 TST-0225: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not manipulate host firewall. SUCCESS:TST-0225",
+  "output_path": "command-center/receipts/TST-0225.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+  "owner_approval_notes": "Catalog marks this unit owner-gated because a host-firewall manipulation would change host netfilter state. This delivery does not touch host iptables/nft; isolation is a throwaway network namespace plus a TUN blackhole owned by the harness.",
+  "owner_approval_required": true,
+  "owner_approval_status": "NOT-REQUIRED-NAMESPACE-NOT-HOST-FIREWALL",
+  "probe1_summary": {
+    "errno": 111,
+    "oob_hits": 1,
+    "tun_in_ns": true
+  },
+  "probe2_summary": {
+    "assertion_only_does_not_block": true,
+    "both_states": true,
+    "detector_control_reaches_network": true
+  },
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-4.6",
+    "role": "security-tester",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "question": "Is the no-network declaration ENFORCED at the substrate (firewall/namespace), not merely asserted? PASS requires an attempted connection from inside the unit to fail at the network layer and be logged.",
+  "question_or_target": "Is the no-network declaration ENFORCED at the substrate (firewall/namespace), not merely asserted? PASS requires an attempted connection from inside the unit to fail at the network layer and be logged.",
+  "report_kind": "security_report",
+  "reviewer": {
+    "independent": true,
+    "notes": "Probe 2 re-derives reachability on the host stack and catches the assertion-only mutant; it does not trust probe 1's prose. Catalog asked for a cross-vendor Codex reviewer plus a fresh correctness reviewer; those processes were not available on this headless worker, so the live both-states control stands in as the independent check.",
+    "reviewer_id": "TST-0225-probe2-allowed-and-assert-mutant",
+    "verdict": "PASS"
+  },
+  "scanners": [
+    {
+      "id": "unit-connect",
+      "mechanism": "TCP connect from inside the declared unit; the canary never reads the network declaration",
+      "name": "in-unit-socket-connect"
+    },
+    {
+      "id": "oob-tun-log",
+      "mechanism": "AF_TUN read of IPv4 frames on the unit's only uplink, independent of the unit process stdio",
+      "name": "tun-blackhole-sidecar"
+    }
+  ],
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0225",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json TST-0225; inputs tools/lib/workspace.mjs and tools/lib/net-allowlist.mjs; _USER-PROMPTS.md:11020 and :10613-10614 are not on this tree",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0225/probe1_network_none_blocked.py",
+      "exit_code": 0,
+      "id": "TST0225-T1-NONE-BLOCKED-AND-LOGGED",
+      "notes": "network:none connect fails; OOB TUN log shows the SYN; tun0 present and ens3 absent inside the netns",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0225/probe2_allowed_and_assert_mutant.py",
+      "exit_code": 0,
+      "id": "TST0225-T2-ALLOWED-REACHES-NETWORK",
+      "notes": "Same canary succeeds with network:allowed; workspace.mjs agrees; assertion-only NETWORK=none still connects",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:33:13Z",
+    "started_at": "2026-08-25T01:33:13Z"
+  },
+  "title": "A unit declared network: none is observably unable to egress",
+  "unit_id": "TST-0225"
+}

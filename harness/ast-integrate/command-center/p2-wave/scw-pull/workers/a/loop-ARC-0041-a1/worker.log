@@ -1,0 +1,31 @@
+
+===== launch 2026-08-20T07:41:59Z attempt=1 =====
+I'll start by reading the claim-verify-gate skill and inspecting the existing ARC-0041 probe tree so I can resume rather than rebuild.The ARC-0041 probe tree is missing, so I’ll look up the unit definition and a delivered ARC example to see what to implement.I’ll load the schema, A6 design, `artifact_delivered`, and a delivered ARC unit so the new probes match the contract.The probe tree is missing, so I’ll implement the A6 trust-boundary sanitizer, live corpus/never-forward probes, and the architecture-review receipt.Codex MCP is not mounted here, so the second reviewer will be a mechanically independent probe and Codex stays NOT-CHECKED. Next I’ll write the sanitizer and corpus.I’ll tighten classification and unicode-escape encoding so encoded payloads actually decode and get caught.Next I’ll add the four named probes and a packer that emits the architecture-review receipt.Probes are green. I’ll pack the architecture-review receipt and the per-unit manifest next.ARC-0041 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0041` printed:
+
+`SUCCESS:delivered ARC-0041 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_injection_corpus.py:0,probe_never_forward.py:0,refute_passthrough.py:0,refute_review.py:0`
+
+The probe tree did not exist, so it was created (an absent first measure is not a park).
+
+**What shipped**
+- Live SUT: `command-center/p2-wave/probes/ARC-0041/sut/adapter.py` — second-vendor output is fenced as untrusted data, sanitized at `adapt()`, quarantined by sha256, and never-forward keys are dropped.
+- Receipt: `command-center/phase3/A6/SECURITY.json` (`state=SUCCESS`, architecture-review schema, 19800 bytes, LF sha256 `d97a4ace53be8de2d75cdd430cc3757e069dd8342b4b83bfe185ea23e6ffd567`).
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with a matching hash.
+- `SUBAGENT-RETURN.json` records the live re-measure.
+
+**Measured results**
+| Class | Catch rate |
+|---|---|
+| role-spoof | 5/5 |
+| instruction-override | 5/5 |
+| encoded-payload | 5/5 |
+| benign overfire | 0/4 |
+
+The environment canary is absent from `adapt()` outbound JSON and present in the env-leak mutant. Passthrough and over-eager mutants go red. The independent AST+stdlib reviewer does not import `adapt()`; claim-verify-gate is `ok=true`, 0 violations.
+
+**Residuals (named, not parked)**
+- Codex MCP is not mounted, so the catalog’s cross-vendor Codex reviewer is `NOT-CHECKED`, not a forged PASS.
+- `ARC-0038` `DESIGN.json` and the Windows harness-restore sources are not on this box.
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` was not treated as delivery.

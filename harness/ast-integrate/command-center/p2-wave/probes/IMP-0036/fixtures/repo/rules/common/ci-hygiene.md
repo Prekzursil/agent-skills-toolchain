@@ -1,0 +1,27 @@
+# rules/common/ci-hygiene.md
+shared:rules/common/ci-hygiene.md
+repo-unique:rules/common/ci-hygiene.md
+repo-pad:rules/common/ci-hygiene.md:0
+repo-pad:rules/common/ci-hygiene.md:1
+repo-pad:rules/common/ci-hygiene.md:2
+repo-pad:rules/common/ci-hygiene.md:3
+repo-pad:rules/common/ci-hygiene.md:4
+repo-pad:rules/common/ci-hygiene.md:5
+repo-pad:rules/common/ci-hygiene.md:6
+repo-pad:rules/common/ci-hygiene.md:7
+repo-pad:rules/common/ci-hygiene.md:8
+repo-pad:rules/common/ci-hygiene.md:9
+repo-pad:rules/common/ci-hygiene.md:10
+repo-pad:rules/common/ci-hygiene.md:11
+repo-pad:rules/common/ci-hygiene.md:12
+repo-pad:rules/common/ci-hygiene.md:13
+repo-pad:rules/common/ci-hygiene.md:14
+repo-pad:rules/common/ci-hygiene.md:15
+repo-pad:rules/common/ci-hygiene.md:16
+repo-pad:rules/common/ci-hygiene.md:17
+repo-pad:rules/common/ci-hygiene.md:18
+repo-pad:rules/common/ci-hygiene.md:19
+repo-pad:rules/common/ci-hygiene.md:20
+repo-pad:rules/common/ci-hygiene.md:21
+repo-pad:rules/common/ci-hygiene.md:22
+repo-pad:rules/common/ci-hygiene.md:23

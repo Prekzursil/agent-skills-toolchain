@@ -1,0 +1,327 @@
+{
+  "artifacts": [
+    {
+      "bytes": 7899,
+      "exists": true,
+      "path": "tools/plugin/case_collision.py",
+      "role": "primary-implementation",
+      "sha256": "2f8d404d8062c323b2607c16859b05756ff12b24e709dd514ad8af778ad08d01"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0180",
+  "evidence": [
+    {
+      "anchor": "tools/plugin/case_collision.py:validate_document",
+      "claim": "Both-states: a plugin/marketplace document whose keys remain distinct after casefold is ACCEPTed; Name/name and nested owner.Name/owner.name are REJECTed on the same code path.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_both_states.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"clean\": {\"accepted\": true, \"independent_signal\": {\"any_case_collision\": false, \"any_exact_duplicate\": false, \"objects\": [{\"casefolded_keyset_size\": 4, \"disparity\": 0, \"path\": \"$\", \"raw_keyset_size\": 4, \"raw_pair_count\": 4}, {\"casefolded_keyset_size\": 1, \"disparity\": 0, \"path\": \"$.owner\", \"raw_keyset_size\": 1, \"raw_pair_count\": 1}], \"sizes_differ\": false, \"worst_casefolded_keyset_size\": 1, \"worst_raw_keyset_size\": 1}, \"label\": \"clean-plugin\", \"reason\": \"ok-distinct-casefolded-keys\", \"same_code_path\": \"plugin.case_collision.validate_document\", \"verdict\": \"ACCEPT\"}, \"collision\": {\"accepted\": false, \"independent_signal\": {\"any_case_collision\": true, \"any_exact_duplicate\": false, \"objects\": [{\"casefolded_keyset_size\": 2, \"disparity\": 1, \"path\": \"$\", \"raw_keyset_size\": 3, \"raw_pair_count\": 3}], \"sizes_differ\": true, \"worst_casefolded_keyset_size\": 2, \"worst_raw_keyset_size\": 3}, \"label\": \"collision-top\", \"reason\": \"case-collision path=$ groups={'name': ['Name', 'name']} raw_keyset_size=3 casefolded_keyset_size=2\", \"same_code_path\": \"plugin.case_collision.validate_document\", \"verdict\": \"REJECT\"}, \"marketplace\": {\"accepted\": true, \"independent_signal\": {\"any_case_collision\": false, \"any_exact_duplicate\": false, \"objects\": [{\"casefolded_keyset_size\": 3, \"disparity\": 0, \"path\": \"$\", \"raw_keyset_size\": 3, \"raw_pair_count\": 3}, {\"casefolded_keyset_size\": 1, \"disparity\": 0, \"path\": \"$.owner\", \"raw_keyset_size\": 1, \"raw_pair_count\": 1}, {\"casefolded_keyset_size\": 3, \"disparity\": 0, \"path\": \"$.plugins[0]\", \"raw_keyset_size\": 3, \"raw_pair_count\": 3}], \"sizes_differ\": false, \"worst_casefolded_keyset_size\": 3, \"worst_raw_keyset_size\": 3}, \"label\": \"clean-marketplace\", \"reason\": \"ok-distinct-casefolded-keys\", \"same_code_path\": \"plugin.case_collision.validate_document\", \"verdict\": \"ACCEPT\"}, \"nested\": {\"accepted\": false, \"independent_signal\": {\"any_case_collision\": true, \"any_exact_duplicate\": false, \"objects\": [{\"casefolded_keyset_size\": 3, \"disparity\": 0, \"path\": \"$\", \"raw_keyset_size\": 3, \"raw_pair_count\": 3}, {\"casefolded_keyset_size\": 1, \"disparity\": 1, \"path\": \"$.owner\", \"raw_keyset_size\": 2, \"raw_pair_count\": 2}], \"sizes_differ\": true, \"worst_casefolded_keyset_size\": 1, \"worst_raw_keyset_size\": 2}, \"label\": \"collision-nested\", \"reason\": \"case-collision path=$.owner groups={'name': ['Name', 'name']} raw_keyset_size=2 casefolded_keyset_size=1\", \"same_code_path\": \"plugin.case_collision.validate_document\", \"verdict\": \"REJECT\"}, \"pass\": true, \"probe\": \"probe1-both-states\", \"same_code_path\": \"plugin.case_collision.validate_document\", \"unit_id\": \"TST-0180\", \"verdicts_differ\": true}\nSUCCESS:TST-0180-probe1 both-states ACCEPT distinct casefolded keys vs REJECT Name/name collision",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/plugin/case_collision.py:independent_signal",
+      "claim": "Regression seed FC-11309/11310: validator REJECT names both keys, and an independent raw-vs-casefolded key-set size comparison reports raw=3 folded=2. Emitter refuses to serialize the colliding mapping.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_collision_seed.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"case_sensitive_uniqueness_misses\": true, \"clean_emitter_accepted\": true, \"emitter_message\": \"emitter-refused path=$ groups={'name': ['Name', 'name']} raw_keyset_size=3 casefolded_keyset_size=2\", \"emitter_refused\": true, \"naive_last_wins\": {\"keys\": [\"name\", \"version\"], \"name\": \"other\"}, \"pass\": true, \"probe\": \"probe2-collision-seed\", \"regression_seed\": \"FC-11309/11310 case-insensitive parser collision\", \"signal_a_validator\": {\"accepted\": false, \"reason\": \"case-collision path=$ groups={'name': ['Name', 'name']} raw_keyset_size=3 casefolded_keyset_size=2\", \"verdict\": \"REJECT\"}, \"signal_b_keyset_sizes\": {\"any_case_collision\": true, \"any_exact_duplicate\": false, \"objects\": [{\"casefolded_keyset_size\": 2, \"disparity\": 1, \"path\": \"$\", \"raw_keyset_size\": 3, \"raw_pair_count\": 3}], \"sizes_differ\": true, \"worst_casefolded_keyset_size\": 2, \"worst_raw_keyset_size\": 3}, \"unit_id\": \"TST-0180\"}\nSUCCESS:TST-0180-probe2 validator REJECT + raw_keyset_size 3 vs casefolded 2; emitter refused",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "TST-0180",
+  "implementation": {
+    "case_collision_bytes": 7899,
+    "case_collision_sha256": "2f8d404d8062c323b2607c16859b05756ff12b24e709dd514ad8af778ad08d01",
+    "module": "tools/plugin/case_collision.py",
+    "operator": "object_pairs_hook key bags; reject when unique_raw_size > casefolded_size; emitter refuses before dumps"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/TST-0180/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "Top-level name plus owner.name (same spelling, different objects) ACCEPTs \u2014 collision is per-object.",
+      "id": "TST-0180-C1-nested-same-name-ok",
+      "kind": "negative-control"
+    },
+    {
+      "description": "Case-sensitive uniqueness sees 3 keys and would miss the bug; casefold size 2 plus validator REJECT catch it.",
+      "fired_on_bad_state": true,
+      "id": "TST-0180-C2-case-sensitive-miss",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Naive casefold last-wins keeps only 'other' for name; our validator rejects instead of last-key-wins.",
+      "id": "TST-0180-C3-last-wins-loss",
+      "kind": "mutation"
+    }
+  ],
+  "notes": "G-1 TST-0180: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. B06 plugin/marketplace schemas were absent on this worktree; the unit implements the case-collision guard the catalog question requires. SUCCESS:TST-0180",
+  "output_path": "command-center/receipts/TST-0180.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+  "parser_report": {
+    "both_states": {
+      "clean_accepted": true,
+      "collision_rejected": true,
+      "marketplace_accepted": true,
+      "nested_collision_rejected": true
+    },
+    "emitter_refuses_collision": true,
+    "independent_keyset_signal": {
+      "any_case_collision": true,
+      "any_exact_duplicate": false,
+      "objects": [
+        {
+          "casefolded_keyset_size": 2,
+          "disparity": 1,
+          "path": "$",
+          "raw_keyset_size": 3,
+          "raw_pair_count": 3
+        }
+      ],
+      "sizes_differ": true,
+      "worst_casefolded_keyset_size": 2,
+      "worst_raw_keyset_size": 3
+    },
+    "kind": "case-insensitive-parser-collision",
+    "probe1": {
+      "clean": {
+        "accepted": true,
+        "independent_signal": {
+          "any_case_collision": false,
+          "any_exact_duplicate": false,
+          "objects": [
+            {
+              "casefolded_keyset_size": 4,
+              "disparity": 0,
+              "path": "$",
+              "raw_keyset_size": 4,
+              "raw_pair_count": 4
+            },
+            {
+              "casefolded_keyset_size": 1,
+              "disparity": 0,
+              "path": "$.owner",
+              "raw_keyset_size": 1,
+              "raw_pair_count": 1
+            }
+          ],
+          "sizes_differ": false,
+          "worst_casefolded_keyset_size": 1,
+          "worst_raw_keyset_size": 1
+        },
+        "label": "clean-plugin",
+        "reason": "ok-distinct-casefolded-keys",
+        "same_code_path": "plugin.case_collision.validate_document",
+        "verdict": "ACCEPT"
+      },
+      "collision": {
+        "accepted": false,
+        "independent_signal": {
+          "any_case_collision": true,
+          "any_exact_duplicate": false,
+          "objects": [
+            {
+              "casefolded_keyset_size": 2,
+              "disparity": 1,
+              "path": "$",
+              "raw_keyset_size": 3,
+              "raw_pair_count": 3
+            }
+          ],
+          "sizes_differ": true,
+          "worst_casefolded_keyset_size": 2,
+          "worst_raw_keyset_size": 3
+        },
+        "label": "collision-top",
+        "reason": "case-collision path=$ groups={'name': ['Name', 'name']} raw_keyset_size=3 casefolded_keyset_size=2",
+        "same_code_path": "plugin.case_collision.validate_document",
+        "verdict": "REJECT"
+      },
+      "marketplace": {
+        "accepted": true,
+        "independent_signal": {
+          "any_case_collision": false,
+          "any_exact_duplicate": false,
+          "objects": [
+            {
+              "casefolded_keyset_size": 3,
+              "disparity": 0,
+              "path": "$",
+              "raw_keyset_size": 3,
+              "raw_pair_count": 3
+            },
+            {
+              "casefolded_keyset_size": 1,
+              "disparity": 0,
+              "path": "$.owner",
+              "raw_keyset_size": 1,
+              "raw_pair_count": 1
+            },
+            {
+              "casefolded_keyset_size": 3,
+              "disparity": 0,
+              "path": "$.plugins[0]",
+              "raw_keyset_size": 3,
+              "raw_pair_count": 3
+            }
+          ],
+          "sizes_differ": false,
+          "worst_casefolded_keyset_size": 3,
+          "worst_raw_keyset_size": 3
+        },
+        "label": "clean-marketplace",
+        "reason": "ok-distinct-casefolded-keys",
+        "same_code_path": "plugin.case_collision.validate_document",
+        "verdict": "ACCEPT"
+      },
+      "nested": {
+        "accepted": false,
+        "independent_signal": {
+          "any_case_collision": true,
+          "any_exact_duplicate": false,
+          "objects": [
+            {
+              "casefolded_keyset_size": 3,
+              "disparity": 0,
+              "path": "$",
+              "raw_keyset_size": 3,
+              "raw_pair_count": 3
+            },
+            {
+              "casefolded_keyset_size": 1,
+              "disparity": 1,
+              "path": "$.owner",
+              "raw_keyset_size": 2,
+              "raw_pair_count": 2
+            }
+          ],
+          "sizes_differ": true,
+          "worst_casefolded_keyset_size": 1,
+          "worst_raw_keyset_size": 2
+        },
+        "label": "collision-nested",
+        "reason": "case-collision path=$.owner groups={'name': ['Name', 'name']} raw_keyset_size=2 casefolded_keyset_size=1",
+        "same_code_path": "plugin.case_collision.validate_document",
+        "verdict": "REJECT"
+      },
+      "pass": true,
+      "probe": "probe1-both-states",
+      "same_code_path": "plugin.case_collision.validate_document",
+      "unit_id": "TST-0180",
+      "verdicts_differ": true
+    },
+    "probe2": {
+      "case_sensitive_uniqueness_misses": true,
+      "clean_emitter_accepted": true,
+      "emitter_message": "emitter-refused path=$ groups={'name': ['Name', 'name']} raw_keyset_size=3 casefolded_keyset_size=2",
+      "emitter_refused": true,
+      "naive_last_wins": {
+        "keys": [
+          "name",
+          "version"
+        ],
+        "name": "other"
+      },
+      "pass": true,
+      "probe": "probe2-collision-seed",
+      "regression_seed": "FC-11309/11310 case-insensitive parser collision",
+      "signal_a_validator": {
+        "accepted": false,
+        "reason": "case-collision path=$ groups={'name': ['Name', 'name']} raw_keyset_size=3 casefolded_keyset_size=2",
+        "verdict": "REJECT"
+      },
+      "signal_b_keyset_sizes": {
+        "any_case_collision": true,
+        "any_exact_duplicate": false,
+        "objects": [
+          {
+            "casefolded_keyset_size": 2,
+            "disparity": 1,
+            "path": "$",
+            "raw_keyset_size": 3,
+            "raw_pair_count": 3
+          }
+        ],
+        "sizes_differ": true,
+        "worst_casefolded_keyset_size": 2,
+        "worst_raw_keyset_size": 3
+      },
+      "unit_id": "TST-0180"
+    }
+  },
+  "premise": {
+    "action": "Created probes/TST-0180 and tools/plugin/case_collision.py. Did not exit on predicate:absent. receipt.schema.json is absent on this worktree (same as other G-1 deliveries); this unit does not rebuild ADV/IMP-0433.",
+    "catalog_inputs": [
+      "B06 plugin/marketplace manifest schemas",
+      "_USER-PROMPTS.md:11309"
+    ],
+    "inputs_were_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "linux-worktree-local",
+    "model": "grok-4.6",
+    "role": "schema-conformance-tester",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "question_or_target": "Do two keys differing only in case produce a detected collision rather than last-key-wins? PASS requires our emitter to never produce case-colliding keys AND our validator to reject an incoming document that has them.",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is probe2: independent key-set sizes, case-sensitive miss, last-wins loss, and emitter refusal. Did not author the Name/name fixture as the only check.",
+    "reviewer_id": "TST-0180-probe2-collision-seed",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0180",
+  "spec_anchor": "catalog TST-0180 / _USER-PROMPTS.md:11309 case-insensitive parser collision on case-distinct JSON keys",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_case_collision.py",
+      "exit_code": 0,
+      "id": "test_case_collision",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe1_both_states.py",
+      "exit_code": 0,
+      "id": "probe1_both_states",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0180/probe2_collision_seed.py",
+      "exit_code": 0,
+      "id": "probe2_collision_seed",
+      "result": "PASS"
+    }
+  ],
+  "tests_required": [
+    "both-states control: a document with distinct case-folded keys validates",
+    "regression seed: case-insensitive parser collision (_USER-PROMPTS.md:11309)"
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:28:11Z",
+    "started_at": "2026-08-25T01:28:11Z"
+  },
+  "title": "Case-distinct JSON keys colliding under a case-insensitive parser are detected",
+  "unit_id": "TST-0180"
+}

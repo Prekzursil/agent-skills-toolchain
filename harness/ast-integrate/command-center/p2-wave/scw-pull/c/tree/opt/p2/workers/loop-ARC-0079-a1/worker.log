@@ -1,0 +1,20 @@
+
+===== launch 2026-08-20T07:43:31Z attempt=1 =====
+I'll start from the existing ARC-0079 probe tree, resume any work already there, and only then implement until the unit measure reports delivered.The probe tree is missing, so I’ll load the catalog contract and nearby delivered ARC units before implementing from scratch.There's already a marketplace surface in-repo. I'll read its schemas and a recently delivered contract unit so ARC-0079 matches that shape.I'll confirm the meta-schema accepts a `state` sibling, then write the contract and probes.The meta-schema accepts `state: SUCCESS` on a real schema document. Next I’ll write the contract, two live probes, and the per-unit manifest.**SUCCESS:delivered ARC-0079.** The probe tree was missing, so this unit was implemented rather than parked on the first absent measure.
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0079` printed:
+
+`SUCCESS:delivered ARC-0079 predicate=delivered(schema-document fallback; declared contract is vacuous; schema-document-discriminates) state=SUCCESS probes=2 raws=2 notes=probe_fixtures.py:0,probe_revocation_negative.py:0`
+
+What landed:
+
+- Catalog artifact: `command-center/phase4/contracts/ARC-0079.json` — a non-vacuous JSON Schema for a marketplace registry index entry (`state=SUCCESS`, sentinel `SUCCESS:ARC-0079`).
+- Named probes (both re-run exit 0):
+  - `probe_fixtures.py` — listed / deprecated / revoked fixtures validate; missing `provenance` is rejected.
+  - `probe_revocation_negative.py` — `deleted` is not a lifecycle state; a still-present revoked entry is distinguishable from absence; the installed-client call site does not treat absence as revocation.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/phase4/contracts/ARC-0079.json` with LF sha256 `d1a8fc10ef90e5ddf170a7126ffeca233a92964c677c0385a57aaf005bcfef4f`.
+- `SUBAGENT-RETURN.json` is written under `command-center/p2-wave/probes/ARC-0079/`.
+
+Constraints kept: no git mutations, no global `unit_manifest.py --write`, no key rotation, no finish-everything-close / p2-cloud-ok-deliver. Cloud-ok was not treated as delivery.
+
+Residual, not a G-1 miss: the catalog’s independent-reviewer rail is still open (this worker authored the draft and the in-probe call site). ARC-0077 remains owner-gated and was not a gate for this unit’s artifact.

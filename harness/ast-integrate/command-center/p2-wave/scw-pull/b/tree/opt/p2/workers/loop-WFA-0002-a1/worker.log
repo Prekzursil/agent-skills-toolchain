@@ -1,0 +1,28 @@
+
+===== launch 2026-08-19T18:04:09Z attempt=1 =====
+I'll start from the existing WFA-0002 probe tree, resume whatever is already built, and drive this unit to G-1 contract-green without touching git or the global catalog.The probe tree already has cloud-ok artifacts; next I’ll read the unit contract, a delivered example, and the measurement script so we resume instead of rebuilding.The probe dir is cloud-ok only; I’ll pull the catalog, a delivered WFA example, the closure artifact, and the G-1 contract next.Next I’ll read the catalog unit, schema, a delivered WFA example, and hunt for the provenance graph on this box.The Windows cloud-ok run saved graph measurements — I’ll read those outputs and skip the slow git object walk.The 40-ref list is in the existing graph extract. Next I’ll add live Probe A/B, a ref-binding closure checker, and pack a SUCCESS receipt.**SUCCESS:delivered WFA-0002** `predicate=delivered state=SUCCESS probes=3 raws=5 notes=closure_checker.py:0,probe_a_filesystem.py:0,probe_b_git_head.py:0`
+
+G-1 is green for this unit. Named probes re-run to exit 0, the catalog artifact is `state=SUCCESS` (not BLOCKED), and the per-unit manifest row matches the live file.
+
+What was already in the probe tree: Windows cloud-ok work plus `_cloud_ok_graph.out.json`, which already held the 40 unresolved ref names from the 344197-byte graph (`sha256=143a07f0…`). The live graph file is still not mounted on this Linux worktree; that extract is the ref set.
+
+Live result at `HEAD=2d655b64f133addee2de3c8ddaa9c359ff815f89`:
+
+| Probe | Hits | Misses |
+|---|---|---|
+| A filesystem | 0 | 40 |
+| B git ls-tree/cat-file | 4 | 36 |
+
+- **ADD_CANDIDATE (4, repo-only drift):** `metaswarm-plan-review-gate`, `metaswarm-design-review-gate`, `metaswarm-orchestrated-execution`, `metaswarm-pr-shepherd` (present at HEAD under `skills-claude-only/`, absent from this sparse worktree)
+- **CORRECT_BLUEPRINT_PROV (36):** no filesystem or HEAD object of that name
+- After-fix: `provenance_resolution_rate=1.0`, `provenance_edges_unresolved=0`
+
+The old false-green is closed: `fabricated-ref-WFA-0002` borrowing a real metaswarm git path exits 1 (`unbound-anchor`). Path-shaped holdout `skills/workflow-authoring` matches HEAD `.agents/skills/workflow-authoring/SKILL.md`.
+
+Receipt and registration:
+
+- `command-center/wfa/WFA-0002-provenance-closure.json` — 39012 bytes, `sha256=e9d535c614d3e348fb6a5a104a6fd2c11f8e61dc94b2d1303291a5ec5cca4409`
+- `command-center/p2-wave/probes/WFA-0002/UNIT-ARTIFACT-MANIFEST.json` — same sha256/bytes
+- `command-center/p2-wave/probes/WFA-0002/SUBAGENT-RETURN.json`
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no global `unit_manifest.py --write`; no key rotation; no wave relaunch. Existing `_cloud_ok*` files were left in place.

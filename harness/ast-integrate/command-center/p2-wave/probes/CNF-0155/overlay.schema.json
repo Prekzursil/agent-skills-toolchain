@@ -1,0 +1,153 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/CNF-0155/overlay.schema.json",
+  "$comment": "Unit overlay on top of the generated discrepancy-ledger shim. The shim only pins report.kind; this file encodes the CNF-0155 evidence_requirement that every adjudication cites a non-empty pre-registered tiebreak_test_id.",
+  "type": "object",
+  "required": [
+    "report"
+  ],
+  "properties": {
+    "report": {
+      "type": "object",
+      "required": [
+        "kind",
+        "adjudications",
+        "fingerprint",
+        "live_corpus",
+        "per_vendor_error_profile",
+        "taxonomy"
+      ],
+      "properties": {
+        "kind": {
+          "const": "discrepancy-ledger"
+        },
+        "taxonomy": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "enum": [
+              "overclaim",
+              "false-pass",
+              "contamination"
+            ]
+          }
+        },
+        "fingerprint": {
+          "type": "array",
+          "minItems": 4
+        },
+        "live_corpus": {
+          "type": "object",
+          "required": [
+            "cnf_0154_present",
+            "live_disagreeing_pairs"
+          ]
+        },
+        "per_vendor_error_profile": {
+          "type": "object",
+          "required": [
+            "anthropic",
+            "openai",
+            "irreducible",
+            "reviewer_vendor"
+          ]
+        },
+        "adjudications": {
+          "type": "array",
+          "minItems": 4,
+          "items": {
+            "type": "object",
+            "required": [
+              "claim_id",
+              "outcome",
+              "tiebreak_test_id",
+              "tiebreak_result",
+              "pre_registration_ts"
+            ],
+            "properties": {
+              "claim_id": {
+                "type": "string",
+                "minLength": 1
+              },
+              "outcome": {
+                "enum": [
+                  "SETTLED",
+                  "IRREDUCIBLE"
+                ]
+              },
+              "tiebreak_test_id": {
+                "type": "string",
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]{2,}$"
+              },
+              "pre_registration_ts": {
+                "type": "string",
+                "minLength": 8
+              }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "properties": {
+                    "outcome": {
+                      "const": "SETTLED"
+                    }
+                  },
+                  "required": [
+                    "outcome"
+                  ]
+                },
+                "then": {
+                  "required": [
+                    "losing_vendor",
+                    "cause"
+                  ],
+                  "properties": {
+                    "losing_vendor": {
+                      "enum": [
+                        "anthropic",
+                        "openai"
+                      ]
+                    },
+                    "cause": {
+                      "enum": [
+                        "overclaim",
+                        "false-pass",
+                        "contamination"
+                      ]
+                    }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "properties": {
+                    "outcome": {
+                      "const": "IRREDUCIBLE"
+                    }
+                  },
+                  "required": [
+                    "outcome"
+                  ]
+                },
+                "then": {
+                  "properties": {
+                    "losing_vendor": {
+                      "type": "null"
+                    },
+                    "cause": {
+                      "type": "null"
+                    },
+                    "tiebreak_result": {
+                      "const": "UNSETTLEABLE"
+                    }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

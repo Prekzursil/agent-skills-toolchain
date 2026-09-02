@@ -1,0 +1,20 @@
+# Event History
+
+> For the complete documentation index, see [llms.txt](https://docs.temporal.io/llms.txt).
+> Any documentation page is available as raw Markdown by appending `.md` to its URL.
+
+> Discover how Temporal uses the Event History to recreate a Workflow's state in the case of failure, such as a Worker crash, and how it uses replay to restore the Workflow's state to the point of failure.
+
+With Temporal, your Workflows can seamlessly recover from crashes. This is made possible by the [Event History](/workflow-execution/event), a complete and durable log of everything that has happened in the lifecycle of a Workflow Execution, as well as the ability of the Temporal Service to durably persist the Events during Replay.
+
+Temporal uses the Event History to record every step taken along the way. Each time your Workflow Definition makes an API call to execute an Activity or start a Timer for instance, it doesn’t perform the action directly. Instead, it sends a Command to the Temporal Service.
+
+A Command is a requested action issued by a Worker to the Temporal Service after a Workflow Task Execution completes. The Temporal Service will act on these Commands such as scheduling an Activity or scheduling a timer. These Commands are then mapped to Events which are persisted in case of failure. For example, if the Worker crashes, the Worker uses the Event History to replay the code and recreate the state of the Workflow Execution to what it was immediately before the crash. It then resumes progress from the point of failure as if the failure never occurred.
+
+For a deep dive on how the Event History works, refer to the walkthroughs in the dropdown.
+
+- [Go](/encyclopedia/event-history/event-history-go)
+- [Java](/encyclopedia/event-history/event-history-java)
+- [Python](/encyclopedia/event-history/event-history-python)
+- [Typescript](/encyclopedia/event-history/event-history-typescript)
+- [.NET](/encyclopedia/event-history/event-history-dotnet)

@@ -1,0 +1,594 @@
+{
+  "schema_version": 1,
+  "unit_id": "BLD-0030",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:BLD-0030",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#BLD-0030",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "methodologist",
+    "execution_substrate": "linux-headless"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/BLD-0030.json",
+      "bytes": 29253,
+      "sha256": "57e31238393038a84e730ef62f58bdb7037072c3d0c72867b1402049ff20ba52",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/tag-position-audit.schema.json",
+      "bytes": 1079,
+      "sha256": "c07b0264eae0abd3790e408d714d5922927890255f6ded7a82c08eb10a06dceb",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/BLD-0030/audit.py",
+      "bytes": 16327,
+      "sha256": "cb4262c812f58c452ddbd7eb9b22a62ac647ab7c3f553f9d2ab4eb633a8c5b90",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A tag in the same sentence or the next sentence scores INLINE; a tag in a trailing Limitations section on a short file scores BURIED under section-structure while character-offset scores INLINE; a zero-tag file classifies NO-TAGS, distinct from ALL-INLINE.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md:7",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0030/probe1_controls.py",
+          "raw_output": "{\n  \"unit_id\": \"BLD-0030\",\n  \"controls\": [\n    {\n      \"id\": \"C1-INLINE\",\n      \"name\": \"tag in same sentence or immediately following sentence scores INLINE\",\n      \"want\": \"INLINE\",\n      \"got\": \"INLINE,INLINE\",\n      \"pass\": true,\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-inline.md\",\n      \"n_chars\": 283,\n      \"document_class\": \"ALL-INLINE\"\n    },\n    {\n      \"id\": \"C2-BURIED-SHORT\",\n      \"name\": \"tag in trailing Limitations section scores BURIED even when the document is short\",\n      \"want\": \"BURIED\",\n      \"got\": \"BURIED\",\n      \"pass\": true,\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md\",\n      \"n_chars\": 473,\n      \"reasons\": [\n        \"trailing-caveat-section:Limitations\"\n      ],\n      \"character_offset_verdicts\": [\n        \"INLINE\"\n      ],\n      \"character_offset_positions\": [\n        0.40592\n      ]\n    },\n    {\n      \"id\": \"C3-NO-TAGS\",\n      \"name\": \"zero-tag document classifies NO-TAGS, distinct from ALL-INLINE\",\n      \"want\": \"NO-TAGS\",\n      \"got\": \"NO-TAGS\",\n      \"pass\": true,\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-no-tags.md\",\n      \"inline_fixture_class\": \"ALL-INLINE\",\n      \"classes_distinct\": true\n    },\n    {\n      \"id\": \"C4-MENTION\",\n      \"name\": \"backticked UNVERIFIED is a mention and must not harvest\",\n      \"want\": \"NO-TAGS\",\n      \"got\": \"NO-TAGS\",\n      \"pass\": true,\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-mention.md\"\n    },\n    {\n      \"id\": \"C5-RESIDUAL\",\n      \"name\": \"tag in trailing Residual section scores BURIED\",\n      \"want\": \"BURIED\",\n      \"got\": \"BURIED\",\n      \"pass\": true,\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md\"\n    }\n  ]\n}\ninline=INLINE,INLINE buried=BURIED no_tags=NO-TAGS mention=NO-TAGS\nSUCCESS:BLD-0030-probe1 catalog controls inline/buried/no-tags",
+          "fingerprint": "526d7690cda213047575e8e4c05d50266521685b0696a2ae7495690835ce3fbd",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "read command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md",
+          "raw_output": "heading=Limitations tag_line=7 claim_line=3 section_verdict=BURIED character_offset=INLINE n_chars=473",
+          "fingerprint": "07a8555e54d4e84398e47ae6abe038db60c53b0678e6ebb61607187c240e32cb",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Every BURIED finding cites tag_line and the claim_line it should have sat next to. Two independent reviews of trailing-section findings confirm a reader who stops at the claim does not meet the caveat.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md:7",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python3 -B command-center/p2-wave/probes/BLD-0030/audit.py",
+          "raw_output": "corpus_tags=498 buried=20 fixture_buried=2",
+          "fingerprint": "998ae53638445a7b2896f3ae5ba4726cde8f9fdfcfa3a6da765e88675590c105",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0030/probe2_reviewer.py",
+          "raw_output": "{\n  \"unit_id\": \"BLD-0030\",\n  \"confirmed\": [\n    {\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md\",\n      \"tag\": \"UNVERIFIED\",\n      \"tag_line\": 7,\n      \"claim_line\": 3,\n      \"reason\": \"trailing-caveat-section:Limitations\",\n      \"reader_would_meet_caveat\": false,\n      \"reclassified\": \"BURIED\"\n    },\n    {\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md\",\n      \"tag\": \"NOT-CHECKED\",\n      \"tag_line\": 7,\n      \"claim_line\": 3,\n      \"reason\": \"trailing-caveat-section:Residual\",\n      \"reader_would_meet_caveat\": false,\n      \"reclassified\": \"BURIED\"\n    }\n  ],\n  \"deciles\": [\n    47,\n    21,\n    33,\n    46,\n    16,\n    41,\n    40,\n    61,\n    90,\n    103\n  ],\n  \"final_15_percent\": {\n    \"count\": 152,\n    \"fraction_of_tags\": 0.305221\n  },\n  \"n_tags\": 498\n}\nconfirmed=2 reader_meets=False deciles=10\nSUCCESS:BLD-0030-probe2 two BURIED findings reader would not meet",
+          "fingerprint": "8c9d7cbc2d7a9b10534662c8def39c8ec9fc1083d52e7209f9792c3f128d34dd",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0030/probe1_controls.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0030/probe2_reviewer.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-BURIED-SHORT-OFFSET",
+      "kind": "known-broken-fixture",
+      "description": "Character-offset on a short Limitations file scores INLINE; section-structure must still fire BURIED. A detector silent on this fixture is inert for the catalog control.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "character-offset=INLINE",
+      "good_state_output": "section-structure=BURIED"
+    },
+    {
+      "id": "NC-NO-TAGS-DISTINCT",
+      "kind": "known-broken-fixture",
+      "description": "A zero-tag document must classify NO-TAGS, not ALL-INLINE.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "collapsed-class-would-be-ALL-INLINE",
+      "good_state_output": "NO-TAGS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "BLD-0030-probe2-reviewer",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Re-opens two cited BURIED files, re-classifies, and checks that a reader who follows the claim line does not meet the caveat."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/BLD-0030/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "BLD-0030"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "BLD-0030 probe2_reviewer.py",
+      "artifact_path": "command-center/receipts/BLD-0030.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0030/probe2_reviewer.py",
+        "raw_output": "{\n  \"unit_id\": \"BLD-0030\",\n  \"confirmed\": [\n    {\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md\",\n      \"tag\": \"UNVERIFIED\",\n      \"tag_line\": 7,\n      \"claim_line\": 3,\n      \"reason\": \"trailing-caveat-section:Limitations\",\n      \"reader_would_meet_caveat\": false,\n      \"reclassified\": \"BURIED\"\n    },\n    {\n      \"path\": \"command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md\",\n      \"tag\": \"NOT-CHECKED\",\n      \"tag_line\": 7,\n      \"claim_line\": 3,\n      \"reason\": \"trailing-caveat-section:Residual\",\n      \"reader_would_meet_caveat\": false,\n      \"reclassified\": \"BURIED\"\n    }\n  ],\n  \"deciles\": [\n    47,\n    21,\n    33,\n    46,\n    16,\n    41,\n    40,\n    61,\n    90,\n    103\n  ],\n  \"final_15_percent\": {\n    \"count\": 152,\n    \"fraction_of_tags\": 0.305221\n  },\n  \"n_tags\": 498\n}\nconfirmed=2 reader_meets=False deciles=10\nSUCCESS:BLD-0030-probe2 two BURIED findings reader would not meet",
+        "fingerprint": "8c9d7cbc2d7a9b10534662c8def39c8ec9fc1083d52e7209f9792c3f128d34dd",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:41Z",
+    "ended_at": "2026-08-25T00:58:46Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Two strikes then pivot from character-offset position to section-structure position before a third attempt."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "rules/common/fan-out-contract.md A3 is present on this worktree. The inline/buried rule is taken from tests_required; A3 is the named input.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "stat rules/common/fan-out-contract.md and read A3; if it states inline-adjacency, this classifier is the executable reading of that sentence."
+    },
+    {
+      "claim": "The catalog's 40%/127 baseline is a prior-estate figure. This worktree's live narrative n is 498; the 127 is not reused as a count.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run the harvest on the estate that produced the 127-flag memory and compare final-15 concentration."
+    },
+    {
+      "claim": "platform/lib/schema_resolver.py validator_for raised TypeError on this jsonschema build; the local CONTRACT is the discriminating check that rejected garbage.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run validate_artifact against command-center/schema/tag-position-audit.schema.json on a jsonschema that accepts referencing.Registry."
+    }
+  ],
+  "report": {
+    "kind": "tag-position-audit",
+    "observations": [
+      {
+        "name": "catalog-control-inline",
+        "measured": "INLINE,INLINE",
+        "method": "section-structure classifier on control-inline.md",
+        "anchor": "command-center/p2-wave/probes/BLD-0030/fixtures/control-inline.md:3"
+      },
+      {
+        "name": "catalog-control-buried-short",
+        "measured": "BURIED",
+        "method": "section-structure classifier on control-buried-short.md",
+        "anchor": "command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md:7"
+      },
+      {
+        "name": "catalog-control-no-tags",
+        "measured": "NO-TAGS",
+        "method": "section-structure classifier on control-no-tags.md",
+        "anchor": "command-center/p2-wave/probes/BLD-0030/fixtures/control-no-tags.md:1"
+      },
+      {
+        "name": "corpus-final-15-fraction",
+        "measured": 0.305221,
+        "method": "character-offset histogram over live narrative corpus",
+        "anchor": "rules/common/fan-out-contract.md:17"
+      },
+      {
+        "name": "corpus-buried-count",
+        "measured": 20,
+        "method": "section-structure burial rule",
+        "anchor": "command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md:7"
+      }
+    ],
+    "control_ids": [
+      "C1-INLINE",
+      "C2-BURIED-SHORT",
+      "C3-NO-TAGS",
+      "C4-MENTION",
+      "C5-RESIDUAL"
+    ],
+    "title": "Caveat-position audit: inline adjacency versus a buried limitations section",
+    "question": "Which UNVERIFIED or NOT-CHECKED caveat is buried where a reader will never meet it? For every tag in the corpus, compute its position as a fraction of its document and whether it sits adjacent to the claim it qualifies.",
+    "method": {
+      "primary": "section-structure",
+      "character_offset_role": "Position fraction and decile histogram. The estate defect is concentration in the final decile, which a mean conceals.",
+      "section_structure_role": "Burial rule. A trailing Limitations or Residual section is BURIED even when the file is short."
+    },
+    "position_distribution": {
+      "n_tags": 498,
+      "mean": 0.61341,
+      "deciles": [
+        47,
+        21,
+        33,
+        46,
+        16,
+        41,
+        40,
+        61,
+        90,
+        103
+      ],
+      "final_decile": {
+        "count": 103,
+        "fraction_of_tags": 0.206827
+      },
+      "final_15_percent": {
+        "count": 152,
+        "fraction_of_tags": 0.305221
+      },
+      "not_just_a_mean": true,
+      "scope": "live narrative corpus (docs/, rules/, command-center *.md/*.txt) excluding receipts, p2-wave operational trees, schema, catalog-slices, and this unit's probes. Fixtures are controls, not the estate.",
+      "fixture_control_distribution": {
+        "n_tags": 4,
+        "mean": 0.528007,
+        "deciles": [
+          0,
+          0,
+          0,
+          1,
+          2,
+          0,
+          0,
+          0,
+          0,
+          1
+        ],
+        "final_decile": {
+          "count": 1,
+          "fraction_of_tags": 0.25
+        },
+        "final_15_percent": {
+          "count": 1,
+          "fraction_of_tags": 0.25
+        },
+        "not_just_a_mean": true
+      },
+      "historical_baseline": {
+        "claim": "40 percent of 127 real flags sat in the final 15 percent of their document",
+        "this_corpus_n": 498,
+        "this_corpus_final_15_fraction": 0.305221,
+        "verdict": "CONCENTRATION-PRESENT",
+        "note": "The 127-flag figure is a prior-estate memory. This receipt reports this worktree's live harvest; it does not reuse the 127 as a count."
+      }
+    },
+    "document_classes": {
+      "NO-TAGS": 391,
+      "ALL-INLINE": 173,
+      "ALL-BURIED": 6,
+      "MIXED": 10
+    },
+    "document_classes_corpus_only": {
+      "NO-TAGS": 389,
+      "ALL-INLINE": 172,
+      "ALL-BURIED": 4,
+      "MIXED": 10
+    },
+    "document_classes_fixtures": {
+      "NO-TAGS": 2,
+      "ALL-INLINE": 1,
+      "ALL-BURIED": 2,
+      "MIXED": 0
+    },
+    "buried_findings": [
+      {
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 7,
+        "tag_snippet": "The freeze hook has never been observed on a real merge for this unit. UNVERIFIED",
+        "claim_line": 3,
+        "claim_snippet": "Ship the freeze hook as a required merge gate for every change that touches receipts.",
+        "position_fraction": 0.40592,
+        "reason": "trailing-caveat-section:Limitations"
+      },
+      {
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 7,
+        "tag_snippet": "The fan-out contract file named as an input was not on this worktree. NOT-CHECKED",
+        "claim_line": 3,
+        "claim_snippet": "Treat the measured distribution as the load-bearing result, not the historical 127-flag memory.",
+        "position_fraction": 0.942857,
+        "reason": "trailing-caveat-section:Residual"
+      },
+      {
+        "path": "command-center/WAVE4-MARKETPLACE-LIFECYCLE.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 244,
+        "tag_snippet": "## Residual / NOT-CHECKED",
+        "claim_line": 242,
+        "claim_snippet": "Two signals: exit code and terminal marker.",
+        "position_fraction": 0.907092,
+        "reason": "trailing-caveat-section:Residual / NOT-CHECKED"
+      },
+      {
+        "path": "command-center/WAVE4-MARKETPLACE-LIFECYCLE.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 246,
+        "tag_snippet": "* **Whole-`platform` suite: NOT-CHECKED.** This unit wrote nothing under `platform/`; `git status",
+        "claim_line": 242,
+        "claim_snippet": "Two signals: exit code and terminal marker.",
+        "position_fraction": 0.909624,
+        "reason": "trailing-caveat-section:Residual / NOT-CHECKED"
+      },
+      {
+        "path": "command-center/WAVE4-MARKETPLACE-LIFECYCLE.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 250,
+        "tag_snippet": "a real transport is **NOT-CHECKED**; both are content/state defects rather than transport ones, so",
+        "claim_line": 242,
+        "claim_snippet": "Two signals: exit code and terminal marker.",
+        "position_fraction": 0.929392,
+        "reason": "trailing-caveat-section:Residual / NOT-CHECKED"
+      },
+      {
+        "path": "command-center/STRUCTURAL-CONDITION-11.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 101,
+        "tag_snippet": "- The 2,007-unit output-path census was originally the reviewer's and I marked it UNVERIFIED by a",
+        "claim_line": 97,
+        "claim_snippet": "**Both** manifest presence and the flag are required.",
+        "position_fraction": 0.891162,
+        "reason": "trailing-caveat-section:Residual"
+      },
+      {
+        "path": "command-center/BASELINE-SNAPSHOT.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 257,
+        "tag_snippet": "### NOT-CHECKED (3)",
+        "claim_line": 252,
+        "claim_snippet": "*Settling experiment: run the full\n`hooks/` suite 5\u00d7 with the CI ignores and record the failure rate; if it recurs, bisect with\n`-p no:randomly` and by running ",
+        "position_fraction": 0.855828,
+        "reason": "not-adjacent-to-claim"
+      },
+      {
+        "path": "command-center/CROSS-VENDOR-RAIL-STATUS.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 218,
+        "tag_snippet": "be read as evidence for the rail claim. **UNVERIFIED whether a liveness probe belongs in CI at",
+        "claim_line": 208,
+        "claim_snippet": "An independent auditor re-derived the split from the **pre-edit**\nblobs \u2014 before the ten receipts were touched \u2014 and got the same ten ids.",
+        "position_fraction": 0.907435,
+        "reason": "trailing-caveat-section:Residual \u2014 still open"
+      },
+      {
+        "path": "command-center/CROSS-VENDOR-RAIL-STATUS.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 222,
+        "tag_snippet": "2. **UNVERIFIED [uncertain, 20-55%]:** whether the MCP transport was genuinely failing on 08-12 and",
+        "claim_line": 208,
+        "claim_snippet": "An independent auditor re-derived the split from the **pre-edit**\nblobs \u2014 before the ten receipts were touched \u2014 and got the same ten ids.",
+        "position_fraction": 0.926213,
+        "reason": "trailing-caveat-section:Residual \u2014 still open"
+      },
+      {
+        "path": "command-center/CROSS-VENDOR-RAIL-STATUS.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 226,
+        "tag_snippet": "3. **UNVERIFIED [uncertain, 20-55%]:** whether the 72 would PASS a Codex review. What is measured",
+        "claim_line": 208,
+        "claim_snippet": "An independent auditor re-derived the split from the **pre-edit**\nblobs \u2014 before the ten receipts were touched \u2014 and got the same ten ids.",
+        "position_fraction": 0.949905,
+        "reason": "trailing-caveat-section:Residual \u2014 still open"
+      },
+      {
+        "path": "command-center/CROSS-VENDOR-RAIL-STATUS.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 233,
+        "tag_snippet": "6. **NOT-CHECKED:** full CI. A Windows-local green is not CI green; the suite has roughly 25 steps",
+        "claim_line": 208,
+        "claim_snippet": "An independent auditor re-derived the split from the **pre-edit**\nblobs \u2014 before the ten receipts were touched \u2014 and got the same ten ids.",
+        "position_fraction": 0.991682,
+        "reason": "trailing-caveat-section:Residual \u2014 still open"
+      },
+      {
+        "path": "command-center/WAVE3-FLOOR-AUDIT.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 487,
+        "tag_snippet": "## RESIDUAL / NOT-CHECKED",
+        "claim_line": 479,
+        "claim_snippet": "| # | wrong reading | what caught it | correction |\n|---|---|---|---|\n| 1 | D2 census: `hold_Task 0`, `hold_mcp__ 0` | contradicted the shipped gate's 942-unit ",
+        "position_fraction": 0.953589,
+        "reason": "trailing-caveat-section:RESIDUAL / NOT-CHECKED"
+      },
+      {
+        "path": "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 352,
+        "tag_snippet": "## NOT-CHECKED",
+        "claim_line": 347,
+        "claim_snippet": "What it did **not** do is\nadversarially tamper with an *installed* prefix or with *deployed* files \u2014 which is exactly\nwhere D-P5-4 and D-P5-5 live \u2014 and it ship",
+        "position_fraction": 0.943276,
+        "reason": "not-adjacent-to-claim"
+      },
+      {
+        "path": "command-center/P11-CONFIRMATION.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 137,
+        "tag_snippet": "## NOT-CHECKED \u2014 stated, never folded into a pass",
+        "claim_line": 133,
+        "claim_snippet": "Separately, the Wave-2 audit's \"verbatim\" forge transcript omits\n  the mandatory `--source` arguments (`required=True` since `51156b0d`), so the recipe as print",
+        "position_fraction": 0.801578,
+        "reason": "not-adjacent-to-claim"
+      },
+      {
+        "path": "command-center/WAVE1-FLOOR-AUDIT.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 189,
+        "tag_snippet": "## NOT-CHECKED (stated, not folded into a pass)",
+        "claim_line": 187,
+        "claim_snippet": "**F-W1-06 \u00b7 INFO** \u2014 any downstream preset/protocol gate must run **both** validator layers.",
+        "position_fraction": 0.927072,
+        "reason": "trailing-caveat-section:NOT-CHECKED (stated, not folded into a pass)"
+      },
+      {
+        "path": "command-center/slop-report/SLOP-BUILD-R3.md",
+        "tag": "NOT-CHECKED",
+        "tag_line": 390,
+        "tag_snippet": "* **The ~84 non-ruff `quality.yml` steps** \u2014 NOT-CHECKED, out of reach from here. Nothing in this",
+        "claim_line": 373,
+        "claim_snippet": "| rev | what | files | foreign paths | deletions outside my own files |\n|---|---|---|---|---|\n| `51b98feb` | twin-parity guard: 7 declared pairs \u2192 full-surface ",
+        "position_fraction": 0.986379,
+        "reason": "trailing-caveat-section:RESIDUALS, disclosed rather than closed"
+      },
+      {
+        "path": "command-center/slop-report/SLOP-BUILD-R3.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 392,
+        "tag_snippet": "* **UNVERIFIED**: whether any committed receipt digest-locks the carried probe bytes. Unchanged",
+        "claim_line": 373,
+        "claim_snippet": "| rev | what | files | foreign paths | deletions outside my own files |\n|---|---|---|---|---|\n| `51b98feb` | twin-parity guard: 7 declared pairs \u2192 full-surface ",
+        "position_fraction": 0.992326,
+        "reason": "trailing-caveat-section:RESIDUALS, disclosed rather than closed"
+      },
+      {
+        "path": "command-center/slop-report/SLOP-BUILD-R2.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 335,
+        "tag_snippet": "4. **UNVERIFIED:** whether any committed receipt declares a digest of the 45 committed probe",
+        "claim_line": 323,
+        "claim_snippet": "No\nfrozen file was opened for write at any point in this round.",
+        "position_fraction": 0.980825,
+        "reason": "trailing-caveat-section:Residual (round 2)"
+      },
+      {
+        "path": "docs/mcp-audit/LANE-MCPRESEARCH-BUILD-R1.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 214,
+        "tag_snippet": "- **CI-runner behaviour still UNVERIFIED.** Green locally on py 3.14.6 at the CI-pinned",
+        "claim_line": 199,
+        "claim_snippet": "All lane files are **0 CRLF, pure LF** (byte-checked), and local ruff is the exact CI pin,\nso the working-tree green is not the CRLF false-green that windows-sh",
+        "position_fraction": 0.941275,
+        "reason": "trailing-caveat-section:Residual \u2014 inline, and none of it blocks"
+      },
+      {
+        "path": "docs/mcp-audit/LANE-MCPRESEARCH-BUILD-R2.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 257,
+        "tag_snippet": "- **CI-runner behaviour still UNVERIFIED.** Green locally on three interpreters at the",
+        "claim_line": 226,
+        "claim_snippet": "`git` printed *\"LF will be replaced by CRLF\"* working-copy\nwarnings on commit \u2014 those describe the working tree, not the blob, and the determinism\ncheck settles",
+        "position_fraction": 0.898584,
+        "reason": "trailing-caveat-section:Residual \u2014 inline, and none of it blocks"
+      },
+      {
+        "path": "docs/workflow-sota/INTEGRATE-LOG.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 196,
+        "tag_snippet": "**UNVERIFIED until then** \u2014 no claim here covers runner behaviour.",
+        "claim_line": 142,
+        "claim_snippet": "CI runs `ubuntu-latest`.",
+        "position_fraction": 0.902609,
+        "reason": "trailing-caveat-section:Residual \u2014 what is NOT done"
+      },
+      {
+        "path": "docs/harness/mcp-reaper-needle-collision-2026-08-14.md",
+        "tag": "UNVERIFIED",
+        "tag_line": 99,
+        "tag_snippet": "substring of an unrelated path will reproduce the class. **UNVERIFIED** whether other",
+        "claim_line": 91,
+        "claim_snippet": "The test asserts the property that actually matters \u2014 a real `Documents\\GitHub\\` git command\nline must NOT match \u2014 and keeps a control that each needle still ma",
+        "position_fraction": 0.820411,
+        "reason": "trailing-caveat-section:Residual, disclosed rather than fixed"
+      }
+    ],
+    "controls": [
+      {
+        "id": "C1-INLINE",
+        "name": "tag in same sentence or immediately following sentence scores INLINE",
+        "want": "INLINE",
+        "got": "INLINE,INLINE",
+        "pass": true,
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-inline.md",
+        "n_chars": 283,
+        "document_class": "ALL-INLINE"
+      },
+      {
+        "id": "C2-BURIED-SHORT",
+        "name": "tag in trailing Limitations section scores BURIED even when the document is short",
+        "want": "BURIED",
+        "got": "BURIED",
+        "pass": true,
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-buried-short.md",
+        "n_chars": 473,
+        "reasons": [
+          "trailing-caveat-section:Limitations"
+        ],
+        "character_offset_verdicts": [
+          "INLINE"
+        ],
+        "character_offset_positions": [
+          0.40592
+        ]
+      },
+      {
+        "id": "C3-NO-TAGS",
+        "name": "zero-tag document classifies NO-TAGS, distinct from ALL-INLINE",
+        "want": "NO-TAGS",
+        "got": "NO-TAGS",
+        "pass": true,
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-no-tags.md",
+        "inline_fixture_class": "ALL-INLINE",
+        "classes_distinct": true
+      },
+      {
+        "id": "C4-MENTION",
+        "name": "backticked UNVERIFIED is a mention and must not harvest",
+        "want": "NO-TAGS",
+        "got": "NO-TAGS",
+        "pass": true,
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-mention.md"
+      },
+      {
+        "id": "C5-RESIDUAL",
+        "name": "tag in trailing Residual section scores BURIED",
+        "want": "BURIED",
+        "got": "BURIED",
+        "pass": true,
+        "path": "command-center/p2-wave/probes/BLD-0030/fixtures/control-residual.md"
+      }
+    ],
+    "counts": {
+      "corpus_documents": 575,
+      "corpus_tags": 498,
+      "corpus_buried": 20,
+      "corpus_inline": 478,
+      "fixture_tags": 4,
+      "fixture_buried": 2
+    }
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "fan_out_contract_present": true,
+    "notes": "G-1 for BLD-0030: live named probes, non-BLOCKED receipt, per-unit manifest. Did not run unit_manifest.py --write. Did not git commit. JSON receipts were excluded from harvest (use-versus-mention).",
+    "physical_schema": "resolver-incompatible:TypeError"
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "workflows": {
+    "src.review": {
+      "id": "src.review",
+      "kind": "source",
+      "status": "ACTIVE",
+      "sources_declared": [],
+      "sources_unresolved": [],
+      "document": {
+        "id": "src.review",
+        "stg": ["review"],
+        "gates": ["human-approve"],
+        "tools": ["diff"],
+        "stop": ["owner-reject"],
+        "res": ["retry-once"],
+        "fail": ["escalate-owner"]
+      }
+    },
+    "src.test": {
+      "id": "src.test",
+      "kind": "source",
+      "status": "ACTIVE",
+      "sources_declared": [],
+      "sources_unresolved": [],
+      "document": {
+        "id": "src.test",
+        "stg": ["test"],
+        "gates": ["coverage-floor"],
+        "tools": ["pytest"],
+        "stop": ["fail-closed"],
+        "res": [],
+        "fail": ["block-merge"]
+      }
+    },
+    "src.deploy": {
+      "id": "src.deploy",
+      "kind": "source",
+      "status": "ACTIVE",
+      "sources_declared": [],
+      "sources_unresolved": [],
+      "document": {
+        "id": "src.deploy",
+        "stg": ["deploy"],
+        "gates": ["change-window"],
+        "tools": ["ship"],
+        "stop": ["prod-freeze"],
+        "res": ["rollback-slot"],
+        "fail": ["page-oncall"]
+      }
+    },
+    "wf.legacy": {
+      "id": "wf.legacy",
+      "kind": "fusion",
+      "status": "CERTIFIED",
+      "sources_declared": ["src.review", "src.test"],
+      "sources_unresolved": [],
+      "document": {
+        "id": "wf.legacy",
+        "stg": ["review", "test"],
+        "gates": ["human-approve", "coverage-floor"],
+        "tools": ["diff", "pytest"],
+        "stop": ["owner-reject", "fail-closed"],
+        "res": ["retry-once"],
+        "fail": ["escalate-owner", "block-merge"]
+      }
+    },
+    "wf.replacement": {
+      "id": "wf.replacement",
+      "kind": "fusion",
+      "status": "CERTIFIED",
+      "sources_declared": ["src.review", "src.test", "src.deploy"],
+      "sources_unresolved": [],
+      "document": {
+        "id": "wf.replacement",
+        "stg": ["review", "test", "deploy"],
+        "gates": ["human-approve", "coverage-floor", "change-window"],
+        "tools": ["diff", "pytest", "ship"],
+        "stop": ["owner-reject", "fail-closed", "prod-freeze"],
+        "res": ["retry-once", "rollback-slot"],
+        "fail": ["escalate-owner", "block-merge", "page-oncall"]
+      }
+    }
+  },
+  "callers": {
+    "pack.nightly": {
+      "id": "pack.nightly",
+      "kind": "pack",
+      "embeds": ["wf.legacy"]
+    },
+    "preset.pr-gate": {
+      "id": "preset.pr-gate",
+      "kind": "preset",
+      "embeds": ["wf.legacy"]
+    },
+    "fusion.pipeline": {
+      "id": "fusion.pipeline",
+      "kind": "fusion",
+      "embeds": ["wf.legacy", "src.deploy"]
+    }
+  }
+}

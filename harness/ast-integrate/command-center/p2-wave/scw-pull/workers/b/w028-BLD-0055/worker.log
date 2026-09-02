@@ -1,0 +1,23 @@
+I'll start from the existing BLD-0055 probe tree, read any SUBAGENT-RETURN already there, and resume from that rather than rebuilding.The probe dir looks sparse next to a large receipt; I’ll read the unit contract, measure script, and remaining probe files next.The probe tree is only a cloud-ok refute plus a parent handoff — I’ll pull the catalog contract, measure script, and a delivered sibling unit so we resume from those, not from the harvest.The measure gate is clear; next I’ll pull the catalog unit, scale-model schema, and a delivered sibling so the probes match the real contract.Catalog contract is a measured scaling curve; I’ll inspect the physical schema, a delivered sibling, and `ready_units` so SUCCESS isn’t a hand-flip.SUCCESS is schema-gated (no open P1s, independent PASS, registered). I’ll read those constraints and the stage sources next so the receipt and probes can actually satisfy them.I have the contract and the sparse-tree limits. Next I’ll implement live named probes that call the real stages we still have, then pack an honest SUCCESS receipt.I’m writing the two named probes plus a packer, then I’ll run a live measurement on this box.Default probe is green. Next I’ll take the n=20480 points the catalog actually asks for.**SUCCESS:delivered BLD-0055** `predicate=delivered state=SUCCESS probes=2 raws=5 notes=probe1_measure_fit.py:0,probe2_independent_refit.py:0`
+
+G-1 is green for this unit only. `python command-center/p2-wave/_measure_one_delivered.py BLD-0055` printed that line after re-running the live named probes to exit 0. Cloud `ok=true` was not treated as delivery.
+
+The harvest receipt was BLOCKED: probe scripts were missing, `refit.py` crashed on `rss_measurements`, and fan-in at n=20480 had been right-censored. This pass restored runnable probes, aligned the independent refit to `raw_measurements[].peak_rss_kib`, and completed all four catalog sizes including fan-in.
+
+**Answer (measured, OLS log-log, CPU 0, concurrency 1, AMD EPYC 7543):**
+
+| Stage | p | class | n=20480 wall | 2048→20480 ratio |
+|---|---|---|---|---|
+| fan_in_reduction | 1.996 | super-linear | 195.66 s | 102.7× |
+| pairwise_duplicate | 1.988 | super-linear | 11.03 s | 94.8× |
+| dependency_closure | 1.873 | super-linear | 21.95 s | 93.8× |
+| runner / validator / hashing / cross-ref | ~0.63–1.02 | linear | — | ~8–12× |
+
+Fan-in is the 10× break. Independent refit matched 7/7 exponents. Generator, prediction-failure, linear-discriminator, and 0.05 s resource-guard controls all passed.
+
+**Wrote**
+- `command-center/p2-wave/probes/BLD-0055/SUBAGENT-RETURN.json` (`status=DELIVERED`)
+- `command-center/p2-wave/probes/BLD-0055/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; live LF sha256 `4ca2b993a955519bb7b0f8dcb00d34f853ffbbccdf610ddbaf084d2585c5f7a8`)
+- `command-center/receipts/BLD-0055.json` (`state=SUCCESS`, 49891 B)
+
+**Constraints kept:** no git writes, no global `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close or p2-cloud-ok-deliver.

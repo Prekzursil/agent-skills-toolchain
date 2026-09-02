@@ -1,0 +1,582 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p14-judge-and-jury",
+  "preset": "evidence_adjudication_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Separate fact-finding from rule-application: the jury finds facts under an evidence standard, the judge applies the gate rule to exactly those facts.",
+    "charter": "JUDICIAL family. The judge may not add, remove or reinterpret a fact; the jury may not apply the rule. Any judge-side fact the jury did not find is a protocol violation.",
+    "risk_tier": "high",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "the judge output quotes the jury fact list verbatim and adds none",
+      "a diff of judge facts against jury facts is empty",
+      "each found fact carries its own file_line anchor"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "deadline_minutes": 120
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 7,
+      "min": 7,
+      "max": 7
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5,
+      "max_share_per_vendor": 0.6
+    },
+    "roster": [
+      {
+        "participant_id": "juror-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "log analysis",
+          "timeline reconstruction"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "partition_id": "facts-only"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "juror-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "static analysis",
+          "reading diffs"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "partition_id": "facts-only"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "juror-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "measurement design",
+          "statistics"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "partition_id": "facts-only"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "juror-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "build systems",
+          "CI forensics"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "partition_id": "facts-only"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "juror-5",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "test semantics",
+          "coverage"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "partition_id": "facts-only"
+        },
+        "independence": {
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "judge",
+        "display_name": "Judge (applies the rule to the found facts; may not find facts)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "decision rules",
+          "compliance gates"
+        ],
+        "role": "judge",
+        "authority": "judge",
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "context": {
+          "partition_id": "found-facts-and-rule"
+        }
+      },
+      {
+        "participant_id": "clerk",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "fact-set diffing",
+          "transcript integrity"
+        ],
+        "role": "scribe",
+        "authority": "observer",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "pseudonymous",
+      "reveal_after_round": 2
+    },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "role_scoped",
+      "partitions": [
+        {
+          "partition_id": "facts-only",
+          "visible_to": [
+            "juror-1",
+            "juror-2",
+            "juror-3",
+            "juror-4",
+            "juror-5"
+          ],
+          "sources": [
+            "the artifact under review",
+            "the evidence pack"
+          ]
+        },
+        {
+          "partition_id": "found-facts-and-rule",
+          "visible_to": [
+            "judge"
+          ],
+          "sources": [
+            "the jury's found-fact list",
+            "the decision rule text"
+          ]
+        }
+      ]
+    },
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "role_collapse",
+        "inactivity",
+        "conflict_of_interest"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "evidence_pack",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "jury",
+    "committees": [
+      {
+        "committee_id": "jury",
+        "mandate": "find facts only, under the declared evidence standard",
+        "members": [
+          "juror-1",
+          "juror-2",
+          "juror-3",
+          "juror-4",
+          "juror-5"
+        ]
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "fact-drafting",
+        "independent": true,
+        "anonymous": true,
+        "rounds": 1,
+        "participants": [
+          "juror-1",
+          "juror-2",
+          "juror-3",
+          "juror-4",
+          "juror-5"
+        ]
+      },
+      {
+        "kind": "jury",
+        "stage_id": "fact-finding",
+        "rounds": 3,
+        "participants": [
+          "juror-1",
+          "juror-2",
+          "juror-3",
+          "juror-4",
+          "juror-5"
+        ],
+        "quotas": {
+          "objections_per_participant": 2
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "unanimity",
+              "op": "==",
+              "value": true,
+              "note": "the fact set is agreed by every juror"
+            },
+            {
+              "metric": "evidence_items",
+              "op": ">=",
+              "value": 8,
+              "note": "each fact is anchored"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "fact-challenge",
+        "rounds": 1,
+        "participants": [
+          "judge",
+          "juror-1",
+          "juror-2",
+          "juror-3",
+          "juror-4",
+          "juror-5"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "rule-application",
+        "rounds": 1,
+        "participants": [
+          "judge"
+        ],
+        "exit_when": {
+          "metric": "custom:judge_added_facts",
+          "op": "==",
+          "value": 0,
+          "value_type": "number",
+          "producer": "fact_set_diff",
+          "note": "diff(judge facts, jury facts) must be empty; any addition is a protocol violation"
+        }
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 600
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": false,
+      "max_experiments": 3,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 120,
+    "tool_calls": 200,
+    "sources": 25,
+    "turns": 40,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 3,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "objections": 6,
+    "counterexamples": 3,
+    "evidence_items": 16,
+    "coverage_score": 0.9,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "judge",
+    "quorum": {
+      "min_voters": 5,
+      "min_fraction": 0.7,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "median",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "all_participants_spoke == true AND evidence_items >= 8 AND (verdict == CONFIRMED OR verdict == REFUTED OR deadlock_detected == true)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 8
+        },
+        {
+          "any_of": [
+            {
+              "metric": "verdict",
+              "op": "==",
+              "value": "CONFIRMED"
+            },
+            {
+              "metric": "verdict",
+              "op": "==",
+              "value": "REFUTED"
+            },
+            {
+              "metric": "deadlock_detected",
+              "op": "==",
+              "value": true
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 5,
+      "every_participant_spoke": true,
+      "min_evidence_items": 8
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 120,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "every fact the rule depends on is anchored and unanimous",
+      "the judge records which rule clause each fact satisfies"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "blind_re_evaluation",
+      "strongest_counterexample",
+      "judge_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "role_collapse",
+      "moderator_capture",
+      "sycophancy",
+      "evidence_free_majority",
+      "lost_dissent",
+      "premature_convergence",
+      "hidden_conflict_of_interest"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "evidence_map",
+      "claim_evidence_contradiction_graph",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P14 judge and jury",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:324-339"
+    ],
+    "notes": "Fact/rule separation is carried mechanically by information_partition (jurors see the artifact, the judge sees ONLY the found-fact list plus the rule) plus the rule-application stage exit_when custom:judge_added_facts == 0, producer fact_set_diff. The producer is not implemented by this unit: the separation is SPECIFIED and schema-valid, NOT-CHECKED at runtime."
+  }
+}

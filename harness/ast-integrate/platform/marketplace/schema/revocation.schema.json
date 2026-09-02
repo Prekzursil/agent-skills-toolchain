@@ -1,0 +1,53 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/revocation.schema.json",
+  "title": "Revocation list",
+  "description": "Deprecation and revocation (spec 10861). This document is ENFORCEMENT, not advice. Three scopes, in increasing strength: a single version, a version range, or a whole package; plus key revocation, which invalidates every signature by that key regardless of package. `mkt.install` consults this list before it reads a payload, and a missing or unparseable list REFUSES the install by default (trust-policy.on_missing.revocation_list) -- a revocation channel that can be deleted to re-enable a revoked package is not a revocation channel, which is exactly the failure mode this build was told to prove it does not have.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "registry_id", "updated_at", "revocations", "signature"],
+  "properties": {
+    "schema_version": { "const": "1.0.0" },
+    "registry_id": { "type": "string", "pattern": "^reg:[a-z][a-z0-9-]{1,40}$" },
+    "updated_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+    "revocations": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["revocation_id", "scope", "reason", "severity", "revoked_at", "authority"],
+        "properties": {
+          "revocation_id": { "type": "string", "pattern": "^rev:[0-9a-z-]{3,60}$" },
+          "scope": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "properties": {
+              "kind": { "enum": ["version", "range", "package", "key"] },
+              "name": { "$ref": "common.schema.json#/$defs/package_name" },
+              "version": { "$ref": "common.schema.json#/$defs/semver" },
+              "range": { "$ref": "common.schema.json#/$defs/version_range" },
+              "public_key": { "$ref": "common.schema.json#/$defs/ed25519_public_key" }
+            },
+            "allOf": [
+              { "if": { "properties": { "kind": { "const": "version" } } }, "then": { "required": ["kind", "name", "version"] } },
+              { "if": { "properties": { "kind": { "const": "range" } } }, "then": { "required": ["kind", "name", "range"] } },
+              { "if": { "properties": { "kind": { "const": "package" } } }, "then": { "required": ["kind", "name"] } },
+              { "if": { "properties": { "kind": { "const": "key" } } }, "then": { "required": ["kind", "public_key"] } }
+            ]
+          },
+          "reason": { "type": "string", "minLength": 8, "maxLength": 600 },
+          "severity": { "$ref": "common.schema.json#/$defs/severity" },
+          "revoked_at": { "$ref": "common.schema.json#/$defs/iso8601" },
+          "authority": {
+            "$ref": "common.schema.json#/$defs/publisher_id",
+            "description": "Who revoked. Only a `registry-maintainer`, `moderator` or `security-response` role may appear here; mkt.identity enforces the role, so a publisher cannot un-revoke its own package by writing a competing entry."
+          },
+          "moderation_case": { "type": "string", "pattern": "^case:[0-9a-z-]{3,60}$" },
+          "advisory_id": { "type": "string", "pattern": "^adv:[0-9]{4}-[0-9]{4}$" }
+        }
+      }
+    },
+    "signature": { "$ref": "signature.schema.json" }
+  }
+}

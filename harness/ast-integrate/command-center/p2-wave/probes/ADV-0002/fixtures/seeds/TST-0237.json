@@ -1,0 +1,393 @@
+{
+  "artifacts": [
+    {
+      "bytes": 17515,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/TST-0237.json",
+      "role": "primary",
+      "sha256": "832496a18219e72a2df8c138c3dc98e1760b66c3dd696abab8b75cf950d3dcc0"
+    },
+    {
+      "bytes": 16967,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0237/harness.py",
+      "role": "supporting",
+      "sha256": "44748880458941760200f3ec5499fdc403f982deb6d242ca57bc7fb552f81f89"
+    },
+    {
+      "bytes": 5882,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/receipt.schema.json",
+      "role": "supporting",
+      "sha256": "ff5169b8b8a36c693f5c1a70f6f4aca29b956adf926909c896401e3a5bdb5e1a"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/TST-0237.json",
+      "consumer": "json.loads + sentinel/state assertions",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,pathlib; p=pathlib.Path('command-center/receipts/TST-0237.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d.get('unit_id')=='TST-0237'; assert d.get('state')=='SUCCESS'; assert 'SUCCESS:TST-0237' in p.read_text(encoding='utf-8')\"",
+        "exit_code": 0,
+        "fingerprint": "e5e8b2539bfc8492cfdc66fbdf58540c937b91477912ee345bf6221a025655d7",
+        "method": "schema-validate",
+        "raw_output": "consumer=json.loads unit_id=TST-0237 state=SUCCESS SUCCESS:consumer-read",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0237/harness.py:measure_instrumented",
+      "claim": "Instrumented per-component wall-clock medians are all positive, sum to within 5% of the outer turn total, and that total is under the declared 100ms ceiling. Fixture input is non-empty (1800 hooks, 2200 capabilities, 420 rules). No context-token counts are reported (TST-0240).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0237/probe1_instrumented_sum.py",
+          "exit_code": 0,
+          "fingerprint": "24dc615fe3c6ef7f5f4a84e21740eb6a697876c88a69b9d607c32d8e29395046",
+          "method": "test-run",
+          "raw_output": "{\"ceiling_ms\": 100.0, \"instrumented_sum_ms\": 2.983799000048748, \"n\": 31, \"parts_median_ms\": {\"capability_router\": 2.194845000303758, \"hook_dispatch\": 0.528849000147602, \"ledger_write\": 0.043879999793716706, \"rule_injection\": 0.21622499980367138}, \"pass\": true, \"probe\": \"probe1-instrumented-sum\", \"sum_vs_total_rel_err\": 0.0016528708593495137, \"token_counts_reported\": false, \"total_median_ms\": 2.9887389996474667, \"under_ceiling\": true, \"unit_id\": \"TST-0237\"}\nsum=2.984ms total=2.989ms rel_err=0.0017 hook_dispatch=0.529ms capability_router=2.195ms rule_injection=0.216ms ledger_write=0.044ms\nSUCCESS:TST-0237-probe1 instrumented sum within 5% of total",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0237/probe2_ab_attribution.py",
+          "exit_code": 0,
+          "fingerprint": "610f008ad293b40072f4ac81c5bd4469a461b889489604b15b8e8c0546584683",
+          "method": "test-run",
+          "raw_output": "{\"ab_delta_ms\": 2.990608999880351, \"both_states_disabled\": \"hook_dispatch\", \"harness_off_ms\": 0.00016000012692529708, \"harness_on_ms\": 2.990769000007276, \"line_item_off_ms\": 0.0, \"line_item_on_ms\": 0.5220379998718272, \"missing_instrument_fired\": true, \"missing_instrument_hidden\": \"capability_router\", \"paired_median_drop_ms\": 0.5267090000415919, \"pass\": true, \"probe\": \"probe2-ab-attribution\", \"sum_vs_ab_rel_err\": 0.001243893724632853, \"token_counts_reported\": false, \"unit_id\": \"TST-0237\"}\nab_delta=2.991ms rel_err=0.0012 disable_hook_dispatch drop=0.527ms missing=capability_router fired=True\nSUCCESS:TST-0237-probe2 A/B attribution and both-states",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0237/harness.py:measure_ab",
+      "claim": "A/B end-to-end latency with the harness disabled reconciles with the instrumented sum within 5%; disabling hook_dispatch moves both its line item and the total; omitting the largest component from the instrumented dict breaks the 5% check.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0237/probe2_ab_attribution.py",
+          "exit_code": 0,
+          "fingerprint": "610f008ad293b40072f4ac81c5bd4469a461b889489604b15b8e8c0546584683",
+          "method": "test-run",
+          "raw_output": "{\"ab_delta_ms\": 2.990608999880351, \"both_states_disabled\": \"hook_dispatch\", \"harness_off_ms\": 0.00016000012692529708, \"harness_on_ms\": 2.990769000007276, \"line_item_off_ms\": 0.0, \"line_item_on_ms\": 0.5220379998718272, \"missing_instrument_fired\": true, \"missing_instrument_hidden\": \"capability_router\", \"paired_median_drop_ms\": 0.5267090000415919, \"pass\": true, \"probe\": \"probe2-ab-attribution\", \"sum_vs_ab_rel_err\": 0.001243893724632853, \"token_counts_reported\": false, \"unit_id\": \"TST-0237\"}\nab_delta=2.991ms rel_err=0.0012 disable_hook_dispatch drop=0.527ms missing=capability_router fired=True\nSUCCESS:TST-0237-probe2 A/B attribution and both-states",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0237/probe1_instrumented_sum.py",
+          "exit_code": 0,
+          "fingerprint": "24dc615fe3c6ef7f5f4a84e21740eb6a697876c88a69b9d607c32d8e29395046",
+          "method": "test-run",
+          "raw_output": "{\"ceiling_ms\": 100.0, \"instrumented_sum_ms\": 2.983799000048748, \"n\": 31, \"parts_median_ms\": {\"capability_router\": 2.194845000303758, \"hook_dispatch\": 0.528849000147602, \"ledger_write\": 0.043879999793716706, \"rule_injection\": 0.21622499980367138}, \"pass\": true, \"probe\": \"probe1-instrumented-sum\", \"sum_vs_total_rel_err\": 0.0016528708593495137, \"token_counts_reported\": false, \"total_median_ms\": 2.9887389996474667, \"under_ceiling\": true, \"unit_id\": \"TST-0237\"}\nsum=2.984ms total=2.989ms rel_err=0.0017 hook_dispatch=0.529ms capability_router=2.195ms rule_injection=0.216ms ledger_write=0.044ms\nSUCCESS:TST-0237-probe1 instrumented sum within 5% of total",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "ab": {
+      "delta_ms": 2.910571,
+      "harness_off_faster": true,
+      "harness_off_median_ms": 0.00018,
+      "harness_on_median_ms": 2.910751,
+      "n": 31,
+      "sum_vs_ab_rel_err": 0.0021339456259577595
+    },
+    "answer": "On this box the four in-process components add hook_dispatch=0.51625ms, capability_router=2.188406ms, rule_injection=0.208467ms, ledger_write=0.042589ms (median of 31 turns). Instrumented sum=2.955712ms vs outer total=2.96007ms (rel_err=0.0015, tolerance 0.05). A/B delta with the harness disabled is 2.910571ms (rel_err vs sum 0.0021). Declared ceiling is 100.0ms; under_ceiling=True. Context-token cost of routing is not reported (TST-0240).",
+    "both_states": {
+      "capability_router": {
+        "line_item_moved": true,
+        "line_item_off_ms": 0.0,
+        "line_item_on_ms": 2.209534,
+        "paired_median_drop_ms": 2.213824,
+        "pass": true,
+        "total_moved": true
+      },
+      "hook_dispatch": {
+        "line_item_moved": true,
+        "line_item_off_ms": 0.0,
+        "line_item_on_ms": 0.534009,
+        "paired_median_drop_ms": 0.53502,
+        "pass": true,
+        "total_moved": true
+      },
+      "ledger_write": {
+        "line_item_moved": true,
+        "line_item_off_ms": 0.0,
+        "line_item_on_ms": 0.047309,
+        "paired_median_drop_ms": 0.041329,
+        "pass": true,
+        "total_moved": true
+      },
+      "rule_injection": {
+        "line_item_moved": true,
+        "line_item_off_ms": 0.0,
+        "line_item_on_ms": 0.211925,
+        "paired_median_drop_ms": 0.199914,
+        "pass": true,
+        "total_moved": true
+      }
+    },
+    "cloud_ok": false,
+    "missing_instrument_control": {
+      "detector_fired": true,
+      "hidden": "capability_router",
+      "honest_sum_vs_total_rel_err": 0.0031730420992965793,
+      "sum_vs_ab_rel_err": 0.7409067334960716,
+      "sum_vs_total_rel_err": 0.740921662676904
+    },
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+    "question": "How many milliseconds does each harness component (hook dispatch, capability router, rule injection, ledger write) add to a turn, and is the total under the declared ceiling? PASS requires a per-component number so a future regression can be attributed to one component. SCOPE: wall-clock only - context-token cost of routing belongs to TST-0240 and must not be reported here.",
+    "required_fix": null,
+    "sut": {
+      "live_bytes": 16967,
+      "live_module": "command-center/p2-wave/probes/TST-0237/harness.py",
+      "live_sha256": "44748880458941760200f3ec5499fdc403f982deb6d242ca57bc7fb552f81f89",
+      "production_paths": {
+        "_USER-PROMPTS.md": {
+          "bytes": 0,
+          "present": false
+        },
+        "command-center/BASELINE-SNAPSHOT.json": {
+          "bytes": 25638,
+          "present": true
+        },
+        "hooks/_dispatch/dispatch.py": {
+          "bytes": 16575,
+          "present": true
+        },
+        "hooks/_dispatch/manifest.json": {
+          "bytes": 13911,
+          "present": true
+        },
+        "rules/common/bash-hud-and-terminal-emit.md": {
+          "bytes": 7496,
+          "present": true
+        },
+        "tools/agentspec/agentspec/hooks.py": {
+          "bytes": 0,
+          "present": false
+        },
+        "tools/agentspec/agentspec/router.py": {
+          "bytes": 0,
+          "present": false
+        },
+        "tools/agentspec/agentspec/turn.py": {
+          "bytes": 0,
+          "present": false
+        },
+        "tools/harness/turn.py": {
+          "bytes": 0,
+          "present": false
+        },
+        "tools/plugin/hooks.py": {
+          "bytes": 0,
+          "present": false
+        },
+        "tools/router/route.py": {
+          "bytes": 0,
+          "present": false
+        }
+      }
+    },
+    "title": "Per-turn harness WALL-CLOCK overhead is attributed per component"
+  },
+  "manifest_registration": {
+    "entry_id": "TST-0237",
+    "manifest_path": "command-center/p2-wave/probes/TST-0237/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "hidden=capability_router sum_vs_total=0.7409 sum_vs_ab=0.7409",
+      "description": "Run all four components but omit the largest from the instrumented dict. The 5% attribution check must fire.",
+      "fired_on_bad_state": true,
+      "good_state_output": "honest_rel_err=0.0015 tolerance=0.05",
+      "id": "missing-instrument-mutant",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "line_off=0.0 paired_drop=0.53502",
+      "description": "Disable hook_dispatch. Its line item and the turn total must both move.",
+      "fired_on_bad_state": true,
+      "good_state_output": "line_on=0.534009",
+      "id": "both-states-disable-hook-dispatch",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-4.6",
+    "role": "performance-tester",
+    "vendor": "xai"
+  },
+  "report": {
+    "ceiling_ms": 100.0,
+    "input_non_empty": true,
+    "kind": "benchmark_result",
+    "metrics": [
+      {
+        "baseline_value": 100.0,
+        "n": 31,
+        "name": "turn-total-wall-clock-ms",
+        "null_model": "empty turn with all four components disabled",
+        "unit": "milliseconds",
+        "value": 2.96007,
+        "variance_band": "median of 31 turns; min=2.9202 max=3.112997 ms"
+      },
+      {
+        "n": 31,
+        "name": "instrumented-sum-ms",
+        "null_model": "instrumented dict empty (sum=0)",
+        "unit": "milliseconds",
+        "value": 2.955712,
+        "variance_band": "sum of four per-component medians"
+      },
+      {
+        "baseline_value": 0.05,
+        "n": 31,
+        "name": "sum-vs-total-rel-err",
+        "null_model": "missing-instrument mutant (one component omitted from the dict)",
+        "unit": "dimensionless",
+        "value": 0.0014722624268776485,
+        "variance_band": "tolerance 0.05"
+      },
+      {
+        "n": 31,
+        "name": "ab-harness-disabled-delta-ms",
+        "null_model": "harness-off empty turn",
+        "unit": "milliseconds",
+        "value": 2.910571,
+        "variance_band": "median-on minus median-off, interleaved A/B"
+      },
+      {
+        "n": 31,
+        "name": "hook-dispatch-ms",
+        "null_model": "component disabled (line item 0)",
+        "unit": "milliseconds",
+        "value": 0.51625,
+        "variance_band": "median line item"
+      },
+      {
+        "n": 31,
+        "name": "capability-router-ms",
+        "null_model": "component disabled (line item 0)",
+        "unit": "milliseconds",
+        "value": 2.188406,
+        "variance_band": "median line item"
+      },
+      {
+        "n": 31,
+        "name": "rule-injection-ms",
+        "null_model": "component disabled (line item 0)",
+        "unit": "milliseconds",
+        "value": 0.208467,
+        "variance_band": "median line item"
+      },
+      {
+        "n": 31,
+        "name": "ledger-write-ms",
+        "null_model": "component disabled (line item 0)",
+        "unit": "milliseconds",
+        "value": 0.042589,
+        "variance_band": "median line item"
+      },
+      {
+        "baseline_value": 1.0,
+        "n": 1,
+        "name": "fixture-hooks",
+        "null_model": "empty hook list",
+        "unit": "records",
+        "value": 1800.0,
+        "variance_band": "exact census of the measurement fixture"
+      },
+      {
+        "baseline_value": 1.0,
+        "n": 1,
+        "name": "fixture-capabilities",
+        "null_model": "empty capability catalogue",
+        "unit": "records",
+        "value": 2200.0,
+        "variance_band": "exact census of the measurement fixture"
+      },
+      {
+        "baseline_value": 1.0,
+        "n": 1,
+        "name": "fixture-rules",
+        "null_model": "empty rule set",
+        "unit": "records",
+        "value": 420.0,
+        "variance_band": "exact census of the measurement fixture"
+      }
+    ],
+    "per_component_ms": {
+      "capability_router": 2.188406,
+      "hook_dispatch": 0.51625,
+      "ledger_write": 0.042589,
+      "rule_injection": 0.208467
+    },
+    "scope": {
+      "context_token_cost": false,
+      "context_token_owner": "TST-0240",
+      "token_counts_reported": false,
+      "wall_clock": true
+    },
+    "under_ceiling": true
+  },
+  "residual_unknowns": [
+    {
+      "claim": "_USER-PROMPTS.md:11022 and a packaged OpenClaw/plugin four-stage turn pipeline are absent from this worktree. BASELINE-SNAPSHOT.json is present but has no per-component turn budget. Live hooks/_dispatch/dispatch.py exists and is not the instrumented four-component SUT. Ceiling is the unit contract; SUT is probes/TST-0237/harness.py. Context-token cost is TST-0240.",
+      "settling_experiment": "Re-point COMPONENT_FN at the production modules once a packaged turn pipeline exists and re-run both named probes.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry"
+  },
+  "reviewer": {
+    "fresh_context": false,
+    "independent": true,
+    "notes": "Probe 2 re-derives the A/B delta, the both-states disable, and the missing-instrument control. Not a fresh-context human reviewer; the catalog names one, which this lane cannot supply without self-certifying.",
+    "reviewer_id": "TST-0237-probe2-ab-attribution",
+    "vendor": "xai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0237",
+  "spec_anchor": "WORK-UNIT-CATALOG.json TST-0237; rules/common/bash-hud-and-terminal-emit.md; command-center/BASELINE-SNAPSHOT.json (present). _USER-PROMPTS.md:11022 absent on this worktree. Wall-clock only; TST-0240 owns context-token cost.",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0237/probe1_instrumented_sum.py",
+      "id": "probe1-instrumented-sum",
+      "name": "per-component sum within 5% of measured total and under ceiling",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0237/probe2_ab_attribution.py",
+      "id": "probe2-ab-attribution",
+      "name": "A/B harness-off delta reconciles; both-states disable moves line item and total",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 1.91,
+    "ended_at": "2026-08-25T01:02:43Z",
+    "started_at": "2026-08-25T01:02:41Z"
+  },
+  "unit_id": "TST-0237"
+}

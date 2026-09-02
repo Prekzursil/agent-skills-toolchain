@@ -1,0 +1,613 @@
+{
+  "$defs": {
+    "stopping_expr_atom": {
+      "properties": {
+        "left": {},
+        "op": {
+          "type": "string"
+        },
+        "right": {}
+      },
+      "required": [
+        "op",
+        "left",
+        "right"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "command-center/design/council/CNL-0082-executable-stopping-example-evidence-saturation-true-or-ti.schema.json",
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "a10_grammar": {
+    "accepted_unchanged": true,
+    "ast": {
+      "left": {
+        "left": "evidence_saturation",
+        "op": "==",
+        "right": true
+      },
+      "op": "OR",
+      "right": {
+        "left": "time_minutes",
+        "op": ">=",
+        "right": 180
+      }
+    },
+    "name": "A10 stopping-expression grammar",
+    "probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNL-0082/probe1_both_states_and_parse.py",
+    "productions": [
+      "expr := or_expr",
+      "or_expr := and_expr (OR and_expr)*",
+      "and_expr := unary (AND unary)*",
+      "unary := NOT unary | primary",
+      "primary := '(' expr ')' | comparison",
+      "comparison := IDENT OP value",
+      "OP := == | != | >= | <= | > | <",
+      "value := true | false | NUMBER | IDENT"
+    ],
+    "rewrite_before_parse": false,
+    "six_spec_examples_10937_10942": [
+      {
+        "ast": {
+          "left": {
+            "left": "unique_ideas",
+            "op": ">=",
+            "right": 100
+          },
+          "op": "AND",
+          "right": {
+            "left": "completeness_score",
+            "op": ">=",
+            "right": 0.9
+          }
+        },
+        "source": "unique_ideas >= 100 AND completeness_score >= 0.90"
+      },
+      {
+        "ast": {
+          "left": {
+            "left": "consensus",
+            "op": ">=",
+            "right": 0.95
+          },
+          "op": "AND",
+          "right": {
+            "left": "no_new_objection_rounds",
+            "op": ">=",
+            "right": 2
+          }
+        },
+        "source": "consensus >= 0.95 AND no_new_objection_rounds >= 2"
+      },
+      {
+        "ast": {
+          "left": {
+            "left": "unanimity",
+            "op": "==",
+            "right": true
+          },
+          "op": "OR",
+          "right": {
+            "left": "max_rounds",
+            "op": "==",
+            "right": 12
+          }
+        },
+        "source": "unanimity == true OR max_rounds == 12"
+      },
+      {
+        "ast": {
+          "left": {
+            "left": "quality_gate",
+            "op": "==",
+            "right": "PASS"
+          },
+          "op": "AND",
+          "right": {
+            "left": "unresolved_load_bearing_counterexample",
+            "op": "==",
+            "right": 0
+          }
+        },
+        "source": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0"
+      },
+      {
+        "ast": {
+          "left": {
+            "left": "evidence_saturation",
+            "op": "==",
+            "right": true
+          },
+          "op": "OR",
+          "right": {
+            "left": "time_minutes",
+            "op": ">=",
+            "right": 180
+          }
+        },
+        "source": "evidence_saturation == true OR time_minutes >= 180"
+      },
+      {
+        "ast": {
+          "left": "proof_of_impossibility",
+          "op": "==",
+          "right": true
+        },
+        "source": "proof_of_impossibility == true"
+      }
+    ],
+    "source_string": "evidence_saturation == true OR time_minutes >= 180"
+  },
+  "additionalProperties": false,
+  "answer": "Evidence saturation is the collapse of marginal yield of new independent mechanisms per additional diverse query: after MIN_QUERIES=6 and at least one independent mechanism found, the last STREAK_K=3 queries each add YIELD_FLOOR=0 new mechanisms AND those three queries use three distinct query families. Independence is mechanism_id, not source_id string equality, so mirrored copies of one paper cannot pad a count. Search fatigue is the same yield collapse produced by repeating one query family; that path sets evidence_saturation=false and reason=search_fatigue, so it does not satisfy the saturation arm. The both-states control is: FIRE on saturated-12 (12/12 mechanisms found, then three diverse zero-yield queries, time_minutes=40<180, which_arm=evidence_saturation) and SILENT on unsaturated-12 (still yielding, time_minutes=40, which_arm=none). The OR with time_minutes>=180 is a distinct arm: time-arm-180 uses the unsaturated log at t=180, fires with which_arm=time_minutes and saturation_arm=false, so a never-firing detector cannot hide behind the disjunction.",
+  "artifacts": [
+    {
+      "path": "command-center/design/council/CNL-0082-executable-stopping-example-evidence-saturation-true-or-ti.schema.json",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0082/probe1_both_states_and_parse.py",
+      "role": "probe"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0082/probe2_reviewer_recount.py",
+      "role": "probe"
+    }
+  ],
+  "both_states": {
+    "fatigue-repeat-queries": {
+      "evidence_saturation": false,
+      "fire_after_query_index": null,
+      "fires": false,
+      "fixture_id": "fatigue-repeat-queries",
+      "ground_truth_independent_count": 12,
+      "independent_mechanisms_found": 1,
+      "missed_independent_if_stop_here": 11,
+      "reason": "search_fatigue",
+      "saturation_arm": false,
+      "source_ids_seen": 1,
+      "time_arm": false,
+      "time_minutes": 40,
+      "which_arm": "none",
+      "yield_curve": [
+        {
+          "cumulative_independent": 1,
+          "i": 0,
+          "new_independent": 1,
+          "query_family": "keyword-repeat",
+          "query_id": "q1"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 1,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q2"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 2,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q3"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 3,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q4"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 4,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q5"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 5,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q6"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 6,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q7"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 7,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q8"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 8,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q9"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 9,
+          "new_independent": 0,
+          "query_family": "keyword-repeat",
+          "query_id": "q10"
+        }
+      ]
+    },
+    "near-identical-mirrors": {
+      "evidence_saturation": true,
+      "fire_after_query_index": 5,
+      "fires": true,
+      "fixture_id": "near-identical-mirrors",
+      "ground_truth_independent_count": 1,
+      "independent_mechanisms_found": 1,
+      "missed_independent_if_stop_here": 0,
+      "reason": "saturated",
+      "saturation_arm": true,
+      "source_ids_seen": 7,
+      "time_arm": false,
+      "time_minutes": 40,
+      "which_arm": "evidence_saturation",
+      "yield_curve": [
+        {
+          "cumulative_independent": 1,
+          "i": 0,
+          "new_independent": 1,
+          "query_family": "authors",
+          "query_id": "q1"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 1,
+          "new_independent": 0,
+          "query_family": "venues",
+          "query_id": "q2"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 2,
+          "new_independent": 0,
+          "query_family": "citations",
+          "query_id": "q3"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 3,
+          "new_independent": 0,
+          "query_family": "datasets",
+          "query_id": "q4"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 4,
+          "new_independent": 0,
+          "query_family": "methods",
+          "query_id": "q5"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 5,
+          "new_independent": 0,
+          "query_family": "related-work",
+          "query_id": "q6"
+        },
+        {
+          "cumulative_independent": 1,
+          "i": 6,
+          "new_independent": 0,
+          "query_family": "gap-fill-A",
+          "query_id": "q7"
+        }
+      ]
+    },
+    "saturated-12": {
+      "evidence_saturation": true,
+      "fire_after_query_index": 8,
+      "fires": true,
+      "fixture_id": "saturated-12",
+      "ground_truth_independent_count": 12,
+      "independent_mechanisms_found": 12,
+      "missed_independent_if_stop_here": 0,
+      "reason": "saturated",
+      "saturation_arm": true,
+      "source_ids_seen": 12,
+      "time_arm": false,
+      "time_minutes": 40,
+      "which_arm": "evidence_saturation",
+      "yield_curve": [
+        {
+          "cumulative_independent": 2,
+          "i": 0,
+          "new_independent": 2,
+          "query_family": "authors",
+          "query_id": "q1"
+        },
+        {
+          "cumulative_independent": 4,
+          "i": 1,
+          "new_independent": 2,
+          "query_family": "venues",
+          "query_id": "q2"
+        },
+        {
+          "cumulative_independent": 6,
+          "i": 2,
+          "new_independent": 2,
+          "query_family": "citations",
+          "query_id": "q3"
+        },
+        {
+          "cumulative_independent": 8,
+          "i": 3,
+          "new_independent": 2,
+          "query_family": "datasets",
+          "query_id": "q4"
+        },
+        {
+          "cumulative_independent": 10,
+          "i": 4,
+          "new_independent": 2,
+          "query_family": "methods",
+          "query_id": "q5"
+        },
+        {
+          "cumulative_independent": 12,
+          "i": 5,
+          "new_independent": 2,
+          "query_family": "related-work",
+          "query_id": "q6"
+        },
+        {
+          "cumulative_independent": 12,
+          "i": 6,
+          "new_independent": 0,
+          "query_family": "gap-fill-A",
+          "query_id": "q7"
+        },
+        {
+          "cumulative_independent": 12,
+          "i": 7,
+          "new_independent": 0,
+          "query_family": "gap-fill-B",
+          "query_id": "q8"
+        },
+        {
+          "cumulative_independent": 12,
+          "i": 8,
+          "new_independent": 0,
+          "query_family": "gap-fill-C",
+          "query_id": "q9"
+        }
+      ]
+    },
+    "time-arm-180": {
+      "evidence_saturation": false,
+      "fire_after_query_index": null,
+      "fires": true,
+      "fixture_id": "time-arm-180",
+      "ground_truth_independent_count": 12,
+      "independent_mechanisms_found": 6,
+      "missed_independent_if_stop_here": 6,
+      "reason": "still_yielding",
+      "saturation_arm": false,
+      "source_ids_seen": 6,
+      "time_arm": true,
+      "time_minutes": 180,
+      "which_arm": "time_minutes",
+      "yield_curve": [
+        {
+          "cumulative_independent": 2,
+          "i": 0,
+          "new_independent": 2,
+          "query_family": "authors",
+          "query_id": "q1"
+        },
+        {
+          "cumulative_independent": 3,
+          "i": 1,
+          "new_independent": 1,
+          "query_family": "venues",
+          "query_id": "q2"
+        },
+        {
+          "cumulative_independent": 5,
+          "i": 2,
+          "new_independent": 2,
+          "query_family": "citations",
+          "query_id": "q3"
+        },
+        {
+          "cumulative_independent": 6,
+          "i": 3,
+          "new_independent": 1,
+          "query_family": "datasets",
+          "query_id": "q4"
+        }
+      ]
+    },
+    "unsaturated-12": {
+      "evidence_saturation": false,
+      "fire_after_query_index": null,
+      "fires": false,
+      "fixture_id": "unsaturated-12",
+      "ground_truth_independent_count": 12,
+      "independent_mechanisms_found": 6,
+      "missed_independent_if_stop_here": 6,
+      "reason": "still_yielding",
+      "saturation_arm": false,
+      "source_ids_seen": 6,
+      "time_arm": false,
+      "time_minutes": 40,
+      "which_arm": "none",
+      "yield_curve": [
+        {
+          "cumulative_independent": 2,
+          "i": 0,
+          "new_independent": 2,
+          "query_family": "authors",
+          "query_id": "q1"
+        },
+        {
+          "cumulative_independent": 3,
+          "i": 1,
+          "new_independent": 1,
+          "query_family": "venues",
+          "query_id": "q2"
+        },
+        {
+          "cumulative_independent": 5,
+          "i": 2,
+          "new_independent": 2,
+          "query_family": "citations",
+          "query_id": "q3"
+        },
+        {
+          "cumulative_independent": 6,
+          "i": 3,
+          "new_independent": 1,
+          "query_family": "datasets",
+          "query_id": "q4"
+        }
+      ]
+    }
+  },
+  "completion_sentinel": "SUCCESS:CNL-0082",
+  "dependencies_on_this_tree": {
+    "CNL-0010": "absent \u2014 A10 grammar implemented probe-locally for this example",
+    "CNL-0076": "absent \u2014 local end-of-tick pure evaluation used",
+    "CNL-0090": "absent \u2014 saturation uses mechanism-yield, not debate gain",
+    "_USER-PROMPTS.md": "absent \u2014 expression quoted from catalog bindings at 10941"
+  },
+  "description": "Evidence saturation is the collapse of marginal yield of new independent mechanisms per additional diverse query: after MIN_QUERIES=6 and at least one independent mechanism found, the last STREAK_K=3 queries each add YIELD_FLOOR=0 new mechanisms AND those three queries use three distinct query families. Independence is mechanism_id, not source_id string equality, so mirrored copies of one paper cannot pad a count. Search fatigue is the same yield collapse produced by repeating one query family; that path sets evidence_saturation=false and reason=search_fatigue, so it does not satisfy the saturation arm. The both-states control is: FIRE on saturated-12 (12/12 mechanisms found, then three diverse zero-yield queries, time_minutes=40<180, which_arm=evidence_saturation) and SILENT on unsaturated-12 (still yielding, time_minutes=40, which_arm=none). The OR with time_minutes>=180 is a distinct arm: time-arm-180 uses the unsaturated log at t=180, fires with which_arm=time_minutes and saturation_arm=false, so a never-firing detector cannot hide behind the disjunction.",
+  "expression_spec_line": "catalog-quoted as _USER-PROMPTS.md:10941; harness-restore file C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md is absent on this worktree. Independent catalog citations: command-center/WORK-UNIT-CATALOG.json CNL-0082.title and TST-0283.inputs.",
+  "expression_verbatim": "evidence_saturation == true OR time_minutes >= 180",
+  "measurement": {
+    "evaluation_cadence": "End of each search tick (after a query's retrievals are bound). Evaluator is side-effect free. CNL-0076 runtime-semantics artifact is absent on this tree; cadence is pinned here for this example only.",
+    "independence": "mechanism_id; source_id string equality is not distinctness",
+    "information_gain_relation": "CNL-0090 (per-round information gain / circular debate) is absent on this tree. This unit uses the research-log analogue: new independent mechanisms per query, not debate-token novelty.",
+    "not_search_fatigue": "Repeating one query family can drive yield to zero while unretrieved mechanisms remain. That is search_fatigue, not saturation; the saturation arm stays false.",
+    "params": {
+      "MIN_INDEPENDENT": 1,
+      "MIN_QUERIES": 6,
+      "STREAK_K": 3,
+      "TIME_FLOOR": 180,
+      "YIELD_FLOOR": 0
+    },
+    "saturation_definition": "marginal yield of new independent mechanisms per additional diverse query falling to YIELD_FLOOR for STREAK_K consecutive queries whose query_family values are pairwise distinct, after MIN_QUERIES and MIN_INDEPENDENT."
+  },
+  "negative_controls": [
+    {
+      "id": "unsaturated-still-yielding",
+      "observed": "SILENT",
+      "rejects": "claiming saturation while new independent mechanisms still arrive"
+    },
+    {
+      "id": "search-fatigue-repeat-family",
+      "observed": "SILENT reason=search_fatigue",
+      "rejects": "claiming saturation because the searcher repeated one query"
+    }
+  ],
+  "output_schema": "command-center/schema/councilspec.v2.schema.json",
+  "produced_by": {
+    "model": "grok-4.6",
+    "role": "council-systems-designer",
+    "ts": "2026-08-25T00:52:44Z",
+    "vendor": "cursor"
+  },
+  "properties": {
+    "expression_verbatim": {
+      "const": "evidence_saturation == true OR time_minutes >= 180",
+      "type": "string"
+    },
+    "stop_decision": {
+      "additionalProperties": false,
+      "properties": {
+        "fires": {
+          "type": "boolean"
+        },
+        "saturation_arm": {
+          "type": "boolean"
+        },
+        "time_arm": {
+          "type": "boolean"
+        },
+        "which_arm": {
+          "enum": [
+            "evidence_saturation",
+            "time_minutes",
+            "both",
+            "none",
+            "not-checked"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "fires",
+        "which_arm",
+        "saturation_arm",
+        "time_arm"
+      ],
+      "type": "object"
+    },
+    "unit_id": {
+      "const": "CNL-0082",
+      "type": "string"
+    }
+  },
+  "question": "What measurement establishes evidence saturation rather than search fatigue, and what is the both-states control proving the saturation detector is not silent in both states?",
+  "required": [
+    "unit_id",
+    "expression_verbatim",
+    "stop_decision"
+  ],
+  "reviewer": {
+    "independent": true,
+    "method": "Rebuild yield curves from fixture JSON bytes and re-apply the published fire rule. A disagreement in any number blocks.",
+    "reviewer_id": "CNL-0082-probe2-independent-recount",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNL-0082",
+  "six_examples_count": 6,
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "fire_fixture": "saturated-12",
+      "id": "both-states-fire-silent",
+      "requirement": "the expression must FIRE on a fixture where it is true and stay SILENT on a fixture where it is false",
+      "result": "PASS",
+      "silent_fixture": "unsaturated-12"
+    },
+    {
+      "id": "a10-parse-unchanged",
+      "requirement": "a parse test proving the expression is accepted by the A10 grammar unchanged",
+      "result": "PASS",
+      "source": "evidence_saturation == true OR time_minutes >= 180"
+    },
+    {
+      "id": "negative-control",
+      "requirement": "negative control recorded verbatim: state what the check does on the state it is meant to reject",
+      "result": "PASS",
+      "verbatim": "On unsaturated-12 (time_minutes=40, 6 of 12 independent mechanisms found, last query still yielding) the check stays SILENT: evidence_saturation=false, time_arm=false, expression value=false, which_arm=none. On fatigue-repeat-queries (ten keyword-repeat queries, 1 of 12 mechanisms found, yield zero from repetition) the check also stays SILENT and records reason=search_fatigue, proving query-repetition collapse is not treated as saturation."
+    },
+    {
+      "id": "time-arm-not-mask",
+      "requirement": "OR with time_minutes cannot mask a never-firing detector; timeout arm logged distinctly from saturation arm",
+      "result": "PASS",
+      "time_fixture": "time-arm-180",
+      "unsaturated_both_arms_false": true
+    }
+  ],
+  "title": "Executable stopping example: evidence_saturation == true OR time_minutes >= 180",
+  "type": "object",
+  "unit_id": "CNL-0082"
+}

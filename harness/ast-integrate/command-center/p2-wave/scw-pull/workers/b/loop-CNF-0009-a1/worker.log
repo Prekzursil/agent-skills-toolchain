@@ -1,0 +1,25 @@
+
+===== launch 2026-08-20T07:45:14Z attempt=1 =====
+I'll start from the existing CNF-0009 probe tree and any prior return artifact, then implement until the per-unit measure prints SUCCESS:delivered.The CNF-0009 tree may be missing; next I’ll load the unit catalog, measure script, and any sibling CNF probe that already delivered.CNF-0009 has no probe tree yet. I’ll read the catalog contract, the measure script, and a delivered CNF unit as the template.CLAIM-REGISTRY has no P0/P1 severity field, and CNF-0003’s frame is missing. I’ll inspect the schema contract and how similar confirmation units handled that.I have the contract: a two-way set-difference detector, planted-P0 control in the same run as a clean comparison, and a schema-shaped SUCCESS receipt. Implementing the probe tree next.CNF-0009 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py CNF-0009` printed:
+
+`SUCCESS:delivered CNF-0009 predicate=delivered state=SUCCESS probes=3 raws=2 notes=frame_completeness.py:0,probe1_live_diff.py:0,probe2_controls.py:0`
+
+The unit had never been started (`probes/CNF-0009/` was absent). This pass added the comparator, two named probes, the catalog artifact, and the per-unit manifest.
+
+**What the probes measured**
+
+- CLAIM-REGISTRY has 12 claims and no `severity` field. Missing severity fail-closes into the P0/P1 census (does not treat an empty severity set as a pass).
+- CNF-0003’s sampling frame is absent. Live `registry-minus-frame` is those 12 ids; `frame-minus-registry` is empty. That sampling gap is recorded as REFUTED on the live-completeness claim.
+- Same-run detector control: reconstructed census vs itself is empty; `PLANTED-P0-CNF-0009` makes `registry-minus-frame=['PLANTED-P0-CNF-0009']`; `PHANTOM-CNF-0009` makes `frame-minus-registry=['PHANTOM-CNF-0009']`; an always-empty mutant false-passes the planted case and is killed.
+
+**Artifacts**
+
+| Path | Role |
+|---|---|
+| `command-center/confirmation/CNF-0009-frame-completeness.json` | catalog output, `state=SUCCESS`, 20247 bytes |
+| `command-center/p2-wave/probes/CNF-0009/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, LF sha256 `59be2e0f1b42acc9e37a4a6375caca4b8b90656b9974adacb45413bacbd32762` |
+| `command-center/p2-wave/probes/CNF-0009/SUBAGENT-RETURN.json` | return |
+
+SUCCESS:delivered means the instrument, probes, non-BLOCKED receipt, and matching per-unit hash. It does not mean CNF-0003 exists or that live `registry-minus-frame` is empty. No git mutations, no global `unit_manifest.py --write`, no cloud-ok delivery.

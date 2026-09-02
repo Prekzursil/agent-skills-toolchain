@@ -1,0 +1,120 @@
+---
+id: timeouts
+title: Workflow Timeouts - Python SDK
+sidebar_label: Timeouts
+description: Optimize Workflow Execution with Temporal Python SDK - Set Workflow Timeouts and Retry Policies efficiently.
+toc_max_heading_level: 4
+tags:
+  - Activities
+  - Workflows
+  - Errors
+  - Failures
+  - Python SDK
+  - Temporal SDKs
+---
+
+## Workflow timeouts {/* #workflow-timeouts */}
+
+Each Workflow timeout controls the maximum duration of a different aspect of a Workflow Execution.
+
+Before we continue, we want to note that we generally do not recommend setting Workflow Timeouts, because Workflows are designed to be long-running and resilient.
+Instead, setting a Timeout can limit its ability to handle unexpected delays or long-running processes.
+If you need to perform an action inside your Workflow after a specific period of time, we recommend using a Timer.
+
+Workflow timeouts are set when [starting the Workflow Execution](#workflow-timeouts).
+
+- **[Workflow Execution Timeout](/encyclopedia/detecting-workflow-failures#workflow-execution-timeout)** - restricts the maximum amount of time that a single Workflow Execution can be executed.
+- **[Workflow Run Timeout](/encyclopedia/detecting-workflow-failures#workflow-run-timeout):** restricts the maximum amount of time that a single Workflow Run can last.
+- **[Workflow Task Timeout](/encyclopedia/detecting-workflow-failures#workflow-task-timeout):** restricts the maximum amount of time that a Worker can execute a Workflow Task.
+
+Set the timeout to either the [`start_workflow()`](https://python.temporal.io/temporalio.client.Client.html#start_workflow) or [`execute_workflow()`](https://python.temporal.io/temporalio.client.Client.html#execute_workflow) asynchronous methods.
+
+Available timeouts are:
+
+- `execution_timeout`
+- `run_timeout`
+- `task_timeout`
+
+```python {11-20}
+import asyncio
+from datetime import timedelta
+from temporalio.client import Client
+from your_workflows import YourWorkflow
+from temporalio.common import RetryPolicy
+
+
+async def main():
+    client = await Client.connect("localhost:7233")
+
+    result = await client.execute_workflow(
+        YourWorkflow.run,
+        "your timeout argument",
+        id="your-workflow-id",
+        task_queue="your-task-queue",
+        # Set Workflow Timeout duration
+        execution_timeout=timedelta(seconds=2),
+        # run_timeout=timedelta(seconds=2),
+        # task_timeout=timedelta(seconds=2),
+    )
+    handle = await client.execute_workflow(
+        YourWorkflow.run,
+        "your retry policy argument",
+        id="your-workflow-id",
+        task_queue="your-task-queue",
+        retry_policy=RetryPolicy(maximum_interval=timedelta(seconds=2)),
+    )
+
+    print(f"Result: {result}")
+    print(f"Handle: {handle}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```
+
+## Workflow retries {/* #workflow-retries */}
+
+A Retry Policy can work in cooperation with the timeouts to provide fine controls to optimize the execution experience.
+
+Use a [Retry Policy](/encyclopedia/retry-policies) to retry a Workflow Execution in the event of a failure.
+
+Workflow Executions do not retry by default, and Retry Policies should be used with Workflow Executions only in certain situations.
+
+Set the Retry Policy to either the [`start_workflow()`](https://python.temporal.io/temporalio.client.Client.html#start_workflow) or [`execute_workflow()`](https://python.temporal.io/temporalio.client.Client.html#execute_workflow) asynchronous methods.
+
+```python {21-27}
+import asyncio
+from datetime import timedelta
+from temporalio.client import Client
+from your_workflows import YourWorkflow
+from temporalio.common import RetryPolicy
+
+
+async def main():
+    client = await Client.connect("localhost:7233")
+
+    result = await client.execute_workflow(
+        YourWorkflow.run,
+        "your timeout argument",
+        id="your-workflow-id",
+        task_queue="your-task-queue",
+        # Set Workflow Timeout duration
+        execution_timeout=timedelta(seconds=2),
+        # run_timeout=timedelta(seconds=2),
+        # task_timeout=timedelta(seconds=2),
+    )
+    handle = await client.execute_workflow(
+        YourWorkflow.run,
+        "your retry policy argument",
+        id="your-workflow-id",
+        task_queue="your-task-queue",
+        retry_policy=RetryPolicy(maximum_interval=timedelta(seconds=2)),
+    )
+
+    print(f"Result: {result}")
+    print(f"Handle: {handle}")
+
+
+if __name__ == "__main__":
+    asyncio.run(main())
+```

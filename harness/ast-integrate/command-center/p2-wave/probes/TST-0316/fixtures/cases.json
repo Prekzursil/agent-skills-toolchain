@@ -1,0 +1,94 @@
+{
+  "unit_id": "TST-0316",
+  "note": "Cross-vendor parity slice. Catalog input command-center/bench/cases/ is unbuilt (TST-0295); this unit ships a closed fixture corpus so request-diff and empty-diff scoring are executable without a live model call.",
+  "cases": [
+    {
+      "id": "cv-p-01",
+      "prompt": "Count the Python modules under src/ and name each file.",
+      "required_tools": ["read", "glob"],
+      "context": ["src/a.py", "src/b.py"],
+      "timeout_seconds": 120,
+      "split": "test",
+      "stratum": "portable",
+      "provenance": "TST-0316 fixture; portable intersection of Claude and Codex canonical tools",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-p-02",
+      "prompt": "Rewrite README.md so the install stanza matches pyproject.toml.",
+      "required_tools": ["read", "write", "grep"],
+      "context": ["README.md", "pyproject.toml"],
+      "timeout_seconds": 90,
+      "split": "test",
+      "stratum": "portable",
+      "provenance": "TST-0316 fixture; portable write+grep",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-p-03",
+      "prompt": "Run the unit tests for tools/cross_vendor and report the exit code.",
+      "required_tools": ["exec", "read"],
+      "context": ["tools/cross_vendor/parity_bench.py"],
+      "timeout_seconds": 60,
+      "split": "dev",
+      "stratum": "portable",
+      "provenance": "TST-0316 fixture; portable exec",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-p-04",
+      "prompt": "Find every TODO in tools/ and list the path plus line text.",
+      "required_tools": ["grep", "glob"],
+      "context": ["tools/"],
+      "timeout_seconds": 150,
+      "split": "test",
+      "stratum": "portable",
+      "provenance": "TST-0316 fixture; portable grep+glob; 150s is under Codex max 180",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-timeout-clamp",
+      "prompt": "Hold a long-running replica rebuild that needs a 300s adapter timeout.",
+      "required_tools": ["read", "exec"],
+      "context": ["ops/rebuild.sh"],
+      "timeout_seconds": 300,
+      "split": "test",
+      "stratum": "timeout-leak",
+      "provenance": "TST-0316 fixture; Codex max_timeout=180 clamps 300s",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-claude-task",
+      "prompt": "Spawn a subagent to explore the repo while the parent writes the receipt.",
+      "required_tools": ["read", "task"],
+      "context": ["command-center/WORK-UNIT-CATALOG.json"],
+      "timeout_seconds": 120,
+      "split": "test",
+      "stratum": "claude-only",
+      "provenance": "TST-0316 fixture; Task is Claude-only",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-codex-mcp",
+      "prompt": "Dispatch this case through mcp__codex__codex as the Codex transport.",
+      "required_tools": ["read", "mcp__codex__codex"],
+      "context": ["command-center/WORK-UNIT-CATALOG.json"],
+      "timeout_seconds": 120,
+      "split": "test",
+      "stratum": "codex-only",
+      "provenance": "TST-0316 fixture; mcp__codex__codex is Codex-only",
+      "oracle_kind": "deterministic"
+    },
+    {
+      "id": "cv-webfetch-vs-search",
+      "prompt": "Fetch the live vendor capability page and extract the tool list.",
+      "required_tools": ["webfetch"],
+      "context": [],
+      "timeout_seconds": 90,
+      "split": "held-out",
+      "stratum": "claude-only",
+      "provenance": "TST-0316 fixture; WebFetch vs Codex web_search is not the same ask",
+      "oracle_kind": "deterministic"
+    }
+  ]
+}

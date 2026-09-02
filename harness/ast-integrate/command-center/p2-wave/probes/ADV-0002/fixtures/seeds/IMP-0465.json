@@ -1,0 +1,1138 @@
+{
+ "artifacts": [
+  {
+   "bytes": 35071,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0465.json",
+   "role": "primary",
+   "sha256": "8b93dc901c3ebd660816fd7ca38f4e027cf938b2eb6e90004fd5a2eefb4738cd"
+  },
+  {
+   "bytes": 17578,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/dispatch/quote_safe_marshaller.py",
+   "role": "supporting",
+   "sha256": "4c7a2e7e0fc39ebb433b2a64abda7f58b778181af6186878aeaf83e3f0ed8297"
+  },
+  {
+   "bytes": 59,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/dispatch/__init__.py",
+   "role": "supporting",
+   "sha256": "93d5bc402bd18b5e45b27dddbd6e179262f12c50c0220dfb71b543cbe9f959da"
+  },
+  {
+   "bytes": 5049,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0465/probe1_transport_matrix.py",
+   "role": "supporting",
+   "sha256": "6cdb316f7b99d3254db593b1aac14a89c265c3e6258933197c7568ef3eaf4fa2"
+  },
+  {
+   "bytes": 6459,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0465/probe2_roundtrip.py",
+   "role": "supporting",
+   "sha256": "698bbc7cf45b056ee18a3531506646e932d460dd31ba1d45f28d71c0c1fcbc11"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0465.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0465",
+    "exit_code": 0,
+    "fingerprint": "5ab7100242754327e2b50484e5674cee",
+    "method": "command",
+    "raw_output": "run after this emitter",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/dispatch/quote_safe_marshaller.py:run_matrix",
+   "claim": "Transport failure matrix 13 payloads x 7 transports = 91 cells. Marshaller ok=13 fail=0. Naive bash_single_quote fail=7 (apostrophe, injection, destructive-mention). Naive bash_heredoc fail=13 (EOF-in-body, expansion, control bytes).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0465/probe1_transport_matrix.py",
+     "exit_code": 0,
+     "fingerprint": "65a2f31936a93d1483c63ffefbaf110e",
+     "method": "command",
+     "raw_output": "{\"by_transport\": {\"bash_double_quote\": {\"fail\": 4, \"ok\": 9}, \"bash_heredoc\": {\"fail\": 13, \"ok\": 0}, \"bash_herestring\": {\"fail\": 13, \"ok\": 0}, \"bash_single_quote\": {\"fail\": 7, \"ok\": 6}, \"dash_single_quote\": {\"fail\": 7, \"ok\": 6}, \"marshaller\": {\"fail\": 0, \"ok\": 13}, \"python_c_triple\": {\"fail\": 3, \"ok\": 10}}, \"cell_count\": 91, \"destructive_mention_present\": true, \"injection_canary_executed_on_naive\": true, \"injection_naive_executed_or_corrupt\": true, \"marshaller_ok\": true, \"naive_apostrophe_broke\": true, \"naive_heredoc_eof_broke\": true, \"pass\": true, \"payload_count\": 13, \"probe\": \"probe1-transport-matrix\", \"red_cells\": 47, \"unit_id\": \"IMP-0465\"}\n  bash_double_quote: ok=9 fail=4\n  bash_heredoc: ok=0 fail=13\n  bash_herestring: ok=0 fail=13\n  bash_single_quote: ok=6 fail=7\n  dash_single_quote: ok=6 fail=7\n  marshaller: ok=13 fail=0\n  python_c_triple: ok=10 fail=3\nSUCCESS:IMP-0465-probe1 matrix measured; marshaller 13/13; red_cells=47",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0465/probe2_roundtrip.py",
+     "exit_code": 0,
+     "fingerprint": "164df09d6977ad1278e14cc7efe7264a",
+     "method": "command",
+     "raw_output": "{\"both_states\": {\"bad_apostrophe_bash_single_quote_broke\": true, \"bad_reason\": \"/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''\", \"good_plain_bash_single_quote\": true}, \"dash_cells\": 39, \"dash_red\": 24, \"file_mode_count\": 10, \"inline_mode_count\": 3, \"nul_file_round_trip\": true, \"other_shell\": \"dash\", \"pass\": true, \"probe\": \"probe2-roundtrip-other-shell\", \"retry_switched_to_file\": true, \"reviewer_id\": \"IMP-0465-probe2-dash-matrix\", \"roundtrips\": 13, \"unit_id\": \"IMP-0465\"}\nSUCCESS:IMP-0465-probe2 round-trips=13 dash_red=24 both-states ok",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/dispatch/quote_safe_marshaller.py:mention_destructive_payload",
+   "claim": "Corpus includes destructive-mention whose BODY quotes 'rm -rf /' as mention, not use. Marshaller round-trips those bytes and does not execute them. Injection canary (touch, not rm) fires under naive single-quote wrap and is silent under the marshaller.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0465/probe1_transport_matrix.py",
+     "exit_code": 0,
+     "fingerprint": "65a2f31936a93d1483c63ffefbaf110e",
+     "method": "command",
+     "raw_output": "{\"by_transport\": {\"bash_double_quote\": {\"fail\": 4, \"ok\": 9}, \"bash_heredoc\": {\"fail\": 13, \"ok\": 0}, \"bash_herestring\": {\"fail\": 13, \"ok\": 0}, \"bash_single_quote\": {\"fail\": 7, \"ok\": 6}, \"dash_single_quote\": {\"fail\": 7, \"ok\": 6}, \"marshaller\": {\"fail\": 0, \"ok\": 13}, \"python_c_triple\": {\"fail\": 3, \"ok\": 10}}, \"cell_count\": 91, \"destructive_mention_present\": true, \"injection_canary_executed_on_naive\": true, \"injection_naive_executed_or_corrupt\": true, \"marshaller_ok\": true, \"naive_apostrophe_broke\": true, \"naive_heredoc_eof_broke\": true, \"pass\": true, \"payload_count\": 13, \"probe\": \"probe1-transport-matrix\", \"red_cells\": 47, \"unit_id\": \"IMP-0465\"}\n  bash_double_quote: ok=9 fail=4\n  bash_heredoc: ok=0 fail=13\n  bash_herestring: ok=0 fail=13\n  bash_single_quote: ok=6 fail=7\n  dash_single_quote: ok=6 fail=7\n  marshaller: ok=13 fail=0\n  python_c_triple: ok=10 fail=3\nSUCCESS:IMP-0465-probe1 matrix measured; marshaller 13/13; red_cells=47",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0465/probe2_roundtrip.py",
+     "exit_code": 0,
+     "fingerprint": "164df09d6977ad1278e14cc7efe7264a",
+     "method": "command",
+     "raw_output": "{\"both_states\": {\"bad_apostrophe_bash_single_quote_broke\": true, \"bad_reason\": \"/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''\", \"good_plain_bash_single_quote\": true}, \"dash_cells\": 39, \"dash_red\": 24, \"file_mode_count\": 10, \"inline_mode_count\": 3, \"nul_file_round_trip\": true, \"other_shell\": \"dash\", \"pass\": true, \"probe\": \"probe2-roundtrip-other-shell\", \"retry_switched_to_file\": true, \"reviewer_id\": \"IMP-0465-probe2-dash-matrix\", \"roundtrips\": 13, \"unit_id\": \"IMP-0465\"}\nSUCCESS:IMP-0465-probe2 round-trips=13 dash_red=24 both-states ok",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0465",
+ "implementation": {
+  "module": "tools/dispatch/quote_safe_marshaller.py",
+  "pwsh": "absent-on-this-linux-worktree; other shell is dash",
+  "rule": "unsafe_reasons() gates file vs inline-argv. Unsafe bodies are written mode 0600 and passed as a path argument to a receiver that reads bytes; they are never concatenated into a shell -c string. Safe bodies may travel as a hex argv token. After two naive quoting failures (2) dispatch switches to file rather than inventing a third escape."
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0465/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "it's a test -> bash parse error or truncated",
+   "description": "Naive bash single-quote wrap of a payload containing an apostrophe must NOT round-trip (bad state). The same wrap of plain ASCII must round-trip (good state).",
+   "fired_on_bad_state": true,
+   "good_state_output": "hello world round-trips under bash_single_quote",
+   "id": "IMP0465-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive single-quote wrap creates canary or corrupts bytes",
+   "description": "A body `keep'; touch CANARY; echo 'end` executed as a command line under naive wrap; marshaller treats it as data.",
+   "fired_on_bad_state": true,
+   "good_state_output": "marshaller file path; canary absent; bytes equal",
+   "id": "IMP0465-C2",
+   "kind": "payload-scanned-as-command",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0465: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SENTINEL:IMP-0465:MARSHALLER-QUOTE-SAFE",
+ "question_or_target": "At what payload shape does each transport break, measured rather than assumed? A marshaller must never inline a payload containing an apostrophe, a here-string terminator, or a control byte.",
+ "report": {
+  "by_transport": [
+   {
+    "fail": 4,
+    "failing_ids": [
+     "double-quote",
+     "dollar-expansion",
+     "control-nul",
+     "mixed-quotes"
+    ],
+    "ok": 9,
+    "transport": "bash_double_quote"
+   },
+   {
+    "fail": 13,
+    "failing_ids": [
+     "plain-ascii",
+     "double-quote",
+     "dollar-expansion",
+     "apostrophe",
+     "injection-canary",
+     "destructive-mention",
+     "heredoc-eof-line",
+     "control-nul",
+     "herestring-term",
+     "python-triple",
+     "control-cr",
+     "control-esc",
+     "mixed-quotes"
+    ],
+    "ok": 0,
+    "transport": "bash_heredoc"
+   },
+   {
+    "fail": 13,
+    "failing_ids": [
+     "plain-ascii",
+     "double-quote",
+     "dollar-expansion",
+     "apostrophe",
+     "injection-canary",
+     "destructive-mention",
+     "heredoc-eof-line",
+     "control-nul",
+     "herestring-term",
+     "python-triple",
+     "control-cr",
+     "control-esc",
+     "mixed-quotes"
+    ],
+    "ok": 0,
+    "transport": "bash_herestring"
+   },
+   {
+    "fail": 7,
+    "failing_ids": [
+     "apostrophe",
+     "injection-canary",
+     "destructive-mention",
+     "control-nul",
+     "herestring-term",
+     "python-triple",
+     "mixed-quotes"
+    ],
+    "ok": 6,
+    "transport": "bash_single_quote"
+   },
+   {
+    "fail": 7,
+    "failing_ids": [
+     "apostrophe",
+     "injection-canary",
+     "destructive-mention",
+     "control-nul",
+     "herestring-term",
+     "python-triple",
+     "mixed-quotes"
+    ],
+    "ok": 6,
+    "transport": "dash_single_quote"
+   },
+   {
+    "fail": 3,
+    "failing_ids": [
+     "control-nul",
+     "python-triple",
+     "control-cr"
+    ],
+    "ok": 10,
+    "transport": "python_c_triple"
+   },
+   {
+    "fail": 0,
+    "failing_ids": [],
+    "ok": 13,
+    "transport": "marshaller"
+   }
+  ],
+  "cell_count": 91,
+  "cells": [
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "plain-ascii",
+    "reason": "ok",
+    "shape": "plain",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "double-quote",
+    "reason": "ok",
+    "shape": "double-quote",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "dollar-expansion",
+    "reason": "ok",
+    "shape": "dollar",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "apostrophe",
+    "reason": "naive-break:/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+    "shape": "apostrophe",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": true,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "injection-canary",
+    "reason": "naive-break:ok",
+    "shape": "injection",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "destructive-mention",
+    "reason": "naive-break:ok",
+    "shape": "destructive-mention",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "heredoc-eof-line",
+    "reason": "ok",
+    "shape": "heredoc-eof",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-nul",
+    "reason": "naive-break:nul-in-payload",
+    "shape": "control-nul",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "herestring-term",
+    "reason": "naive-break:/usr/bin/bash: -c: line 3: unexpected EOF while looking for matching `''",
+    "shape": "here-string-terminator",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "python-triple",
+    "reason": "naive-break:/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+    "shape": "python-triple-quote",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-cr",
+    "reason": "ok",
+    "shape": "control-cr",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-esc",
+    "reason": "ok",
+    "shape": "control-esc",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "mixed-quotes",
+    "reason": "naive-break:/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+    "shape": "mixed-quotes",
+    "transport": "bash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "plain-ascii",
+    "reason": "ok",
+    "shape": "plain",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "double-quote",
+    "reason": "naive-break:ok",
+    "shape": "double-quote",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "dollar-expansion",
+    "reason": "naive-break:ok",
+    "shape": "dollar",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "apostrophe",
+    "reason": "ok",
+    "shape": "apostrophe",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "injection-canary",
+    "reason": "ok",
+    "shape": "injection",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "destructive-mention",
+    "reason": "ok",
+    "shape": "destructive-mention",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "heredoc-eof-line",
+    "reason": "ok",
+    "shape": "heredoc-eof",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-nul",
+    "reason": "naive-break:nul-in-payload",
+    "shape": "control-nul",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "herestring-term",
+    "reason": "ok",
+    "shape": "here-string-terminator",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "python-triple",
+    "reason": "ok",
+    "shape": "python-triple-quote",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-cr",
+    "reason": "ok",
+    "shape": "control-cr",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-esc",
+    "reason": "ok",
+    "shape": "control-esc",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "mixed-quotes",
+    "reason": "naive-break:ok",
+    "shape": "mixed-quotes",
+    "transport": "bash_double_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "plain-ascii",
+    "reason": "naive-break:ok",
+    "shape": "plain",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "double-quote",
+    "reason": "naive-break:ok",
+    "shape": "double-quote",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "dollar-expansion",
+    "reason": "naive-break:ok",
+    "shape": "dollar",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "apostrophe",
+    "reason": "naive-break:ok",
+    "shape": "apostrophe",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "injection-canary",
+    "reason": "naive-break:ok",
+    "shape": "injection",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "destructive-mention",
+    "reason": "naive-break:ok",
+    "shape": "destructive-mention",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "heredoc-eof-line",
+    "reason": "naive-break:/usr/bin/bash: line 4: trailer-must-survive: command not found\n/usr/bin/bash: line 5: EOF: command not found",
+    "shape": "heredoc-eof",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-nul",
+    "reason": "naive-break:nul-in-payload",
+    "shape": "control-nul",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "herestring-term",
+    "reason": "naive-break:ok",
+    "shape": "here-string-terminator",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "python-triple",
+    "reason": "naive-break:ok",
+    "shape": "python-triple-quote",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-cr",
+    "reason": "naive-break:ok",
+    "shape": "control-cr",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-esc",
+    "reason": "naive-break:ok",
+    "shape": "control-esc",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "mixed-quotes",
+    "reason": "naive-break:ok",
+    "shape": "mixed-quotes",
+    "transport": "bash_heredoc"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "plain-ascii",
+    "reason": "naive-break:ok",
+    "shape": "plain",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "double-quote",
+    "reason": "naive-break:ok",
+    "shape": "double-quote",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "dollar-expansion",
+    "reason": "naive-break:ok",
+    "shape": "dollar",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "apostrophe",
+    "reason": "naive-break:/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+    "shape": "apostrophe",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": true,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "injection-canary",
+    "reason": "naive-break:ok",
+    "shape": "injection",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "destructive-mention",
+    "reason": "naive-break:cat: invalid option -- 'r'\nTry 'cat --help' for more information.",
+    "shape": "destructive-mention",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "heredoc-eof-line",
+    "reason": "naive-break:ok",
+    "shape": "heredoc-eof",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-nul",
+    "reason": "naive-break:nul-in-payload",
+    "shape": "control-nul",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "herestring-term",
+    "reason": "naive-break:/usr/bin/bash: -c: line 3: unexpected EOF while looking for matching `''",
+    "shape": "here-string-terminator",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "python-triple",
+    "reason": "naive-break:/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+    "shape": "python-triple-quote",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-cr",
+    "reason": "naive-break:ok",
+    "shape": "control-cr",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-esc",
+    "reason": "naive-break:ok",
+    "shape": "control-esc",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "mixed-quotes",
+    "reason": "naive-break:/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''",
+    "shape": "mixed-quotes",
+    "transport": "bash_herestring"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "plain-ascii",
+    "reason": "ok",
+    "shape": "plain",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "double-quote",
+    "reason": "ok",
+    "shape": "double-quote",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "dollar-expansion",
+    "reason": "ok",
+    "shape": "dollar",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "apostrophe",
+    "reason": "naive-break:/usr/bin/dash: 1: Syntax error: Unterminated quoted string",
+    "shape": "apostrophe",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": true,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "injection-canary",
+    "reason": "naive-break:ok",
+    "shape": "injection",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "destructive-mention",
+    "reason": "naive-break:ok",
+    "shape": "destructive-mention",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "heredoc-eof-line",
+    "reason": "ok",
+    "shape": "heredoc-eof",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-nul",
+    "reason": "naive-break:nul-in-payload",
+    "shape": "control-nul",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "herestring-term",
+    "reason": "naive-break:/usr/bin/dash: 3: Syntax error: Unterminated quoted string",
+    "shape": "here-string-terminator",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "python-triple",
+    "reason": "naive-break:/usr/bin/dash: 1: Syntax error: Unterminated quoted string",
+    "shape": "python-triple-quote",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-cr",
+    "reason": "ok",
+    "shape": "control-cr",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-esc",
+    "reason": "ok",
+    "shape": "control-esc",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "mixed-quotes",
+    "reason": "naive-break:/usr/bin/dash: 1: Syntax error: Unterminated quoted string",
+    "shape": "mixed-quotes",
+    "transport": "dash_single_quote"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "plain-ascii",
+    "reason": "ok",
+    "shape": "plain",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "double-quote",
+    "reason": "ok",
+    "shape": "double-quote",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "dollar-expansion",
+    "reason": "ok",
+    "shape": "dollar",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "apostrophe",
+    "reason": "ok",
+    "shape": "apostrophe",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "injection-canary",
+    "reason": "ok",
+    "shape": "injection",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "destructive-mention",
+    "reason": "ok",
+    "shape": "destructive-mention",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "heredoc-eof-line",
+    "reason": "ok",
+    "shape": "heredoc-eof",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-nul",
+    "reason": "naive-break:nul-in-payload",
+    "shape": "control-nul",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "herestring-term",
+    "reason": "ok",
+    "shape": "here-string-terminator",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "python-triple",
+    "reason": "naive-break:File \"<string>\", line 1\n    import sys; sys.stdout.buffer.write(b'''x'''y''')\n                                                 ^\nSyntaxError: unterminated triple-quoted",
+    "shape": "python-triple-quote",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": false,
+    "payload_id": "control-cr",
+    "reason": "naive-break:ok",
+    "shape": "control-cr",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "control-esc",
+    "reason": "ok",
+    "shape": "control-esc",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "naive-inline",
+    "ok": true,
+    "payload_id": "mixed-quotes",
+    "reason": "ok",
+    "shape": "mixed-quotes",
+    "transport": "python_c_triple"
+   },
+   {
+    "canary_created": false,
+    "mode": "inline-argv",
+    "ok": true,
+    "payload_id": "plain-ascii",
+    "reason": "ok:inline-argv",
+    "shape": "plain",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "inline-argv",
+    "ok": true,
+    "payload_id": "double-quote",
+    "reason": "ok:inline-argv",
+    "shape": "double-quote",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "inline-argv",
+    "ok": true,
+    "payload_id": "dollar-expansion",
+    "reason": "ok:inline-argv",
+    "shape": "dollar",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "apostrophe",
+    "reason": "ok:file",
+    "shape": "apostrophe",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "injection-canary",
+    "reason": "ok:file",
+    "shape": "injection",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "destructive-mention",
+    "reason": "ok:file",
+    "shape": "destructive-mention",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "heredoc-eof-line",
+    "reason": "ok:file",
+    "shape": "heredoc-eof",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "control-nul",
+    "reason": "ok:file",
+    "shape": "control-nul",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "herestring-term",
+    "reason": "ok:file",
+    "shape": "here-string-terminator",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "python-triple",
+    "reason": "ok:file",
+    "shape": "python-triple-quote",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "control-cr",
+    "reason": "ok:file",
+    "shape": "control-cr",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "control-esc",
+    "reason": "ok:file",
+    "shape": "control-esc",
+    "transport": "marshaller"
+   },
+   {
+    "canary_created": false,
+    "mode": "file",
+    "ok": true,
+    "payload_id": "mixed-quotes",
+    "reason": "ok:file",
+    "shape": "mixed-quotes",
+    "transport": "marshaller"
+   }
+  ],
+  "corpus_ids": [
+   "plain-ascii",
+   "double-quote",
+   "dollar-expansion",
+   "apostrophe",
+   "injection-canary",
+   "destructive-mention",
+   "heredoc-eof-line",
+   "control-nul",
+   "herestring-term",
+   "python-triple",
+   "control-cr",
+   "control-esc",
+   "mixed-quotes"
+  ],
+  "destructive_mention_present": true,
+  "kind": "transport-failure-matrix",
+  "payload_count": 13,
+  "plain_sha256": "b94d27b9934d3e08a52e52d7da7dabfac484efe37a5380ee9088f7ace2efcde9",
+  "transports": [
+   "bash_single_quote",
+   "bash_double_quote",
+   "bash_heredoc",
+   "bash_herestring",
+   "dash_single_quote",
+   "python_c_triple",
+   "marshaller"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "PowerShell here-string transport was not executed: pwsh is absent. The marshaller still routes a body containing '@ as a here-string terminator through a file, which is the POSIX half of the closer class. A Windows re-run should add pwsh @' '@ as a live transport column.",
+   "settling_experiment": "Re-run run_matrix with pwsh present; require a red cell on '@.",
+   "verdict": "DISCLOSED"
+  }
+ ],
+ "retry": {
+  "count": 2,
+  "policy": "max 2 attempts; after the second quoting failure switch transport",
+  "switched_ok": true,
+  "switched_to_file": true
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 re-ran the naive matrix under dash (pwsh absent on this Linux worktree) and confirmed apostrophe still breaks dash_single_quote while plain ASCII still round-trips.",
+  "reviewer_id": "IMP-0465-probe2-dash-matrix",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0465:MARSHALLER-QUOTE-SAFE",
+ "spec_anchor": "spec:11308",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0465/probe2_roundtrip.py",
+   "id": "round-trip-every-corpus-entry",
+   "output_tail": "{\"both_states\": {\"bad_apostrophe_bash_single_quote_broke\": true, \"bad_reason\": \"/usr/bin/bash: -c: line 1: unexpected EOF while looking for matching `''\", \"good_plain_bash_single_quote\": true}, \"dash_cells\": 39, \"dash_red\": 24, \"file_mode_count\": 10, \"inline_mode_count\": 3, \"nul_file_round_trip\": true, \"other_shell\": \"dash\", \"pass\": true, \"probe\": \"probe2-roundtrip-other-shell\", \"retry_switched_to_file\": true, \"reviewer_id\": \"IMP-0465-probe2-dash-matrix\", \"roundtrips\": 13, \"unit_id\": \"IMP-0465\"}\nSUCCESS:IMP-0465-probe2 round-trips=13 dash_red=24 both-states ok",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0465/probe1_transport_matrix.py",
+   "id": "known-failing-naive-transport-control",
+   "output_tail": "{\"by_transport\": {\"bash_double_quote\": {\"fail\": 4, \"ok\": 9}, \"bash_heredoc\": {\"fail\": 13, \"ok\": 0}, \"bash_herestring\": {\"fail\": 13, \"ok\": 0}, \"bash_single_quote\": {\"fail\": 7, \"ok\": 6}, \"dash_single_quote\": {\"fail\": 7, \"ok\": 6}, \"marshaller\": {\"fail\": 0, \"ok\": 13}, \"python_c_triple\": {\"fail\": 3, \"ok\": 10}}, \"cell_count\": 91, \"destructive_mention_present\": true, \"injection_canary_executed_on_naive\": true, \"injection_naive_executed_or_corrupt\": true, \"marshaller_ok\": true, \"naive_apostrophe_broke\": true, \"naive_heredoc_eof_broke\": true, \"pass\": true, \"payload_count\": 13, \"probe\": \"probe1-transport-matrix\", \"red_cells\": 47, \"unit_id\": \"IMP-0465\"}\n  bash_double_quote: ok=9 fail=4\n  bash_heredoc: ok=0 fail=13\n  bash_herestring: ok=0 fail=13\n  bash_single_quote: ok=6 fail=7\n  dash_single_quote: ok=6 fail=7\n  marshaller: ok=13 fail=0\n  python_c_triple: ok=10 fail=3\nSUCCESS:IMP-0465-probe1 matrix measured; marshaller 13/13; red_cells=47",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:01:03Z",
+  "started_at": "2026-08-25T01:01:01Z"
+ },
+ "title": "Quoting-safe command marshaller with file-based payload transport",
+ "unit_id": "IMP-0465"
+}

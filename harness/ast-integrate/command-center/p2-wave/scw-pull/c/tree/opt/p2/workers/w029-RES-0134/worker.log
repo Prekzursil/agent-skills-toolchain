@@ -1,0 +1,28 @@
+I'll start from the existing RES-0134 probe tree and resume from whatever is already there, then measure delivery against the G-1 contract.The probe tree is thin — I'll read the handoff, refute, measure script, and a delivered unit so we know the G-1 contract before rebuilding anything.G-1 is the measure script, not harvest `ok=true`. Next I’ll read the catalog contract, a delivered unit’s probe pattern, and the primary artifact so we can restore runnable probes instead of flipping state.I'll pull the primary artifact's probe claims, a delivered unit's manifest/return pattern, and any leftover probe scripts so we can restore rather than invent.Stage `__pycache__` leaked into the first rebuild. I’ll skip those files, retry the system-zlib control, and start fetching zlib-ng.System zlib matches the recorded control. Next I’ll build zlib-ng so the Linux rebuild can match the Windows archive.zlib-ng matches the Windows archive. I’ll write the two named probes next, then emit an honest SUCCESS receipt plus the per-unit manifest.Probe 1 is green. Probe 2’s “canonical” pair still differed because the two views had different file contents, not just shape — I’ll make the payloads identical and vary only line endings and Unicode form.Measure printed `SUCCESS:delivered`. I'll write `SUBAGENT-RETURN.json` from the live hashes and confirm the per-unit manifest still matches.**SUCCESS:delivered RES-0134** `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_cross_platform_rebuild.py:0,probe2_causal_matrix.py:0`
+
+G-1 is green for this unit. Harvest `cloud ok=true` was not treated as delivery.
+
+### What was missing
+The probe tree had a harvest/refute handoff only: no named scripts, no rebuild zips, receipt `state=BLOCKED` on global condition 11. That is not G-1. Per-unit registration is already allowed (`STRUCTURAL-CONDITION-11.md` option 1).
+
+### Live probes (re-ran, exit 0)
+- **Probe 1** `probe1_cross_platform_rebuild.py`: rebuilt the retained ADV-0024 G0 Windows archive on this Linux host with pinned zlib-ng 2.2.4. Pair is byte-identical at `e0c290566d46e27e36bc8674556c22b8cc30f75fd2ddb67bfe4ee530bcf3cabf`. Independent `sha256sum` and OpenSSL agree.
+- **Probe 2** `probe2_causal_matrix.py`: stored-ZIP matrix. Order, mtime, separators, CRLF/LF, NFC/NFD, and path case each change bytes. Canonical pair matches at `8393d7bccb0e413df941350cb26d7ad14ffd8d3e875effccac7939c8db812f72`. Casefold collisions are rejected.
+
+### Both-states / negative controls
+| Control | Good | Bad |
+|---|---|---|
+| NC1 normalisation disabled | `e0c290…f3cabf` | `c9a9355f…0d283f` (differs) |
+| NC2 unpinned system zlib | `e0c290…f3cabf` | `b65b27a2…ce3946` (differs) |
+
+### Honest artifact
+- Output: `command-center/research/supply-chain/RES-0134-reproducible-build-for-asset-packages.json` (43570 B)
+- `state=SUCCESS` only after both probes exited 0 (not a pre-probe flip)
+- Schema errors: 0
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `af8020a0614a83404a1d0f2a2b31d3067549f64d8c2329198e8e6272a5b1d352`
+- Return: `command-center/p2-wave/probes/RES-0134/SUBAGENT-RETURN.json`
+
+Global `unit_manifest.py --check` is still red on an unrelated receipt. This session did not `--write` the global catalog.
+
+### Constraints kept
+No git add/commit/push/stash/checkout/rebase. No API-key rotation. No relaunch of finish-everything-close or p2-cloud-ok-deliver.

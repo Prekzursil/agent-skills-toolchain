@@ -1,0 +1,27 @@
+# rules/plugin/rollback.md
+shared:rules/plugin/rollback.md
+repo-unique:rules/plugin/rollback.md
+repo-pad:rules/plugin/rollback.md:0
+repo-pad:rules/plugin/rollback.md:1
+repo-pad:rules/plugin/rollback.md:2
+repo-pad:rules/plugin/rollback.md:3
+repo-pad:rules/plugin/rollback.md:4
+repo-pad:rules/plugin/rollback.md:5
+repo-pad:rules/plugin/rollback.md:6
+repo-pad:rules/plugin/rollback.md:7
+repo-pad:rules/plugin/rollback.md:8
+repo-pad:rules/plugin/rollback.md:9
+repo-pad:rules/plugin/rollback.md:10
+repo-pad:rules/plugin/rollback.md:11
+repo-pad:rules/plugin/rollback.md:12
+repo-pad:rules/plugin/rollback.md:13
+repo-pad:rules/plugin/rollback.md:14
+repo-pad:rules/plugin/rollback.md:15
+repo-pad:rules/plugin/rollback.md:16
+repo-pad:rules/plugin/rollback.md:17
+repo-pad:rules/plugin/rollback.md:18
+repo-pad:rules/plugin/rollback.md:19
+repo-pad:rules/plugin/rollback.md:20
+repo-pad:rules/plugin/rollback.md:21
+repo-pad:rules/plugin/rollback.md:22
+repo-pad:rules/plugin/rollback.md:23

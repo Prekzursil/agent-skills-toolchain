@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0091/detector-spec.schema.json",
+  "title": "CNL-0091 role-collapse detector spec (per-unit; catalog shim $ref is unresolvable)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "title",
+    "question",
+    "metric",
+    "thresholds",
+    "answers",
+    "both_states",
+    "false_positive_rate",
+    "false_negative_rate",
+    "negative_control",
+    "tests",
+    "reviewer",
+    "evidence",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0091" },
+    "state": { "type": "string", "enum": ["SUCCESS"] },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0091" },
+    "report_kind": { "type": "string", "const": "council-detector-spec" },
+    "title": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 40 },
+    "false_positive_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1,
+      "description": "Numeric rate, never an adjective such as 'low'."
+    },
+    "false_negative_rate": {
+      "type": "number",
+      "minimum": 0,
+      "maximum": 1
+    },
+    "answers": {
+      "type": "object",
+      "required": [
+        "behavioural_distance_metric",
+        "genuine_agreement_distance"
+      ],
+      "properties": {
+        "behavioural_distance_metric": { "type": "string", "minLength": 40 },
+        "genuine_agreement_distance": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "both_states": {
+      "type": "object",
+      "required": [
+        "known_present_evaluated_first",
+        "fired_on_bad",
+        "silent_on_good",
+        "planted_bad_id",
+        "known_good_id",
+        "verbatim"
+      ],
+      "properties": {
+        "known_present_evaluated_first": { "type": "boolean", "const": true },
+        "fired_on_bad": { "type": "boolean", "const": true },
+        "silent_on_good": { "type": "boolean", "const": true },
+        "planted_bad_id": { "type": "string", "minLength": 4 },
+        "known_good_id": { "type": "string", "minLength": 4 },
+        "verbatim": { "type": "string", "minLength": 20 }
+      }
+    },
+    "negative_control": {
+      "type": "object",
+      "required": ["id", "rejects_state", "check_does", "fired", "verbatim"],
+      "properties": {
+        "id": { "type": "string", "minLength": 4 },
+        "rejects_state": { "type": "string", "minLength": 8 },
+        "check_does": { "type": "string", "minLength": 8 },
+        "fired": { "type": "boolean", "const": false },
+        "verbatim": { "type": "string", "minLength": 8 }
+      }
+    },
+    "metric": { "type": "object", "minProperties": 2 },
+    "thresholds": {
+      "type": "object",
+      "required": ["collapse_gate", "genuine_agreement_distance"],
+      "properties": {
+        "collapse_gate": { "type": "number" },
+        "genuine_agreement_distance": { "type": "number" }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent", "reran_both_states"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 4 },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true },
+        "reran_both_states": { "type": "boolean", "const": true }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"]
+      }
+    }
+  }
+}

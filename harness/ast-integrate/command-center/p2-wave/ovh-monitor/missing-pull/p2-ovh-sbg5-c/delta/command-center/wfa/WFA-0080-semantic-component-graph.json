@@ -1,0 +1,702 @@
+{
+ "completion_sentinel": "SUCCESS:WFA-0080",
+ "component_report": {
+  "components": [
+   {
+    "members": [
+     "mech.append-only-ledger",
+     "mech.at-least-once-idempotent-delivery",
+     "mech.exactly-once-delivery",
+     "mech.idempotent-unit",
+     "mech.retry-semantics"
+    ],
+    "size": 5
+   },
+   {
+    "members": [
+     "mech.blocking-fan-in-barrier",
+     "mech.completion-event-join",
+     "mech.dynamic-fan-out",
+     "mech.fire-and-forget-dispatch",
+     "mech.schema-typed-fan-in"
+    ],
+    "size": 5
+   },
+   {
+    "members": [
+     "mech.checkpointing",
+     "mech.resume-from-checkpoint",
+     "mech.state-model"
+    ],
+    "size": 3
+   },
+   {
+    "members": [
+     "mech.blind-independent-first-pass",
+     "mech.shared-context-deliberation"
+    ],
+    "size": 2
+   },
+   {
+    "members": [
+     "mech.deterministic-replay",
+     "mech.nondeterministic-sampling"
+    ],
+    "size": 2
+   },
+   {
+    "members": [
+     "mech.gate-predicate",
+     "mech.human-checkpoint"
+    ],
+    "size": 2
+   },
+   {
+    "members": [
+     "mech.loop-with-convergence",
+     "mech.stopping-expression"
+    ],
+    "size": 2
+   },
+   {
+    "members": [
+     "mech.degrade-loudly"
+    ],
+    "size": 1
+   },
+   {
+    "members": [
+     "mech.lineage-preservation"
+    ],
+    "size": 1
+   },
+   {
+    "members": [
+     "mech.role-assignment"
+    ],
+    "size": 1
+   },
+   {
+    "members": [
+     "mech.stage-pipeline"
+    ],
+    "size": 1
+   },
+   {
+    "members": [
+     "mech.tool-policy-bound"
+    ],
+    "size": 1
+   },
+   {
+    "members": [
+     "mech.worktree-isolation"
+    ],
+    "size": 1
+   }
+  ],
+  "count": 13,
+  "explanation": "Relations are typed and local, so the graph partitions. Conflicts bind mutually exclusive composition-slot pairs; requires/implements/substitutes-for bind small families (dispatch/join, durability, gating, loops). Isolated nodes are mechanisms that this reconstructed vocabulary does not yet relate — they are listed, not defaulted into a clique. A single component spanning every node would be the same failure mode as the 108-blueprint compat graph and is a FINDING, not a result to ship. Here: 13 components, largest size 5 (mech.append-only-ledger, mech.at-least-once-idempotent-delivery, mech.exactly-once-delivery, mech.idempotent-unit, mech.retry-semantics). spanning=False.",
+  "largest_members": [
+   "mech.append-only-ledger",
+   "mech.at-least-once-idempotent-delivery",
+   "mech.exactly-once-delivery",
+   "mech.idempotent-unit",
+   "mech.retry-semantics"
+  ],
+  "largest_size": 5,
+  "sizes": [
+   5,
+   5,
+   3,
+   2,
+   2,
+   2,
+   2,
+   1,
+   1,
+   1,
+   1,
+   1,
+   1
+  ],
+  "spanning": false
+ },
+ "directed": true,
+ "edge_relations": [
+  "implements",
+  "requires",
+  "conflicts-with",
+  "substitutes-for"
+ ],
+ "edges": [
+  {
+   "id": "e:conflicts-with:mech.blind-independent-first-pass->mech.shared-context-deliberation",
+   "justification": "The same worker cannot both be isolated from sibling drafts and read those drafts. A fusion that sets both on one composition slot is unsatisfiable (WFA-0062 HARD pair; experimental exhibition is WFA-0062's artifact, absent here).",
+   "relation": "conflicts-with",
+   "source": "mech.blind-independent-first-pass",
+   "target": "mech.shared-context-deliberation"
+  },
+  {
+   "id": "e:conflicts-with:mech.blocking-fan-in-barrier->mech.fire-and-forget-dispatch",
+   "justification": "A single composition slot cannot both return immediately after enqueue and park until children complete. WFA-0062 HARD pair. A workflow MAY use both at different slots (dispatch then a later join); the conflict is per slot.",
+   "relation": "conflicts-with",
+   "source": "mech.blocking-fan-in-barrier",
+   "target": "mech.fire-and-forget-dispatch"
+  },
+  {
+   "id": "e:conflicts-with:mech.deterministic-replay->mech.nondeterministic-sampling",
+   "justification": "Bit-identical replay cannot hold if a sampler with residual entropy sits on the path. WFA-0062 HARD pair.",
+   "relation": "conflicts-with",
+   "source": "mech.deterministic-replay",
+   "target": "mech.nondeterministic-sampling"
+  },
+  {
+   "id": "e:conflicts-with:mech.fire-and-forget-dispatch->mech.blocking-fan-in-barrier",
+   "justification": "A single composition slot cannot both return immediately after enqueue and park until children complete. WFA-0062 HARD pair. A workflow MAY use both at different slots (dispatch then a later join); the conflict is per slot.",
+   "relation": "conflicts-with",
+   "source": "mech.fire-and-forget-dispatch",
+   "target": "mech.blocking-fan-in-barrier"
+  },
+  {
+   "id": "e:conflicts-with:mech.nondeterministic-sampling->mech.deterministic-replay",
+   "justification": "Bit-identical replay cannot hold if a sampler with residual entropy sits on the path. WFA-0062 HARD pair.",
+   "relation": "conflicts-with",
+   "source": "mech.nondeterministic-sampling",
+   "target": "mech.deterministic-replay"
+  },
+  {
+   "id": "e:conflicts-with:mech.shared-context-deliberation->mech.blind-independent-first-pass",
+   "justification": "The same worker cannot both be isolated from sibling drafts and read those drafts. A fusion that sets both on one composition slot is unsatisfiable (WFA-0062 HARD pair; experimental exhibition is WFA-0062's artifact, absent here).",
+   "relation": "conflicts-with",
+   "source": "mech.shared-context-deliberation",
+   "target": "mech.blind-independent-first-pass"
+  },
+  {
+   "id": "e:implements:mech.schema-typed-fan-in->mech.blocking-fan-in-barrier",
+   "justification": "Schema-typed fan-in is a blocking join plus per-child schema validation. It realises the barrier and adds a contract.",
+   "relation": "implements",
+   "source": "mech.schema-typed-fan-in",
+   "target": "mech.blocking-fan-in-barrier"
+  },
+  {
+   "id": "e:requires:mech.at-least-once-idempotent-delivery->mech.append-only-ledger",
+   "justification": "Applied ids must be durable across retries. The ledger is that memory.",
+   "relation": "requires",
+   "source": "mech.at-least-once-idempotent-delivery",
+   "target": "mech.append-only-ledger"
+  },
+  {
+   "id": "e:requires:mech.at-least-once-idempotent-delivery->mech.idempotent-unit",
+   "justification": "Duplicate arrivals must no-op. Without idempotent apply, retry forks effects.",
+   "relation": "requires",
+   "source": "mech.at-least-once-idempotent-delivery",
+   "target": "mech.idempotent-unit"
+  },
+  {
+   "id": "e:requires:mech.at-least-once-idempotent-delivery->mech.retry-semantics",
+   "justification": "At-least-once delivery is realised by retrying until apply is acknowledged. The retry policy is required, not optional.",
+   "relation": "requires",
+   "source": "mech.at-least-once-idempotent-delivery",
+   "target": "mech.retry-semantics"
+  },
+  {
+   "id": "e:requires:mech.checkpointing->mech.state-model",
+   "justification": "A checkpoint is a snapshot of a named state model. Prompt-buffer dumps are not checkpoints.",
+   "relation": "requires",
+   "source": "mech.checkpointing",
+   "target": "mech.state-model"
+  },
+  {
+   "id": "e:requires:mech.dynamic-fan-out->mech.fire-and-forget-dispatch",
+   "justification": "Runtime-width fan-out must enqueue a computed set of children without statically listing them in the parent stack.",
+   "relation": "requires",
+   "source": "mech.dynamic-fan-out",
+   "target": "mech.fire-and-forget-dispatch"
+  },
+  {
+   "id": "e:requires:mech.loop-with-convergence->mech.stopping-expression",
+   "justification": "A loop without a closed stopping expression is an unbounded cycle, which the IR forbids.",
+   "relation": "requires",
+   "source": "mech.loop-with-convergence",
+   "target": "mech.stopping-expression"
+  },
+  {
+   "id": "e:requires:mech.resume-from-checkpoint->mech.checkpointing",
+   "justification": "Resume loads a durable snapshot. Without checkpointing there is nothing to resume from except a full restart.",
+   "relation": "requires",
+   "source": "mech.resume-from-checkpoint",
+   "target": "mech.checkpointing"
+  },
+  {
+   "id": "e:substitutes-for:mech.at-least-once-idempotent-delivery->mech.exactly-once-delivery",
+   "justification": "Exactly-once as a broker primitive is replaced by at-least-once plus idempotent apply plus ledger. Worked rewrite below.",
+   "relation": "substitutes-for",
+   "source": "mech.at-least-once-idempotent-delivery",
+   "target": "mech.exactly-once-delivery",
+   "worked_substitution": {
+    "capability_lost": [
+     "broker-enforced single delivery",
+     "freedom to use a non-idempotent apply function"
+    ],
+    "capability_preserved": [
+     "no double apply of a unit id",
+     "eventual apply under retryable failure"
+    ],
+    "construction": "Express exactly-once delivery as at-least-once dispatch plus an idempotent apply guarded by an append-only ledger of applied unit ids. On receive: if ledger.contains(id) then no-op; else apply and append id. Retries are required (retry-semantics) and safe because apply is idempotent. This is a construction, not a claim that the broker itself de-duplicated.",
+    "ir_rewrite": "broker.exactly-once(unit) => retry(dispatch(unit)) ; apply if not ledger.has(unit.id) ; ledger.append(unit.id).",
+    "not_justified_by": "similarity"
+   }
+  },
+  {
+   "id": "e:substitutes-for:mech.completion-event-join->mech.blocking-fan-in-barrier",
+   "justification": "Same join cardinality, different scheduling. Worked rewrite below; not a similarity claim.",
+   "relation": "substitutes-for",
+   "source": "mech.completion-event-join",
+   "target": "mech.blocking-fan-in-barrier",
+   "worked_substitution": {
+    "capability_lost": [
+     "call-stack parking of the parent",
+     "implicit exclusion of sibling parent work during the wait"
+    ],
+    "capability_preserved": [
+     "join cardinality N",
+     "parent does not proceed until all children complete or fail closed"
+    ],
+    "construction": "Replace a blocking fan-in wait() on the parent stack with a subscribe(completion-events) counter. Declare the same cardinality N. The parent enqueues N children (fire-and-forget), then registers a join continuation that fires when N distinct child-ids report done. Other unrelated stages continue. The join is still a join; it is no longer a blocking call-stack barrier.",
+    "ir_rewrite": "stage.join: blocking-fan-in-barrier(children=C) => dispatch fire-and-forget(C) + on_event(child.done, count==|C|) -> continue(parent).",
+    "not_justified_by": "similarity"
+   }
+  },
+  {
+   "id": "e:substitutes-for:mech.human-checkpoint->mech.gate-predicate",
+   "justification": "Only for predicates that ARE owner decisions. Machine predicates stay gates. Worked rewrite below.",
+   "relation": "substitutes-for",
+   "source": "mech.human-checkpoint",
+   "target": "mech.gate-predicate",
+   "worked_substitution": {
+    "capability_lost": [
+     "unattended / automated gating",
+     "reproducible predicate evaluation without a human"
+    ],
+    "capability_preserved": [
+     "downstream does not run without an explicit decision",
+     "decision is a first-class event"
+    ],
+    "construction": "When the gate predicate is 'owner approval' (not a machine-checkable licence or schema condition), rewrite gate(expr) as a human checkpoint whose recorded approve|reject event is the predicate. The downstream stage is scheduled only after the checkpoint record exists. This substitution is illegal for machine predicates such as schema validity — those stay gate-predicate.",
+    "ir_rewrite": "gate(owner.approved==true) => human-checkpoint(role=owner, options=[approve,reject]) ; proceed iff event==approve.",
+    "not_justified_by": "similarity"
+   }
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "The emitted node id set equals the frozen canonical vocabulary exactly, and every edge endpoint resolves.",
+   "id": "A-node-set-equals-vocabulary",
+   "method": "set equality and endpoint membership (probe 1)",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "This graph is not isomorphic to the workflow-level compat graph (108 nodes, 1 spanning component, compat edges only, no substitutes-for).",
+   "id": "B-not-isomorphic-to-workflow-compat",
+   "method": "Independent invariant comparison against the catalog-stated WFA-0004/WFA-0081 signature (probe 2). Live 108-id adjacency is not on disk.",
+   "reasons": [
+    "|V| 27 != workflow 108",
+    "components 13 != workflow 1",
+    "largest 5 != workflow 108",
+    "node_kind canonical-mechanism != workflow-blueprint",
+    "relations ['conflicts-with', 'implements', 'requires', 'substitutes-for'] != ['compat']",
+    "this graph expresses substitutes-for; workflow compat cannot"
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "honesty": {
+  "candidate_registry_present": false,
+  "conflict_experimental_exhibition": "NOT-CHECKED (WFA-0062 artifact absent)",
+  "upstream_wfa_0058_present": false,
+  "upstream_wfa_0059_present": false,
+  "upstream_wfa_0062_present": false,
+  "upstream_wfa_0066_present": false,
+  "vocabulary_status": "RECONSTRUCTED-FROM-CATALOG",
+  "wfa_0001_schema_pack_present": false,
+  "wfa_0004_live_graph_present": false
+ },
+ "id": "WFA-0080-semantic-component-graph",
+ "negative_controls": [
+  {
+   "fires_on_bad": true,
+   "id": "NC-dangling-endpoint",
+   "kind": "planted-dangling-edge",
+   "silent_on_good": true
+  },
+  {
+   "fires_on_bad": true,
+   "id": "NC-extra-or-missing-node",
+   "kind": "vocabulary-set-mutation",
+   "silent_on_good": true
+  },
+  {
+   "fires_on_bad": true,
+   "id": "NC-spanning-component",
+   "kind": "planted-requires-chain",
+   "silent_on_good": true
+  }
+ ],
+ "node_kind": "canonical-mechanism",
+ "nodes": [
+  {
+   "catalog_source": "WFA-0062 named HARD pair (vs shared-context deliberation)",
+   "definition": "Each worker produces its result without seeing sibling drafts or a shared scratchpad. Independence is a scheduling invariant, not a prompt request.",
+   "discriminating_example": "Two reviewers score the same artifact in isolated worktrees; neither prompt includes the other's text.",
+   "id": "mech.blind-independent-first-pass",
+   "kind": "canonical-mechanism",
+   "label": "Blind independent first pass"
+  },
+  {
+   "catalog_source": "WFA-0062 named HARD pair (vs blind independent first pass)",
+   "definition": "Workers read a common context (prior drafts, a shared board, or live transcript) before emitting. Correlation across workers is the intended effect.",
+   "discriminating_example": "A critic prompt is concatenated with the proposer's draft before the critic runs.",
+   "id": "mech.shared-context-deliberation",
+   "kind": "canonical-mechanism",
+   "label": "Shared-context deliberation"
+  },
+  {
+   "catalog_source": "WFA-0062 named HARD pair (vs nondeterministic sampling)",
+   "definition": "Given the same inputs, seed, tool results and clock, the run reproduces the same stage order and artifacts bit-for-bit.",
+   "discriminating_example": "Re-running a recorded trace with recorded tool stubs yields an identical IR event log.",
+   "id": "mech.deterministic-replay",
+   "kind": "canonical-mechanism",
+   "label": "Deterministic replay"
+  },
+  {
+   "catalog_source": "WFA-0062 named HARD pair (vs deterministic replay)",
+   "definition": "Stage outputs may vary across runs with identical inputs because a sampler, temperature, or unordered set reduction is in the path.",
+   "discriminating_example": "Two runs of the same fan-out with temperature>0 produce different ranked candidate lists.",
+   "id": "mech.nondeterministic-sampling",
+   "kind": "canonical-mechanism",
+   "label": "Nondeterministic sampling"
+  },
+  {
+   "catalog_source": "WFA-0062 named HARD pair (vs blocking fan-in barrier)",
+   "definition": "The dispatcher returns after enqueueing work and does not wait for completion on that call stack. Completion is observed later, if at all, through a separate join.",
+   "discriminating_example": "A parent stage submits N jobs to a queue and immediately proceeds to an unrelated stage.",
+   "id": "mech.fire-and-forget-dispatch",
+   "kind": "canonical-mechanism",
+   "label": "Fire-and-forget dispatch"
+  },
+  {
+   "catalog_source": "WFA-0062 named HARD pair; WFA-0044 IR fan-out/barrier",
+   "definition": "The caller does not proceed until a declared set of child results is present. The wait is on the call stack of the join stage.",
+   "discriminating_example": "parallel() in a saved workflow followed by filter(Boolean) that blocks the parent until every branch returns.",
+   "id": "mech.blocking-fan-in-barrier",
+   "kind": "canonical-mechanism",
+   "label": "Blocking fan-in barrier"
+  },
+  {
+   "catalog_source": "WFA-0027 transferable mechanism; WFA-0044 IR",
+   "definition": "The number of child tasks is computed at runtime from an input collection, not from a static graph literal.",
+   "discriminating_example": "Fan-out width equals len(files) discovered by a glob stage.",
+   "id": "mech.dynamic-fan-out",
+   "kind": "canonical-mechanism",
+   "label": "Dynamic fan-out"
+  },
+  {
+   "catalog_source": "WFA-0044/WFA-0045 schema-typed fan-in",
+   "definition": "A blocking join that also validates each child payload against a declared schema before the parent resumes.",
+   "discriminating_example": "Each branch must return {ok: bool, artifact_id: string} or the join fails closed.",
+   "id": "mech.schema-typed-fan-in",
+   "kind": "canonical-mechanism",
+   "label": "Schema-typed fan-in"
+  },
+  {
+   "catalog_source": "WFA-0080 substitutes-for (worked rewrite of blocking barrier)",
+   "definition": "A join implemented by counting completion events on a bus rather than parking the parent call stack. Cardinality is the same as a barrier; scheduling is not.",
+   "discriminating_example": "Parent subscribes to N job-done events and continues when the counter hits N, while other stages keep running.",
+   "id": "mech.completion-event-join",
+   "kind": "canonical-mechanism",
+   "label": "Completion-event join"
+  },
+  {
+   "catalog_source": "WFA-0027 transferable mechanism (state model)",
+   "definition": "A named, typed snapshot of workflow memory that stages read and reduce. Distinct from 'whatever the prompt currently contains'.",
+   "discriminating_example": "A reducer merges branch outputs into state.files: list[Path] with an explicit conflict rule.",
+   "id": "mech.state-model",
+   "kind": "canonical-mechanism",
+   "label": "State model"
+  },
+  {
+   "catalog_source": "WFA-0027 transferable mechanism (checkpointing)",
+   "definition": "Durable snapshots of the state model taken at declared points so a later run can resume without replaying completed stages.",
+   "discriminating_example": "After each certified stage, write state.json + event-log offset to an append-only store.",
+   "id": "mech.checkpointing",
+   "kind": "canonical-mechanism",
+   "label": "Checkpointing"
+  },
+  {
+   "catalog_source": "WFA-0027 transferable mechanism (resume)",
+   "definition": "Load a checkpoint and continue from the next uncompleted stage. A resume that restarts from zero is not this mechanism.",
+   "discriminating_example": "Kill a run after stage 3; restart loads checkpoint-3 and skips stages 1-3.",
+   "id": "mech.resume-from-checkpoint",
+   "kind": "canonical-mechanism",
+   "label": "Resume from checkpoint"
+  },
+  {
+   "catalog_source": "WFA-0027 transferable mechanism (retry semantics)",
+   "definition": "A declared policy for re-attempting a failed stage: retryable error class, backoff, attempt cap, and what is replayed.",
+   "discriminating_example": "HTTP 429 is retried three times with jitter; schema-invalid is never retried.",
+   "id": "mech.retry-semantics",
+   "kind": "canonical-mechanism",
+   "label": "Retry semantics"
+  },
+  {
+   "catalog_source": "WFA-0027 human-in-the-loop; WFA-0044 human checkpoints",
+   "definition": "Progress is gated on an explicit human decision recorded as a first-class event. Silence is not consent.",
+   "discriminating_example": "interrupt-before publish until an owner records approve|reject on the checkpoint record.",
+   "id": "mech.human-checkpoint",
+   "kind": "canonical-mechanism",
+   "label": "Human checkpoint"
+  },
+  {
+   "catalog_source": "WFA-0044 IR gates",
+   "definition": "An executable boolean over IR state that must hold before a downstream stage is scheduled. Failed gates fail closed.",
+   "discriminating_example": "publish is scheduled only if certification.verdict == PASS and licence.class != UNCLASSIFIED.",
+   "id": "mech.gate-predicate",
+   "kind": "canonical-mechanism",
+   "label": "Gate predicate"
+  },
+  {
+   "catalog_source": "WFA-0044 IR tool policy",
+   "definition": "The set of tools a stage may invoke is declared and enforced. An undeclared tool call is a fault, not a convenience.",
+   "discriminating_example": "A research stage may WebFetch but must not Shell(git push).",
+   "id": "mech.tool-policy-bound",
+   "kind": "canonical-mechanism",
+   "label": "Tool policy bound"
+  },
+  {
+   "catalog_source": "WFA-0044 IR stages",
+   "definition": "A totally ordered sequence of stages where each stage's outputs are the next stage's inputs. No implicit parallelism.",
+   "discriminating_example": "extract -> normalise -> certify -> emit, each waiting on the prior.",
+   "id": "mech.stage-pipeline",
+   "kind": "canonical-mechanism",
+   "label": "Stage pipeline"
+  },
+  {
+   "catalog_source": "WFA-0044 IR roles",
+   "definition": "A stage is bound to a named role (proposer, critic, owner) with a contract, not merely to 'an agent'.",
+   "discriminating_example": "The critic role cannot mint a new option_id; only proposer can.",
+   "id": "mech.role-assignment",
+   "kind": "canonical-mechanism",
+   "label": "Role assignment"
+  },
+  {
+   "catalog_source": "WFA-0044 IR loops with convergence rules",
+   "definition": "A cycle in the stage graph that must terminate by a declared convergence rule, not by hoping the model stops.",
+   "discriminating_example": "Repair loop ends when gate-predicate holds or attempt==3, whichever first.",
+   "id": "mech.loop-with-convergence",
+   "kind": "canonical-mechanism",
+   "label": "Loop with convergence"
+  },
+  {
+   "catalog_source": "WFA-0044 IR stopping expressions",
+   "definition": "A closed expression that decides whether the workflow is done. Absence of more work is not a stop rule.",
+   "discriminating_example": "stop if residual_unknowns.P0_or_P1 == 0 AND reviewer.verdict == PASS.",
+   "id": "mech.stopping-expression",
+   "kind": "canonical-mechanism",
+   "label": "Stopping expression"
+  },
+  {
+   "catalog_source": "WFA-0044 IR lineage; WFA-0063 fusion decomposability",
+   "definition": "Every derived artifact carries pointers to the source artifacts and stages that produced it, sufficient to decompose a fusion.",
+   "discriminating_example": "A fused IR document lists source_ids exactly matching the inputs of the fusion operator.",
+   "id": "mech.lineage-preservation",
+   "kind": "canonical-mechanism",
+   "label": "Lineage preservation"
+  },
+  {
+   "catalog_source": "WFA-0027 checkpoint/resume implies durable event history",
+   "definition": "Workflow events are recorded by append, never by in-place edit. The ledger is the source of truth for what happened.",
+   "discriminating_example": "A retried stage writes a second attempt record; the first remains.",
+   "id": "mech.append-only-ledger",
+   "kind": "canonical-mechanism",
+   "label": "Append-only ledger"
+  },
+  {
+   "catalog_source": "WFA-0027 retry semantics (idempotence as the retry safety)",
+   "definition": "Applying a work unit twice with the same id has the same effect as applying it once. Required for safe retry.",
+   "discriminating_example": "PUT artifact/{id} overwrites with the same bytes; a second retry does not fork a sibling id.",
+   "id": "mech.idempotent-unit",
+   "kind": "canonical-mechanism",
+   "label": "Idempotent unit"
+  },
+  {
+   "catalog_source": "WFA-0080 substitutes-for target; contrasts WFA-0027 retry semantics",
+   "definition": "A broker-level claim that each unit is delivered once. Without an idempotent consumer this claim is not reconstructible from retry-plus-ledger alone.",
+   "discriminating_example": "A queue API that de-duplicates by message id before the worker sees the payload.",
+   "id": "mech.exactly-once-delivery",
+   "kind": "canonical-mechanism",
+   "label": "Exactly-once delivery"
+  },
+  {
+   "catalog_source": "WFA-0080 worked substitution for exactly-once delivery",
+   "definition": "Units may arrive more than once; safety comes from idempotent apply plus a ledger of applied ids, not from broker exactly-once.",
+   "discriminating_example": "Worker retries until ledger.has(unit_id); duplicate arrivals no-op.",
+   "id": "mech.at-least-once-idempotent-delivery",
+   "kind": "canonical-mechanism",
+   "label": "At-least-once plus idempotent delivery"
+  },
+  {
+   "catalog_source": "WFA-0045 worktree isolation flags",
+   "definition": "A stage's filesystem effects are confined to a disposable worktree. Sibling stages do not share a mutable tree.",
+   "discriminating_example": "Saved workflows set a worktree isolation flag so parallel() branches cannot clobber each other's files.",
+   "id": "mech.worktree-isolation",
+   "kind": "canonical-mechanism",
+   "label": "Worktree isolation"
+  },
+  {
+   "catalog_source": "WFA-0055 degrade loudly; WFA-0080 honesty about substitution",
+   "definition": "When a capability is missing, the workflow emits a structured degradation event naming what was lost. Silent fallback is a different, forbidden mechanism.",
+   "discriminating_example": "Adapter cannot carry interrupt-before: it records NON-TRANSFERABLE and refuses ADOPT, rather than dropping the checkpoint.",
+   "id": "mech.degrade-loudly",
+   "kind": "canonical-mechanism",
+   "label": "Degrade loudly"
+  }
+ ],
+ "produced_by": {
+  "emitted_at": "2026-08-25T00:59:05Z",
+  "emitter": "command-center/p2-wave/probes/WFA-0080/emit_graph.py",
+  "unit_id": "WFA-0080"
+ },
+ "record_type": "Graph",
+ "residual_unknowns": [
+  {
+   "claim": "The 284-candidate free-text mechanism strings were not extracted; WFA-0058/WFA-0059 artifacts are absent.",
+   "settling_experiment": "After WFA-0058/WFA-0059 exist, require node-set equality against that vocabulary and rebuild edges from the extraction matrix plus WFA-0062/WFA-0066.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "HARD conflicts are catalog-named, not experimentally exhibited on this worktree.",
+   "settling_experiment": "Re-check each conflicts-with pair against WFA-0062's exhibition.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Non-isomorphism uses the catalog-stated 108/1/compat signature because the live WFA-0004 adjacency is absent.",
+   "settling_experiment": "Load WFA-0004, run a real isomorphism test, and require the same negative.",
+   "verdict": "CONFIRMED-AS-RESIDUAL"
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 recomputes components with its own BFS, compares invariants to the workflow-level signature, and requires a worked substitution on every substitutes-for edge. A second human in a fresh context was not obtained on this worktree.",
+  "reviewer_id": "WFA-0080-probe2-structure-and-substitution",
+  "starts_from": "catalog tests_required, not the author summary",
+  "verdict": "PASS"
+ },
+ "schema_ref": "command-center/p2-wave/probes/WFA-0080/graph.schema.json",
+ "sentinel": "SUCCESS:WFA-0080",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "partition-reported",
+   "observed": {
+    "count": 13,
+    "largest_size": 5,
+    "spanning": false
+   },
+   "requirement": "the graph must partition: report component count and largest component size, and explain them",
+   "result": "PASS"
+  },
+  {
+   "id": "spanning-is-a-finding",
+   "observed": "live graph spanning=false; probe 2 plants a spanning chain and requires the detector to fire",
+   "requirement": "a single all-spanning component is a finding to explain, not a result to ship silently",
+   "result": "PASS"
+  },
+  {
+   "id": "substitutes-for-worked",
+   "n_substitutes_for": 3,
+   "requirement": "substitutes-for edges must be justified by a worked substitution, not by similarity",
+   "result": "PASS"
+  }
+ ],
+ "title": "Semantic component graph whose nodes are canonical mechanisms and whose edges are implements, requires, conflicts-with and substitutes-for",
+ "unit_id": "WFA-0080",
+ "vocabulary": {
+  "id": "WFA-0080-catalog-grounded-mechanism-vocabulary-v1",
+  "ids": [
+   "mech.blind-independent-first-pass",
+   "mech.shared-context-deliberation",
+   "mech.deterministic-replay",
+   "mech.nondeterministic-sampling",
+   "mech.fire-and-forget-dispatch",
+   "mech.blocking-fan-in-barrier",
+   "mech.dynamic-fan-out",
+   "mech.schema-typed-fan-in",
+   "mech.completion-event-join",
+   "mech.state-model",
+   "mech.checkpointing",
+   "mech.resume-from-checkpoint",
+   "mech.retry-semantics",
+   "mech.human-checkpoint",
+   "mech.gate-predicate",
+   "mech.tool-policy-bound",
+   "mech.stage-pipeline",
+   "mech.role-assignment",
+   "mech.loop-with-convergence",
+   "mech.stopping-expression",
+   "mech.lineage-preservation",
+   "mech.append-only-ledger",
+   "mech.idempotent-unit",
+   "mech.exactly-once-delivery",
+   "mech.at-least-once-idempotent-delivery",
+   "mech.worktree-isolation",
+   "mech.degrade-loudly"
+  ],
+  "n": 27,
+  "provenance": "Frozen closed set reconstructed on this worktree because WFA-0058/WFA-0059/WFA-0062/WFA-0066 artifacts and 08-WORKFLOW-CANDIDATE-REGISTRY.json are absent. Every id is named by WFA-0027, WFA-0044, WFA-0062 or WFA-0080. This is not an extraction from 284 candidate records.",
+  "status": "RECONSTRUCTED-FROM-CATALOG"
+ },
+ "workflow_level_contrast": {
+  "isomorphic": false,
+  "reasons_not_isomorphic": [
+   "|V| 27 != workflow 108",
+   "components 13 != workflow 1",
+   "largest 5 != workflow 108",
+   "node_kind canonical-mechanism != workflow-blueprint",
+   "relations ['conflicts-with', 'implements', 'requires', 'substitutes-for'] != ['compat']",
+   "this graph expresses substitutes-for; workflow compat cannot"
+  ],
+  "signature": {
+   "asymmetric_declared_v1": 140,
+   "edge_relations": [
+    "compat"
+   ],
+   "expresses_substitution": false,
+   "largest_component": 108,
+   "live_artifact": "command-center/wfa/WFA-0004-compat-symmetry.json",
+   "live_artifact_present": false,
+   "n_components": 1,
+   "n_directed_declared_v1": 390,
+   "n_nodes": 108,
+   "n_undirected_edges": 265,
+   "node_kind": "workflow-blueprint",
+   "note": "Catalog-stated signature of the workflow-level compat graph (WFA-0004 / WFA-0080 evidence B / WFA-0081). The live 108-id adjacency is not on this worktree; non-isomorphism is decided from these invariants, not from guessed blueprint ids.",
+   "source": "WORK-UNIT-CATALOG.json WFA-0004, WFA-0080, WFA-0081"
+  },
+  "signature_path": "command-center/p2-wave/probes/WFA-0080/fixtures/workflow_compat_signature.json",
+  "this_graph": {
+   "edge_relations": [
+    "conflicts-with",
+    "implements",
+    "requires",
+    "substitutes-for"
+   ],
+   "expresses_substitution": true,
+   "largest_component": 5,
+   "n_components": 13,
+   "n_edges": 17,
+   "n_nodes": 27,
+   "node_kind": "canonical-mechanism"
+  }
+ }
+}

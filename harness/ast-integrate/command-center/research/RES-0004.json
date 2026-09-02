@@ -1,0 +1,291 @@
+{
+ "answer": "Yes. The substrate stores (url, final_url, http_status, fetch_timestamp, sha256, archived blob, redirect_chain). Re-check classifies SNAPSHOT-CORRUPT / SOURCE-CHANGED / CLAIM-WAS-WRONG / CLAIM-HOLDS. Live capture of https://docs.claude.com/en/docs/claude-code/quickstart recorded a 301 onto https://code.claude.com/docs/en/quickstart. SUCCESS:RES-0004 in the receipt AND a snapshot store exists whose every entry re-hashes to its recorded sha256 in a fresh process",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/research/RES-0004.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/research/snapshot-store/INDEX.json",
+   "role": "snapshot-index"
+  },
+  {
+   "exists": true,
+   "path": "command-center/lib/evidence_snapshot/store.py",
+   "role": "substrate"
+  },
+  {
+   "exists": true,
+   "path": "command-center/lib/evidence_snapshot/recheck.py",
+   "role": "rechecker"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:RES-0004 in the receipt AND a snapshot store exists whose every entry re-hashes to its recorded sha256 in a fresh process",
+ "evidence": [
+  {
+   "anchor": "command-center/research/snapshot-store",
+   "claim": "Three live URLs of different shapes were captured; each stored sha256 re-hashes in a fresh process.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+     "method": "live-fetch-plus-store",
+     "role": "source"
+    },
+    {
+     "command": "python3 -B command-center/lib/evidence_snapshot/store.py --verify /opt/p2/ast-integrate/command-center/research/snapshot-store",
+     "method": "fresh-process-sha256",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "https://docs.claude.com/en/docs/claude-code/quickstart",
+   "claim": "The recorded final URL for this docs.claude.com path is a code.claude.com URL via HTTP 301.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+     "method": "urllib-redirect-chain",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+     "method": "stored-entry-final-url",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/lib/evidence_snapshot/recheck.py",
+   "claim": "Mutating a stored snapshot byte makes the re-checker report CHANGED; an unchanged source reports UNCHANGED; SOURCE-CHANGED is not CLAIM-WAS-WRONG.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe1_recheck_controls.py",
+     "method": "local-http-fixture",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe1_recheck_controls.py",
+     "method": "both-states-controls",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "RES-0004",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/RES-0004/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 256,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe1_recheck_controls.py",
+   "id": "probe1",
+   "role": "recheck-controls"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+   "id": "probe2",
+   "role": "redirect-and-fresh-rehash"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "XOR one archived blob byte \u2192 CHANGED / SNAPSHOT-CORRUPT.",
+   "fired_on_bad_state": true,
+   "id": "mutated-stored-byte",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Quote absent from an unchanged body \u2192 CLAIM-WAS-WRONG, not SOURCE-CHANGED.",
+   "fired_on_bad_state": true,
+   "id": "missing-quote-unchanged-source",
+   "kind": "known-broken-claim",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/measurement-run.schema.json",
+ "producer": {
+  "captures": "url, final_url, http_status, fetch_timestamp, sha256(body), archived blob, redirect_chain",
+  "path": "command-center/lib/evidence_snapshot/"
+ },
+ "question_or_target": "Can every cited external source be captured as (URL, final URL after redirects, HTTP status, fetch timestamp, sha256 of body, archived copy) such that a re-check 30 days later mechanically distinguishes SOURCE-CHANGED from CLAIM-WAS-WRONG \u2014 and does it correctly record the known 301 chain docs.claude.com/en/docs/claude-code/* \u2192 code.claude.com/docs/en/*?",
+ "registered": true,
+ "report_kind": "measurement-run",
+ "residual_unknowns": [
+  {
+   "claim": "A 30-calendar-day wait was not observed; the re-check protocol is proven by byte-mutation and live re-fetch now, which is the same comparison a later wall-clock re-check would run.",
+   "settling_experiment": "Re-run probe2 after >=30 days and record SOURCE-CHANGED vs UNCHANGED per URL.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Integrity is checked in a separately spawned Python interpreter reading blobs from disk; it does not reuse the capturing process's in-memory hashes.",
+  "reviewer_id": "RES-0004-probe2-fresh-process-rehash",
+  "verdict": "PASS"
+ },
+ "scope": {
+  "does_not_claim": [
+   "cloud_ok=true is delivery",
+   "global unit_manifest.py --write was run",
+   "JS rendering was executed in a browser (body is the HTTP bytes, including the Next.js shell)",
+   "every URL in the program corpus has already been snapshotted"
+  ]
+ },
+ "sentinel": "SUCCESS:RES-0004 in the receipt AND a snapshot store exists whose every entry re-hashes to its recorded sha256 in a fresh process",
+ "snapshot_store": {
+  "entries": [
+   {
+    "archive_relpath": "command-center/research/snapshot-store/blobs/675d73c6fc60c34a18ebe01b9983ef064e23f4070215972861ec1c498763da8b",
+    "bytes": 637232,
+    "content_type": "text/html; charset=utf-8",
+    "fetch_timestamp": "2026-08-25T01:04:16Z",
+    "final_url": "https://code.claude.com/docs/en/quickstart",
+    "http_status": 200,
+    "id": "redirect-chain:675d73c6fc60c34a",
+    "js_markers": [],
+    "redirect_chain": [
+     {
+      "from": "https://docs.claude.com/en/docs/claude-code/quickstart",
+      "reason": "Moved Permanently",
+      "status": 301,
+      "to": "https://code.claude.com/docs/en/quickstart"
+     }
+    ],
+    "sha256": "675d73c6fc60c34a18ebe01b9983ef064e23f4070215972861ec1c498763da8b",
+    "shape": "redirect-chain",
+    "url": "https://docs.claude.com/en/docs/claude-code/quickstart"
+   },
+   {
+    "archive_relpath": "command-center/research/snapshot-store/blobs/62b5a41a904e50cf30a267764a32b480950861ed37543a4297476e13f940596a",
+    "bytes": 476625,
+    "content_type": "text/html; charset=utf-8",
+    "fetch_timestamp": "2026-08-25T01:04:17Z",
+    "final_url": "https://code.claude.com/docs/en/overview",
+    "http_status": 200,
+    "id": "js-rendered:62b5a41a904e50cf",
+    "js_markers": [
+     "/_next/static/",
+     "next/static",
+     "window.__",
+     "<script"
+    ],
+    "redirect_chain": [],
+    "sha256": "62b5a41a904e50cf30a267764a32b480950861ed37543a4297476e13f940596a",
+    "shape": "js-rendered",
+    "url": "https://code.claude.com/docs/en/overview"
+   },
+   {
+    "archive_relpath": "command-center/research/snapshot-store/blobs/21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+    "bytes": 502941,
+    "content_type": "text/plain;charset=utf-8",
+    "fetch_timestamp": "2026-08-25T01:04:17Z",
+    "final_url": "https://www.rfc-editor.org/rfc/rfc9110.txt",
+    "http_status": 200,
+    "id": "raw-file:21c1cdce6ab0e550",
+    "js_markers": [],
+    "redirect_chain": [],
+    "sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+    "shape": "raw-file",
+    "url": "https://www.rfc-editor.org/rfc/rfc9110.txt"
+   }
+  ],
+  "fresh_process_rehash": {
+   "entries": [
+    {
+     "id": "redirect-chain:675d73c6fc60c34a",
+     "ok": true,
+     "reason": null,
+     "recorded_sha256": "675d73c6fc60c34a18ebe01b9983ef064e23f4070215972861ec1c498763da8b",
+     "rehashed_sha256": "675d73c6fc60c34a18ebe01b9983ef064e23f4070215972861ec1c498763da8b",
+     "shape": "redirect-chain",
+     "url": "https://docs.claude.com/en/docs/claude-code/quickstart"
+    },
+    {
+     "id": "js-rendered:62b5a41a904e50cf",
+     "ok": true,
+     "reason": null,
+     "recorded_sha256": "62b5a41a904e50cf30a267764a32b480950861ed37543a4297476e13f940596a",
+     "rehashed_sha256": "62b5a41a904e50cf30a267764a32b480950861ed37543a4297476e13f940596a",
+     "shape": "js-rendered",
+     "url": "https://code.claude.com/docs/en/overview"
+    },
+    {
+     "id": "raw-file:21c1cdce6ab0e550",
+     "ok": true,
+     "reason": null,
+     "recorded_sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+     "rehashed_sha256": "21c1cdce6ab0e5509b04d84a28000836c7a087cf786efe6f04877ebfff47232a",
+     "shape": "raw-file",
+     "url": "https://www.rfc-editor.org/rfc/rfc9110.txt"
+    }
+   ],
+   "fresh_process": true,
+   "n": 3,
+   "ok": true
+  },
+  "index": "command-center/research/snapshot-store/INDEX.json",
+  "n_entries": 3,
+  "path": "command-center/research/snapshot-store",
+  "schema": "res-0004-evidence-snapshot/v1"
+ },
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe1_recheck_controls.py",
+   "id": "recheck-mutated-snapshot-reports-CHANGED",
+   "notes": "Flip one archived byte; re-checker reports CHANGED / SNAPSHOT-CORRUPT.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe1_recheck_controls.py",
+   "id": "recheck-unchanged-source-reports-UNCHANGED",
+   "notes": "Re-check the original body; must not false-positive CHANGED.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe1_recheck_controls.py",
+   "id": "source-changed-distinct-from-claim-was-wrong",
+   "notes": "Unchanged source + missing quote \u2192 CLAIM-WAS-WRONG; mutated source \u2192 SOURCE-CHANGED.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+   "id": "redirect-docs.claude.com-to-code.claude.com",
+   "notes": "Recorded final URL for a docs.claude.com path is a code.claude.com URL.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+   "id": "fresh-process-rehash-all-entries",
+   "notes": "Every store entry re-hashes to its recorded sha256 in a fresh interpreter.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0004/probe2_redirect_rehash.py",
+   "id": "three-live-url-shapes",
+   "notes": "301 chain, JS-rendered HTML, raw file; sha256 stored and re-hashed same run.",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:04:18Z",
+  "started_at": "2026-08-25T01:04:18Z"
+ },
+ "title": "Build the content-addressed evidence snapshot and 30-day re-check substrate",
+ "unit_id": "RES-0004"
+}

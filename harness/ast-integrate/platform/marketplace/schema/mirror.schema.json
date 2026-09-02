@@ -1,0 +1,26 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/mirror.schema.json",
+  "title": "Private / federated mirror",
+  "description": "Private and federated mirrors (spec 10863). A mirror is another registry root that this registry will federate resolution to, in `priority` order. The security property that makes federation safe is that a mirror CANNOT introduce trust: every entry it serves is still verified against the consumer's own trust policy and the publisher's own signature, so a hostile mirror can withhold a package or serve a stale one, but it cannot substitute a payload. `trust_mode` states which of those two weaker attacks the operator has accepted.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["mirror_id", "title", "root", "priority", "visibility", "trust_mode"],
+  "properties": {
+    "mirror_id": { "type": "string", "pattern": "^mir:[a-z][a-z0-9-]{1,40}$" },
+    "title": { "type": "string", "minLength": 2, "maxLength": 120 },
+    "root": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 400,
+      "description": "Filesystem root of the mirror, relative to the primary registry root. Local-only by construction: this build has NO network fetch, and a mirror that could name a URL would be a network fetch with extra steps. A remote transport is explicitly out of scope and recorded as such in MARKETPLACE-BUILD.md."
+    },
+    "priority": { "type": "integer", "minimum": 0, "maximum": 100 },
+    "visibility": { "enum": ["private", "public"] },
+    "trust_mode": {
+      "enum": ["verify-always", "verify-and-require-primary-index"],
+      "description": "`verify-always`: accept a mirror entry on signature alone. `verify-and-require-primary-index`: additionally require the primary index to know the same (name, version, manifest_digest), which defeats a mirror serving a package the primary never published."
+    },
+    "enabled": { "type": "boolean", "default": true }
+  }
+}

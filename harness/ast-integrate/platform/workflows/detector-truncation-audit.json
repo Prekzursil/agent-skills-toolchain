@@ -1,0 +1,737 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "detector-truncation-audit",
+  "name": "Detector-truncation audit - find the report presenting a FLOOR as a TOTAL",
+  "description": "Blueprint 94 of 96 (design BP-MNT-03). Find monitors, HUDs and summaries that present a FLOOR as a TOTAL - the class where a detector is working, honest-looking and quietly wrong by an order of magnitude. Mechanism: for each counting surface, obtain a ground-truth count with a MECHANICALLY DIFFERENT instrument and compare. The pass condition is DISCLOSURE, not the absence of caps: 'showing 10 of 200' PASSES; an undisclosed cap is a correctness defect. Re-running the same query with a bigger limit does not count as the second instrument.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "detector",
+    "truncation",
+    "two-instrument",
+    "disclosure"
+  ],
+  "flagship": true,
+  "params": {
+    "counting_surfaces": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "surface": {
+            "type": "string"
+          },
+          "reported_count_locator": {
+            "type": "string"
+          },
+          "primary_instrument": {
+            "type": "string"
+          },
+          "independent_instrument": {
+            "type": "string"
+          },
+          "population_definition": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Per surface: where its count is printed, the instrument that produced it, a MECHANICALLY DIFFERENT counting instrument, and an explicit definition of the population being counted."
+    },
+    "require_different_mechanism": {
+      "type": "boolean",
+      "default": true,
+      "description": "Must stay true. The same query with a larger limit is the same instrument; only a different mechanism is a second signal."
+    },
+    "disclosure_pattern": {
+      "type": "string",
+      "default": "showing N of M",
+      "min_length": 3,
+      "description": "The shape a truncated report must use. Disclosure is the standard; a cap itself is fine."
+    },
+    "max_concurrency": {
+      "type": "integer",
+      "default": 8,
+      "minimum": 1,
+      "maximum": 32,
+      "description": "Surfaces audited in parallel"
+    }
+  },
+  "roles": {
+    "surface-reader": {
+      "description": "Reads what each surface REPORTS, without reasoning about whether it is right",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/truncation/**)"
+      ],
+      "write_paths": [
+        "command-center/truncation/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "independent-counter": {
+      "description": "Counts the population with a DIFFERENT mechanism and must not read the reported figure first",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/truncation/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "fix-author": {
+      "description": "Adds the disclosure or removes the cap, and adds a total-vs-shown assertion to the surface's own tests",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/truncation/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Write(command-center/truncation/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/truncation/**"
+    ],
+    "forbid_write_paths": [
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "capability",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == independent-counter",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "the whole audit rests on the second count being genuinely independent; that is where effort belongs"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "second-instrument-is-different": {
+      "predicate": "custom-expression",
+      "expression": "instruments_share_mechanism == false AND require_different_mechanism == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "population-defined": {
+      "predicate": "custom-expression",
+      "expression": "population_definition_present == true AND both_instruments_count_same_population == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "disclosure-is-the-standard": {
+      "predicate": "custom-expression",
+      "expression": "truncated == false OR truncation_disclosed == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "audit-surfaces",
+      "title": "Two counts per surface, from two different mechanisms",
+      "kind": "fanout",
+      "over": {
+        "source": "param",
+        "ref": "counting_surfaces",
+        "item_var": "surface",
+        "key_field": "surface"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 100,
+      "max_items": 300,
+      "on_item_failure": "quarantine",
+      "timeout_seconds": 7200,
+      "body": [
+        {
+          "id": "read-reported",
+          "kind": "task",
+          "role": "surface-reader",
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "BPW-9401",
+            "title": "Record what one surface REPORTS, and whether it discloses a cap",
+            "phase": "10",
+            "question_or_target": "Read the reported count from the surface's own output at its locator, and record verbatim whether the output discloses a cap (a 'showing N of M' shape, an ellipsis, a 'first N' phrase). Do not attempt to judge correctness here - that is the next stage's job with a different instrument.",
+            "inputs": [
+              "params.counting_surfaces",
+              "params.disclosure_pattern"
+            ],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "surface-reader",
+              "basis": "reading the output as a consumer would see it"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Write(command-center/truncation/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 600,
+            "output_path": "command-center/truncation/reported-counts.json",
+            "output_schema": "command-center/schema/floor-audit.schema.json",
+            "evidence_requirement": "the verbatim line carrying the count and the verbatim disclosure text if any; a paraphrase cannot be checked for the disclosure shape",
+            "tests_required": [
+              "a surface printing 'showing 10 of 200' must be recorded as DISCLOSED",
+              "a surface printing a bare '10' must be recorded as UNDISCLOSED even if a cap is visible in its source code - the consumer reads the output, not the source"
+            ],
+            "reviewer_requirement": "the independent counter never reads this artifact before producing its own count",
+            "completion_sentinel": "SUCCESS:BPW-9401 emitted only when the verbatim count line and the disclosure state are both recorded; otherwise FAILED:BPW-9401 <reason>",
+            "retry_policy": "no retry - if the locator does not resolve, the surface is UNVERIFIABLE and that is the finding",
+            "failure_classification": [
+              "locator-unresolved",
+              "count-not-printed"
+            ],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "count-independently",
+          "kind": "task",
+          "role": "independent-counter",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "BPW-9402",
+            "title": "Count the same population with a mechanically different instrument",
+            "phase": "10",
+            "question_or_target": "Count the population with the declared independent instrument, and state HOW it differs mechanically from the primary (different walk, different data source, different tool). Confirm both instruments are counting the SAME population as defined - a scope difference explains a count difference without any truncation existing.",
+            "inputs": [
+              "params.counting_surfaces",
+              "params.require_different_mechanism"
+            ],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "independent-counter",
+              "basis": "establishing genuine mechanical independence is the load-bearing judgement of this entire workflow"
+            },
+            "tool_permissions": [
+              "Glob",
+              "Read",
+              "Bash:python",
+              "Write(command-center/truncation/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/truncation/independent-counts.json",
+            "output_schema": "command-center/schema/floor-recount.schema.json",
+            "evidence_requirement": "the count, the literal command or code that produced it, and an explicit statement of the mechanical difference from the primary instrument; 'the same query with a higher limit' must be rejected in writing",
+            "tests_required": [
+              "an independent instrument that is the same query with a larger limit must be REJECTED as not independent",
+              "both-states control: run the independent instrument against a population of known size and confirm it returns that size, before trusting it against an unknown one - a counter that has never been calibrated cannot adjudicate another counter",
+              "a scope mismatch between the two instruments must be reported as SCOPE-DIFFERENCE, not as truncation"
+            ],
+            "reviewer_requirement": "this stage holds veto authority; a surface whose independent count cannot be obtained is UNVERIFIABLE and must be reported as such rather than passed",
+            "completion_sentinel": "SUCCESS:BPW-9402 emitted only when the independent count exists, its mechanical difference is stated, and the population match is confirmed; otherwise FAILED:BPW-9402 <reason>",
+            "retry_policy": "one retry with a different instrument if the first is judged non-independent; a second non-independent instrument means the surface cannot be audited and is reported UNVERIFIABLE",
+            "failure_classification": [
+              "instrument-not-independent",
+              "scope-mismatch",
+              "unverifiable"
+            ],
+            "owner_approval_required": false
+          }
+        },
+        {
+          "id": "compare-and-verdict",
+          "kind": "task",
+          "role": "independent-counter",
+          "depends_on": [
+            "read-reported",
+            "count-independently"
+          ],
+          "timeout_seconds": 600,
+          "work_unit": {
+            "id": "BPW-9403",
+            "title": "Compare the two counts and emit the per-surface verdict",
+            "phase": "10",
+            "question_or_target": "Compare reported against actual. Emit CLEAN (equal), DISCLOSED-TRUNCATION (unequal AND disclosed - a PASS), UNDISCLOSED-TRUNCATION (unequal and not disclosed - a defect), SCOPE-DIFFERENCE (the two instruments counted different populations) or UNVERIFIABLE.",
+            "inputs": [
+              "command-center/truncation/reported-counts.json",
+              "command-center/truncation/independent-counts.json"
+            ],
+            "dependencies": [
+              "BPW-9401",
+              "BPW-9402"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "independent-counter",
+              "basis": "separating a genuine truncation from a scope difference is the judgement that keeps this audit from generating false findings"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/truncation/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 600,
+            "output_path": "command-center/truncation/truncation-verdicts.json",
+            "output_schema": "command-center/schema/audit-finding.schema.json",
+            "evidence_requirement": "both counts, both instruments, the population definition, and the verdict; a verdict citing only one count is the exact failure this workflow audits for",
+            "tests_required": [
+              "the recorded case must be caught: a surface showing 3 where 28 exist must be UNDISCLOSED-TRUNCATION",
+              "a correctly-disclosed 'showing 10 of 200' must PASS as DISCLOSED-TRUNCATION - disclosure is the standard, not the absence of caps",
+              "equal counts must produce CLEAN, not a manufactured finding"
+            ],
+            "reviewer_requirement": "one independent reader who re-derives the verdict from the two recorded counts",
+            "completion_sentinel": "SUCCESS:BPW-9403 emitted only when both counts and one of the five verdicts are recorded for this surface; otherwise FAILED:BPW-9403 <reason>",
+            "retry_policy": "no retry - the comparison is arithmetic over two recorded numbers",
+            "failure_classification": [
+              "missing-count",
+              "verdict-on-one-signal"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "require_stages": [
+          "compare-and-verdict"
+        ],
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "gate-independence",
+      "title": "The same query with a bigger limit is not a second signal",
+      "kind": "gate",
+      "depends_on": [
+        "audit-surfaces"
+      ],
+      "gate_ref": "second-instrument-is-different"
+    },
+    {
+      "id": "gate-population",
+      "title": "A scope difference is not a truncation",
+      "kind": "gate",
+      "depends_on": [
+        "gate-independence"
+      ],
+      "gate_ref": "population-defined"
+    },
+    {
+      "id": "author-disclosure-fix",
+      "title": "Disclose 'showing N of M', or remove the cap",
+      "kind": "task",
+      "role": "fix-author",
+      "depends_on": [
+        "gate-population"
+      ],
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "BPW-9404",
+        "title": "Emit the fix for every UNDISCLOSED-TRUNCATION, plus a total-vs-shown test assertion",
+        "phase": "10",
+        "question_or_target": "For each UNDISCLOSED-TRUNCATION propose the concrete fix - add the disclosure shape or remove the cap - and add a total-vs-shown assertion to that surface's own tests so the defect cannot silently return.",
+        "inputs": [
+          "command-center/truncation/truncation-verdicts.json",
+          "params.disclosure_pattern"
+        ],
+        "dependencies": [
+          "BPW-9403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "fix-author",
+          "basis": "choosing between disclosing and uncapping is a design decision per surface, not a mechanical rewrite"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/truncation/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/truncation/disclosure-fixes.json",
+        "output_schema": "command-center/schema/improvement-ledger.schema.json",
+        "evidence_requirement": "per surface the proposed change with the line it applies at, and the test assertion text that would fail today and pass after",
+        "tests_required": [
+          "the proposed assertion must FAIL against the pre-fix surface - an assertion that passes before the fix is not protecting anything",
+          "a surface where uncapping is the right answer must not be given a disclosure string instead"
+        ],
+        "reviewer_requirement": "one independent reviewer who confirms the proposed assertion fails against the current surface",
+        "completion_sentinel": "SUCCESS:BPW-9404 emitted only when every UNDISCLOSED-TRUNCATION has a fix AND a test assertion proven to fail pre-fix; otherwise FAILED:BPW-9404 <reason>",
+        "retry_policy": "two strikes then pivot: if the same assertion passes pre-fix twice, the assertion is wrong and alternatives must be enumerated rather than attempted a third time",
+        "failure_classification": [
+          "assertion-passes-prefix",
+          "wrong-fix-kind",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/truncation/disclosure-fixes.json",
+          "schema_ref": "command-center/schema/improvement-ledger.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9404",
+          "consumers": [
+            "owner",
+            "gate-disclosure"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-disclosure",
+      "title": "An undisclosed cap is a correctness defect, not a display choice",
+      "kind": "gate",
+      "depends_on": [
+        "author-disclosure-fix"
+      ],
+      "gate_ref": "disclosure-is-the-standard"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "every-surface-audited",
+      "expression": "surfaces_verdicted == surfaces_declared",
+      "applies_to": "workflow",
+      "minimum_conditions": "instruments_share_mechanism == false",
+      "on_stop": "complete"
+    },
+    {
+      "id": "undisclosed-truncation-found",
+      "expression": "undisclosed_truncations > 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "unverifiable-surface",
+      "expression": "unverifiable_surfaces > 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": [
+      "instrument-not-independent"
+    ],
+    "no_retry_on": [
+      "verdict-on-one-signal",
+      "scope-mismatch",
+      "assertion-passes-prefix"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "instrument-not-independent",
+      "verdict-on-one-signal",
+      "unverifiable",
+      "scope-mismatch"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/truncation-audit"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/truncation-audit",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/truncation-audit.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "estimate"
+    ],
+    "plan_artifact": "command-center/dry-run/truncation-audit-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/truncation/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "almost-certain",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-03 failure class 5 - a detector reported 3 repositories where 28 existed",
+    "cost": {
+      "currency": "USD",
+      "min": 0.05,
+      "expected": 0.7,
+      "max": 4.0
+    },
+    "wallclock_seconds": {
+      "min": 60,
+      "expected": 900,
+      "max": 7200
+    },
+    "tokens": {
+      "min": 10000,
+      "expected": 90000,
+      "max": 500000
+    },
+    "tool_calls": {
+      "min": 6,
+      "expected": 60,
+      "max": 400
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the audited surfaces; writes only its findings and PROPOSED fixes under command-center/truncation/**. It never edits the surface it audits, so it cannot repair the instrument it is measuring.",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/truncation-audit.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - two mechanically independent signals before a load-bearing claim"
+      },
+      {
+        "source": "rules/common/bash-hud-and-terminal-emit.md#3",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner - row-budget truncation and width caps are exactly where a total silently becomes a floor"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "a manual independent count per report"
+    ]
+  },
+  "outputs": {
+    "verdicts": {
+      "path": "command-center/truncation/truncation-verdicts.json",
+      "schema_ref": "command-center/schema/audit-finding.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9403",
+      "consumers": [
+        "owner",
+        "firing-path-revalidation"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 94,
+      "of": 96,
+      "design_card": "BP-MNT-03",
+      "design_family": "D18-maintenance",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "BUILD-NEW",
+      "flagship": true
+    },
+    "mechanism": "two counts of one population from two mechanically different instruments, with the second instrument CALIBRATED against a known-size population before it is allowed to adjudicate. Five verdicts, and DISCLOSED-TRUNCATION is a PASS - the standard is disclosure, not the absence of caps.",
+    "not_a_duplicate_because": {
+      "vs_firing-path-revalidation": "that asks whether a component still FIRES and compares against its own previous state. This asks whether a printed NUMBER is a total or a floor and compares against a second instrument. One is time-series, the other is cross-instrument.",
+      "vs_scheduled-task-liveness-census": "that pairs a task's state with its output freshness - two signals about one task. This compares two counts of one population. Both are two-signal designs; the signals are of different kinds and neither substitutes for the other.",
+      "vs_pre-pr-surface-check": "that produces a count; this audits whether a produced count is complete. This workflow could legitimately be pointed AT that one."
+    },
+    "contraindications": [
+      "NOT for reports that are explicitly samples",
+      "NOT where the total is genuinely unbounded - then the report must say so, and that statement is the pass condition"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "three-vs-twenty-eight",
+        "given": "the recorded case - a report showing 3 repositories where 28 exist",
+        "expect": "UNDISCLOSED-TRUNCATION with both counts recorded"
+      },
+      {
+        "id": "disclosed-cap-passes",
+        "given": "a report printing 'showing 10 of 200'",
+        "expect": "DISCLOSED-TRUNCATION - a PASS"
+      },
+      {
+        "id": "calibrate-the-counter",
+        "given": "the independent instrument run against a population of known size",
+        "expect": "it returns that exact size; a counter that has never been calibrated cannot adjudicate another counter"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "audit-the-git-hygiene-repo-count",
+        "params": {
+          "counting_surfaces": [
+            {
+              "surface": "git-hygiene Stop-hook repo census",
+              "reported_count_locator": "hook output line matching 'repos with uncommitted work'",
+              "primary_instrument": "the hook's own depth-limited directory walk",
+              "independent_instrument": "a full recursive walk for .git directories, run in a separate process with no depth cap",
+              "population_definition": "every git repository under ~/source, at any depth, excluding vendored clones"
+            },
+            {
+              "surface": "statusline agent count",
+              "reported_count_locator": "the ag:N segment",
+              "primary_instrument": "mtime recency over the subagent transcript directory",
+              "independent_instrument": "a process-table query for live agent processes",
+              "population_definition": "subagents currently running for this session"
+            }
+          ],
+          "require_different_mechanism": true,
+          "disclosure_pattern": "showing N of M",
+          "max_concurrency": 8
+        },
+        "results": [
+          {
+            "surface": "git-hygiene Stop-hook repo census",
+            "reported": 3,
+            "actual": 28,
+            "truncated": true,
+            "disclosed": false,
+            "verdict": "UNDISCLOSED-TRUNCATION",
+            "mechanical_difference": "depth-limited walk vs unbounded recursive walk in a separate process",
+            "fix": "print 'showing 3 of 28' or remove the depth cap",
+            "assertion_added": "assert reported_total == independent_total or output contains 'of <independent_total>'"
+          },
+          {
+            "surface": "statusline agent count",
+            "reported": 2,
+            "actual": 2,
+            "truncated": false,
+            "disclosed": false,
+            "verdict": "CLEAN",
+            "mechanical_difference": "file mtimes vs the process table"
+          }
+        ],
+        "calibration": "the unbounded walk was first run against a fixture of exactly 7 repositories and returned 7",
+        "terminal_state": "SUCCESS:BPW-9404 with escalation - 1 UNDISCLOSED-TRUNCATION, 1 CLEAN, calibration recorded",
+        "note": "The CLEAN row matters as much as the finding: without it this audit would only ever be seen producing defects, and a detector that has never returned CLEAN is indistinguishable from one that always alarms."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "COVERAGE is UNVERIFIED: this workflow audits the surfaces it is GIVEN, so its findings are bounded by the caller's list. An unlisted counting surface is not audited and this workflow cannot know it exists - which is the same floor-as-total defect one level up. Settling experiment = enumerate every counting surface in the HUD and hook reports mechanically, then diff that enumeration against the caller's list.",
+      "The 3-vs-28 case is quoted from the design card and is NOT re-measured here. Settling experiment = the three-vs-twenty-eight benchmark case."
+    ]
+  }
+}

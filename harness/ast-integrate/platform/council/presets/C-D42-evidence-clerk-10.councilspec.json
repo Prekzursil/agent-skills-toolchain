@@ -1,0 +1,134 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d42-evidence-clerk-10",
+  "preset": "evidence_adjudication_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Review a set of grounded findings on the admitted record only, where an evidence clerk controls admission and every admitted contribution carries a resolvable anchor.",
+    "charter": "The clerk holds the floor. A contribution enters the record only if its anchor RESOLVES - the file exists, the line exists, the command output is reproduced. A rejected contribution comes back naming the missing anchor, never a vague request for more evidence. Seven analysts work the record; a methodologist grades information quality; the judge rules on what was admitted and may not re-find facts the clerk never let in. The point is that the record, not the discussion, is the artefact: a finding whose anchor does not resolve is indistinguishable from a fabrication, and 42% of findings in the largest audit run on this estate were refuted while their authors self-rated high confidence.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "100% of admitted contributions carry an anchor that actually resolves",
+      "every rejected contribution is returned with the specific missing anchor named",
+      "information quality is graded per source, not per claim",
+      "the judge's ruling cites only admitted record items"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 2, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "expertise_ranked"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 10 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 5 },
+    "roster": [
+      { "participant_id": "evidence-clerk", "display_name": "Evidence clerk (holds the floor)", "model": "opus-5", "vendor": "anthropic", "expertise": ["evidence admission", "anchor validation"], "role": "custom:evidence_clerk", "authority": "chair", "rights": { "may_speak": true, "may_vote": false, "may_veto": true, "may_call_experiment": true }, "effort": "max", "source_access": ["repo", "transcripts"], "context": { "briefing": "Resolve every anchor before admitting it: open the file, find the line, re-run the command. Return rejects naming the MISSING anchor. You do not judge whether a claim is true, only whether it is anchored." } },
+      { "participant_id": "analyst-1", "display_name": "Analyst 1", "model": "opus-5", "vendor": "anthropic", "expertise": ["code review"], "role": "domain_expert", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "analyst-2", "display_name": "Analyst 2", "model": "opus-5", "vendor": "anthropic", "expertise": ["security review"], "role": "security_reviewer", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "analyst-3", "display_name": "Analyst 3", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["test coverage"], "role": "verifier", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "analyst-4", "display_name": "Analyst 4", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["architecture"], "role": "architect", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "analyst-5", "display_name": "Analyst 5", "model": "gemini-3-pro", "vendor": "google", "expertise": ["data integrity"], "role": "domain_expert", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "analyst-6", "display_name": "Analyst 6", "model": "gemini-3-pro", "vendor": "google", "expertise": ["operations"], "role": "domain_expert", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "analyst-7", "display_name": "Analyst 7", "model": "mistral-large-3", "vendor": "mistral", "expertise": ["documentation fidelity"], "role": "critic", "authority": "voter", "source_access": ["repo"] },
+      { "participant_id": "methodologist", "display_name": "Methodologist (information quality)", "model": "opus-5", "vendor": "anthropic", "expertise": ["quality of information", "source grading"], "role": "custom:methodologist", "authority": "voter", "effort": "xhigh", "context": { "briefing": "Grade the SOURCES (P40), not the conclusions. A well-argued finding built on a stale source is a weak finding." } },
+      { "participant_id": "judge", "display_name": "Judge (rules on the admitted record)", "model": "opus-5", "vendor": "anthropic", "expertise": ["adjudication"], "role": "judge", "authority": "judge", "effort": "max", "context": { "briefing": "You may not re-find facts. If it is not in the admitted record, it does not exist for the purposes of your ruling." } }
+    ],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise"], "max_recruits": 3 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse", "hallucinated_expertise"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 3, "prep_time_minutes": 25, "required_artifacts": ["evidence_pack"] },
+  "topology": { "kind": "chair_led", "chair": "evidence-clerk" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "admission", "custom_name": "P50 clerk-led admission: resolve every anchor, admit or return with the missing anchor named", "rounds": 1, "participants": ["evidence-clerk"] },
+      { "kind": "round_robin", "stage_id": "work-the-record", "rounds": 1 },
+      { "kind": "custom", "stage_id": "quality-of-information", "custom_name": "P40 quality-of-information check: grade each admitted SOURCE for reliability and staleness", "rounds": 1, "participants": ["methodologist"] },
+      { "kind": "synthesis", "stage_id": "ruling-on-the-record" }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 3, "max": 3, "divergence_before_convergence": false },
+    "obligations": { "must_cite_evidence": true, "must_respond_to_prior": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 10, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 120, "turns": 34, "sources": 30, "experiments": 10, "max_inactivity_rounds": 2 },
+  "targets": { "evidence_items": 20, "objections": 5 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:anchor_validation_pass_ratio",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number",
+          "producer": "anchor validator: for each admitted item, opens the file:line or re-runs the command and reports resolved/total",
+          "note": "DIAL 1 of 3 - the design's '100% of admitted contributions carry a valid anchor'. Must be exactly 1: this is a property of the ADMITTED set, so it is achievable by rejecting more, not by asserting more."
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 20,
+          "note": "DIAL 2 of 3 - the size of the admitted record. Too low and the clerk gate is decorative; raise with the scope of the review."
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 3 of 3 - every admitted objection carries a ruling."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 7, "min_minutes": 30, "every_participant_spoke": true, "min_evidence_items": 20, "min_objections_addressed": 5 },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 120, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the admitted-vs-returned tally is published, with the reason each return was made",
+      "each admitted source carries its P40 reliability and staleness grade"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "circular_citation_check": true },
+    "resolution": ["run_experiment", "recruit_independent_critic", "narrow_scope", "judge_ruling", "declare_no_decision"],
+    "escalation": { "after_attempts": 2, "to": "judge" }
+  },
+  "anti_failure": {
+    "controls": ["circular_citation", "evidence_free_majority", "hallucinated_expertise", "weak_synthesis", "role_collapse", "moderator_capture", "lost_dissent", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["transcript", "evidence_map", "claim_evidence_contradiction_graph", "argument_ledger", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "redact" },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d42/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Evidence-clerk-led adjudication jury (10 seats, admitted record only)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: reviewing grounded findings where fabrication or anchor rot is the risk - audit output, a large finding corpus, a security review. WHEN NOT TO USE: the design says NEVER enable this on an ideation lens. An ideation seat is supposed to cite an external source, not a file:line, so the clerk gate would reject 100% of legitimate ideation output and the council would report an empty record as a clean one. Split the evidence standard by lens type instead. The design's named dial is anchor_types. EDITABLE DIALS: /objective/evidence_requirements/anchor_style (file_line here; use `any` only if you also loosen the validator), /stopping/expression/all_of/1/value (record size), /participants/count/exact_n, /budgets/sources, /budgets/time_minutes. STOPPING (human form): custom:anchor_validation_pass_ratio >= 1 AND evidence_items >= 20 AND every_objection_addressed == true. source_expression absent per the collision proven by _probe_sem_rule_collision.py. consensus.fast_unanimity_is_suspicious is deliberately false: when every contribution is anchor-validated, agreement is evidence of a clean record rather than of an echo chamber.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1752", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:915", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:752", "_USER-PROMPTS.md:11186"],
+    "lineage": ["C-D42 deep-evidence-clerk-10", "P50 evidence-clerk-led", "P40 quality-of-information-check"]
+  }
+}

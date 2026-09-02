@@ -1,0 +1,27 @@
+# rules/plugin/update.md
+shared:rules/plugin/update.md
+repo-unique:rules/plugin/update.md
+repo-pad:rules/plugin/update.md:0
+repo-pad:rules/plugin/update.md:1
+repo-pad:rules/plugin/update.md:2
+repo-pad:rules/plugin/update.md:3
+repo-pad:rules/plugin/update.md:4
+repo-pad:rules/plugin/update.md:5
+repo-pad:rules/plugin/update.md:6
+repo-pad:rules/plugin/update.md:7
+repo-pad:rules/plugin/update.md:8
+repo-pad:rules/plugin/update.md:9
+repo-pad:rules/plugin/update.md:10
+repo-pad:rules/plugin/update.md:11
+repo-pad:rules/plugin/update.md:12
+repo-pad:rules/plugin/update.md:13
+repo-pad:rules/plugin/update.md:14
+repo-pad:rules/plugin/update.md:15
+repo-pad:rules/plugin/update.md:16
+repo-pad:rules/plugin/update.md:17
+repo-pad:rules/plugin/update.md:18
+repo-pad:rules/plugin/update.md:19
+repo-pad:rules/plugin/update.md:20
+repo-pad:rules/plugin/update.md:21
+repo-pad:rules/plugin/update.md:22
+repo-pad:rules/plugin/update.md:23

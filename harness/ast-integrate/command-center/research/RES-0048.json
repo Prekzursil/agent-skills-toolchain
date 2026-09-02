@@ -1,0 +1,876 @@
+{
+ "unit_id": "RES-0048",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0048 in the receipt AND one end-to-end verified signature transcript plus a named list of what it does not prevent",
+ "evidence": [
+  {
+   "claim": "RES-0048 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0048.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/research/RES-0048.json",
+     "raw_output": "bytes=26751 sha256=af75498b6c7244c84d8e4fd4e9f7dbf43cac1b0ce0f03ed486699f02c9b4e51d",
+     "fingerprint": "07c576d30d561a8610297f02027a1bf6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact RES-0048",
+     "raw_output": "schema-check",
+     "fingerprint": "4747d75ce6be842b91f5016559a321c0",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "RES-0048 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/RES-0048",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0048",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "100098b6ef35a7148c4ee796fa32ec46",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered RES-0048",
+     "raw_output": "schema-valid",
+     "fingerprint": "0bc56d04d71fdf73f37d55c440c11839",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/research/RES-0048.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0048.json",
+   "bytes": 26751,
+   "sha256": "af75498b6c7244c84d8e4fd4e9f7dbf43cac1b0ce0f03ed486699f02c9b4e51d",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:RES-0048 in the receipt AND one end-to-end verified signature transcript plus a named list of what it does not prevent",
+   "title": "Assess keyless signing (Sigstore/cosign) applicability to a file-based plugin marketplace",
+   "question": "Can a marketplace whose packages are directories of markdown and scripts obtain a meaningful keyless signature, what exactly does the signature attest to, and what does it NOT prevent?",
+   "answer": "Yes, with a scoped meaning. Hash the plugin directory to a canonical tree digest and keyless-sign that blob (or emit a DSSE in-toto attestation whose subject is that digest), then verify with a pinned GitHub Actions / OIDC identity. The signature attests identity + digest + Rekor witness. It does not prevent signed malware in SKILL.md, unpinned-identity spoofing, OIDC/CI compromise, partial-tree substitution, or runtime fetches of unsigned bytes.",
+   "marketplace_applicability": {
+    "package_shape": "directories of markdown and scripts (plugin.json + SKILL.md + scripts)",
+    "canonical_tree_digest_sha256": "b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba",
+    "file_count": 3,
+    "entries": [
+     {
+      "path": "plugin.json",
+      "sha256": "551d7a1c5ecf486dbd690bc10d1d7e5a0fd5b4a067b11150213623968103a631",
+      "bytes": 177
+     },
+     {
+      "path": "scripts/hello.py",
+      "sha256": "e3415395116dac7312bea77ca2983a6b49cf3c321ab1d32a9b3f33a2b3e36c94",
+      "bytes": 79
+     },
+     {
+      "path": "skills/skill.demo/SKILL.md",
+      "sha256": "10a64c72d9f193211a500de3ac3fe141fd1fddaaf0dc48667c40ed9e890f5055",
+      "bytes": 217
+     }
+    ],
+    "sign_command_shape": "cosign sign-blob --yes tree-manifest.txt --bundle plugin.sigstore.json",
+    "verify_command_shape": "cosign verify-blob tree-manifest.txt --bundle plugin.sigstore.json --certificate-identity <publisher-workflow-uri@ref> --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+   },
+   "signature_transcript": {
+    "verified_at": "2026-08-25T01:00:23Z",
+    "e2e_ok": true,
+    "artifact": {
+     "path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl",
+     "filename": "sampleproject-4.0.0-py3-none-any.whl",
+     "bytes": 4661,
+     "sha256": "c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b"
+    },
+    "statement": {
+     "type": "https://in-toto.io/Statement/v1",
+     "predicate_type": "https://docs.pypi.org/attestations/publish/v1",
+     "predicate": null,
+     "subject_name": "sampleproject-4.0.0-py3-none-any.whl",
+     "subject_sha256": "c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b",
+     "sha256": "1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d"
+    },
+    "dsse": {
+     "payload_type": "application/vnd.in-toto+json",
+     "pae_sha256": "88ba5deb2bec61d11be69d0315f0c39987efea3082e9b7b0e7c43eb997306705",
+     "signature_der_hex": "30440220700817917f7bb182e8ab3dc6684fe0965c20e84b897fad3d7943ef04cfb0249502200f62ce9c0805d8319dc5a929717d0dc5c751b2af3a876b05be4da0548111eef0",
+     "verified": true,
+     "error": null
+    },
+    "certificate": {
+     "issuer_cn": "CN=sigstore-intermediate,O=sigstore.dev",
+     "not_valid_before": "2024-11-06T22:37:07Z",
+     "not_valid_after": "2024-11-06T22:47:07Z",
+     "san_uri": "https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main",
+     "oidc_issuer": "https://token.actions.githubusercontent.com",
+     "build_signer_uri": "https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main",
+     "source_repository_uri": "https://github.com/pypa/sampleproject",
+     "run_invocation_uri": "https://github.com/pypa/sampleproject/actions/runs/11713038981/attempts/1"
+    },
+    "publisher_from_pypi": {
+     "claims": null,
+     "environment": "",
+     "kind": "GitHub",
+     "repository": "pypa/sampleproject",
+     "workflow": "release.yml"
+    },
+    "rekor": {
+     "kind": "dsse",
+     "log_index": 147137144,
+     "integrated_time": 1730932628,
+     "payload_hash": "1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d",
+     "live_get_uuid": "108e9186e8c5677a92c71551be10f77409cd0ca42736d7e44ad6af31384b64a0683e1885dfaff20b",
+     "live_get_log_index": 147137144,
+     "live_get_payload_hash": "1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d",
+     "live_get_permalink": "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=147137144"
+    },
+    "checks": {
+     "wheel_digest_matches_subject": true,
+     "dsse_ecdsa_sha256_pae": true,
+     "identity_pinned": true,
+     "naive_signature_exists_policy": true,
+     "rekor_payload_hash_matches_statement": true,
+     "predicate_is_null_publish_v1": true
+    },
+    "expected": {
+     "identity": "https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main",
+     "issuer": "https://token.actions.githubusercontent.com",
+     "wheel_sha256": "c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b",
+     "log_index": 147137144
+    },
+    "does_not_cover": [
+     "Fulcio chain validation against the Sigstore TUF trust root",
+     "Rekor Merkle inclusion-proof recomputation against the Signed Tree Head",
+     "Semantic inspection of wheel / markdown / script contents"
+    ]
+   },
+   "does_not_prevent": [
+    {
+     "id": "ATTACK-SIGNED-MALWARE-MARKDOWN",
+     "attack": "Publisher (or anyone who controls the pinned GitHub workflow) ships a SKILL.md with prompt injection / data-exfil instructions. Keyless verify succeeds because the digest is honest.",
+     "why_signature_does_not_stop_it": "The verified sampleproject statement predicate is JSON null; the subject is only filename+sha256. Cosign/DSSE never parse markdown.",
+     "demonstrated": true
+    },
+    {
+     "id": "ATTACK-UNPINNED-IDENTITY",
+     "attack": "Marketplace install gate checks only that a Sigstore signature verifies, not that certificate-identity matches the expected publisher workflow.",
+     "why_signature_does_not_stop_it": "The same real ECDSA-verified attestation is accepted by a naive policy and rejected when the expected identity is pinned to an unrelated workflow URI.",
+     "demonstrated": true
+    },
+    {
+     "id": "ATTACK-PARTIAL-TREE-SUBSTITUTION",
+     "attack": "Sign only plugin.json (or a subset of files). Adversary replaces SKILL.md / scripts after signing.",
+     "why_signature_does_not_stop_it": "plugin.json-only digest is identical for clean vs swapped trees; the full-tree digest is not.",
+     "demonstrated": true
+    },
+    {
+     "id": "ATTACK-OIDC-OR-CI-COMPROMISE",
+     "attack": "Stolen GitHub Actions OIDC token or compromised workflow YAML lets an attacker obtain a Fulcio cert for the expected identity.",
+     "why_signature_does_not_stop_it": "Sigstore's own security model states that a compromised OIDC identity can yield unauthorized certificates; detection depends on log monitoring, not on the signature check itself.",
+     "demonstrated": true,
+     "demonstration_class": "vendor-documented residual, not a local forge"
+    },
+    {
+     "id": "ATTACK-RUNTIME-UNSIGNED-FETCH",
+     "attack": "A signed script downloads and execs unsigned content after install-time verify has already passed.",
+     "why_signature_does_not_stop_it": "sign-blob / DSSE bind bytes that existed at signing time. Runtime network fetches are outside the digest.",
+     "demonstrated": true,
+     "demonstration_class": "scope argument from blob-signing semantics"
+    }
+   ],
+   "mitigations": [
+    {
+     "id": "MITIGATION-SIGNATURE-EXISTS-ONLY",
+     "claim": "Rejecting marketplace packages that lack any valid Sigstore signature is sufficient.",
+     "bypass_attempt": "Feed the real pypa/sampleproject attestation to a marketplace that expected a different publisher. A signature-exists-only gate accepts it; an identity-pinned gate rejects it.",
+     "bypass_succeeded": true,
+     "effective": false,
+     "residual": "Any GitHub Actions identity that can talk to Fulcio produces an equally valid keyless signature."
+    },
+    {
+     "id": "MITIGATION-IDENTITY-PINNED-TREE-DIGEST",
+     "claim": "cosign verify-blob / DSSE verify of a canonical tree digest with --certificate-identity and --certificate-oidc-issuer pinned to the publisher workflow stops third-party substitution of files after signing.",
+     "bypass_attempt": "Swap skills/skill.demo/SKILL.md after the tree digest is taken. Full-tree digest changes; a pinned verify of the original digest would fail. Bypass of substitution: failed.",
+     "bypass_succeeded": false,
+     "effective_against": "third-party post-sign file substitution",
+     "effective": true,
+     "residual": "Does not stop the pinned identity from signing malware, a compromised GitHub Actions token, or a signed script that fetches unsigned bytes at runtime.",
+     "evidence": {
+      "clean_tree": "b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba",
+      "swapped_tree": "24a03b2125cc5cf94f36fce693e1645965ceabccd58fb5c4d3b1297a17b893a0",
+      "digest_moved": true
+     }
+    },
+    {
+     "id": "MITIGATION-SIGNATURE-AS-MALWARE-SCAN",
+     "claim": "A valid keyless signature means the markdown/scripts are safe.",
+     "bypass_attempt": "Build a plugin tree whose SKILL.md contains prompt-injection and an exfiltration instruction. The tree still has a well-formed digest; the verified PyPI publish attestation has predicate=null and never inspects file semantics.",
+     "bypass_succeeded": true,
+     "effective": false,
+     "residual": "Signing attests identity+digest, not harmlessness."
+    }
+   ],
+   "bypass_review": {
+    "naive_accepts_real_signature": true,
+    "pinned_accepts_real_identity": true,
+    "pinned_accepts_wrong_identity": false,
+    "trees": {
+     "clean": "b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba",
+     "malicious": "f7033074e332d72099456f47744b7183a14954d6f3555fa908a0583e0a4b410e",
+     "swapped": "24a03b2125cc5cf94f36fce693e1645965ceabccd58fb5c4d3b1297a17b893a0",
+     "plugin_json_only_clean": "2e6a1f0180b8d6ab1b3fd27712e25fc0ecb7132b7ac2bd1b169d48a973fea2c6",
+     "plugin_json_only_swap": "2e6a1f0180b8d6ab1b3fd27712e25fc0ecb7132b7ac2bd1b169d48a973fea2c6"
+    }
+   },
+   "claims": [
+    {
+     "id": "C1-directory-can-be-signed",
+     "claim": "Yes: a marketplace whose packages are directories of markdown and scripts can obtain a meaningful keyless signature by first hashing the directory into one blob (canonical sorted sha256+path manifest) and then applying Sigstore keyless sign-blob / a DSSE in-toto attestation over that digest, the same binding PyPI already uses for a wheel file.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "strongest_caveat": "Meaningful only if the verifier pins identity and hashes the entire installable tree, not a subset.",
+     "rails": [
+      {
+       "id": "R1",
+       "kind": "structured-api-probe",
+       "permalink": "https://pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0-py3-none-any.whl/provenance",
+       "fetch_timestamp": "2026-08-24T18:51:09Z",
+       "http_status": 200,
+       "sha256": "418da7504bfb4e28f8ec2bdbbea158f785ffc4746fe48b87c7407e252e74c441",
+       "bytes": 9060,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl.provenance.json",
+       "observation": "PyPI Integrity API returned a PEP 740 provenance object whose in-toto subject is filename+sha256=c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b; live wheel bytes hash to that digest. The attested object is a file blob, which is the same shape as a directory manifest blob."
+      },
+      {
+       "id": "R2",
+       "kind": "prose-source",
+       "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/cosign/signing/signing_with_blobs.md",
+       "fetch_timestamp": "2026-08-24T18:52:40Z",
+       "http_status": 200,
+       "sha256": "e420be937891b9da5141663b4b24a199141611ad740feb5549acc48e53339c9e",
+       "bytes": 2438,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-signing-blobs.md",
+       "observation": "Official Cosign docs: keyless sign-blob signs standard files/blobs and stores signature, certificate, and Rekor inclusion in a bundle. Quote:  process as \"keyless signing\". You use `cosign sign-blob` to sign standard files as well as blobs. You can store signature and certificate information either as separate file, or in a bundled text file, but using a bundl"
+      }
+     ]
+    },
+    {
+     "id": "C2-what-the-signature-attests",
+     "claim": "The keyless signature attests that an OIDC identity (here the GitHub Actions workflow URI plus issuer https://token.actions.githubusercontent.com) bound an ephemeral key via a short-lived Fulcio certificate and signed a specific digest, and that a Rekor dsse entry witnessed that payload hash. It does not attest that the bytes are safe, correct, or complete as a product.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "strongest_caveat": "This probe verified the leaf signature and identity extraction; it did not re-walk the Fulcio chain against the Sigstore TUF trust root.",
+     "rails": [
+      {
+       "id": "R1",
+       "kind": "structured-api-probe",
+       "permalink": "https://pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0-py3-none-any.whl/provenance",
+       "fetch_timestamp": "2026-08-24T18:51:09Z",
+       "http_status": 200,
+       "sha256": "418da7504bfb4e28f8ec2bdbbea158f785ffc4746fe48b87c7407e252e74c441",
+       "bytes": 9060,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl.provenance.json",
+       "observation": "ECDSA-SHA256 over DSSE PAE verified with the Fulcio leaf public key. SAN URI=https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main; issuer OID=https://token.actions.githubusercontent.com; cert window 2024-11-06T22:37:07Z .. 2024-11-06T22:47:07Z; publish/v1 predicate is JSON null."
+      },
+      {
+       "id": "R2",
+       "kind": "prose-source",
+       "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/cosign/signing/overview.md",
+       "fetch_timestamp": "2026-08-24T18:52:39Z",
+       "http_status": 200,
+       "sha256": "c17f8ad50d5d76c106fbd8f1318ad925a1e7fcbe3cdb1f56c7830bb89ff36801",
+       "bytes": 7022,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-signing-overview.md",
+       "observation": "Sigstore overview: keyless signing associates identities, rather than keys, with an artifact signature; Fulcio binds an ephemeral key to an OIDC identity; Rekor records a timestamped hash+key+signature tuple. Quote: ificate_authority/oidc-in-fulcio\">}}).  Keyless signing associates identities, rather than keys, with an artifact signature. Fulcio issues short-lived certificates binding an ephemeral key to an OpenID Connect identity. "
+      }
+     ]
+    },
+    {
+     "id": "C3-identity-must-be-pinned",
+     "claim": "A verifier that only checks 'a Sigstore signature verifies' is not a marketplace trust signal. Cosign requires --certificate-identity and --certificate-oidc-issuer; the same real sampleproject signature is accepted by a naive signature-exists policy and rejected when the expected identity is pinned to an unrelated workflow.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "strongest_caveat": "Pinning the workflow URI at refs/heads/main still allows later commits on main to sign; pin the workflow digest for a tighter bind.",
+     "rails": [
+      {
+       "id": "R1",
+       "kind": "structured-api-probe",
+       "permalink": "https://raw.githubusercontent.com/pypa/sampleproject/621e4974ca25ce531773def586ba3ed8e736b3fc/.github/workflows/release.yml",
+       "fetch_timestamp": "2026-08-24T18:52:41Z",
+       "http_status": 200,
+       "sha256": "0b9b91fc07b538895e34c00b01afff8a19385091a565fa17b79c3684157ef6e2",
+       "bytes": 780,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-release.yml",
+       "observation": "The Fulcio SAN matches the workflow file at commit 621e4974ca25ce531773def586ba3ed8e736b3fc, which sets id-token: write for Trusted Publishing. Mechanical control: naive_accepts=True pinned_real=True pinned_wrong=False."
+      },
+      {
+       "id": "R2",
+       "kind": "prose-source",
+       "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/quickstart/verification-cheat-sheet.md",
+       "fetch_timestamp": "2026-08-24T18:52:40Z",
+       "http_status": 200,
+       "sha256": "24402ceead2e5722dd747d3ebf0334a7f3446483339ee9a18d4eca584f1f8e0f",
+       "bytes": 1994,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-verification-cheat-sheet.md",
+       "observation": "OIDC verification cheat sheet: GitHub Actions identity is the workflow URI@ref and issuer https://token.actions.githubusercontent.com. Both fields are required. Quote: PIPELINE_ID| | GitHub Actions | https://token.actions.githubusercontent.com | https://github.com/USERNAME/REPOSITORY_NAME/.github/workflows/WORKFLOW_NAME@refs/heads/BRANCH_NAME | | [GitLab CI](https://docs.gitlab.com/ci/"
+      }
+     ]
+    },
+    {
+     "id": "C4-rekor-witness",
+     "claim": "Rekor logIndex 147137144 is a dsse kind entry whose payloadHash equals sha256 of the attested in-toto statement; a GET of that index from rekor.sigstore.dev still returns the same payload hash.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "strongest_caveat": "Inclusion-proof hashes were captured but not recomputed against the Signed Tree Head in this unit.",
+     "rails": [
+      {
+       "id": "R1",
+       "kind": "structured-api-probe",
+       "permalink": "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=147137144",
+       "fetch_timestamp": "2026-08-24T18:52:41Z",
+       "http_status": 200,
+       "sha256": "0a24c6e0286753b446594cea761e01e2daab318684d7fd691ef9b5cd3d544d0b",
+       "bytes": 7641,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/rekor-entry-147137144.json",
+       "observation": "GET /api/v1/log/entries?logIndex=147137144 HTTP 200; live payloadHash=1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d matches statement sha256=1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d."
+      },
+      {
+       "id": "R2",
+       "kind": "prose-source",
+       "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/about/security.md",
+       "fetch_timestamp": "2026-08-24T18:52:40Z",
+       "http_status": 200,
+       "sha256": "e59d7f61ccc1f6ef9544ff815c7895277b45ad502423c1718da58f7c2294fe2a",
+       "bytes": 6930,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-security-model.md",
+       "observation": "Sigstore security model: Rekor is an append-only transparency log; an entry is a single-party attestation that data existed prior to a time. Quote: imestamp.  An entry in Rekor provides a single-party attestation that a piece of data existed prior to a certain time. These timestamps and the contents of the log cannot be tampered with or removed later, providing long"
+      }
+     ]
+    },
+    {
+     "id": "C5-content-blind",
+     "claim": "The signature does not inspect markdown or scripts. The verified publish/v1 statement has predicate=null, and a plugin tree whose SKILL.md contains prompt-injection still has a well-formed canonical digest that would verify if signed by the pinned identity.",
+     "verdict": "CONFIRMED",
+     "evidence_grade": "E1",
+     "strongest_caveat": "Content scanning is a different control, not Sigstore.",
+     "rails": [
+      {
+       "id": "R1",
+       "kind": "structured-api-probe",
+       "permalink": "https://pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0-py3-none-any.whl/provenance",
+       "fetch_timestamp": "2026-08-24T18:51:09Z",
+       "http_status": 200,
+       "sha256": "418da7504bfb4e28f8ec2bdbbea158f785ffc4746fe48b87c7407e252e74c441",
+       "bytes": 9060,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl.provenance.json",
+       "observation": "Decoded in-toto statement predicate is JSON null; subject is only name+sha256. Malicious fixture tree digest f7033074e332d72099456f47744b7183a14954d6f3555fa908a0583e0a4b410e differs from clean b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba but both are valid digest inputs to sign-blob."
+      },
+      {
+       "id": "R2",
+       "kind": "prose-source",
+       "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/about/security.md",
+       "fetch_timestamp": "2026-08-24T18:52:40Z",
+       "http_status": 200,
+       "sha256": "e59d7f61ccc1f6ef9544ff815c7895277b45ad502423c1718da58f7c2294fe2a",
+       "bytes": 6930,
+       "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-security-model.md",
+       "observation": "Sigstore documents what it does not guarantee: compromised OIDC identities can still obtain certificates; nothing in the model claims malware or prompt-injection detection. Quote: Rekor entry to verify the artifact.  ## What Sigstore _Doesn't_ Guarantee  - If an OIDC identity or OIDC provider is compromised, Fulcio might issue unauthorized certificates. However, these certificates are useless unle"
+      }
+     ]
+    }
+   ],
+   "residual": [
+    "Fulcio leaf used as given; TUF-rooted chain not replayed",
+    "Rekor inclusion proof hashes captured, not recomputed",
+    "No local keyless signing was performed (no OIDC token); verification used a production PyPI/Sigstore attestation"
+   ],
+   "failure_classification": [],
+   "output_path": "command-center/research/RES-0048.json",
+   "output_schema": "command-center/schema/research-claim-record.schema.json",
+   "generated_at": "2026-08-25T01:00:23Z",
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "e2e-real-signature",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0048/probe1_e2e_signature.py"
+    },
+    {
+     "id": "probe2",
+     "role": "bypass-and-named-attacks",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0048/probe2_bypass_controls.py"
+    }
+   ],
+   "notes": "G-1 for RES-0048. Dual-rail claims. Live named probes re-run the cryptographic transcript and the bypass constructor. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:RES-0048 in the receipt AND one end-to-end verified signature transcript plus a named list of what it does not prevent"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0048",
+ "min_bytes_threshold": 1,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0048/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "RES-0048"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/research/RES-0048.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0048.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "1a17faec6d9822393e6dc1c5af5c3e29",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "research-claim-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 26751,
+    "method": "filesystem-stat",
+    "anchor": "command-center/research/RES-0048.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "completion_sentinel": "SUCCESS:RES-0048 in the receipt AND one end-to-end verified signature transcript plus a named list of what it does not prevent",
+ "title": "Assess keyless signing (Sigstore/cosign) applicability to a file-based plugin marketplace",
+ "question": "Can a marketplace whose packages are directories of markdown and scripts obtain a meaningful keyless signature, what exactly does the signature attest to, and what does it NOT prevent?",
+ "answer": "Yes, with a scoped meaning. Hash the plugin directory to a canonical tree digest and keyless-sign that blob (or emit a DSSE in-toto attestation whose subject is that digest), then verify with a pinned GitHub Actions / OIDC identity. The signature attests identity + digest + Rekor witness. It does not prevent signed malware in SKILL.md, unpinned-identity spoofing, OIDC/CI compromise, partial-tree substitution, or runtime fetches of unsigned bytes.",
+ "marketplace_applicability": {
+  "package_shape": "directories of markdown and scripts (plugin.json + SKILL.md + scripts)",
+  "canonical_tree_digest_sha256": "b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba",
+  "file_count": 3,
+  "entries": [
+   {
+    "path": "plugin.json",
+    "sha256": "551d7a1c5ecf486dbd690bc10d1d7e5a0fd5b4a067b11150213623968103a631",
+    "bytes": 177
+   },
+   {
+    "path": "scripts/hello.py",
+    "sha256": "e3415395116dac7312bea77ca2983a6b49cf3c321ab1d32a9b3f33a2b3e36c94",
+    "bytes": 79
+   },
+   {
+    "path": "skills/skill.demo/SKILL.md",
+    "sha256": "10a64c72d9f193211a500de3ac3fe141fd1fddaaf0dc48667c40ed9e890f5055",
+    "bytes": 217
+   }
+  ],
+  "sign_command_shape": "cosign sign-blob --yes tree-manifest.txt --bundle plugin.sigstore.json",
+  "verify_command_shape": "cosign verify-blob tree-manifest.txt --bundle plugin.sigstore.json --certificate-identity <publisher-workflow-uri@ref> --certificate-oidc-issuer https://token.actions.githubusercontent.com"
+ },
+ "signature_transcript": {
+  "verified_at": "2026-08-25T01:00:23Z",
+  "e2e_ok": true,
+  "artifact": {
+   "path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl",
+   "filename": "sampleproject-4.0.0-py3-none-any.whl",
+   "bytes": 4661,
+   "sha256": "c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b"
+  },
+  "statement": {
+   "type": "https://in-toto.io/Statement/v1",
+   "predicate_type": "https://docs.pypi.org/attestations/publish/v1",
+   "predicate": null,
+   "subject_name": "sampleproject-4.0.0-py3-none-any.whl",
+   "subject_sha256": "c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b",
+   "sha256": "1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d"
+  },
+  "dsse": {
+   "payload_type": "application/vnd.in-toto+json",
+   "pae_sha256": "88ba5deb2bec61d11be69d0315f0c39987efea3082e9b7b0e7c43eb997306705",
+   "signature_der_hex": "30440220700817917f7bb182e8ab3dc6684fe0965c20e84b897fad3d7943ef04cfb0249502200f62ce9c0805d8319dc5a929717d0dc5c751b2af3a876b05be4da0548111eef0",
+   "verified": true,
+   "error": null
+  },
+  "certificate": {
+   "issuer_cn": "CN=sigstore-intermediate,O=sigstore.dev",
+   "not_valid_before": "2024-11-06T22:37:07Z",
+   "not_valid_after": "2024-11-06T22:47:07Z",
+   "san_uri": "https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main",
+   "oidc_issuer": "https://token.actions.githubusercontent.com",
+   "build_signer_uri": "https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main",
+   "source_repository_uri": "https://github.com/pypa/sampleproject",
+   "run_invocation_uri": "https://github.com/pypa/sampleproject/actions/runs/11713038981/attempts/1"
+  },
+  "publisher_from_pypi": {
+   "claims": null,
+   "environment": "",
+   "kind": "GitHub",
+   "repository": "pypa/sampleproject",
+   "workflow": "release.yml"
+  },
+  "rekor": {
+   "kind": "dsse",
+   "log_index": 147137144,
+   "integrated_time": 1730932628,
+   "payload_hash": "1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d",
+   "live_get_uuid": "108e9186e8c5677a92c71551be10f77409cd0ca42736d7e44ad6af31384b64a0683e1885dfaff20b",
+   "live_get_log_index": 147137144,
+   "live_get_payload_hash": "1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d",
+   "live_get_permalink": "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=147137144"
+  },
+  "checks": {
+   "wheel_digest_matches_subject": true,
+   "dsse_ecdsa_sha256_pae": true,
+   "identity_pinned": true,
+   "naive_signature_exists_policy": true,
+   "rekor_payload_hash_matches_statement": true,
+   "predicate_is_null_publish_v1": true
+  },
+  "expected": {
+   "identity": "https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main",
+   "issuer": "https://token.actions.githubusercontent.com",
+   "wheel_sha256": "c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b",
+   "log_index": 147137144
+  },
+  "does_not_cover": [
+   "Fulcio chain validation against the Sigstore TUF trust root",
+   "Rekor Merkle inclusion-proof recomputation against the Signed Tree Head",
+   "Semantic inspection of wheel / markdown / script contents"
+  ]
+ },
+ "does_not_prevent": [
+  {
+   "id": "ATTACK-SIGNED-MALWARE-MARKDOWN",
+   "attack": "Publisher (or anyone who controls the pinned GitHub workflow) ships a SKILL.md with prompt injection / data-exfil instructions. Keyless verify succeeds because the digest is honest.",
+   "why_signature_does_not_stop_it": "The verified sampleproject statement predicate is JSON null; the subject is only filename+sha256. Cosign/DSSE never parse markdown.",
+   "demonstrated": true
+  },
+  {
+   "id": "ATTACK-UNPINNED-IDENTITY",
+   "attack": "Marketplace install gate checks only that a Sigstore signature verifies, not that certificate-identity matches the expected publisher workflow.",
+   "why_signature_does_not_stop_it": "The same real ECDSA-verified attestation is accepted by a naive policy and rejected when the expected identity is pinned to an unrelated workflow URI.",
+   "demonstrated": true
+  },
+  {
+   "id": "ATTACK-PARTIAL-TREE-SUBSTITUTION",
+   "attack": "Sign only plugin.json (or a subset of files). Adversary replaces SKILL.md / scripts after signing.",
+   "why_signature_does_not_stop_it": "plugin.json-only digest is identical for clean vs swapped trees; the full-tree digest is not.",
+   "demonstrated": true
+  },
+  {
+   "id": "ATTACK-OIDC-OR-CI-COMPROMISE",
+   "attack": "Stolen GitHub Actions OIDC token or compromised workflow YAML lets an attacker obtain a Fulcio cert for the expected identity.",
+   "why_signature_does_not_stop_it": "Sigstore's own security model states that a compromised OIDC identity can yield unauthorized certificates; detection depends on log monitoring, not on the signature check itself.",
+   "demonstrated": true,
+   "demonstration_class": "vendor-documented residual, not a local forge"
+  },
+  {
+   "id": "ATTACK-RUNTIME-UNSIGNED-FETCH",
+   "attack": "A signed script downloads and execs unsigned content after install-time verify has already passed.",
+   "why_signature_does_not_stop_it": "sign-blob / DSSE bind bytes that existed at signing time. Runtime network fetches are outside the digest.",
+   "demonstrated": true,
+   "demonstration_class": "scope argument from blob-signing semantics"
+  }
+ ],
+ "mitigations": [
+  {
+   "id": "MITIGATION-SIGNATURE-EXISTS-ONLY",
+   "claim": "Rejecting marketplace packages that lack any valid Sigstore signature is sufficient.",
+   "bypass_attempt": "Feed the real pypa/sampleproject attestation to a marketplace that expected a different publisher. A signature-exists-only gate accepts it; an identity-pinned gate rejects it.",
+   "bypass_succeeded": true,
+   "effective": false,
+   "residual": "Any GitHub Actions identity that can talk to Fulcio produces an equally valid keyless signature."
+  },
+  {
+   "id": "MITIGATION-IDENTITY-PINNED-TREE-DIGEST",
+   "claim": "cosign verify-blob / DSSE verify of a canonical tree digest with --certificate-identity and --certificate-oidc-issuer pinned to the publisher workflow stops third-party substitution of files after signing.",
+   "bypass_attempt": "Swap skills/skill.demo/SKILL.md after the tree digest is taken. Full-tree digest changes; a pinned verify of the original digest would fail. Bypass of substitution: failed.",
+   "bypass_succeeded": false,
+   "effective_against": "third-party post-sign file substitution",
+   "effective": true,
+   "residual": "Does not stop the pinned identity from signing malware, a compromised GitHub Actions token, or a signed script that fetches unsigned bytes at runtime.",
+   "evidence": {
+    "clean_tree": "b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba",
+    "swapped_tree": "24a03b2125cc5cf94f36fce693e1645965ceabccd58fb5c4d3b1297a17b893a0",
+    "digest_moved": true
+   }
+  },
+  {
+   "id": "MITIGATION-SIGNATURE-AS-MALWARE-SCAN",
+   "claim": "A valid keyless signature means the markdown/scripts are safe.",
+   "bypass_attempt": "Build a plugin tree whose SKILL.md contains prompt-injection and an exfiltration instruction. The tree still has a well-formed digest; the verified PyPI publish attestation has predicate=null and never inspects file semantics.",
+   "bypass_succeeded": true,
+   "effective": false,
+   "residual": "Signing attests identity+digest, not harmlessness."
+  }
+ ],
+ "bypass_review": {
+  "naive_accepts_real_signature": true,
+  "pinned_accepts_real_identity": true,
+  "pinned_accepts_wrong_identity": false,
+  "trees": {
+   "clean": "b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba",
+   "malicious": "f7033074e332d72099456f47744b7183a14954d6f3555fa908a0583e0a4b410e",
+   "swapped": "24a03b2125cc5cf94f36fce693e1645965ceabccd58fb5c4d3b1297a17b893a0",
+   "plugin_json_only_clean": "2e6a1f0180b8d6ab1b3fd27712e25fc0ecb7132b7ac2bd1b169d48a973fea2c6",
+   "plugin_json_only_swap": "2e6a1f0180b8d6ab1b3fd27712e25fc0ecb7132b7ac2bd1b169d48a973fea2c6"
+  }
+ },
+ "claims": [
+  {
+   "id": "C1-directory-can-be-signed",
+   "claim": "Yes: a marketplace whose packages are directories of markdown and scripts can obtain a meaningful keyless signature by first hashing the directory into one blob (canonical sorted sha256+path manifest) and then applying Sigstore keyless sign-blob / a DSSE in-toto attestation over that digest, the same binding PyPI already uses for a wheel file.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "strongest_caveat": "Meaningful only if the verifier pins identity and hashes the entire installable tree, not a subset.",
+   "rails": [
+    {
+     "id": "R1",
+     "kind": "structured-api-probe",
+     "permalink": "https://pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0-py3-none-any.whl/provenance",
+     "fetch_timestamp": "2026-08-24T18:51:09Z",
+     "http_status": 200,
+     "sha256": "418da7504bfb4e28f8ec2bdbbea158f785ffc4746fe48b87c7407e252e74c441",
+     "bytes": 9060,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl.provenance.json",
+     "observation": "PyPI Integrity API returned a PEP 740 provenance object whose in-toto subject is filename+sha256=c23e447ea90d796d1e645c35c4b2de125040add12a845825546f91c93f391b6b; live wheel bytes hash to that digest. The attested object is a file blob, which is the same shape as a directory manifest blob."
+    },
+    {
+     "id": "R2",
+     "kind": "prose-source",
+     "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/cosign/signing/signing_with_blobs.md",
+     "fetch_timestamp": "2026-08-24T18:52:40Z",
+     "http_status": 200,
+     "sha256": "e420be937891b9da5141663b4b24a199141611ad740feb5549acc48e53339c9e",
+     "bytes": 2438,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-signing-blobs.md",
+     "observation": "Official Cosign docs: keyless sign-blob signs standard files/blobs and stores signature, certificate, and Rekor inclusion in a bundle. Quote:  process as \"keyless signing\". You use `cosign sign-blob` to sign standard files as well as blobs. You can store signature and certificate information either as separate file, or in a bundled text file, but using a bundl"
+    }
+   ]
+  },
+  {
+   "id": "C2-what-the-signature-attests",
+   "claim": "The keyless signature attests that an OIDC identity (here the GitHub Actions workflow URI plus issuer https://token.actions.githubusercontent.com) bound an ephemeral key via a short-lived Fulcio certificate and signed a specific digest, and that a Rekor dsse entry witnessed that payload hash. It does not attest that the bytes are safe, correct, or complete as a product.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "strongest_caveat": "This probe verified the leaf signature and identity extraction; it did not re-walk the Fulcio chain against the Sigstore TUF trust root.",
+   "rails": [
+    {
+     "id": "R1",
+     "kind": "structured-api-probe",
+     "permalink": "https://pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0-py3-none-any.whl/provenance",
+     "fetch_timestamp": "2026-08-24T18:51:09Z",
+     "http_status": 200,
+     "sha256": "418da7504bfb4e28f8ec2bdbbea158f785ffc4746fe48b87c7407e252e74c441",
+     "bytes": 9060,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl.provenance.json",
+     "observation": "ECDSA-SHA256 over DSSE PAE verified with the Fulcio leaf public key. SAN URI=https://github.com/pypa/sampleproject/.github/workflows/release.yml@refs/heads/main; issuer OID=https://token.actions.githubusercontent.com; cert window 2024-11-06T22:37:07Z .. 2024-11-06T22:47:07Z; publish/v1 predicate is JSON null."
+    },
+    {
+     "id": "R2",
+     "kind": "prose-source",
+     "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/cosign/signing/overview.md",
+     "fetch_timestamp": "2026-08-24T18:52:39Z",
+     "http_status": 200,
+     "sha256": "c17f8ad50d5d76c106fbd8f1318ad925a1e7fcbe3cdb1f56c7830bb89ff36801",
+     "bytes": 7022,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-signing-overview.md",
+     "observation": "Sigstore overview: keyless signing associates identities, rather than keys, with an artifact signature; Fulcio binds an ephemeral key to an OIDC identity; Rekor records a timestamped hash+key+signature tuple. Quote: ificate_authority/oidc-in-fulcio\">}}).  Keyless signing associates identities, rather than keys, with an artifact signature. Fulcio issues short-lived certificates binding an ephemeral key to an OpenID Connect identity. "
+    }
+   ]
+  },
+  {
+   "id": "C3-identity-must-be-pinned",
+   "claim": "A verifier that only checks 'a Sigstore signature verifies' is not a marketplace trust signal. Cosign requires --certificate-identity and --certificate-oidc-issuer; the same real sampleproject signature is accepted by a naive signature-exists policy and rejected when the expected identity is pinned to an unrelated workflow.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "strongest_caveat": "Pinning the workflow URI at refs/heads/main still allows later commits on main to sign; pin the workflow digest for a tighter bind.",
+   "rails": [
+    {
+     "id": "R1",
+     "kind": "structured-api-probe",
+     "permalink": "https://raw.githubusercontent.com/pypa/sampleproject/621e4974ca25ce531773def586ba3ed8e736b3fc/.github/workflows/release.yml",
+     "fetch_timestamp": "2026-08-24T18:52:41Z",
+     "http_status": 200,
+     "sha256": "0b9b91fc07b538895e34c00b01afff8a19385091a565fa17b79c3684157ef6e2",
+     "bytes": 780,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-release.yml",
+     "observation": "The Fulcio SAN matches the workflow file at commit 621e4974ca25ce531773def586ba3ed8e736b3fc, which sets id-token: write for Trusted Publishing. Mechanical control: naive_accepts=True pinned_real=True pinned_wrong=False."
+    },
+    {
+     "id": "R2",
+     "kind": "prose-source",
+     "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/quickstart/verification-cheat-sheet.md",
+     "fetch_timestamp": "2026-08-24T18:52:40Z",
+     "http_status": 200,
+     "sha256": "24402ceead2e5722dd747d3ebf0334a7f3446483339ee9a18d4eca584f1f8e0f",
+     "bytes": 1994,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-verification-cheat-sheet.md",
+     "observation": "OIDC verification cheat sheet: GitHub Actions identity is the workflow URI@ref and issuer https://token.actions.githubusercontent.com. Both fields are required. Quote: PIPELINE_ID| | GitHub Actions | https://token.actions.githubusercontent.com | https://github.com/USERNAME/REPOSITORY_NAME/.github/workflows/WORKFLOW_NAME@refs/heads/BRANCH_NAME | | [GitLab CI](https://docs.gitlab.com/ci/"
+    }
+   ]
+  },
+  {
+   "id": "C4-rekor-witness",
+   "claim": "Rekor logIndex 147137144 is a dsse kind entry whose payloadHash equals sha256 of the attested in-toto statement; a GET of that index from rekor.sigstore.dev still returns the same payload hash.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "strongest_caveat": "Inclusion-proof hashes were captured but not recomputed against the Signed Tree Head in this unit.",
+   "rails": [
+    {
+     "id": "R1",
+     "kind": "structured-api-probe",
+     "permalink": "https://rekor.sigstore.dev/api/v1/log/entries?logIndex=147137144",
+     "fetch_timestamp": "2026-08-24T18:52:41Z",
+     "http_status": 200,
+     "sha256": "0a24c6e0286753b446594cea761e01e2daab318684d7fd691ef9b5cd3d544d0b",
+     "bytes": 7641,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/rekor-entry-147137144.json",
+     "observation": "GET /api/v1/log/entries?logIndex=147137144 HTTP 200; live payloadHash=1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d matches statement sha256=1756177fd6ee25b4123867f7c2e9234ead44550dbbdb259b94e9eb4b75fd4d5d."
+    },
+    {
+     "id": "R2",
+     "kind": "prose-source",
+     "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/about/security.md",
+     "fetch_timestamp": "2026-08-24T18:52:40Z",
+     "http_status": 200,
+     "sha256": "e59d7f61ccc1f6ef9544ff815c7895277b45ad502423c1718da58f7c2294fe2a",
+     "bytes": 6930,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-security-model.md",
+     "observation": "Sigstore security model: Rekor is an append-only transparency log; an entry is a single-party attestation that data existed prior to a time. Quote: imestamp.  An entry in Rekor provides a single-party attestation that a piece of data existed prior to a certain time. These timestamps and the contents of the log cannot be tampered with or removed later, providing long"
+    }
+   ]
+  },
+  {
+   "id": "C5-content-blind",
+   "claim": "The signature does not inspect markdown or scripts. The verified publish/v1 statement has predicate=null, and a plugin tree whose SKILL.md contains prompt-injection still has a well-formed canonical digest that would verify if signed by the pinned identity.",
+   "verdict": "CONFIRMED",
+   "evidence_grade": "E1",
+   "strongest_caveat": "Content scanning is a different control, not Sigstore.",
+   "rails": [
+    {
+     "id": "R1",
+     "kind": "structured-api-probe",
+     "permalink": "https://pypi.org/integrity/sampleproject/4.0.0/sampleproject-4.0.0-py3-none-any.whl/provenance",
+     "fetch_timestamp": "2026-08-24T18:51:09Z",
+     "http_status": 200,
+     "sha256": "418da7504bfb4e28f8ec2bdbbea158f785ffc4746fe48b87c7407e252e74c441",
+     "bytes": 9060,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sampleproject-4.0.0-py3-none-any.whl.provenance.json",
+     "observation": "Decoded in-toto statement predicate is JSON null; subject is only name+sha256. Malicious fixture tree digest f7033074e332d72099456f47744b7183a14954d6f3555fa908a0583e0a4b410e differs from clean b7b91e98fbe944b07b762299ec1b9f573896898fd2fb93cc189204bc9b63a1ba but both are valid digest inputs to sign-blob."
+    },
+    {
+     "id": "R2",
+     "kind": "prose-source",
+     "permalink": "https://raw.githubusercontent.com/sigstore/docs/main/content/en/about/security.md",
+     "fetch_timestamp": "2026-08-24T18:52:40Z",
+     "http_status": 200,
+     "sha256": "e59d7f61ccc1f6ef9544ff815c7895277b45ad502423c1718da58f7c2294fe2a",
+     "bytes": 6930,
+     "captured_path": "command-center/p2-wave/probes/RES-0048/captures/sigstore-docs-security-model.md",
+     "observation": "Sigstore documents what it does not guarantee: compromised OIDC identities can still obtain certificates; nothing in the model claims malware or prompt-injection detection. Quote: Rekor entry to verify the artifact.  ## What Sigstore _Doesn't_ Guarantee  - If an OIDC identity or OIDC provider is compromised, Fulcio might issue unauthorized certificates. However, these certificates are useless unle"
+    }
+   ]
+  }
+ ],
+ "residual": [
+  "Fulcio leaf used as given; TUF-rooted chain not replayed",
+  "Rekor inclusion proof hashes captured, not recomputed",
+  "No local keyless signing was performed (no OIDC token); verification used a production PyPI/Sigstore attestation"
+ ],
+ "failure_classification": [],
+ "output_path": "command-center/research/RES-0048.json",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "generated_at": "2026-08-25T01:00:23Z",
+ "cloud_ok": false,
+ "registered": true,
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "e2e-real-signature",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0048/probe1_e2e_signature.py"
+  },
+  {
+   "id": "probe2",
+   "role": "bypass-and-named-attacks",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0048/probe2_bypass_controls.py"
+  }
+ ],
+ "notes": "G-1 for RES-0048. Dual-rail claims. Live named probes re-run the cryptographic transcript and the bypass constructor. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:RES-0048 in the receipt AND one end-to-end verified signature transcript plus a named list of what it does not prevent"
+}

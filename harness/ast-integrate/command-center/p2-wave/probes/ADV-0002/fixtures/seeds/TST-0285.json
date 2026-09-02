@@ -1,0 +1,322 @@
+{
+  "answer": "The incomplete side blocks. Parent completion is COMPLETE iff the shared reducer says COMPLETE at every sibling boundary AND COMPLETE on the parent after fan-in (coc.sibling-disagreement.conservative-conjunction.v1). Average and majority-of-councils are recorded as rejected aggregations, never as the winner. Each minority report is copied onto the parent as an A11 dissent-survival trace.",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0285.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "tools/council/topology/coc.py",
+      "role": "implementation"
+    },
+    {
+      "exists": true,
+      "path": "tools/council/shared_completion.py",
+      "role": "shared-reducer"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0285/fixtures/sibling_disagreement.json",
+      "role": "disagreement-fixture"
+    }
+  ],
+  "both_states": {
+    "agreeing_complete_proceeds": true,
+    "planted_average_refused": true,
+    "split_done_not_done_stays_incomplete": true,
+    "supported_proceeds": true,
+    "unsupported_refused": true
+  },
+  "catalog_output_schema": "command-center/schema/receipt.schema.json",
+  "completion_sentinel": "SUCCESS:TST-0285",
+  "evidence": [
+    {
+      "anchor": "tools/council/topology/coc.py:fan_in",
+      "claim": "Split siblings (DONE + NOT DONE) fold to INCOMPLETE and the parent records both reducer verdicts verbatim.",
+      "observation": {
+        "blocking_parties": [
+          "council.beta-blocked"
+        ],
+        "rejudge": [
+          {
+            "council_id": "council.alpha-done",
+            "reason": "reducer-complete",
+            "recorded_complete": true,
+            "reducer": "tools.council.shared_completion",
+            "rejudge_complete": true
+          },
+          {
+            "council_id": "council.beta-blocked",
+            "reason": "self-declared BLOCKED",
+            "recorded_complete": false,
+            "reducer": "tools.council.shared_completion",
+            "rejudge_complete": false
+          }
+        ],
+        "rule_id": "coc.sibling-disagreement.conservative-conjunction.v1",
+        "verbatim_n": 2,
+        "winner_complete": false
+      },
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/council/topology/coc.py:_judge_sibling_boundary",
+      "call_graph": {
+        "calls": [
+          "bool",
+          "get",
+          "getattr",
+          "isinstance",
+          "record",
+          "shared_judge"
+        ],
+        "function": "_judge_sibling_boundary",
+        "ok": true,
+        "path": "tools/council/topology/coc.py",
+        "reason": "shared_judge-called"
+      },
+      "claim": "_judge_sibling_boundary calls shared_judge; a planted self_report_complete return makes the call-graph check fail.",
+      "planted_rival": {
+        "live_ok": true,
+        "ok": true,
+        "planted_ok": false,
+        "reason": "detector-fires-on-rival-predicate"
+      },
+      "reducer_module": "tools.council.shared_completion",
+      "reducer_path": "tools/council/shared_completion.py",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "a11_ids": [
+        "d-alpha-minor",
+        "d-beta-block",
+        "mr-alpha-done",
+        "mr-beta-blocked"
+      ],
+      "anchor": "tools/council/topology/coc.py:_a11",
+      "claim": "Each subcouncil minority report is reachable from the parent via the A11 dissent-survival trace.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/council/topology/coc.py:resolve_sibling_disagreement",
+      "claim": "2-of-3 majority would complete; conservative conjunction stays INCOMPLETE and does not emit the 2/3 midpoint as the winner.",
+      "observation": {
+        "completion": false,
+        "completion_type": "bool",
+        "rejected_average": 0.6666666666666666,
+        "rejected_majority": true,
+        "winner_complete": false
+      },
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/council/topology/coc.py:run_depth2_siblings",
+      "claim": "Depth-2 nesting: a blocked leaf poisons its mid and the grandparent fan-in stays INCOMPLETE.",
+      "observation": {
+        "inner_blocked": false,
+        "inner_done": true,
+        "leaf_minority_reachable": true,
+        "outer": false
+      },
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "fanin_rule_id": "coc.sibling-disagreement.conservative-conjunction.v1",
+  "id": "TST-0285",
+  "independent_rejudge": [
+    {
+      "council_id": "council.alpha-done",
+      "reason": "reducer-complete",
+      "recorded_complete": true,
+      "reducer": "tools.council.shared_completion",
+      "rejudge_complete": true
+    },
+    {
+      "council_id": "council.beta-blocked",
+      "reason": "self-declared BLOCKED",
+      "recorded_complete": false,
+      "reducer": "tools.council.shared_completion",
+      "rejudge_complete": false
+    }
+  ],
+  "matrix": {
+    "axes": {
+      "client": [
+        "python3",
+        "pwsh7"
+      ],
+      "os": [
+        "linux",
+        "windows"
+      ]
+    },
+    "cells": [
+      {
+        "attempted": true,
+        "client": "python3",
+        "client_version": "3.12.3",
+        "declared": "SUPPORTED",
+        "os": "linux",
+        "outcome": "PROCEEDED"
+      },
+      {
+        "attempted": false,
+        "client": "pwsh7",
+        "client_version": "untested-on-this-linux-worktree",
+        "declared": "UNSUPPORTED",
+        "os": "windows",
+        "outcome": "REFUSED"
+      }
+    ],
+    "counts": {
+      "proceeded": 1,
+      "refused": 1,
+      "untested": 0
+    }
+  },
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0285/probe1_split_verdicts.py",
+      "exit_code": 0,
+      "id": "probe1"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0285/probe2_averaging_control.py",
+      "exit_code": 0,
+      "id": "probe2"
+    }
+  ],
+  "negative_control_ids": [
+    "spec-11343-nested-disagreement:remove-fanin-rule-becomes-last-writer-wins",
+    "planted-rival-predicate:self_report_complete-skips-shared-judge",
+    "majority-of-councils-2-of-3-must-not-complete"
+  ],
+  "notes": "G-1 TST-0285: council-of-councils sibling fan-in uses the shared reducer, records both subcouncil verdicts, refuses averaging, preserves A11 dissent, and exercises depth-2 nesting. Live named probes exit 0. Did not run global unit_manifest.py --write.",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "parent_decision": {
+    "agreed": false,
+    "average": 0.5,
+    "blocking_parties": [
+      "council.beta-blocked"
+    ],
+    "incidental": false,
+    "majority_complete": false,
+    "rule_id": "coc.sibling-disagreement.conservative-conjunction.v1",
+    "winner_complete": false
+  },
+  "probe_tails": {
+    "probe1": [
+      "{\"agreeing_complete\": true, \"call_graph\": {\"calls\": [\"bool\", \"get\", \"getattr\", \"isinstance\", \"record\", \"shared_judge\"], \"function\": \"_judge_sibling_boundary\", \"ok\": true, \"path\": \"tools/council/topology/coc.py\", \"reason\": \"shared_judge-called\"}, \"depth2\": {\"child_boundary_judges\": 4, \"inner_blocked\": false, \"inner_done\": true, \"outer\": false}, \"pass\": true, \"planted_rival\": {\"live_ok\": true, \"ok\": true, \"planted_ok\": false, \"reason\": \"detector-fires-on-rival-predicate\"}, \"probe\": \"probe1-split-verdicts\", \"reducer_module\": \"tools.council.shared_completion\", \"reducer_path\": \"tools/council/shared_completion.py\", \"rule_id\": \"coc.sibling-disagreement.conservative-conjunction.v1\", \"split\": {\"a11_ids\": [\"d-alpha-minor\", \"d-beta-block\", \"mr-alpha-done\", \"mr-beta-blocked\"], \"alpha_complete\": true, \"beta_complete\": false, \"blocking_parties\": [\"council.beta-blocked\"], \"verbatim_n\": 2, \"winner_complete\": false}, \"unit_id\": \"TST-0285\"}",
+      "split alpha=COMPLETE beta=INCOMPLETE winner=INCOMPLETE rule=coc.sibling-disagreement.conservative-conjunction.v1 reducer=tools/council/shared_completion.py",
+      "depth2 inner_done=True inner_blocked=False outer=False",
+      "SUCCESS:TST-0285-probe1 split-verdicts shared-reducer A11 depth-2"
+    ],
+    "probe2": [
+      "{\"agreeing_complete\": true, \"independent_rejudge\": true, \"majority_2_of_3\": {\"rejected_average\": 0.6666666666666666, \"rejected_majority\": true, \"sibling_completes\": [true, true, false], \"winner_complete\": false}, \"negative_control\": \"remove-fanin-rule-last-writer-wins\", \"pass\": true, \"planted_average_split\": true, \"probe\": \"probe2-averaging-control\", \"spec_class\": \"11343-nested-disagreement\", \"split_rule_off\": [false, true], \"split_rule_on\": [false, false], \"unit_id\": \"TST-0285\"}",
+      "rule_on=[False, False] rule_off=[False, True] 2of3_winner=False majority_rejected=True",
+      "SUCCESS:TST-0285-probe2 averaging-control independent-rejudge"
+    ]
+  },
+  "question_or_target": "When two subcouncils return, one DONE and one NOT DONE, what does the parent do? The parent must apply the ONE shared completion predicate rather than a local rule, must not average the verdicts, and must preserve each subcouncil's dissent in its own output.",
+  "reducer_module": "tools.council.shared_completion",
+  "reducer_path": "tools/council/shared_completion.py",
+  "residual_unknowns": [
+    "Catalog input tools/council/simulate.py (TST-0257) is not on this worktree. Probes drive scripted sibling artifacts through the live nested spawn + shared reducer rather than a persona simulator.",
+    "CC-0003 / agentspec.oracle.judge is not on this worktree; fan-in binds tools.council.shared_completion.judge, which delegates to the oracle when importable. Residual: the program-wide 12-condition oracle is not claimed delivered.",
+    "command-center/schema/test-receipt.schema.json is a generated shim whose $ref points at ast-integrate.invalid; jsonschema cannot resolve it on this worktree so emit records the shim path rather than a remote-network validation.",
+    "No fresh-context human/cross-vendor reviewer was dispatched; the adversarial check is the live averaging-control probe."
+  ],
+  "reviewer": {
+    "attempt": "Independent recount: re-called tools.council.shared_completion.judge on each recorded sibling artifact, required last-writer-wins to flip with the rule off, and required 2-of-3 majority to stay INCOMPLETE.",
+    "independent": true,
+    "reviewer_id": "TST-0285-probe2-averaging-control",
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:TST-0285",
+  "spec_anchor": "_USER-PROMPTS.md:11343 nested councils disagree on completion; :10926 nested subcouncil, council-of-councils",
+  "state": "SUCCESS",
+  "subcouncil_verdicts_verbatim": [
+    {
+      "artifact": {
+        "dissent": [
+          {
+            "id": "d-alpha-minor",
+            "text": "Alpha minority: scope was narrower than claimed."
+          }
+        ],
+        "evidence": [
+          "ev-alpha-done"
+        ],
+        "id": "council.alpha-done",
+        "minority_report": {
+          "id": "mr-alpha-done",
+          "text": "Alpha reports DONE; do not average this with Beta."
+        },
+        "participant_id": "alpha-1",
+        "question_id": "q.sibling.alpha",
+        "rounds": 1,
+        "self_report_complete": true,
+        "state": "SUCCESS"
+      },
+      "complete": true,
+      "council_id": "council.alpha-done",
+      "reason": "reducer-complete",
+      "reducer": "tools.council.shared_completion"
+    },
+    {
+      "artifact": {
+        "dissent": [
+          {
+            "id": "d-beta-block",
+            "text": "Beta dissent: remaining work is load-bearing."
+          }
+        ],
+        "evidence": [
+          "ev-beta-blocked"
+        ],
+        "id": "council.beta-blocked",
+        "minority_report": {
+          "id": "mr-beta-blocked",
+          "text": "Beta reports NOT DONE; averaging this into parent DONE is the 11343 failure class."
+        },
+        "participant_id": "beta-1",
+        "question_id": "q.sibling.beta",
+        "rounds": 1,
+        "self_report_complete": true,
+        "state": "BLOCKED"
+      },
+      "complete": false,
+      "council_id": "council.beta-blocked",
+      "reason": "self-declared BLOCKED",
+      "reducer": "tools.council.shared_completion"
+    }
+  ],
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0285/probe1_split_verdicts.py",
+      "id": "split-subcouncil-verdicts-shared-predicate",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0285/probe2_averaging_control.py",
+      "id": "averaging-control-no-midpoint-no-majority",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0285/probe1_split_verdicts.py",
+      "id": "dissent-propagation-a11-trace",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0285/probe1_split_verdicts.py",
+      "id": "depth-2-nesting",
+      "result": "PASS"
+    }
+  ],
+  "title": "Council-of-councils fan-in when nested councils disagree on completion",
+  "ts": "2026-08-25T01:02:52Z",
+  "unit_id": "TST-0285"
+}

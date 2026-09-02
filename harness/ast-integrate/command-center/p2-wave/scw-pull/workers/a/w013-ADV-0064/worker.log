@@ -1,0 +1,18 @@
+I'll start from the existing ADV-0064 probe tree and read the return/manifest files so I can resume instead of rebuilding.Existing probe tree is present. Next I’ll read the return/manifest, the measure script, and the unit’s catalog contract.The prior return is a cloud-ok refute, not G-1 delivery. I’ll inspect the catalog unit, live artifact, and existing named probes next.Probes and a pack script are already here. I’ll check a delivered sibling’s return format, the schema, and whether the current measure already passes.The probes import `mkt` from `platform/marketplace`, which is missing here. I’ll locate the real marketplace package next.ADV-0069 left fixture snapshots. I’ll inspect those and try to fetch the real marketplace tree over SSH.AUD-0005 cached a real `platform/marketplace` tree. I’ll inspect that copy and use it as the live publish path.I’ll mount the cached real marketplace onto this worktree, then re-run the named probes against `publish_into`.Named probes and the mutant behaved as required. Next I’ll pack the live receipt and confirm the helper scripts that measure will re-run also exit 0.Measure printed `SUCCESS:delivered`. I’ll write the per-unit return file and re-check that the manifest hash still matches.**SUCCESS:delivered ADV-0064** `predicate=delivered state=SUCCESS probes=4 raws=3 notes=_dump_handoff.py:0,_handoff_remeasure.py:0,probe1_scan.py:0,probe2_publish.py:0`
+
+G-1 is green for this unit. Named probes were resumed, not rebuilt. Live re-runs on this Linux worktree:
+
+| Probe | Result |
+|---|---|
+| `probe1_scan.py` | exit 0 — 3 unique fixture names, 0 existing-pair collisions, all three targets **REFUTED** |
+| `probe2_publish.py` | exit 0 — real `mkt.publish.publish_into`: `hell0-skill` **PUBLISHED** score 90 (not refused); `quartz-beacon` control published with no confusable matches |
+| `--mutant false-positive-distinct` | exit 1 — required control goes red |
+
+Catalog answer: no first-party/popularity fields, so every existing name is protected; none of those names is within one folded edit of another; the live publish path does **not** reject a generated confusable.
+
+Artifacts:
+- Receipt `command-center/adversarial/ADV-0064-typosquat-homoglyph-namespace-scan.json` — `state=SUCCESS`, 23521 B, LF sha256 `6a60ae45afe5d2b4803350a3977e1c644db37746e386cbe1770860943d6fd7e0`
+- Per-unit `command-center/p2-wave/probes/ADV-0064/UNIT-ARTIFACT-MANIFEST.json` (hash matches live file)
+- `command-center/p2-wave/probes/ADV-0064/SUBAGENT-RETURN.json` — `status=DELIVERED`
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Harvest / cloud `ok=true` was not treated as delivery. Product defects **ADV-0064-D1** (publish accepts confusables) and **ADV-0064-D2** (no first-party/popularity metadata) stay open as measurements, not receipt-delivery failures.

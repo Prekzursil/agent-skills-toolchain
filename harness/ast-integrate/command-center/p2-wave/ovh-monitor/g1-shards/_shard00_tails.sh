@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+for uid in IMP-0013 IMP-0112 IMP-0131 IMP-0225 IMP-0279 IMP-0329 IMP-0350 IMP-0374 IMP-0415 IMP-0028 IMP-0059 TST-0152 TST-0185 TST-0280 WFA-0152 CNL-0103 RES-0172 TST-0039 ADV-0031; do
+  echo "==== $uid"
+  tail -n 10 /tmp/g1-"$uid".out
+done

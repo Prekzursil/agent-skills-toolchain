@@ -1,0 +1,340 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fix: Claude Code misreads an MCP server&#39;s stderr startup message as an error - Start Debugging</title><meta name="description" content="Claude Code logs every MCP server stderr line at [ERROR] and marks working servers as failed. If your tools still run, it is cosmetic. Here is how to confirm it and quiet the noise."><link rel="icon" type="image/jpeg" href="/brand-logo.ico"><link rel="canonical" href="https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/"><link rel="alternate" type="application/rss+xml" title="Start Debugging" href="https://startdebugging.net/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (es)" href="https://startdebugging.net/es/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (pt-BR)" href="https://startdebugging.net/pt-br/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (de)" href="https://startdebugging.net/de/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (ru)" href="https://startdebugging.net/ru/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (ja)" href="https://startdebugging.net/ja/rss.xml"><!-- Open Graph --><meta property="og:title" content="Fix: Claude Code misreads an MCP server's stderr startup message as an error - Start Debugging"><meta property="og:description" content="Claude Code logs every MCP server stderr line at [ERROR] and marks working servers as failed. If your tools still run, it is cosmetic. Here is how to confirm it and quiet the noise."><meta property="og:url" content="https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/"><meta property="og:type" content="article"><meta property="og:site_name" content="Start Debugging"><meta property="og:locale" content="en_US"><meta property="og:image" content="https://startdebugging.net/og/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Fix: Claude Code misreads an MCP server's stderr startup message as an error - Start Debugging"><meta property="article:published_time" content="2026-07-19T00:00:00.000Z"><meta property="article:tag" content="errors"><meta property="article:tag" content="mcp"><meta property="article:tag" content="claude-code"><meta property="article:tag" content="ai-agents"><!-- Twitter Card --><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@startdebugging_"><meta name="twitter:creator" content="@mariusbughiu"><meta name="twitter:title" content="Fix: Claude Code misreads an MCP server's stderr startup message as an error - Start Debugging"><meta name="twitter:description" content="Claude Code logs every MCP server stderr line at [ERROR] and marks working servers as failed. If your tools still run, it is cosmetic. Here is how to confirm it and quiet the noise."><meta name="twitter:image" content="https://startdebugging.net/og/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error.png"><meta name="twitter:image:alt" content="Fix: Claude Code misreads an MCP server's stderr startup message as an error - Start Debugging"><!-- JSON-LD --><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Fix: Claude Code misreads an MCP server's stderr startup message as an error","description":"Claude Code logs every MCP server stderr line at [ERROR] and marks working servers as failed. If your tools still run, it is cosmetic. Here is how to confirm it and quiet the noise.","url":"https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/","mainEntityOfPage":{"@type":"WebPage","@id":"https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/"},"image":["https://startdebugging.net/og/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error.png"],"datePublished":"2026-07-19T00:00:00.000Z","keywords":"errors, mcp, claude-code, ai-agents","inLanguage":"en-US","author":{"@type":"Person","name":"Marius Bughiu","url":"https://startdebugging.net/about/","sameAs":["https://github.com/marius-bughiu","https://x.com/mariusbughiu","https://www.linkedin.com/in/mariusbughiu/"]},"publisher":{"@type":"Organization","name":"Start Debugging","url":"https://startdebugging.net","logo":{"@type":"ImageObject","url":"https://startdebugging.net/logo-512.png","width":512,"height":512}}}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start Debugging","item":"https://startdebugging.net/"},{"@type":"ListItem","position":2,"name":"Fix: Claude Code misreads an MCP server's stderr startup message as an error","item":"https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/"}]}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"FAQPage","mainEntity":[{"@type":"Question","name":"How do I fix \"Claude Code misreads an MCP server's stderr startup message as an error\"?","acceptedAnswer":{"@type":"Answer","text":"If Claude Code prints X MCP servers failed at startup but your tools still work, this is almost certainly a false positive. Claude Code logs every line an MCP server writes to stderr at [ERROR] level, including normal startup banners and warnings, and then counts that server as failed. Run /mcp: if the server shows its tools and a tool call succeeds, nothing is actually broken. The rest of this post shows how to confirm that and, if the noise bothers you, how to silence it without breaking the stdio protocol.\n\nThis is tracked as anthropics/claude-code#17653, reproduced on Claude Code 2.1.5 and still present in current 2.1.x builds. It affects any stdio MCP server that logs to stderr on boot, regardless of language or SDK, because the misclassification happens in the host, not in your server."}},{"@type":"Question","name":"Why does this happen?","acceptedAnswer":{"@type":"Answer","text":"The stdio transport splits the two output streams by purpose. stdout carries newline-delimited JSON-RPC and nothing else. stderr is the free-form log channel. The MCP specification is explicit about how a client should treat stderr. From the stdio transport section of the 2025-11-25 spec:\n\nThe server MAY write UTF-8 strings to its standard error (stderr) for any logging purposes including informational, debug, and error messages.\n\nAnd, one bullet down, the rule Claude Code is breaking:\n\nThe client MAY capture, forward, or ignore the server's stderr output and SHOULD NOT assume stderr output indicates error conditions.\n\nWell-behaved servers follow the spec exactly. Sending a startup banner or a config warning to stderr is the correct place to put it, precisely because stdout is reserved for protocol frames. If a server logged that banner to stdout instead, it would corrupt the JSON-RPC stream and the connection would genuinely hang, which is a different failure covered in MCP Server stdio Hang When Launched From Claude Code. So the servers doing the \"right\" thing are the ones that trip this cosmetic alarm.\n\nClaude Code captures the stderr stream (useful, and allowed) but tags every line [ERROR] and treats any early output as a startup failure signal. The maintainers closed #17653 as not planned, with the note that it is cosmetic: the servers work despite the message. That leaves the burden on you to tell a false positive apart from a real one."}},{"@type":"Question","name":"Telling a false positive from a real failure?","acceptedAnswer":{"@type":"Answer","text":"Before you touch any config, confirm which case you are in. A real failure and this cosmetic one produce a similar-looking banner, so verify by behavior, not by the red text.\n\nOpen the MCP panel inside Claude Code:\n\n/mcp\n\nFor a false positive you will see the server listed with its tool count greater than zero. Pick a tool and actually call it. If it returns a result, the server is healthy and the \"failed\" count is noise.\n\nFor a comparison against the failure modes that are not cosmetic:\n\n- The tool count is zero and the server hangs on Connecting...: that is stdout pollution or a startup race, not this bug. See the stdio hang triage.\n- The log shows MCP error -32000: Connection closed: the process actually died before the handshake finished. See Fix: MCP error -32000: Connection closed in Claude Code.\n- Every server in your config drops at once: suspect a config parse error, covered in all MCP servers fail to load after one malformed-JSON syntax error.\n\nThe distinguishing question is simple: do the tools appear and run? If yes, you are in the cosmetic case and the fixes below are optional cleanup. If no, you have a real connection problem and should follow one of the posts above instead."}},{"@type":"Question","name":"What's the full fix?","acceptedAnswer":{"@type":"Answer","text":"### 1. Recognize it and move on\n\nIf the tools work, the correct action is often no action. The \"failed\" tally is cosmetic and the servers are functioning. This is the fix that costs nothing and does not risk breaking the protocol. Note the server name from the log, confirm its tools in /mcp, and stop treating the red count as a blocker. The other options below only make sense if the noise is actively hiding real errors from you or cluttering a shared setup.\n\n### 2. Quiet the server if you own it\n\nFor a server you control, gate the startup banner behind a debug flag so the default path emits nothing on stderr until something actually goes wrong.\n\n// server.ts -- MCP TypeScript SDK 1.29.0\n// Only announce when explicitly debugging; silent by default.\nif (process.env.MCPDEBUG === \"1\") {\n console.error(\"repro MCP server v1.0.0 running on stdio\");\n}\n\nDo not \"fix\" this by moving the banner to stdout. That is the one change guaranteed to break you: stdout is the JSON-RPC channel, and a stray non-JSON line there corrupts the framing and produces a genuine hang. Keep all logging on stderr and simply emit less of it. If your server logs through a library, point that logger at stderr (its correct destination) and raise its default level to warn or error so informational lines never fire during a normal boot.\n\n### 3. Wrap a third-party server and redirect its stderr\n\nFor an npx/uvx server you do not own, such as the Context7 example, you cannot edit its logging. Wrap the launch command so the child's stderr goes to a file, leaving stdout (the protocol) untouched.\n\nOn macOS or Linux, use a small shell wrapper:\n\n#!/bin/sh\n# mcp-context7.sh -- redirect stderr to a log file, keep stdout clean\nexec npx -y @upstash/context7-mcp 2>> \"$HOME/.mcp-logs/context7.log\"\n\nOn Windows, a .cmd wrapper does the same:\n\n@echo off\nREM mcp-context7.cmd -- stderr to a file, stdout stays as the JSON-RPC stream\nnpx -y @upstash/context7-mcp 2>> \"%TEMP%\\context7-mcp.log\"\n\nThen point the config at the wrapper:\n\n{\n \"mcpServers\": {\n \"context7\": {\n \"command\": \"/absolute/path/to/mcp-context7.sh\"\n }\n }\n}\n\nThe 2>> redirect only touches file descriptor 2, so JSON-RPC on stdout (descriptor 1) is unaffected and tool calls work exactly as before. The tradeoff is that you now have to tail that log file to see genuine server errors, since Claude Code no longer sees them. Keep the file, do not send it to /dev/null, or you will discard the diagnostics you actually want the day the server does break.\n\n### 4. Lower the server's own log level via env\n\nMany published servers expose an environment variable to reduce logging without a wrapper. Check the server's README for something like LOGLEVEL, MCPLOGLEVEL, or QUIET, and set it through the config env block:\n\n{\n \"mcpServers\": {\n \"context7\": {\n \"command\": \"npx\",\n \"args\": [\"-y\", \"@upstash/context7-mcp\"],\n \"env\": { \"LOG_LEVEL\": \"error\" }\n }\n }\n}\n\nThis is cleaner than a wrapper because genuine errors still reach Claude Code, they just stop being drowned out by boot chatter. It only works if the server honors such a variable, so it is not universal, but it is the least invasive option when it applies."}},{"@type":"Question","name":"What are common variants of this error?","acceptedAnswer":{"@type":"Answer","text":"Do not chase this by editing stdout. The single most common self-inflicted wound is deciding the banner is the problem and redirecting it to stdout to \"hide\" the error. That corrupts the protocol frame and turns a cosmetic warning into a real hang. Everything logging-related stays on stderr.\n\nA warning during a tool call is not the same thing. This post is about stderr at startup being counted as a failed server. If a specific tool call emits a warning mid-session, that line is also tagged [ERROR] in the log but does not affect the failure count. Same misclassification, different blast radius, and again cosmetic if the call returns a result.\n\nLong sessions used to leak memory here. A related but separate issue was Claude Code buffering MCP stderr unbounded, up to tens of megabytes per server over a long session. That has been fixed in recent 2.1.x releases; if you were seeing this bug alongside growing memory use, the memory half is resolved even though the [ERROR] labeling is not. For the memory-pressure side, see Fix: Claude Code high memory usage and context overflow.\n\nPlugin-namespaced servers show the same thing. The reported example was plugin:context7:context7, a server delivered through a plugin. The namespacing in the name does not change the behavior; any stdio server behind a plugin logs to stderr the same way a top-level one does.\n\nOther hosts are stricter, or looser. Because the spec says clients SHOULD NOT treat stderr as errors, this is a Claude Code presentation choice, not a protocol requirement. Cursor and Claude Desktop capture stderr too but do not headline it as a failure count, so the same server can look \"failed\" in Claude Code and \"connected\" elsewhere with no change on the server side."}}]}</script><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-QFYE38MD6S"></script><script type="module">window.dataLayer=window.dataLayer||[];function a(){dataLayer.push(arguments)}a("js",new Date);a("config","G-QFYE38MD6S");</script><!-- Custom GA4 events: share clicks, scroll depth, outbound clicks,
+         newsletter subscribe. See TRAFFIC_ROADMAP.md task 5.1. --><script>
+      (function () {
+        function track(name, params) {
+          if (typeof window.gtag !== 'function') return;
+          window.gtag('event', name, params || {});
+        }
+
+        // Share row: any [data-share] anchor or the copy-link button.
+        document.addEventListener('click', function (e) {
+          var t = e.target instanceof Element ? e.target.closest('[data-share],[data-copy-link]') : null;
+          if (!t) return;
+          var network = t.getAttribute('data-share') || (t.hasAttribute('data-copy-link') ? 'copy' : null);
+          if (!network) return;
+          track('share_click', {
+            network: network,
+            page_path: location.pathname,
+          });
+        }, true);
+
+        // Newsletter subscribe: footer form + inline post-page form. We can't
+        // see the cross-origin Buttondown response so track on submit
+        // intent — close enough for funnel measurement.
+        document.addEventListener('submit', function (e) {
+          var f = e.target instanceof HTMLFormElement ? e.target : null;
+          if (!f) return;
+          var action = (f.getAttribute('action') || '').toLowerCase();
+          if (action.indexOf('buttondown.com') === -1) return;
+          var tagInput = f.querySelector('input[name="tag"]');
+          var placement = tagInput && tagInput.value ? tagInput.value : 'unknown';
+          track('newsletter_subscribe', {
+            placement: placement,
+            page_path: location.pathname,
+          });
+        }, true);
+
+        // Outbound clicks: any external <a> not on startdebugging.net.
+        document.addEventListener('click', function (e) {
+          var t = e.target instanceof Element ? e.target.closest('a[href]') : null;
+          if (!t) return;
+          var href = t.getAttribute('href') || '';
+          if (!/^https?:\/\//i.test(href)) return;
+          try {
+            var u = new URL(href);
+            if (u.hostname.endsWith('startdebugging.net')) return;
+            track('outbound_click', {
+              outbound_url: href,
+              outbound_domain: u.hostname,
+              page_path: location.pathname,
+            });
+          } catch (_err) { /* ignore */ }
+        }, true);
+
+        // Scroll depth: fire 25/50/75/100 once each per page.
+        var fired = { 25: false, 50: false, 75: false, 100: false };
+        var ticking = false;
+        function scrollDepthCheck() {
+          ticking = false;
+          var doc = document.documentElement;
+          var scrollTop = window.pageYOffset || doc.scrollTop || 0;
+          var viewport = window.innerHeight || doc.clientHeight || 0;
+          var fullHeight = Math.max(
+            doc.scrollHeight,
+            doc.offsetHeight,
+            document.body ? document.body.scrollHeight : 0,
+            document.body ? document.body.offsetHeight : 0,
+          );
+          var scrollable = Math.max(fullHeight - viewport, 1);
+          var pct = (scrollTop / scrollable) * 100;
+          [25, 50, 75, 100].forEach(function (mark) {
+            if (!fired[mark] && pct >= mark) {
+              fired[mark] = true;
+              track('scroll_depth', { percent: mark, page_path: location.pathname });
+            }
+          });
+        }
+        window.addEventListener('scroll', function () {
+          if (!ticking) {
+            window.requestAnimationFrame(scrollDepthCheck);
+            ticking = true;
+          }
+        }, { passive: true });
+        // Catch short pages where the user never scrolls (still hit 25%).
+        window.addEventListener('load', scrollDepthCheck);
+      })();
+    </script><script>
+          (function () {
+            // Page-level slot registration. Idempotent via a marker attribute
+            // so re-running (e.g. on Astro view-transition pageswap) only ever
+            // pushes once per <ins>.
+            function registerSlots() {
+              var slots = document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-registered])');
+              for (var i = 0; i < slots.length; i++) {
+                slots[i].setAttribute('data-adsbygoogle-registered', '1');
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+              }
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', registerSlots);
+            } else {
+              registerSlots();
+            }
+
+            // Lazy-load the AdSense bundle on first user interaction or, failing
+            // that, when the browser is idle. Cap at 8s after `load` so
+            // headless / no-interaction sessions still bring it in (ad fill
+            // matters; abandonment matters less than CWV impact during the
+            // initial paint).
+            var loaded = false;
+            function loadAdsense() {
+              if (loaded) return;
+              loaded = true;
+              var s = document.createElement('script');
+              s.async = true;
+              s.crossOrigin = 'anonymous';
+              s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1537458730659685';
+              document.head.appendChild(s);
+            }
+            var events = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+            function once() {
+              events.forEach(function (e) { window.removeEventListener(e, once, { passive: true }); });
+              loadAdsense();
+            }
+            events.forEach(function (e) { window.addEventListener(e, once, { passive: true, once: true }); });
+            window.addEventListener('load', function () {
+              if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(loadAdsense, { timeout: 8000 });
+              } else {
+                setTimeout(loadAdsense, 4000);
+              }
+            });
+          })();
+        </script><link rel="stylesheet" href="/_astro/_slug_.DwxOW4Vy.css"></head> <body> <header> <div class="row header-row"> <a class="pill" href="/" style="padding: 4px 12px 4px 6px; gap: 8px;"> <img src="/brand-logo.jpg" alt="" width="24" height="24" style="border-radius: 50%;"> <span style="line-height: 1; margin-bottom: -1px;">Start Debugging</span> </a> <div class="header-actions"> <div class="header-search"> <button type="button" class="pill header-search-trigger" data-search-open aria-label="Search posts"> <span aria-hidden="true">&#x1F50D;</span> <span class="header-search-label">Search</span> <kbd class="header-search-kbd" aria-hidden="true">/</kbd> </button> </div>  </div> </div> </header> <div class="search-overlay" data-search-overlay hidden role="dialog" aria-modal="true" aria-labelledby="search-overlay-title"> <div class="search-overlay-backdrop" data-search-close aria-hidden="true"></div> <div class="search-overlay-panel panel"> <div class="row search-overlay-header"> <h2 class="h2" id="search-overlay-title">Search</h2> <button type="button" class="pill search-overlay-close" data-search-close aria-label="Close search">Close</button> </div> <div id="pagefind-search"></div> </div> </div> <link rel="stylesheet" href="/pagefind/pagefind-ui.css"> <script>(function(){const baseUrl = "/";
+const devHint = "Search index not available in dev. Run <code>npm run build</code> to generate it.";
+
+      (function () {
+        const overlay = document.querySelector('[data-search-overlay]');
+        const opener = document.querySelector('[data-search-open]');
+        const closers = document.querySelectorAll('[data-search-close]');
+        if (!overlay || !opener) return;
+
+        let loaded = false;
+        function loadPagefind() {
+          if (loaded) return Promise.resolve();
+          loaded = true;
+          return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = baseUrl + 'pagefind/pagefind-ui.js';
+            s.onload = function () {
+              try {
+                // eslint-disable-next-line no-undef
+                new PagefindUI({
+                  element: '#pagefind-search',
+                  showSubResults: true,
+                  showImages: false,
+                  resetStyles: false,
+                });
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            };
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+
+        function openOverlay() {
+          overlay.hidden = false;
+          document.documentElement.style.overflow = 'hidden';
+          loadPagefind().then(function () {
+            const input = overlay.querySelector('input');
+            if (input) input.focus();
+          }).catch(function () {
+            const target = overlay.querySelector('#pagefind-search');
+            if (target && !target.dataset.devHint) {
+              target.dataset.devHint = '1';
+              target.innerHTML = '<p class="muted" style="padding:12px;">' + devHint + '</p>';
+            }
+          });
+        }
+        function closeOverlay() {
+          overlay.hidden = true;
+          document.documentElement.style.overflow = '';
+        }
+
+        opener.addEventListener('click', openOverlay);
+        closers.forEach(function (c) { c.addEventListener('click', closeOverlay); });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !overlay.hidden) closeOverlay();
+          if (
+            e.key === '/' &&
+            overlay.hidden &&
+            !/^(input|textarea|select)$/i.test(document.activeElement && document.activeElement.tagName || '')
+          ) {
+            e.preventDefault();
+            openOverlay();
+          }
+        });
+      })();
+    })();</script> <main>  <article class="panel card stack prose" data-pagefind-body data-pagefind-meta="date:2026-07-19, tags:errors, mcp, claude-code, ai-agents"> <div class="stack"> <div class="row"> <span class="pill">2026-07-19</span>  <a class="pill" href="/tag/errors/">errors</a><a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/claude-code/">claude-code</a><a class="pill" href="/tag/ai-agents/">ai-agents</a> <a class="post-edit-link" href="https://github.com/marius-bughiu/start-debugging/edit/main/site/src/content/blog/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error.md" rel="noopener" target="_blank"> <svg class="post-edit-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor"> <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path> </svg>
+Edit on GitHub
+</a> </div> <h1 class="h1">Fix: Claude Code misreads an MCP server&#39;s stderr startup message as an error</h1> <p class="muted">Claude Code logs every MCP server stderr line at [ERROR] and marks working servers as failed. If your tools still run, it is cosmetic. Here is how to confirm it and quiet the noise.</p> <div class="byline"> <span>By <span class="byline-author">Marius Bughiu</span></span> <span class="byline-sep">&middot;</span> <span>8 min read</span> <span class="byline-sep">&middot;</span> <time datetime="2026-07-19T00:00:00.000Z">2026-07-19</time> </div> </div> <aside class="adslot adslot-top" aria-label="Advertisement"><span class="adslot-label muted">Advertisement</span><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-client="ca-pub-1537458730659685" data-ad-slot="1130774528" data-ad-format="auto" data-full-width-responsive="true"></ins></aside> <p>If Claude Code prints <code>X MCP servers failed</code> at startup but your tools still work, this is almost certainly a false positive. Claude Code logs every line an MCP server writes to <code>stderr</code> at <code>[ERROR]</code> level, including normal startup banners and warnings, and then counts that server as failed. Run <code>/mcp</code>: if the server shows its tools and a tool call succeeds, nothing is actually broken. The rest of this post shows how to confirm that and, if the noise bothers you, how to silence it without breaking the stdio protocol.</p>
+<p>This is tracked as <a href="https://github.com/anthropics/claude-code/issues/17653">anthropics/claude-code#17653</a>, reproduced on Claude Code 2.1.5 and still present in current 2.1.x builds. It affects any stdio MCP server that logs to <code>stderr</code> on boot, regardless of language or SDK, because the misclassification happens in the host, not in your server.</p>
+<h2 id="the-error-in-context">The error in context</h2>
+<p>You start Claude Code, or run <code>claude mcp list</code>, and see a red failure count. In the debug log (<code>claude --debug</code>, or <code>~/.claude/logs/</code>) the offending lines look like this:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>2026-01-12T09:19:33.356Z [ERROR] MCP server "plugin:context7:context7" Server stderr: WARNING: Using default CLIENT_IP_ENCRYPTION_KEY.</span></span>
+<span class="line"><span>2026-01-12T09:19:33.431Z [ERROR] MCP server "plugin:context7:context7" Server stderr: Context7 Documentation MCP Server v2.1.0 running on stdio</span></span></code></pre>
+<p>Read the payload after <code>Server stderr:</code>. The first line is a <code>WARNING</code> about an optional key. The second is a startup banner announcing the server is up and listening on stdio. Neither is an error. Claude Code has wrapped both in an <code>[ERROR]</code> envelope and, because it saw output on <code>stderr</code> during initialization, decided the server “failed.” Meanwhile the server is running fine and its tools are registered.</p>
+<p>That is the entire bug: the <code>[ERROR]</code> prefix and the “failed” tally come from Claude Code, not from your server reporting a problem.</p>
+<aside class="adslot adslot-in-article" aria-label="Advertisement"><span class="adslot-label muted">Advertisement</span><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-client="ca-pub-1537458730659685" data-ad-slot="7504611185" data-ad-format="fluid" data-ad-layout="in-article"></ins></aside><h2 id="why-this-happens">Why this happens</h2>
+<p>The stdio transport splits the two output streams by purpose. <code>stdout</code> carries newline-delimited JSON-RPC and nothing else. <code>stderr</code> is the free-form log channel. The MCP specification is explicit about how a client should treat <code>stderr</code>. From the stdio transport section of the <a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports">2025-11-25 spec</a>:</p>
+<blockquote>
+<p>The server <strong>MAY</strong> write UTF-8 strings to its standard error (<code>stderr</code>) for any logging purposes including informational, debug, and error messages.</p>
+</blockquote>
+<p>And, one bullet down, the rule Claude Code is breaking:</p>
+<blockquote>
+<p>The client <strong>MAY</strong> capture, forward, or ignore the server’s <code>stderr</code> output and <strong>SHOULD NOT</strong> assume <code>stderr</code> output indicates error conditions.</p>
+</blockquote>
+<p>Well-behaved servers follow the spec exactly. Sending a startup banner or a config warning to <code>stderr</code> is the <em>correct</em> place to put it, precisely because <code>stdout</code> is reserved for protocol frames. If a server logged that banner to <code>stdout</code> instead, it would corrupt the JSON-RPC stream and the connection would genuinely hang, which is a different failure covered in <a href="/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/">MCP Server stdio Hang When Launched From Claude Code</a>. So the servers doing the “right” thing are the ones that trip this cosmetic alarm.</p>
+<p>Claude Code captures the <code>stderr</code> stream (useful, and allowed) but tags every line <code>[ERROR]</code> and treats any early output as a startup failure signal. The maintainers closed #17653 as not planned, with the note that it is cosmetic: the servers work despite the message. That leaves the burden on you to tell a false positive apart from a real one.</p>
+<h2 id="telling-a-false-positive-from-a-real-failure">Telling a false positive from a real failure</h2>
+<p>Before you touch any config, confirm which case you are in. A real failure and this cosmetic one produce a similar-looking banner, so verify by behavior, not by the red text.</p>
+<p>Open the MCP panel inside Claude Code:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>/mcp</span></span></code></pre>
+<p>For a false positive you will see the server listed with its tool count greater than zero. Pick a tool and actually call it. If it returns a result, the server is healthy and the “failed” count is noise.</p>
+<p>For a comparison against the failure modes that are <em>not</em> cosmetic:</p>
+<ul>
+<li>The tool count is zero and the server hangs on <code>Connecting...</code>: that is stdout pollution or a startup race, not this bug. See the <a href="/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/">stdio hang triage</a>.</li>
+<li>The log shows <code>MCP error -32000: Connection closed</code>: the process actually died before the handshake finished. See <a href="/2026/06/fix-mcp-error-32000-connection-closed-in-claude-code/">Fix: MCP error -32000: Connection closed in Claude Code</a>.</li>
+<li>Every server in your config drops at once: suspect a config parse error, covered in <a href="/2026/07/fix-all-mcp-servers-fail-to-load-after-malformed-json-in-config/">all MCP servers fail to load after one malformed-JSON syntax error</a>.</li>
+</ul>
+<p>The distinguishing question is simple: do the tools appear and run? If yes, you are in the cosmetic case and the fixes below are optional cleanup. If no, you have a real connection problem and should follow one of the posts above instead.</p>
+<h2 id="minimal-repro">Minimal repro</h2>
+<p>Here is a five-line stdio server that is 100% healthy and still triggers the <code>[ERROR]</code> line. It uses the MCP TypeScript SDK and writes one banner to <code>stderr</code> on boot, exactly as the spec permits.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="typescript"><code><span class="line"><span style="color:#6A737D">// server.ts -- MCP TypeScript SDK 1.29.0, MCP spec 2025-11-25</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> { McpServer } </span><span style="color:#F97583">from</span><span style="color:#9ECBFF"> "@modelcontextprotocol/sdk/server/mcp.js"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> { StdioServerTransport } </span><span style="color:#F97583">from</span><span style="color:#9ECBFF"> "@modelcontextprotocol/sdk/server/stdio.js"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">const</span><span style="color:#79B8FF"> server</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> McpServer</span><span style="color:#E1E4E8">({ name: </span><span style="color:#9ECBFF">"repro"</span><span style="color:#E1E4E8">, version: </span><span style="color:#9ECBFF">"1.0.0"</span><span style="color:#E1E4E8"> });</span></span>
+<span class="line"><span style="color:#E1E4E8">server.</span><span style="color:#B392F0">tool</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"ping"</span><span style="color:#E1E4E8">, {}, </span><span style="color:#F97583">async</span><span style="color:#E1E4E8"> () </span><span style="color:#F97583">=></span><span style="color:#E1E4E8"> ({ content: [{ type: </span><span style="color:#9ECBFF">"text"</span><span style="color:#E1E4E8">, text: </span><span style="color:#9ECBFF">"pong"</span><span style="color:#E1E4E8"> }] }));</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#6A737D">// Correct per spec: log to stderr, never stdout.</span></span>
+<span class="line"><span style="color:#E1E4E8">console.</span><span style="color:#B392F0">error</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"repro MCP server v1.0.0 running on stdio"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">await</span><span style="color:#E1E4E8"> server.</span><span style="color:#B392F0">connect</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">new</span><span style="color:#B392F0"> StdioServerTransport</span><span style="color:#E1E4E8">());</span></span></code></pre>
+<p>Register it in <code>.mcp.json</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "repro"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"node"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "args"</span><span style="color:#E1E4E8">: [</span><span style="color:#9ECBFF">"--experimental-strip-types"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"server.ts"</span><span style="color:#E1E4E8">]</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Start Claude Code and you get <code>1 MCP server failed</code>, with a debug line reading <code>Server stderr: repro MCP server v1.0.0 running on stdio</code>. Call the <code>ping</code> tool and it returns <code>pong</code>. The server was never broken. That single <code>console.error</code> is the whole cause.</p>
+<h2 id="fix-in-order-of-recommendation">Fix, in order of recommendation</h2>
+<h3 id="1-recognize-it-and-move-on">1. Recognize it and move on</h3>
+<p>If the tools work, the correct action is often no action. The “failed” tally is cosmetic and the servers are functioning. This is the fix that costs nothing and does not risk breaking the protocol. Note the server name from the log, confirm its tools in <code>/mcp</code>, and stop treating the red count as a blocker. The other options below only make sense if the noise is actively hiding real errors from you or cluttering a shared setup.</p>
+<h3 id="2-quiet-the-server-if-you-own-it">2. Quiet the server if you own it</h3>
+<p>For a server you control, gate the startup banner behind a debug flag so the default path emits nothing on <code>stderr</code> until something actually goes wrong.</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="typescript"><code><span class="line"><span style="color:#6A737D">// server.ts -- MCP TypeScript SDK 1.29.0</span></span>
+<span class="line"><span style="color:#6A737D">// Only announce when explicitly debugging; silent by default.</span></span>
+<span class="line"><span style="color:#F97583">if</span><span style="color:#E1E4E8"> (process.env.</span><span style="color:#79B8FF">MCP_DEBUG</span><span style="color:#F97583"> ===</span><span style="color:#9ECBFF"> "1"</span><span style="color:#E1E4E8">) {</span></span>
+<span class="line"><span style="color:#E1E4E8">  console.</span><span style="color:#B392F0">error</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"repro MCP server v1.0.0 running on stdio"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Do not “fix” this by moving the banner to <code>stdout</code>. That is the one change guaranteed to break you: <code>stdout</code> is the JSON-RPC channel, and a stray non-JSON line there corrupts the framing and produces a genuine hang. Keep all logging on <code>stderr</code> and simply emit less of it. If your server logs through a library, point that logger at <code>stderr</code> (its correct destination) and raise its default level to <code>warn</code> or <code>error</code> so informational lines never fire during a normal boot.</p>
+<h3 id="3-wrap-a-third-party-server-and-redirect-its-stderr">3. Wrap a third-party server and redirect its stderr</h3>
+<p>For an <code>npx</code>/<code>uvx</code> server you do not own, such as the Context7 example, you cannot edit its logging. Wrap the launch command so the child’s <code>stderr</code> goes to a file, leaving <code>stdout</code> (the protocol) untouched.</p>
+<p>On macOS or Linux, use a small shell wrapper:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="sh"><code><span class="line"><span style="color:#6A737D">#!/bin/sh</span></span>
+<span class="line"><span style="color:#6A737D"># mcp-context7.sh -- redirect stderr to a log file, keep stdout clean</span></span>
+<span class="line"><span style="color:#79B8FF">exec</span><span style="color:#9ECBFF"> npx</span><span style="color:#79B8FF"> -y</span><span style="color:#9ECBFF"> @upstash/context7-mcp</span><span style="color:#F97583"> 2>></span><span style="color:#9ECBFF"> "</span><span style="color:#E1E4E8">$HOME</span><span style="color:#9ECBFF">/.mcp-logs/context7.log"</span></span></code></pre>
+<p>On Windows, a <code>.cmd</code> wrapper does the same:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bat"><code><span class="line"><span style="color:#F97583">@echo</span><span style="color:#F97583"> off</span></span>
+<span class="line"><span style="color:#F97583">REM</span><span style="color:#6A737D"> mcp-context7.cmd -- stderr to a file, stdout stays as the JSON-RPC stream</span></span>
+<span class="line"><span style="color:#E1E4E8">npx -y </span><span style="color:#F97583">@</span><span style="color:#E1E4E8">upstash/context7-mcp </span><span style="color:#79B8FF">2</span><span style="color:#F97583">>></span><span style="color:#9ECBFF"> "</span><span style="color:#E1E4E8">%TEMP%</span><span style="color:#9ECBFF">\context7-mcp.log"</span></span></code></pre>
+<p>Then point the config at the wrapper:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "context7"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"/absolute/path/to/mcp-context7.sh"</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The <code>2>></code> redirect only touches file descriptor 2, so JSON-RPC on <code>stdout</code> (descriptor 1) is unaffected and tool calls work exactly as before. The tradeoff is that you now have to <code>tail</code> that log file to see genuine server errors, since Claude Code no longer sees them. Keep the file, do not send it to <code>/dev/null</code>, or you will discard the diagnostics you actually want the day the server does break.</p>
+<h3 id="4-lower-the-servers-own-log-level-via-env">4. Lower the server’s own log level via env</h3>
+<p>Many published servers expose an environment variable to reduce logging without a wrapper. Check the server’s README for something like <code>LOG_LEVEL</code>, <code>MCP_LOG_LEVEL</code>, or <code>QUIET</code>, and set it through the config <code>env</code> block:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "context7"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"npx"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "args"</span><span style="color:#E1E4E8">: [</span><span style="color:#9ECBFF">"-y"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"@upstash/context7-mcp"</span><span style="color:#E1E4E8">],</span></span>
+<span class="line"><span style="color:#79B8FF">      "env"</span><span style="color:#E1E4E8">: { </span><span style="color:#79B8FF">"LOG_LEVEL"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"error"</span><span style="color:#E1E4E8"> }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>This is cleaner than a wrapper because genuine errors still reach Claude Code, they just stop being drowned out by boot chatter. It only works if the server honors such a variable, so it is not universal, but it is the least invasive option when it applies.</p>
+<h2 id="gotchas-and-variants">Gotchas and variants</h2>
+<p><strong>Do not chase this by editing <code>stdout</code>.</strong> The single most common self-inflicted wound is deciding the banner is the problem and redirecting it to <code>stdout</code> to “hide” the error. That corrupts the protocol frame and turns a cosmetic warning into a real hang. Everything logging-related stays on <code>stderr</code>.</p>
+<p><strong>A warning during a tool call is not the same thing.</strong> This post is about <code>stderr</code> at <em>startup</em> being counted as a failed server. If a specific tool call emits a warning mid-session, that line is also tagged <code>[ERROR]</code> in the log but does not affect the failure count. Same misclassification, different blast radius, and again cosmetic if the call returns a result.</p>
+<p><strong>Long sessions used to leak memory here.</strong> A related but separate issue was Claude Code buffering MCP <code>stderr</code> unbounded, up to tens of megabytes per server over a long session. That has been fixed in recent 2.1.x releases; if you were seeing this bug alongside growing memory use, the memory half is resolved even though the <code>[ERROR]</code> labeling is not. For the memory-pressure side, see <a href="/2026/07/fix-claude-code-high-memory-usage-and-context-overflow/">Fix: Claude Code high memory usage and context overflow</a>.</p>
+<p><strong>Plugin-namespaced servers show the same thing.</strong> The reported example was <code>plugin:context7:context7</code>, a server delivered through a plugin. The namespacing in the name does not change the behavior; any stdio server behind a plugin logs to <code>stderr</code> the same way a top-level one does.</p>
+<p><strong>Other hosts are stricter, or looser.</strong> Because the spec says clients <code>SHOULD NOT</code> treat <code>stderr</code> as errors, this is a Claude Code presentation choice, not a protocol requirement. Cursor and Claude Desktop capture <code>stderr</code> too but do not headline it as a failure count, so the same server can look “failed” in Claude Code and “connected” elsewhere with no change on the server side.</p>
+<h2 id="related">Related</h2>
+<ul>
+<li><a href="/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/">Fix: MCP Server stdio Hang When Launched From Claude Code</a> covers the opposite problem: logging to <code>stdout</code> instead of <code>stderr</code> and genuinely wedging the transport.</li>
+<li><a href="/2026/06/fix-mcp-error-32000-connection-closed-in-claude-code/">Fix: MCP error -32000: Connection closed in Claude Code</a> is the triage for a server process that actually died on launch.</li>
+<li><a href="/2026/06/fix-claude-code-drops-mcp-tools-after-auto-compaction/">Fix: Claude Code Drops MCP Tools After Auto-Compaction</a> explains a different “my tools vanished” report that is not a stderr issue.</li>
+<li><a href="/2026/04/how-to-build-an-mcp-server-in-typescript-that-wraps-a-cli/">How to Build a Custom MCP Server in TypeScript That Wraps a CLI</a> shows where to route logs so you never fight the stdout/stderr split in the first place.</li>
+<li><a href="/2026/07/mcp-stdio-vs-http-vs-sse-transport-which-to-choose/">MCP stdio vs HTTP vs SSE Transport: Which Should You Choose in 2026?</a> is worth reading if the stdio log handling pushes you toward an HTTP server instead.</li>
+</ul>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://github.com/anthropics/claude-code/issues/17653">anthropics/claude-code#17653 - MCP servers incorrectly shown as ‘failed’ when stderr contains non-error output</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2025-11-25/basic/transports">Model Context Protocol specification, stdio transport, 2025-11-25</a></li>
+<li><a href="https://modelcontextprotocol.io/docs/tools/debugging">Model Context Protocol - Debugging guide</a></li>
+</ul> <div class="share-row" data-share-row> <span class="share-label">Share:</span> <a class="share-btn" href="https://x.com/intent/post?text=Fix%3A%20Claude%20Code%20misreads%20an%20MCP%20server's%20stderr%20startup%20message%20as%20an%20error&url=https%3A%2F%2Fstartdebugging.net%2F2026%2F07%2Ffix-claude-code-misreads-mcp-server-stderr-as-error%2F&via=startdebugging_" rel="noopener" target="_blank" data-share="x">X</a> <a class="share-btn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fstartdebugging.net%2F2026%2F07%2Ffix-claude-code-misreads-mcp-server-stderr-as-error%2F&t=Fix%3A%20Claude%20Code%20misreads%20an%20MCP%20server's%20stderr%20startup%20message%20as%20an%20error" rel="noopener" target="_blank" data-share="hn">Hacker News</a> <a class="share-btn" href="https://www.reddit.com/submit?url=https%3A%2F%2Fstartdebugging.net%2F2026%2F07%2Ffix-claude-code-misreads-mcp-server-stderr-as-error%2F&title=Fix%3A%20Claude%20Code%20misreads%20an%20MCP%20server's%20stderr%20startup%20message%20as%20an%20error" rel="noopener" target="_blank" data-share="reddit">Reddit</a> <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fstartdebugging.net%2F2026%2F07%2Ffix-claude-code-misreads-mcp-server-stderr-as-error%2F" rel="noopener" target="_blank" data-share="linkedin">LinkedIn</a> <button class="share-btn" type="button" data-copy-link data-copy-url="https://startdebugging.net/2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error/">Copy link</button> </div> <aside class="inline-subscribe" aria-labelledby="inline-subscribe-heading"> <h2 id="inline-subscribe-heading" class="h2 inline-subscribe-heading">
+Enjoyed this post?
+</h2> <p class="muted inline-subscribe-copy">
+Get a short weekly digest of the best new .NET, C#, MAUI, and Flutter posts.
+        One email on Monday, no spam.
+</p> <form class="inline-subscribe-form row" action="https://buttondown.com/api/emails/embed-subscribe/startdebugging" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.com/startdebugging', 'popupwindow');"> <label class="sr-only" for="inline-subscribe-2026-07-fix-claude-code-misreads-mcp-server-stderr-as-error">Email address</label> <input id="inline-subscribe-2026-07-fix-claude-code-misreads-mcp-server-stderr-as-error" class="inline-subscribe-input" type="email" name="email" placeholder="you@domain.com" required autocomplete="email"> <input type="hidden" name="tag" value="post:2026/07/fix-claude-code-misreads-mcp-server-stderr-as-error"> <button class="pill inline-subscribe-submit" type="submit">Subscribe</button> </form> <p class="muted inline-subscribe-alt">
+Or <a href="/subscribe/">read what's in the newsletter first</a>.
+</p> </aside> </article> <nav class="prev-next" aria-label="Post navigation"> <a class="prev-next-item prev-next-prev" href="/2026/07/how-to-add-a-health-check-endpoint-to-a-minimal-api-in-aspnetcore-11/" rel="prev"> <span class="prev-next-label">&lsaquo; Previous</span> <span class="prev-next-title">How to add a health check endpoint to a minimal API in ASP.NET Core 11</span> </a> <a class="prev-next-item prev-next-next" href="/2026/07/how-to-disable-riverpod-3-0-automatic-provider-retry/" rel="next"> <span class="prev-next-label">Next &rsaquo;</span> <span class="prev-next-title">How to disable Riverpod 3.0&#39;s automatic provider retry</span> </a> </nav><section class="stack related-section" aria-labelledby="related-heading"> <h2 id="related-heading" class="h2 related-heading">Related posts</h2> <div class="stack"> <article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-08-23</span> <a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/ai-agents/">ai-agents</a><a class="pill" href="/tag/claude-code/">claude-code</a> </div> <a class="post-card-title-link stack" href="/2026/08/fix-mcp-unsupported-protocol-version-2025-11-25-vs-2026-07-28/"> <div class="h2">Fix: Unsupported protocol version between an MCP client and server (2025-11-25 vs 2026-07-28)</div> <div class="muted">MCP error -32022 means your client opened at 2025-11-25 but the server only serves 2026-07-28. Make one side dual-era instead of pinning a version.</div> </a> </article><article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-07-31</span> <a class="pill" href="/tag/claude-code/">claude-code</a><a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/ai-agents/">ai-agents</a> </div> <a class="post-card-title-link stack" href="/2026/07/fix-long-mcp-tool-call-auto-backgrounded-after-two-minutes/"> <div class="h2">Fix: A Long MCP Tool Call Gets Auto-Backgrounded After Two Minutes Mid-Task</div> <div class="muted">Claude Code 2.1.212+ moves any main-conversation MCP tool call still running at two minutes into a background task. Set CLAUDE_CODE_MCP_AUTO_BACKGROUND_MS=0 to stop it, raise the threshold to move the line, or send progress notifications from the server.</div> </a> </article><article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-07-30</span> <a class="pill" href="/tag/errors/">errors</a><a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/claude-code/">claude-code</a> </div> <a class="post-card-title-link stack" href="/2026/07/fix-mcp-json-servers-never-start-because-the-workspace-is-untrusted/"> <div class="h2">Fix: .mcp.json servers never start because the workspace is marked untrusted</div> <div class="muted">Project MCP servers stuck at Pending approval are not misconfigured. Run claude interactively in the folder, accept the workspace trust dialog, then approve the servers.</div> </a> </article><article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-07-29</span> <a class="pill" href="/tag/errors/">errors</a><a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/claude-code/">claude-code</a> </div> <a class="post-card-title-link stack" href="/2026/07/fix-windows-path-in-mcp-json-turns-into-tab-newline-or-cjk-character/"> <div class="h2">Fix: a Windows path in your agent config silently turns into a tab, a newline, or a Chinese character</div> <div class="muted">Folder names starting with t, b, n, r or u make a Windows path parse cleanly as JSON and still resolve wrong. Use forward slashes or double every backslash.</div> </a> </article> </div> </section><section class="comments-section" aria-labelledby="comments-heading" data-pagefind-ignore><h2 id="comments-heading" class="h2">Comments</h2><p class="muted">
+Sign in with GitHub to comment. Reactions and replies thread back to
+<a href="https://github.com/marius-bughiu/start-debugging/discussions" rel="noopener">the comments repo</a>.
+</p><div class="giscus"></div><script src="https://giscus.app/client.js" data-repo="marius-bughiu/start-debugging" data-repo-id="R_kgDOQ3cH_A" data-category="Blog comments" data-category-id="DIC_kwDOQ3cH_M4C7sYA" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="bottom" data-theme="https://startdebugging.net/giscus.css" data-lang="en" data-loading="lazy" crossorigin="anonymous" async></script></section> <div class="row" style="margin-top: 14px;"> <a class="pill" href="/">&lt; Back</a> </div>  </main> <footer> <section class="footer-newsletter" aria-labelledby="footer-newsletter-heading"> <h2 id="footer-newsletter-heading" class="h2 footer-newsletter-heading"> Subscribe to the newsletter </h2> <p class="muted footer-newsletter-copy"> A weekly digest of the best .NET, C#, MAUI, and Flutter posts on Start Debugging. No spam, unsubscribe anytime. </p> <form class="footer-newsletter-form row" action="https://buttondown.com/api/emails/embed-subscribe/startdebugging" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.com/startdebugging', 'popupwindow');"> <label class="sr-only" for="footer-newsletter-email">Email address</label> <input id="footer-newsletter-email" class="footer-newsletter-input" type="email" name="email" placeholder="you@domain.com" required autocomplete="email"> <input type="hidden" name="tag" value="footer"> <button class="pill footer-newsletter-submit" type="submit">Subscribe</button> </form> <p class="muted footer-newsletter-alt"> Prefer RSS? <a href="https://startdebugging.net/rss.xml">Subscribe via RSS</a> instead. </p> </section> <nav class="footer-nav row"> <a href="/about/">About</a> <a href="/start-here/">Start here</a> <a href="/pillars/">Pillars</a> <a href="/tags/">Tags</a> <a href="/archive/">Archive</a> <a href="/subscribe/">Subscribe</a> <a href="https://startdebugging.net/rss.xml">RSS</a> </nav> <p class="footer-copy muted">
+&copy; 2026 Marius Bughiu. Built with Astro. </p> </footer> <script>
+      document.addEventListener("mousemove", (e) => {
+        const cards = document.querySelectorAll(".post-card");
+        for (const card of cards) {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          card.style.setProperty("--mouse-x", `${x}px`);
+          card.style.setProperty("--mouse-y", `${y}px`);
+        }
+      });
+    </script> </body> </html> <script type="module">document.querySelectorAll("button[data-copy-link]").forEach(t=>{t.addEventListener("click",async()=>{const e=t.getAttribute("data-copy-url")??window.location.href,o=t.textContent;try{await navigator.clipboard.writeText(e),t.textContent="Copied!"}catch(r){t.textContent="Copy failed",console.error(r)}setTimeout(()=>{t.textContent=o},1500)})});</script>

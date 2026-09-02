@@ -1,0 +1,159 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d44-crossvendor-mirrored-12",
+  "preset": "benchmark_results_jury",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Reach a high-confidence verdict on a measured result by mirroring the same question across two independent vendor pools and scoring the entropy of their answers.",
+    "charter": "Six Claude seats and six Codex seats answer the SAME question from the same inputs, with no cross-talk. Agreement between pools is the signal, because the two vendors fail differently: shared blind spots inside one vendor produce confident agreement that means nothing. Entropy over the twelve verdicts is scored and published, so 'high confidence' is a measured number rather than a feeling. Any pool result that is a dispatch receipt rather than a parsed artifact is REJECTED, not retried silently: a run that returns 'started in the background' has produced no verdict at all, and treating that string as an answer is how a whole fan-out once produced zero artifacts while reporting success.",
+    "risk_tier": "critical",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "both pools returned artifacts that parse against the caller's schema",
+      "no pool result is a dispatch receipt (a result containing a background-job or status-check string is a severed stream, not a verdict)",
+      "verdict entropy across the twelve seats is computed and published",
+      "any cross-pool disagreement triggered a reconciliation round before the verdict was issued"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.9,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "command_output", "min_independent_sources": 2, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "vendor_diverse", "model_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 12 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 2, "max_share_per_vendor": 0.5 },
+    "roster": [
+      { "participant_id": "claude-1", "display_name": "Claude pool 1", "model": "opus-5", "vendor": "anthropic", "expertise": ["result verification"], "role": "verifier", "authority": "voter", "context": { "partition_id": "pool-claude" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "claude-2", "display_name": "Claude pool 2", "model": "opus-5", "vendor": "anthropic", "expertise": ["measurement method"], "role": "verifier", "authority": "voter", "context": { "partition_id": "pool-claude" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "claude-3", "display_name": "Claude pool 3", "model": "opus-5", "vendor": "anthropic", "expertise": ["statistics"], "role": "statistician", "authority": "voter", "context": { "partition_id": "pool-claude" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "claude-4", "display_name": "Claude pool 4", "model": "opus-5", "vendor": "anthropic", "expertise": ["adversarial review"], "role": "critic", "authority": "voter", "context": { "partition_id": "pool-claude" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "claude-5", "display_name": "Claude pool 5", "model": "opus-5", "vendor": "anthropic", "expertise": ["reproduction"], "role": "verifier", "authority": "voter", "context": { "partition_id": "pool-claude" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "claude-6", "display_name": "Claude pool 6", "model": "opus-5", "vendor": "anthropic", "expertise": ["benchmark design"], "role": "scientist", "authority": "voter", "context": { "partition_id": "pool-claude" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "codex-1", "display_name": "Codex pool 1", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["result verification"], "role": "verifier", "authority": "voter", "context": { "partition_id": "pool-codex" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "codex-2", "display_name": "Codex pool 2", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["measurement method"], "role": "verifier", "authority": "voter", "context": { "partition_id": "pool-codex" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "codex-3", "display_name": "Codex pool 3", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["statistics"], "role": "statistician", "authority": "voter", "context": { "partition_id": "pool-codex" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "codex-4", "display_name": "Codex pool 4", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["adversarial review"], "role": "critic", "authority": "voter", "context": { "partition_id": "pool-codex" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "codex-5", "display_name": "Codex pool 5", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["sandboxed reproduction"], "role": "verifier", "authority": "voter", "context": { "partition_id": "pool-codex" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "codex-6", "display_name": "Codex pool 6", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["benchmark design"], "role": "scientist", "authority": "voter", "context": { "partition_id": "pool-codex" }, "independence": { "fresh_context": true, "sees_peers_before_first_position": false } }
+    ],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 2 },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        { "partition_id": "pool-claude", "visible_to": ["claude-1", "claude-2", "claude-3", "claude-4", "claude-5", "claude-6"], "sources": ["the measured result", "the raw inputs", "the reproduction script"] },
+        { "partition_id": "pool-codex", "visible_to": ["codex-1", "codex-2", "codex-3", "codex-4", "codex-5", "codex-6"], "sources": ["the measured result", "the raw inputs", "the reproduction script"] }
+      ]
+    },
+    "duplicate_detection": { "enabled": true, "dimensions": ["vendor", "model", "position_similarity"], "max_similarity": 0.9 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "prompt_injection_detected"], "preserve_prior_positions": true }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 2, "required_artifacts": ["benchmark_baseline", "evidence_pack"] },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      { "caucus_id": "pool-claude", "members": ["claude-1", "claude-2", "claude-3", "claude-4", "claude-5", "claude-6"], "private_rounds": 2 },
+      { "caucus_id": "pool-codex", "members": ["codex-1", "codex-2", "codex-3", "codex-4", "codex-5", "codex-6"], "private_rounds": 2 }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "mirrored-pass", "rounds": 1, "independent": true, "anonymous": true },
+      { "kind": "custom", "stage_id": "blind-reevaluation", "custom_name": "P25 blind re-evaluation: each seat re-reads the anonymised opposing verdicts and may revise once", "rounds": 1, "anonymous": true },
+      { "kind": "custom", "stage_id": "reconciliation", "custom_name": "P54 cross-vendor reconciliation: cross-pool disagreement must be resolved or declared irreducible", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "entropy-scored-verdict" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 3, "max": 3, "divergence_before_convergence": true },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "must_respond_to_prior": false },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 12, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "max", "time_minutes": 180, "turns": 40, "experiments": 12, "max_inactivity_rounds": 1 },
+  "targets": { "evidence_items": 12 },
+  "voting": {
+    "method": "supermajority",
+    "supermajority_threshold": 0.75,
+    "belief_aggregation": { "method": "trimmed_mean", "require_confidence_per_vote": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 2, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:both_pools_returned_parsed_artifacts",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "per-pool artifact gate: requires exit 0 AND a non-empty output file AND a successful schema parse, and REJECTS any result whose body matches a dispatch-receipt pattern such as a background-job notice or a status-check instruction",
+          "note": "DIAL 1 of 3. Exit code alone is NOT proof of completion; a foreground call can return a progress stream with no artifact behind it. This is an AND-gate of three signals, and the receipt-pattern rejection is the cheap regex that catches the whole fire-and-forget class."
+        },
+        {
+          "metric": "custom:verdict_entropy_scored",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "entropy over the twelve seat verdicts, published with the result",
+          "note": "DIAL 2 of 3. Publishing entropy is what makes 'high confidence' falsifiable. Low entropy WITH high cross-pool agreement is the signal; low entropy inside one pool only is a shared blind spot."
+        },
+        {
+          "metric": "consensus",
+          "op": ">=",
+          "value": 0.75,
+          "note": "DIAL 3 of 3 - the agreement bar, measured as pairwise agreement across BOTH pools. The design's entropy_threshold dial lives here and in DIAL 2's producer."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 3, "min_independent_positions": 12, "min_minutes": 45, "min_evidence_items": 12 },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 180, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": [
+      "the per-pool artifact-gate results are recorded, including any rejected dispatch receipts",
+      "the published entropy number accompanies the verdict wherever the verdict is cited"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "vote_oscillation_rounds": 2 },
+    "resolution": ["blind_re_evaluation", "run_experiment", "recruit_independent_critic", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "instant_unanimity", "collusion", "duplicate_novelty", "strategic_voting", "strategic_abstention", "evidence_free_majority", "consensus_failing_executable_tests", "prompt_injection"],
+    "fast_unanimity_response": ["blind_re_evaluation", "strongest_counterexample"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "evidence_map", "experiments", "votes_by_round", "confidence_trajectory", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "calibration_report", "decision_lineage", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["citing this verdict as settled outside the run"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d44/", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "log_score" }
+  },
+  "metadata": {
+    "title": "Cross-vendor mirrored jury (12 seats, 2x cost, entropy-scored)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: certifying a measured result that something expensive depends on, where a single-vendor verdict is not trustworthy enough. WHEN NOT TO USE: routine review - it is a deliberate 2x spend, and it cannot fix a badly-posed question: mirroring a question whose inputs are wrong gets you two confident wrong answers. Also note that mirroring costs quota on BOTH subscriptions simultaneously. The design's named dials are vendor_pools and entropy_threshold. EDITABLE DIALS: /participants/roster (the pools - making them the same vendor destroys the independence the whole preset is built on), /voting/supermajority_threshold and /stopping/expression/all_of/2/value (keep these two in sync; they are separately-enforced copies of the same bar), /budgets/time_minutes, /stopping/hard_caps. STOPPING (human form): custom:both_pools_returned_parsed_artifacts == true AND custom:verdict_entropy_scored == true AND consensus >= 0.75. source_expression absent per the collision proven by _probe_sem_rule_collision.py. PRESET-NAME CAVEAT: mapped to benchmark_results_jury because the artefact is an adjudicated measured result; cross-vendor mirroring is the MECHANISM (P54 + P25), not a domain. Set `preset` to custom if your subject is not a measured result.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1782", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:982", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:503", "_USER-PROMPTS.md:11209"],
+    "lineage": ["C-D44 deep-crossvendor-mirrored-12", "P54 cross-vendor-mirrored", "P25 blind-reevaluation"]
+  }
+}

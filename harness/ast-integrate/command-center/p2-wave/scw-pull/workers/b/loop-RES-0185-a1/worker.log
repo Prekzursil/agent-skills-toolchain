@@ -1,0 +1,20 @@
+
+===== launch 2026-08-19T18:04:39Z attempt=1 =====
+I'll start from the existing RES-0185 probe tree, read whatever return artifact is already there, and resume from that instead of rebuilding.Existing probes and return artifacts are in place. Next I’ll read the return file, the catalog row, and the measure script so we resume from the current contract, not a rebuild.The return file already claims delivered; I’ll re-run the live measure and inspect the receipt and probes before treating that as true.Receipt and per-unit manifest hashes already disagree. I’ll measure live and pull the catalog row plus probe scripts next.`python` isn’t on PATH here; I’ll switch to `python3` and locate the catalog row.The measure already prints `SUCCESS:delivered`. I’ll still re-check the receipt’s self-hash, catalog row, and schema so we don’t ship a stale green.Measure is already green; next I’ll check the catalog contract, schema, and self-hash so a pass isn’t just a stale receipt.I’ll look at G-1 and a recently delivered sibling so the pack/return match the live contract, then re-pack and remeasure.Probes are already in place. I’ll re-pack from a live rerun so the receipt, per-unit manifest, and return file all match this session.Live measure printed `SUCCESS:delivered`. I’ll write the return file with top-level `status=DELIVERED` so this session’s result is what the classifier sees.**SUCCESS:delivered** for RES-0185.
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0185` printed:
+
+`SUCCESS:delivered RES-0185 predicate=delivered state=SUCCESS probes=3 raws=5 notes=detector_control.py:0,probe1_build_map.py:0,probe2_verify_map.py:0`
+
+This session resumed the existing probe tree (did not scrap it). Live named probes re-ran exit 0; the always-multi and hash-as-source mutants stayed expected-red (exit 1). The catalog receipt is honest `state=SUCCESS`, not BLOCKED. The per-unit manifest row matches the live LF digest.
+
+| Item | Value |
+|---|---|
+| Receipt | `command-center/research/evidence-quality/RES-0185-evidence-map-coverage-holes.json` |
+| Bytes / sha256 | 65048 / `f8bb9d50e33b4fe3efdc19087ea3c3b53bef2a0a170df8fed9d5f4df618dfd61` |
+| Manifest | `command-center/p2-wave/probes/RES-0185/UNIT-ARTIFACT-MANIFEST.json` (hash match) |
+| Return | `command-center/p2-wave/probes/RES-0185/SUBAGENT-RETURN.json` (`status=DELIVERED`) |
+| Map answer | 0 of 12 SINGLE-SOURCE, 12 UNSUPPORTED (zero structured `source_lineage`) |
+| Classifier | `origin_identity`; `sha256_fetched_bytes` is integrity only |
+
+Constraints kept: no git mutate, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` was not treated as delivery.

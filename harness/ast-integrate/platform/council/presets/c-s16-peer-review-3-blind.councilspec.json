@@ -1,0 +1,200 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s16-peer-review-3-blind",
+  "preset": "scientific_peer_review",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Review an artifact with three MUTUALLY BLIND reviewers and have an editor reconcile their reports into one verdict, rejecting the round if the reviews overlap too heavily to be independent.",
+    "charter": "Classic peer review. The reviewers never see each other; the editor never reviews. The overlap ceiling is the instrument that makes blindness FALSIFIABLE rather than asserted: if three independent reviews say nearly the same thing in nearly the same words, either the artifact has exactly one defect or the reviewers were not independent, and the run must say which.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "three reviews exist and no reviewer saw another's report before submitting",
+      "pairwise comment overlap is measured and below the ceiling, or the round is re-run",
+      "the editor's verdict cites which review each conclusion came from",
+      "every finding carries a file:line anchor"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.8,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "file_line", "min_independent_sources": 3, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 25 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "expertise_ranked", "model_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "range", "min": 3, "max": 6 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_models": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "reviewer-1",
+        "display_name": "Reviewer 1 (blind)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["domain review"],
+        "role": "critic",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "effort": "high",
+        "anonymous": true,
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "reviewer-2",
+        "display_name": "Reviewer 2 (blind, different vendor)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["methodology review"],
+        "role": "critic",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "effort": "high",
+        "anonymous": true,
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "reviewer-3",
+        "display_name": "Reviewer 3 (blind, adversarial slant)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["adversarial review", "reproducibility"],
+        "role": "critic",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "effort": "high",
+        "anonymous": true,
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "editor",
+        "display_name": "Editor (reconciles; never reviews)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["editorial adjudication"],
+        "role": "judge",
+        "authority": "judge",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_recruit": true },
+        "effort": "high",
+        "context": {
+          "briefing": "You receive three reports and the overlap measurement. Reconcile; do not add a fourth review. If overlap exceeds the ceiling, order a re-run with a replaced reviewer rather than reporting a consensus."
+        }
+      }
+    ],
+    "role_templates": ["critic", "judge"],
+    "anonymity": { "mode": "double_blind", "reveal_after_round": 1 },
+    "recruitment": { "dynamic": true, "triggers": ["low_novelty", "missing_expertise"], "max_recruits": 2 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "conflict_of_interest", "hallucinated_expertise"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "exclude" },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "role_scoped",
+      "partitions": [
+        { "partition_id": "reviews", "visible_to": ["editor"], "sources": ["the three reviewer reports"] }
+      ]
+    },
+    "duplicate_detection": { "enabled": true, "dimensions": ["model", "vendor", "position_similarity"], "max_similarity": 0.6 }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 2, "required_artifacts": ["position_memo"] },
+  "topology": { "kind": "jury" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "reviews", "independent": true, "anonymous": true, "participants": ["reviewer-1", "reviewer-2", "reviewer-3"] },
+      { "kind": "custom", "custom_name": "overlap-measurement", "stage_id": "overlap", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "editorial-verdict", "participants": ["editor"] }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 3, "divergence_before_convergence": true },
+    "turn": { "max_words": 900 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "max_experiments": 2, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 25, "tokens": 140000, "tool_calls": 120, "sources": 20, "turns": 8, "max_inactivity_rounds": 1 },
+  "targets": {
+    "objections": 6,
+    "evidence_items": 12,
+    "dedup": { "enabled": true, "max_similarity": 0.6, "trivial_variant_policy": "flag_for_review" }
+  },
+  "voting": {
+    "method": "judge",
+    "abstention": { "allowed": false, "counts_toward_quorum": false },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.67,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": false, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 3,
+          "note": "Three reviews actually returned. This is the k_reviewers dial and it moves with participants.count.min."
+        },
+        {
+          "metric": "custom:reviewer_comment_overlap",
+          "op": "<",
+          "value": 0.6,
+          "value_type": "number",
+          "producer": "stage 'overlap': maximum pairwise similarity across the three reviewer reports, computed mechanically over the finding sets - not judged by a model",
+          "note": "The overlap_ceiling dial. Above it, blindness is unproven and the editor must order a re-run instead of declaring consensus."
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6
+    },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 25, "max_tokens": 140000, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": ["the artifact is revised against each accepted finding and re-reviewed by the editor"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["recruit_independent_critic", "blind_re_evaluation", "judge_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "judge" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "instant_unanimity", "collusion", "duplicate_novelty", "lost_dissent", "minority_suppression", "hallucinated_expertise", "hidden_conflict_of_interest", "prompt_injection"],
+    "fast_unanimity_response": ["blind_re_evaluation", "recruit_independent_critic"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "evidence_map", "argument_ledger", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 180 },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "C-S16 peer-review-3-blind",
+    "notes": "HUMAN-STOP: independent_positions >= 3 AND custom:reviewer_comment_overlap < 0.6 | EDITABLE-DIALS: the 3 in the independent_positions leaf together with participants.count.min (k_reviewers) . the 0.6 in the overlap leaf together with targets.dedup.max_similarity and participants.duplicate_detection.max_similarity (overlap_ceiling - three views of one number, edit in lockstep) | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | COUNT-MODE: the doc-12 index lists seats=3, counting only the reviewers, but the same row names an editor. Encoding that as count.mode=exact with exact_n=3 and a four-person roster would be rejected by SEM-004, so this preset uses count.mode=range (min 3, max 6): three blind reviewers plus the editor, with headroom for the recruitment triggers. That is a DELIBERATE deviation from the index seat count, recorded here rather than silently reconciled. | MECHANICAL-OVERLAP: the overlap producer must be an algorithm over the finding sets, not a model judgement - on this estate LLM judgement on a mechanical comparison ran 86 percent accurate with every error pointing the same, unsafe way | OUTCOME-MAP: CONSENSUS -> decision . MAJORITY_WITH_DISSENT -> decision + dissent . INSUFFICIENT_EVIDENCE and DEFER -> no_decision . CONDITIONAL_DECISION -> conditional_decision | VOTING-MAP: design editor_reconciles -> voting.method=judge with the editor holding judge authority and an information_partition that gives ONLY the editor the three reports | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11200-11225",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1373-1385"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-S16 peer-review-3-blind",
+      "protocol P45 scientific-peer-review",
+      "protocol P23 silent-start-pooling"
+    ]
+  }
+}

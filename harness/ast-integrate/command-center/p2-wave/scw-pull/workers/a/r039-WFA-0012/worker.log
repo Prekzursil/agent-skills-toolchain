@@ -1,0 +1,18 @@
+I'll start from the existing WFA-0012 probe tree and the measurement contract, then resume whatever is already built rather than rebuilding.The probe dir looks like a cloud-ok stub. Next I’ll read the measure script, the catalog unit, and any prior return so I can resume from real state.The harvest stub is all that’s on disk. I’ll pull the catalog unit, the existing receipt, and a delivered unit so I can rebuild from the real contract.The catalog target is a disjunction: cat-file or LF-normalize. I’ll check the live gate, the AuditReport contract, and any recovered probe sources before deciding SUCCESS vs park.Live `validate.py` already LF-normalizes. I’ll scan other hashing sites, then write isolated named probes against that live gate rather than the missing candidate tree.The live gate already takes the LF-normalize half of the catalog disjunction. I’ll add named probes against that gate and pack an honest SUCCESS receipt from their live output.The fixture was hashing each copy against itself, which would always pass. I’ll pin the recorded digest to the LF blob and compare both EOL copies to that.All four probes exited 0. Next I’ll pack the receipt from those live raws and validate it against the AuditReport schema.Measure printed `SUCCESS:delivered`. I’ll stamp the return file with the live hash and the exact measure line.**SUCCESS:delivered WFA-0012** `predicate=delivered state=SUCCESS probes=4 raws=5 notes=probe_a_verdict_parity.py:0,probe_b_byte_delta.py:0,probe_controls.py:0,reviewer_rerun.py:0`
+
+WFA-0012 is G-1 contract-green on this Linux worktree. Harvest `cloud ok=true` / `UNIT-COMPLETE` wrapping `state=BLOCKED` was not treated as delivery.
+
+The catalog target is a disjunction: hash the committed blob with `git cat-file -p` **or** normalize newlines before hashing. The live gate already does the second. Named probes were added beside the existing `_cloud_ok*` stub (not scrapped) and re-run against `tools/command-center/validate.py`:
+
+| Probe | Result |
+|---|---|
+| Same-gate CRLF vs LF | Both GREEN, exit 0. Raw CRLF digest differs, so the control is not vacuous. |
+| Byte-delta arithmetic | 5 hashing-surface files: CRLF−LF = LF line count. |
+| One-byte both-states | Good stays silent; mutant fires REACH-6 in both EOL modes. |
+| Independent reviewer | Live gate + seed/render/unit_manifest normalize; no `git archive`. Schema path exists. |
+
+Receipt `command-center/wfa/WFA-0012-gate-eol-portability.json` is `state=SUCCESS`, AuditReport-valid, not self-BLOCKED. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with LF sha256 `c5c6bf9b5c54d68158027d98cc7fd23dd29fc3bca6ca0ac9e3b736d1fda4d75b`.
+
+Not parked: the two prior refutes were (1) cat-file candidate not installed and (2) harvest stub with no named probes. This pass is alternative B from the cloud-ok required_fix, not a third loop on the same defect.
+
+Constraints kept: no git mutate, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Native Windows remains `NOT-CHECKED`.

@@ -1,0 +1,756 @@
+{
+ "artifacts": [
+  {
+   "bytes": 22537,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/confirmation/CNF-0025-repro-specificity.json",
+   "role": "primary",
+   "sha256": "6bce84dfb48c5c80ebb771f6d40bf7093158054eb24b883ff5635c04253090ff"
+  },
+  {
+   "bytes": 1103,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/detector-control.schema.json",
+   "role": "supporting",
+   "sha256": "bf941281e8fe5fbb47fe2e32ba0299cae93c29256daacad3f6bbd4ef584f798b"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0025-repro-specificity.json",
+   "consumer": "json.loads of catalog output_path",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c 'import json; json.load(open('command-center/confirmation/CNF-0025-repro-specificity.json'))'",
+    "exit_code": 0,
+    "fingerprint": "c720627f6d5dafc099ade19c641feb3a725606c3f447dbc1b6efd8f16c22a209",
+    "method": "file-read",
+    "raw_output": "read_ok=true bytes=22541 keys=['artifacts', 'downstream_consumers', 'evidence', 'extensions', 'manifest_registration', 'min_bytes_threshold', 'negative_controls', 'produced_by', 'report', 'residual_unknowns', 'retry', 'reviewer']",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0025/matrix.py",
+   "claim": "The 3x5 repro-by-component matrix has no empty cells; accepted repros fire only on their defective target and stay silent on three healthy components; repro_nonspecific is quarantined.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0025/matrix.py",
+     "exit_code": 0,
+     "fingerprint": "959a3be9dd504b4394f7ae7593676924dfadacdd40f6b2ea9c3ae3759bf56b7c",
+     "method": "test-run",
+     "raw_output": "repro_unquoted_apostrophe x defective-quoting role=defective exit=2 fired=True\nrepro_unquoted_apostrophe x defective-empty-gate role=defective exit=0 fired=False\nrepro_unquoted_apostrophe x healthy-alpha role=healthy exit=0 fired=False\nrepro_unquoted_apostrophe x healthy-beta role=healthy exit=0 fired=False\nrepro_unquoted_apostrophe x healthy-gamma role=healthy exit=0 fired=False\nrepro_empty_required x defective-quoting role=defective exit=0 fired=False\nrepro_empty_required x defective-empty-gate role=defective exit=2 fired=True\nrepro_empty_required x healthy-alpha role=healthy exit=0 fired=False\nrepro_empty_required x healthy-beta role=healthy exit=0 fired=False\nrepro_empty_required x healthy-gamma role=healthy exit=0 fired=False\nrepro_nonspecific x defective-quoting role=defective exit=2 fired=True\nrepro_nonspecific x defective-empty-gate role=defective exit=2 fired=True\nrepro_nonspecific x healthy-alpha role=healthy exit=2 fired=True\nrepro_nonspecific x healthy-beta role=healthy exit=2 fired=True\nrepro_nonspecific x healthy-gamma role=healthy exit=2 fired=True",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0025/probe1_matrix.py",
+     "exit_code": 0,
+     "fingerprint": "fba6b817e8d97c00added3215460bffd93b2cd7938d4d6c603939b4c0e09d8b3",
+     "method": "command",
+     "raw_output": "live matrix vs artifact (post-write)",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0025/probe2_detector_control.py",
+   "claim": "Independent DETECTOR CONTROL: accepted repros fire on the known-broken fixture, stay silent on three healthy components, and track planted/fixed copies; CNF-0023 generated scripts discriminate unfixed vs three healthy copies of fixed.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0025/probe2_detector_control.py",
+     "exit_code": 0,
+     "fingerprint": "9a71abc0e978fb8b54e7fe9fa9cc80066d907587e3186850f3cd90d8676ac624",
+     "method": "test-run",
+     "raw_output": "{\"filled_required_exit\": 0, \"fixed_quoting_exit\": 0, \"ok\": true, \"planted_apostrophe_exit\": 2, \"planted_empty_required_exit\": 2}",
+     "role": "source"
+    },
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py command-center/p2-wave/probes/CNF-0023/fixtures/unfixed",
+     "exit_code": 1,
+     "fingerprint": "bfb48663464f5974b75024228810fec060d752bae9a267b2ae5703d73635f47d",
+     "method": "command",
+     "raw_output": "{\"r_apostrophe.py\": 1, \"r_option_id.py\": 1, \"r_pin.py\": 1, \"r_sidecar.py\": 1}",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "answer": "Specificity holds for the accepted in-unit mechanised repros: each is red on its own defective fixture and green on healthy-alpha, healthy-beta, and healthy-gamma. repro_nonspecific fires on every component (including healthy) and is quarantined; no conclusion may be drawn from it. The four CNF-0023 generated scripts (r_apostrophe, r_option_id, r_sidecar, r_pin) are likewise red on the CNF-0023 unfixed fixture and green on three independent copies of the CNF-0023 fixed fixture, so those reproductions also discriminate rather than measuring the environment. CNF-0023's catalog artifact is absent on this tree; this unit invoked the generated scripts by path rather than pretending the missing upstream report exists.",
+  "catalog_completion_sentinel_satisfied": true,
+  "cnf_0023_input": {
+   "declared_path": "command-center/confirmation/CNF-0023-mechanised-repros.json",
+   "handling": "in-unit fixtures plus path-invoked CNF-0023 generated scripts against unfixed vs three copies of fixed",
+   "present": false
+  },
+  "question": "Does the reproduction discriminate? Run each repro against an unrelated, known-healthy component and require it NOT to fire. A repro that fires everywhere is measuring the environment, not the defect, and every conclusion drawn from it is void."
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0025",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0025/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "exit=2",
+   "description": "repro_unquoted_apostrophe fires on defective-quoting and is silent on healthy-alpha",
+   "fired_on_bad_state": true,
+   "good_state_output": "exit=0",
+   "id": "NC-quoting-own-target",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "exit=2",
+   "description": "repro_empty_required fires on defective-empty-gate and is silent on healthy-beta",
+   "fired_on_bad_state": true,
+   "good_state_output": "exit=0",
+   "id": "NC-empty-required-own-target",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "planted_exit=2",
+   "description": "Planting an interior apostrophe on a healthy copy makes the quoting repro fire; fixing the known-broken copy silences it",
+   "fired_on_bad_state": true,
+   "good_state_output": "fixed_exit=0",
+   "id": "NC-planted-apostrophe",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "unfixed_exit=1",
+   "description": "CNF-0023 r_apostrophe.py is red on unfixed and green on three copies of fixed",
+   "fired_on_bad_state": true,
+   "good_state_output": "healthy_exits=0,0,0",
+   "id": "NC-cnf23-apostrophe",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "gpt-5-codex",
+  "role": "detector-control-engineer",
+  "vendor": "openai"
+ },
+ "report": {
+  "accepted_repros": [
+   "repro_unquoted_apostrophe",
+   "repro_empty_required"
+  ],
+  "answer": "Specificity holds for the accepted in-unit mechanised repros: each is red on its own defective fixture and green on healthy-alpha, healthy-beta, and healthy-gamma. repro_nonspecific fires on every component (including healthy) and is quarantined; no conclusion may be drawn from it. The four CNF-0023 generated scripts (r_apostrophe, r_option_id, r_sidecar, r_pin) are likewise red on the CNF-0023 unfixed fixture and green on three independent copies of the CNF-0023 fixed fixture, so those reproductions also discriminate rather than measuring the environment. CNF-0023's catalog artifact is absent on this tree; this unit invoked the generated scripts by path rather than pretending the missing upstream report exists.",
+  "cnf0023_specificity": {
+   "all_specific": true,
+   "declared_cnf0023_artifact": "command-center/confirmation/CNF-0023-mechanised-repros.json",
+   "declared_cnf0023_present": false,
+   "rows": [
+    {
+     "fired_on_unfixed": true,
+     "healthy_exits": {
+      "healthy-alpha": 0,
+      "healthy-beta": 0,
+      "healthy-gamma": 0
+     },
+     "invoked_by_path": true,
+     "repro_id": "r_apostrophe.py",
+     "script": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+     "silent_on_three_healthy": true,
+     "unfixed_exit": 1
+    },
+    {
+     "fired_on_unfixed": true,
+     "healthy_exits": {
+      "healthy-alpha": 0,
+      "healthy-beta": 0,
+      "healthy-gamma": 0
+     },
+     "invoked_by_path": true,
+     "repro_id": "r_option_id.py",
+     "script": "command-center/p2-wave/probes/CNF-0023/generated/r_option_id.py",
+     "silent_on_three_healthy": true,
+     "unfixed_exit": 1
+    },
+    {
+     "fired_on_unfixed": true,
+     "healthy_exits": {
+      "healthy-alpha": 0,
+      "healthy-beta": 0,
+      "healthy-gamma": 0
+     },
+     "invoked_by_path": true,
+     "repro_id": "r_sidecar.py",
+     "script": "command-center/p2-wave/probes/CNF-0023/generated/r_sidecar.py",
+     "silent_on_three_healthy": true,
+     "unfixed_exit": 1
+    },
+    {
+     "fired_on_unfixed": true,
+     "healthy_exits": {
+      "healthy-alpha": 0,
+      "healthy-beta": 0,
+      "healthy-gamma": 0
+     },
+     "invoked_by_path": true,
+     "repro_id": "r_pin.py",
+     "script": "command-center/p2-wave/probes/CNF-0023/generated/r_pin.py",
+     "silent_on_three_healthy": true,
+     "unfixed_exit": 1
+    }
+   ],
+   "scripts_used": [
+    "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+    "command-center/p2-wave/probes/CNF-0023/generated/r_option_id.py",
+    "command-center/p2-wave/probes/CNF-0023/generated/r_sidecar.py",
+    "command-center/p2-wave/probes/CNF-0023/generated/r_pin.py"
+   ]
+  },
+  "control_ids": [
+   "NC-quoting-own-target",
+   "NC-empty-required-own-target",
+   "NC-planted-apostrophe",
+   "NC-cnf23-apostrophe"
+  ],
+  "detector_control": {
+   "known_broken_fired": true,
+   "known_broken_fixture": "command-center/p2-wave/probes/CNF-0025/fixtures/components/defective-quoting",
+   "known_broken_rows": [
+    {
+     "exit_code": 2,
+     "fired": true,
+     "fixture": "command-center/p2-wave/probes/CNF-0025/fixtures/components/defective-quoting",
+     "repro_id": "repro_unquoted_apostrophe"
+    },
+    {
+     "exit_code": 2,
+     "fired": true,
+     "fixture": "command-center/p2-wave/probes/CNF-0025/fixtures/components/defective-empty-gate",
+     "repro_id": "repro_empty_required"
+    }
+   ],
+   "known_healthy_silent_count": 6,
+   "mutation_controls": {
+    "filled_required_exit": 0,
+    "fixed_quoting_exit": 0,
+    "ok": true,
+    "planted_apostrophe_exit": 2,
+    "planted_empty_required_exit": 2
+   },
+   "procedure": "For each accepted repro, invoke the script by path against its known-broken fixture (must exit 2) and against three healthy components (must exit 0). A repro that exits 2 on a healthy component is quarantined. CNF-0023 generated scripts are the same test against unfixed vs three copies of fixed."
+  },
+  "kind": "detector-control",
+  "matrix": {
+   "cells": [
+    {
+     "component_id": "defective-quoting",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_unquoted_apostrophe",
+     "role": "defective",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py"
+    },
+    {
+     "component_id": "defective-empty-gate",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_unquoted_apostrophe",
+     "role": "defective",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py"
+    },
+    {
+     "component_id": "healthy-alpha",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_unquoted_apostrophe",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py"
+    },
+    {
+     "component_id": "healthy-beta",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_unquoted_apostrophe",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py"
+    },
+    {
+     "component_id": "healthy-gamma",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_unquoted_apostrophe",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py"
+    },
+    {
+     "component_id": "defective-quoting",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_empty_required",
+     "role": "defective",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py"
+    },
+    {
+     "component_id": "defective-empty-gate",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_empty_required",
+     "role": "defective",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py"
+    },
+    {
+     "component_id": "healthy-alpha",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_empty_required",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py"
+    },
+    {
+     "component_id": "healthy-beta",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_empty_required",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py"
+    },
+    {
+     "component_id": "healthy-gamma",
+     "exit_code": 0,
+     "fired": false,
+     "invoked_by_path": true,
+     "repro_id": "repro_empty_required",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py"
+    },
+    {
+     "component_id": "defective-quoting",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_nonspecific",
+     "role": "defective",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py"
+    },
+    {
+     "component_id": "defective-empty-gate",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_nonspecific",
+     "role": "defective",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py"
+    },
+    {
+     "component_id": "healthy-alpha",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_nonspecific",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py"
+    },
+    {
+     "component_id": "healthy-beta",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_nonspecific",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py"
+    },
+    {
+     "component_id": "healthy-gamma",
+     "exit_code": 2,
+     "fired": true,
+     "invoked_by_path": true,
+     "repro_id": "repro_nonspecific",
+     "role": "healthy",
+     "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py"
+    }
+   ],
+   "components": [
+    {
+     "id": "defective-quoting",
+     "role": "defective"
+    },
+    {
+     "id": "defective-empty-gate",
+     "role": "defective"
+    },
+    {
+     "id": "healthy-alpha",
+     "role": "healthy"
+    },
+    {
+     "id": "healthy-beta",
+     "role": "healthy"
+    },
+    {
+     "id": "healthy-gamma",
+     "role": "healthy"
+    }
+   ],
+   "defective_columns": [
+    "defective-quoting",
+    "defective-empty-gate"
+   ],
+   "empty_cells": 0,
+   "grid": {
+    "repro_empty_required": {
+     "defective-empty-gate": 2,
+     "defective-quoting": 0,
+     "healthy-alpha": 0,
+     "healthy-beta": 0,
+     "healthy-gamma": 0
+    },
+    "repro_nonspecific": {
+     "defective-empty-gate": 2,
+     "defective-quoting": 2,
+     "healthy-alpha": 2,
+     "healthy-beta": 2,
+     "healthy-gamma": 2
+    },
+    "repro_unquoted_apostrophe": {
+     "defective-empty-gate": 0,
+     "defective-quoting": 2,
+     "healthy-alpha": 0,
+     "healthy-beta": 0,
+     "healthy-gamma": 0
+    }
+   },
+   "healthy_columns": [
+    "healthy-alpha",
+    "healthy-beta",
+    "healthy-gamma"
+   ],
+   "repros": [
+    "repro_unquoted_apostrophe",
+    "repro_empty_required",
+    "repro_nonspecific"
+   ]
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0025/matrix.py",
+    "measured": 15,
+    "method": "path-invoked subprocess per repro x component",
+    "name": "matrix-cells"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0025/matrix.py",
+    "measured": 0,
+    "method": "len(cells) vs repros*components",
+    "name": "empty-cells"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0025/matrix.py",
+    "measured": 2,
+    "method": "red on own target and green on three healthy",
+    "name": "accepted-repros"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py",
+    "measured": 1,
+    "method": "red on any healthy component",
+    "name": "quarantined-repros"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0025/probe2_detector_control.py",
+    "measured": 6,
+    "method": "accepted repros x three healthy components",
+    "name": "known-healthy-silent-count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+    "measured": true,
+    "method": "path-invoke CNF-0023 generated scripts on unfixed vs three fixed copies",
+    "name": "cnf0023-all-specific"
+   }
+  ],
+  "quarantined": [
+   {
+    "dependent_conclusions_reopened": true,
+    "own_target": "defective-quoting",
+    "own_target_exit_code": 2,
+    "reason": "red on healthy component(s) ['healthy-alpha', 'healthy-beta', 'healthy-gamma'] (exit 2); measures environment, not the defect",
+    "red_on_healthy": [
+     "healthy-alpha",
+     "healthy-beta",
+     "healthy-gamma"
+    ],
+    "repro_id": "repro_nonspecific"
+   }
+  ],
+  "question": "Does the reproduction discriminate? Run each repro against an unrelated, known-healthy component and require it NOT to fire. A repro that fires everywhere is measuring the environment, not the defect, and every conclusion drawn from it is void."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "CNF-0023 catalog output_path is absent on this tree, so the mechanised-repro *report* was not re-read; generated scripts under probes/CNF-0023/generated/ were invoked instead.",
+   "settling_experiment": "Deliver CNF-0023's catalog artifact, then re-run this matrix against the script paths named inside that report.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Independent DETECTOR CONTROL re-run: accepted repros fire on the known-broken fixture and stay silent on three healthy components; nonspecific repro is quarantined; planted/fixed copies and CNF-0023 generated scripts are re-invoked by path.",
+  "reviewer_id": "CNF-0025-probe2-detector-control",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0025 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the full repro-by-component matrix is attached with no empty cells. Any other terminal state is FAILED:CNF-0025 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/catalog-slices/CNF-1.json:CNF-0025",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0025/probe1_matrix.py",
+   "id": "red-on-own-target-green-on-three-healthy",
+   "name": "Every accepted repro is red on its own target and green on three healthy components",
+   "output_tail": "accepted=['repro_unquoted_apostrophe', 'repro_empty_required'] healthy=['healthy-alpha', 'healthy-beta', 'healthy-gamma']",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0025/probe1_matrix.py",
+   "id": "quarantine-repro-red-on-healthy",
+   "name": "A repro red on a healthy component is quarantined",
+   "output_tail": "quarantined=['repro_nonspecific']",
+   "result": "PASS"
+  },
+  {
+   "assertions": 15,
+   "command": "python3 -B command-center/p2-wave/probes/CNF-0025/matrix.py",
+   "id": "scripts-invoked-by-path",
+   "name": "Each repro is a file invoked by path, never inlined into a shell body",
+   "output_tail": "invoked_by_path=true for every cell",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "python3 -B command-center/p2-wave/probes/CNF-0025/schema_ok.py",
+   "id": "schema-rejects-garbage",
+   "name": "detector-control schema rejects empty/unrelated documents",
+   "output_tail": "empty and garbage documents produce schema errors",
+   "result": "PASS"
+  },
+  {
+   "assertions": 16,
+   "command": "python3 -B command-center/p2-wave/probes/CNF-0025/matrix.py",
+   "id": "cnf0023-mechanised-specific",
+   "name": "CNF-0023 generated scripts are red on unfixed and green on three healthy copies of fixed",
+   "output_tail": "{\"r_apostrophe.py\": {\"unfixed\": 1, \"healthy\": {\"healthy-alpha\": 0, \"healthy-beta\": 0, \"healthy-gamma\": 0}}, \"r_option_id.py\": {\"unfixed\": 1, \"healthy\": {\"healthy-alpha\": 0, \"healthy-beta\": 0, \"healthy-gamma\": 0}}, \"r_sidecar.py\": {\"unfixed\": 1, \"healthy\": {\"healthy-alpha\": 0, \"healthy-beta\": 0, \"healthy-gamma\": 0}}, \"r_pin.py\": {\"unfixed\": 1, \"healthy\": {\"healthy-alpha\": 0, \"healthy-beta\": 0, \"healthy-gamma\": 0}}}",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:47Z",
+  "started_at": "2026-08-25T00:58:46Z"
+ },
+ "unit_id": "CNF-0025",
+ "matrix": {
+  "empty_cells": 0,
+  "grid": {
+   "repro_unquoted_apostrophe": {
+    "defective-quoting": 2,
+    "defective-empty-gate": 0,
+    "healthy-alpha": 0,
+    "healthy-beta": 0,
+    "healthy-gamma": 0
+   },
+   "repro_empty_required": {
+    "defective-quoting": 0,
+    "defective-empty-gate": 2,
+    "healthy-alpha": 0,
+    "healthy-beta": 0,
+    "healthy-gamma": 0
+   },
+   "repro_nonspecific": {
+    "defective-quoting": 2,
+    "defective-empty-gate": 2,
+    "healthy-alpha": 2,
+    "healthy-beta": 2,
+    "healthy-gamma": 2
+   }
+  },
+  "cells": [
+   {
+    "repro_id": "repro_unquoted_apostrophe",
+    "component_id": "defective-quoting",
+    "role": "defective",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_unquoted_apostrophe",
+    "component_id": "defective-empty-gate",
+    "role": "defective",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_unquoted_apostrophe",
+    "component_id": "healthy-alpha",
+    "role": "healthy",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_unquoted_apostrophe",
+    "component_id": "healthy-beta",
+    "role": "healthy",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_unquoted_apostrophe",
+    "component_id": "healthy-gamma",
+    "role": "healthy",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_unquoted_apostrophe.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_empty_required",
+    "component_id": "defective-quoting",
+    "role": "defective",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_empty_required",
+    "component_id": "defective-empty-gate",
+    "role": "defective",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_empty_required",
+    "component_id": "healthy-alpha",
+    "role": "healthy",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_empty_required",
+    "component_id": "healthy-beta",
+    "role": "healthy",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_empty_required",
+    "component_id": "healthy-gamma",
+    "role": "healthy",
+    "exit_code": 0,
+    "fired": false,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_empty_required.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_nonspecific",
+    "component_id": "defective-quoting",
+    "role": "defective",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_nonspecific",
+    "component_id": "defective-empty-gate",
+    "role": "defective",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_nonspecific",
+    "component_id": "healthy-alpha",
+    "role": "healthy",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_nonspecific",
+    "component_id": "healthy-beta",
+    "role": "healthy",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py",
+    "invoked_by_path": true
+   },
+   {
+    "repro_id": "repro_nonspecific",
+    "component_id": "healthy-gamma",
+    "role": "healthy",
+    "exit_code": 2,
+    "fired": true,
+    "script": "command-center/p2-wave/probes/CNF-0025/repros/repro_nonspecific.py",
+    "invoked_by_path": true
+   }
+  ]
+ },
+ "accepted_repros": [
+  "repro_unquoted_apostrophe",
+  "repro_empty_required"
+ ],
+ "quarantined": [
+  {
+   "repro_id": "repro_nonspecific",
+   "reason": "red on healthy component(s) ['healthy-alpha', 'healthy-beta', 'healthy-gamma'] (exit 2); measures environment, not the defect",
+   "dependent_conclusions_reopened": true,
+   "red_on_healthy": [
+    "healthy-alpha",
+    "healthy-beta",
+    "healthy-gamma"
+   ],
+   "own_target": "defective-quoting",
+   "own_target_exit_code": 2
+  }
+ ]
+}

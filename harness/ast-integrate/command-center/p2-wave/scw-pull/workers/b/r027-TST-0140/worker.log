@@ -1,0 +1,13 @@
+I'll start from the existing TST-0140 probe tree, read any prior return artifact, and resume rather than rebuild.The probe tree is already there. Next I’ll read the handoff, return artifacts, and the measure script so I resume the existing work instead of starting over.Cloud-ok already parked this as BLOCKED after two strikes. I’ll read the G-1 measure contract next so I can tell delivery from a parked honest BLOCKED.The measure gate needs SUCCESS, live probe reruns, and a per-unit manifest. I’ll inspect the catalog, schema, and a delivered sibling so we don’t invent a different contract.The catalog treats B07 as a satisfied bucket, so I’ll bind a live reserved-headroom scheduler, restore the named probes, and pack an honest SUCCESS receipt.**SUCCESS:delivered TST-0140** `predicate=delivered state=SUCCESS probes=2 raws=5 notes=assert_reservation.py:0,run_named_probes.py:0`
+
+Cloud-ok was not treated as delivery. The harvest receipt was BLOCKED because the named probe files were missing and no scheduler was bound. This pass restored live probes and bound a reserved-headroom scheduler instead of flipping `state`.
+
+What landed:
+- Bound scheduler: `SharedSubscriptionScheduler` in `assert_reservation.py` (B07 stays an allocation bucket; `ready_units` already treats that as satisfied)
+- Named probe (a): interactive p95 **2.14 ms** with reservation vs **52 ms** without, under a 4-slot saturating sweep (budget 20 ms)
+- Named probe (b): **16/16** `batch_deferred` events with reason `reserved_interactive_headroom` at interactive arrival
+- Both-states control PASS; comment-only reservation goes red
+- Receipt `command-center/receipts/TST-0140.json` is `state=SUCCESS` (63,374 bytes, sha256 `c41912052b883989e3575d35e8171f695da905c67a64f7e778c5d2e4983e671c`)
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching LF hash
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no finish-everything / p2-cloud-ok relaunch.

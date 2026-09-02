@@ -1,0 +1,31 @@
+
+===== launch 2026-08-20T09:00:03Z attempt=1 =====
+I'll start from the existing IMP-0077 probe tree, read the unit contract and any prior return artifact, then implement until the live measure reports delivered.IMP-0077 may be missing from the probe tree. I'll load the measure script, catalog row, and a nearby delivered IMP unit as the template.The probe tree is missing, so I'll pull the catalog contract and a delivered IMP unit as the pattern to implement.There's already marketplace crypto and a signature schema under `platform/marketplace`. I'll inspect those plus how compound `output_schema` is validated.The catalog unit is unimplemented. I'll add the detached signature format, verify path, catalog tests, and live probes under `tools/marketplace/` and `probes/IMP-0077/`.The naive-vs-real bypass only discriminates if the signed fixture is already canonical JSON. I'll rewrite the package fixtures that way, then run the probes.Probe 2 treated a UTF-8 BOM as a semantic JSON twin; I’ll split encoding traps from re-encodings so the naive-vs-real check stays discriminating.**SUCCESS:delivered IMP-0077.** Live measure printed:
+
+`SUCCESS:delivered IMP-0077 predicate=delivered state=SUCCESS probes=3 raws=4 notes=probe1_verify_signals.py:0,probe2_canon_confusion.py:0,run_required_tests.py:0`
+
+The unit had never been started (`probes/IMP-0077/` and the receipt were both absent). That first-run absence was treated as work to do, not a park.
+
+**What shipped**
+
+Detached signature **format + verify** at the catalog paths:
+
+- `tools/marketplace/schema/signature.schema.json` — on-registry record: algorithm, raw-payload digest, key id, signed timestamp, canonicalisation, domain
+- `tools/marketplace/signature.py` — `sign_package` / `verify_package`
+- `tools/marketplace/tests/test_signature_format.py` — catalog tests (valid, flipped byte, swapped signature, non-canonical re-encoding, unknown key id, unsigned, unsupported algorithm)
+
+Payload digest is SHA-256 of the **exact package bytes**. The record is signed over `mkt.package.v1|<json-canonical binding>`, using the existing marketplace Ed25519 and canonicaliser (`platform/marketplace/mkt`). A JSON pretty-print / key-order twin of a signed package is a different digest, so verify fails. An unsigned package is `UNSIGNED`, never valid-by-absence. An unsupported algorithm fails closed. A self-consistent public key that is not in the caller keyring is `UNKNOWN_KEY`.
+
+**Probes (re-run exit 0)**
+
+| Probe | What it showed |
+|---|---|
+| `probe1_verify_signals.py` | Valid fixture verifies; flipped byte, swapped signatures, and non-canonical twin all fail; unsigned and unknown-key controls fire |
+| `probe2_canon_confusion.py` | Independent bypass: a naive parse-then-canonical hasher **accepts** the twins; production **rejects** them |
+| `run_required_tests.py` | 10/10 catalog test nodes PASS |
+
+Receipt `command-center/receipts/IMP-0077.json` is `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `cff87eb8842d91355008b8ff5ccfb7d62845a1d7873c71280a4c0c1e6e94a780`.
+
+**Honesty / scope**
+
+IMP-0075 is not delivered on this tree, so verify uses an in-process test keyring, not a published publisher registry. Trust policy is IMP-0078 and was not built. No estate keys were created or rotated. No git add/commit/push/stash/checkout/rebase. `unit_manifest.py --write` was not run. The global catalog manifest was not written.

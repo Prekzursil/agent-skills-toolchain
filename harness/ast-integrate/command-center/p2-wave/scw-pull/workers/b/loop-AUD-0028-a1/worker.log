@@ -1,0 +1,29 @@
+
+===== launch 2026-08-19T18:05:09Z attempt=1 =====
+I'll start from the existing AUD-0028 probe tree, read any prior return, and resume from what's already built rather than starting over.The probe tree is already populated. Next I’ll read the prior return, the catalog contract, and the measure script so I know what still fails.A prior return already claims DELIVERED; I’ll re-run the measure script and inspect the live receipt so I can tell whether that claim still holds.I’ll re-run the live probes and the delivery measure in parallel, and read the probe scripts so a hash or rerun failure isn’t a surprise.`python` is missing on this host, so I’ll switch to `python3` and confirm the interpreter before re-running the measure.Measure already printed `SUCCESS:delivered`. I’ll verify hashes and live probe results so the written artifacts stay honest.Inner `artifacts[].sha256` cannot equal the file digest (self-hash). I’ll re-run the named probes, then pack so the receipt matches the live census.I'll correct the dishonest reviewer note in the packer, then re-run the live named probes and pack so the receipt matches this host.Probes and pack are green. Next I’ll confirm the per-unit manifest hash and re-run the delivery measure.Measure passed, but the receipt is one census behind the live sidecars. I’ll re-pack from the current probe results, then measure again.**SUCCESS:delivered** AUD-0028.
+
+G-1 is contract-green for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not rebuilt.
+
+Live named probes all exited 0:
+
+| Probe | What ran | Result |
+| --- | --- | --- |
+| Probe 1 | `Get-Command` in PowerShell 7.6.5 | 20/20 rows, present=10 |
+| Probe 2 | `command -v` in GNU bash | 20/20 rows, present=9, `shell_kind=gnu-bash-linux` |
+| Control | both-states path detector | silent on known-good, red on known-bad |
+
+Honest finding: bash resolves to `/usr/bin/bash` in both shells (`live_paths_different=false`). Dual-shell is still proven: distinct processes (`/snap/bin/pwsh` vs `/usr/bin/bash`) and a real path-string split on `pwsh` (`/snap/powershell/397/opt/powershell/pwsh` vs `/snap/bin/pwsh`). Receipt `state=SUCCESS`, not BLOCKED. Git-for-Windows `bash.exe` / Wine was not retried.
+
+Per-unit manifest row:
+
+- path: `command-center/audit/AUD-0028-external-cli-tool-census.json`
+- bytes: 32672
+- sha256: `7fd0e76670740904e1232ab41e860348800da3005cc804a4f90ef209037d646d` (matches live LF digest)
+
+Measure line:
+
+```
+SUCCESS:delivered AUD-0028 predicate=delivered state=SUCCESS probes=4 raws=11 notes=_list_packet.py:0,census.py:0,command_v_probe.py:0,get_command_probe.py:0
+```
+
+Constraints kept: no git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` was not treated as delivery.

@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0077/research-claim-record.schema.json",
+  "title": "RES-0077 LLM-as-judge bias catalogue (local stand-in; declared command-center/schema/research-claim-record.schema.json is absent on this worktree)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "grading_rule",
+    "bias_by_correction_table",
+    "mechanisms",
+    "corrections",
+    "evidence",
+    "tests",
+    "reviewer",
+    "artifacts",
+    "min_bytes_threshold"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "RES-0077" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "minLength": 16 },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "grading_rule": {
+      "type": "object",
+      "required": ["stated_before_grades", "text", "allowed_grades"],
+      "properties": {
+        "stated_before_grades": { "type": "boolean", "const": true },
+        "text": { "type": "string", "minLength": 80 },
+        "allowed_grades": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "string",
+            "enum": ["measured-effective", "proposed-only", "refuted"]
+          }
+        }
+      }
+    },
+    "bias_by_correction_table": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "bias",
+          "correction",
+          "effect_size",
+          "baseline",
+          "grade",
+          "source",
+          "locator"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "bias": {
+            "type": "string",
+            "enum": ["position", "verbosity", "self-preference", "style"]
+          },
+          "correction": { "type": "string", "minLength": 8 },
+          "effect_size": { "type": "string", "minLength": 8 },
+          "baseline": { "type": "string", "minLength": 8 },
+          "correction_effect_size": { "type": ["string", "null"] },
+          "grade": {
+            "type": "string",
+            "enum": ["measured-effective", "proposed-only", "refuted"]
+          },
+          "source": { "type": "string", "minLength": 8 },
+          "locator": { "type": "string", "minLength": 3 },
+          "evidence_tier": {
+            "type": "string",
+            "enum": ["E1", "E2", "E3", "E4"]
+          },
+          "widely_cited": { "type": "boolean" }
+        }
+      }
+    },
+    "mechanisms": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "canonical_mechanism",
+          "bias",
+          "effect_size",
+          "baseline",
+          "source",
+          "locator",
+          "evidence_tier",
+          "promotable"
+        ]
+      }
+    },
+    "corrections": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "grade"]
+      }
+    },
+    "evidence": { "type": "array", "minItems": 4 },
+    "tests": { "type": "array", "minItems": 2 },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "independent",
+        "partitioned",
+        "reviewers",
+        "verdict"
+      ]
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"]
+      }
+    },
+    "min_bytes_threshold": { "type": "integer", "minimum": 256 }
+  }
+}

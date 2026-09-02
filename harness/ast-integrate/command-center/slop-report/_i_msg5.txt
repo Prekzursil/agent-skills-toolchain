@@ -1,0 +1,25 @@
+fix(slop): place the example markers on the SAME LINE -- I made the same mistake twice more
+
+The previous commit added the escape marker and then failed to use it correctly, twice.
+Running the gate again returned rc 1 with TWO violations where there had been one:
+
+  [NEW] SLOP-INTEGRATE-R1.md:85  -> scripts/render_docx.py
+  [NEW] SLOP-INTEGRATE-R1.md:237 -> scripts/render_docx.py
+
+Cause 1: markdown wrapping. The marker for the sec 2.2 example landed on line 86 while the
+command it excused was on line 85. The rule is same-line, deliberately, so the marker did
+nothing -- `example-marked 0` in --report said so plainly and I had to read it rather than
+skim it.
+
+Cause 2: I reproduced the literal a second time in the very paragraph documenting the first
+occurrence (sec 4.4 line 237), and did not mark it. Then, fixing that, I placed the new
+marker on the following line and reproduced cause 1 as well.
+
+Four occurrences of one class in one lane: the census outputs that refuted the original gate
+design, the round-1 hardcoded sentinel, the sec 2.2 example, and the sec 4.4 paragraph about
+the sec 2.2 example. Knowing about the trap does not help. Only running the instrument and
+reading its output does -- `example-marked 0` was printed both times.
+
+Both lines now carry the marker on the same line as the command. Verified per-line before
+committing rather than after: every `python <path>` occurrence in the document is either
+MARKED or resolves as tracked.

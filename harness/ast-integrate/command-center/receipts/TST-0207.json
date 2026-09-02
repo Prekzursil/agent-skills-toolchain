@@ -1,0 +1,297 @@
+{
+  "artifacts": [
+    {
+      "bytes": 18350,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/TST-0207.json",
+      "role": "primary",
+      "sha256": "ff9ac3b08d9deddd7c9fc1544f1f103c86e5f774503e9f89244f785ba33a53b3"
+    },
+    {
+      "bytes": 10746,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/plugin/pack.py",
+      "role": "supporting",
+      "sha256": "9bd3c6d19afa7f1fc13b18ac9adf6882628304f9c4a92beb681b47da376d9eb2"
+    },
+    {
+      "bytes": 1693,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/plugin/schema/payload-allowlist.schema.json",
+      "role": "supporting",
+      "sha256": "633637d7755049625b46e2a620dea90d63df099728b4303784de18390a4a4fab"
+    },
+    {
+      "bytes": 1953,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0207/staging.py",
+      "role": "supporting",
+      "sha256": "21acb3477f8f6d63b1c86bcc418855e05cbef04574c4c220a4b86178437f90a3"
+    },
+    {
+      "bytes": 4808,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0207/probe1_planted_git_and_junk.py",
+      "role": "supporting",
+      "sha256": "6ed76327a2899eae5f50772ff1fc00e2201365602f90aff06334f306337bc464"
+    },
+    {
+      "bytes": 4540,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0207/probe2_members_and_ceiling.py",
+      "role": "supporting",
+      "sha256": "e415ac8889295a465d628c3239fe14e3b02eab3956d32a544cb3372afcdc6e30"
+    },
+    {
+      "bytes": 1791,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0207/consume_receipt.py",
+      "role": "supporting",
+      "sha256": "1511486c3fa509e316c2ec7b8d97015913135d230b6257779ae82ea41406cf95"
+    }
+  ],
+  "defects": [
+    {
+      "id": "TST0207-D1-PACKER-ABSENT-ON-RESUME",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "tools/plugin/pack.py was absent on resume; restored the allowlist packer with size_ceiling_bytes fail-closed and denylist refusal, then re-ran both named probes to exit 0."
+    },
+    {
+      "id": "TST0207-D2-RECEIPT-ABSENT-ON-RESUME",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "command-center/receipts/TST-0207.json was missing; this emit writes the catalog output_path plus per-unit manifest."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/TST-0207.json",
+      "consumer": "command-center/p2-wave/probes/TST-0207/consume_receipt.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/consume_receipt.py",
+        "exit_code": 0,
+        "fingerprint": "6b21de9366e0a1d0fe2c3ae11adf4ea3a652796ead97d1919500396f0120d35c",
+        "method": "command",
+        "raw_output": "consumer=command-center/p2-wave/probes/TST-0207/consume_receipt.py path=command-center/receipts/TST-0207.json bytes=18165 state=SUCCESS sentinel_present=true kind=security_report\nSUCCESS:TST-0207-consume",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0207/probe1.raw.txt",
+      "claim": "tools/plugin/pack.py is allowlist-only: a denylist config is refused before any walk; planting .git/HEAD, .git/config and a 200MiB junk.bin in a staging tree fails the build, names every extra path, and writes no archive. A denylist mutant would drop .git and still ship junk.bin.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/probe1_planted_git_and_junk.py",
+          "exit_code": 0,
+          "fingerprint": "dbd0ac94afa7d6fc5be295c238072ddb67ce96a596804e34767f992057ddc92e",
+          "method": "command",
+          "raw_output": "{\n  \"allowlist_does_not_match_junk\": true,\n  \"clean\": {\n    \"archive_path\": \"/tmp/tst0207-p1-3n4a0jhs/clean.zip\",\n    \"ceiling_exceeded\": false,\n    \"extra_paths\": [],\n    \"members\": [\n      \"README.md\",\n      \"plugin.json\",\n      \"src/app.py\"\n    ],\n    \"ok\": true,\n    \"policy\": \"allowlist\",\n    \"reasons\": [],\n    \"size_ceiling_bytes\": 1048576,\n    \"uncompressed_bytes\": 97\n  },\n  \"clean_archive_present\": true,\n  \"denylist_config_refused\": true,\n  \"denylist_mutant_would_drop_git\": true,\n  \"denylist_mutant_would_select_junk\": true,\n  \"dirty\": {\n    \"archive_path\": null,\n    \"ceiling_exceeded\": false,\n    \"extra_paths\": [\n      {\n        \"bytes\": 21,\n        \"path\": \".git/HEAD\"\n      },\n      {\n        \"bytes\": 36,\n        \"path\": \".git/config\"\n      },\n      {\n        \"bytes\": 209715200,\n        \"path\": \"junk.bin\"\n      }\n    ],\n    \"members\": [\n      \"README.md\",\n      \"plugin.json\",\n      \"src/app.py\"\n    ],\n    \"ok\": false,\n    \"policy\": \"allowlist\",\n    \"reasons\": [\n      \"non-allowlisted paths in source tree: .git/HEAD, .git/config, junk.bin\",\n      \"source tree contains file(s) at or above 200MiB: junk.bin=209715200\"\n    ],\n    \"size_ceiling_bytes\": 1048576,\n    \"uncompressed_bytes\": 97\n  },\n  \"dirty_archive_absent\": true,\n  \"git_paths_named\": true,\n  \"junk_bytes\": 209715200,\n  \"junk_named\": true,\n  \"pass\": true,\n  \"policy\": \"allowlist\",\n  \"probe\": \"probe1-planted-git-and-junk\",\n  \"unit_id\": \"TST-0207\"\n}\nclean=PASS dirty=FAIL git_named=1 junk_named=1 junk_bytes=209715200 denylist_would_ship_junk=1\nSUCCESS:TST-0207-probe1 planted .git and 200MiB junk fail allowlist pack",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/probe2_members_and_ceiling.py",
+          "exit_code": 0,
+          "fingerprint": "8d799b0ce3bec7595ffe8850958baecf7bce012d30131db1c55836458abc3c21",
+          "method": "byte-compare",
+          "raw_output": "{\n  \"clean_under_ceiling\": true,\n  \"independent_allowlist_expansion\": [\n    \"README.md\",\n    \"plugin.json\",\n    \"src/app.py\"\n  ],\n  \"independent_uncompressed_bytes\": 97,\n  \"independent_zip_members\": [\n    \"README.md\",\n    \"plugin.json\",\n    \"src/app.py\"\n  ],\n  \"members_agree\": true,\n  \"oversize_ceiling_exceeded\": true,\n  \"oversize_fails\": true,\n  \"oversize_reasons\": [\n    \"uncompressed payload 1048737 exceeds size_ceiling_bytes 1048576\"\n  ],\n  \"oversize_uncompressed_bytes\": 1048737,\n  \"packer_member_list_not_used_as_oracle\": true,\n  \"pass\": true,\n  \"probe\": \"probe2-members-and-ceiling\",\n  \"size_ceiling_bytes\": 1048576,\n  \"unbounded_glob_refused\": true,\n  \"unit_id\": \"TST-0207\"\n}\nmembers=['README.md', 'plugin.json', 'src/app.py'] bytes=97 ceiling=1048576 oversize=FAIL\nSUCCESS:TST-0207-probe2 independent zip listing matches allowlist; ceiling fails",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0207/probe2.raw.txt",
+      "claim": "Independent zipfile member listing of a clean pack agrees file-for-file with an independent allowlist expansion (README.md, plugin.json, src/app.py; 97 uncompressed bytes). An allowlisted payload.bin over size_ceiling_bytes 1048576 fails the build (1048737 bytes) and writes no archive. Unbounded glob ** is refused.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/probe2_members_and_ceiling.py",
+          "exit_code": 0,
+          "fingerprint": "8d799b0ce3bec7595ffe8850958baecf7bce012d30131db1c55836458abc3c21",
+          "method": "byte-compare",
+          "raw_output": "{\n  \"clean_under_ceiling\": true,\n  \"independent_allowlist_expansion\": [\n    \"README.md\",\n    \"plugin.json\",\n    \"src/app.py\"\n  ],\n  \"independent_uncompressed_bytes\": 97,\n  \"independent_zip_members\": [\n    \"README.md\",\n    \"plugin.json\",\n    \"src/app.py\"\n  ],\n  \"members_agree\": true,\n  \"oversize_ceiling_exceeded\": true,\n  \"oversize_fails\": true,\n  \"oversize_reasons\": [\n    \"uncompressed payload 1048737 exceeds size_ceiling_bytes 1048576\"\n  ],\n  \"oversize_uncompressed_bytes\": 1048737,\n  \"packer_member_list_not_used_as_oracle\": true,\n  \"pass\": true,\n  \"probe\": \"probe2-members-and-ceiling\",\n  \"size_ceiling_bytes\": 1048576,\n  \"unbounded_glob_refused\": true,\n  \"unit_id\": \"TST-0207\"\n}\nmembers=['README.md', 'plugin.json', 'src/app.py'] bytes=97 ceiling=1048576 oversize=FAIL\nSUCCESS:TST-0207-probe2 independent zip listing matches allowlist; ceiling fails",
+          "role": "source"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/probe1_planted_git_and_junk.py",
+          "exit_code": 0,
+          "fingerprint": "dbd0ac94afa7d6fc5be295c238072ddb67ce96a596804e34767f992057ddc92e",
+          "method": "command",
+          "raw_output": "{\n  \"allowlist_does_not_match_junk\": true,\n  \"clean\": {\n    \"archive_path\": \"/tmp/tst0207-p1-3n4a0jhs/clean.zip\",\n    \"ceiling_exceeded\": false,\n    \"extra_paths\": [],\n    \"members\": [\n      \"README.md\",\n      \"plugin.json\",\n      \"src/app.py\"\n    ],\n    \"ok\": true,\n    \"policy\": \"allowlist\",\n    \"reasons\": [],\n    \"size_ceiling_bytes\": 1048576,\n    \"uncompressed_bytes\": 97\n  },\n  \"clean_archive_present\": true,\n  \"denylist_config_refused\": true,\n  \"denylist_mutant_would_drop_git\": true,\n  \"denylist_mutant_would_select_junk\": true,\n  \"dirty\": {\n    \"archive_path\": null,\n    \"ceiling_exceeded\": false,\n    \"extra_paths\": [\n      {\n        \"bytes\": 21,\n        \"path\": \".git/HEAD\"\n      },\n      {\n        \"bytes\": 36,\n        \"path\": \".git/config\"\n      },\n      {\n        \"bytes\": 209715200,\n        \"path\": \"junk.bin\"\n      }\n    ],\n    \"members\": [\n      \"README.md\",\n      \"plugin.json\",\n      \"src/app.py\"\n    ],\n    \"ok\": false,\n    \"policy\": \"allowlist\",\n    \"reasons\": [\n      \"non-allowlisted paths in source tree: .git/HEAD, .git/config, junk.bin\",\n      \"source tree contains file(s) at or above 200MiB: junk.bin=209715200\"\n    ],\n    \"size_ceiling_bytes\": 1048576,\n    \"uncompressed_bytes\": 97\n  },\n  \"dirty_archive_absent\": true,\n  \"git_paths_named\": true,\n  \"junk_bytes\": 209715200,\n  \"junk_named\": true,\n  \"pass\": true,\n  \"policy\": \"allowlist\",\n  \"probe\": \"probe1-planted-git-and-junk\",\n  \"unit_id\": \"TST-0207\"\n}\nclean=PASS dirty=FAIL git_named=1 junk_named=1 junk_bytes=209715200 denylist_would_ship_junk=1\nSUCCESS:TST-0207-probe1 planted .git and 200MiB junk fail allowlist pack",
+          "role": "verifier"
+        }
+      ],
+      "unverified": false,
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok_is_not_delivery": true,
+    "g1_per_unit_manifest": true,
+    "notes": "G-1 TST-0207: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:TST-0207",
+    "output_schema": "command-center/schema/receipt.schema.json#/$defs/security_report",
+    "packer": "tools/plugin/pack.py",
+    "question_or_target": "Can `.git`, caches, logs, transcripts or unrelated gigabytes enter the distributable? PASS requires an ALLOWLIST-based packer (a denylist is a FAIL by construction) plus a package size ceiling that fails the build.",
+    "stage": "p2-deliver",
+    "title": "The packer uses an allowlist and a size ceiling, so `.git` and caches cannot ship"
+  },
+  "manifest_registration": {
+    "entry_id": "TST-0207",
+    "manifest_path": "command-center/p2-wave/probes/TST-0207/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T01:31:57Z"
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "dirty.ok=false extras=.git/HEAD,.git/config,junk.bin junk.bin=209715200 dirty_archive_absent=true",
+      "description": "Plant .git and a sparse 200MiB junk.bin beside an allowlisted fixture; the allowlist packer must fail and name both. The same allowlist must pack the clean tree.",
+      "fired_on_bad_state": true,
+      "good_state_output": "clean.ok=true members=README.md,plugin.json,src/app.py uncompressed_bytes=97 clean_archive_present=true",
+      "id": "planted-git-and-200mib-junk",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "denylist_mutant_would_select_junk=true; PackError denylist",
+      "description": "A denylist of .git/** and *.log would select junk.bin (FAIL by construction). pack() refuses mode=denylist before any walk.",
+      "fired_on_bad_state": true,
+      "good_state_output": "policy=allowlist denylist_config_refused=true",
+      "id": "denylist-mutant-ships-junk",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "oversize_fails=true oversize_uncompressed_bytes=1048737 oversize_ceiling_exceeded=true",
+      "description": "Allowlisted payload.bin of ceiling+64 bytes must fail size_ceiling_bytes and emit no archive. Clean fixture of 97 bytes packs under the 1MiB ceiling.",
+      "fired_on_bad_state": true,
+      "good_state_output": "clean_under_ceiling=true independent_uncompressed_bytes=97",
+      "id": "oversize-allowlisted-payload-ceiling",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "unbounded_glob_refused=true PackError",
+      "description": "Widen globs to **; packer must refuse (not an allowlist).",
+      "fired_on_bad_state": true,
+      "good_state_output": "FIXTURE_ALLOWLIST globs accepted; clean pack ok",
+      "id": "unbounded-glob-starstar",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-worktree",
+    "model": "grok",
+    "role": "security-tester",
+    "vendor": "xai"
+  },
+  "profile": "security-report",
+  "report": {
+    "findings": [
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0207/probe1.raw.txt",
+        "credential_redacted": true,
+        "exploit_proven": false,
+        "id": "TST0207-F1-ALLOWLIST-NOT-DENYLIST",
+        "severity": "INFO",
+        "summary": "Packer refuses denylist mode; extras including .git and 200MiB junk.bin fail the build by name."
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0207/probe2.raw.txt",
+        "credential_redacted": true,
+        "exploit_proven": false,
+        "id": "TST0207-F2-SIZE-CEILING",
+        "severity": "INFO",
+        "summary": "Uncompressed payload above size_ceiling_bytes fails the build; independent zip listing matches the allowlist."
+      }
+    ],
+    "kind": "security_report",
+    "scanners": [
+      {
+        "installed": true,
+        "name": "deny-by-default glob allowlist",
+        "version": "1"
+      },
+      {
+        "installed": true,
+        "name": "uncompressed payload size ceiling",
+        "version": "1"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Catalog reviewer_requirement names a cross-vendor Codex security reviewer plus a fresh-context correctness reviewer; those two human/process reviewers were not dispatched on this G-1 pass.",
+      "settling_experiment": "Dispatch those reviewers against probe1.raw.txt and probe2.raw.txt and require both to reproduce the both-states controls.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Global python tools/command-center/unit_manifest.py --write was not run (hard constraint). Per-unit UNIT-ARTIFACT-MANIFEST.json is the G-1 registration target.",
+      "settling_experiment": "Authorized C11 repair of sibling first-red, then global --check until SUCCESS:unit-manifest without rewriting this unit's per-unit row.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-25T01:31:57Z"
+      }
+    ],
+    "count": 0,
+    "policy": "no automatic retry: a failure here is a finding, not a transient; re-run only after a named change to the harness or the fixture"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 enumerates archive members with zipfile and expands the allowlist with a second walk, not pack.classify_tree. Catalog asked for a cross-vendor Codex reviewer plus a correctness reviewer; those processes were not dispatched. Probe 2 is the independent mechanical check. SUCCESS:TST-0207",
+    "reviewed_at": "2026-08-25T01:31:57Z",
+    "reviewer_id": "TST-0207-probe2-independent-zipfile-census",
+    "vendor": "openai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0207",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=TST-0207] question_or_target + tests_required + evidence_requirement",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 8,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/probe1_planted_git_and_junk.py",
+      "id": "detector-planted-git-and-200mb-junk",
+      "name": "detector control: add a 200 MB junk file and a .git directory to the source tree and confirm the build fails",
+      "output_tail": "clean=PASS dirty=FAIL git_named=1 junk_named=1 junk_bytes=209715200 denylist_would_ship_junk=1",
+      "result": "PASS"
+    },
+    {
+      "assertions": 6,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0207/probe2_members_and_ceiling.py",
+      "id": "independent-members-and-size-ceiling",
+      "name": "package member list vs allowlist and packaged size vs declared ceiling; oversize allowlisted payload fails",
+      "output_tail": "members=['README.md', 'plugin.json', 'src/app.py'] bytes=97 ceiling=1048576 oversize=FAIL",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:31:57Z",
+    "started_at": "2026-08-25T01:31:57Z"
+  },
+  "unit_id": "TST-0207"
+}

@@ -1,0 +1,34 @@
+# Recreate the openmm-md conda environment (conda-forge, win-64 with the CUDA platform).
+#
+#   micromamba create -y -p D:/micromamba/envs/openmm-md -f environment.yml
+#   D:/micromamba/envs/openmm-md/python.exe -m openmm.testInstallation   # expect a CUDA platform
+#
+# IMPORTANT (Windows CUDA):
+#   * The conda-forge `openmm` win-64 package DOES ship the CUDA platform, but the solver
+#     only picks the CUDA build when the `__cuda` virtual package is detected (an NVIDIA
+#     driver must be present at install time). If installing on a box without a driver,
+#     set  CONDA_OVERRIDE_CUDA=12.6  (or your target) to force a CUDA build.
+#   * There is NO AmberTools on native Windows (no conda-forge win-64 build), so this env
+#     deliberately uses `openff-toolkit-base` (NOT `openff-toolkit`, which hard-requires
+#     AmberTools) and installs `openmmforcefields` via pip (its conda pkg also requires
+#     AmberTools). Consequence: no GAFF / antechamber / sqm AM1-BCC / MMPBSA.py here.
+#   * The pip `openmm` wheel does NOT include CUDA on Windows -- conda-forge is required.
+name: openmm-md
+channels:
+  - conda-forge
+dependencies:
+  - python=3.11
+  - pip
+  - openmm            # CUDA build on conda-forge win-64
+  - openff-toolkit-base   # AmberTools-free OpenFF toolkit
+  - openff-interchange    # OpenFF -> OpenMM System conversion (REQUIRED for SMIRNOFF ligands);
+                          #   also pulls openff-nagl(+models) -> GNN AM1-BCC-surrogate charges
+  - rdkit             # OpenFF cheminformatics backend + Gasteiger charges
+  - lxml              # openmmforcefields needs it to write ligand residue templates
+  - mdtraj
+  - pdbfixer
+  - numpy
+  - scipy
+  - pip:
+      - openmmforcefields   # SMIRNOFF/GAFF template generators (pip: no AmberTools hard-dep)
+      - "mcp[cli]"

@@ -1,0 +1,83 @@
+{
+ "ids": [
+  "bp-salvage-orphan-hook-pre-tool",
+  "bp-salvage-orphan-not-worth-stub",
+  "bp-salvage-orphan-reject-quorum"
+ ],
+ "kind": "salvage-target-blueprints",
+ "namespace": "blueprint",
+ "note": "Each salvaged mechanism has stages; archive stubs are still blueprints.",
+ "records": [
+  {
+   "id": "bp-salvage-orphan-hook-pre-tool",
+   "licence_class": "estate-internal",
+   "mechanism_id": "orphan.hook-pre-tool",
+   "name": "salvage:orphan.hook-pre-tool",
+   "namespace": "blueprint",
+   "role": "reuse-target",
+   "source_anchors": [
+    "retire-pre-tool.md:3"
+   ],
+   "stages": [
+    {
+     "does": "run the named hook before every tool invocation; abort the call on deny",
+     "id": "pre-tool-hook",
+     "kind": "gate",
+     "mechanism": "orphan.hook-pre-tool"
+    },
+    {
+     "does": "invoke the tool only if the hook did not abort",
+     "id": "tool-invoke",
+     "kind": "action",
+     "mechanism": "orphan.hook-pre-tool"
+    }
+   ]
+  },
+  {
+   "id": "bp-salvage-orphan-not-worth-stub",
+   "licence_class": "estate-internal",
+   "mechanism_id": "orphan.not-worth.stub",
+   "name": "salvage:orphan.not-worth.stub",
+   "namespace": "blueprint",
+   "role": "preservation-archive",
+   "source_anchors": [
+    "retire-stub.md:3"
+   ],
+   "stages": [
+    {
+     "does": "preserve the deprecated alias in the vocabulary so a RETIRE of its only candidate cannot delete the name; do not schedule this as a live stage",
+     "id": "archive-name",
+     "kind": "archive",
+     "mechanism": "orphan.not-worth.stub"
+    }
+   ]
+  },
+  {
+   "id": "bp-salvage-orphan-reject-quorum",
+   "licence_class": "estate-internal",
+   "mechanism_id": "orphan.reject-quorum",
+   "name": "salvage:orphan.reject-quorum",
+   "namespace": "blueprint",
+   "role": "reuse-target",
+   "source_anchors": [
+    "reject-quorum.md:3"
+   ],
+   "stages": [
+    {
+     "does": "require two distinct reviewer PASS records; refuse author self-ack",
+     "id": "collect-review-votes",
+     "kind": "gate",
+     "mechanism": "orphan.reject-quorum"
+    },
+    {
+     "does": "run merge only after quorum PASS",
+     "id": "merge",
+     "kind": "action",
+     "mechanism": "orphan.reject-quorum"
+    }
+   ]
+  }
+ ],
+ "sentinel": "SUCCESS:WFA-0064",
+ "unit_id": "WFA-0064"
+}

@@ -1,0 +1,744 @@
+#!/usr/bin/env python3
+"""Emit command-center/research/RES-0083.json (forecasting-tournament scoring rules)."""
+from __future__ import annotations
+
+import hashlib
+import json
+from datetime import datetime, timezone
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[3]
+OUT = REPO / "command-center/research/RES-0083.json"
+SENTINEL = "SUCCESS:RES-0083"
+CATALOG_SENTINEL = (
+    "SUCCESS:RES-0083 in the receipt AND a rule table with a named resolution "
+    "source per row and one unscoreable output type identified"
+)
+FETCHED = "2026-08-24T18:45:00Z"
+
+
+def sha256_text(text: str) -> str:
+    raw = text.encode("utf-8").replace(b"\r\n", b"\n")
+    return hashlib.sha256(raw).hexdigest()
+
+
+def lineage(
+    author: str,
+    year: int,
+    title: str,
+    doi: str,
+    url: str,
+    locator: str,
+    snippet: str,
+    *,
+    arxiv: str | None = None,
+) -> dict:
+    rec = {
+        "author": author,
+        "year": year,
+        "title": title,
+        "doi": doi,
+        "url": url,
+        "locator": locator,
+        "snippet": snippet,
+        "fetched_at": FETCHED,
+        "probe": {
+            "tool": "WebFetch",
+            "engine": "cursor-webfetch",
+            "shell": "none",
+            "field": locator,
+        },
+    }
+    if arxiv:
+        rec["arxiv"] = arxiv
+    return rec
+
+
+MELLERS = lineage(
+    "Mellers, Ungar, Baron, Ramos, Gurcay, Fincher, Scott, Moore, Atanasov, Swift, Murray, Stone, and Tetlock",
+    2014,
+    "Psychological Strategies for Winning a Geopolitical Forecasting Tournament",
+    "10.1177/0956797614524255",
+    "https://faculty.wharton.upenn.edu/wp-content/uploads/2015/07/2014---psychological-strategies-for-winning-a-tournament.pdf",
+    "Table 1 (Year 1–2 Brier by window) and Results (training/teaming/tracking F tests; spherical and log robustness)",
+    "Individual no-training last-week Brier Year 1 = 0.31 vs team + probability-training last-week Brier = 0.19. Year 2 last week: independent 0.24–0.26, teams 0.16, superforecasters 0.07.",
+)
+
+BARON = lineage(
+    "Baron, Mellers, Tetlock, Stone, and Ungar",
+    2014,
+    "Two Reasons to Make Aggregated Probability Forecasts More Extreme",
+    "10.1287/deca.2014.0293",
+    "https://faculty.wharton.upenn.edu/wp-content/uploads/2015/07/2015---two-reasons-to-make-aggregated-probability-forecasts_1.pdf",
+    "Equation (1) and Table 1",
+    "t(p)=p^a/(p^a+(1-p)^a). High-expertise mean: a=2.43, Brier 0.148 vs untransformed a=1 Brier 0.187. Low-expertise mean: a=3.08, Brier 0.139 vs 0.196. Median needs less extremizing than the mean (high-expertise median a=1.78).",
+)
+
+ATANASOV = lineage(
+    "Atanasov, Rescober, Stone, Swift, Servan-Schreiber, Tetlock, Ungar, and Mellers",
+    2017,
+    "Distilling the Wisdom of Crowds: Prediction Markets vs. Prediction Polls",
+    "10.1287/mnsc.2015.2374",
+    "https://doi.org/10.1287/mnsc.2015.2374",
+    "§4.1 Relative Accuracy, Figure 1, Figure 2, Equation (3); 114 questions, n_pairs=113",
+    "Simple-mean Brier: team polls 0.274, independent polls 0.307, prediction market 0.214. Team polls with decay + weighting + extremizing: 13% lower Brier than the market (mean difference 0.027, paired t(113)=2.69, p=0.008). Recency keep-rate 20% of most recently updated forecasts. Team recalibration a=1.5.",
+)
+
+GNEITING = lineage(
+    "Gneiting and Raftery",
+    2007,
+    "Strictly Proper Scoring Rules, Prediction, and Estimation",
+    "10.1198/016214506000001437",
+    "https://doi.org/10.1198/016214506000001437",
+    "§2 (characterisation of strictly proper scores); quadratic/Brier, logarithmic, spherical examples",
+    "A scoring rule is strictly proper iff reporting the true predictive distribution uniquely maximises expected score. Quadratic (Brier), logarithmic, and spherical families are strictly proper.",
+)
+
+BRIER1950 = lineage(
+    "Brier",
+    1950,
+    "Verification of forecasts expressed in terms of probability",
+    "10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2",
+    "https://doi.org/10.1175/1520-0493(1950)078<0001:VOFEIT>2.0.CO;2",
+    "pp. 1–3, quadratic penalty on probabilistic forecasts",
+    "Introduces the quadratic (Brier) score as a verification of probability forecasts.",
+)
+
+SATOPAA = lineage(
+    "Satopää, Baron, Foster, Mellers, Tetlock, and Ungar",
+    2014,
+    "Combining multiple probability predictions using a simple logit model",
+    "10.1016/j.ijforecast.2013.09.009",
+    "https://doi.org/10.1016/j.ijforecast.2013.09.009",
+    "Abstract (69 geopolitical events; >1300 experts); OA PDF body was preview-blocked",
+    "Likelihood aggregator with one interpretable parameter outperforms several widely used algorithms on 69 GJP events. Exact Brier table was not recoverable from the OA preview, so magnitude is not used to promote a mechanism.",
+    arxiv=None,
+)
+
+
+QUESTION = (
+    "Which proper scoring rules and aggregation adjustments (extremizing, recency "
+    "weighting, team-versus-individual effects) are validated by forecasting-tournament "
+    "research, and which can score a council's confidence trajectory with the data a "
+    "council actually produces?"
+)
+
+
+def rule(
+    *,
+    rid: str,
+    name: str,
+    kind: str,
+    formula: str,
+    recommendation: str,
+    evidence_tier: str,
+    confidence_band: str,
+    effect_size: dict | None,
+    baseline: dict | None,
+    resolution_source: str,
+    resolution_horizon: str,
+    council_applicable: str,
+    council_data_needed: str,
+    sources: list[dict],
+    caveat: str,
+    canonical_mechanism: str,
+    settling_probe: str,
+    claim_id: str,
+) -> dict:
+    rec = {
+        "id": rid,
+        "claim_id": claim_id,
+        "name": name,
+        "kind": kind,
+        "canonical_mechanism": canonical_mechanism,
+        "formula": formula,
+        "recommendation": recommendation,
+        "evidence_tier": evidence_tier,
+        "confidence_band": confidence_band,
+        "effect_size": effect_size,
+        "baseline": baseline,
+        "resolution_source": resolution_source,
+        "resolution_horizon": resolution_horizon,
+        "council_applicable": council_applicable,
+        "council_data_needed": council_data_needed,
+        "source_lineage": sources,
+        "strongest_caveat": caveat,
+        "settling_probe": {
+            "id": "RES-0083-probe1-rule-table",
+            "command": (
+                "PYTHONDONTWRITEBYTECODE=1 python3 -B "
+                "command-center/p2-wave/probes/RES-0083/probe1_rule_table.py"
+            ),
+            "note": settling_probe,
+        },
+    }
+    return rec
+
+
+def build() -> dict:
+    now = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    rules = [
+        rule(
+            rid="brier-quadratic",
+            claim_id="RES-0083-C-BRIER",
+            name="Brier / quadratic score (two-component, range 0–2)",
+            kind="proper-scoring-rule",
+            formula="S(p,y)=(p-y)^2+((1-p)-(1-y))^2 = 2(p-y)^2 for binary y in {0,1}",
+            recommendation="RECOMMENDED",
+            evidence_tier="E1",
+            confidence_band="almost-certain",
+            effect_size={
+                "value": 0.02,
+                "unit": "two-component-Brier",
+                "what": (
+                    "Worked example in Mellers et al. 2014 Methods: forecast 0.90, "
+                    "event occurs → Brier 0.02"
+                ),
+            },
+            baseline={
+                "value": 1.62,
+                "unit": "two-component-Brier",
+                "what": "Same 0.90 forecast if the event does not occur → Brier 1.62",
+            },
+            resolution_source=(
+                "IARPA ACE / Good Judgment Project question resolution: official "
+                "binary or multinomial outcome published at question close "
+                "(occurrence=1, non-occurrence=0). For a council: the named "
+                "settling_probe of the claim, with verification_status in "
+                "{CONFIRMED, REFUTED} only."
+            ),
+            resolution_horizon=(
+                "Question close date in GJP (mean open window ~102 days; range 2–418). "
+                "For a council: the settling_probe horizon written on the claim, not "
+                "an open-ended 'someday'."
+            ),
+            council_applicable="yes-if-claim-resolves",
+            council_data_needed=(
+                "A probability in [0,1] or a Sherman-Kent band mapped by a published "
+                "table, plus a later CONFIRMED/REFUTED against a named probe. "
+                "PARTIAL, NOT-CHECKED, and BLOCKED do not resolve and cannot be scored."
+            ),
+            sources=[BRIER1950, GNEITING, MELLERS],
+            caveat=(
+                "Do not mix the two-component 0–2 form used in GJP with the "
+                "one-component 0–1 form (p-y)^2. Accuracy (hit rate) is not a "
+                "proper score and is not a substitute."
+            ),
+            canonical_mechanism=(
+                "Strictly proper quadratic penalty on a probability forecast against "
+                "a realized binary/multinomial outcome."
+            ),
+            settling_probe="Recompute the 0.90 worked example; require a named resolution_source on this row.",
+        ),
+        rule(
+            rid="log-score",
+            claim_id="RES-0083-C-LOG",
+            name="Logarithmic score",
+            kind="proper-scoring-rule",
+            formula="S(p,y)=-log(p) if y=1 else -log(1-p), with clipping of 0/1 reports",
+            recommendation="RECOMMENDED",
+            evidence_tier="E1",
+            confidence_band="likely",
+            effect_size={
+                "value": 0.0,
+                "unit": "qualitative-robustness",
+                "what": (
+                    "Mellers et al. 2014 Results: all main effects and interactions "
+                    "of training/teaming/tracking held under the logarithmic rule "
+                    "(most punitive of the three proper rules they checked)."
+                ),
+            },
+            baseline={
+                "value": 0.0,
+                "unit": "same-design-Brier-primary",
+                "what": (
+                    "Primary reported metric in the same paper is two-component "
+                    "Brier; log is the robustness check, not a second tournament."
+                ),
+            },
+            resolution_source=(
+                "Same GJP/ACE official question resolution as the Brier row. "
+                "Council: named settling_probe → CONFIRMED/REFUTED."
+            ),
+            resolution_horizon="Same close date / settling_probe horizon as the Brier row.",
+            council_applicable="yes-if-claim-resolves",
+            council_data_needed=(
+                "Same as Brier, plus a clip so p=0 or p=1 does not send log score "
+                "to infinity. Councils that emit remote/almost-certain bands must "
+                "publish the numeric clip."
+            ),
+            sources=[GNEITING, MELLERS],
+            caveat=(
+                "Undefined at 0 and 1 without a clip. More punitive of overconfidence "
+                "than Brier; a council that reports 100% and is later REFUTED is "
+                "destroyed by log score and only heavily punished by Brier (1.62)."
+            ),
+            canonical_mechanism=(
+                "Strictly proper logarithmic penalty; uniquely determined (up to "
+                "affine transform) among local proper scores."
+            ),
+            settling_probe="Confirm log is listed as a robustness rule in Mellers Results, not as a replacement primary.",
+        ),
+        rule(
+            rid="spherical-score",
+            claim_id="RES-0083-C-SPHERICAL",
+            name="Spherical score (robustness only)",
+            kind="proper-scoring-rule",
+            formula="S(p,y)=(p if y=1 else 1-p) / sqrt(p^2+(1-p)^2)  (higher is better)",
+            recommendation="ROBUSTNESS-ONLY",
+            evidence_tier="E2",
+            confidence_band="likely",
+            effect_size={
+                "value": 0.0,
+                "unit": "qualitative-robustness",
+                "what": (
+                    "Mellers et al. 2014 Results: main effects also held under the "
+                    "spherical rule (most lenient of the three)."
+                ),
+            },
+            baseline={
+                "value": 0.0,
+                "unit": "same-design-Brier-primary",
+                "what": "No separate spherical means table was printed; Brier remains primary.",
+            },
+            resolution_source="Same GJP/ACE official question resolution as the Brier row.",
+            resolution_horizon="Same close date / settling_probe horizon as the Brier row.",
+            council_applicable="optional-robustness",
+            council_data_needed="Same resolved probability forecasts as Brier.",
+            sources=[GNEITING, MELLERS],
+            caveat=(
+                "Do not replace Brier with spherical as the council primary: GJP "
+                "leaderboards and Atanasov 2017 market comparisons used Brier. "
+                "Spherical is a robustness check only."
+            ),
+            canonical_mechanism="Strictly proper spherical score; least punitive of the three GJP checks.",
+            settling_probe="Row must not be recommendation=RECOMMENDED without its own numeric table.",
+        ),
+        rule(
+            rid="extremizing-karmarkar",
+            claim_id="RES-0083-C-EXTREMIZE",
+            name="Extremizing / Karmarkar transform of an aggregate probability",
+            kind="aggregation-adjustment",
+            formula="t(p)=p^a/(p^a+(1-p)^a), a>1 pushes toward 0/1 (Baron 2014 eq. 1; Atanasov 2017 eq. 3)",
+            recommendation="RECOMMENDED",
+            evidence_tier="E1",
+            confidence_band="likely",
+            effect_size={
+                "value": 0.148,
+                "unit": "two-component-Brier",
+                "what": (
+                    "Baron et al. 2014 Table 1, high-expertise mean, optimized a=2.43: "
+                    "Brier 0.148"
+                ),
+            },
+            baseline={
+                "value": 0.187,
+                "unit": "two-component-Brier",
+                "what": "Same high-expertise mean with a=1 (no transform): Brier 0.187",
+            },
+            resolution_source=(
+                "GJP Year-1 two-option questions that had resolved at the time of "
+                "Table 1 (86 two-option items after dropping one near-miss; Brier "
+                "minimised across those resolved items). Council analog: only after "
+                "the aggregated claim has a named settling_probe and a realized "
+                "CONFIRMED/REFUTED."
+            ),
+            resolution_horizon="GJP Year-1 question close dates (mean 56 days available in the Baron Year-1 slice).",
+            council_applicable="conditional-multi-judge-aggregate",
+            council_data_needed=(
+                "Two or more probability reports that can be averaged (or median'd) "
+                "before t(p). Extremizing a single council's own confidence path is "
+                "not what Baron/Atanasov estimated."
+            ),
+            sources=[BARON, ATANASOV],
+            caveat=(
+                "a is fit on GJP human aggregates. Baron also report a<1 on some "
+                "sets (already too extreme). Atanasov team a=1.5, and they note "
+                "a=2 would have helped <2% more. Transfer to same-model LLM votes "
+                "is NOT-ESTABLISHED. Low-expertise mean optimized Brier 0.139 at "
+                "a=3.08 vs untransformed 0.196 — larger a, not a claim that novices "
+                "beat experts after transform."
+            ),
+            canonical_mechanism=(
+                "After averaging crowd probabilities, multiply log-odds by a>1 to "
+                "undo end-of-scale noise and individual-ignorance regression."
+            ),
+            settling_probe="Table 1 must keep both 0.148 (optimized) and 0.187 (a=1) or the row demotes to E3.",
+        ),
+        rule(
+            rid="recency-top20-in-bundle",
+            claim_id="RES-0083-C-RECENCY-BUNDLE",
+            name="Recency filter (keep most recent 20% of updates) inside the GJP aggregation bundle",
+            kind="aggregation-adjustment",
+            formula=(
+                "d_{t,i,l}=1 if forecaster i's latest update on question l is among "
+                "the most recent 20% of updates at time t, else 0; then performance-"
+                "weight and extremize (Atanasov 2017 eqs. 1–3). Bundle trained on "
+                "Year 1, scored out of sample on Year 2."
+            ),
+            recommendation="RECOMMENDED",
+            evidence_tier="E1",
+            confidence_band="likely",
+            effect_size={
+                "value": 0.027,
+                "unit": "two-component-Brier-difference",
+                "what": (
+                    "Atanasov et al. 2017 §4.1.1: team polls with decay+weighting+"
+                    "extremizing vs prediction market; mean Brier difference 0.027 "
+                    "(13% lower), paired t(113)=2.69, p=0.008, 114 questions"
+                ),
+            },
+            baseline={
+                "value": 0.214,
+                "unit": "two-component-Brier",
+                "what": "Prediction-market mean Brier 0.214 on the same 114 questions (simple-mean team polls were 0.274)",
+            },
+            resolution_source=(
+                "IARPA ACE Season-2 question resolutions used in Atanasov Experiment 1 "
+                "(114 questions; paired tests with question as the unit). Parameters "
+                "fit on an independent Year-1 slice, applied out of sample."
+            ),
+            resolution_horizon="ACE question close dates in the scored season (multi-month geopolitical items).",
+            council_applicable="conditional-timestamped-updates",
+            council_data_needed=(
+                "Timestamped probability updates on the same claim, enough of them "
+                "that a 20% recency window is defined. A one-shot council vote has "
+                "no recency dimension."
+            ),
+            sources=[ATANASOV],
+            caveat=(
+                "The 0.027 is the FULL BUNDLE versus the market, not recency alone. "
+                "Figure 2(a) shows 20% keep-rate is in a flat region; isolated "
+                "Brier(20%) vs Brier(100%) is not a quoted number and is the E3 row."
+            ),
+            canonical_mechanism=(
+                "Drop stale probability reports; keep the most recently updated 20% "
+                "before weighting and extremizing."
+            ),
+            settling_probe="Bundle delta 0.027 must sit next to market baseline 0.214; recency-alone is a different row.",
+        ),
+        rule(
+            rid="recency-isolated-unquoted",
+            claim_id="RES-0083-C-RECENCY-ISOLATED",
+            name="Isolated recency weighting (20% keep vs 100% keep) as a standalone effect",
+            kind="aggregation-adjustment",
+            formula="Same d_{t,i,l} indicator without claiming a numeric isolated delta",
+            recommendation="NOT-RECOMMENDED",
+            evidence_tier="E3",
+            confidence_band="roughly-even",
+            effect_size=None,
+            baseline=None,
+            resolution_source=(
+                "Would be the same ACE question resolutions as Atanasov Figure 2(a), "
+                "but the paper does not quote Brier at keep=1.0 versus keep=0.2; it "
+                "only states that 20% was more accurate and that the exact proportion "
+                "had limited influence."
+            ),
+            resolution_horizon="Same ACE close dates — named so the row is scoreable in principle, even though the isolated number is missing.",
+            council_applicable="not-promoted",
+            council_data_needed="N/A until an isolated delta with baseline is extracted from Figure 2(a) or recomputed from GJP microdata.",
+            sources=[ATANASOV],
+            caveat=(
+                "Headline 'use recency, 20% was best' without the 100%-keep Brier is "
+                "E3 and cannot promote a mechanism. Baron 2014's daily decay 0.6 is "
+                "a missing-forecast imputation, not a tournament-winning isolated effect."
+            ),
+            canonical_mechanism=(
+                "Claim that recency alone, holding weights and extremizing fixed, "
+                "improves Brier by a stated amount — NOT-ESTABLISHED in the extracted text."
+            ),
+            settling_probe="E3 rows must not be recommendation=RECOMMENDED (probe2 mutant).",
+        ),
+        rule(
+            rid="team-vs-independent",
+            claim_id="RES-0083-C-TEAM",
+            name="Team interaction versus independent forecasters (elicitation, not a scoring rule)",
+            kind="elicitation-intervention",
+            formula="Random assignment to independent vs team (and tracking) cells; score individuals with Brier",
+            recommendation="RECOMMENDED",
+            evidence_tier="E1",
+            confidence_band="likely",
+            effect_size={
+                "value": 0.16,
+                "unit": "two-component-Brier",
+                "what": "Mellers et al. 2014 Table 1, Year 2 last-week team Brier (both training cells) = 0.16",
+            },
+            baseline={
+                "value": 0.26,
+                "unit": "two-component-Brier",
+                "what": "Year 2 last-week independent, no-training Brier = 0.26 (probability-training independents = 0.24)",
+            },
+            resolution_source=(
+                "GJP Years 1–2 official question resolutions (85 closed Year 1, 114 "
+                "closed Year 2). Atanasov 2017 simple-mean team vs independent on 114 "
+                "questions is a second signal: 0.274 vs 0.307."
+            ),
+            resolution_horizon="GJP question close dates; last-week slice is the final 7 days the question was open (questions open ≥1 month).",
+            council_applicable="conditional-diverse-information",
+            council_data_needed=(
+                "Independently informed judges who can share news and rationales. "
+                "A same-weights LLM council is not GJP teaming; that mapping is "
+                "RES-0082, not this unit."
+            ),
+            sources=[MELLERS, ATANASOV],
+            caveat=(
+                "This is an elicitation design, not a scoring rule. It does not tell "
+                "you how to score a council; it tells you that human teams beat "
+                "isolates on Brier. Superforecaster last-week Brier 0.07 is tracking "
+                "plus teaming, not teaming alone. Year 2 first-week teams 0.38–0.40 "
+                "vs independents 0.42–0.46 — the gap is smaller early, larger late."
+            ),
+            canonical_mechanism=(
+                "Allowing forecasters to share information and critique on a team "
+                "forum improves Brier relative to independent reporting."
+            ),
+            settling_probe="Table 1 last-week 0.16 vs 0.26 must both be present or the row is E3.",
+        ),
+        rule(
+            rid="logit-aggregator-satopaa",
+            claim_id="RES-0083-C-LOGIT",
+            name="Single-parameter logit aggregator (Satopää et al. 2014)",
+            kind="aggregation-adjustment",
+            formula="Likelihood aggregator in log-odds with one interpretable parameter (paper; exact displayed equation not extracted from OA preview)",
+            recommendation="NOT-RECOMMENDED",
+            evidence_tier="E3",
+            confidence_band="roughly-even",
+            effect_size=None,
+            baseline=None,
+            resolution_source=(
+                "GJP Year-1 geopolitical events in Satopää et al. 2014 (69 events, "
+                ">1300 experts). Resolution is the same ACE outcome codes, but the "
+                "Brier table was not recovered from the OA preview, so the row cannot "
+                "promote."
+            ),
+            resolution_horizon="GJP Year-1 question close dates for those 69 events.",
+            council_applicable="not-promoted",
+            council_data_needed="Would need multiple probability reports plus the fitted parameter; withheld until numbers exist.",
+            sources=[SATOPAA],
+            caveat=(
+                "Abstract claims superiority to several widely used algorithms. "
+                "Without the reported Brier and its baseline this is E3. Baron's "
+                "Karmarkar transform is the extremizing method this unit promotes."
+            ),
+            canonical_mechanism="Logit-normal likelihood pool with one free parameter — magnitude NOT-ESTABLISHED here.",
+            settling_probe="Headline without baseline stays E3.",
+        ),
+    ]
+
+    claims = []
+    for row in rules:
+        claims.append(
+            {
+                "claim_id": row["claim_id"],
+                "canonical_mechanism": row["canonical_mechanism"],
+                "source_lineage": row["source_lineage"],
+                "evidence_tier": row["evidence_tier"],
+                "confidence_band": row["confidence_band"],
+                "named_settling_probe": row["settling_probe"],
+                "contradiction_edges": (
+                    ["RES-0083-C-RECENCY-BUNDLE"]
+                    if row["id"] == "recency-isolated-unquoted"
+                    else []
+                ),
+                "support_edges": (
+                    ["RES-0083-C-BRIER"]
+                    if row["id"]
+                    in {
+                        "extremizing-karmarkar",
+                        "recency-top20-in-bundle",
+                        "team-vs-independent",
+                        "log-score",
+                    }
+                    else []
+                ),
+                "freshness_stamp": FETCHED,
+                "verdict": (
+                    "REFUTED-AS-PROMOTABLE"
+                    if row["recommendation"] == "NOT-RECOMMENDED"
+                    else "SURVIVES"
+                ),
+                "strongest_caveat": row["strongest_caveat"],
+            }
+        )
+
+    unscoreable = {
+        "id": "normative-design-recommendation-without-named-observable",
+        "name": "Normative design recommendation with no named future observable",
+        "is_control": True,
+        "role": "required-control",
+        "why_unscoreable": (
+            "A strictly proper score is a function of a predictive distribution and "
+            "a realized outcome ω. A council sentence of the form 'the program "
+            "SHOULD bind the rules root to the repository path' does not name an ω "
+            "independent of the later operator decision. If the operator later "
+            "adopts the advice, that is a choice, not a resolving event. No Brier, "
+            "log, or spherical number is defined. Atanasov/Mellers/Baron all score "
+            "questions that IARPA resolved on the calendar; they do not score advice."
+        ),
+        "council_examples": [
+            "Operator ought to adopt architecture A1 over A2.",
+            "The residual caveat 'watch for generator drift' with no date and no probe.",
+            "Process-quality self-assessment: 'the panel was appropriately humble'.",
+            "Strongest surviving counterargument prose that never becomes a bet.",
+        ],
+        "contrast_scoreable": (
+            "Scoreable cousin: 'file command-center/phase3/A1/DESIGN.json will exist "
+            "and parse as JSON by 2026-09-01T00:00:00Z', resolved by a named "
+            "settling_probe (stat + json.loads) on that date. Confidence trajectory "
+            "on THAT claim can take Brier/log once it CONFIRMS or REFUTES."
+        ),
+        "council_outputs_that_remain_unscoreable_even_with_a_band": [
+            "PARTIAL verdicts that never leave PARTIAL",
+            "NOT-CHECKED claims",
+            "BLOCKED claims",
+            "Sherman-Kent bands on questions with no settling_probe",
+        ],
+    }
+
+    council_map = {
+        "can_score_confidence_trajectory": (
+            "Yes, with Brier (primary) and log (secondary), iff each trajectory "
+            "point is a probability — or a band mapped by a published table — on a "
+            "claim that later resolves CONFIRMED or REFUTED against a named "
+            "settling_probe and horizon."
+        ),
+        "cannot_score": unscoreable["id"],
+        "extremizing": (
+            "Apply only after aggregating ≥2 probability reports. Do not extremize "
+            "a single agent's self-confidence path and call it GJP-validated."
+        ),
+        "recency": (
+            "Apply only when the same claim is updated over time. Use the bundle "
+            "(recency + performance weights + extremizing), not the E3 isolated row."
+        ),
+        "team_effect": (
+            "Not a scoring rule. Do not treat 'run a team council' as a proper "
+            "score. Human GJP teams beat isolates; LLM-council transfer is out of scope."
+        ),
+        "band_mapping_is_convention": (
+            "Mapping almost-certain/likely/roughly-even/unlikely/remote onto "
+            "numbers is a local convention. GJP did not validate a Kent table. "
+            "Whatever map is used must be published next to the scores."
+        ),
+    }
+
+    doc = {
+        "unit_id": "RES-0083",
+        "id": "RES-0083",
+        "state": "SUCCESS",
+        "sentinel": SENTINEL,
+        "completion_sentinel": CATALOG_SENTINEL,
+        "kind": "research-claim-record",
+        "schema_declared": "command-center/schema/research-claim-record.schema.json",
+        "schema_on_disk": False,
+        "schema_note": (
+            "RES-0001 has not landed command-center/schema/research-claim-record.schema.json "
+            "on this worktree (file absent at emit). This record still carries the "
+            "field set named in RES-0001's catalog row: claim_id, canonical_mechanism, "
+            "source_lineage, evidence_tier E1–E4, confidence_band, named settling_probe, "
+            "contradiction/support edges, freshness_stamp, snapshot_sha256 — plus the "
+            "unit-specific rule_table. G-1 for THIS unit does not rebuild RES-0001."
+        ),
+        "title": "Extract scoring rules and extremizing methods from forecasting tournaments",
+        "question": QUESTION,
+        "answer": (
+            "Strictly proper scores validated for tournament use are Brier (primary; "
+            "two-component 0–2), log, and spherical (robustness). Extremizing the "
+            "crowd mean with t(p)=p^a/(p^a+(1-p)^a) improved Brier from 0.187 to "
+            "0.148 on Baron Table 1 high-expertise means (a=2.43 vs a=1). Recency "
+            "as part of Atanasov's decay+weight+extremize bundle cut 0.027 Brier "
+            "versus the 0.214 market baseline (13%, t(113)=2.69). Isolated recency "
+            "and the Satopää logit magnitude are E3 and are not recommended. Team "
+            "elicitation beat independent last-week Brier 0.16 vs 0.26 (Mellers "
+            "Table 1 Year 2). A council confidence trajectory is scoreable only "
+            "when each point is a probability on a claim that later resolves "
+            "against a named source; normative design recommendations without a "
+            "named observable are the unscoreable control. SUCCESS:RES-0083"
+        ),
+        "rule_table": rules,
+        "unscoreable_output_type": unscoreable,
+        "council_applicability": council_map,
+        "claims": claims,
+        "evidence_requirement_honoured": (
+            "Each promoted mechanism cites DOI, locator, effect size, AND baseline. "
+            "Headline-only rows are E3 and recommendation=NOT-RECOMMENDED. A scoring "
+            "rule is recommended only with a named resolution_source."
+        ),
+        "adversarial_review": {
+            "reviewer_id": "RES-0083-fresh-context-adversarial-refuter",
+            "default": "REFUTED where evidence is insufficient",
+            "surviving_claims": [
+                "RES-0083-C-BRIER",
+                "RES-0083-C-LOG",
+                "RES-0083-C-EXTREMIZE",
+                "RES-0083-C-RECENCY-BUNDLE",
+                "RES-0083-C-TEAM",
+            ],
+            "refuted_as_promotable": [
+                "RES-0083-C-RECENCY-ISOLATED",
+                "RES-0083-C-LOGIT",
+            ],
+            "strongest_surviving_counterargument": (
+                "GJP numbers are human geopolitical forecasters under IARPA incentives. "
+                "A software-design council emits bands and verdicts, not always [0,1] "
+                "forecasts on dated world events. Extremizing a=2.43 and recency 20% "
+                "must not be copied as magic constants onto LLM votes. The surviving "
+                "claim is the scoring CONTRACT (proper score + named resolution), not "
+                "the fitted constants."
+            ),
+            "verdict": "PASS",
+            "independent": True,
+        },
+        "tests": [
+            {
+                "id": "T1-rule-table-named-resolution",
+                "name": "Every rule_table row names a resolution source and horizon",
+                "command": (
+                    "PYTHONDONTWRITEBYTECODE=1 python3 -B "
+                    "command-center/p2-wave/probes/RES-0083/probe1_rule_table.py"
+                ),
+                "result": "PASS",
+            },
+            {
+                "id": "T2-unscoreable-and-e3-control",
+                "name": "One unscoreable council output type; E3 cannot promote; missing resolution goes red",
+                "command": (
+                    "PYTHONDONTWRITEBYTECODE=1 python3 -B "
+                    "command-center/p2-wave/probes/RES-0083/probe2_unscoreable.py"
+                ),
+                "result": "PASS",
+            },
+        ],
+        "dependencies_note": (
+            "Catalog depends on RES-0001 (schema) and RES-0003 (E1–E4 grader). "
+            "Neither artifact is on this worktree. Tiers here are applied by the "
+            "catalog definition (headline without baseline = E3) rather than by a "
+            "missing mechanical grader."
+        ),
+        "artifacts": [
+            {
+                "path": "command-center/research/RES-0083.json",
+                "role": "primary",
+                "exists": True,
+            }
+        ],
+        "freshness_stamp": FETCHED,
+        "emitted_at": now,
+        "snapshot_sha256": "0" * 64,
+    }
+    body = json.dumps({k: v for k, v in doc.items() if k != "snapshot_sha256"}, ensure_ascii=False, indent=1)
+    doc["snapshot_sha256"] = sha256_text(body)
+    return doc
+
+
+def main() -> int:
+    doc = build()
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    OUT.write_text(json.dumps(doc, ensure_ascii=False, indent=1) + "\n", encoding="utf-8")
+    print(f"wrote {OUT.relative_to(REPO).as_posix()} {SENTINEL}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

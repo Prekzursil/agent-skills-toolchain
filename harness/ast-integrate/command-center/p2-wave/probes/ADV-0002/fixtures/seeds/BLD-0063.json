@@ -1,0 +1,957 @@
+{
+ "artifacts": [
+  {
+   "bytes": 29396,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/BLD-0063.json",
+   "role": "primary",
+   "sha256": "3d23c9de406c74ee2575cfdfe30afe3d124c06218a8a7ea688dff1ef6b7ddf2a"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/BLD-0063.json",
+   "consumer": "command-center/p2-wave/probes/BLD-0063/schema_local.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -B command-center/p2-wave/probes/BLD-0063/schema_local.py",
+    "exit_code": 0,
+    "fingerprint": "3b1988fe97fd0f55b75787caba540b5c1db619519697ff309ad959e28cfc08b5",
+    "method": "schema-validate",
+    "raw_output": "schema_errors=0 garbage_rejected=true",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0063/matrix.py",
+   "claim": "Coverage is computed from BLD receipts on disk. A catalog intent row with no receipt does not cover its question. UNCOVERED=2 COVERED=9 receipts_read=28 receipts_expected=62.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0063/matrix.py",
+     "exit_code": 0,
+     "fingerprint": "ed51ebe47b48ada09eeec26bf6068bae20c5fb7525f0022d870ac2a8b4657319",
+     "method": "command",
+     "raw_output": "UNCOVERED=2 COVERED=9 receipts_read=28 receipts_expected=62\nuncovered=[\"what option IDs were silently dropped\", \"what existing work was ignored\"]\ncovered=[\"what files were never read\", \"what clients were never tested\", \"what platforms were never tested\", \"what owner requirements disappeared\", \"what failures were normalized away\", \"what unknowns remain\", \"what test could falsely pass\", \"what threat actor was not modeled\", \"what would break at 10x scale\"]\nmissing=34\nuncontrolled=1\n",
+     "role": "source"
+    },
+    {
+     "command": "independent evidence[].verdict recount over command-center/receipts/BLD-*.json",
+     "exit_code": 0,
+     "fingerprint": "863106147dedaf7a5e69f6d57e1396cc82598e180ef474725f6afb34b98197dd",
+     "method": "file-read",
+     "raw_output": "independent_uncovered=[\"what option IDs were silently dropped\", \"what existing work was ignored\"]\nindependent_receipts_read=28\nagree_with_matrix=true\n",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/BLD-0063/probe1_remove_receipt.py",
+   "claim": "BLD-0063 is excluded from the covering set. Removing one scratch receipt drops that question to UNCOVERED. NOT-CHECKED-only is UNCOVERED; CONFIRMED or REFUTED is COVERED.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0063/probe1_remove_receipt.py",
+     "exit_code": 0,
+     "fingerprint": "2517ea82af70e181be421b8009322971ffb6d1c34cf93899a8f6c26a6a5c8353",
+     "method": "command",
+     "raw_output": "removed BLD-0001 for what files were never read\nbefore_covered=11\nafter_covered=10\nafter[what files were never read]=UNCOVERED\nSUCCESS:BLD-0063-probe1 remove-receipt coverage drop",
+     "role": "source"
+    },
+    {
+     "command": "file-read command-center/p2-wave/probes/BLD-0063/probe1_remove_receipt.py unlink-drop control",
+     "exit_code": 0,
+     "fingerprint": "f1454516706df135e6c33b34bf4592623ef27386356de6b8069747324a4da6e9",
+     "method": "static-analysis",
+     "raw_output": "probe1 unlinks the first-unit scratch receipt and requires after[Q01]=UNCOVERED with sibling questions still COVERED and receipts_read dropped by one\n",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0063/probe1_remove_receipt.py",
+    "id": "probe1",
+    "role": "remove-receipt-control"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0063/probe2_verdict_rules.py",
+    "id": "probe2",
+    "role": "verdict-and-self-reference"
+   }
+  ],
+  "prohibited_actions_not_run": [
+   "git add/commit/push/stash/checkout/rebase",
+   "unit_manifest.py --write",
+   "API key rotation",
+   "finish-everything-close / p2-cloud-ok-deliver relaunch"
+  ],
+  "stage": "p2-deliver"
+ },
+ "manifest_registration": {
+  "entry_id": "BLD-0063",
+  "manifest_path": "command-center/p2-wave/probes/BLD-0063/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T00:59:24Z"
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "bad_state_output": "removed BLD-0001 for what files were never read\nbefore_covered=11\nafter_covered=10\nafter[what files were never read]=UNCOVERED\nSUCCESS:BLD-0063-probe1 remove-receipt coverage drop",
+   "description": "Deleting one first-unit CONFIRMED scratch receipt must turn that question UNCOVERED and leave the other ten COVERED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "eleven scratch CONFIRMED receipts -> 11 COVERED",
+   "id": "NC-REMOVE-RECEIPT",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "NOT-CHECKED-only classified UNCOVERED",
+   "description": "A question whose only receipt verdicts are NOT-CHECKED must be UNCOVERED, not COVERED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "CONFIRMED/REFUTED classified COVERED",
+   "id": "NC-NOT-CHECKED-ONLY",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "self-id in receipt_units",
+   "description": "A CONFIRMED BLD-0063 self-receipt must not cover a Phase 13 question or increment receipts_read.",
+   "fired_on_bad_state": true,
+   "good_state_output": "self-receipt ignored; receipts_read excludes it",
+   "id": "NC-SELF-EXCLUDED",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "meta-auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "2 of 11 Phase 13 questions are UNCOVERED on this worktree (28/62 BLD-0001..BLD-0062 receipts readable). COVERED=['what files were never read', 'what clients were never tested', 'what platforms were never tested', 'what owner requirements disappeared', 'what failures were normalized away', 'what unknowns remain', 'what test could falsely pass', 'what threat actor was not modeled', 'what would break at 10x scale']. UNCOVERED=['what option IDs were silently dropped', 'what existing work was ignored']. Mapping is from receipts on disk; catalog tags are a join key only. SUCCESS:BLD-0063",
+  "cells": [
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "3 receipt(s) carry CONFIRMED or REFUTED (BLD-0001, BLD-0002, BLD-0004)",
+    "fixture": "command-center/receipts",
+    "id": "Q01",
+    "named_error": null,
+    "semantic": "Phase 13 question: what files were never read",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "1 receipt(s) carry CONFIRMED or REFUTED (BLD-0006)",
+    "fixture": "command-center/receipts",
+    "id": "Q02",
+    "named_error": null,
+    "semantic": "Phase 13 question: what clients were never tested",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "2 receipt(s) carry CONFIRMED or REFUTED (BLD-0008, BLD-0010)",
+    "fixture": "command-center/receipts",
+    "id": "Q03",
+    "named_error": null,
+    "semantic": "Phase 13 question: what platforms were never tested",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "1 receipt(s) carry CONFIRMED or REFUTED (BLD-0018)",
+    "fixture": "command-center/receipts",
+    "id": "Q04",
+    "named_error": null,
+    "semantic": "Phase 13 question: what owner requirements disappeared",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "no receipt on disk for any planned unit (4 planned)",
+    "fixture": "command-center/receipts",
+    "id": "Q05",
+    "named_error": null,
+    "semantic": "Phase 13 question: what option IDs were silently dropped",
+    "verdict": "NEVER-TESTED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "4 receipt(s) carry CONFIRMED or REFUTED (BLD-0023, BLD-0024, BLD-0027, BLD-0028)",
+    "fixture": "command-center/receipts",
+    "id": "Q06",
+    "named_error": null,
+    "semantic": "Phase 13 question: what failures were normalized away",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "1 receipt(s) carry CONFIRMED or REFUTED (BLD-0031)",
+    "fixture": "command-center/receipts",
+    "id": "Q07",
+    "named_error": null,
+    "semantic": "Phase 13 question: what unknowns remain",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "no receipt on disk for any planned unit (5 planned)",
+    "fixture": "command-center/receipts",
+    "id": "Q08",
+    "named_error": null,
+    "semantic": "Phase 13 question: what existing work was ignored",
+    "verdict": "NEVER-TESTED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "6 receipt(s) carry CONFIRMED or REFUTED (BLD-0040, BLD-0041, BLD-0042, BLD-0044, BLD-0045, BLD-0047)",
+    "fixture": "command-center/receipts",
+    "id": "Q09",
+    "named_error": null,
+    "semantic": "Phase 13 question: what test could falsely pass",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "4 receipt(s) carry CONFIRMED or REFUTED (BLD-0049, BLD-0051, BLD-0052, BLD-0054)",
+    "fixture": "command-center/receipts",
+    "id": "Q10",
+    "named_error": null,
+    "semantic": "Phase 13 question: what threat actor was not modeled",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "4 receipt(s) carry CONFIRMED or REFUTED (BLD-0055, BLD-0056, BLD-0057, BLD-0058)",
+    "fixture": "command-center/receipts",
+    "id": "Q11",
+    "named_error": null,
+    "semantic": "Phase 13 question: what would break at 10x scale",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/probe1_remove_receipt.py",
+    "evidence": "scratch copy: eleven CONFIRMED receipts COVER all eleven questions; unlinking one first-unit receipt drops that question to UNCOVERED and receipts_read by one",
+    "fixture": "tempfile scratch receipts",
+    "id": "CTRL-REMOVE-RECEIPT",
+    "named_error": null,
+    "semantic": "Control: remove one BLD receipt and coverage drops",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/probe2_verdict_rules.py",
+    "evidence": "scratch NOT-CHECKED-only receipt classifies that question UNCOVERED",
+    "fixture": "tempfile scratch receipts",
+    "id": "CTRL-NOT-CHECKED-UNCOVERED",
+    "named_error": null,
+    "semantic": "NOT-CHECKED-only receipts do not cover a question",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/probe2_verdict_rules.py",
+    "evidence": "scratch CONFIRMED and REFUTED receipts classify COVERED; mixed NOT-CHECKED plus CONFIRMED stays COVERED",
+    "fixture": "tempfile scratch receipts",
+    "id": "CTRL-EVIDENCE-COVERED",
+    "named_error": null,
+    "semantic": "CONFIRMED or REFUTED classifies the question COVERED",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py",
+    "evidence": "self-id is excluded from INPUT_IDS covering set; a CONFIRMED self-receipt is not counted in receipts_read",
+    "fixture": "command-center/receipts/BLD-0063.json",
+    "id": "CTRL-SELF-EXCLUDED",
+    "named_error": null,
+    "semantic": "BLD-0063 must not cover any of the eleven questions",
+    "verdict": "EXERCISED"
+   },
+   {
+    "code_path": "command-center/p2-wave/probes/BLD-0063/matrix.py:compute_matrix",
+    "evidence": "receipts_read=28 expected=62 uncontrolled=1 uncontrolled_ids=BLD-0009",
+    "fixture": "command-center/receipts",
+    "id": "CTRL-LIVE-DISK",
+    "named_error": null,
+    "semantic": "Live matrix is derived from receipts on this worktree",
+    "verdict": "EXERCISED"
+   }
+  ],
+  "control_ids": [
+   "CTRL-REMOVE-RECEIPT",
+   "CTRL-NOT-CHECKED-UNCOVERED",
+   "CTRL-EVIDENCE-COVERED",
+   "CTRL-SELF-EXCLUDED",
+   "CTRL-LIVE-DISK"
+  ],
+  "covered_questions": [
+   "what files were never read",
+   "what clients were never tested",
+   "what platforms were never tested",
+   "what owner requirements disappeared",
+   "what failures were normalized away",
+   "what unknowns remain",
+   "what test could falsely pass",
+   "what threat actor was not modeled",
+   "what would break at 10x scale"
+  ],
+  "derivation": "receipts on disk; catalog tags used only as a join key when a receipt exists but does not name phase13_question",
+  "eleven_question_ids": [
+   "Q01",
+   "Q02",
+   "Q03",
+   "Q04",
+   "Q05",
+   "Q06",
+   "Q07",
+   "Q08",
+   "Q09",
+   "Q10",
+   "Q11"
+  ],
+  "headline": "UNCOVERED=2 COVERED=9 receipts_read=28 receipts_expected=62",
+  "kind": "coverage-matrix",
+  "observations": [
+   {
+    "anchor": "command-center/receipts",
+    "measured": 28,
+    "method": "json.loads of command-center/receipts/BLD-0001.json through BLD-0062.json",
+    "name": "receipts_read"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0063/questions.py",
+    "measured": 62,
+    "method": "INPUT_IDS = BLD-0001..BLD-0062",
+    "name": "receipts_expected"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0063/matrix.py",
+    "measured": 9,
+    "method": "at least one CONFIRMED or REFUTED on a mapped receipt",
+    "name": "covered_question_count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0063/matrix.py",
+    "measured": 2,
+    "method": "no evidence-bearing verdict, or only NOT-CHECKED/PARTIAL, or no receipt",
+    "name": "uncovered_question_count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/BLD-0063/verdicts.py",
+    "measured": 1,
+    "method": "readable receipt with no claim/evidence CONFIRMED/REFUTED/NOT-CHECKED/PARTIAL",
+    "name": "uncontrolled_or_empty_count"
+   }
+  ],
+  "question": "Question: which of the spec's own eleven Phase 13 questions did THIS bucket fail to answer with evidence, and which of its units returned an uncontrolled or empty result? Map each of the eleven questions (_USER-PROMPTS.md:11069-11080) to the BLD units that answer it, require at least one CONFIRMED or REFUTED verdict per question, and report every question covered only by NOT-CHECKED units.",
+  "questions": [
+   {
+    "coverage": "COVERED",
+    "id": "Q01",
+    "planned_units": [
+     "BLD-0001",
+     "BLD-0002",
+     "BLD-0003",
+     "BLD-0004",
+     "BLD-0005"
+    ],
+    "question": "what files were never read",
+    "reason": "3 receipt(s) carry CONFIRMED or REFUTED (BLD-0001, BLD-0002, BLD-0004)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0001",
+      "path": "command-center/receipts/BLD-0001.json",
+      "verdicts": [
+       "PARTIAL",
+       "PARTIAL",
+       "PARTIAL",
+       "REFUTED",
+       "REFUTED",
+       "REFUTED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0002",
+      "path": "command-center/receipts/BLD-0002.json",
+      "verdicts": [
+       "REFUTED",
+       "PARTIAL",
+       "PARTIAL",
+       "REFUTED",
+       "REFUTED",
+       "PARTIAL"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0004",
+      "path": "command-center/receipts/BLD-0004.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q02",
+    "planned_units": [
+     "BLD-0006",
+     "BLD-0012"
+    ],
+    "question": "what clients were never tested",
+    "reason": "1 receipt(s) carry CONFIRMED or REFUTED (BLD-0006)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0006",
+      "path": "command-center/receipts/BLD-0006.json",
+      "verdicts": [
+       "CONFIRMED",
+       "REFUTED",
+       "REFUTED",
+       "REFUTED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q03",
+    "planned_units": [
+     "BLD-0007",
+     "BLD-0008",
+     "BLD-0009",
+     "BLD-0010",
+     "BLD-0011"
+    ],
+    "question": "what platforms were never tested",
+    "reason": "2 receipt(s) carry CONFIRMED or REFUTED (BLD-0008, BLD-0010)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0008",
+      "path": "command-center/receipts/BLD-0008.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "empty",
+      "id": "BLD-0009",
+      "path": "command-center/receipts/BLD-0009.json",
+      "verdicts": []
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0010",
+      "path": "command-center/receipts/BLD-0010.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q04",
+    "planned_units": [
+     "BLD-0013",
+     "BLD-0014",
+     "BLD-0015",
+     "BLD-0016",
+     "BLD-0017",
+     "BLD-0018",
+     "BLD-0038"
+    ],
+    "question": "what owner requirements disappeared",
+    "reason": "1 receipt(s) carry CONFIRMED or REFUTED (BLD-0018)",
+    "receipt_units": [
+     {
+      "class": "not-checked-only",
+      "id": "BLD-0016",
+      "path": "command-center/receipts/BLD-0016.json",
+      "verdicts": [
+       "PARTIAL",
+       "PARTIAL",
+       "PARTIAL",
+       "PARTIAL",
+       "PARTIAL"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0018",
+      "path": "command-center/receipts/BLD-0018.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "UNCOVERED",
+    "id": "Q05",
+    "planned_units": [
+     "BLD-0019",
+     "BLD-0020",
+     "BLD-0021",
+     "BLD-0022"
+    ],
+    "question": "what option IDs were silently dropped",
+    "reason": "no receipt on disk for any planned unit (4 planned)",
+    "receipt_units": []
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q06",
+    "planned_units": [
+     "BLD-0023",
+     "BLD-0024",
+     "BLD-0025",
+     "BLD-0026",
+     "BLD-0027",
+     "BLD-0028"
+    ],
+    "question": "what failures were normalized away",
+    "reason": "4 receipt(s) carry CONFIRMED or REFUTED (BLD-0023, BLD-0024, BLD-0027, BLD-0028)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0023",
+      "path": "command-center/receipts/BLD-0023.json",
+      "verdicts": [
+       "REFUTED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0024",
+      "path": "command-center/receipts/BLD-0024.json",
+      "verdicts": [
+       "PARTIAL",
+       "CONFIRMED",
+       "CONFIRMED",
+       "PARTIAL",
+       "CONFIRMED",
+       "CONFIRMED",
+       "REFUTED",
+       "REFUTED",
+       "REFUTED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0027",
+      "path": "command-center/receipts/BLD-0027.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0028",
+      "path": "command-center/receipts/BLD-0028.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q07",
+    "planned_units": [
+     "BLD-0029",
+     "BLD-0030",
+     "BLD-0031",
+     "BLD-0032"
+    ],
+    "question": "what unknowns remain",
+    "reason": "1 receipt(s) carry CONFIRMED or REFUTED (BLD-0031)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0031",
+      "path": "command-center/receipts/BLD-0031.json",
+      "verdicts": [
+       "PARTIAL",
+       "REFUTED",
+       "REFUTED",
+       "REFUTED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "UNCOVERED",
+    "id": "Q08",
+    "planned_units": [
+     "BLD-0033",
+     "BLD-0034",
+     "BLD-0035",
+     "BLD-0036",
+     "BLD-0037"
+    ],
+    "question": "what existing work was ignored",
+    "reason": "no receipt on disk for any planned unit (5 planned)",
+    "receipt_units": []
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q09",
+    "planned_units": [
+     "BLD-0039",
+     "BLD-0040",
+     "BLD-0041",
+     "BLD-0042",
+     "BLD-0043",
+     "BLD-0044",
+     "BLD-0045",
+     "BLD-0046",
+     "BLD-0047"
+    ],
+    "question": "what test could falsely pass",
+    "reason": "6 receipt(s) carry CONFIRMED or REFUTED (BLD-0040, BLD-0041, BLD-0042, BLD-0044, BLD-0045, BLD-0047)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0040",
+      "path": "command-center/receipts/BLD-0040.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0041",
+      "path": "command-center/receipts/BLD-0041.json",
+      "verdicts": [
+       "REFUTED",
+       "PARTIAL",
+       "REFUTED",
+       "PARTIAL",
+       "PARTIAL"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0042",
+      "path": "command-center/receipts/BLD-0042.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0044",
+      "path": "command-center/receipts/BLD-0044.json",
+      "verdicts": [
+       "CONFIRMED",
+       "REFUTED",
+       "CONFIRMED",
+       "REFUTED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0045",
+      "path": "command-center/receipts/BLD-0045.json",
+      "verdicts": [
+       "PARTIAL",
+       "REFUTED",
+       "PARTIAL",
+       "PARTIAL",
+       "REFUTED",
+       "REFUTED",
+       "PARTIAL"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0047",
+      "path": "command-center/receipts/BLD-0047.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q10",
+    "planned_units": [
+     "BLD-0048",
+     "BLD-0049",
+     "BLD-0050",
+     "BLD-0051",
+     "BLD-0052",
+     "BLD-0053",
+     "BLD-0054"
+    ],
+    "question": "what threat actor was not modeled",
+    "reason": "4 receipt(s) carry CONFIRMED or REFUTED (BLD-0049, BLD-0051, BLD-0052, BLD-0054)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0049",
+      "path": "command-center/receipts/BLD-0049.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "REFUTED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0051",
+      "path": "command-center/receipts/BLD-0051.json",
+      "verdicts": [
+       "PARTIAL",
+       "CONFIRMED",
+       "PARTIAL",
+       "REFUTED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0052",
+      "path": "command-center/receipts/BLD-0052.json",
+      "verdicts": [
+       "REFUTED",
+       "CONFIRMED",
+       "REFUTED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0054",
+      "path": "command-center/receipts/BLD-0054.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   },
+   {
+    "coverage": "COVERED",
+    "id": "Q11",
+    "planned_units": [
+     "BLD-0055",
+     "BLD-0056",
+     "BLD-0057",
+     "BLD-0058",
+     "BLD-0059",
+     "BLD-0060"
+    ],
+    "question": "what would break at 10x scale",
+    "reason": "4 receipt(s) carry CONFIRMED or REFUTED (BLD-0055, BLD-0056, BLD-0057, BLD-0058)",
+    "receipt_units": [
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0055",
+      "path": "command-center/receipts/BLD-0055.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0056",
+      "path": "command-center/receipts/BLD-0056.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0057",
+      "path": "command-center/receipts/BLD-0057.json",
+      "verdicts": [
+       "CONFIRMED",
+       "PARTIAL",
+       "CONFIRMED",
+       "REFUTED",
+       "CONFIRMED",
+       "REFUTED"
+      ]
+     },
+     {
+      "class": "evidence-bearing",
+      "id": "BLD-0058",
+      "path": "command-center/receipts/BLD-0058.json",
+      "verdicts": [
+       "CONFIRMED",
+       "CONFIRMED",
+       "CONFIRMED"
+      ]
+     }
+    ]
+   }
+  ],
+  "receipts_expected": 62,
+  "receipts_missing": [
+   "BLD-0003",
+   "BLD-0005",
+   "BLD-0007",
+   "BLD-0011",
+   "BLD-0012",
+   "BLD-0013",
+   "BLD-0014",
+   "BLD-0015",
+   "BLD-0017",
+   "BLD-0019",
+   "BLD-0020",
+   "BLD-0021",
+   "BLD-0022",
+   "BLD-0025",
+   "BLD-0026",
+   "BLD-0029",
+   "BLD-0030",
+   "BLD-0032",
+   "BLD-0033",
+   "BLD-0034",
+   "BLD-0035",
+   "BLD-0036",
+   "BLD-0037",
+   "BLD-0038",
+   "BLD-0039",
+   "BLD-0043",
+   "BLD-0046",
+   "BLD-0048",
+   "BLD-0050",
+   "BLD-0053",
+   "BLD-0059",
+   "BLD-0060",
+   "BLD-0061",
+   "BLD-0062"
+  ],
+  "receipts_read": 28,
+  "receipts_unparseable": [],
+  "self_id": "BLD-0063",
+  "self_reference_excluded": true,
+  "uncontrolled_or_empty_units": [
+   "BLD-0009"
+  ],
+  "uncovered_questions": [
+   "what option IDs were silently dropped",
+   "what existing work was ignored"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "34 of 62 BLD-0001..BLD-0062 receipts are absent on this worktree, so those planned units cannot cover their questions.",
+   "settling_experiment": "Place the missing BLD-0001..BLD-0062 receipts on disk and re-run emit_matrix.py; coverage must be recomputed, not copied.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "_USER-PROMPTS.md:11069-11080 is not on this worktree; the eleven labels are the distinct catalog Phase 13 tags.",
+   "settling_experiment": "Restore the cited _USER-PROMPTS.md slice and confirm the eleven labels match lines 11069-11080 exactly.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "attempts": [
+   {
+    "attempt": 1,
+    "error_fingerprint": "catalog-shim-ref-network-ast-integrate.invalid",
+    "outcome": "FAILED",
+    "started_at": "2026-08-24T20:22:44Z"
+   },
+   {
+    "attempt": 2,
+    "error_fingerprint": "local-refresolver-store-receipt-core",
+    "outcome": "SUCCESS",
+    "started_at": "2026-08-25T00:59:24Z"
+   }
+  ],
+  "count": 1,
+  "pivot_alternatives": [
+   "Resolve coverage-matrix $ref from on-disk schema files via RefResolver store (applied).",
+   "Emit a probe2-only top-level JSON and skip physical schema (rejected: additionalProperties would hide misspellings)."
+  ],
+  "policy": "No retry that relaxes the verdict requirement. Coverage means an evidence-bearing verdict, not an attempted unit."
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 remaps Q01-Q03 from live receipts independently of this emitter, proves CONFIRMED/REFUTED/NOT-CHECKED rules on scratch receipts, and checks cells plus receipts_read against a fresh disk compute.",
+  "reviewed_at": "2026-08-25T00:59:24Z",
+  "reviewer_id": "BLD-0063-probe2-independent-remap",
+  "vendor": "xai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:BLD-0063 eleven-question coverage matrix from receipts on disk; UNCOVERED=2 COVERED=9 receipts_read=28 receipts_expected=62",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#BLD-0063",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0063/probe1_remove_receipt.py",
+   "id": "T-REMOVE-RECEIPT",
+   "name": "Control: remove one BLD receipt in a scratch copy and prove its question's coverage drops.",
+   "output_tail": "removed BLD-0001 for what files were never read\nbefore_covered=11\nafter_covered=10\nafter[what files were never read]=UNCOVERED\nSUCCESS:BLD-0063-probe1 remove-receipt coverage drop",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0063/probe2_verdict_rules.py",
+   "id": "T-NOT-CHECKED-UNCOVERED",
+   "name": "Control: a question covered only by NOT-CHECKED units must be reported UNCOVERED. A CONFIRMED or REFUTED verdict classifies COVERED. BLD-0063 does not count.",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0,
+  "ended_at": "2026-08-25T00:59:24Z",
+  "started_at": "2026-08-25T00:59:24Z"
+ },
+ "unit_id": "BLD-0063"
+}

@@ -1,0 +1,195 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-center/p2-wave/probes/CNL-0004/owner_constraint.block.schema.json",
+  "title": "CouncilSpec v2 owner_constraint_block (CNL-0004 fragment)",
+  "description": "Nestable $defs fragment for CNL-0004. Does not claim the CNL-0001 root envelope.",
+  "$defs": {
+    "source_class": {
+      "type": "string",
+      "minLength": 2,
+      "enum": [
+        "repo-local",
+        "web-search",
+        "licensed-corpus",
+        "unlicensed-crawl",
+        "owner-provided",
+        "tool-output"
+      ]
+    },
+    "seat": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "seat_id",
+        "kind",
+        "role",
+        "model",
+        "vendor",
+        "source_classes",
+        "cost_usd",
+        "vote_weight"
+      ],
+      "properties": {
+        "seat_id": { "type": "string", "minLength": 3 },
+        "kind": { "type": "string", "enum": ["model", "human"] },
+        "role": { "type": "string", "minLength": 3 },
+        "model": { "type": ["string", "null"] },
+        "vendor": { "type": "string", "minLength": 3 },
+        "source_classes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/source_class" }
+        },
+        "cost_usd": { "type": "number", "minimum": 0 },
+        "vote_weight": { "type": "number", "minimum": 0 }
+      }
+    },
+    "choice": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["roster", "budget_usd", "source_classes", "protocol"],
+      "properties": {
+        "roster": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/seat" }
+        },
+        "budget_usd": { "type": "number", "minimum": 0 },
+        "source_classes": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/source_class" }
+        },
+        "protocol": { "type": "string", "minLength": 3 }
+      }
+    },
+    "owner_constraint": {
+      "oneOf": [
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["constraint_id", "constraint_class", "max_usd"],
+          "properties": {
+            "constraint_id": { "type": "string", "minLength": 3 },
+            "constraint_class": { "const": "budget_ceiling" },
+            "max_usd": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["constraint_id", "constraint_class", "source_class"],
+          "properties": {
+            "constraint_id": { "type": "string", "minLength": 3 },
+            "constraint_class": { "const": "forbidden_source_class" },
+            "source_class": { "$ref": "#/$defs/source_class" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["constraint_id", "constraint_class", "role", "seat_id"],
+          "properties": {
+            "constraint_id": { "type": "string", "minLength": 3 },
+            "constraint_class": { "const": "mandatory_human_seat" },
+            "role": { "type": "string", "minLength": 3 },
+            "seat_id": { "type": "string", "minLength": 3 }
+          }
+        }
+      ]
+    },
+    "override_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "constraint_id",
+        "constraint_class",
+        "auto_value",
+        "owner_value",
+        "mutation",
+        "visible"
+      ],
+      "properties": {
+        "constraint_id": { "type": "string", "minLength": 3 },
+        "constraint_class": {
+          "type": "string",
+          "enum": [
+            "budget_ceiling",
+            "forbidden_source_class",
+            "mandatory_human_seat"
+          ]
+        },
+        "auto_value": true,
+        "owner_value": true,
+        "mutation": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 4 }
+        },
+        "visible": { "const": true }
+      }
+    },
+    "composition_result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "status",
+        "task_id",
+        "auto_choice",
+        "final_choice",
+        "override_log",
+        "blocked",
+        "visibility"
+      ],
+      "properties": {
+        "status": { "type": "string", "enum": ["COMPOSED", "BLOCKED"] },
+        "task_id": { "type": "string", "minLength": 3 },
+        "auto_choice": { "$ref": "#/$defs/choice" },
+        "final_choice": {
+          "anyOf": [{ "$ref": "#/$defs/choice" }, { "type": "null" }]
+        },
+        "override_log": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/override_entry" }
+        },
+        "blocked": {
+          "anyOf": [
+            { "type": "null" },
+            {
+              "type": "object",
+              "additionalProperties": false,
+              "required": [
+                "reason",
+                "unsatisfied_constraint_ids",
+                "attempted_mutations"
+              ],
+              "properties": {
+                "reason": { "type": "string", "minLength": 8 },
+                "unsatisfied_constraint_ids": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": { "type": "string" }
+                },
+                "attempted_mutations": {
+                  "type": "array",
+                  "items": { "type": "string" }
+                }
+              }
+            }
+          ]
+        },
+        "visibility": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "override_log_is_primary_record",
+            "roster_diff_is_not_sufficient",
+            "silent_win"
+          ],
+          "properties": {
+            "override_log_is_primary_record": { "const": true },
+            "roster_diff_is_not_sufficient": { "const": true },
+            "silent_win": { "type": "boolean" }
+          }
+        }
+      }
+    }
+  }
+}

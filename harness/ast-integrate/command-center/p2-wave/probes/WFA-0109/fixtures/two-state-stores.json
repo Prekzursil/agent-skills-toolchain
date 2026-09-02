@@ -1,0 +1,32 @@
+{
+  "fusion_id": "fx-two-state-stores",
+  "kind": "fused_workflow_ir",
+  "sources": [
+    {"id": "wf-src-a", "capabilities": ["ingest"]},
+    {"id": "wf-src-b", "capabilities": ["emit"]}
+  ],
+  "capabilities": ["ingest", "emit"],
+  "declared": {
+    "schedulers": [{"id": "sched-primary"}],
+    "state_stores": [
+      {"id": "store-alpha", "snapshot": "identical-bytes"},
+      {"id": "store-beta", "snapshot": "identical-bytes"}
+    ],
+    "execution_order_owners": [{"id": "sched-primary"}]
+  },
+  "components": [
+    {
+      "id": "sched-primary",
+      "role": "scheduler",
+      "owns_execution_order": true
+    },
+    {"id": "store-alpha", "role": "state_store"},
+    {"id": "store-beta", "role": "state_store"}
+  ],
+  "runtime_script": [
+    {"process": "sched-primary", "op": "run_loop"},
+    {"process": "sched-primary", "op": "schedule_step", "target": "step-1"},
+    {"process": "store-alpha", "op": "commit_state", "target": "store-alpha"},
+    {"process": "store-beta", "op": "commit_state", "target": "store-beta"}
+  ]
+}

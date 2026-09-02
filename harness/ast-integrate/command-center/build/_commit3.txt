@@ -1,0 +1,49 @@
+feat(scripts): add the missing repo -> skills.daily deploy hop, and mutation-test its own guards
+
+ROOT CAUSE, restated because it is the reason all this drift regenerates:
+`ci/check_skill_deploy_drift.py` recorded on 2026-07-29 that NOT ONE script in scripts/ or ci/
+writes to `~/.claude/skills.daily`. sync-skills.ps1 stops at ~/.agents/skills, sync-from-live.ps1
+carries that back to the repo, check_skill_dual_write.py compares the repo's two roots. Every one
+of them stops one hop short of the only tree Claude Code actually loads, so the last hop is done
+BY HAND -- which is why anything authored there is orphaned from git and why fixing the drift
+never makes it stay fixed. scripts/deploy-skills-daily.py is that hop, and it is deliberately the
+most timid script in the repo.
+
+Four properties, each ENFORCED and each SELF-TESTED:
+  P1 copies only `safe_to_deploy` (RIGHT-AHEAD or RIGHT-ONLY-FILE). A DIVERGED file is never
+     touched. On the real pair right now: 3 safe, 434 needing a human merge.
+  P2 never resurrects a skill. 18 skills exist in the repo and in NEITHER live tree, including
+     the NINE retired per-mode wrappers codex-audit/-brainstorm/-coordinate/-curate/-discuss/
+     -fix/-governance/-review/-triage whose replacement codex-orchestrate is already live.
+  P3 never deletes. No prune, no mirror-delete, no rmtree exists in the file. microsoft-foundry
+     and qdx-rush are in both live trees and absent from repo skills/, so a prune-style sync
+     deletes two real skills.
+  P4 dry-run by default, and --apply runs --self-test FIRST and aborts on failure. The gate
+     therefore re-proves itself on every real use rather than on a schedule nobody runs.
+
+THE SELF-TEST WAS A NO-OP AND MY OWN MUTATION HARNESS CAUGHT IT.
+I wrote three mutants -- delete the P2 guard, widen the safe list to include needs_merge, add a
+prune -- and required each to turn the self-test RED. Two died. **P2 SURVIVED.** The reason is
+worth keeping: `safe_to_deploy` is built from SHARED skills only, so a repo-only skill never
+reaches the P2 guard at all, and "no repo-only skill was copied" stayed true with the guard
+deleted. That assertion was measuring the drift reporter, not this tool -- a probe silent in both
+states. Fixed by extracting the guard into a callable `deployable()` seam and having the
+self-test hand it the case the integration path structurally cannot produce, plus a control that
+the guard still ACCEPTS a present skill (a guard that refuses everything would also have passed).
+All three mutants now die: `SUCCESS:deploy-gate-mutation survivors=0/3`.
+
+I DID NOT run the full 98-file deploy. That is an owner-gated action against a live tree during
+an active session. I deployed exactly the three skills whose bodies this wave edited, so the
+lessons reach the tree Claude Code reads instead of sitting in a repo nobody loads.
+
+AND THE DEPLOY EXPOSED A TRAP I HAD WALKED INTO. two-tier-verify and rubric-verifier came back
+DIVERGED for ONE reason: the live `description:` line is the LONGER variant and the repo holds a
+shortened one (the never-deployed description cap). Deploying my body edit would therefore have
+silently SHORTENED two descriptions by 282 and 307 characters as a side effect of a docs commit.
+That is exactly backwards for this fleet: the description is always-loaded and is the entire
+lexical recall surface, the body loads only on invocation, and 26 skills are already dark for
+want of description budget. Trading trigger vocabulary for index budget may well be the right
+call, but it is a deliberate budget decision needing the adversarial review that never ran -- not
+a silent side effect. So the union was taken in the safe direction: keep the LIVE description,
+keep the NEW body. Both roots now carry 671 and 714 characters, identical to live, and the repo
+copy is a strict superset that deploys without shortening anything.

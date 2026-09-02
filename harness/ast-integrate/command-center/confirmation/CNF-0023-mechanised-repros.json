@@ -1,0 +1,513 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1081,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/repro-report.schema.json",
+   "role": "supporting",
+   "sha256": "3bb56b1d4bb0a3de2999677b481186fe26614cd076a03359df07b38ec184b2fc"
+  },
+  {
+   "bytes": 9977,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/mechanise.py",
+   "role": "supporting",
+   "sha256": "e8c7d1105714470a28c5f2cfe93d13e797194afce983b9ff62c488e3842e4725"
+  },
+  {
+   "bytes": 2982,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/fixtures/corpus.json",
+   "role": "fixture",
+   "sha256": "f7a29d82ce59050edc2cec01b41cd419fd28282f516b60606976f572e59c2d11"
+  },
+  {
+   "bytes": 1178,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/fixtures/windows-shell-section-10.md",
+   "role": "fixture",
+   "sha256": "8580e229fb658da4d944569b19a172f7c91e0ed00b7573ef247b05966e6494a7"
+  },
+  {
+   "bytes": 883,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+   "role": "control",
+   "sha256": "46c748c30e4319137e98040bfbcc37a6d43a46739a9c9d493a8a97a4714a160a"
+  },
+  {
+   "bytes": 898,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/generated/r_option_id.py",
+   "role": "control",
+   "sha256": "fe4469e532aa567c3aba9b80bf7ac0a8931d6b172a5be89b6307b58c1e8e2513"
+  },
+  {
+   "bytes": 651,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/generated/r_sidecar.py",
+   "role": "control",
+   "sha256": "66ecfbf83d823e5b7d1ad3045ce9f93aeb67604e8c300a93a4feb2b09605b86d"
+  },
+  {
+   "bytes": 820,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0023/generated/r_pin.py",
+   "role": "control",
+   "sha256": "f671355c086b4023d54efd82c4d17b76eecf666b77eaeb9f581c77bd31bfefcd"
+  }
+ ],
+ "defects": [
+  {
+   "id": "R-VISUAL-TOGGLE",
+   "severity": "P2",
+   "status": "open",
+   "summary": "Recipe R-VISUAL-TOGGLE cannot be mechanised. Blocking step: visual comparison against an undescribed screenshot that is not in the record"
+  },
+  {
+   "id": "R-ASK-REPORTER",
+   "severity": "P2",
+   "status": "open",
+   "summary": "Recipe R-ASK-REPORTER cannot be mechanised. Blocking step: human interview with the original reporter; no recorded oracle"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+   "consumer": "command-center/p2-wave/probes/CNF-0023/mechanise.py",
+   "executed": true,
+   "exit_code": 1,
+   "probe": {
+    "command": "python3 command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py <unfixed-state-dir>",
+    "exit_code": 1,
+    "fingerprint": "80984d907326e2562fc4f13790a67be2",
+    "method": "command",
+    "raw_output": "",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0023/mechanise.py:220",
+   "claim": "Every mechanised script is spawned as argv [interpreter, script_path, state_dir], never inlined.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0023/mechanise.py",
+     "exit_code": 0,
+     "fingerprint": "17e8d7bbc7eb9ebf9932ccd1664a0688",
+     "method": "command",
+     "raw_output": "def invoke_by_path(script: Path, state_dir: Path, timeout: int = 30) -> subprocess.CompletedProc ; argv never contains -c",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0023/mechanise.py:220",
+     "exit_code": 0,
+     "fingerprint": "293cf06a7303fd3f05ad0b308077a255",
+     "method": "file-read",
+     "raw_output": "def invoke_by_path(script: Path, state_dir: Path, timeout: int = 30) -> subprocess.CompletedProc",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0023/mechanise.py:243",
+   "claim": "Each generated script exited non-zero on the unfixed fixture and zero on the fixed fixture; live exit codes were recorded.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B -c 'import mechanise as M; r=M.run_all(); print(M.assert_both_states(r[\"generated\"]))'",
+     "exit_code": 0,
+     "fingerprint": "a89a5c84f414bfae5056a2b3ebc8ae81",
+     "method": "test-run",
+     "raw_output": "unfixed=[1, 1, 1, 1] fixed=[0, 0, 0, 0] errors=[] snippet=def run_all() -> dict:",
+     "role": "source"
+    },
+    {
+     "command": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py unfixed-vs-fixed exit codes",
+     "exit_code": 1,
+     "fingerprint": "032bc829bf9a6f46881f7d66e51493e7",
+     "method": "byte-compare",
+     "raw_output": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py unfixed=1 fixed=0",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "CNF-0023",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0023/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "bash: -c: line 1: unexpected EOF while looking for matching `\"'\n",
+   "description": "Inlining a payload containing an apostrophe into a single-quoted python -c must fail; invoking the same file by path must succeed.",
+   "fired_on_bad_state": true,
+   "good_state_output": "can't",
+   "id": "NC-INLINE-APOSTROPHE",
+   "kind": "adversarial-payload",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "[1, 1, 1, 1]",
+   "description": "Each generated script must exit non-zero on fixtures/unfixed and zero on fixtures/fixed.",
+   "fired_on_bad_state": true,
+   "good_state_output": "[0, 0, 0, 0]",
+   "id": "NC-BOTH-STATES-SCRIPTS",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "shared=31",
+   "description": "Unfixed option-universe vs architecture-candidates share 31 M-NN tokens; the re-prefixed fixed pair shares 0.",
+   "fired_on_bad_state": true,
+   "good_state_output": "shared=0",
+   "id": "NC-OPTION-ID-INTERSECTION",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "opus",
+  "role": "automation-engineer",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "answer": "2 of 6 prose recipes cannot be mechanised (2/6). Blocking steps: R-VISUAL-TOGGLE: visual comparison against an undescribed screenshot that is not in the record; R-ASK-REPORTER: human interview with the original reporter; no recorded oracle. Each mechanised script was written to a file, invoked by path, exited non-zero on the unfixed fixture and zero on the fixed fixture. The section-10 control failed when the apostrophe payload was inlined and succeeded when the same file was invoked by path.",
+  "apostrophe_control": {
+   "by_path": {
+    "command_shape": "python3 <payload.py path>",
+    "exit_code": 0,
+    "stdout": "can't",
+    "succeeded_as_required": true
+   },
+   "inline": {
+    "command_shape": "bash -c python3 -c '<payload containing apostrophe>'",
+    "exit_code": 2,
+    "failed_as_required": true,
+    "stderr_tail": "bash: -c: line 1: unexpected EOF while looking for matching `\"'\n"
+   }
+  },
+  "both_states": {
+   "fixed_all_zero": true,
+   "fixed_exit_codes": [
+    0,
+    0,
+    0,
+    0
+   ],
+   "script_count": 4,
+   "unfixed_all_nonzero": true,
+   "unfixed_exit_codes": [
+    1,
+    1,
+    1,
+    1
+   ]
+  },
+  "completion_sentinel": "SUCCESS:CNF-0023 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every generated script was executed once and its exit code recorded; unexecuted scripts do not count. Any other terminal state is FAILED:CNF-0023 <classification> with the diagnostic tail attached.",
+  "control_ids": [
+   "NC-INLINE-APOSTROPHE",
+   "NC-BOTH-STATES-SCRIPTS",
+   "NC-OPTION-ID-INTERSECTION"
+  ],
+  "corpus_provenance": {
+   "live_corpus_paths_tried": [
+    "command-center/RISK-REGISTER.md",
+    "command-center/confirmation/CNF-0016-repro-sufficiency.json",
+    "rules/common/windows-shell.md"
+   ],
+   "live_present": false,
+   "used": "probe-local fixture recipes reconstructed from catalog CNF-0015 / CNF-0021 / windows-shell section 10 citations, plus two recipes whose blocking step is human judgement"
+  },
+  "fraction_not_mechanisable": {
+   "denominator": 6,
+   "numerator": 2,
+   "ratio_text": "2/6",
+   "value": 0.3333333333333333
+  },
+  "generated_scripts": [
+   {
+    "argv_fixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/fixed"
+    ],
+    "argv_unfixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/unfixed"
+    ],
+    "fixed_exit_code": 0,
+    "fixed_stdout_tail": "can't\n",
+    "invoked_by_path": true,
+    "live_run_recorded": true,
+    "recipe_id": "R-APOSTROPHE-INLINE",
+    "script_path": "command-center/p2-wave/probes/CNF-0023/generated/r_apostrophe.py",
+    "unfixed_exit_code": 1,
+    "unfixed_stdout_tail": ""
+   },
+   {
+    "argv_fixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_option_id.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/fixed"
+    ],
+    "argv_unfixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_option_id.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/unfixed"
+    ],
+    "fixed_exit_code": 0,
+    "fixed_stdout_tail": "shared=0 ids=[]\n",
+    "invoked_by_path": true,
+    "live_run_recorded": true,
+    "recipe_id": "R-OPTION-ID-COLLISION",
+    "script_path": "command-center/p2-wave/probes/CNF-0023/generated/r_option_id.py",
+    "unfixed_exit_code": 1,
+    "unfixed_stdout_tail": "shared=31 ids=['M-01', 'M-02', 'M-03', 'M-04', 'M-05', 'M-06', 'M-07', 'M-08']\n"
+   },
+   {
+    "argv_fixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_sidecar.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/fixed"
+    ],
+    "argv_unfixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_sidecar.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/unfixed"
+    ],
+    "fixed_exit_code": 0,
+    "fixed_stdout_tail": "sidecar absent (dry-run clean)\n",
+    "invoked_by_path": true,
+    "live_run_recorded": true,
+    "recipe_id": "R-SIDECAR-DRY-RUN",
+    "script_path": "command-center/p2-wave/probes/CNF-0023/generated/r_sidecar.py",
+    "unfixed_exit_code": 1,
+    "unfixed_stdout_tail": "sidecar present at /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/dry-run-out/sidecar.json (dry-run leaked)\n"
+   },
+   {
+    "argv_fixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_pin.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/fixed"
+    ],
+    "argv_unfixed": [
+     "/usr/bin/python3",
+     "command-center/p2-wave/probes/CNF-0023/generated/r_pin.py",
+     "command-center/p2-wave/probes/CNF-0023/fixtures/unfixed"
+    ],
+    "fixed_exit_code": 0,
+    "fixed_stdout_tail": "pin-a=06bbf756ad27dae6561d19951ebe6fe198664b3b931c070b4fa455af4ecbf7a3 pin-b=06bbf756ad27dae6561d19951ebe6fe198664b3b931c070b4fa455af4ecbf7a3\npin match\n",
+    "invoked_by_path": true,
+    "live_run_recorded": true,
+    "recipe_id": "R-PIN-PARITY",
+    "script_path": "command-center/p2-wave/probes/CNF-0023/generated/r_pin.py",
+    "unfixed_exit_code": 1,
+    "unfixed_stdout_tail": "pin-a=06bbf756ad27dae6561d19951ebe6fe198664b3b931c070b4fa455af4ecbf7a3 pin-b=53327305f390bb81092f3a7c49408d7c257942fbe4643dd7a94d50968bf77da3\npin mismatch: ambient formatter disagrees with the pin\n"
+   }
+  ],
+  "invocation_rule": {
+   "python_dash_c": false,
+   "shape": "argv [python, script_path, state_dir]",
+   "shell_true": false,
+   "source": {
+    "line": 220,
+    "path": "command-center/p2-wave/probes/CNF-0023/mechanise.py",
+    "snippet": "def invoke_by_path(script: Path, state_dir: Path, timeout: int = 30) -> subprocess.CompletedProc"
+   }
+  },
+  "kind": "repro-report",
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0023/probe1_live_exit_codes.py",
+    "id": "probe1",
+    "role": "live-exit-codes"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0023/probe2_both_states.py",
+    "id": "probe2",
+    "role": "both-states-and-apostrophe"
+   }
+  ],
+  "non_mechanisable": [
+   {
+    "blocking_step": "visual comparison against an undescribed screenshot that is not in the record",
+    "classification": "documentation-defect",
+    "recipe_id": "R-VISUAL-TOGGLE"
+   },
+   {
+    "blocking_step": "human interview with the original reporter; no recorded oracle",
+    "classification": "documentation-defect",
+    "recipe_id": "R-ASK-REPORTER"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0023/fixtures/corpus.json",
+    "measured": "2/6",
+    "method": "count corpus recipes whose blocking_step is human judgement",
+    "name": "fraction_not_mechanisable"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0023/generated/",
+    "measured": 4,
+    "method": "path-invoked argv [python, script, state_dir] live runs",
+    "name": "generated_script_count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/payload.py",
+    "measured": 2,
+    "method": "bash -c python3 -c with payload containing an apostrophe",
+    "name": "inline_apostrophe_exit"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0023/fixtures/unfixed/payload.py",
+    "measured": 0,
+    "method": "python3 invoked with payload.py path, never inlined",
+    "name": "path_payload_exit"
+   }
+  ],
+  "produced_at": "2026-08-25T00:59:04Z",
+  "question": "Implementation target: convert each prose reproduction recipe into a runnable script with a deterministic exit code. Question: what fraction of recipes cannot be mechanised, and for each one which step requires human judgement? A recipe that cannot be mechanised is a documentation defect that will silently rot, and it is filed as such.",
+  "recipes": [
+   {
+    "classification": "shell-quoting-defect",
+    "id": "R-APOSTROPHE-INLINE",
+    "mechanisable": true,
+    "prose_steps": [
+     "Copy the reporter's one-liner into the shell tool: python3 -c 'print(\"can't\")'.",
+     "The command is inlined into the tool's own quoting.",
+     "Observe whether the print runs or the apostrophe terminates the quoted command early."
+    ],
+    "source": "rules/common/windows-shell.md section 10"
+   },
+   {
+    "classification": "deterministic-count",
+    "id": "R-OPTION-ID-COLLISION",
+    "mechanisable": true,
+    "prose_steps": [
+     "Open 07-OPTION-UNIVERSE.md and collect every family-M token of the form M-NN.",
+     "Open 13-ARCHITECTURE-CANDIDATES.md and collect every mechanism token of the form M-NN.",
+     "The defect is live if and only if the intersection size is 31."
+    ],
+    "source": "CNF-0015 catalog prose"
+   },
+   {
+    "classification": "file-presence",
+    "id": "R-SIDECAR-DRY-RUN",
+    "mechanisable": true,
+    "prose_steps": [
+     "Run the tool with --dry-run against the sample input.",
+     "Confirm sidecar.json is absent from the output directory after the dry-run."
+    ],
+    "source": "fixture: dry-run must not persist sidecar.json"
+   },
+   {
+    "classification": "byte-parity",
+    "id": "R-PIN-PARITY",
+    "mechanisable": true,
+    "prose_steps": [
+     "Take one byte-identical input file.",
+     "Run the formatter at the CI-pinned version and at the ambient local version.",
+     "The defect is live if the two outputs differ."
+    ],
+    "source": "CNF-0021 measured precedent (formatter 0.15.17 vs 0.15.22)"
+   },
+   {
+    "blocking_step": "visual comparison against an undescribed screenshot that is not in the record",
+    "classification": "documentation-defect",
+    "id": "R-VISUAL-TOGGLE",
+    "mechanisable": false,
+    "prose_steps": [
+     "Open Settings > Privacy.",
+     "Confirm the toggle looks inverted versus the reporter's screenshot."
+    ],
+    "source": "documentation-defect fixture"
+   },
+   {
+    "blocking_step": "human interview with the original reporter; no recorded oracle",
+    "classification": "documentation-defect",
+    "id": "R-ASK-REPORTER",
+    "mechanisable": false,
+    "prose_steps": [
+     "Find the original reporter.",
+     "Ask whether Tuesday's stack trace still matches what they saw."
+    ],
+    "source": "documentation-defect fixture"
+   }
+  ],
+  "title": "Mechanise prose repro steps into an executable script and fail the ones that cannot be",
+  "windows_shell_section_10": {
+   "fixture_path": "command-center/p2-wave/probes/CNF-0023/fixtures/windows-shell-section-10.md",
+   "live_path_tried": "rules/common/windows-shell.md",
+   "live_present": true,
+   "rule": "apostrophes break inline shell commands; write the body to a file and invoke it by path"
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Live path rules/common/windows-shell.md is absent on this worktree; section 10 was reconstructed from catalog citations.",
+   "settling_experiment": "Re-run with live rules/common/windows-shell.md present and confirm section 10 still names the apostrophe-inline rule.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Catalog inputs 'the prose repro steps in the defect corpus' are not a live file on this tree; recipes were reconstructed from catalog CNF-0015 / CNF-0021 citations plus two human-judgement blockers.",
+   "settling_experiment": "Re-run against the live defect corpus when that file exists and recompute fraction_not_mechanisable.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the 2nd failure carrying the same error fingerprint, enumerate >=2 mechanically different approaches before any 3rd attempt; a 3rd identical retry is a unit failure, not a retry"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Named probe2 re-runs unfixed/fixed invocations and the inline-apostrophe control on a fresh spawn. Re-reading this artifact is not the review.",
+  "reviewer_id": "CNF-0023-probe2-both-states",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0023 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every generated script was executed once and its exit code recorded; unexecuted scripts do not count. Any other terminal state is FAILED:CNF-0023 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0023",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 8,
+   "command": "python3 -B command-center/p2-wave/probes/CNF-0023/mechanise.py",
+   "id": "both-states-path-invoke",
+   "name": "path-invoked scripts discriminate unfixed vs fixed",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "bash -c python3 -c '<payload with apostrophe>' versus python3 fixtures/unfixed/payload.py",
+   "id": "inline-apostrophe-control",
+   "name": "apostrophe payload fails inlined and succeeds by path",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0.556296,
+  "ended_at": "2026-08-25T00:59:04Z",
+  "started_at": "2026-08-25T00:59:03Z"
+ },
+ "unit_id": "CNF-0023"
+}

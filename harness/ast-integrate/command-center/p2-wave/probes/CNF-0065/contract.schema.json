@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/CNF-0065/contract.schema.json",
+  "title": "CNF-0065 unit-local claims contract",
+  "type": "object",
+  "required": ["unit_id", "state", "sentinel", "report"],
+  "properties": {
+    "unit_id": { "const": "CNF-0065" },
+    "state": { "type": "string", "minLength": 1 },
+    "sentinel": { "type": "string", "minLength": 8 },
+    "report": {
+      "type": "object",
+      "required": ["kind", "claims", "sampling", "noise_floor"],
+      "properties": {
+        "kind": { "const": "benchmark-report" },
+        "sampling": {
+          "type": "object",
+          "required": ["seed", "k", "frame_ids", "sampled_ids"],
+          "properties": {
+            "seed": { "type": "integer" },
+            "k": { "type": "integer", "minimum": 1 },
+            "frame_ids": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } },
+            "sampled_ids": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+          }
+        },
+        "noise_floor": {
+          "type": "object",
+          "required": ["raw_ms", "median_ms", "iqr_ms", "cnf0027_present"],
+          "properties": {
+            "raw_ms": { "type": "array", "minItems": 11, "items": { "type": "number" } },
+            "median_ms": { "type": "number" },
+            "iqr_ms": { "type": "number" },
+            "cnf0027_present": { "type": "boolean" }
+          }
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["id", "verdict", "cited_value", "measured"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "verdict": {
+                "type": "string",
+                "enum": [
+                  "REPRODUCED",
+                  "CONDITIONALLY-REPRODUCIBLE",
+                  "NOT-REPRODUCIBLE",
+                  "NOISE-DOMINATED"
+                ]
+              },
+              "missing_prerequisite": { "type": ["string", "null"] },
+              "inferred_conditions": { "type": "array", "items": { "type": "string" } }
+            },
+            "allOf": [
+              {
+                "if": {
+                  "required": ["verdict"],
+                  "properties": { "verdict": { "const": "NOT-REPRODUCIBLE" } }
+                },
+                "then": {
+                  "required": ["missing_prerequisite"],
+                  "properties": {
+                    "missing_prerequisite": { "type": "string", "minLength": 8 }
+                  }
+                }
+              },
+              {
+                "if": {
+                  "required": ["verdict"],
+                  "properties": { "verdict": { "const": "CONDITIONALLY-REPRODUCIBLE" } }
+                },
+                "then": {
+                  "required": ["inferred_conditions"],
+                  "properties": {
+                    "inferred_conditions": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+                  }
+                }
+              }
+            ]
+          }
+        }
+      }
+    }
+  }
+}

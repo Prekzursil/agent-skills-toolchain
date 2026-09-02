@@ -1,0 +1,58 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "mcp-manager"
+version = "0.2.0"
+description = "Cross-plane MCP server manager — CLI + TUI"
+requires-python = ">=3.11"
+dependencies = [
+    "pyside6>=6.11.1",
+    "textual>=0.80",
+    "tomlkit>=0.12",
+]
+
+# Flat-layout package set is explicit: setuptools auto-discovery refuses to
+# choose between the multiple top-level packages (core, ui) in this directory.
+[tool.setuptools]
+packages = ["core", "ui"]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+# The GUI view layers are presentation/event-loop code (Textual App widgets +
+# PySide6 QMainWindow). They are exercised by manual/visual review, not unit
+# tests; their testable logic is extracted into core/* (100% covered) and into
+# the helpers exercised by tests/test_ui_logic.py. Unit-testing the framework
+# render/event loop would test Textual/Qt, not this project, so they are
+# excluded from the coverage metric (greppable, reasoned omit — not a threshold
+# change). All non-GUI logic must still hit 100% line+branch.
+omit = [
+    "ui/app.py",
+    "ui/gui.py",
+]
+
+[tool.basedpyright]
+# The quality gate runs `basedpyright core ui app.py` at STANDARD mode (see
+# .github/workflows/quality.yml). Pin it here so the gate is reproducible and
+# does not silently inherit basedpyright's stricter config-less default (which
+# turns whole-program "recommended"/"all" heuristics — reportUnknownVariableType
+# from untyped optional deps like pywinauto, reportUnusedParameter, implicit
+# string-concat — into warnings that fail the gate). Standard mode is the
+# contract; only package SOURCE is checked (tests are intentionally looser).
+typeCheckingMode = "standard"
+
+[tool.uv]
+dev-dependencies = [
+    "pytest>=7",
+    "pytest-cov>=4",
+]

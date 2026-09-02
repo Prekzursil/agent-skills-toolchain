@@ -1,0 +1,42 @@
+{
+ "artifacts": [
+  {
+   "bytes": 39102,
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0046-third-party-content-egress-audit.json",
+   "role": "primary",
+   "sha256": "b6f1c42a7ac0b2aa3e3e364d75167de5f3e70ed90fc90f23aacf13354683b7ef"
+  }
+ ],
+ "cloud_ok": false,
+ "id": "ADV-0046",
+ "manifest_path": "command-center/p2-wave/probes/ADV-0046/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0046/probe1_intercept_classify.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\n  \"census\": [\n    {\n      \"line\": 351,\n      \"note\": \"launch_one embeds the full prompt in argv, including the worktree path from prompt_for.\",\n      \"path\": \"command-center/p2-wave/seed-stage/dispatch_cursor.py\",\n      \"rail\": \"cli-subprocess\",\n      \"snippet\": \"cmd.append(prompt.read_text(encoding=\\\"utf-8\\\"))\"\n    },\n    {\n      \"line\": 323,\n      \"note\": \"agent_cmd truncates the same prompt to 12000 characters before argv.\",\n      \"path\": \"command-center/p2-wave/seed-stage/dispatch_cursor.py\",\n      \"rail\": \"cli-subprocess\",\n      \"snippet\": \"cmd.append(prompt.read_text(encoding=\\\"utf-8\\\")[:12000])\"\n    },\n    {\n      \"line\": 101,\n      \"note\": \"Adapters record prompt_chars and write a local output file; they do not open HTTP/MCP/CLI.\",\n      \"path\": \"command-center/p2-wave/probes/CNF-0158/vendor_runtime.py\",\n      \"rail\": \"in-process\",\n      \"snippet\": \"transport = \\\"file\\\" if prompt_by_file else \\\"inline\\\"\"\n    }\n  ],\n  \"classification\": {\n    \"bytes\": 6815,\n    \"has_attached_canary\": true,\n    \"has_unattached_canary\": false,\n    \"markers\": {\n      \"owner_private\": [\n        \"CANARY-ADV-0046-OWNER-PRIVATE-b7e19c4d2a60f831\",\n        \"project Nightjar stays unpublished\",\n        \"def owner_private_helper_adv0046\",\n        \"/home/adv0046-owner/private-notes/ledger.md\",\n        \"/opt/p2/ast-integrate\"\n      ],\n      \"program_generated\": [\n        \"PROGRAM-GENERATED-ADV0046-PROMPT-TEMPLATE\",\n        \"unit_manifest.py --write\"\n      ],\n      \"public_knowledge\": [\n        \"RFC2119-MUST-PUBLIC-ADV0046\"\n      ]\n    },\n    \"origins\": [\n      \"owner_private\",\n      \"program_generated\",\n      \"public_knowledge\"\n    ]\n  },\n  \"cli\": {\n    \"exit_code\": 0,\n    \"parent_matches_child\": true,\n    \"workspace\": \"/opt/p2/ast-integrate\"\n  },\n  \"http\": {\n    \"bytes_sent\": 1399,\n    \"connects\": 1,\n    \"hits\": 1\n  },\n  \"mcp\": {\n    \"child_bytes\": 1439,\n    \"exit_code\": 0,\n    \"parent_matches_child\": true\n  },\n  \"observation_method\": \"ThreadingHTTPServer.bind(127.0.0.1:ephemeral) accepted-POST, MCP stdio child independently recorded stdin, CLI stub independently recorded argv. Localhost only; no vendor, no API keys.\",\n  \"probe\": \"probe1-intercept-classify\",\n  \"unit_id\": \"ADV-0046\"\n}\norigins=owner_private,program_generated,public_knowledge http_hits=1 mcp_match=True cli_match=True\nSUCCESS:ADV-0046-probe1 intercept-classify three-origins"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0046/probe2_canary_reach.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\n  \"attached\": {\n    \"cli\": true,\n    \"http\": true,\n    \"mcp\": true,\n    \"unattached\": false\n  },\n  \"control_deliberate_send\": {\n    \"all_three\": true,\n    \"cli_parent_matches_child\": true,\n    \"cli_saw\": true,\n    \"http_hits\": 1,\n    \"http_saw\": true,\n    \"joined_has_unattached\": false,\n    \"mcp_parent_matches_child\": true,\n    \"mcp_saw\": true\n  },\n  \"inprocess_adapters\": {\n    \"anthropic_prompt_chars\": 1267,\n    \"anthropic_transport\": \"file\",\n    \"canary_in_prompt\": true,\n    \"egressed\": false,\n    \"http_hits\": 0,\n    \"openai_prompt_chars\": 1267,\n    \"openai_transport\": \"file\",\n    \"socket_connects\": 0\n  },\n  \"observation_method\": \"Search interceptor-accepted bytes for the planted canary. Not inferred from prompt constructors alone: HTTP body, MCP child stdin, and CLI child argv must each contain or lack it.\",\n  \"omitted\": {\n    \"cli\": false,\n    \"http\": false,\n    \"mcp\": false,\n    \"unattached\": false\n  },\n  \"probe\": \"probe2-canary-reach\",\n  \"unattached_fixture_on_disk\": true,\n  \"unit_id\": \"ADV-0046\"\n}\ncontrol_all_three=True attached=http/mcp/cli omitted=none inprocess_egressed=False\nSUCCESS:ADV-0046-probe2 canary-reach both-states and three-transport control"
+  }
+ ],
+ "notes": "G-1 for ADV-0046: live named probes exit 0, privacy-dataflow artifact state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild circle. cloud ok=true is not delivery.",
+ "output_path": "command-center/adversarial/ADV-0046-third-party-content-egress-audit.json",
+ "output_schema": "command-center/schema/privacy-dataflow.schema.json",
+ "registered": true,
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "ADV-0046-probe2-canary-reach",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:ADV-0046",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "ts": "2026-08-25T01:04:33Z",
+ "unit_id": "ADV-0046"
+}

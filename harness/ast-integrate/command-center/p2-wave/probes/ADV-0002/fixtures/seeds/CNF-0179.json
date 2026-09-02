@@ -1,0 +1,405 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0179",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0179",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0179]",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "independent-confirmer",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/CNF-0179.json",
+      "bytes": 19105,
+      "sha256": "279c7348de90ae46edc7e274bbc4bc657d0855487410d978e2ed266e33f0fc8e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/program-gate-report.schema.json",
+      "bytes": 1118,
+      "sha256": "56b9275eb8dfc2a06f7ab6a84bbba927c8146893b881c227d4ca754903871f3d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+      "bytes": 575,
+      "sha256": "287706429d280d44616be7713db4a235ec6e999d5fec6303a0098637fe26b29d",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "openssl dgst -verify accepts the unmodified published tarball and rejects a one-byte mutant; provenance subject digest matches sha256sum of the tarball.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0179/verify_chain.py:both_states_signature",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "openssl dgst -sha256 -verify command-center/p2-wave/probes/CNF-0179/fixtures/published/pubkey.pem -signature command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz.sig command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+          "raw_output": "unmodified='Verified OK' mutated='Verification failure\\n4017B7C84A7A0000:error:02000068:rsa routines:ossl_rsa_verify:bad signature:../crypto/rsa/rsa_sign.c:430:\\n4017B7C84A7A0000:error:1C880004:Provider routines:rsa_verify:RSA lib:../providers/implementations/signature/rsa_sig.c:774:' pass=True openssl=OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)",
+          "fingerprint": "58ce39049b5608f1a9a12efbf523d2058aa624c1cd69e3ca63f42ef2b635fc55",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "sha256sum command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+          "raw_output": "287706429d280d44616be7713db4a235ec6e999d5fec6303a0098637fe26b29d  cnf-0179-published.tar.gz sha256sum=sha256sum (GNU coreutils) 9.4 subject_ok=True",
+          "fingerprint": "faacd357d7d3331dab60e3407c25883935afa801dcac85897288b2d08383cd44",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "SBOM-versus-contents difference is empty in both directions on the healthy bundle; present-but-unlisted is the supply-chain-risk direction and fires when a listed component is dropped; listed-but-absent fires on a phantom PURL.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0179/sbomdiff.py:differ",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "python3 command-center/p2-wave/probes/CNF-0179/sbomdiff.py tar-members vs CycloneDX cnf0179:path",
+          "raw_output": "{\"listed_but_absent\": [], \"phantom\": [\"pkg:generic/ghost-lib@0.0.1\"], \"present_but_unlisted\": [], \"removed\": [\"cnf-0179-demo-1.0.0/vendor/helper.py\"]}",
+          "fingerprint": "df4be189b54b55e2adff57cc44c0106dfeace3bdce6baa7cd1a9c5bc881017d2",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "tar -tzf command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+          "raw_output": "cnf-0179-demo-1.0.0/manifest.json\ncnf-0179-demo-1.0.0/lib/declared-lib.txt\ncnf-0179-demo-1.0.0/vendor/helper.py\ncnf-0179-demo-1.0.0/bin/tool.sh\ncnf-0179-demo-1.0.0/docs/NOTES.md\ncnf-0179-demo-1.0.0/LICENSE",
+          "fingerprint": "04a538f32d349ea062635343d5a67ea84dfb9dc26fa5b6e470f2f1bb898007e4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "GNU grep secret scan is clean on the unpacked bundle and fires on a planted documentation-example access-key shape.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0179/secrets.py:grep_scan",
+      "unverified": false,
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "grep -aREn -f secret-patterns.txt unpack/",
+          "raw_output": "clean hits=0 rc=1; planted hits=1 rc=0; grep=grep (GNU grep) 3.11",
+          "fingerprint": "f635851524fec3a308de5bb7fd4e019570d1e2de96974caa446bda71e68a1be8",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0179/probe2_sbom_secrets.py",
+          "raw_output": "named probe2 re-runs GNU grep against the unpacked fixture and asserts clean-then-planted both-states",
+          "fingerprint": "def52a9eb45606bcba8c0a174ec69f53ffb5d8cfaa7f824358a738c16453dee4",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-byte-mutate-signature",
+      "name": "Alter one byte of the artifact and confirm openssl verification fails",
+      "command": "openssl dgst -sha256 -verify command-center/p2-wave/probes/CNF-0179/fixtures/published/pubkey.pem -signature command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz.sig command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "Verification failure\n4017B7C84A7A0000:error:02000068:rsa routines:ossl_rsa_verify:bad signature:../crypto/rsa/rsa_sign.c:430:\n4017B7C84A7A0000:error:1C880004:Provider routines:rsa_verify:RSA lib:../providers/implementations/signature/rsa_sig.c:774:"
+    },
+    {
+      "id": "T2-sbom-remove-component",
+      "name": "Remove a component from the SBOM and confirm the differ reports it",
+      "command": "python3 command-center/p2-wave/probes/CNF-0179/sbomdiff.py tar-members vs CycloneDX cnf0179:path",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "[\"cnf-0179-demo-1.0.0/vendor/helper.py\"]"
+    },
+    {
+      "id": "T3-unmodified-verifies",
+      "name": "Unmodified artifact verifies cleanly under openssl dgst -verify",
+      "command": "openssl dgst -sha256 -verify command-center/p2-wave/probes/CNF-0179/fixtures/published/pubkey.pem -signature command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz.sig command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "Verified OK"
+    },
+    {
+      "id": "T4-secret-scan",
+      "name": "Independent grep scan asserts no credential in the bundle and fires on a planted example shape",
+      "command": "grep -aREn -f secret-patterns.txt unpack/",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "clean hits=0 rc=1; planted hits=1 rc=0"
+    },
+    {
+      "id": "T5-sbom-phantom-listed-absent",
+      "name": "Listed-but-absent direction fires when a phantom PURL is added",
+      "command": "python3 command-center/p2-wave/probes/CNF-0179/sbomdiff.py tar-members vs CycloneDX cnf0179:path",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "[\"pkg:generic/ghost-lib@0.0.1\"]"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "byte-mutant-signature",
+      "kind": "mutation",
+      "description": "Flip one byte of the published tarball; openssl must reject.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "Verification failure\n4017B7C84A7A0000:error:02000068:rsa routines:ossl_rsa_verify:bad signature:../crypto/rsa/rsa_sign.c:430:\n4017B7C84A7A0000:error:1C880004:Provider routines:rsa_verify:RSA lib:../providers/implementations/signature/rsa_sig.c:774:",
+      "good_state_output": "Verified OK"
+    },
+    {
+      "id": "sbom-removed-component",
+      "kind": "known-broken-fixture",
+      "description": "Drop vendor-helper from the SBOM copy; present-but-unlisted must fire.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "[\"cnf-0179-demo-1.0.0/vendor/helper.py\"]",
+      "good_state_output": "listed_but_absent=[] present_but_unlisted=[]"
+    },
+    {
+      "id": "planted-secret-shape",
+      "kind": "known-broken-fixture",
+      "description": "Plant AKIAIOSFODNN7EXAMPLE; GNU grep must fire, clean bundle must not.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "hits=1 rc=0",
+      "good_state_output": "hits=0 rc=1"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0179-probe2-sbom-grep",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "vendor": "xai",
+    "notes": "Probe 1 re-runs openssl dgst -verify (both-states + provenance). Probe 2 re-runs tar-vs-SBOM set difference and GNU grep. Catalog scoring by a second human confirmer is independent of G-1 probe-green.",
+    "reviewed_at": "2026-08-25T00:31:11Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0179/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0179",
+    "registered_at": "2026-08-25T00:31:11Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads of catalog output_path",
+      "artifact_path": "command-center/receipts/CNF-0179.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "python3 -c json.loads(command-center/receipts/CNF-0179.json)",
+        "raw_output": "parse=ok schema=program-gate-report",
+        "fingerprint": "5b1d4468f1d030e0f74fca2b1234af3e51e65f17e8743ecfb34bb5505235aa23",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:31:11Z",
+    "ended_at": "2026-08-25T00:31:11Z",
+    "duration_seconds": 0.430841
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Live-harness probe: no automatic retry. On failure, diagnose with a second mechanically different signal before any re-run. Max 2 manual re-runs, each recorded with its diagnosis; then escalate as BLOCKED."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "A production marketplace registry tarball with detached signature, in-toto provenance and SBOM was not present to re-verify outside the published-shape fixture.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When a production payload+sig+SBOM+provenance triple is published, point the named probes at those bytes and re-run openssl dgst -verify plus the both-way SBOM differ."
+    }
+  ],
+  "report": {
+    "kind": "program-gate-report",
+    "observations": [
+      {
+        "name": "unmodified-openssl-verify",
+        "measured": true,
+        "method": "openssl dgst -sha256 -verify",
+        "anchor": "command-center/p2-wave/probes/CNF-0179/verify_chain.py:both_states_signature"
+      },
+      {
+        "name": "one-byte-mutant-openssl-reject",
+        "measured": true,
+        "method": "openssl dgst -sha256 -verify",
+        "anchor": "command-center/p2-wave/probes/CNF-0179/verify_chain.py:flip_one_byte"
+      },
+      {
+        "name": "sbom-listed-but-absent",
+        "measured": "[]",
+        "method": "python tarfile vs CycloneDX path properties",
+        "anchor": "command-center/p2-wave/probes/CNF-0179/sbomdiff.py:differ"
+      },
+      {
+        "name": "sbom-present-but-unlisted",
+        "measured": "[]",
+        "method": "python tarfile vs CycloneDX path properties",
+        "anchor": "command-center/p2-wave/probes/CNF-0179/sbomdiff.py:differ"
+      },
+      {
+        "name": "secret-scan-clean",
+        "measured": true,
+        "method": "GNU grep -aREn -f",
+        "anchor": "command-center/p2-wave/probes/CNF-0179/secrets.py:grep_scan"
+      }
+    ],
+    "control_ids": [
+      "T1-byte-mutate-signature",
+      "T2-sbom-remove-component",
+      "T3-unmodified-verifies",
+      "T4-secret-scan",
+      "T5-sbom-phantom-listed-absent"
+    ],
+    "title": "Verify provenance, signature and SBOM with third-party tooling, not the project's own verifier",
+    "question": "Question: does the published artifact's attestation chain verify under INDEPENDENT tooling? A project verifier validating its own attestation is one signal and a circular one. Re-verify the signature, the provenance attestation and the SBOM with external tools, and cross-check the SBOM component list against the artifact's actual contents.",
+    "headline_answer": "Independent tooling (OpenSSL dgst -verify, GNU grep -f, coreutils sha256sum, GNU tar -tzf, Python 3 tarfile/json) verifies the published-shape bundle: unmodified signatures pass, a one-byte artifact mutation fails, the SBOM-versus-contents differ is empty in both directions on the healthy bundle and fires on known-broken copies, and the secret scan is clean. This worktree has no separate production marketplace tarball+sig+SBOM+attestation triple; that absence is recorded, not treated as a project-verifier pass. SUCCESS:CNF-0179",
+    "gate_verdict": "CONFIRMED",
+    "tools": [
+      {
+        "name": "openssl",
+        "version": "OpenSSL 3.0.13 30 Jan 2024 (Library: OpenSSL 3.0.13 30 Jan 2024)",
+        "command": "openssl dgst -sha256 -verify command-center/p2-wave/probes/CNF-0179/fixtures/published/pubkey.pem -signature command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz.sig command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+        "role": "artifact-and-provenance-signature-verification"
+      },
+      {
+        "name": "sha256sum",
+        "version": "sha256sum (GNU coreutils) 9.4",
+        "command": "sha256sum command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+        "role": "independent-digest-of-published-artifact"
+      },
+      {
+        "name": "tar",
+        "version": "GNU tar (tar -tzf)",
+        "command": "tar -tzf command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+        "role": "independent-member-list-versus-SBOM"
+      },
+      {
+        "name": "grep",
+        "version": "grep (GNU grep) 3.11",
+        "command": "grep -aREn -f secret-patterns.txt unpack/",
+        "role": "independent-secret-scan-of-unpacked-bundle"
+      },
+      {
+        "name": "python3",
+        "version": "Python 3.12.3",
+        "command": "python3 command-center/p2-wave/probes/CNF-0179/sbomdiff.py tar-members vs CycloneDX cnf0179:path",
+        "role": "artifact-derived-component-enumeration-versus-SBOM"
+      }
+    ],
+    "published_bundle": {
+      "path": "command-center/p2-wave/probes/CNF-0179/fixtures/published/cnf-0179-published.tar.gz",
+      "sha256": "287706429d280d44616be7713db4a235ec6e999d5fec6303a0098637fe26b29d",
+      "bytes": 575,
+      "pubkey_sha256": "fe247715f1fbc0c72cdb6fa4856074bc945b37f0bb979eccdc04f305e1975b0d",
+      "component_count": 6,
+      "signer": "ephemeral-fixture-rsa-2048-destroyed-after-sign",
+      "project_verifier_invoked": false
+    },
+    "sbom_diff": {
+      "listed_but_absent": [],
+      "present_but_unlisted": [],
+      "supply_chain_risk_direction": "present_but_unlisted",
+      "healthy_empty_both_ways": true,
+      "tar_members": [
+        "cnf-0179-demo-1.0.0/LICENSE",
+        "cnf-0179-demo-1.0.0/bin/tool.sh",
+        "cnf-0179-demo-1.0.0/docs/NOTES.md",
+        "cnf-0179-demo-1.0.0/lib/declared-lib.txt",
+        "cnf-0179-demo-1.0.0/manifest.json",
+        "cnf-0179-demo-1.0.0/vendor/helper.py"
+      ],
+      "known_broken": {
+        "removed_vendor_helper_present_but_unlisted": [
+          "cnf-0179-demo-1.0.0/vendor/helper.py"
+        ],
+        "phantom_listed_but_absent": [
+          "pkg:generic/ghost-lib@0.0.1"
+        ]
+      }
+    },
+    "signature_both_states": {
+      "unmodified_verified": true,
+      "mutated_rejected": true,
+      "unmodified_openssl": "Verified OK",
+      "mutated_openssl": "Verification failure\n4017B7C84A7A0000:error:02000068:rsa routines:ossl_rsa_verify:bad signature:../crypto/rsa/rsa_sign.c:430:\n4017B7C84A7A0000:error:1C880004:Provider routines:rsa_verify:RSA lib:../providers/implementations/signature/rsa_sig.c:774:",
+      "artifact_sha256": "287706429d280d44616be7713db4a235ec6e999d5fec6303a0098637fe26b29d"
+    },
+    "provenance": {
+      "path": "command-center/p2-wave/probes/CNF-0179/fixtures/published/provenance.intoto.json",
+      "signature_verified": true,
+      "subject_matches_artifact_digest": true,
+      "predicateType": "https://slsa.dev/provenance/v1"
+    },
+    "secret_scan": {
+      "scanner": "GNU grep -aREn -f",
+      "version": "grep (GNU grep) 3.11",
+      "bundle_clean": true,
+      "planted_documentation_example_fired": true,
+      "matched_secret_text_printed": false
+    },
+    "estate_census": {
+      "production_bundle_present": false,
+      "marketplace_tree_present": true,
+      "hits": [],
+      "hit_count": 0,
+      "note": "No production payload+sig+SBOM+provenance triple outside the CNF-0179 fixture (marketplace tree holds schemas and unsigned package fixtures, not an independently signed release).",
+      "receipts_dir_exists_before_emit": true,
+      "search_roots": [
+        "platform/marketplace",
+        "release"
+      ]
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "signature-provenance-both-states",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0179/probe1_signature_provenance.py"
+      },
+      {
+        "id": "probe2",
+        "role": "sbom-differ-and-secret-scan",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0179/probe2_sbom_secrets.py"
+      }
+    ],
+    "scope": {
+      "independent_of_project_verifier": true,
+      "cnf_0178_not_waited_on": true,
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global unit_manifest.py --write was run",
+        "a production marketplace registry tarball was downloaded",
+        "owner signing keys were created rotated or printed"
+      ]
+    }
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "output_path": "command-center/receipts/CNF-0179.json",
+    "output_schema": "command-center/schema/program-gate-report.schema.json",
+    "completion_sentinel": "SUCCESS:CNF-0179"
+  }
+}

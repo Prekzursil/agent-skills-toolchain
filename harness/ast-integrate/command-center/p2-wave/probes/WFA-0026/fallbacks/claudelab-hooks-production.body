@@ -1,0 +1,703 @@
+Claude Code Hooks: A Complete Field Guide to All 8 Hook Types and How to Pick the Right One | Claude Lab
+
+●PRICING — Anthropic has cancelled the September 1 increase for Claude Sonnet 5. The $2 input and $10 output per million tokens is now simply the standard price, so any forecast built on $3 and $15 needs redoing●VERSION — v2.1.241, released August 23, is a fixes-and-reliability release. MCP v2 no longer reopens subscriptions/listen endlessly against servers that close long-held streams on a fixed timeout●LINUX — Idle sessions on Linux with sandboxing enabled no longer pin a CPU core at 100 percent●SKILLS — Bundled skill aliases such as /checkup and /review no longer report Unknown command in -p mode or with plugins and MCP loaded when a same-named user or project skill shadows them●ARGS — Skill and command argument substitution no longer re-expands argument values as template markers●WATERMARK — Claude products released from August 2 onward embed machine-readable marking in generated output. It answers EU AI Act transparency rules, but it is applied worldwide rather than only in Europe●PRICING — Anthropic has cancelled the September 1 increase for Claude Sonnet 5. The $2 input and $10 output per million tokens is now simply the standard price, so any forecast built on $3 and $15 needs redoing●VERSION — v2.1.241, released August 23, is a fixes-and-reliability release. MCP v2 no longer reopens subscriptions/listen endlessly against servers that close long-held streams on a fixed timeout●LINUX — Idle sessions on Linux with sandboxing enabled no longer pin a CPU core at 100 percent●SKILLS — Bundled skill aliases such as /checkup and /review no longer report Unknown command in -p mode or with plugins and MCP loaded when a same-named user or project skill shadows them●ARGS — Skill and command argument substitution no longer re-expands argument values as template markers●WATERMARK — Claude products released from August 2 onward embed machine-readable marking in generated output. It answers EU AI Act transparency rules, but it is applied worldwide rather than only in Europe
+
+⟐ Claude Code/2026-04-27Advanced
+
+# Claude Code Hooks: A Complete Field Guide to All 8 Hook Types and How to Pick the Right One
+
+Claude Code hooks are powerful, but most people give up before figuring out which event does what. Here's the field guide I wish I had when I started — six months of running hooks in production, distilled.
+
+---
+
+✦ Premium Article
+
+I spent six months running Claude Code in production before I truly understood hooks. The documentation covers what they do, but not why you'd pick one over another in a real scenario. Halfway through, I realized I'd been setting up hooks wrong the whole time: two hooks fighting each other, one never firing because I'd misconfigured the timing, another creating an infinite loop.
+
+The frustration wasn't the hooks themselves—it was the mental model. I was treating them like simple on/off switches when they're actually a control flow system that governs the entire conversation between you, Claude Code, and your tools.
+
+This guide is for people who got hooks working once, then broke something and gave up. Or people who want to avoid that entirely. I'll walk through every hook type, show you when to use it, and reveal the three production bugs I hit that taught me the hard way.
+
+## The Design Philosophy Behind Hooks
+
+Claude Code hooks aren't just event listeners. They're the connective tissue between what you ask Claude to do and what actually gets executed.
+
+Think of the traditional flow: user prompt → code generation → done. One direction, no feedback loop.
+
+Hooks create: user ⇄ Claude Code (with hooks) ⇄ tools (git, npm, shell, API calls). Bidirectional. The hook system manages that conversation. Each hook type handles a specific phase.
+
+The first principle: separate concerns. Don't put PostToolUse logic in PreToolUse. Don't use Stop to handle single-tool failures. Mixing them is where everything breaks.
+
+The second: hooks are synchronous by default, but support async. If you put a Promise in a hook, Claude Code will wait. But wait too long and the session times out. The balance is tight—that's our first production trap.
+
+The third: hooks fire in sequence, not in parallel. Misunderstanding this sequence is the most common footgun. Get this wrong and you'll spend hours debugging why a value is undefined or why a tool runs twice.
+
+The fourth: each hook phase has a different responsibility. Don't make SessionStart do what SessionEnd should do. Don't make PreToolUse handle post-execution validation. This separation is what makes debugging possible.
+
+## The 8 Hooks: A Complete Reference
+
+| Hook | Fires | Responsibility | Common Use |
+| --- | --- | --- | --- |
+| SessionStart | Immediately after session begins | Initialize environment | Set up dependencies, env files, initial checks |
+| UserPromptSubmit | When user sends a message (before processing) | Pre-filter and enrich input | Detect code, validate syntax, security checks |
+| PreToolUse | Right before a tool executes | Validate preconditions | Security gates, permission checks, state validation |
+| PostToolUse | Right after a tool executes | Verify results | Confirm success, handle errors, log outcomes |
+| Notification | Anytime, independently | Send external messages | Slack notifications, email alerts, webhooks |
+| Stop | When deciding whether to end session | Evaluate completion | Auto-stop on goal achievement, cleanup |
+| SubagentStop | When a subagent finishes | Collect and pass results | Feed subagent output to parent workflow |
+| SessionEnd | Before session closes | Final cleanup | Generate reports, archive logs, notifications |
+
+This table is deceptive because it makes them look independent. They're not. Understanding the firing sequence is the foundation of hooks that actually work.
+
+One note before we go deeper: the JSON in this guide is a conceptual pseudo-schema, written to make each hook's responsibility obvious. The format you actually put in your settings file is different, and I show it in full later under "How the Config File Actually Looks." Hold the map of responsibilities in your head first; we'll wire it to the real syntax afterward.
+
+✦
+
+#### Unlock This Article
+
+Get full access to the rest of this article. Buy once, read anytime. This site is ad-free — your support goes directly toward keeping it running.
+
+Continue reading — $1.50
+
+or
+
+Unlock all articles with Membership →
+
+## The Hook Firing Sequence (Critical)
+
+Hooks fire in this order:
+
+1. SessionStart — Once per session, first thing
+2. UserPromptSubmit — Every time the user sends a message
+3. PreToolUse — Before each tool call
+4. PostToolUse — After each tool call (on success)
+5. Notification — Any time during the flow, runs in parallel
+6. Stop — Evaluated at completion checks
+7. SessionEnd — Once, at the very end
+
+Subagents have their own sequence within the parent sequence.
+
+This ordering matters more than anything else. Skip this section and you'll spend days debugging mysterious failures.
+
+The reason I emphasize this: I once set environment variables in PreToolUse, expecting them to be available in PostToolUse. They weren't. Spent three hours before realizing they're different processes—environment variables don't cross boundaries.
+
+## PreToolUse vs PostToolUse: The Foundational Distinction
+
+You'll use these two constantly. Getting them right means 80% of your automation works.
+
+PreToolUse: Runs before the tool. Use it for "should I even run this?"
+
+Example: before running`npm install`, check if package-lock.json is corrupted. If it is, regenerate it first. If you don't do this PreToolUse check, npm will silently install slightly wrong versions, and your app won't break for weeks.
+
+```
+{
+  "hook_type": "PreToolUse",
+  "event": "npm",
+  "validations": {
+    "verify_package_lock": true,
+    "check_for_conflicts": true,
+    "block_if_corrupted": true
+  }
+}
+```
+
+PostToolUse: Runs after the tool. Use it for "did that actually work?"
+
+```
+{
+  "hook_type": "PostToolUse",
+  "event": "npm",
+  "validation": {
+    "check_for_warnings": true,
+    "run_audit": true,
+    "fail_if_vulnerabilities": true
+  }
+}
+```
+
+The critical distinction:
+
+- PreToolUse prevents bad things from starting
+- PostToolUse catches problems after they happened
+
+Beginners often run the same check in both. That's wasteful. Pick one.
+
+"Should we run this git commit?" → PreToolUse (check uncommitted changes).
+
+"Did the git commit actually work?" → PostToolUse (verify files were staged correctly).
+
+Real production example: git push with GPG signing.
+
+```
+{
+  "hook_type": "PreToolUse",
+  "event": "git",
+  "validations": {
+    "check_gpg_key_available": true,
+    "check_git_user_configured": true,
+    "verify_branch_protection": true
+  },
+  "action": "block_if_preconditions_fail"
+}
+```
+
+```
+{
+  "hook_type": "PostToolUse",
+  "event": "git",
+  "validation": {
+    "verify_signature": true,
+    "check_remote_acceptance": true
+  },
+  "action": "report_if_unsigned_detected"
+}
+```
+
+When you push to a GPG-protected branch, PreToolUse verifies your key exists before attempting the push. PostToolUse verifies the remote actually accepted your signature.
+
+## UserPromptSubmit: Input Processing and Security
+
+This fires when the user sends a message, before Claude Code processes it. Use it to clean, validate, or enrich user input.
+
+Real example: users sometimes paste code snippets. That code might use imports that aren't installed. Catch that before Claude Code tries to run it.
+
+```
+{
+  "hook_type": "UserPromptSubmit",
+  "validation": {
+    "detect_code_blocks": true,
+    "parse_imports": true,
+    "verify_dependencies": true
+  },
+  "action": {
+    "if_missing_deps": "auto_suggest_install",
+    "if_syntax_error": "ask_user_to_fix"
+  }
+}
+```
+
+Another critical use: security. Detect if user input looks like injection attacks.
+
+```
+{
+  "hook_type": "UserPromptSubmit",
+  "security": {
+    "detect_sql_injection": true,
+    "detect_shell_injection": true,
+    "detect_prompt_injection": true
+  },
+  "action": {
+    "if_high_risk": "block_and_warn",
+    "if_medium_risk": "ask_confirmation"
+  }
+}
+```
+
+Real injection example: user pastes SQL from a bug report.
+
+```
+Query: SELECT * FROM users WHERE id = 'x' OR '1'='1'
+
+```
+
+A good UserPromptSubmit hook detects this pattern and alerts before Claude Code tries to execute it. This has saved me several times when users pasted problematic queries from bug reports.
+
+You can also use this hook to inject context. For instance, if the user mentions "fix the login flow," you can automatically prepend the current auth.ts file and the test file to the context, saving the user from having to explicitly ask.
+
+## Stop vs SubagentStop: Don't Confuse These
+
+Stop: End the entire session.
+
+Use it when the goal is accomplished. All tests pass, coverage is above 80%, no errors. Stop here.
+
+```
+{
+  "hook_type": "Stop",
+  "condition": {
+    "all_tests_passed": true,
+    "coverage_threshold": 80,
+    "no_critical_errors": true
+  },
+  "action": "auto_end_session"
+}
+```
+
+This hook is useful for fully automated workflows. You set a goal, Claude Code works toward it, and once the goal is met, the session closes automatically. No user intervention needed.
+
+SubagentStop: End just one subagent, then feed its results back to the parent.
+
+Use it for parallel work. "Backend development subagent is done. Send results to frontend development subagent."
+
+```
+{
+  "hook_type": "SubagentStop",
+  "subagent_id": "backend-api",
+  "condition": {
+    "api_endpoints_complete": true,
+    "integration_tests_passing": true
+  },
+  "action": {
+    "notify_parent": true,
+    "pass_results_to": "frontend-integration",
+    "trigger_e2e_tests": true
+  }
+}
+```
+
+This is for complex parallel workflows. Imagine you're building a full-stack app. You might have:
+
+- Backend subagent: API, database, middleware
+- Frontend subagent: UI, form validation, state management
+- Integration subagent: E2E tests, deployment scripts
+
+SubagentStop lets you orchestrate these workflows. When backend finishes, notify the integration subagent. When frontend finishes, trigger E2E tests.
+
+Confusing these means:
+
+- Using SubagentStop when you meant Stop → session keeps running, extra unexpected work happens
+- Using Stop when you meant SubagentStop → parallel work stops prematurely
+
+I learned this the hard way. I had a backend subagent finish, but used Stop instead of SubagentStop. The parent session immediately closed without running the frontend integration tests. Took me an hour to realize the order was wrong.
+
+## SessionStart and SessionEnd: Environment Bookends
+
+SessionStart: Runs first, before anything else. Initialize the environment.
+
+```
+{
+  "hook_type": "SessionStart",
+  "initialization": {
+    "check_node_version": "18.0.0",
+    "install_dependencies": true,
+    "create_env_files": {
+      ".env.local": {
+        "NODE_ENV": "development",
+        "DEBUG": "true"
+      }
+    },
+    "run_checks": ["git-status", "npm-audit"]
+  }
+}
+```
+
+SessionStart is where you set up everything Claude Code needs before touching your code. Check Node version, install dependencies, generate environment files, run security audits.
+
+The power here is that Claude Code never makes the mistake of "oh, I needed Node 18 but only 16 is installed." You're baking in those requirements upfront.
+
+SessionEnd: Runs last, before the session closes. Cleanup and reporting.
+
+```
+{
+  "hook_type": "SessionEnd",
+  "action": {
+    "generate_final_report": true,
+    "include_in_report": ["files_created", "tests_run", "duration"],
+    "send_email_to": "team@example.com",
+    "archive_session_logs": true,
+    "cleanup_temp_files": true
+  }
+}
+```
+
+SessionEnd is where you clean up and report results. Generate a summary of what was done, send it to stakeholders, archive logs for auditing, delete temporary files.
+
+This is useful for compliance. If your workflow touches production or sensitive data, SessionEnd lets you ensure all audit trails are preserved before the session closes.
+
+## Notification: Fire and Forget External Communication
+
+Send data to external systems. Slack, email, webhooks—doesn't matter. This hook fires independently and doesn't block the session.
+
+```
+{
+  "hook_type": "Notification",
+  "trigger": "on_git_commit",
+  "condition": {
+    "branch": "main",
+    "commit_message": "feat:|fix:"
+  },
+  "notification": {
+    "type": "slack",
+    "webhook": "${SLACK_WEBHOOK_URL}",
+    "message": {
+      "channel": "#deployments",
+      "text": "Committed to main: {commit_message}",
+      "attachments": [
+        {
+          "fields": [
+            {"title": "Author", "value": "{git_author}", "short": true},
+            {"title": "Timestamp", "value": "{timestamp}", "short": true}
+          ]
+        }
+      ]
+    }
+  }
+}
+```
+
+Notifications are async, so they don't slow down your workflow. They're also independent—multiple notifications can fire simultaneously.
+
+Critical security rule: Never hardcode API keys. Always use environment variables.
+
+```
+{
+  "webhook": "${SLACK_WEBHOOK_URL}",
+  "auth_token": "${GITHUB_TOKEN}"
+}
+```
+
+I've used Notification hooks for several things:
+
+- Alert on branch protection violations
+- Notify on test failures
+- Log successful deployments to #infrastructure
+- Send daily summaries of automated work
+
+## Three Production Traps I Hit (And How to Avoid Them)
+
+### Trap 1: Misunderstanding Hook Firing Order
+
+Hooks don't fire simultaneously. They fire in a strict sequence:
+
+1. SessionStart
+2. UserPromptSubmit
+3. PreToolUse
+4. PostToolUse (only if tool succeeds)
+5. Notification (parallel)
+6. Stop (evaluated)
+7. SessionEnd
+
+I once set an environment variable in PreToolUse and tried to use it in PostToolUse. It was undefined. Why? Because PreToolUse runs in one subprocess and PostToolUse runs in a different subprocess. Environment variables don't cross subprocess boundaries.
+
+Real bug I hit:
+
+```
+{
+  "hook_type": "PreToolUse",
+  "event": "npm",
+  "action": {
+    "command": "export NPM_REGISTRY='https://private.registry.com'"
+  }
+}
+```
+
+```
+{
+  "hook_type": "PostToolUse",
+  "event": "npm",
+  "action": {
+    "command": "npm view {package} registry"
+  }
+}
+```
+
+The second hook couldn't see the registry URL set in the first hook because they're different processes.
+
+Solution: Save state to a file instead of relying on process-level variables.
+
+```
+{
+  "hook_type": "PreToolUse",
+  "action": {
+    "write_state": {
+      "file": ".hook-state.json",
+      "data": {"NPM_REGISTRY": "https://private.registry.com"}
+    }
+  }
+}
+```
+
+```
+{
+  "hook_type": "PostToolUse",
+  "action": {
+    "read_state": {
+      "file": ".hook-state.json"
+    }
+  }
+}
+```
+
+Now both hooks can read the same state file.
+
+### Trap 2: Async Wait Timeouts in Long-Running Tasks
+
+If your hook makes an async call (API request, database query, CI status check), Claude Code will wait. But only for a configurable limit. Exceed it and the session times out.
+
+I wrote a hook to wait for CI to finish after a git push. 30 seconds in the test repo, no problem. On a real project with a 20-minute CI pipeline, the session timed out.
+
+```
+{
+  "hook_type": "PostToolUse",
+  "event": "git",
+  "action": {
+    "wait_for_ci_completion": {
+      "poll_interval": 10,
+      "max_wait_seconds": 300,
+      "on_timeout": "continue_async"
+    }
+  }
+}
+```
+
+The`on_timeout` action is critical. If CI is slow, don't fail the hook—keep going and notify later via a separate async process.
+
+Another approach: split the work. PreToolUse triggers the CI build. PostToolUse checks if it's done, but doesn't wait. A separate background job checks later and notifies.
+
+If it's the literal`command timed out` failure you're chasing rather than the design, I walk through the timeout setting and splitting long work in When a Claude Code hook fails with "command timed out".
+
+### Trap 3: Hook Interdependency Loops
+
+Complex setups use multiple hooks, each feeding output to the next. But if the dependencies form a loop, you get infinite recursion.
+
+Real bug I hit:
+
+- UserPromptSubmit transforms "git push" → "git push -f"
+- PreToolUse detects "-f" is risky, transforms back to "git push"
+- PostToolUse sees failure, tries "git push -f" again
+- PreToolUse blocks again
+- Loop forever
+
+Solution: Explicitly mark which keys each hook owns. Prevent one hook from undoing another's work.
+
+```
+{
+  "hook_type": "UserPromptSubmit",
+  "output_key": "user_input_raw",
+  "protected_keys": ["validation_state", "retry_count"]
+}
+```
+
+```
+{
+  "hook_type": "PreToolUse",
+  "input_key": "user_input_raw",
+  "output_key": "command_validated",
+  "check_protected_keys": true
+}
+```
+
+Each hook declares: "I read from X, I write to Y, don't touch Z." That prevents loops.
+
+The specific case where PostToolUse re-fires on its own output has its own writeup with a reproduction and fix: When Claude Code Hooks loop forever — stopping PostToolUse from self-triggering.
+
+## Ready-to-Use Templates
+
+### Template 1: Security Gate for Git Push to Main
+
+```
+{
+  "hooks": [
+    {
+      "hook_type": "PreToolUse",
+      "event": "git",
+      "condition": "command == 'push' && branch == 'main'",
+      "validations": {
+        "require_review": true,
+        "block_force_push": true,
+        "require_commit_message": {
+          "pattern": "^(feat|fix|refactor|docs):"
+        },
+        "check_branch_protection": true
+      },
+      "action": "block_if_violations"
+    },
+    {
+      "hook_type": "PostToolUse",
+      "event": "git",
+      "condition": "command == 'push' && branch == 'main'",
+      "notification": {
+        "type": "slack",
+        "message": "Pushed to main: {commit_message}"
+      }
+    }
+  ]
+}
+```
+
+### Template 2: Auto-Test and Report with Coverage
+
+```
+{
+  "hooks": [
+    {
+      "hook_type": "PostToolUse",
+      "event": "npm",
+      "condition": "command.includes('test')",
+      "action": {
+        "collect_coverage": true,
+        "generate_report": {
+          "format": "json",
+          "output": ".test-results.json"
+        },
+        "fail_if_coverage_below": 80,
+        "notify_slack": {
+          "channel": "#ci",
+          "message": "Tests: {passed}/{total} | Coverage: {coverage}%"
+        }
+      }
+    }
+  ]
+}
+```
+
+### Template 3: Session Init with Full Environment Setup
+
+```
+{
+  "hooks": [
+    {
+      "hook_type": "SessionStart",
+      "setup": {
+        "verify_tools": ["node", "git", "npm"],
+        "verify_versions": {
+          "node": "18.0.0",
+          "npm": "9.0.0"
+        },
+        "install_dependencies": true,
+        "create_env_files": {
+          ".env.local": {
+            "NODE_ENV": "development",
+            "LOG_LEVEL": "debug"
+          }
+        },
+        "run_initial_checks": ["git-status", "npm-audit"]
+      }
+    },
+    {
+      "hook_type": "SessionEnd",
+      "cleanup": {
+        "generate_summary": {
+          "include": ["files_created", "files_modified", "tests_run", "errors"],
+          "format": "json"
+        },
+        "send_email_to": "team@example.com",
+        "archive_logs": {
+          "output": "session-logs.tar.gz"
+        }
+      }
+    }
+  ]
+}
+```
+
+## How the Config File Actually Looks
+
+Everything above was a conceptual diagram of responsibilities. Here's the shape that actually runs in my setup (Claude Code v2.x). Key names have shifted between versions, so confirm the details against your own installation — but the skeleton is stable.
+
+Hooks live under the`hooks` key of`.claude/settings.json`(per project) or`~/.claude/settings.json`(per user), as an array per event name. The important shift: a hook's body isn't a JSON declaration, it's a shell command. Your decision logic lives inside your own script.
+
+```
+{
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/guard-git-push.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
+```
+
+`matcher` is a regex against the tool name —`Bash`, or`Edit|Write` for several, or an empty string for all tools. The exact-match behavior for hyphenated tool names was tightened in a specific version, so if a hook goes silent right after an update, suspect that first: when an update stops your hook from firing (v2.1.195 matcher change).
+
+The script receives a JSON payload on stdin. The tool name and its arguments are in there.
+
+```
+#!/usr/bin/env bash
+# guard-git-push.sh
+input=$(cat)                                   # read the full JSON from stdin
+cmd=$(echo "$input" | jq -r '.tool_input.command // ""')
+ 
+if echo "$cmd" | grep -qE 'git push .*(-f|--force)'; then
+  echo "Force-pushing to main is blocked. Consider --force-with-lease." >&2
+  exit 2                                        # exit 2 = block this tool call, feed the reason back to Claude
+fi
+exit 0                                          # exit 0 = allow it through
+```
+
+The single biggest difference from the declarative schema is how you signal a block. Exit with code 2 and whatever you wrote to stderr is handed back to Claude while the tool call is stopped. Exit 0 and it sails through. Once you internalize that two-value contract, every gate, validation, and notification described earlier as "pseudo-schema" is just an ordinary shell script. Which also means debugging a hook comes down to one question: can you run that script by hand? Pipe a sample JSON into it before you ever blame the config file.
+
+## Measuring Hook Overhead
+
+It's easy to miss, but every hook spawns a separate process. Each tool call pays a small startup cost, and those costs stack. You won't feel it day to day — until you hang something heavy off PostToolUse.
+
+I measured this on the CI integration for a wallpaper app I build solo. For the same`git commit`, I compared three setups — no hook, a lightweight validation script, and running`npm audit` on every call — and timed the added latency per call. Median values on my machine, for reference:
+
+| Setup | Added time per call (median) | Felt like |
+| --- | --- | --- |
+| No hook | 0 ms | baseline |
+| Lightweight script (branch in jq, exit fast) | ~40–80 ms | unnoticeable |
+| PostToolUse running`npm audit` every time | ~1,800–3,200 ms | a clear wait |
+
+A few tens of milliseconds of process startup never register in a conversation. What bites is running anything that touches the network or disk on every call. That`npm audit` above only needed to run right after an install, not on every command.
+
+My operating rule of thumb: keep a synchronous hook's added time under 200 ms. Anything heavier gets its firing narrowed with`matcher` and conditions, or pushed async so I only receive a notification. The faster a hook is, the more invisible it stays while always on — and that quietness is exactly what lets you keep it running instead of ripping it out.
+
+## Operating Hooks in Production
+
+Test first. Hooks that touch git or npm can silently break things. Test in a dummy project first. Create a test repository, set up your hooks, run a few scenarios, and verify behavior matches expectations.
+
+Log everything. When something goes wrong, you need to know which hook fired, in what order, and what it did.
+
+```
+{
+  "logging": {
+    "enable_hook_logs": true,
+    "log_level": "info",
+    "output": "/var/log/claude-code-hooks.log",
+    "rotate": {
+      "max_size_mb": 100,
+      "keep_days": 30
+    }
+  }
+}
+```
+
+Version-control hook configs. Commit your hook definitions to git. Later you'll ask, "when did this hook get added?" Git history answers it.
+
+```
+git add .claude-code/hooks.json
+git commit -m "feat: Add security gate for main branch pushes"
+```
+
+---
+
+Hooks are the lever that turns Claude Code from a code generator into an automated workflow engine. The mental model is the hard part. Once you have it—sequence, dependencies, separation of concerns—the execution is straightforward. Start small, test thoroughly, and you'll have something powerful.
+
+Share
+
+Copy
+
+### Thank You for Reading
+
+Claude Lab is ad-free, supported entirely by members like you. We publish practical guides daily with implementation code, benchmarks, and production-ready patterns. If you've found it useful, we'd love to have you on board.
+
+- ✦Copy-paste ready implementation code
+- ✦New advanced guides published daily
+- ✦$5/mo or $15 for lifetime access
+
+### Related Articles
+
+⟐ Claude Code2026-04-02Claude Code Hooks: Building Automated Workflows in PracticeA systematic guide to Claude Code Hooks. Learn how to use PreToolUse, PostToolUse, Stop, and Notification hooks to automate code quality checks, logging, notifications, and more.
+
+⟐ Claude Code2026-06-14A SubagentStop Hook That Grades Subagent Output and Sends It Back to Be RedoneWhen a Claude Code subagent occasionally returns rule-breaking work, a SubagentStop hook can grade it automatically and ask for a redo. Here is a working setup with code and field notes.
+
+⟐ Claude Code2026-05-05Building a Zero-Touch Code Review Environment with Claude Code HooksLearn how to use Claude Code's hook system to automatically review code on every tool execution. Covers PostToolUse, Stop hooks, and the pitfalls to avoid when implementing PreToolUse blockers.
+
+📚RECOMMENDED BOOKS
+
+Build a Large Language Model (From Scratch)Sebastian RaschkaLLM Dev
+
+Prompt Engineering for LLMsBerryman & ZieglerPrompting
+
+AI EngineeringChip HuyenAI Eng
+
+* Contains affiliate links
+
+↑

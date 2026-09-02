@@ -1,0 +1,90 @@
+{
+  "id": "pcj-run-drop",
+  "topology": "strict-pipeline",
+  "description": "Same fixture used for pipeline-judge input vs full-transcript-judge input. The critic forwards CL-KEEP and is silent on CL-DROP, E1, and Q1.",
+  "question": {
+    "id": "Q1",
+    "kind": "question",
+    "loss_class": "defect",
+    "load_bearing": true,
+    "text": "Must a freeze receipt include a clock-skew bound so two hosts hashing the same bytes remain comparable?"
+  },
+  "stages": {
+    "proposer": {
+      "actor": {
+        "id": "proposer-A",
+        "kind": "identity",
+        "loss_class": "point"
+      },
+      "output": {
+        "proposal_id": "P1",
+        "tokens": [
+          {
+            "id": "CL-KEEP",
+            "kind": "claim",
+            "loss_class": "defect",
+            "load_bearing": true,
+            "text": "Freeze receipts MUST hash LF-normalised bytes with sha256."
+          },
+          {
+            "id": "CL-DROP",
+            "kind": "claim",
+            "loss_class": "defect",
+            "load_bearing": true,
+            "text": "Freeze receipts MUST record a clock-skew bound; without it, host clocks make the freeze incomparable."
+          },
+          {
+            "id": "CL-RHET",
+            "kind": "rhetoric",
+            "loss_class": "point",
+            "load_bearing": false,
+            "text": "Any serious design obviously hashes; this is not controversial."
+          },
+          {
+            "id": "ALT-1",
+            "kind": "discarded_alternative",
+            "loss_class": "point",
+            "load_bearing": false,
+            "text": "Skip the critic and let the proposer self-certify the freeze."
+          },
+          {
+            "id": "E1",
+            "kind": "evidence",
+            "loss_class": "defect",
+            "load_bearing": true,
+            "text": "Two hosts 2s apart stamped different freeze times on identical bytes."
+          }
+        ]
+      }
+    },
+    "critic": {
+      "actor": {
+        "id": "critic-B",
+        "kind": "identity",
+        "loss_class": "point"
+      },
+      "sees": "proposer.output",
+      "output": {
+        "critique_id": "K1",
+        "tokens": [
+          {
+            "id": "CL-KEEP",
+            "kind": "claim",
+            "loss_class": "defect",
+            "load_bearing": true,
+            "status": "forwarded",
+            "text": "Freeze receipts MUST hash LF-normalised bytes with sha256."
+          },
+          {
+            "id": "KP-1",
+            "kind": "critique_point",
+            "loss_class": "operational",
+            "target": "CL-KEEP",
+            "text": "Hashing LF-normalised bytes is necessary for the bytes the critic saw."
+          }
+        ],
+        "omitted_without_rejection": ["CL-DROP", "E1", "Q1"]
+      }
+    }
+  }
+}

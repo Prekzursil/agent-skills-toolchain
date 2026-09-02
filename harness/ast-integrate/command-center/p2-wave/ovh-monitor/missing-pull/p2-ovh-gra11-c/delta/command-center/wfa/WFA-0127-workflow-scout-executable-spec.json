@@ -1,0 +1,227 @@
+{
+  "ir_kind": "WorkflowIR",
+  "ir_version": "wfa-0127.1",
+  "id": "meta.workflow-scout",
+  "unit_id": "WFA-0127",
+  "state": "SUCCESS",
+  "completion_sentinel": "SUCCESS:WFA-0127",
+  "title": "workflow-scout executable meta-workflow over the archaeology surface",
+  "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560",
+  "output_path": "command-center/wfa/WFA-0127-workflow-scout-executable-spec.json",
+  "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/WorkflowIR",
+  "not_a_runtime": true,
+  "stopping_expression": "all declared source classes searched AND (ranked non-empty OR gap characterised)",
+  "tool_policy": {
+    "id": "tool-policy",
+    "kind": "policy",
+    "title": "Tool policy",
+    "body": "read fixtures and WFA-0019 corpus only; no network; no git write.",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560",
+    "allowed": [
+      "read-registry",
+      "deref-anchor",
+      "licence-lookup"
+    ],
+    "denied": [
+      "network",
+      "git-write",
+      "catalog-manifest-write"
+    ]
+  },
+  "roles": [
+    {
+      "id": "scout",
+      "kind": "role",
+      "title": "Scout",
+      "body": "Walks stages; does not self-certify PASS.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "provenance-verifier",
+      "kind": "role",
+      "title": "Provenance verifier",
+      "body": "Content dereference of file:line.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "licence-verifier",
+      "kind": "role",
+      "title": "Licence verifier",
+      "body": "Allow-list plus most-restrictive join on COMPOSE.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "anti-rebuild-gate",
+      "kind": "role",
+      "title": "Anti-rebuild gate",
+      "body": "Stand-in for absent WFA-0120 artifact; same fail-closed citation contract.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    }
+  ],
+  "stages": [
+    {
+      "id": "ingest-goal",
+      "kind": "stage",
+      "title": "Ingest typed goal",
+      "body": "Accept goal text, declared mechanisms, licence_allow, allow_build, source_classes.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "fan-out-source-classes",
+      "kind": "stage",
+      "title": "Fan-out source classes",
+      "body": "Search registry, repository, marketplace, public-docs, papers, and the live WFA-0019 fixture class. A class with zero hits is a recorded miss, not a skip.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560",
+      "fan_out": true,
+      "barrier": "search-hits"
+    },
+    {
+      "id": "search-hits",
+      "kind": "stage",
+      "title": "Collect hits",
+      "body": "Enumerate candidate records per class. No network. Fixture archaeology surface only on this worktree.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "verify-provenance",
+      "kind": "stage",
+      "title": "Verify provenance",
+      "body": "Dereference provenance.src as file:line. The cited line must contain every claimed mechanism id. exists-only is insufficient.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "verify-licence",
+      "kind": "stage",
+      "title": "Verify licence",
+      "body": "UNKNOWN licence => UNKNOWN-NEEDS-PROBE, never ranked. Allow-list excludes copyleft when the goal is permissive-only.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "decompose-mechanisms",
+      "kind": "stage",
+      "title": "Decompose mechanisms",
+      "body": "Score coverage (goal mechanisms present in the candidate) and Jaccard. Rank by independent evidence, not hit frequency.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "rank-dispositions",
+      "kind": "stage",
+      "title": "Rank adopt/adapt/compose",
+      "body": "ADOPT at coverage 1.0, ADAPT at coverage >= 0.5, COMPOSE when two partials union to the goal. Do not pad ranked with below-threshold decoys.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "anti-rebuild-gate",
+      "kind": "gate",
+      "title": "Anti-rebuild before BUILD",
+      "body": "BUILD is considered only if allow_build. The gate cites a verified existing candidate whose coverage of the goal is >= 0.5 and blocks BUILD. A novel goal with no close existing candidate may PASS.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560",
+      "fires_before": "BUILD"
+    },
+    {
+      "id": "characterise-gap",
+      "kind": "stage",
+      "title": "Characterise gap",
+      "body": "If ranked is empty, list missing mechanisms, classes searched, and nearest below-threshold id. Never invent a hit.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    },
+    {
+      "id": "emit-result",
+      "kind": "stage",
+      "title": "Emit result",
+      "body": "Return ranked (each with provenance_anchor and licence_class), unknown_needs_probe, gap, anti_rebuild, optional BUILD.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+    }
+  ],
+  "stage_ids": [
+    "ingest-goal",
+    "fan-out-source-classes",
+    "search-hits",
+    "verify-provenance",
+    "verify-licence",
+    "decompose-mechanisms",
+    "rank-dispositions",
+    "anti-rebuild-gate",
+    "characterise-gap",
+    "emit-result"
+  ],
+  "source_classes": [
+    "registry",
+    "repository",
+    "marketplace",
+    "public-docs",
+    "papers",
+    "wfa-0019-fixture"
+  ],
+  "gates": [
+    {
+      "id": "anti-rebuild",
+      "kind": "gate",
+      "title": "Anti-rebuild",
+      "body": "Must fire before any BUILD recommendation. Citation is the existing candidate id.",
+      "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98207"
+    }
+  ],
+  "retries": {
+    "id": "retries",
+    "kind": "retry",
+    "title": "Two strikes then pivot",
+    "body": "After the second identical fingerprint, enumerate two alternatives; do not rebuild ADV.",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+  },
+  "resume": {
+    "id": "resume",
+    "kind": "resume",
+    "title": "Resume checkpoints",
+    "body": "Per-source-class hit lists are the resume unit.",
+    "source_anchor": "command-center/WORK-UNIT-CATALOG.json:98560"
+  },
+  "human_checkpoints": [],
+  "lossy_field_ledger": [],
+  "lineage": {
+    "depends_on": [
+      "WFA-0084",
+      "WFA-0060",
+      "WFA-0120"
+    ],
+    "dependency_status": {
+      "WFA-0084": "ABSENT on this worktree (no command-center/wfa/WFA-0084-registry-query-interface.json). Scout binds to a typed fixture query surface with the same class/licence/mechanism axes.",
+      "WFA-0060": "ABSENT on this worktree. Ranking uses coverage of goal mechanisms plus independent provenance, not hit frequency.",
+      "WFA-0120": "ABSENT on this worktree. Local anti-rebuild gate implements the named contract: reject a planted rebuild and cite the existing id; pass a novel BUILD."
+    },
+    "implementation_binding": {
+      "runner": "command-center/p2-wave/probes/WFA-0127/scout.py",
+      "note": "Binding is outside the IR. The IR has no execution entrypoint."
+    }
+  },
+  "controls": {
+    "held_out_known_answer": {
+      "goal": "fixtures/goals/heldout.json",
+      "planted_id": "wf-heldout-kanban-drain",
+      "hidden_from_goal_text": true
+    },
+    "honest_empty": {
+      "goal": "fixtures/goals/empty.json",
+      "mechanism": "quantum.teleport.workflow"
+    },
+    "anti_rebuild": {
+      "goal": "fixtures/goals/rebuild.json",
+      "cited_id": "wf-superior-review"
+    },
+    "anti_rebuild_pass": {
+      "goal": "fixtures/goals/novel_build.json"
+    }
+  },
+  "did_not_do": [
+    "Did not consume a live 284-row Prompt One registry (absent on this Linux worktree).",
+    "Did not author WFA-0001 schema pack or WFA-0044 IR-spec.",
+    "Did not implement workflow-forge (WFA-0128 / WFA-0144).",
+    "Did not search a live network marketplace or paper index; papers class is a recorded empty miss.",
+    "Did not run tools/command-center/unit_manifest.py --write.",
+    "Did not claim cloud ok=true as delivery."
+  ],
+  "evidence_requirement": {
+    "A": "end-to-end scout run on goal-e2e-drain returns ranked hits each with provenance_anchor and licence_class",
+    "B": "held-out goal whose known id is wf-heldout-kanban-drain must appear in top ranked results without being named in the goal"
+  }
+}

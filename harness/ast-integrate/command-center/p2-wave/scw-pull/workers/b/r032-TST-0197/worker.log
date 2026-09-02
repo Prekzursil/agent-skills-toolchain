@@ -1,0 +1,27 @@
+I'll start from the existing TST-0197 probe tree, read any SUBAGENT-RETURN, and measure against the G-1 contract without touching git or the global catalog.The probe tree is sparse and the catalog still treats TST-0197 as failed, so next I’ll read the unit spec and a delivered sibling to match the G-1 contract.G-1 needs live probes, a non-BLOCKED receipt, and a per-unit manifest. I’ll inspect the enumerator, schema, and a delivered sibling so we resume instead of rebuilding.I’ll inspect the portability-report schema and a delivered receipt so the TST-0197 artifact can match the live probe contract.Subject SHA matches the preserved enumerator. Next I’ll live-run it on a reserved-name fixture, then add the two named probes from that measurement.The enumerator already meets the catalog PASS bar on Linux: count 7, reserved names reported, no throw, no silent zero. I’ll add two named probes around that measurement and pack an honest SUCCESS receipt.Probe 2’s independence check matched its own source string. I’ll drop that self-scan and keep the probe from importing the enumerator.The receipt’s embedded sha256 drifted from the live file. I’ll relock until the declared digest matches, then rewrite the manifest.The self-hash cannot converge inside the file. I’ll use the two-write pack that ADV-0104 uses so the per-unit manifest matches the live bytes.**SUCCESS:delivered TST-0197** `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_enumerator.py:0,probe2_dir_listing.py:0`
+
+TST-0197 is G-1 contract-green on this Linux worktree. Harvest `ok=true` / UNIT-COMPLETE wrapping `state=BLOCKED` was not treated as delivery. Existing `CLOUD-OK-REFUTE.json` and `_cloud_ok_*` files were kept.
+
+**What was measured.** Live `command-center/_baseline_probe.py` (sha256 `052dcaea…`) was walked over a seven-file reserved-name fixture:
+
+| Signal | Result |
+|---|---|
+| Enumerator count (probe a) | 7 |
+| Independent `os.scandir` count (probe b) | 7 |
+| Names | AUX, COM1, CON, KNOWN-PRESENT.txt, LPT1, NUL, PRN |
+| KNOWN-PRESENT found | yes |
+| Uncaught exception | none |
+| Silent zero | no |
+| `ntpath.relpath` on device-NUL | ValueError (regression seed fires) |
+
+That is the catalog PASS bar: complete count, reserved entries reported, never an exception, never a silent zero.
+
+**Honest residuals (not delivery blockers).** Reserved-name `getsize` still prefixes `\\?\`, so Linux reserved sizes are `ERROR` strings rather than integers. Native Windows NUL WinError 123 was not re-run here. Global `unit_manifest.py --write` / `--check` were not run.
+
+**Wrote**
+- `command-center/p2-wave/probes/TST-0197/probe1_enumerator.py` and `probe2_dir_listing.py` (re-run exit 0)
+- `command-center/receipts/TST-0197.json` (`state=SUCCESS`, 31641 B)
+- `command-center/p2-wave/probes/TST-0197/UNIT-ARTIFACT-MANIFEST.json` (sha256 `70c27986…` matches live LF)
+- `command-center/p2-wave/probes/TST-0197/SUBAGENT-RETURN.json`
+
+No git add/commit/push/stash/checkout/rebase. No global catalog `--write`. No key rotation. No wave relaunch.

@@ -1,0 +1,251 @@
+{
+  "artifacts": {
+    "required_outputs": [
+      "decision",
+      "transcript"
+    ],
+    "schema_id": "council-artifact/v1"
+  },
+  "budgets": {
+    "effort": {
+      "limit": 10,
+      "on_exhaustion": "hard_stop"
+    },
+    "escalation": {
+      "limit": 1,
+      "on_exhaustion": "hard_stop"
+    },
+    "experiments": {
+      "limit": 4,
+      "on_exhaustion": "hard_stop"
+    },
+    "maximum_inactivity": {
+      "limit": 3,
+      "on_exhaustion": "hard_stop"
+    },
+    "minimum_engagement": {
+      "limit": 1,
+      "on_exhaustion": "degrade"
+    },
+    "rebuttal_depth": {
+      "limit": 2,
+      "on_exhaustion": "hard_stop"
+    },
+    "sources": {
+      "limit": 12,
+      "on_exhaustion": "hard_stop"
+    },
+    "speaking_quotas": {
+      "limit": 8,
+      "on_exhaustion": "hard_stop"
+    },
+    "time": {
+      "limit": 3600,
+      "on_exhaustion": "hard_stop"
+    },
+    "tokens": {
+      "limit": 50000,
+      "on_exhaustion": "degrade"
+    },
+    "tool_calls": {
+      "limit": 40,
+      "on_exhaustion": "hard_stop"
+    },
+    "turns": {
+      "limit": 24,
+      "on_exhaustion": "hard_stop"
+    }
+  },
+  "charter": {
+    "consensus_intent": "decide",
+    "desired_output": "decision-record",
+    "objective": "Validate the reconstructed CouncilSpec envelope.",
+    "risk_tier": "medium",
+    "success_criteria": [
+      "schema-valid",
+      "stopping-present"
+    ]
+  },
+  "engagement": {
+    "anonymity": "named",
+    "maximum_inactivity": 2,
+    "minimum_engagement": 1,
+    "partition": "shared",
+    "speaking_quotas": 4,
+    "turn_order": "round-robin"
+  },
+  "evidence": {
+    "citation_required": true,
+    "targets": [
+      "evidence",
+      "objection",
+      "counterexample"
+    ]
+  },
+  "execution": {
+    "kernel": "tools/council/kernel.py",
+    "replay_seed_required": true,
+    "timeout_seconds": 1800
+  },
+  "integrity": {
+    "conflict_of_interest_declaration": true,
+    "hash_chain": true,
+    "injection_defence": true
+  },
+  "kind": "councilspec",
+  "meta": {
+    "id": "spec.minimal",
+    "provenance": "reconstructed-from-catalog",
+    "schema_id": "tools/council/schema/councilspec.schema.json",
+    "spec_version": "councilspec.v2"
+  },
+  "outcomes": {
+    "allowed": [
+      "decided",
+      "unanimous_decision",
+      "majority_decision",
+      "supermajority_decision",
+      "consent_decision",
+      "conditional_decision",
+      "deferred_decision",
+      "no_decision",
+      "timeout_no_decision",
+      "budget_exhausted",
+      "hung_jury",
+      "irreducible_disagreement",
+      "dissent_recorded",
+      "minority_report",
+      "proof_of_impossibility",
+      "owner_override",
+      "escalated"
+    ],
+    "variant_map": {
+      "budget_exhausted": "no_decision",
+      "conditional_decision": "conditional_decision",
+      "consent_decision": "decision",
+      "decided": "decision",
+      "deferred_decision": "conditional_decision",
+      "dissent_recorded": "dissent_with_minority_report",
+      "escalated": "conditional_decision",
+      "hung_jury": "irreducible_disagreement",
+      "irreducible_disagreement": "irreducible_disagreement",
+      "majority_decision": "decision",
+      "minority_report": "dissent_with_minority_report",
+      "no_decision": "no_decision",
+      "owner_override": "decision",
+      "proof_of_impossibility": "proof_of_impossibility",
+      "supermajority_decision": "decision",
+      "timeout_no_decision": "no_decision",
+      "unanimous_decision": "decision"
+    }
+  },
+  "participants": {
+    "seats": [
+      {
+        "authority": "chair",
+        "context": "fixture",
+        "effort": 1.0,
+        "expertise": [
+          "procedure"
+        ],
+        "id": "seat-chair",
+        "model": "local-fixture",
+        "role": "chair",
+        "tools": [
+          "read"
+        ],
+        "vendor": "fixture",
+        "vote_weight": 1.0
+      },
+      {
+        "authority": "member",
+        "context": "fixture",
+        "effort": 1.0,
+        "expertise": [
+          "critique"
+        ],
+        "id": "seat-critic",
+        "model": "local-fixture",
+        "role": "critic",
+        "tools": [
+          "read"
+        ],
+        "vendor": "fixture",
+        "vote_weight": 1.0
+      }
+    ]
+  },
+  "roles": {
+    "templates": [
+      {
+        "id": "chair",
+        "incompatible_with": [],
+        "kind": "template",
+        "name": "chair",
+        "obligations": [
+          "keep_procedure"
+        ],
+        "permissions": [
+          "chair_procedure"
+        ],
+        "source_access": [
+          "council_record"
+        ],
+        "speaking": true,
+        "tool_access": [
+          "read",
+          "grep"
+        ],
+        "veto": false,
+        "vote": true,
+        "vote_weight": 1.0
+      },
+      {
+        "id": "critic",
+        "incompatible_with": [],
+        "kind": "template",
+        "name": "critic",
+        "obligations": [
+          "cite_evidence"
+        ],
+        "permissions": [
+          "critique"
+        ],
+        "source_access": [
+          "proposal_draft"
+        ],
+        "speaking": true,
+        "tool_access": [
+          "read",
+          "grep"
+        ],
+        "veto": false,
+        "vote": true,
+        "vote_weight": 1.0
+      }
+    ]
+  },
+  "stopping": {
+    "expression": "consensus >= 0.95",
+    "on_timeout": "no-decision",
+    "rules": [
+      {
+        "id": "consensus-095",
+        "kind": "threshold",
+        "metric": "consensus",
+        "op": ">=",
+        "value": 0.95
+      }
+    ]
+  },
+  "unknown_section": {
+    "planted": true
+  },
+  "voting": {
+    "method": "majority",
+    "quorum": 2,
+    "silence_policy": "silence_is_absent",
+    "threshold": 0.5,
+    "weight_provenance_required": false
+  }
+}

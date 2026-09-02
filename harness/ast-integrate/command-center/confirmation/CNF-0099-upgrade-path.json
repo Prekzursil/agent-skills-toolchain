@@ -1,0 +1,475 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0099",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0099 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the skip-migration control failed the health check, establishing the check discriminates. Any other terminal state is FAILED:CNF-0099 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0099",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/migration-report.schema.json",
+      "bytes": 1053,
+      "sha256": "e804b56beac202b499fa38e6d8009fbbbf7c7d01a23bd45063ce4880130fd39e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0099/engine.py",
+      "bytes": 21360,
+      "sha256": "c24313da616ad8267b31043221fb523d2a85004c821ff74d2100ab42ad240160",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0099/probe1_field_compare.py",
+      "bytes": 4838,
+      "sha256": "974c861dcaabca334fa9f00aa23e9195f83c431cecc1698dc8824ef7cd26fd96",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0099/probe2_skip_migration.py",
+      "bytes": 4294,
+      "sha256": "040c16a6a42b261d1ba9ba4e36bda8bd728900e1071b301853272b3070ac6261",
+      "exists": true,
+      "eol": "LF",
+      "role": "control"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "After overlaying v2 and running v1_to_v2, every user-state field matches apply_migration(before); owner skill and rule bytes are unchanged; the in-flight ledger prefix is intact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0099/engine.py:field_comparisons",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/probe1_field_compare.py",
+          "raw_output": "fields=11 expected_match=True skill=True rule=True",
+          "fingerprint": "p1-field-compare",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "byte-compare",
+          "command": "flatten(apply_migration(before_state)) == flatten(after_state) in engine.run_scenario",
+          "raw_output": "expected_match=True semantic_loss=0 ledger_prefix=True",
+          "fingerprint": "engine-flatten-eq",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The upgraded install passes the identical strict health check as a clean v2 install; skipping the migration makes that same check fail while a weaker shape-blind check would pass.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0099/engine.py:health_check",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/probe2_skip_migration.py",
+          "raw_output": "clean_ok=True upgraded_ok=True skip_failed=True weaker_pass=True failed=['schema_version', 'custom_absent', 'debug_absent', 'user_keys_object', 'locale_object']",
+          "fingerprint": "p2-skip-migration",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "health_check(clean, strict=True) and health_check(upgraded, strict=True) and not health_check(skipped, strict=True) and health_check(skipped, strict=False)",
+          "raw_output": "identical_probe_set=True skip_failed_ids=['schema_version', 'custom_absent', 'debug_absent', 'user_keys_object', 'locale_object']",
+          "fingerprint": "health-strict-vs-weak",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-field-compare",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/probe1_field_compare.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2-skip-migration",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/probe2_skip_migration.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "skip-migration",
+      "kind": "known-broken-fixture",
+      "description": "Overlay the current release onto seeded v1 user state without running v1_to_v2. The identical strict health check must fail; a weaker check that skips schema-shape probes must pass, proving discrimination.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"failed_ids\": [\"schema_version\", \"custom_absent\", \"debug_absent\", \"user_keys_object\", \"locale_object\"], \"ok\": false, \"weaker_ok\": true}",
+      "good_state_output": "{\"clean_ok\": true, \"identical_probe_set\": true, \"upgraded_ok\": true}"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0099-probe2-skip-migration",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Named probe2 re-runs skip-migration and weaker-check discrimination on a fresh tempfile; it does not re-read probe1's field table as evidence."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0099/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads + offline Draft202012Validator(command-center/schema/migration-report.schema.json)",
+      "artifact_path": "command-center/confirmation/CNF-0099-upgrade-path.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/emit_report.py",
+        "raw_output": "SUCCESS:schema-valid garbage_rejected=3",
+        "fingerprint": "emit:offline-schema",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:27Z",
+    "ended_at": "2026-08-25T00:56:27Z",
+    "duration_seconds": 0.008017
+  },
+  "retry": {
+    "count": 0,
+    "policy": "at most 3 attempts, each with a DIFFERENT substrate or interpreter; the receipt must name what changed between attempts or the attempt does not count"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "No published N-1 GitHub Release tarball was fetched; previous and current release trees are the v1/v2 fixtures in engine.py because this worktree has no Phase-5 plugin lifecycle.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run install-previous -> seed -> overlay-current -> migrate against a published previous-release artifact when one exists on this estate."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "upgrade-verification-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "migration-report",
+    "title": "Upgrade from the previous release with migration and data preservation",
+    "question": "Does an upgrade from the previous release preserve everything? Install the previous release, seed it with realistic user state, upgrade, and answer: did the migration run, is all user state present and semantically intact, and does the upgraded install pass the same health check as a clean one?",
+    "from_version": "1.0.0",
+    "to_version": "2.0.0",
+    "declared_migrations": [
+      {
+        "id": "set-schema-version",
+        "kind": "set",
+        "from_path": "schema_version",
+        "to_path": "schema_version",
+        "note": "1 -> 2"
+      },
+      {
+        "id": "rename-custom-keys",
+        "kind": "rename",
+        "from_path": "settings.custom",
+        "to_path": "settings.user_keys",
+        "note": "owner keys keep their values; the v1 name is retired"
+      },
+      {
+        "id": "reshape-locale",
+        "kind": "reshape",
+        "from_path": "settings.locale",
+        "to_path": "settings.locale",
+        "note": "v1 string 'en-GB' becomes {lang, region}; leaving the string is a silent misread"
+      },
+      {
+        "id": "retire-debug-flag",
+        "kind": "retire",
+        "from_path": "settings.debug",
+        "to_path": "settings.verbose_logs",
+        "note": "v2 would treat debug=true as 'open debugger port'; rename to verbose_logs"
+      }
+    ],
+    "observations": [
+      {
+        "name": "migration_ran",
+        "measured": true,
+        "method": "engine.migrate_profile writes var/migration.log.json",
+        "anchor": "command-center/p2-wave/probes/CNF-0099/engine.py:migrate_profile"
+      },
+      {
+        "name": "skip_health_failed",
+        "measured": true,
+        "method": "health_check(skipped, strict=True)",
+        "anchor": "command-center/p2-wave/probes/CNF-0099/engine.py:health_check"
+      },
+      {
+        "name": "expected_match",
+        "measured": true,
+        "method": "flatten(apply_migration(before)) == flatten(after)",
+        "anchor": "command-center/p2-wave/probes/CNF-0099/engine.py:run_scenario"
+      }
+    ],
+    "control_ids": [
+      "skip-migration"
+    ],
+    "inventories": {
+      "before": [
+        {
+          "path": "user/state.json",
+          "sha256": "ff2b9b53075f782dae3ca81d597618a94e2c7cb579b070880205f1b029a24d81",
+          "bytes": 188,
+          "present": true,
+          "role": "user-state"
+        },
+        {
+          "path": "user/skills/user.authored/SKILL.md",
+          "sha256": "72fdd3fca3feeb6ee1cff27d94f1456979a1f585f1ed9ab4cb4ff3ed141d859d",
+          "bytes": 108,
+          "present": true,
+          "role": "user-state"
+        },
+        {
+          "path": "user/rules/rule.owner-edit.md",
+          "sha256": "b2c8a1e63ab8c92b3c69afceaaf09da3eca336a95e3d4856d099b9c53dc42ddc",
+          "bytes": 105,
+          "present": true,
+          "role": "user-state"
+        },
+        {
+          "path": "user/ledger.jsonl",
+          "sha256": "19e28d35c5de7acdb6b23f84d0cd2eff9cca91c96e131176a1ea57b68c4c7b0c",
+          "bytes": 174,
+          "present": true,
+          "role": "user-state"
+        }
+      ],
+      "after": [
+        {
+          "path": "user/state.json",
+          "sha256": "09fd18eafbbd596713dad1d6e3f9e750b106e78e7a482e9d8151f3e2d7dd0600",
+          "bytes": 239,
+          "present": true,
+          "role": "user-state"
+        },
+        {
+          "path": "user/skills/user.authored/SKILL.md",
+          "sha256": "72fdd3fca3feeb6ee1cff27d94f1456979a1f585f1ed9ab4cb4ff3ed141d859d",
+          "bytes": 108,
+          "present": true,
+          "role": "user-state"
+        },
+        {
+          "path": "user/rules/rule.owner-edit.md",
+          "sha256": "b2c8a1e63ab8c92b3c69afceaaf09da3eca336a95e3d4856d099b9c53dc42ddc",
+          "bytes": 105,
+          "present": true,
+          "role": "user-state"
+        },
+        {
+          "path": "user/ledger.jsonl",
+          "sha256": "b5f0f1dcfc5263ee32e40a1b47a1e92c38c33d459674947c41e9c04855702303",
+          "bytes": 300,
+          "present": true,
+          "role": "user-state"
+        }
+      ],
+      "byte_identical_user_files": [
+        "user/skills/user.authored/SKILL.md",
+        "user/rules/rule.owner-edit.md"
+      ],
+      "ledger_prefix_intact": true
+    },
+    "field_comparisons": [
+      {
+        "path": "schema_version",
+        "before": 1,
+        "after": 2,
+        "expected": 2,
+        "verdict": "preserved"
+      },
+      {
+        "path": "settings.custom.hotkey",
+        "before": "ctrl+k",
+        "after": null,
+        "expected": null,
+        "verdict": "renamed"
+      },
+      {
+        "path": "settings.custom.owner.pref",
+        "before": "keep-me",
+        "after": null,
+        "expected": null,
+        "verdict": "renamed"
+      },
+      {
+        "path": "settings.debug",
+        "before": true,
+        "after": null,
+        "expected": null,
+        "verdict": "renamed"
+      },
+      {
+        "path": "settings.locale",
+        "before": "en-GB",
+        "after": null,
+        "expected": null,
+        "verdict": "reshaped-declared"
+      },
+      {
+        "path": "settings.locale.lang",
+        "before": null,
+        "after": "en",
+        "expected": "en",
+        "verdict": "reshaped-declared"
+      },
+      {
+        "path": "settings.locale.region",
+        "before": null,
+        "after": "GB",
+        "expected": "GB",
+        "verdict": "reshaped-declared"
+      },
+      {
+        "path": "settings.theme",
+        "before": "dark",
+        "after": "dark",
+        "expected": "dark",
+        "verdict": "preserved"
+      },
+      {
+        "path": "settings.user_keys.hotkey",
+        "before": null,
+        "after": "ctrl+k",
+        "expected": "ctrl+k",
+        "verdict": "added-by-migration"
+      },
+      {
+        "path": "settings.user_keys.owner.pref",
+        "before": null,
+        "after": "keep-me",
+        "expected": "keep-me",
+        "verdict": "added-by-migration"
+      },
+      {
+        "path": "settings.verbose_logs",
+        "before": null,
+        "after": true,
+        "expected": true,
+        "verdict": "added-by-migration"
+      }
+    ],
+    "migration_log": {
+      "ran": true,
+      "id": "v1_to_v2",
+      "transforms_applied": 4,
+      "entries": [
+        {
+          "transform": "set-schema-version",
+          "kind": "set",
+          "from": "schema_version",
+          "to": "schema_version"
+        },
+        {
+          "transform": "rename-custom-keys",
+          "kind": "rename",
+          "from": "settings.custom",
+          "to": "settings.user_keys"
+        },
+        {
+          "transform": "reshape-locale",
+          "kind": "reshape",
+          "from": "settings.locale",
+          "to": "settings.locale"
+        },
+        {
+          "transform": "retire-debug-flag",
+          "kind": "retire",
+          "from": "settings.debug",
+          "to": "settings.verbose_logs"
+        }
+      ]
+    },
+    "health_check": {
+      "implementation": "command-center/p2-wave/probes/CNF-0099/engine.py:health_check (strict=True; same function for clean and upgraded)",
+      "clean_install": {
+        "ok": true,
+        "aggregate": "SUCCESS",
+        "probe_ids": [
+          "plugin_version",
+          "schema_version",
+          "custom_absent",
+          "debug_absent",
+          "user_keys_object",
+          "locale_object",
+          "hook_loaded",
+          "bundled_skill_registered",
+          "ledger_writable",
+          "cache_valid",
+          "mcp_reachable",
+          "router_responding"
+        ],
+        "failed_ids": []
+      },
+      "upgraded": {
+        "ok": true,
+        "aggregate": "SUCCESS",
+        "probe_ids": [
+          "plugin_version",
+          "schema_version",
+          "custom_absent",
+          "debug_absent",
+          "user_keys_object",
+          "locale_object",
+          "hook_loaded",
+          "bundled_skill_registered",
+          "ledger_writable",
+          "cache_valid",
+          "mcp_reachable",
+          "router_responding"
+        ],
+        "failed_ids": []
+      },
+      "identical_probe_set": true,
+      "identical_implementation": true
+    },
+    "skip_migration_control": {
+      "ran": true,
+      "health_check_failed": true,
+      "failed_probe_ids": [
+        "schema_version",
+        "custom_absent",
+        "debug_absent",
+        "user_keys_object",
+        "locale_object"
+      ],
+      "weaker_check_would_pass": true,
+      "discriminates": true
+    }
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "field-by-field-user-state",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/probe1_field_compare.py"
+      },
+      {
+        "id": "probe2",
+        "role": "skip-migration-health-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0099/probe2_skip_migration.py"
+      }
+    ],
+    "notes": "G-1 for CNF-0099: live named probes exit 0, upgrade-path.json state=SUCCESS, skip-migration control fails the identical health check, per-unit manifest row. Did not run global unit_manifest.py --write. Domain payload lives under report because receipt_core sets additionalProperties false."
+  }
+}

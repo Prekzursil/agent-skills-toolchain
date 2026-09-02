@@ -1,0 +1,25 @@
+I'll start from the existing TST-0150 probe tree and the delivery contract, then resume whatever is already built rather than rebuilding from scratch.The previous cloud-ok run left TST-0150 as honest BLOCKED with no live probes. Next I’ll read the catalog contract, the current receipt, and a delivered unit so I know what “contract-green” actually requires.The catalog question is real: kill the monitor, recover terminal state from the ledger. I’ll look at a delivered unit’s shape and the live monitor code so the probes can actually replay that, not just wrap the old harvest text.The harvest left the science in the receipt but no runnable probes. I’ll rebuild the named harness against production `r2e_monitor.py`, re-run the monitor-death experiment on this Linux tree, then pack from live output.The pack treated `unknown_finished_count=0` as missing because `0 or -1` is `-1`. I’ll fix that check and repack.**SUCCESS:delivered TST-0150**
+
+`python3 command-center/p2-wave/_measure_one_delivered.py TST-0150` printed:
+
+`SUCCESS:delivered TST-0150 predicate=delivered state=SUCCESS probes=3 raws=4 notes=assert_memory_only_negative.py:0,run_refute_probes.py:0,update_receipt.py:0`
+
+Cloud-ok was not treated as delivery. The harvest left an honest BLOCKED receipt with no on-disk probes. This session restored the named harness against production `command-center/p2-wave/r2e_monitor.py` and re-ran it on this Linux worktree.
+
+Live science (measure re-run included):
+
+| Scenario | Result |
+|---|---|
+| Monitor SIGKILL + restart | remote `Z`/FINISHED, ledger SUCCESS, **UNKNOWN=0** |
+| Uninterrupted both-states | **UNKNOWN=0** |
+| Memory-only mutant (overlay, not ledger) | **UNKNOWN=1**, detector fired |
+
+Artifacts:
+
+- `command-center/receipts/TST-0150.json` — `state=SUCCESS`, 26394 B, sha256 `fd083e484d23538435f47f759cfc2678d8fb86b19370ffbfd9a5ef86db66ba7a`
+- `command-center/p2-wave/probes/TST-0150/UNIT-ARTIFACT-MANIFEST.json` — per-unit row matches that hash
+- `command-center/p2-wave/probes/TST-0150/SUBAGENT-RETURN.json`
+
+Named probes that re-run to exit 0: `run_refute_probes.py`, `assert_memory_only_negative.py`, `update_receipt.py` (verify-only). Prior `CLOUD-OK-REFUTE.json` and `HANDOFF.txt` were kept.
+
+Residual, named not folded into a pass: catalog Windows pwsh7+Git Bash dual-shell review was not run here. Constraints held: no git write, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

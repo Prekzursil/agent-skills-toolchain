@@ -1,0 +1,598 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "urn:ast-integrate:CNL-0076:runtime-eval",
+  "title": "Stopping-expression runtime evaluation semantics (CNL-0076)",
+  "description": "JSON Schema for a halt-decision record under CouncilSpec v2. Evaluation cadence is end-of-round only. Expressions MUST be side-effect free; impure ASTs are rejected before any round. Intra-round true-then-false flaps do not halt: only the frozen end-of-round snapshot is visible to the evaluator. SUCCESS:CNL-0076",
+  "unit_id": "CNL-0076",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNL-0076",
+  "completion_sentinel": "SUCCESS:CNL-0076",
+  "title_human": "Stopping-expression runtime evaluation semantics",
+  "question": "At what cadence is a stopping expression evaluated (mid-turn, end-of-turn, end-of-round), must it be side-effect free, and what happens when a predicate becomes true and then false again before the round ends?",
+  "depends_on": [
+    "CNL-0010"
+  ],
+  "dependency_note": "CNL-0010 owns surface grammar and static unsatisfiability. Its artifact is absent on this worktree. This unit specifies runtime evaluation over a closed typed AST that a CNL-0010 parser would emit. Grammar gaps do not block cadence, purity, or flap rules.",
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "council-systems-designer",
+    "execution_substrate": "headless-linux"
+  },
+  "catalog_anchor": {
+    "path": "command-center/WORK-UNIT-CATALOG.json",
+    "line": 38048,
+    "snippet": "\"id\": \"CNL-0076\""
+  },
+  "answers": {
+    "cadence": "end-of-round",
+    "mid_turn": "FORBIDDEN",
+    "end_of_turn": "SNAPSHOT-UPDATE-ONLY-NO-HALT",
+    "side_effect_free": true,
+    "purity_enforcement": "bind-time-reject",
+    "flapping_rule": "sample-at-end-of-round-no-latch",
+    "unknown_does_not_halt": true,
+    "floors_seam": "halt_eligible = (result is true) AND floors_met; floors are CNL-0077. This unit's fixtures treat floors_met as true.",
+    "rationale": {
+      "why_not_mid_turn": "A mid-turn sample would halt on a speaker's in-progress metric write before the turn ledger closes, making halt order-dependent on tool-call interleaving inside one seat.",
+      "why_not_end_of_turn": "End-of-turn halt would skip remaining seats in the round. Speaker order would change whether a flap is observed. CNL-0077 floors (every mandated role having spoken) cannot be stated if halt is allowed between seats of one round.",
+      "why_sample_not_latch": "Latch-on-true requires observing intra-round values. This unit forbids those observations as evaluation events. Sampling the frozen end-of-round snapshot is the unique deterministic function of the round's closing metrics.",
+      "why_reject_effects": "A mutating term would make AND/OR evaluation order observable. Rejecting effects makes order irrelevant and keeps the snapshot frozen. Purity is a gate, not a hope."
+    }
+  },
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "cadence",
+    "eval_point",
+    "purity",
+    "expression",
+    "snapshot",
+    "result",
+    "halt"
+  ],
+  "properties": {
+    "cadence": {
+      "type": "string",
+      "const": "end-of-round"
+    },
+    "eval_point": {
+      "type": "string",
+      "enum": [
+        "end-of-round"
+      ],
+      "description": "mid-turn and end-of-turn are not valid halt points"
+    },
+    "purity": {
+      "type": "string",
+      "const": "ACCEPTED"
+    },
+    "expression": {
+      "$ref": "#/definitions/pure_expr"
+    },
+    "snapshot": {
+      "type": "object",
+      "description": "Frozen metrics at end-of-round. Writes are forbidden."
+    },
+    "result": {
+      "description": "Kleene value. Only JSON true may halt.",
+      "oneOf": [
+        {
+          "type": "boolean"
+        },
+        {
+          "type": "string",
+          "const": "unknown"
+        }
+      ]
+    },
+    "halt": {
+      "type": "boolean"
+    },
+    "intra_round_path": {
+      "type": "array",
+      "items": {
+        "oneOf": [
+          {
+            "type": "boolean"
+          },
+          {
+            "type": "string",
+            "const": "unknown"
+          }
+        ]
+      },
+      "description": "Telemetry only. Must not drive halt. Halt equals result is true on the last snapshot."
+    }
+  },
+  "definitions": {
+    "pure_expr": {
+      "oneOf": [
+        {
+          "$ref": "#/definitions/const"
+        },
+        {
+          "$ref": "#/definitions/var"
+        },
+        {
+          "$ref": "#/definitions/cmp"
+        },
+        {
+          "$ref": "#/definitions/and"
+        },
+        {
+          "$ref": "#/definitions/or"
+        },
+        {
+          "$ref": "#/definitions/not"
+        }
+      ]
+    },
+    "const": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "value"
+      ],
+      "properties": {
+        "op": {
+          "const": "const"
+        },
+        "value": true
+      }
+    },
+    "var": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "name"
+      ],
+      "properties": {
+        "op": {
+          "const": "var"
+        },
+        "name": {
+          "type": "string",
+          "minLength": 1
+        }
+      }
+    },
+    "cmp": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "rel",
+        "left",
+        "right"
+      ],
+      "properties": {
+        "op": {
+          "const": "cmp"
+        },
+        "rel": {
+          "enum": [
+            ">=",
+            "<=",
+            ">",
+            "<",
+            "==",
+            "!="
+          ]
+        },
+        "left": {
+          "$ref": "#/definitions/pure_expr"
+        },
+        "right": {
+          "$ref": "#/definitions/pure_expr"
+        }
+      }
+    },
+    "and": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "const": "and"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/definitions/pure_expr"
+          }
+        }
+      }
+    },
+    "or": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "args"
+      ],
+      "properties": {
+        "op": {
+          "const": "or"
+        },
+        "args": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "$ref": "#/definitions/pure_expr"
+          }
+        }
+      }
+    },
+    "not": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "op",
+        "arg"
+      ],
+      "properties": {
+        "op": {
+          "const": "not"
+        },
+        "arg": {
+          "$ref": "#/definitions/pure_expr"
+        }
+      }
+    }
+  },
+  "impure_ops_rejected": [
+    "assign",
+    "call",
+    "effect",
+    "inc",
+    "mutate",
+    "write"
+  ],
+  "worked_example_continue": {
+    "cadence": "end-of-round",
+    "eval_point": "end-of-round",
+    "purity": "ACCEPTED",
+    "expression": {
+      "op": "cmp",
+      "rel": ">=",
+      "left": {
+        "op": "var",
+        "name": "unique_ideas"
+      },
+      "right": {
+        "op": "const",
+        "value": 100
+      }
+    },
+    "snapshot": {
+      "unique_ideas": 90,
+      "round": 1
+    },
+    "result": false,
+    "halt": false,
+    "intra_round_path": [
+      true,
+      false,
+      false
+    ]
+  },
+  "live_fixture_results": {
+    "flapping": {
+      "rows": [
+        {
+          "id": "flap-true-then-false",
+          "halt": false,
+          "result": false,
+          "recount": false,
+          "rpn": false,
+          "path": [
+            true,
+            false,
+            false
+          ],
+          "snapshot": {
+            "unique_ideas": 90,
+            "round": 1
+          }
+        },
+        {
+          "id": "flap-false-then-true-at-round-end",
+          "halt": true,
+          "result": true,
+          "recount": true,
+          "rpn": true,
+          "path": [
+            false,
+            true,
+            true
+          ],
+          "snapshot": {
+            "unique_ideas": 110,
+            "round": 2
+          }
+        },
+        {
+          "id": "stable-false",
+          "halt": false,
+          "result": false,
+          "recount": false,
+          "rpn": false,
+          "path": [
+            false,
+            false
+          ],
+          "snapshot": {
+            "unique_ideas": 11,
+            "round": 3
+          }
+        }
+      ],
+      "mid_turn": {
+        "cadence_violation": true,
+        "halt": false,
+        "evaluated": false
+      },
+      "end_of_turn": {
+        "cadence_violation": true,
+        "halt": false,
+        "evaluated": false
+      }
+    },
+    "purity": {
+      "pure": {
+        "verdict": "ACCEPTED",
+        "halt": false
+      },
+      "assign": {
+        "verdict": "REJECTED",
+        "reasons": [
+          "$:impure-op:assign"
+        ],
+        "evaluated": false,
+        "halt": false,
+        "rejected": true
+      },
+      "call": {
+        "verdict": "REJECTED",
+        "reasons": [
+          "$:impure-op:call"
+        ]
+      },
+      "bypass": {
+        "raised": true,
+        "error_type": "PurityError",
+        "error": "impure-or-unknown-op:assign",
+        "halt": false
+      }
+    }
+  },
+  "tests": [
+    {
+      "id": "flapping-predicate-deterministic",
+      "requirement": "a flapping-predicate fixture must produce a deterministic outcome",
+      "outcome": "flap-true-then-false halt=False (path=[True, False, False]); flap-false-then-true-at-round-end halt=True; two mechanisms (cadence driver vs last-snapshot recount) agree",
+      "pass": true
+    },
+    {
+      "id": "side-effect-rejected",
+      "requirement": "an expression with a side effect must be REJECTED, proving purity is enforced not assumed",
+      "outcome": "assign verdict=REJECTED reasons=['$:impure-op:assign'] evaluated=False halt=False",
+      "pass": true
+    },
+    {
+      "id": "negative-control-impure-assign",
+      "requirement": "negative control recorded verbatim: state what the check does on the state it is meant to reject",
+      "outcome": "NEGATIVE-CONTROL: on impure op=assign (unique_ideas := 999) check_purity.verdict=REJECTED reasons contain impure-op:assign; run_round sets evaluated=False halt=False rejected=True. Bypass eval_ast raises PurityError; halt remains false.",
+      "pass": true
+    }
+  ],
+  "negative_control": {
+    "state_rejected": "stopping expression AST containing assign/call/mutate/write/inc or effect=true",
+    "what_the_check_does": "NEGATIVE-CONTROL: on impure op=assign (unique_ideas := 999) check_purity.verdict=REJECTED reasons contain impure-op:assign; run_round(eval_point=end-of-round) sets evaluated=False halt=False rejected=True and does not enter eval_ast. Bypassing the gate and calling eval_ast on the frozen snapshot raises PurityError impure-or-unknown-op:assign; halt remains false.",
+    "live": {
+      "verdict": "REJECTED",
+      "reasons": [
+        "$:impure-op:assign"
+      ],
+      "evaluated": false,
+      "halt": false,
+      "rejected": true
+    },
+    "bypass_live": {
+      "raised": true,
+      "error_type": "PurityError",
+      "error": "impure-or-unknown-op:assign",
+      "halt": false
+    }
+  },
+  "evidence": [
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/runtime.py",
+      "line": 21,
+      "snippet": "CADENCE = \"end-of-round\"",
+      "kind": "live-tree",
+      "claim": "Cadence is a named constant, not a comment.",
+      "anchor": "command-center/p2-wave/probes/CNL-0076/runtime.py:21"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/runtime.py",
+      "line": 22,
+      "snippet": "ALLOWED_EVAL_POINTS = frozenset({\"end-of-round\"})",
+      "kind": "live-tree",
+      "claim": "Only end-of-round is an allowed halt evaluation point.",
+      "anchor": "command-center/p2-wave/probes/CNL-0076/runtime.py:22"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/runtime.py",
+      "line": 23,
+      "snippet": "FORBIDDEN_EVAL_POINTS = frozenset({\"mid-turn\", \"end-of-turn\"})",
+      "kind": "live-tree",
+      "claim": "Mid-turn and end-of-turn are forbidden halt points.",
+      "anchor": "command-center/p2-wave/probes/CNL-0076/runtime.py:23"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/runtime.py",
+      "line": 30,
+      "snippet": "IMPURE_OPS = frozenset({\"assign\", \"call\", \"mutate\", \"write\", \"inc\", \"effect\"})",
+      "kind": "live-tree",
+      "claim": "Impure operators are an explicit reject set.",
+      "anchor": "command-center/p2-wave/probes/CNL-0076/runtime.py:30"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/fixtures/flapping_round.json",
+      "line": 11,
+      "snippet": "\"id\": \"flap-true-then-false\"",
+      "kind": "fixture",
+      "claim": "Planted intra-round true-then-false flap.",
+      "anchor": "command-center/p2-wave/probes/CNL-0076/fixtures/flapping_round.json:11"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/fixtures/purity.json",
+      "line": 21,
+      "snippet": "\"op\": \"assign\"",
+      "kind": "fixture",
+      "claim": "Planted side-effecting assign expression.",
+      "anchor": "command-center/p2-wave/probes/CNL-0076/fixtures/purity.json:21"
+    },
+    {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "line": 38048,
+      "snippet": "\"id\": \"CNL-0076\"",
+      "kind": "catalog",
+      "claim": "Unit id and question are taken from the catalog, not restated from memory.",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json:38048"
+    }
+  ],
+  "signals": [
+    {
+      "id": "S1-cadence-driver",
+      "mechanism": "run_round event driver: freeze last-turn metrics, eval_ast, refuse mid-turn/end-of-turn",
+      "result": {
+        "rows": [
+          {
+            "id": "flap-true-then-false",
+            "halt": false,
+            "result": false,
+            "recount": false,
+            "rpn": false,
+            "path": [
+              true,
+              false,
+              false
+            ],
+            "snapshot": {
+              "unique_ideas": 90,
+              "round": 1
+            }
+          },
+          {
+            "id": "flap-false-then-true-at-round-end",
+            "halt": true,
+            "result": true,
+            "recount": true,
+            "rpn": true,
+            "path": [
+              false,
+              true,
+              true
+            ],
+            "snapshot": {
+              "unique_ideas": 110,
+              "round": 2
+            }
+          },
+          {
+            "id": "stable-false",
+            "halt": false,
+            "result": false,
+            "recount": false,
+            "rpn": false,
+            "path": [
+              false,
+              false
+            ],
+            "snapshot": {
+              "unique_ideas": 11,
+              "round": 3
+            }
+          }
+        ],
+        "mid_turn": {
+          "cadence_violation": true,
+          "halt": false,
+          "evaluated": false
+        },
+        "end_of_turn": {
+          "cadence_violation": true,
+          "halt": false,
+          "evaluated": false
+        }
+      }
+    },
+    {
+      "id": "S2-independent-recount",
+      "mechanism": "recount_last_snapshot: ignore intra-round path, eval_ast and eval_rpn on turns[-1] only; disagreement raises",
+      "result": {
+        "rows": [
+          {
+            "id": "flap-true-then-false",
+            "recount": false,
+            "rpn": false
+          },
+          {
+            "id": "flap-false-then-true-at-round-end",
+            "recount": true,
+            "rpn": true
+          },
+          {
+            "id": "stable-false",
+            "recount": false,
+            "rpn": false
+          }
+        ]
+      }
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNL-0076-probe1-independent-recount",
+    "method": "Re-tabulate halt from fixtures/flapping_round.json by reading only the last turn's metrics and evaluating via eval_rpn, without reading the author's answers object.",
+    "verdict": "PASS",
+    "independent": true,
+    "disagreement_blocks": true,
+    "observed": {
+      "flap-true-then-false": false,
+      "flap-false-then-true-at-round-end": true
+    }
+  },
+  "runtime_impl": {
+    "path": "command-center/p2-wave/probes/CNL-0076/runtime.py",
+    "sha256": "94c4879c130ae01b2477143a175dcbaefe01fbdf4c519a65b510b6445374231f",
+    "bytes": 10532
+  },
+  "artifacts": [
+    {
+      "path": "command-center/design/council/CNL-0076-stopping-expression-runtime-evaluation-semantics.schema.json",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/runtime.py",
+      "role": "evaluator"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/fixtures/flapping_round.json",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNL-0076/fixtures/purity.json",
+      "role": "fixture"
+    }
+  ],
+  "ts": "2026-08-25T00:40:00Z"
+}

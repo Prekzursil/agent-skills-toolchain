@@ -1,0 +1,23 @@
+I'll start from the existing ADV-0021 probe tree, read any SUBAGENT-RETURN, and measure against G-1 without touching git or the global catalog.The probe tree is already there. Next I’ll read SUBAGENT-RETURN, the catalog contract, and the measure script so we resume instead of rebuilding.G-1 needs a non-BLOCKED SUCCESS artifact plus live probe reruns. I’ll inspect the current artifact, `artifact_delivered`, and a unit that already passed this gate.I’ll inspect the schema, a successful peer unit, and the existing probes so we can close G-1 honestly rather than hand-flipping BLOCKED.Helper scripts will be picked up by the measure runner before the named probes. I’ll check a unit that already passed G-1 and inspect those helpers.This worktree has no `platform/` tree. I’ll look for a usable plugin copy in fixtures and see how sibling install-path units handled that.I’ll vendor the plugin tree this worktree is missing, point the named probes at it, and keep helper scripts out of the measure rerun set.The vendored `platform/` package was shadowing the stdlib. I’ll move the plugin tree and re-run so CLI and uninstall probes can actually execute.Probes are green on Linux, including the four-hop install escape. Next I’ll pack an honest SUCCESS artifact from those live results.**SUCCESS:delivered ADV-0021** `predicate=delivered state=SUCCESS probes=2 raws=4 notes=probe1_ast.py:0,probe2_bypass.py:0`
+
+G-1 is green for this unit. Named probes re-ran to exit 0, the catalog artifact is schema-valid `SUCCESS` (not BLOCKED), and the per-unit manifest hash matches.
+
+What was already in the probe tree was resumed, not scrapped. This worktree has no repo-root `platform/`, so the probes run a vendored copy of the same plugin tree at `command-center/p2-wave/probes/ADV-0021/_vendor/plugin` (taken from the ADV-0024 fixture). The directory is named `plugin/`, not `platform/`, so the stdlib `platform` module is not shadowed.
+
+| Gate | Result |
+|---|---|
+| `probe1_ast.py` | exit 0 — 102 sinks, 50 controls, 12 unguarded joins, `journal.py:82` unguarded |
+| `probe2_bypass.py` | exit 0 — 48 cases; benign install PASS |
+| Artifact | `command-center/adversarial/ADV-0021-install-path-stride-threat-model.json` — 59362 B, `state=SUCCESS` |
+| Per-unit manifest | sha256 `4bc36831018f2254cb5ac29af516e866b0d8c2247d35ec2ac6ad008245b2353b` matches live LF bytes |
+| Schema | `SCHEMA-VALID:ADV-0021` against the live threat-model contract |
+
+Prior same-vendor refutes were applied, not ignored:
+
+- **TB3/Repudiation** is no longer `mitigated`. `projection` always returns exit 0 and never calls `divergence_decisions`.
+- **D1** is split: post-install `installed.json` tamper **and** install-time SEMVER tail.
+- On this Linux run, **four-hop** `1.2.3-../../../../OUTSIDE_REV` installs **outside** the prefix. Two-hop stays inside `versions/`. Raw `../../OUTSIDE_TREE` is refused by `SEMVER_RE`.
+- **`--clear-stale-lock` steals a live lock** on Linux (`LK.steal-live=BYPASSED`). The old Windows-only residual is withdrawn.
+- Mitigated cells that still held under executed bypass: unpack zip-slip and deploy `safe_join`.
+
+Global `unit_manifest.py --write` was not run. No git mutate. Catalog openai-Codex c9 is **not** claimed closed.

@@ -1,0 +1,232 @@
+{
+  "artifacts": [
+    {
+      "path": "command-center/receipts/REL-0020.json",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+      "role": "supporting"
+    }
+  ],
+  "cloud_ok": false,
+  "controls": {
+    "detector_fires_when_refresh_disabled": true,
+    "empty_cache_silent_in_both_states": true,
+    "empty_cache_with_refresh": {
+      "behaviour": "BEHAVE-FIXED-v2-new-bytes",
+      "hit": "cas-name-index",
+      "version": "1.0.1"
+    },
+    "empty_cache_without_refresh": {
+      "behaviour": "BEHAVE-FIXED-v2-new-bytes",
+      "hit": "install-tree",
+      "version": "1.0.1"
+    },
+    "fresh_profile_required": true,
+    "partial_refresh_bytecode_only_still_masked": true,
+    "partial_refresh_hit": "unpacked-user-cache"
+  },
+  "drill_kind": "cache-invalidation",
+  "evidence": {
+    "behavioural_new": "BEHAVE-FIXED-v2-new-bytes",
+    "behavioural_old": "BEHAVE-POISON-v1-old-bytes",
+    "new_payload_sha256": "35cf193fbda3afded3299d3c1b627eee95bd25f3f8db109259054670462b1451",
+    "not_checked": [
+      "product-platform-plugin-cache",
+      "windows-localappdata-plugin-cache",
+      "owner-live-home-cache"
+    ],
+    "old_payload_sha256": "ec9c0c547d8f22451acd7f962782eba15d7e98c857949109bf5c25396f7b8443",
+    "poison_with_refresh_hit": "cas-name-index",
+    "poison_without_refresh_hit": "bytecode",
+    "quoted_new_execution": "BEHAVE-FIXED-v2-new-bytes",
+    "quoted_old_execution": "BEHAVE-POISON-v1-old-bytes",
+    "quoted_trap_behaviour": "BEHAVE-POISON-v1-old-bytes",
+    "quoted_trap_version": "1.0.1",
+    "seeded": [
+      "bytecode",
+      "unpacked-user-cache",
+      "http-tarball-cache",
+      "cas-name-index"
+    ],
+    "version_new": "1.0.1",
+    "version_old": "1.0.0",
+    "version_string_is_not_behaviour": true
+  },
+  "isolation": {
+    "assertion": "Every reachable cache path is created under a tempfile profile that is destroyed after the attempt. Constructing Client(Path.home()) raises IsolationError. Owner ~/.cache was not seeded.",
+    "client_on_owner_home_raises": true,
+    "owner_home": "/home/prekzursil",
+    "profile_under_owner_home": false,
+    "touched_owner_profile": false
+  },
+  "locations": [
+    {
+      "id": "bytecode",
+      "kind": "bytecode",
+      "path": "cache/bytecode/rel0020-canary-plugin.pyc",
+      "reachable": true,
+      "reason": "reachable: isolated bytecode cache the client consults first",
+      "status": "SEEDED"
+    },
+    {
+      "id": "unpacked-user-cache",
+      "kind": "unpacked",
+      "path": "cache/unpacked/rel0020-canary-plugin/payload.json",
+      "reachable": true,
+      "reason": "reachable: unpacked user cache copy consulted after bytecode",
+      "status": "SEEDED"
+    },
+    {
+      "id": "http-tarball-cache",
+      "kind": "http",
+      "path": "cache/http/rel0020-canary-plugin.tar.json",
+      "reachable": true,
+      "reason": "reachable: download cache of the previous package tarball",
+      "status": "SEEDED"
+    },
+    {
+      "id": "cas-name-index",
+      "kind": "cas",
+      "path": "cache/cas/index.json",
+      "reachable": true,
+      "reason": "reachable: name-index pointer into the content-addressed blob store",
+      "status": "SEEDED"
+    },
+    {
+      "id": "install-tree",
+      "kind": "install",
+      "path": "install/rel0020-canary-plugin/payload.json",
+      "reachable": true,
+      "reason": "candidate package written here; not a poison seed",
+      "status": "INSTALLED"
+    },
+    {
+      "id": "product-platform-plugin-cache",
+      "kind": "unreachable",
+      "path": "platform/plugin/cache.py",
+      "reachable": false,
+      "reason": "NOT-CHECKED: platform/plugin/cache.py absent on this sparse worktree",
+      "status": "NOT-CHECKED"
+    },
+    {
+      "id": "windows-localappdata-plugin-cache",
+      "kind": "unreachable",
+      "path": "%LOCALAPPDATA%\\ast-integrate\\plugin-cache",
+      "reachable": false,
+      "reason": "NOT-CHECKED: Linux worktree; isolation forbids substituting the owner's live Windows profile",
+      "status": "NOT-CHECKED"
+    },
+    {
+      "id": "owner-live-home-cache",
+      "kind": "unreachable",
+      "path": "/home/prekzursil/.cache/ast-integrate",
+      "reachable": false,
+      "reason": "NOT-CHECKED: isolation assertion forbids seeding or reading the owner's live cache",
+      "status": "NOT-CHECKED"
+    }
+  ],
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py",
+      "id": "probe1",
+      "role": "poisoned-refresh"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0020/probe2_version_trap.py",
+      "id": "probe2",
+      "role": "version-trap-and-mutations"
+    }
+  ],
+  "notes": "G-1 for REL-0020. Product platform/plugin/cache.py is NOT-CHECKED on this sparse tree. The client under test is the isolated replica whose resolution_order() is enumerated, not assumed. cloud ok=true is not delivery.",
+  "profile": {
+    "destroyed_after": true,
+    "fresh_per_attempt": true,
+    "kind": "throwaway-isolated-HOME-equivalent",
+    "retry_policy": "retry only on a FRESH profile; re-running on a dirtied profile measures the dirt, not the drill"
+  },
+  "question": "Prove the release refresh step actually invalidates: seed a stale copy of the previous package into every cache location the client consults, install the candidate, and assert the running client executes the new bytes.",
+  "report": {
+    "control_ids": [
+      "empty-cache-silent-in-both-states",
+      "refresh-disabled-perceives-defect",
+      "partial-refresh-bytecode-only-still-masked"
+    ],
+    "kind": "lifecycle-drill-receipt",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:poisoned_without_refresh",
+        "measured": "BEHAVE-POISON-v1-old-bytes",
+        "method": "Client.execute after seed_poison+install(refresh=False)",
+        "name": "quoted_old_execution"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:poisoned_with_refresh",
+        "measured": "BEHAVE-FIXED-v2-new-bytes",
+        "method": "Client.execute after seed_poison+install(refresh=True)",
+        "name": "quoted_new_execution"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:version_string_trap",
+        "measured": "version=1.0.1 behaviour=BEHAVE-POISON-v1-old-bytes",
+        "method": "version sidecar vs execute() on poisoned caches",
+        "name": "version_string_trap"
+      }
+    ]
+  },
+  "required_fix": null,
+  "resolution_order": [
+    "bytecode",
+    "unpacked-user-cache",
+    "http-tarball-cache",
+    "cas-name-index",
+    "install-tree"
+  ],
+  "reviewer": {
+    "independent": true,
+    "mutation_controls_rerun": true,
+    "notes": "Probe2 re-runs: (1) refresh disabled still executes old bytes, (2) version sidecar new while behaviour old, (3) bytecode-only refresh still masked by unpacked-user-cache, (4) omitting a NOT-CHECKED row is rejected.",
+    "reviewer_id": "REL-0020-probe2-mutation-controls",
+    "verdict": "PASS"
+  },
+  "schema_validation": {
+    "catalog_shim": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "local_contract": "emit_receipt.LOCAL_CONTRACT rejects empty/garbage; receipt_honest is the content gate",
+    "remote_ref": "NOT-CHECKED: jsonschema follows ast-integrate.invalid and cannot resolve"
+  },
+  "sentinel": "SUCCESS:REL-0020",
+  "spec_anchors": [
+    "_USER-PROMPTS.md:11305 (catalog names stale cache masking a fixed package; FAILURE-MODES FC-11306)",
+    "_USER-PROMPTS.md:10837 (cache refresh)"
+  ],
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "description": "With the refresh step disabled the poisoned drill must FAIL (old bytes execute).",
+      "id": "refresh-disabled-perceives-defect",
+      "observation": "hit=bytecode behaviour=BEHAVE-POISON-v1-old-bytes version=1.0.1",
+      "pass": true
+    },
+    {
+      "description": "With refresh enabled and the cache poisoned, the client executes the new behaviour.",
+      "id": "refresh-enabled-new-behaviour",
+      "observation": "hit=cas-name-index behaviour=BEHAVE-FIXED-v2-new-bytes version=1.0.1",
+      "pass": true
+    },
+    {
+      "description": "A version-string read reports the new version while poisoned old bytes still execute.",
+      "id": "version-string-is-not-behaviour",
+      "observation": "version=1.0.1 behaviour=BEHAVE-POISON-v1-old-bytes hit=bytecode",
+      "pass": true
+    },
+    {
+      "description": "Any cache location not covered appears as NOT-CHECKED rather than being omitted.",
+      "id": "uncovered-are-not-checked",
+      "observation": "not_checked=product-platform-plugin-cache,windows-localappdata-plugin-cache,owner-live-home-cache",
+      "pass": true
+    }
+  ],
+  "title": "Cache invalidation proved from the poisoned state, not the empty one",
+  "unit_id": "REL-0020"
+}

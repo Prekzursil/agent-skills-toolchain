@@ -1,0 +1,268 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0295",
+  "id": "IMP-0295",
+  "title": "Prediction and confidence-betting ledger",
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0295",
+  "completion_sentinel": "SUCCESS:IMP-0295",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0295]; question_or_target implements tools/council/protocol/betting.py; inputs cite _USER-PROMPTS.md:10915-10946, :10746-10767, :11172-11244 and 11-COUNCIL-SPECIFICATION (paths not present on this worktree)",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-protocol-module",
+  "artifact_paths": [
+    "tools/council/protocol/betting.py",
+    "command-center/receipts/IMP-0295.json",
+    "command-center/p2-wave/probes/IMP-0295/probe1_strictly_proper.py",
+    "command-center/p2-wave/probes/IMP-0295/probe2_tournament.py"
+  ],
+  "artifacts": [
+    {
+      "path": "tools/council/protocol/betting.py",
+      "role": "implementation",
+      "sha256": "53818dde8ca2efde0f75c413f98094278f5e788a1be147450c129ac663a44b71",
+      "bytes": 14428,
+      "exists": true
+    }
+  ],
+  "min_bytes_threshold": 128,
+  "question": "does a participant that always states 0.5 profit relative to one that commits and is right?",
+  "answer": "no",
+  "falsifiable_result": {
+    "pathwise_committer_ahead": true,
+    "pathwise_rows": [
+      {
+        "p": 0.9,
+        "y": 1,
+        "committer": 0.99,
+        "hedger": 0.75,
+        "ahead": true
+      },
+      {
+        "p": 0.8,
+        "y": 1,
+        "committer": 0.96,
+        "hedger": 0.75,
+        "ahead": true
+      },
+      {
+        "p": 0.3,
+        "y": 0,
+        "committer": 0.91,
+        "hedger": 0.75,
+        "ahead": true
+      },
+      {
+        "p": 0.1,
+        "y": 0,
+        "committer": 0.99,
+        "hedger": 0.75,
+        "ahead": true
+      }
+    ],
+    "tournament_committer_beats_hedger": true,
+    "tournament_hedger_wins_under_brier": false
+  },
+  "scoring_rule": {
+    "production": "brier-payoff",
+    "payoff": "1 - (p - y)^2 (higher better)",
+    "strictly_proper": true,
+    "also_verified": "log-payoff",
+    "brier_grid": {
+      "strictly_proper": true,
+      "hedging_loses_when_pi_neq_half": true,
+      "n_pi": 19
+    },
+    "log_grid": {
+      "strictly_proper": true,
+      "hedging_loses_when_pi_neq_half": true,
+      "n_pi": 19
+    }
+  },
+  "tournament": {
+    "seed": 295,
+    "n": 2400,
+    "rule": "brier-payoff",
+    "true_p_palette": [
+      0.1,
+      0.2,
+      0.3,
+      0.4,
+      0.6,
+      0.7,
+      0.8,
+      0.9
+    ],
+    "totals": {
+      "committer": 1992.600000000022,
+      "hedger": 1800.0,
+      "random": 1596.1954256473343
+    },
+    "analytic_expected_totals": {
+      "committer": 1979.9999999999802,
+      "hedger": 1800.0,
+      "random": 1600.000000000042
+    },
+    "ranking": [
+      "committer",
+      "hedger",
+      "random"
+    ],
+    "winner": "committer",
+    "hedger_wins": false,
+    "committer_beats_hedger": true,
+    "n_store_forecasts": 7200
+  },
+  "negative_control": {
+    "id": "NC-IMP-0295-NONPROPER-HEDGER-WINS",
+    "rule_substituted": "hedge-reward-nonproper",
+    "mechanism": "payoff = 1 - (p - 0.5)^2, independent of outcome",
+    "proper_winner": "committer",
+    "nonproper_winner": "hedger",
+    "proper_totals": {
+      "committer": 1992.600000000022,
+      "hedger": 1800.0,
+      "random": 1596.1954256473343
+    },
+    "nonproper_totals": {
+      "committer": 2220.00000000001,
+      "hedger": 2400.0,
+      "random": 2199.749215322702
+    },
+    "discriminates": true
+  },
+  "calibration_store": {
+    "schema": "council.calibration.store.v1",
+    "n_forecasts_from_tournament": 7200,
+    "consumer": "tools/council/participants/select_calibrated.py",
+    "note": "IMP-0329 report.py is not in this worktree. betting.py writes the v1 store that selector already knows how to read."
+  },
+  "evidence": [
+    {
+      "anchor": "tools/council/protocol/betting.py:strictly_proper_report",
+      "claim": "Brier and log payoffs are strictly proper on a 19-point grid: unique maximiser of expected payoff is the true pi, and stating 0.5 loses whenever pi != 0.5.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0295/probe1_strictly_proper.py",
+          "method": "command",
+          "fingerprint": "8bcf931e62a743e89c14555fafb15149286b3085de9530349fa8dfe3332b377d"
+        },
+        {
+          "role": "verifier",
+          "command": "closed-form Brier 1-(q^2-2*pi*q+pi) recomputed in probe1",
+          "method": "independent-recompute",
+          "fingerprint": "f25615c0b4b9c7139ce6e90f153f4319e2538f9ca6c07d0dff392440c934fea5"
+        }
+      ]
+    },
+    {
+      "anchor": "tools/council/protocol/betting.py:run_tournament",
+      "claim": "Seeded tournament n=2400 seed=295: committer totals 1992.6000 beat hedger 1800.0000; random 1596.1954. Ranking=['committer', 'hedger', 'random'].",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0295/probe2_tournament.py",
+          "method": "command",
+          "fingerprint": "adc5104abcf2440d6ea9f084714a4aaee4e7d3ccb2759bab79944b074bc54d0e"
+        },
+        {
+          "role": "verifier",
+          "command": "recompute payoffs from store (p,y) rows",
+          "method": "independent-recompute",
+          "fingerprint": "19764c5d33674673b118ea6ea4b87d7fbfac3c5fd09fd92c6b06117fcaf8516d"
+        }
+      ]
+    }
+  ],
+  "test_ids": [
+    "T-IMP-0295-STRICTLY-PROPER",
+    "T-IMP-0295-TOURNAMENT-HEDGER-LOSES"
+  ],
+  "negative_control_ids": [
+    "NC-IMP-0295-NONPROPER-HEDGER-WINS"
+  ],
+  "tests": [
+    {
+      "id": "T-IMP-0295-STRICTLY-PROPER",
+      "name": "strictly-proper scoring rule verification",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0295/probe1_strictly_proper.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T-IMP-0295-TOURNAMENT-HEDGER-LOSES",
+      "name": "hedger must not win against a well-calibrated committer",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0295/probe2_tournament.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-IMP-0295-NONPROPER-HEDGER-WINS",
+      "kind": "scoring-rule-substitution",
+      "description": "Substitute hedge-reward (non-proper) for Brier; hedger must win, proving the tournament test discriminates.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "hedger_wins=true under hedge-reward-nonproper",
+      "good_state_output": "hedger_wins=false under brier-payoff"
+    }
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer": {
+    "reviewer_id": "IMP-0295-probe1-closed-form-and-probe2-recompute",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "note": "The named probes start from the tests and recompute expected scores / store payoffs without trusting self_check's boolean. They ran in this same delivery session; no second human reviewer is claimed."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "tools/council/kernel.py (IMP-0264) is wired to this ledger.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When IMP-0264 lands, plug BettingLedger.resolve into the kernel event loop and re-run a live council with stakes."
+    },
+    {
+      "claim": "tools/council/calibration/report.py (IMP-0329) scores this store.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When IMP-0329 lands, point report.py at a store written by BettingLedger and compare Brier to the selector's brier_loss."
+    },
+    {
+      "claim": "Tournament totals generalise beyond synthetic Bernoulli draws.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Replay on resolved live-council forecasts once a council kernel exists in this worktree."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0295/probe1_strictly_proper.py",
+      "artifact_path": "command-center/receipts/IMP-0295.json",
+      "executed": false,
+      "read_ok": false,
+      "note": "Named probes run after this emit; measure re-runs them."
+    },
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0295",
+      "artifact_path": "command-center/receipts/IMP-0295.json",
+      "executed": false,
+      "read_ok": false,
+      "note": "Measure runs after named probes and per-unit manifest."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0295/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:59:47Z",
+    "ended_at": "2026-08-25T00:59:47Z"
+  },
+  "notes": "G-1 for IMP-0295: betting ledger with strictly proper Brier/log payoff, tournament, both-states non-proper control, calibration store feed. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0295",
+  "self_check_ok": true
+}

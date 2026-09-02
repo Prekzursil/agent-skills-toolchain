@@ -1,0 +1,249 @@
+{
+  "unit_id": "IMP-0467",
+  "id": "IMP-0467",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+  "completion_sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+  "schema_version": 1,
+  "title": "Path library for extended-length paths and reserved device names",
+  "question_or_target": "does a tree containing a file named NUL still enumerate completely, and what does the relative-path computation return for it?",
+  "answer": {
+    "enumerates_completely": true,
+    "count_without_reserved_files": 3,
+    "count_with_reserved_files": 4,
+    "delta": 1,
+    "neither_run_raised": true,
+    "relpath_for_NUL": "NUL",
+    "relpath_is_device_mount": false,
+    "naive_windows_relpath_raises": true,
+    "long_path_chars": 289,
+    "long_path_above_260": true,
+    "swallow_returns_zero_on_reserved": true,
+    "library_does_not_return_zero_on_reserved": true
+  },
+  "library": {
+    "path": "command-center/lib/windows_safe_path.py",
+    "max_path": 260,
+    "reserved_stems": [
+      "AUX",
+      "CLOCK$",
+      "COM1",
+      "COM2",
+      "COM3",
+      "COM4",
+      "COM5",
+      "COM6",
+      "COM7",
+      "COM8",
+      "COM9",
+      "CON",
+      "LPT1",
+      "LPT2",
+      "LPT3",
+      "LPT4",
+      "LPT5",
+      "LPT6",
+      "LPT7",
+      "LPT8",
+      "LPT9",
+      "NUL",
+      "PRN"
+    ],
+    "extended_prefix": "\\\\?\\",
+    "relpath_algorithm": "component-wise logical_abspath + safe_relpath; never os.path.relpath / GetFullPathNameW on reserved names",
+    "walk_fail_closed": "WalkIncomplete is raised when errors exist and zero entries were collected; swallowing_walk_count is the defect replica"
+  },
+  "evidence": {
+    "host_os": "posix",
+    "platform": "linux",
+    "library": "command-center/lib/windows_safe_path.py",
+    "reserved_classifier": [
+      {
+        "component": "NUL",
+        "reserved": true,
+        "stem": "NUL"
+      },
+      {
+        "component": "nul",
+        "reserved": true,
+        "stem": "NUL"
+      },
+      {
+        "component": "NUL.txt",
+        "reserved": true,
+        "stem": "NUL"
+      },
+      {
+        "component": "CON",
+        "reserved": true,
+        "stem": "CON"
+      },
+      {
+        "component": "AUX",
+        "reserved": true,
+        "stem": "AUX"
+      },
+      {
+        "component": "PRN",
+        "reserved": true,
+        "stem": "PRN"
+      },
+      {
+        "component": "COM1",
+        "reserved": true,
+        "stem": "COM1"
+      },
+      {
+        "component": "LPT9",
+        "reserved": true,
+        "stem": "LPT9"
+      },
+      {
+        "component": "readme.txt",
+        "reserved": false,
+        "stem": null
+      },
+      {
+        "component": "null",
+        "reserved": false,
+        "stem": null
+      },
+      {
+        "component": "CONSOLE",
+        "reserved": false,
+        "stem": null
+      }
+    ],
+    "without_reserved": {
+      "entry_count": 5,
+      "file_count": 3,
+      "dir_count": 2,
+      "error_count": 0,
+      "errors": [],
+      "file_relpaths": [
+        "keep/a.txt",
+        "keep/b.txt",
+        "nested/c.txt"
+      ],
+      "reserved_file_relpaths": [],
+      "reserved_stems": [],
+      "oracle_os_walk_files": 3,
+      "swallowing_count": 5
+    },
+    "with_reserved": {
+      "entry_count": 6,
+      "file_count": 4,
+      "dir_count": 2,
+      "error_count": 0,
+      "errors": [],
+      "file_relpaths": [
+        "NUL",
+        "keep/a.txt",
+        "keep/b.txt",
+        "nested/c.txt"
+      ],
+      "reserved_file_relpaths": [
+        "NUL"
+      ],
+      "reserved_stems": [
+        "NUL"
+      ],
+      "oracle_os_walk_files": 4,
+      "swallowing_count": 0,
+      "nul_path": "/tmp/imp0467-nv27x_sh/with/NUL",
+      "nul_relpath": "NUL",
+      "nul_body": "reserved-nul-body\n"
+    },
+    "delta": {
+      "library_file_count": 1,
+      "oracle_file_count": 1,
+      "required": 1
+    },
+    "relpath": {
+      "safe": "NUL",
+      "is_device_mount": false,
+      "naive_raised": true,
+      "naive_error": "path is on mount '\\\\.\\NUL', start on mount 'Z:'"
+    },
+    "swallow_control": {
+      "ordinary_tree_library_entries": 5,
+      "ordinary_tree_swallow_count": 5,
+      "reserved_tree_library_entries": 6,
+      "reserved_tree_library_files": 4,
+      "reserved_tree_swallow_count": 0,
+      "swallow_zeros_reserved_tree": true,
+      "library_nonzero_reserved_tree": true,
+      "both_states_ordinary_match": true
+    },
+    "long_path": {
+      "path": "/tmp/imp0467-nv27x_sh/longtree/long/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD/marker.txt",
+      "relpath": "long/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD/DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD/marker.txt",
+      "char_len": 289,
+      "depth": 3,
+      "payload": "LONGPATH-MARKER-IMP-0467\n",
+      "windows_extended_path": "\\\\?\\\\tmp\\imp0467-nv27x_sh\\longtree\\long\\DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\\DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\\DDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDDD\\marker.txt",
+      "needs_prefix": true,
+      "walk_file_count": 4,
+      "marker_found": true,
+      "marker_body_matches": true,
+      "above_260": true
+    },
+    "neither_walk_raised": true
+  },
+  "tests": [
+    {
+      "id": "reserved-name-enumeration",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe1_reserved_enum.py"
+    },
+    {
+      "id": "long-path-above-260",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0467/probe2_longpath_noswallow.py"
+    },
+    {
+      "id": "no-silent-zero-swallow",
+      "result": "PASS",
+      "note": "swallowing_walk_count returns 0 on the reserved tree; walk_tree returns the real non-zero file count"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "naive-windows-relpath-NUL",
+      "kind": "known-crash-replica",
+      "description": "naive_windows_relpath raises ValueError on a file named NUL, matching os.path.relpath / GetFullPathNameW on Windows",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "path is on mount '\\\\.\\NUL', start on mount 'Z:'"
+    },
+    {
+      "id": "swallow-walk-zero",
+      "kind": "known-broken-enumerator",
+      "description": "A walk that catches the reserved-name crash and returns [] reports zero entries; the library must not be equivalent",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0467-probe2-longpath-noswallow",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "note": "Probe 2 is a mechanically different instrument: long-path round-trip plus the swallow-zero control, not a re-read of probe 1's reserved-name delta."
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0467/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0467; related IMP-0021 / AUD-0082 / TST-0197",
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:48Z",
+    "ended_at": "2026-08-25T00:58:48Z"
+  },
+  "host": {
+    "os": "posix",
+    "platform": "linux"
+  },
+  "notes": "G-1 delivery for IMP-0467 on Linux: a tree containing a file named NUL enumerates completely (file count differs by exactly one versus the same tree without NUL; neither walk raises). safe_relpath returns 'NUL', not a \\\\.\\NUL device mount. A long path above 260 characters is created, walked, and read back. The crash-swallowing enumerator returns 0; the library does not. SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE"
+}

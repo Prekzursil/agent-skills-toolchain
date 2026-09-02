@@ -1,0 +1,31 @@
+
+===== launch 2026-08-20T07:42:10Z attempt=1 =====
+I'll start from the existing ARC-0045 probe tree and unit contract, then implement whatever is missing until the per-unit measure reports delivered.ARC-0045 isn't in the probe listing yet, so I'll pull the unit catalog, measure script, and a delivered ARC example in parallel.The unit is A7 (permission choke point). Next I’ll read the catalog row and a delivered sibling ARC so the probes match the real contract.A7 has no DESIGN.json yet. I’ll read the dossier schema and a delivered sibling so the artifact and probes match the contract.Existing authz code and the receipt contract are the backbone; I’ll map those next so the choke-point design and probes stay honest.I’ll implement the probe tree and A7 DESIGN.json from the live choke in `capability_gate.py`, then pack and measure.Probes are green. Next I’ll pack DESIGN.json and check it against the architecture-dossier schema.**ARC-0045 is G-1 contract-green on this worktree.**
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0045` printed:
+
+`SUCCESS:delivered ARC-0045 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_bypass_detector.py:0,probe_enumerate_paths.py:0,refute_independent_ast.py:0,verify_design.py:0`
+
+The unit had never been started. `probes/ARC-0045/` was created and implemented; a first-run absent measure was not treated as a park.
+
+### What landed
+- Receipt: `command-center/phase3/A7/DESIGN.json` (`state=SUCCESS`, architecture-dossier, platform-resolver `SCHEMA_ERRORS=0`, 25959 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0045/UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with live LF sha256 `ecdc1cc98da1dbca87e0145c1bb14e443221255325d292cebe385992e1ca3364`
+- Handoff: `command-center/p2-wave/probes/ARC-0045/SUBAGENT-RETURN.json`
+
+### Design (honest, not overclaimed)
+The single **runtime** permission choke is `tools/lib/capability_gate.py::UnitCapabilitySession.authorize`. It evaluates the capability **verb** (`cap in grants`), not payload text.
+
+Catalog-time `SEM-008..011` is declaration checking against the same catalog `tool_policy`, not a second runtime choke (D2 already forbade a duplicate policy file).
+
+| Coverage | Result |
+|---|---|
+| Design invocation classes | 8/8 required to cross the choke |
+| Live-tree AST sweep | 3 sites; 1 crosses (the choke definition) |
+| Itemized shortfall | `r2e_loop._codex_exec_cmd` and `r2e_loop.preflight` (`danger-full-access` without per-call `authorize`) |
+| Detector both-states | planted bypass found, then silent on revert |
+| Independent reviewer | AST `FunctionDef authorize` reproduces line 196 |
+
+Live-tree shortfall is migration debt for ARC-0049, not a claim that the current runner is already fully gated. ARC-0051 (paired refutation) is residual `NOT-CHECKED` because the design did not exist yet.
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok is not this delivery.

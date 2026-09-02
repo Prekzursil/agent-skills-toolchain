@@ -1,0 +1,396 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1068,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/replication-package.schema.json",
+      "role": "supporting",
+      "sha256": "cd5227ae0aeb373e626c44e720b09d22ebdf05b59408939ade46a23d81e3a02e"
+    },
+    {
+      "bytes": 4986,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0183/isolate.py",
+      "role": "supporting",
+      "sha256": "6ae29d9d1e3b6c5a0e276ed1b6b78018359ba375be5e96e31732edc298f81bf4"
+    },
+    {
+      "bytes": 4354,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0183/package.py",
+      "role": "supporting",
+      "sha256": "b182843c46e3685fad1cd6ce9afe6e0da6687e248427688cb1e926003aef6067"
+    },
+    {
+      "bytes": 7675,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0183/rehearse.py",
+      "role": "supporting",
+      "sha256": "cb01cd39c4a440a6e4d57b56cada2c7db2647a6bbdc128757954819648e08d05"
+    },
+    {
+      "bytes": 3733,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0183/schema_check.py",
+      "role": "supporting",
+      "sha256": "3d5975a19ec2469c04610d3447ed21be07c7abfe15555ec8629139a35379a5a0"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/CNF-0183.json",
+      "consumer": "command-center/p2-wave/probes/CNF-0183/schema_check.py (Draft202012Validator + disk RefResolver)",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/schema_check.py --check command-center/receipts/CNF-0183.json",
+        "exit_code": 0,
+        "fingerprint": "56bdd28a56a94b82ecc296795de1298c4a21992a44f04aa2173f75d8a80dd0cb",
+        "method": "schema-validate",
+        "raw_output": "in-memory validate before write; file re-checked after write",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0183/isolate.py:both_states",
+      "claim": "With the repo prefix forbidden, an absolute catalog open is refused; the same absolute path is readable with the guard off; a relative catalog path from a temp cwd misses.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import isolate,pathlib; r=isolate.both_states(pathlib.Path(\\\".\\\")); print(r[\\\"pass\\\"], r[\\\"guarded_absolute_reachable\\\"], r[\\\"unguarded_absolute_reachable\\\"])\"",
+          "exit_code": 0,
+          "fingerprint": "a5e4345de189352cc24536401f6f954862198ded04e379874902405b41bee974",
+          "method": "test-run",
+          "raw_output": "{\"catalog_exists\": true, \"catalog_path\": \"command-center/WORK-UNIT-CATALOG.json\", \"guarded_absolute_reachable\": false, \"guarded_error\": \"PermissionError:CNF-0183 isolation: refused /opt/p2/ast-integrate/command-center/WORK-UNIT-CATALOG.json\", \"pass\": true, \"relative_error\": \"FileNotFoundError:[Errno 2] No such file or directory: 'command-center/WORK-UNIT-CATALOG.json'\", \"relative_reachable_from_temp\": false, \"temp_cwd\": \"/tmp/cnf0183-iso-l4hjdgfc\", \"unguarded_absolute_reachable\": true, \"unguarded_error\": null}",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from pathlib import Path; p=Path(\\\"command-center/WORK-UNIT-CATALOG.json\\\"); print(p.is_file(), p.stat().st_size)\"",
+          "exit_code": 0,
+          "fingerprint": "1710fc6c6e20877e4dd845343f90cb5c12df412d1a41b8153564cd06cdcbf436",
+          "method": "file-read",
+          "raw_output": "catalog_exists=True unguarded=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0183/rehearse.py:battery",
+      "claim": "A package missing inputs/count.txt is PACKAGE-INCOMPLETE (element named), a mutated claim is CLAIM-REFUTED with counter_evidence, and a naive run-only classifier conflates the incomplete case into CLAIM-REFUTED.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import rehearse,pathlib; b=rehearse.battery(pathlib.Path(\\\".\\\")); print(b[\\\"incomplete\\\"][\\\"verdict\\\"], b[\\\"false\\\"][\\\"verdict\\\"], b[\\\"naive_incomplete\\\"][\\\"verdict\\\"], b[\\\"verdict_split\\\"][\\\"pass\\\"])\"",
+          "exit_code": 0,
+          "fingerprint": "1a382b1eb93407493377453b4fd4dee000f1916a01adaf53603ca1e2d219ae28",
+          "method": "test-run",
+          "raw_output": "{\"false\": {\"access\": \"isolated temp copy of the package only; repo prefix forbidden via sitecustomize; no receipts, no catalog, no prior conversation\", \"counter_evidence\": \"expected exit=0 stdout_sha256=0000000000000000000000000000000000000000000000000000000000000000; observed exit=0 stdout_sha256=f44733cc25eb52393051b9d6e78285e1901db6d6ec50506903733086b6ebe68a\", \"outcome\": \"package complete; observed output diverged from claim\", \"package_id\": \"pkg-cnf0183-sha-sum-false\", \"verdict\": \"CLAIM-REFUTED\"}, \"incomplete\": {\"access\": \"isolated temp copy of the package only; repo prefix forbidden via sitecustomize; no receipts, no catalog, no prior conversation\", \"missing_element\": \"inputs/count.txt\", \"outcome\": \"package structurally incomplete; first missing element named: inputs/count.txt; claim was not executed\", \"package_id\": \"pkg-cnf0183-sha-sum-incomplete\", \"verdict\": \"PACKAGE-INCOMPLETE\"}, \"naive\": \"CLAIM-REFUTED\", \"split\": {\"complete_true_is_reproduced\": true, \"incomplete_not_recorded_as_refute\": true, \"naive_classifier_conflates_incomplete_to_refute\": true, \"pass\": true, \"refute_not_recorded_as_incomplete\": true}}",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from pathlib import Path; t=Path(\\\"command-center/p2-wave/probes/CNF-0183/package.py\\\").read_text(); print(\\\"count.txt).unlink\\\" in t, \\\"INCOMPLETE_ID\\\" in t)\"",
+          "exit_code": 0,
+          "fingerprint": "31fb88971b692bc31f84d67c8a2672eb62594710efcf1bcee9de91f94ccd1d94",
+          "method": "static-analysis",
+          "raw_output": "package.py incomplete mode unlinks declared inputs/count.txt; false mode mutates expected.stdout_sha256",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "CNF-0183",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0183/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 256,
+  "negative_controls": [
+    {
+      "bad_state_output": "PermissionError:CNF-0183 isolation: refused /opt/p2/ast-integrate/command-center/WORK-UNIT-CATALOG.json",
+      "description": "Guard ON refuses the catalog; guard OFF reads the same absolute path.",
+      "fired_on_bad_state": true,
+      "good_state_output": "unguarded_absolute_reachable=True",
+      "id": "NC-isolation-guard",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "PACKAGE-INCOMPLETE:inputs/count.txt",
+      "description": "inputs/count.txt removed while still declared; completeness check must name it and must not call that CLAIM-REFUTED.",
+      "fired_on_bad_state": true,
+      "good_state_output": "REPRODUCED",
+      "id": "NC-planted-incomplete",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "expected exit=0 stdout_sha256=0000000000000000000000000000000000000000000000000000000000000000; observed exit=0 stdout_sha256=f44733cc25eb52393051b9d6e78285e1901db6d6ec50506903733086b6ebe68a",
+      "description": "Claim and expected.stdout_sha256 mutated to 64 zero hex chars; rehearsal must be CLAIM-REFUTED with counter_evidence.",
+      "fired_on_bad_state": true,
+      "good_state_output": "REPRODUCED",
+      "id": "NC-planted-false",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "CLAIM-REFUTED",
+      "description": "A run-only classifier treats missing inputs as CLAIM-REFUTED; completeness-first rehearsal does not. The split is load-bearing.",
+      "fired_on_bad_state": true,
+      "good_state_output": "PACKAGE-INCOMPLETE",
+      "id": "NC-naive-conflation",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "xai"
+  },
+  "report": {
+    "control_ids": [
+      "NC-isolation-guard",
+      "NC-planted-incomplete",
+      "NC-planted-false",
+      "NC-naive-conflation"
+    ],
+    "isolation": {
+      "catalog_path": "command-center/WORK-UNIT-CATALOG.json",
+      "guarded_absolute_reachable": false,
+      "guarded_error": "PermissionError:CNF-0183 isolation: refused /opt/p2/ast-integrate/command-center/WORK-UNIT-CATALOG.json",
+      "pass": true,
+      "relative_reachable_from_temp": false,
+      "unguarded_absolute_reachable": true,
+      "unguarded_error": null
+    },
+    "kind": "replication-package",
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/probe1_isolation_reproduced.py",
+        "id": "probe1",
+        "role": "isolation-and-reproduced"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/probe2_verdict_split.py",
+        "id": "probe2",
+        "role": "verdict-split"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0183/rehearse.py",
+        "measured": "REPRODUCED",
+        "method": "isolated-rehearsal",
+        "name": "true-package-verdict"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0183/rehearse.py",
+        "measured": "PACKAGE-INCOMPLETE",
+        "method": "isolated-rehearsal",
+        "name": "incomplete-package-verdict"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0183/rehearse.py",
+        "measured": "CLAIM-REFUTED",
+        "method": "isolated-rehearsal",
+        "name": "false-package-verdict"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0183/rehearse.py:naive_run_only",
+        "measured": "CLAIM-REFUTED",
+        "method": "run-only-classifier",
+        "name": "naive-incomplete-verdict"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0183/isolate.py",
+        "measured": false,
+        "method": "sitecustomize-open-guard",
+        "name": "guarded-absolute-reachable"
+      }
+    ],
+    "packages": [
+      {
+        "claim": "sha256(inputs/payload.bin)=7a36db488878b43d8eabb306de612995c3ffdc80af3187da6b446dc503591c2f and int(inputs/count.txt)+25==42",
+        "command": [
+          "python3",
+          "-B",
+          "run.py"
+        ],
+        "expected": {
+          "exit_code": 0,
+          "stdout_sha256": "f44733cc25eb52393051b9d6e78285e1901db6d6ec50506903733086b6ebe68a"
+        },
+        "id": "pkg-cnf0183-sha-sum",
+        "inputs": [
+          "inputs/payload.bin",
+          "inputs/count.txt",
+          "run.py"
+        ],
+        "normalizers": [
+          "crlf-to-lf",
+          "ensure-trailing-newline"
+        ],
+        "pass_criterion": "exit_code==0 and sha256(normalize(stdout))==expected.stdout_sha256",
+        "pins": {
+          "interpreter": "python3",
+          "python": "3.12.3"
+        }
+      },
+      {
+        "claim": "sha256(inputs/payload.bin)=7a36db488878b43d8eabb306de612995c3ffdc80af3187da6b446dc503591c2f and int(inputs/count.txt)+25==42",
+        "command": [
+          "python3",
+          "-B",
+          "run.py"
+        ],
+        "expected": {
+          "exit_code": 0,
+          "stdout_sha256": "f44733cc25eb52393051b9d6e78285e1901db6d6ec50506903733086b6ebe68a"
+        },
+        "id": "pkg-cnf0183-sha-sum-incomplete",
+        "inputs": [
+          "inputs/payload.bin",
+          "inputs/count.txt",
+          "run.py"
+        ],
+        "normalizers": [
+          "crlf-to-lf",
+          "ensure-trailing-newline"
+        ],
+        "pass_criterion": "exit_code==0 and sha256(normalize(stdout))==expected.stdout_sha256",
+        "pins": {
+          "interpreter": "python3",
+          "python": "3.12.3"
+        }
+      },
+      {
+        "claim": "sha256(inputs/payload.bin)=0000000000000000000000000000000000000000000000000000000000000000 and int(inputs/count.txt)+25==42",
+        "command": [
+          "python3",
+          "-B",
+          "run.py"
+        ],
+        "expected": {
+          "exit_code": 0,
+          "stdout_sha256": "0000000000000000000000000000000000000000000000000000000000000000"
+        },
+        "id": "pkg-cnf0183-sha-sum-false",
+        "inputs": [
+          "inputs/payload.bin",
+          "inputs/count.txt",
+          "run.py"
+        ],
+        "normalizers": [
+          "crlf-to-lf",
+          "ensure-trailing-newline"
+        ],
+        "pass_criterion": "exit_code==0 and sha256(normalize(stdout))==expected.stdout_sha256",
+        "pins": {
+          "interpreter": "python3",
+          "python": "3.12.3"
+        }
+      }
+    ],
+    "question": "Can a fresh agent, given ONLY the replication package and no repository context, no receipts and no prior conversation, reproduce the claim? A failure to reproduce from an incomplete package is a PACKAGE defect, not a refutation of the claim; conflating those two failure modes would refute correct work.",
+    "rehearsals": [
+      {
+        "access": "isolated temp copy of the package only; repo prefix forbidden via sitecustomize; no receipts, no catalog, no prior conversation",
+        "outcome": "isolated run exit=0 stdout_sha256=f44733cc25eb52393051b9d6e78285e1901db6d6ec50506903733086b6ebe68a matched expected",
+        "package_id": "pkg-cnf0183-sha-sum",
+        "verdict": "REPRODUCED"
+      },
+      {
+        "access": "isolated temp copy of the package only; repo prefix forbidden via sitecustomize; no receipts, no catalog, no prior conversation",
+        "missing_element": "inputs/count.txt",
+        "outcome": "package structurally incomplete; first missing element named: inputs/count.txt; claim was not executed",
+        "package_id": "pkg-cnf0183-sha-sum-incomplete",
+        "verdict": "PACKAGE-INCOMPLETE"
+      },
+      {
+        "access": "isolated temp copy of the package only; repo prefix forbidden via sitecustomize; no receipts, no catalog, no prior conversation",
+        "counter_evidence": "expected exit=0 stdout_sha256=0000000000000000000000000000000000000000000000000000000000000000; observed exit=0 stdout_sha256=f44733cc25eb52393051b9d6e78285e1901db6d6ec50506903733086b6ebe68a",
+        "outcome": "package complete; observed output diverged from claim",
+        "package_id": "pkg-cnf0183-sha-sum-false",
+        "verdict": "CLAIM-REFUTED"
+      }
+    ],
+    "upstream": {
+      "id": "CNF-0182",
+      "present": false,
+      "used": "fixture packages implementing the CNF-0182 package contract; live CNF-0182 receipt absent on this worktree"
+    },
+    "verdict_split": {
+      "complete_true_is_reproduced": true,
+      "incomplete_not_recorded_as_refute": true,
+      "naive_classifier_conflates_incomplete_to_refute": true,
+      "pass": true,
+      "refute_not_recorded_as_incomplete": true
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Every live P0/P1 CNF-0182 package on this estate rehearses cleanly.",
+      "settling_experiment": "Deliver CNF-0182 then re-run this rehearser over that catalog.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "Cross-vendor dispatch: blocking foreground only, never --background. On win-arg-limit retry ONCE with --ignore-user-config and prompt-by-file. On exit 0 with a missing or unparsable output file classify severed-stream and do NOT retry into a verdict. Never convert a vendor-side 429/529 into a REFUTED."
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe2 re-runs planted incompleteness and planted falsity and asserts they are not swapped. A naive run-only classifier conflates missing inputs into CLAIM-REFUTED; completeness-first rehearsal does not.",
+    "reviewer_id": "CNF-0183-probe2-verdict-split",
+    "vendor": "local",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0183",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0183] third-party replication rehearsal; verdict split PACKAGE-INCOMPLETE vs CLAIM-REFUTED",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/probe1_isolation_reproduced.py",
+      "id": "T1-isolation",
+      "name": "Isolation control: rehearser cannot reach the repository",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/probe2_verdict_split.py",
+      "id": "T2-planted-incompleteness",
+      "name": "Remove one input; rehearsal reports PACKAGE-INCOMPLETE not CLAIM-REFUTED",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/probe2_verdict_split.py",
+      "id": "T3-planted-falsity",
+      "name": "Mutate the claim; rehearsal reports CLAIM-REFUTED",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0183/probe1_isolation_reproduced.py",
+      "id": "T4-both-states",
+      "name": "Complete package on a true claim reports REPRODUCED",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:58:36Z",
+    "started_at": "2026-08-25T00:58:35Z"
+  },
+  "unit_id": "CNF-0183"
+}

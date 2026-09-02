@@ -1,0 +1,476 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8654,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/fusion/IMP-0186-conditional-hybrid.json",
+   "role": "primary-fusion",
+   "sha256": "a895a6d443b1cf09543a128c9b449d5422c5fd7a2809f5aacd3ac9a637202566"
+  },
+  {
+   "bytes": 8399,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/workflow_fusion/conditional_hybrid.py",
+   "role": "supporting",
+   "sha256": "2b90d2768f8a48f91b7149595a3644b8f294657ebc37485aa2d26a536d9ac831"
+  },
+  {
+   "bytes": 5935,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/workflow_fusion/reachability.py",
+   "role": "supporting",
+   "sha256": "f10ec66935580c9b0dee737ce4b021240f929d7e67a899220619882d95f2d757"
+  },
+  {
+   "bytes": 5692,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/workflow_fusion/typed_predicate.py",
+   "role": "supporting",
+   "sha256": "1009516f787287bbbd7ac8c2796a4ecc7d36a4b4d6253b45a1776ea9b4f25761"
+  },
+  {
+   "bytes": 5726,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0186/scenario.py",
+   "role": "control",
+   "sha256": "0a38805ab97e7abb134238e1fd286d1652991e4c3bbb6e13b13cc1ad08090bb8"
+  },
+  {
+   "bytes": 19505,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0186/fixtures/conditional-hybrid.json",
+   "role": "control",
+   "sha256": "ea72a3a54250f6475a9af335b84a217a8c2830e06e9f73de27f6029d02b553f8"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0186",
+ "default_branch_id": "br.default",
+ "default_explicit": true,
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0186.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0186/probe1_zero_unreachable.py",
+   "executed": true,
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/receipts/IMP-0186.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0186/probe2_planted_unreachable.py",
+   "executed": true,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/workflow_fusion/reachability.py:dual_reachability",
+   "claim": "Static reachability over the 18-member enum universe reports 0 unreachable branches. CFG dataflow and bitmask-complement agree on reachable=['br.search-cheap', 'br.extract', 'br.default'].",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "dual_reachability(good_spec).cfg_reachable",
+     "method": "cfg-dataflow",
+     "raw_output": "[\"br.search-cheap\", \"br.extract\", \"br.default\"]",
+     "role": "source"
+    },
+    {
+     "command": "dual_reachability(good_spec).bitmask_reachable",
+     "method": "bitmask-complement",
+     "raw_output": "[\"br.search-cheap\", \"br.extract\", \"br.default\"]",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/workflow_fusion/conditional_hybrid.py:emit_conditional_hybrid",
+   "claim": "A planted unreachable branch is detected: emit refuses with fusion.conditional_hybrid.unreachable-branch on never, out-of-enum, subsumed, and contradiction plants; the good twin is not flagged.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "analyze_conditional_hybrid(plant_*)",
+     "method": "plant-and-analyze",
+     "raw_output": "[{\"code\": \"fusion.conditional_hybrid.unreachable-branch\", \"dead_id\": \"br.dead-never\", \"plant\": \"never\", \"refused\": true, \"unreachable\": [\"br.dead-never\"]}, {\"code\": \"fusion.conditional_hybrid.unreachable-branch\", \"dead_id\": \"br.dead-ghost-class\", \"plant\": \"out-of-enum\", \"refused\": true, \"unreachable\": [\"br.dead-ghost-class\"]}, {\"code\": \"fusion.conditional_hybrid.unreachable-branch\", \"dead_id\": \"br.dead-subsumed\", \"plant\": \"subsumed\", \"refused\": true, \"unreachable\": [\"br.dead-subsumed\"]}, {\"code\": \"fusion.conditional_hybrid.unreachable-branch\", \"dead_id\": \"br.dead-contradiction\", \"plant\": \"contradiction\", \"refused\": true, \"unreachable\": [\"br.dead-contradiction\"]}]",
+     "role": "source"
+    },
+    {
+     "command": "emit_conditional_hybrid(good) vs emit(plant)",
+     "method": "both-states-emit",
+     "raw_output": "{\"good_emit_ok\": true, \"plants_refused\": 4}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "fusion_artifact": "command-center/fusion/IMP-0186-conditional-hybrid.json",
+ "fusion_id": "fusion.conditional-hybrid.imp-0186",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0186/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "br.dead-never -> fusion.conditional_hybrid.unreachable-branch",
+   "description": "Insert predicate op=false before default. Detector must name br.dead-never; good twin must stay at 0 unreachable.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unreachable=[] emit ok",
+   "id": "IMP0186-C1-plant-never",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "br.dead-ghost-class -> unreachable-branch",
+   "description": "eq task_class=translate is outside the declared enum. That is unsatisfiable typed-dead, not a parse error.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unreachable=[] emit ok",
+   "id": "IMP0186-C2-plant-out-of-enum",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "br.dead-subsumed -> unreachable-branch",
+   "description": "Duplicate search+cheap after the live arm. First-match consumes every witness; the duplicate is dead coverage.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unreachable=[] emit ok",
+   "id": "IMP0186-C3-plant-subsumed",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "br.dead-contradiction -> unreachable-branch",
+   "description": "and(eq task_class=search, eq task_class=extract) has empty SAT.",
+   "fired_on_bad_state": true,
+   "good_state_output": "unreachable=[] emit ok",
+   "id": "IMP0186-C4-plant-contradiction",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "Dependencies IMP-0182 and IMP-0195 are not delivered on this worktree (agentspec and stage-splice are absent). The operator is self-contained under tools/workflow_fusion with a finite typed IR sufficient to emit conditional-hybrid dispatch and to prove branch reachability. SUCCESS:IMP-0186",
+ "operator": {
+  "default_must_be_last": true,
+  "default_must_be_reachable": true,
+  "default_required": true,
+  "dispatch": "first-match over typed predicates",
+  "entry": "emit_conditional_hybrid",
+  "module": "tools/workflow_fusion/conditional_hybrid.py"
+ },
+ "plants": [
+  {
+   "code": "fusion.conditional_hybrid.unreachable-branch",
+   "dead_id": "br.dead-never",
+   "plant": "never",
+   "refused": true,
+   "unreachable": [
+    "br.dead-never"
+   ]
+  },
+  {
+   "code": "fusion.conditional_hybrid.unreachable-branch",
+   "dead_id": "br.dead-ghost-class",
+   "plant": "out-of-enum",
+   "refused": true,
+   "unreachable": [
+    "br.dead-ghost-class"
+   ]
+  },
+  {
+   "code": "fusion.conditional_hybrid.unreachable-branch",
+   "dead_id": "br.dead-subsumed",
+   "plant": "subsumed",
+   "refused": true,
+   "unreachable": [
+    "br.dead-subsumed"
+   ]
+  },
+  {
+   "code": "fusion.conditional_hybrid.unreachable-branch",
+   "dead_id": "br.dead-contradiction",
+   "plant": "contradiction",
+   "refused": true,
+   "unreachable": [
+    "br.dead-contradiction"
+   ]
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "opus",
+  "role": "implementer",
+  "vendor": "anthropic"
+ },
+ "profile": "selfimprove-measure-artifact",
+ "question": "Target: emit a fusion that dispatches to different source sub-workflows based on a typed runtime predicate. Acceptance: every branch is reachable (static reachability proof) and the default branch is explicit - an unreachable branch is dead capability masquerading as coverage.",
+ "reachability": {
+  "agreement": true,
+  "assignment_owner": [
+   {
+    "branch_id": "br.search-cheap",
+    "env": {
+     "budget": "cheap",
+     "locale": "en",
+     "task_class": "search"
+    },
+    "mask": 5,
+    "source_id": "wf.scout"
+   },
+   {
+    "branch_id": "br.extract",
+    "env": {
+     "budget": "cheap",
+     "locale": "en",
+     "task_class": "extract"
+    },
+    "mask": 6,
+    "source_id": "wf.extract"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "cheap",
+     "locale": "en",
+     "task_class": "summarize"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.search-cheap",
+    "env": {
+     "budget": "cheap",
+     "locale": "ja",
+     "task_class": "search"
+    },
+    "mask": 5,
+    "source_id": "wf.scout"
+   },
+   {
+    "branch_id": "br.extract",
+    "env": {
+     "budget": "cheap",
+     "locale": "ja",
+     "task_class": "extract"
+    },
+    "mask": 6,
+    "source_id": "wf.extract"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "cheap",
+     "locale": "ja",
+     "task_class": "summarize"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.search-cheap",
+    "env": {
+     "budget": "cheap",
+     "locale": "other",
+     "task_class": "search"
+    },
+    "mask": 5,
+    "source_id": "wf.scout"
+   },
+   {
+    "branch_id": "br.extract",
+    "env": {
+     "budget": "cheap",
+     "locale": "other",
+     "task_class": "extract"
+    },
+    "mask": 6,
+    "source_id": "wf.extract"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "cheap",
+     "locale": "other",
+     "task_class": "summarize"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "expensive",
+     "locale": "en",
+     "task_class": "search"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.extract",
+    "env": {
+     "budget": "expensive",
+     "locale": "en",
+     "task_class": "extract"
+    },
+    "mask": 6,
+    "source_id": "wf.extract"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "expensive",
+     "locale": "en",
+     "task_class": "summarize"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "expensive",
+     "locale": "ja",
+     "task_class": "search"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.extract",
+    "env": {
+     "budget": "expensive",
+     "locale": "ja",
+     "task_class": "extract"
+    },
+    "mask": 6,
+    "source_id": "wf.extract"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "expensive",
+     "locale": "ja",
+     "task_class": "summarize"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "expensive",
+     "locale": "other",
+     "task_class": "search"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   },
+   {
+    "branch_id": "br.extract",
+    "env": {
+     "budget": "expensive",
+     "locale": "other",
+     "task_class": "extract"
+    },
+    "mask": 6,
+    "source_id": "wf.extract"
+   },
+   {
+    "branch_id": "br.default",
+    "env": {
+     "budget": "expensive",
+     "locale": "other",
+     "task_class": "summarize"
+    },
+    "mask": 4,
+    "source_id": "wf.general"
+   }
+  ],
+  "bitmask_reachable": [
+   "br.search-cheap",
+   "br.extract",
+   "br.default"
+  ],
+  "cfg_reachable": [
+   "br.search-cheap",
+   "br.extract",
+   "br.default"
+  ],
+  "hits": {
+   "br.default": 9,
+   "br.extract": 6,
+   "br.search-cheap": 3
+  },
+  "universe_size": 18,
+  "unreachable": [],
+  "unrouted_count": 0,
+  "unrouted_witness": null
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Exact SAT is over finite enums. An infinite or string-open field would make unreachability semi-decidable; this operator refuses non-enum input types rather than approximating.",
+   "settling_experiment": "Add a string field to input_type and assert emit raises fusion.predicate.field-not-enum.",
+   "verdict": "SCOPED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot; this unit did not retry"
+ },
+ "reviewer": {
+  "basis": "Mechanically different from probe 1: planted fixtures must be refused at emit, while the good twin must emit. Four plant kinds.",
+  "independent": true,
+  "reviewer_id": "IMP-0186-probe2-planted-unreachable",
+  "verdict": "PASS"
+ },
+ "runtime_exercise": {
+  "branch_taken_counts": {
+   "br.default": 9,
+   "br.extract": 6,
+   "br.search-cheap": 3
+  },
+  "every_branch_exercised": true,
+  "universe_size": 18
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0186",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0186",
+ "state": "SUCCESS",
+ "strategy": "conditional-hybrid",
+ "tests": [
+  {
+   "assertions": 3,
+   "command": "dual_reachability(good_spec)",
+   "id": "T1-zero-unreachable-computed",
+   "output_tail": "unreachable=0 universe=18 agreement=True",
+   "result": "PASS"
+  },
+  {
+   "assertions": 18,
+   "command": "route(fusion, env) over typed universe",
+   "id": "T2-default-explicit-and-exercised",
+   "output_tail": "{\"br.default\": 9, \"br.extract\": 6, \"br.search-cheap\": 3}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "emit_conditional_hybrid(plant_*)",
+   "id": "T3-planted-unreachable-detected",
+   "output_tail": "[\"never\", \"out-of-enum\", \"subsumed\", \"contradiction\"]",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:48+00:00",
+  "started_at": "2026-08-25T00:58:48+00:00"
+ },
+ "title": "Implement conditional-hybrid fusion (route to a source by runtime condition)",
+ "unit_id": "IMP-0186"
+}

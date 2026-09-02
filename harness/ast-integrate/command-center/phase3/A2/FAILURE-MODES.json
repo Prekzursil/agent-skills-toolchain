@@ -1,0 +1,501 @@
+{
+ "answer": "When the generator is wrong or stale, two tests: Direction A fails if a registry entry has no non-empty generated file; Direction B fails if a generated file has no registry entry. Live tree today: A=10 orphan registry rows, B=0 orphan outputs. This repository fails Direction A (the A2 generated tree has not been written). Direction B is zero because the scan root is empty, trusted only after detector-control. Combined counts rejected. Reviewer added FM-STALE-BYTES (path-complete stale bytes). SUCCESS:ARC-0012",
+ "architecture_class": "generated-ssot",
+ "architecture_id": "A2",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/phase3/A2/FAILURE-MODES.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+   "role": "live-registry"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/architecture-review.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ARC-0012/completeness.py",
+   "role": "supporting"
+  }
+ ],
+ "author_failure_modes": [
+  {
+   "detector": "Direction A",
+   "direction": "A",
+   "id": "FM-ORPHAN-REGISTRY",
+   "seeded_classes": [
+    "capability-loss",
+    "partial-artifact",
+    "detector-failure"
+   ],
+   "title": "Registry row with no generated output"
+  },
+  {
+   "detector": "Direction B",
+   "direction": "B",
+   "id": "FM-ORPHAN-OUTPUT",
+   "seeded_classes": [
+    "duplicate-control-plane",
+    "provenance-loss"
+   ],
+   "title": "Generated file with no registry row"
+  },
+  {
+   "detector": "Direction A counts empty as missing",
+   "direction": "A",
+   "id": "FM-EMPTY-OUTPUT",
+   "seeded_classes": [
+    "false-pass",
+    "partial-artifact"
+   ],
+   "title": "Zero-byte file at the mapped path treated as present"
+  },
+  {
+   "detector": "Rejected: two counts required",
+   "direction": "report",
+   "id": "FM-COMBINED-COUNT",
+   "seeded_classes": [
+    "gameable-metric",
+    "overclaim",
+    "single-signal-verification"
+   ],
+   "title": "Single 'all consistent' integer hiding which direction failed"
+  },
+  {
+   "detector": "Known-orphan fixture must fire first",
+   "direction": "detector-control",
+   "id": "FM-VACUOUS-ZERO",
+   "seeded_classes": [
+    "measured-nothing",
+    "false-coverage",
+    "green-not-live"
+   ],
+   "title": "Reporting zero orphans without proving the detector can see a known orphan"
+  },
+  {
+   "detector": "kind_errors / duplicate_ids fail-closed",
+   "direction": "A",
+   "id": "FM-DUP-ID",
+   "seeded_classes": [
+    "duplicate-collapse-error",
+    "index-corruption"
+   ],
+   "title": "Two registry ids collide on one output path"
+  },
+  {
+   "detector": "Out-of-root files are invisible to B; named as residual",
+   "direction": "B",
+   "id": "FM-SCAN-MISS",
+   "seeded_classes": [
+    "scope-drift",
+    "false-coverage"
+   ],
+   "title": "Generator writes outside the scanned generated root"
+  },
+  {
+   "detector": "Both A (unwritten rows) and B (leftovers from a previous run) may be non-zero; still reported separately",
+   "direction": "A+B",
+   "id": "FM-MID-RUN",
+   "seeded_classes": [
+    "partial-artifact",
+    "severed-stream"
+   ],
+   "title": "Generator crash after writing a subset"
+  }
+ ],
+ "claim_under_test": "A generated SSOT is complete if a generator has been specified; missing and leftover artifacts can be reported as one 'all consistent' number, and the current repository would not fail a generator-completeness gate.",
+ "claims": [
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11185",
+   "claim": "A single combined 'all consistent' completeness number is an acceptable report.",
+   "defect_locus": "SENTENCE",
+   "id": "C1",
+   "scoped_restatement": "Completeness is two integers: orphan registry rows, and orphan outputs.",
+   "verdict": "REFUTED",
+   "why_locus": "No A2 DESIGN.json exists to encode the combined-count rule. The sentence is the unit's forbidden reporting shape, pinned by the catalog evidence_requirement."
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0010/registry.json:7",
+   "claim": "The current repository would not fail a generator-completeness gate today.",
+   "defect_locus": "SENTENCE",
+   "id": "C2",
+   "scoped_restatement": "Today Direction A=10 (fail), Direction B=0.",
+   "verdict": "REFUTED",
+   "why_locus": "The live tree measurement is a fact about files, not a DESIGN rule. Direction A is non-zero."
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0010/registry.json:7",
+   "claim": "Direction A (registry row, no output) fails on this worktree today.",
+   "id": "C3",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0010/registry.json:7",
+   "claim": "Direction B (output file, no registry row) fails on the A2 generated tree today.",
+   "defect_locus": "SENTENCE",
+   "id": "C4",
+   "scoped_restatement": "Direction B count is 0 on the live A2 generated root. That is not a pass on freshness; it is an empty scan.",
+   "verdict": "REFUTED",
+   "why_locus": "Claim overreaches: the generated root has zero files, so there are zero unregistered outputs. B is silent for lack of outputs, not because the generator is complete."
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11185",
+   "claim": "These two path tests detect a stale generator that still writes the mapped paths.",
+   "defect_locus": "SENTENCE",
+   "id": "C5",
+   "scoped_restatement": "Path completeness is not generator freshness.",
+   "verdict": "REFUTED",
+   "why_locus": "The tests as designed look at path presence, not bytes. The reviewer-added FM-STALE-BYTES is the missed mode."
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0003/emit_design.py:246",
+   "claim": "A1 has no generated layer, so A2 completeness is the catching architecture for this class.",
+   "id": "C6",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:ARC-0012",
+ "evidence": [
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11185",
+   "claim": "Catalog forbids a combined consistency number.",
+   "kind": "live-tree",
+   "line": 11185,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Both directions are executed against the real tree and the two counts are reported separately"
+  },
+  {
+   "anchor": "command-center/WORK-UNIT-CATALOG.json:11211",
+   "claim": "Catalog requires both-states per direction.",
+   "kind": "live-tree",
+   "line": 11211,
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "snippet": "Both-states control per direction: delete one output and assert direction A fires"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0010/registry.json:7",
+   "claim": "Live A2 typed registry contains plugin.harness; mapping expects a generated plugin file.",
+   "kind": "live-tree",
+   "line": 7,
+   "path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+   "snippet": "\"id\": \"plugin.harness\""
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0003/emit_design.py:246",
+   "claim": "A1 DESIGN.json is absent; ARC-0003 emit_design.py encodes no_generated_layer, so this completeness gate does not exist under A1.",
+   "kind": "dossier",
+   "line": 246,
+   "path": "command-center/p2-wave/probes/ARC-0003/emit_design.py",
+   "snippet": "\"no_generated_layer\": True"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0009/emit_refutation.py:305",
+   "claim": "A1 REFUTATION.json is absent; ARC-0009 emit_refutation.py names A2 completeness as the catching gate.",
+   "kind": "dossier",
+   "line": 305,
+   "path": "command-center/p2-wave/probes/ARC-0009/emit_refutation.py",
+   "snippet": "Generated-SSOT completeness FAIL-CLOSES"
+  }
+ ],
+ "headline_verdict": "FAILS-DIRECTION-A",
+ "live_completeness": {
+  "design_present": false,
+  "direction_a_orphan_registry_count": 10,
+  "direction_a_orphans": [
+   {
+    "expected_path": "command-center/control-plane/A2/generated/plugin/plugin.harness.json",
+    "id": "plugin.harness",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/marketplace/marketplace.harness.json",
+    "id": "marketplace.harness",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/skills/skill.council.json",
+    "id": "skill.council",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/hooks/hook.pre-tool.json",
+    "id": "hook.pre-tool",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/rules/rule.no-secrets.json",
+    "id": "rule.no-secrets",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/docs/doc.a2-overview.md",
+    "id": "doc.a2-overview",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/workflows/wf.catalog-class.discovery-only.json",
+    "id": "wf.catalog-class.discovery-only",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/council/council.preset.catalog-class.editable.json",
+    "id": "council.preset.catalog-class.editable",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/catalogs/catalog.workflows.json",
+    "id": "catalog.workflows",
+    "reason": "missing"
+   },
+   {
+    "expected_path": "command-center/control-plane/A2/generated/catalogs/catalog.council.json",
+    "id": "catalog.council",
+    "reason": "missing"
+   }
+  ],
+  "direction_b_orphan_output_count": 0,
+  "direction_b_orphans": [],
+  "fails_today": [
+   "direction_a"
+  ],
+  "generated_root": "command-center/control-plane/A2/generated",
+  "note": "A2 DESIGN.json is absent on this worktree (ARC-0010 not delivered). phase3/A1 DESIGN.json and REFUTATION.json are also absent. The live registry is ARC-0010 registry.json, the typed A2 registry that does exist. Counts are not summed.",
+  "output_file_count": 0,
+  "pairing": "a2-registry-vs-generated",
+  "registry_entry_count": 10,
+  "registry_path": "command-center/p2-wave/probes/ARC-0010/registry.json",
+  "supporting_catalog_slice": {
+   "direction_a_fail": true,
+   "direction_a_orphan_registry_count": 7,
+   "direction_a_orphans": [
+    {
+     "expected_path": "command-center/phase3/A2/DESIGN.json",
+     "id": "ARC-0010",
+     "reason": "missing"
+    },
+    {
+     "expected_path": "command-center/phase3/A2/COST.json",
+     "id": "ARC-0011",
+     "reason": "missing"
+    },
+    {
+     "expected_path": "command-center/phase3/A2/FAILURE-MODES.json",
+     "id": "ARC-0012",
+     "reason": "missing"
+    },
+    {
+     "expected_path": "command-center/phase3/A2/SECURITY.json",
+     "id": "ARC-0013",
+     "reason": "missing"
+    },
+    {
+     "expected_path": "command-center/phase3/A2/MIGRATION.json",
+     "id": "ARC-0014",
+     "reason": "missing"
+    },
+    {
+     "expected_path": "command-center/phase3/A2/TEST-PLAN.json",
+     "id": "ARC-0015",
+     "reason": "missing"
+    },
+    {
+     "expected_path": "command-center/phase3/A2/REFUTATION.json",
+     "id": "ARC-0016",
+     "reason": "missing"
+    }
+   ],
+   "direction_b_fail": false,
+   "direction_b_orphan_output_count": 0,
+   "direction_b_orphans": [],
+   "note": "Supporting analogue only. Not added to the primary registry/generated counts. Catalog is not the A2 generator registry.",
+   "output_file_count": 0,
+   "pairing": "a2-dossier-catalog-vs-phase3-A2",
+   "registry_entry_count": 7
+  }
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0012/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0012/probe1_both_states.py",
+   "id": "probe1",
+   "role": "both-states-and-live"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0012/probe2_overclaim.py",
+   "id": "probe2",
+   "role": "overclaim-and-reviewer-scope"
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "reliability-engineer",
+  "vendor": "cursor"
+ },
+ "question": "What happens when the generator is wrong or stale? Design the generator-completeness test that FAILS when a registry entry produces no output artifact, AND the inverse test that fails when an output artifact has no registry entry - then determine which of the two directions the current repository would fail today, by running both against the existing tree.",
+ "report": {
+  "control_ids": [
+   "T1-both-states-and-live",
+   "T2-overclaim-and-separate-counts"
+  ],
+  "kind": "architecture-review",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/registry.json:7",
+    "measured": 10,
+    "method": "completeness.completeness Direction A vs ARC-0010 registry.json",
+    "name": "direction_a_orphan_registry_count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ARC-0010/registry.json:7",
+    "measured": 0,
+    "method": "completeness.completeness Direction B vs generated root",
+    "name": "direction_b_orphan_output_count"
+   }
+  ]
+ },
+ "retry": {
+  "count": 1,
+  "policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "added_failure_mode": {
+   "author_missed": true,
+   "caught_by_direction_a": false,
+   "caught_by_direction_b": false,
+   "description": "A generated file sits at the exact path mapping.py names, with size > 0, so Direction A is silent and Direction B is silent. The bytes were emitted by generator vN-1 (or a wrong template) after the registry row changed. Path completeness is not freshness. The unit question asks what happens when the generator is wrong OR stale; stale-but-present is the stale half, and these two tests do not see it.",
+   "id": "FM-STALE-BYTES",
+   "required_followup": "Pair this gate with a provenance header (registry id + generator version + input digest) inside every generated file, and a byte-compare of two regenerations (ARC-0010 / ARC-0015). Completeness stays; freshness is a different detector.",
+   "seeded_classes": [
+    "stale-cache",
+    "version-skew",
+    "stale-evidence"
+   ],
+   "title": "Path-complete stale generated bytes"
+  },
+  "enumeration_certified_against_47": false,
+  "enumeration_certify_reason": "The 47 seeded classes are cited as _USER-PROMPTS.md:11300-11347. That file is not on this worktree. Certifying completeness against an unread list would be overclaim. Instead the reviewer adds FM-STALE-BYTES, which the author's path-completeness list missed.",
+  "fresh_context": true,
+  "independent": true,
+  "method": "Reviewed the author's Direction A/B path gate and the live counts. Checked that empty files count as A, that combined counts are forbidden, and that detector-control known-orphans exist. Agreement with the 'fails Direction A today' verdict is not required for PASS; scope is: two counts, both-states, detector-control, one missed mode.",
+  "reviewer_id": "ARC-0012-independent-reliability",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "scenario": {
+  "catching_architecture": "A2 generated-SSOT two-direction completeness gate: Direction A fail-closes on a registry id with no non-empty generated file; Direction B fail-closes on a generated file with no registry id.",
+  "executable": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0012/live.py",
+  "id": "S1-two-direction-completeness",
+  "on_this_estate": "ARC-0010 registry.json has 10 entries. Generated root command-center/control-plane/A2/generated has 0 files. Direction A count=10. Direction B count=0. Today this tree fails Direction A (generator never wrote the A2 outputs). Direction B is zero because nothing was generated; that zero is trusted only after detector-control found a planted unregistered file on a fixture tree.",
+  "procedure": [
+   "1. Load the typed registry (ARC-0010 registry.json) and map each entry to command-center/control-plane/A2/generated/<kind>/<id>.<ext>.",
+   "2. Direction A: every registry id whose mapped path is missing or empty is an orphan registry row.",
+   "3. Direction B: every file under the generated root whose path is not in the mapped set is an orphan output.",
+   "4. Detector-control: on a fixture, plant a known missing output and a known extra file; refuse to report zero in a direction that cannot find its known orphan.",
+   "5. Both-states: delete one output and assert A fires then restore and assert A is silent; add an unregistered file and assert B fires then remove and assert B is silent.",
+   "6. Run both directions on the live worktree and record the two counts separately."
+  ],
+  "reproduction": {
+   "detector_control_a": true,
+   "detector_control_b": true,
+   "direction_a_fires_on_delete": true,
+   "direction_a_silent_on_complete": true,
+   "direction_b_fires_on_unregistered": true,
+   "direction_b_silent_on_complete": true,
+   "live_direction_a_count": 10,
+   "live_direction_b_count": 0
+  },
+  "silent_loss_file": "command-center/control-plane/A2/generated/plugin/plugin.harness.json",
+  "title": "Orphan registry rows vs orphan generated files"
+ },
+ "schema_version": 1,
+ "seeded_classes": {
+  "count": 47,
+  "names": [
+   "detector-failure",
+   "overclaim",
+   "green-not-live",
+   "single-signal-verification",
+   "uncontrolled-silence",
+   "silent-in-both-states",
+   "mutation-survives",
+   "stale-evidence",
+   "stale-cache",
+   "version-skew",
+   "spec-drift",
+   "docs-code-divergence",
+   "capability-loss",
+   "data-loss",
+   "partial-artifact",
+   "provenance-loss",
+   "duplicate-control-plane",
+   "duplicate-collapse-error",
+   "index-corruption",
+   "measured-nothing",
+   "false-pass",
+   "false-coverage",
+   "fixture-invalid",
+   "environment-drift",
+   "platform-gap",
+   "supply-chain",
+   "secret-in-artifact",
+   "signature-bypass",
+   "prompt-injection",
+   "win-arg-limit",
+   "severed-stream",
+   "timeout",
+   "schema-invalid",
+   "use-vs-mention",
+   "gameable-metric",
+   "unfalsifiable-metric",
+   "calibration-failure",
+   "irreproducible-claim",
+   "scope-drift",
+   "packaging-gap",
+   "stale-premise",
+   "source-unavailable",
+   "permission-escalation",
+   "sandbox-escape",
+   "groupthink",
+   "synthesis-distortion",
+   "fail-open-control"
+  ],
+  "source_citation": "command-center/WORK-UNIT-CATALOG.json ARC-0012.inputs cites _USER-PROMPTS.md:11300-11347; that file is not on this worktree",
+  "source_status": "ABSENT"
+ },
+ "sentinel": "SUCCESS:ARC-0012",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:ARC-0012",
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "Path completeness is necessary and still not sufficient: FM-STALE-BYTES (reviewer-added) is green under both directions when a generated file is present at the mapped path but holds bytes from an older generator. On this tree A2 DESIGN.json is also absent, so the live pairing uses the ARC-0010 registry as the typed registry stand-in rather than a closed A2 dossier. That limitation does not excuse combining Direction A and B into one count, and it does not make today's Direction A miss (10 orphan registry rows, 0 generated files) go away. Strongest surviving FOR: a two-direction path gate still fail-closes the silent-skip class that A1 DESIGN encodes as unlisted_file, which is the point of A2 relative to A1.",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0012/probe1_both_states.py",
+   "id": "T1-both-states-and-live",
+   "name": "Both-states per direction, detector-control, live two-count measurement",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0012/probe2_overclaim.py",
+   "id": "T2-overclaim-and-separate-counts",
+   "name": "REFUTED rows name DESIGN vs SENTENCE; combined count forbidden; reviewer added a mode",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:55:19Z",
+  "started_at": "2026-08-24T18:00:00Z"
+ },
+ "title": "A2 (generated SSOT): generator-completeness in both directions",
+ "unit_id": "ARC-0012"
+}

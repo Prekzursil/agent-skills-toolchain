@@ -1,0 +1,27 @@
+# rules/plugin/install.md
+shared:rules/plugin/install.md
+repo-unique:rules/plugin/install.md
+repo-pad:rules/plugin/install.md:0
+repo-pad:rules/plugin/install.md:1
+repo-pad:rules/plugin/install.md:2
+repo-pad:rules/plugin/install.md:3
+repo-pad:rules/plugin/install.md:4
+repo-pad:rules/plugin/install.md:5
+repo-pad:rules/plugin/install.md:6
+repo-pad:rules/plugin/install.md:7
+repo-pad:rules/plugin/install.md:8
+repo-pad:rules/plugin/install.md:9
+repo-pad:rules/plugin/install.md:10
+repo-pad:rules/plugin/install.md:11
+repo-pad:rules/plugin/install.md:12
+repo-pad:rules/plugin/install.md:13
+repo-pad:rules/plugin/install.md:14
+repo-pad:rules/plugin/install.md:15
+repo-pad:rules/plugin/install.md:16
+repo-pad:rules/plugin/install.md:17
+repo-pad:rules/plugin/install.md:18
+repo-pad:rules/plugin/install.md:19
+repo-pad:rules/plugin/install.md:20
+repo-pad:rules/plugin/install.md:21
+repo-pad:rules/plugin/install.md:22
+repo-pad:rules/plugin/install.md:23

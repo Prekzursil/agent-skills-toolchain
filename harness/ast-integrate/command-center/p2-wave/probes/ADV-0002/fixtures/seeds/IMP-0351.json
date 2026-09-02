@@ -1,0 +1,72 @@
+{
+  "SUCCESS:IMP-0351": true,
+  "artifact_paths": [
+    "tools/council/outcomes/lineage_export.py",
+    "tools/council/outcomes/lineage_record.schema.json",
+    "command-center/decision-log/council-lineage.json",
+    "command-center/receipts/IMP-0351.json"
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/council/outcomes/lineage_export.py:406",
+      "claim": "Unmarked overturn leaves two LIVE disagreeing rows; scan_live_contradictions lists DEC-0351-A vs DEC-0351-B and FIRES.",
+      "id": "E1",
+      "kind": "contradiction-scan",
+      "observed": "fired=true on unmarked; fired=false on empty and on marked",
+      "probe": "probe2_contradiction_scan.py"
+    },
+    {
+      "anchor": "tools/council/outcomes/lineage_export.py:188",
+      "claim": "commit_overturn(mark=True) writes status=SUPERSEDED and superseded_by=DEC-0351-B on the older entry.",
+      "id": "E2",
+      "kind": "overturn-fixture",
+      "observed": "DEC-0351-A superseded_by DEC-0351-B; scan silent; live_count=1",
+      "probe": "probe1_schema_and_supersession.py"
+    },
+    {
+      "anchor": "command-center/decision-log/council-lineage.json",
+      "claim": "Council slice of the program decision log holds the marked overturn.",
+      "id": "E3",
+      "kind": "program-log",
+      "observed": {
+        "entries": 2,
+        "path": "command-center/decision-log/council-lineage.json",
+        "scan": {
+          "fired": false,
+          "live_count": 1,
+          "pair_count": 0,
+          "pairs": []
+        }
+      }
+    }
+  ],
+  "falsifiable_answer": "With commit_overturn(mark=True) the earlier entry acquires a supersession marker. With mark=False the log holds two contradictory LIVE decisions and scan_live_contradictions FIRES.",
+  "id": "IMP-0351",
+  "negative_control_ids": [
+    "IMP-0351-NC-unmarked-overturn-scan-fires"
+  ],
+  "question": "When a later council overturns an earlier decision, must the older program-log entry carry a supersession marker?",
+  "residual_unknowns": [
+    "11-COUNCIL-SPECIFICATION.md / .schema.json and 17-DECISION-LOG.md are absent from this Linux worktree; lineage is stored at command-center/decision-log/council-lineage.json rather than appended to the missing markdown log.",
+    "Dependencies IMP-0258 (precedent retrieval) and IMP-0259 (claim registry) are not delivered here; this exporter writes the log those units would read.",
+    "command-center/schema/receipt.schema.json is absent on this worktree; G-1 for this unit does not consult it."
+  ],
+  "reviewer": {
+    "independent": true,
+    "note": "Mechanical adversarial suite in this worktree. A second human or model in a fresh context was not run.",
+    "reviewer_id": "IMP-0351-probe2-contradiction-scan",
+    "starts_from": "tests/negative-control, not author summary"
+  },
+  "reviewer_verdict": "PASS",
+  "sentinel": "SUCCESS:IMP-0351",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0351 question_or_target (tools/council/outcomes/lineage_export.py; supersession marker vs two contradictory live decisions). 11-COUNCIL-SPECIFICATION.md and 17-DECISION-LOG.md are not on this worktree.",
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "test_ids": [
+    "IMP-0351-probe1-schema-and-supersession",
+    "IMP-0351-probe2-contradiction-scan-both-states"
+  ],
+  "title": "Decision-lineage export into the program decision log",
+  "ts": "2026-08-24T18:57:17Z",
+  "unit_id": "IMP-0351"
+}

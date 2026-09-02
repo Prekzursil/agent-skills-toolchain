@@ -1,0 +1,27 @@
+name: skill-dual-write
+'on':
+  pull_request: {}
+jobs:
+  skill-dual-write:
+    runs-on: ubuntu-latest
+    name: gate-skill-dual-write
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+      with:
+        fetch-depth: '0'
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: '3.11'
+    - run: pip install pytest==8.4.2
+    - name: gate-skill-dual-write self-test
+      run: python -m pytest ci/tests tools/d001-dual-write/tests -q
+    - name: gate-skill-deploy-drift self-test
+      run: python -m pytest ci/tests/test_check_skill_deploy_drift.py -q
+    - name: gate-skill-surface-manifest
+      run: python ci/gen_skill_index.py --check --fail-on-drift
+    - name: gate-skills-manifest-inventory
+      run: python ci/gen_skills_manifest.py --check
+    - name: gate-skill-dual-write fetch base
+      run: git fetch --no-tags origin +refs/heads/main:refs/remotes/origin/main
+    - name: gate-skill-dual-write D-001 gate
+      run: python ci/check_skill_dual_write.py --base origin/main --head HEAD --strict-parity

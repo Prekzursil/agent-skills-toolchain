@@ -1,0 +1,25 @@
+
+===== launch 2026-08-20T07:42:34Z attempt=1 =====
+I'll start from the existing ARC-0035 probe tree, read any SUBAGENT-RETURN, and implement until the unit measure prints SUCCESS:delivered.ARC-0035 isn't in the probe listing yet. I'll pull the unit catalog, the measure contract, and a nearby delivered ARC unit as the template.ARC-0035 is the A5 migration-plan unit: fold ad-hoc rails into one work-unit contract without dropping in-flight work. Next I’ll read the schema, A5 inputs, and a delivered sibling unit.The receipt contract is clear. Next I’ll inspect nested field enums, a working pack script, and the live rails/event log this migration has to fold.I'll inspect the live dispatch rails and a smaller delivered receipt so the migration adapters and pack script stay honest.I have the contract and rails. Next I’ll implement the fold, two independent live probes, the migration receipt, and the per-unit manifest.EVENTS.jsonl is CRLF, so the fold has to keep those bytes and never rewrite the source. Implementing the library, probes, and packer next.Probes passed and left EVENTS.jsonl unchanged. Next I’ll pack the migration receipt from those live measurements.**SUCCESS:delivered ARC-0035** — G-1 contract-green for this unit.
+
+The unit had never been started (`probes/ARC-0035/` and `command-center/phase3/A5/MIGRATION.json` were absent). That first-run absence was treated as work to do, not as a park.
+
+Measure line:
+
+`SUCCESS:delivered ARC-0035 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe_append_only.py:0,probe_record_count.py:0`
+
+What landed:
+
+| Piece | Role |
+|---|---|
+| `command-center/phase3/A5/MIGRATION.json` | Honest `state=SUCCESS` migration-plan receipt (schema errors = 0) |
+| `probe_record_count.py` | Probe 1: live fold conservation `2 = 2 + 0` |
+| `probe_append_only.py` | Probe 2: SHA-256 / `origin_offset` identity; reverse reconstruct of CRLF source |
+| Per-unit `UNIT-ARTIFACT-MANIFEST.json` | Catalog `output_path` row, live LF sha256 `c651669aad8d1974e6127cf2bf7752ab464afb7d1243246c50aba0ab4f7dede8` |
+| `SUBAGENT-RETURN.json` | Return for this unit |
+
+The plan names adapters for the three live rails (Task subagents, Codex MCP threads, Databricks jobs), a census-claim-wait-harvest drain that does not kill in-flight work, and a fold of `command-center/events/EVENTS.jsonl` into a **new** ledger file. The live 2-event CRLF slice is conserved and reconstructs byte-for-byte. `EVENTS.jsonl` was not rewritten (`sha256 9dd76cc9…`).
+
+Residual, not a park: `ARC-0031` `DESIGN.json` is still absent, so this plan names the demonstrated ledger shape rather than consuming a signed design. Live Task/Codex/Databricks census on the owner workstation was not run.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no key rotation, no finish-everything-close / p2-cloud-ok-deliver relaunch. Cloud-ok was not used as delivery.

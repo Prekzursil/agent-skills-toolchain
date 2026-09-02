@@ -1,0 +1,444 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0061",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0061",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0061; rules/common/windows-shell.md",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "cursor-grok-4.6",
+    "role": "platform-test-engineer",
+    "execution_substrate": "linux-worktree-windows-lock-overlay"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/winlock.py",
+      "bytes": 4589,
+      "sha256": "659722b70bcc358877aed781a499c3455fc77293872ec8183aa4167f252d57d7",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/inventory.py",
+      "bytes": 2432,
+      "sha256": "ea5fa292d750a18cf4bd2674525c694e1e70e00ec42203b4a7b402137a9889fc",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/scenario.py",
+      "bytes": 2526,
+      "sha256": "647a210c4ce9315b40a0685944df8c36e17b9c92e142a488a152a6bfb233c09d",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/lifecycle.py",
+      "bytes": 6346,
+      "sha256": "0d2449986c542115dc3ae8eaedff0609b47d852cad4bc95d33464d17c2ae0d8a",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/measure.py",
+      "bytes": 9422,
+      "sha256": "1b1e182863c207551ce22d1c7ea03a96475ed528bd894264244f8cbf97dc13c1",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+      "bytes": 3600,
+      "sha256": "14cb287019cf64413cc1228634cb258fa7cd6198cc016de09c4a0fbdddb67f15",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+      "bytes": 4133,
+      "sha256": "884a4d53c19181a2a5d6726dbee1f75873912f9477afbe6cb90c4a37197bbff5",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Naive in-place sequential update with hooks/on_load.py held writes unlocked files to 2.0.0 then raises WinError 32; the on-disk inventory is mixed (P0). Locked-aware update refuses before mutation, names pid=, and leaves the inventory identical. Rollback with logs/plugin.log held also leaves no partial tree.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0061/lifecycle.py:preflight",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+          "raw_output": "{\"held_kinds\": [\"hook\", \"log\"], \"inventories\": {\"rollback_post_count\": 6, \"rollback_pre_count\": 6, \"update_post_count\": 6, \"update_pre_count\": 6}, \"naive_classify\": \"mixed\", \"naive_uninstall_partial\": true, \"naive_update_mixed\": true, \"pass\": true, \"probe\": \"probe1-held-handle\", \"rename_then_write_atomic\": true, \"rollback_no_partial_tree\": true, \"unit_id\": \"TST-0061\", \"update_refused_unchanged\": true}\nSUCCESS:TST-0061-probe1 held-handle update refused with tree unchanged; rollback left no partial tree; naive control mixed",
+          "fingerprint": "f2f42954eefe212debb1aa4732a1587e",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+          "raw_output": "{\"both_states\": {\"error\": \"update refused: Windows sharing violation; locking process pid=8811 name=python.exe kind=module path=lib/runtime.py\", \"locked_refused\": true, \"locked_tree_unchanged\": true, \"ok\": true, \"pid\": 8811, \"unlocked_classify\": \"updated\", \"unlocked_ok\": true}, \"error_names_pid\": true, \"held_kind\": \"module\", \"pass\": true, \"pid_token\": \"pid=8811\", \"probe\": \"probe2-pid-unlocked\", \"uninstall_refuses_held_module\": true, \"unit_id\": \"TST-0061\", \"unlocked_control_succeeds\": true}\nSUCCESS:TST-0061-probe2 error names pid=; unlocked control succeeds; both-states pair discriminated",
+          "fingerprint": "9e5a87e4c4581231318b7ecf04b8f935",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Locked-aware error text contains pid= and the locking process name. Unlocked update then rollback both succeed (both-states). Uninstall with lib/runtime.py held is refused with the tree unchanged.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0061/lifecycle.py:locked_aware",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+          "raw_output": "{\"both_states\": {\"error\": \"update refused: Windows sharing violation; locking process pid=8811 name=python.exe kind=module path=lib/runtime.py\", \"locked_refused\": true, \"locked_tree_unchanged\": true, \"ok\": true, \"pid\": 8811, \"unlocked_classify\": \"updated\", \"unlocked_ok\": true}, \"error_names_pid\": true, \"held_kind\": \"module\", \"pass\": true, \"pid_token\": \"pid=8811\", \"probe\": \"probe2-pid-unlocked\", \"uninstall_refuses_held_module\": true, \"unit_id\": \"TST-0061\", \"unlocked_control_succeeds\": true}\nSUCCESS:TST-0061-probe2 error names pid=; unlocked control succeeds; both-states pair discriminated",
+          "fingerprint": "9e5a87e4c4581231318b7ecf04b8f935",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+          "raw_output": "{\"held_kinds\": [\"hook\", \"log\"], \"inventories\": {\"rollback_post_count\": 6, \"rollback_pre_count\": 6, \"update_post_count\": 6, \"update_pre_count\": 6}, \"naive_classify\": \"mixed\", \"naive_uninstall_partial\": true, \"naive_update_mixed\": true, \"pass\": true, \"probe\": \"probe1-held-handle\", \"rename_then_write_atomic\": true, \"rollback_no_partial_tree\": true, \"unit_id\": \"TST-0061\", \"update_refused_unchanged\": true}\nSUCCESS:TST-0061-probe1 held-handle update refused with tree unchanged; rollback left no partial tree; naive control mixed",
+          "fingerprint": "f2f42954eefe212debb1aa4732a1587e",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_update_with_a_held_handle_is_atomic_or_loudly_refused",
+      "name": "held-handle update is atomic or loudly refused",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+      "result": "PASS",
+      "output_tail": "update refused: Windows sharing violation; locking process pid=4242 name=claude-hooks.exe kind=hook path=hooks/on_load.py"
+    },
+    {
+      "id": "test_rollback_with_a_held_handle_leaves_no_partial_tree",
+      "name": "rollback with a held handle leaves no partial tree",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+      "result": "PASS",
+      "output_tail": "rollback refused: Windows sharing violation; locking process pid=4243 name=plugin-host.exe kind=log path=logs/plugin.log"
+    },
+    {
+      "id": "test_error_names_the_locking_process_id",
+      "name": "error names the locking process id",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+      "result": "PASS",
+      "output_tail": "update refused: Windows sharing violation; locking process pid=8811 name=python.exe kind=module path=lib/runtime.py"
+    },
+    {
+      "id": "test_unlocked_control_run_succeeds",
+      "name": "unlocked control run succeeds (both-states pair)",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+      "result": "PASS",
+      "output_tail": "update_ok=True rollback_ok=True"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "TST0061-C1-naive-update-mixed-tree",
+      "kind": "known-broken-fixture",
+      "description": "Sequential in-place replace while the loaded hook is held must produce a mixed 1.0.0/2.0.0 inventory. The detector fires on that bad state and is silent on the locked-aware refuse.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "classify=mixed wrote=['plugin.json', 'skills/SKILL.md', 'rules/rule.md']",
+      "good_state_output": "locked-aware update refused; tree identical"
+    },
+    {
+      "id": "TST0061-C2-naive-uninstall-partial-tree",
+      "kind": "known-broken-fixture",
+      "description": "Sequential unlink while the hook is held must leave a partially removed tree.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "removed=['plugin.json', 'skills/SKILL.md', 'rules/rule.md'] remaining=['logs/plugin.log', 'lib/runtime.py', 'hooks/on_load.py']",
+      "good_state_output": "locked-aware uninstall refused; tree identical"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0061-probe2-pid-unlocked",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 re-runs the pid-naming test and the unlocked control in a separate process and requires the both-states pair."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0061/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+      "artifact_path": "command-center/receipts/TST-0061.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe1_held_handle.py",
+        "raw_output": "{\"held_kinds\": [\"hook\", \"log\"], \"inventories\": {\"rollback_post_count\": 6, \"rollback_pre_count\": 6, \"update_post_count\": 6, \"update_pre_count\": 6}, \"naive_classify\": \"mixed\", \"naive_uninstall_partial\": true, \"naive_update_mixed\": true, \"pass\": true, \"probe\": \"probe1-held-handle\", \"rename_then_write_atomic\": true, \"rollback_no_partial_tree\": true, \"unit_id\": \"TST-0061\", \"update_refused_unchanged\": true}\nSUCCESS:TST-0061-probe1 held-handle update refused with tree unchanged; rollback left no partial tree; naive control mixed",
+        "fingerprint": "f2f42954eefe212debb1aa4732a1587e",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+      "artifact_path": "command-center/receipts/TST-0061.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py",
+        "raw_output": "{\"both_states\": {\"error\": \"update refused: Windows sharing violation; locking process pid=8811 name=python.exe kind=module path=lib/runtime.py\", \"locked_refused\": true, \"locked_tree_unchanged\": true, \"ok\": true, \"pid\": 8811, \"unlocked_classify\": \"updated\", \"unlocked_ok\": true}, \"error_names_pid\": true, \"held_kind\": \"module\", \"pass\": true, \"pid_token\": \"pid=8811\", \"probe\": \"probe2-pid-unlocked\", \"uninstall_refuses_held_module\": true, \"unit_id\": \"TST-0061\", \"unlocked_control_succeeds\": true}\nSUCCESS:TST-0061-probe2 error names pid=; unlocked control succeeds; both-states pair discriminated",
+        "fingerprint": "9e5a87e4c4581231318b7ecf04b8f935",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:07:10Z",
+    "ended_at": "2026-08-25T01:07:10Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative approaches before a 3rd attempt"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This Linux worktree cannot open a real Windows mandatory lock; WinLockFS encodes ERROR_SHARING_VIOLATION=32. A Windows-platform specialist should re-run against NTFS with a live handle (PowerShell 7 vs Git Bash).",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Hold CreateFileW without FILE_SHARE_DELETE on hooks/on_load.py and re-run locked_aware update on Windows."
+    }
+  ],
+  "report": {
+    "kind": "test-receipt",
+    "observations": [
+      {
+        "name": "locked_aware_update_refused_tree_unchanged",
+        "measured": true,
+        "method": "command",
+        "anchor": "command-center/p2-wave/probes/TST-0061/probe1_held_handle.py"
+      },
+      {
+        "name": "naive_update_classify_when_hook_held",
+        "measured": "mixed",
+        "method": "command",
+        "anchor": "command-center/p2-wave/probes/TST-0061/measure.py"
+      },
+      {
+        "name": "error_names_pid_token",
+        "measured": true,
+        "method": "test-run",
+        "anchor": "command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py"
+      },
+      {
+        "name": "unlocked_control_succeeds",
+        "measured": true,
+        "method": "test-run",
+        "anchor": "command-center/p2-wave/probes/TST-0061/probe2_pid_unlocked.py"
+      },
+      {
+        "name": "rename_then_write_completes",
+        "measured": true,
+        "method": "command",
+        "anchor": "command-center/p2-wave/probes/TST-0061/lifecycle.py:rename_then_write_update"
+      }
+    ],
+    "control_ids": [
+      "TST0061-C1-naive-update-mixed-tree",
+      "TST0061-C2-naive-uninstall-partial-tree"
+    ]
+  },
+  "extensions": {
+    "completion_sentinel": "SUCCESS:TST-0061",
+    "output_schema": "command-center/schema/test-receipt.schema.json",
+    "title": "Windows mandatory file locking during update, rollback and uninstall",
+    "question": "POSIX allows unlinking and replacing a file another process holds open; Windows takes a mandatory lock and the same operation fails with a sharing violation. Target: hold an open handle on each file the lifecycle commands must replace (a loaded hook script, an active log, a running interpreter's own module) and assert the command either completes via a replace-on-reboot / rename-then-write strategy or fails with a message naming the locking process - never a partial replacement. Which lifecycle step leaves the install half-updated when a handle is held?",
+    "answer": "naive in-place sequential replace during update: unlocked plugin.json / skills / rules become 2.0.0, then the held hooks/on_load.py raises WinError 32 and stays 1.0.0 \u2014 mixed tree, which is a P0 even if the command later exits non-zero. The same sequential unlink during uninstall half-removes the tree. Locked-aware update/rollback/uninstall preflight and refuse, naming pid= and the locking process, leaving the inventory byte-identical.",
+    "half_updated_lifecycle_step": "naive-in-place-sequential-replace-during-update",
+    "verdict": "naive-update-mixes-locked-aware-refuses",
+    "cloud_ok": false,
+    "held_handle_runs": {
+      "kinds": [
+        "hook",
+        "log",
+        "module"
+      ],
+      "files": [
+        "hooks/on_load.py",
+        "logs/plugin.log",
+        "lib/runtime.py"
+      ],
+      "update_inventory": {
+        "pre": [
+          {
+            "path": "hooks/on_load.py",
+            "sha256": "52493c52bb9a971e6251a8f4c17c855c47bc2cb61415894728b2a8019b0def27",
+            "bytes": 58
+          },
+          {
+            "path": "lib/runtime.py",
+            "sha256": "b5a175c9e6ec02b77473ed76c620d93cdf17efee6a7598b469ace2fa4d3788b7",
+            "bytes": 75
+          },
+          {
+            "path": "logs/plugin.log",
+            "sha256": "c9906f63e9d456a7e291f89e225819dc7d71d4c434a9ea5c97ffe09ed63b197d",
+            "bytes": 57
+          },
+          {
+            "path": "plugin.json",
+            "sha256": "21393cc14c7ba9bd715fec5393f7de86fb10656e2f49b2ce67f2df7b02ae5d5d",
+            "bytes": 55
+          },
+          {
+            "path": "rules/rule.md",
+            "sha256": "cc1d873d3982b49824a063cb833dca80526fbf757c33b288c71b526ec869b4f1",
+            "bytes": 29
+          },
+          {
+            "path": "skills/SKILL.md",
+            "sha256": "7d95b752b3648ff225e5c8da2a95d5b8c7fc137dfead77ee820194add11a1793",
+            "bytes": 30
+          }
+        ],
+        "post": [
+          {
+            "path": "hooks/on_load.py",
+            "sha256": "52493c52bb9a971e6251a8f4c17c855c47bc2cb61415894728b2a8019b0def27",
+            "bytes": 58
+          },
+          {
+            "path": "lib/runtime.py",
+            "sha256": "b5a175c9e6ec02b77473ed76c620d93cdf17efee6a7598b469ace2fa4d3788b7",
+            "bytes": 75
+          },
+          {
+            "path": "logs/plugin.log",
+            "sha256": "c9906f63e9d456a7e291f89e225819dc7d71d4c434a9ea5c97ffe09ed63b197d",
+            "bytes": 57
+          },
+          {
+            "path": "plugin.json",
+            "sha256": "21393cc14c7ba9bd715fec5393f7de86fb10656e2f49b2ce67f2df7b02ae5d5d",
+            "bytes": 55
+          },
+          {
+            "path": "rules/rule.md",
+            "sha256": "cc1d873d3982b49824a063cb833dca80526fbf757c33b288c71b526ec869b4f1",
+            "bytes": 29
+          },
+          {
+            "path": "skills/SKILL.md",
+            "sha256": "7d95b752b3648ff225e5c8da2a95d5b8c7fc137dfead77ee820194add11a1793",
+            "bytes": 30
+          }
+        ],
+        "identical": true
+      },
+      "rollback_inventory": {
+        "pre": [
+          {
+            "path": "hooks/on_load.py",
+            "sha256": "fac5402efa79ab42077f03f2778a2ed0ba8447efe7011c0244186c1da37a14bd",
+            "bytes": 58
+          },
+          {
+            "path": "lib/runtime.py",
+            "sha256": "6d5b83fef1b0042941acd929e6318e3c78019d4f963705cb5b65ed4800bc5862",
+            "bytes": 75
+          },
+          {
+            "path": "logs/plugin.log",
+            "sha256": "ec568b0d3706578cd92e00b6a0f18ed4f77402e28b6373ec3ec68366889a8115",
+            "bytes": 57
+          },
+          {
+            "path": "plugin.json",
+            "sha256": "7e7a986a127aeb979b35f9b80a978343f9d813e26b06b544ea3c29619ca4bdf0",
+            "bytes": 55
+          },
+          {
+            "path": "rules/rule.md",
+            "sha256": "ac6ac9421e7438a00a166cb60464d154e321728e79ac2f60251b28813ec4ee52",
+            "bytes": 29
+          },
+          {
+            "path": "skills/SKILL.md",
+            "sha256": "75b51fbe1b89ec785f7a0f71d734595c8b6746b5b5ec994c65527de6e41652fd",
+            "bytes": 30
+          }
+        ],
+        "post": [
+          {
+            "path": "hooks/on_load.py",
+            "sha256": "fac5402efa79ab42077f03f2778a2ed0ba8447efe7011c0244186c1da37a14bd",
+            "bytes": 58
+          },
+          {
+            "path": "lib/runtime.py",
+            "sha256": "6d5b83fef1b0042941acd929e6318e3c78019d4f963705cb5b65ed4800bc5862",
+            "bytes": 75
+          },
+          {
+            "path": "logs/plugin.log",
+            "sha256": "ec568b0d3706578cd92e00b6a0f18ed4f77402e28b6373ec3ec68366889a8115",
+            "bytes": 57
+          },
+          {
+            "path": "plugin.json",
+            "sha256": "7e7a986a127aeb979b35f9b80a978343f9d813e26b06b544ea3c29619ca4bdf0",
+            "bytes": 55
+          },
+          {
+            "path": "rules/rule.md",
+            "sha256": "ac6ac9421e7438a00a166cb60464d154e321728e79ac2f60251b28813ec4ee52",
+            "bytes": 29
+          },
+          {
+            "path": "skills/SKILL.md",
+            "sha256": "75b51fbe1b89ec785f7a0f71d734595c8b6746b5b5ec994c65527de6e41652fd",
+            "bytes": 30
+          }
+        ],
+        "identical": true
+      },
+      "rename_then_write": {
+        "result": "PASS",
+        "classify": "updated",
+        "pending_reboot": [
+          "on_load.py.pending-reboot"
+        ]
+      },
+      "uninstall_held_module": {
+        "result": "PASS",
+        "tree_unchanged": true
+      }
+    },
+    "scope": {
+      "proof_surface": "Disposable plugin tree under a WinLockFS overlay that raises WinError 32 on overwrite/unlink of held paths. Scoped to file LOCKING; MSYS argument rewriting is TST-0190 and is not duplicated.",
+      "does_not_claim": [
+        "A native Windows handle table was enumerated on this Linux host.",
+        "MSYS path rewriting (owned by TST-0190).",
+        "platform/plugin CLI is present on this worktree; the SUT is the locked-aware lifecycle kernel plus the naive sequential control."
+      ]
+    }
+  }
+}

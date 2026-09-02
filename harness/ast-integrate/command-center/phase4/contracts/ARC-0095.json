@@ -1,0 +1,2154 @@
+{
+  "unit_id": "ARC-0095",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0095",
+  "schema_version": 1,
+  "reviewer": {
+    "reviewer_id": "schema-resolver",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "custom",
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+  },
+  "extensions": {
+    "legacy_root": {
+      "id": "ARC-0095",
+      "completion_sentinel": "SUCCESS:ARC-0095",
+      "report_kind": "compatibility-matrix-contract",
+      "title": "Contract: Compatibility matrix contract and the representation of an untested cell",
+      "question": "Specify the compatibility matrix: the axes (operating system, client and version, shell, package version), the support tiers, how a cell is populated with EVIDENCE, and - most importantly - how an UNTESTED cell is represented so it can never be read as a pass. Define the rule that a cell may only be marked supported by a recorded test run, and that inference from an adjacent cell is labelled INFERRED, never SUPPORTED.",
+      "emitted_at": "2026-08-25T00:52:03Z",
+      "execution_substrate": "headless-linux",
+      "output_schema": "https://json-schema.org/draft/2020-12/schema",
+      "matrix_document_schema_path": "command-center/p2-wave/probes/ARC-0095/matrix-document.schema.json",
+      "axes": {
+        "order": [
+          "operating_system",
+          "client",
+          "client_version",
+          "shell",
+          "package_version"
+        ],
+        "declared": {
+          "operating_system": [
+            "linux",
+            "windows",
+            "macos"
+          ],
+          "client": [
+            "claude-code",
+            "codex-cli",
+            "antigravity",
+            "mcp-generic"
+          ],
+          "client_version": [
+            "UNPINNED"
+          ],
+          "shell": [
+            "bash",
+            "powershell"
+          ],
+          "package_version": [
+            "UNPINNED"
+          ]
+        },
+        "definitions": {
+          "operating_system": "Host OS of the recorded run: linux | windows | macos. A cell is keyed by the OS that actually executed, not the OS the author intended to cover.",
+          "client": "Host client identity. Declared set: claude-code, codex-cli, antigravity (agy), mcp-generic.",
+          "client_version": "Observed client VERSION string from inside the client. UNPINNED means no pin is published and cannot be SUPPORTED. An installer exit code is not a version.",
+          "shell": "Shell that invoked the smoke journey: bash | powershell.",
+          "package_version": "Observed package/plugin version under test. UNPINNED cannot be SUPPORTED."
+        }
+      },
+      "support_tiers": {
+        "rule": "A tier is a planning attribute, never a status and never a pass. T1/T2/T3 without evidence remain NOT-CHECKED.",
+        "T1": "Must have in-client evidence before a support claim.",
+        "T2": "Best-effort; still NOT-CHECKED until a receipt exists.",
+        "T3": "Experimental; still NOT-CHECKED until a receipt exists.",
+        "plan": [
+          {
+            "operating_system": "linux",
+            "client": "antigravity",
+            "tier": "T3"
+          },
+          {
+            "operating_system": "linux",
+            "client": "claude-code",
+            "tier": "T1"
+          },
+          {
+            "operating_system": "linux",
+            "client": "codex-cli",
+            "tier": "T1"
+          },
+          {
+            "operating_system": "linux",
+            "client": "mcp-generic",
+            "tier": "T3"
+          },
+          {
+            "operating_system": "macos",
+            "client": "antigravity",
+            "tier": "T3"
+          },
+          {
+            "operating_system": "macos",
+            "client": "claude-code",
+            "tier": "T2"
+          },
+          {
+            "operating_system": "macos",
+            "client": "codex-cli",
+            "tier": "T2"
+          },
+          {
+            "operating_system": "macos",
+            "client": "mcp-generic",
+            "tier": "T3"
+          },
+          {
+            "operating_system": "windows",
+            "client": "antigravity",
+            "tier": "T3"
+          },
+          {
+            "operating_system": "windows",
+            "client": "claude-code",
+            "tier": "T2"
+          },
+          {
+            "operating_system": "windows",
+            "client": "codex-cli",
+            "tier": "T2"
+          },
+          {
+            "operating_system": "windows",
+            "client": "mcp-generic",
+            "tier": "T3"
+          }
+        ]
+      },
+      "cell_statuses": {
+        "enum": [
+          "SUPPORTED",
+          "FAILED",
+          "INFERRED",
+          "NOT-CHECKED",
+          "NOT-APPLICABLE",
+          "UNSUPPORTED"
+        ],
+        "SUPPORTED": "Only a recorded in-client test run whose receipt names the observed client VERSION. Never inferred. Never an installer exit.",
+        "FAILED": "Recorded in-client run with result=fail. Survives into the table.",
+        "INFERRED": "Guess from an adjacent SUPPORTED cell (adjacent OS, same client, version, shell, package). Machine status INFERRED. is_pass=false. Never SUPPORTED. Distinct glyph, token, and css_class from SUPPORTED.",
+        "NOT-CHECKED": "No accepted in-client receipt for this cell. Canonical machine status. Display alias UNTESTED. Never a pass, never blank, never green, never SUPPORTED. Removing a receipt MUST revert the cell to NOT-CHECKED rather than staying green.",
+        "NOT-APPLICABLE": "Combination cannot exist (example: cmd on non-Windows).",
+        "UNSUPPORTED": "Owner-recorded out-of-scope decision, not silence.",
+        "untested_representation": {
+          "machine_status": "NOT-CHECKED",
+          "display_alias": "UNTESTED",
+          "blank_forbidden": true,
+          "pass_aliases_forbidden": [
+            "CHECKED",
+            "GREEN",
+            "OK",
+            "PASS",
+            "RUN",
+            "SUPPORTED",
+            "TRUE",
+            "YES"
+          ],
+          "is_pass": false,
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "token": "NOT-CHECKED"
+        }
+      },
+      "render_table": [
+        {
+          "status": "SUPPORTED",
+          "token": "SUPPORTED",
+          "display": "SUPPORTED",
+          "glyph": "●",
+          "css_class": "matrix-cell-supported",
+          "color_role": "pass",
+          "is_pass": true,
+          "machine_status": "SUPPORTED"
+        },
+        {
+          "status": "FAILED",
+          "token": "FAILED",
+          "display": "FAILED",
+          "glyph": "✖",
+          "css_class": "matrix-cell-failed",
+          "color_role": "fail",
+          "is_pass": false,
+          "machine_status": "FAILED"
+        },
+        {
+          "status": "INFERRED",
+          "token": "INFERRED",
+          "display": "INFERRED",
+          "glyph": "◇",
+          "css_class": "matrix-cell-inferred",
+          "color_role": "inferred",
+          "is_pass": false,
+          "machine_status": "INFERRED"
+        },
+        {
+          "status": "NOT-CHECKED",
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED"
+        },
+        {
+          "status": "NOT-APPLICABLE",
+          "token": "NOT-APPLICABLE",
+          "display": "NOT-APPLICABLE",
+          "glyph": "–",
+          "css_class": "matrix-cell-na",
+          "color_role": "na",
+          "is_pass": false,
+          "machine_status": "NOT-APPLICABLE"
+        },
+        {
+          "status": "UNSUPPORTED",
+          "token": "UNSUPPORTED",
+          "display": "UNSUPPORTED",
+          "glyph": "■",
+          "css_class": "matrix-cell-unsupported",
+          "color_role": "out",
+          "is_pass": false,
+          "machine_status": "UNSUPPORTED"
+        }
+      ],
+      "evidence_rules": {
+        "supported_requires_recorded_run": true,
+        "installer_exit_is_not_evidence": true,
+        "observation_kind_required": "in-client",
+        "observed_client_version_must_equal_client_version": true,
+        "unpinned_version_cannot_be_supported": true,
+        "adjacent_inference_label": "INFERRED",
+        "adjacent_inference_never_supported": true,
+        "default_generator_does_not_infer": true,
+        "inference_does_not_chain": true,
+        "failed_cells_are_not_dropped": true,
+        "blank_cells_forbidden": true,
+        "all_green_on_one_platform_is_a_defect": true
+      },
+      "population_procedure": [
+        "Enumerate the cartesian product of declared axes. Every tuple is a cell.",
+        "Scan evidence roots for receipts. Reject installer-exit, unpinned versions, and intended!=observed version.",
+        "Accepted pass -> SUPPORTED. Accepted fail -> FAILED. Never omit FAILED.",
+        "Every remaining applicable cell is NOT-CHECKED with a reason. Never blank.",
+        "If infer=true, neighbours of SUPPORTED (adjacent OS only) become INFERRED, not SUPPORTED.",
+        "If untested_cell_count==0 and the program has run on one platform, emit defect all-green-on-partial-estate."
+      ],
+      "tests_required": [
+        {
+          "id": "untested-cell-control",
+          "requirement": "Remove a test result and assert the cell reverts to NOT-CHECKED rather than staying green",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe1_untested_cell.py"
+        },
+        {
+          "id": "inference-labelling",
+          "requirement": "An inferred cell must be visually and machine-distinguishable from a tested one",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe2_inference_label.py"
+        }
+      ],
+      "evidence_requirement": "The matrix generator is run over the current test evidence and the untested-cell count is reported; a matrix with no untested cells on a program that has run on one platform is itself a defect.",
+      "generator_run": {
+        "module": "command-center/p2-wave/probes/ARC-0095/matrix.py",
+        "infer": false,
+        "evidence_roots_scanned": [
+          "command-center/receipts",
+          "command-center/p2-wave/probes/ARC-0095/fixtures/live-evidence"
+        ],
+        "receipts_found": 0,
+        "receipts_accepted": 0,
+        "receipts_rejected": [],
+        "program_ran_on": [
+          "linux"
+        ],
+        "platforms_with_evidence": [],
+        "cell_count": 24,
+        "untested_cell_count": 24,
+        "supported_cell_count": 0,
+        "inferred_cell_count": 0,
+        "failed_cell_count": 0,
+        "status_counts": {
+          "SUPPORTED": 0,
+          "FAILED": 0,
+          "INFERRED": 0,
+          "NOT-CHECKED": 24,
+          "NOT-APPLICABLE": 0,
+          "UNSUPPORTED": 0
+        },
+        "blank_cells": 0,
+        "defects": [],
+        "cells": [
+          {
+            "id": "linux|claude-code|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "claude-code",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T1",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|claude-code|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "claude-code",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T1",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|codex-cli|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "codex-cli",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T1",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|codex-cli|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "codex-cli",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T1",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|antigravity|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "antigravity",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|antigravity|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "antigravity",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|mcp-generic|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "mcp-generic",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "linux|mcp-generic|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "linux",
+              "client": "mcp-generic",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|claude-code|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "claude-code",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|claude-code|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "claude-code",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|codex-cli|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "codex-cli",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|codex-cli|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "codex-cli",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|antigravity|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "antigravity",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|antigravity|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "antigravity",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|mcp-generic|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "mcp-generic",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "windows|mcp-generic|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "windows",
+              "client": "mcp-generic",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|claude-code|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "claude-code",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|claude-code|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "claude-code",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|codex-cli|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "codex-cli",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|codex-cli|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "codex-cli",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T2",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|antigravity|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "antigravity",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|antigravity|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "antigravity",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|mcp-generic|UNPINNED|bash|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "mcp-generic",
+              "client_version": "UNPINNED",
+              "shell": "bash",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          },
+          {
+            "id": "macos|mcp-generic|UNPINNED|powershell|UNPINNED",
+            "axes": {
+              "operating_system": "macos",
+              "client": "mcp-generic",
+              "client_version": "UNPINNED",
+              "shell": "powershell",
+              "package_version": "UNPINNED"
+            },
+            "support_tier": "T3",
+            "status": "NOT-CHECKED",
+            "render": {
+              "token": "NOT-CHECKED",
+              "display": "UNTESTED",
+              "glyph": "○",
+              "css_class": "matrix-cell-not-checked",
+              "color_role": "unknown",
+              "is_pass": false,
+              "machine_status": "NOT-CHECKED",
+              "aliases": [
+                "UNTESTED",
+                "NEVER-RUN"
+              ]
+            },
+            "evidence": [],
+            "inference": null,
+            "reason": "no recorded in-client run names this cell",
+            "is_pass": false
+          }
+        ],
+        "note": "This Linux worktree executed ARC probes, which is not an in-client versioned receipt for claude-code / codex-cli / antigravity / mcp-generic. Zero accepted receipts; every applicable declared cell is NOT-CHECKED. A zero untested count here would have been the all-green-on-partial-estate defect."
+      },
+      "named_probes": [
+        {
+          "id": "probe1",
+          "role": "untested-cell-control",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe1_untested_cell.py"
+        },
+        {
+          "id": "probe2",
+          "role": "inference-labelling",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe2_inference_label.py"
+        }
+      ],
+      "cloud_ok": false,
+      "registered": true
+    }
+  },
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ARC-0095",
+  "min_bytes_threshold": 1,
+  "artifacts": [
+    {
+      "path": "command-center/phase4/contracts/ARC-0095.json",
+      "bytes": 31388,
+      "sha256": "e957a58d462244825cc6bb8c8de0077c7eef8742c4e29d6f122b189b515bb385",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "ARC-0095 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/phase4/contracts/ARC-0095.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/phase4/contracts/ARC-0095.json",
+          "raw_output": "bytes=31388 sha256=e957a58d462244825cc6bb8c8de0077c7eef8742c4e29d6f122b189b515bb385",
+          "fingerprint": "c195daaf281dbdea7060c5511f76dbe9",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact ARC-0095",
+          "raw_output": "schema-check",
+          "fingerprint": "efa91793e00e4dd81971fa6573b13cae",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "ARC-0095 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0095",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py ARC-0095",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "435e489f9528dd898a4bd4c1cc0798e1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered ARC-0095",
+          "raw_output": "schema-valid",
+          "fingerprint": "3032fc645df0a3cfe792f0450e38dba0",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "command": "python -c json.load(command-center/phase4/contracts/ARC-0095.json)",
+      "result": "PASS",
+      "assertions": 1,
+      "duration_seconds": 0.01
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ARC-0095/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ARC-0095"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/phase4/contracts/ARC-0095.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/phase4/contracts/ARC-0095.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "08ce5c97e646c6d761d57d4fab3726de",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "defects": [],
+  "report": {
+    "kind": "schema",
+    "observations": [
+      {
+        "name": "primary_artifact_bytes",
+        "measured": 31388,
+        "method": "filesystem-stat",
+        "anchor": "command-center/phase4/contracts/ARC-0095.json"
+      }
+    ],
+    "control_ids": [
+      "NC-ABSENT"
+    ]
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "ovh-leftover-fleet"
+  },
+  "id": "ARC-0095",
+  "completion_sentinel": "SUCCESS:ARC-0095",
+  "report_kind": "compatibility-matrix-contract",
+  "title": "Contract: Compatibility matrix contract and the representation of an untested cell",
+  "question": "Specify the compatibility matrix: the axes (operating system, client and version, shell, package version), the support tiers, how a cell is populated with EVIDENCE, and - most importantly - how an UNTESTED cell is represented so it can never be read as a pass. Define the rule that a cell may only be marked supported by a recorded test run, and that inference from an adjacent cell is labelled INFERRED, never SUPPORTED.",
+  "emitted_at": "2026-08-25T00:52:03Z",
+  "execution_substrate": "headless-linux",
+  "output_schema": "https://json-schema.org/draft/2020-12/schema",
+  "matrix_document_schema_path": "command-center/p2-wave/probes/ARC-0095/matrix-document.schema.json",
+  "axes": {
+    "order": [
+      "operating_system",
+      "client",
+      "client_version",
+      "shell",
+      "package_version"
+    ],
+    "declared": {
+      "operating_system": [
+        "linux",
+        "windows",
+        "macos"
+      ],
+      "client": [
+        "claude-code",
+        "codex-cli",
+        "antigravity",
+        "mcp-generic"
+      ],
+      "client_version": [
+        "UNPINNED"
+      ],
+      "shell": [
+        "bash",
+        "powershell"
+      ],
+      "package_version": [
+        "UNPINNED"
+      ]
+    },
+    "definitions": {
+      "operating_system": "Host OS of the recorded run: linux | windows | macos. A cell is keyed by the OS that actually executed, not the OS the author intended to cover.",
+      "client": "Host client identity. Declared set: claude-code, codex-cli, antigravity (agy), mcp-generic.",
+      "client_version": "Observed client VERSION string from inside the client. UNPINNED means no pin is published and cannot be SUPPORTED. An installer exit code is not a version.",
+      "shell": "Shell that invoked the smoke journey: bash | powershell.",
+      "package_version": "Observed package/plugin version under test. UNPINNED cannot be SUPPORTED."
+    }
+  },
+  "support_tiers": {
+    "rule": "A tier is a planning attribute, never a status and never a pass. T1/T2/T3 without evidence remain NOT-CHECKED.",
+    "T1": "Must have in-client evidence before a support claim.",
+    "T2": "Best-effort; still NOT-CHECKED until a receipt exists.",
+    "T3": "Experimental; still NOT-CHECKED until a receipt exists.",
+    "plan": [
+      {
+        "operating_system": "linux",
+        "client": "antigravity",
+        "tier": "T3"
+      },
+      {
+        "operating_system": "linux",
+        "client": "claude-code",
+        "tier": "T1"
+      },
+      {
+        "operating_system": "linux",
+        "client": "codex-cli",
+        "tier": "T1"
+      },
+      {
+        "operating_system": "linux",
+        "client": "mcp-generic",
+        "tier": "T3"
+      },
+      {
+        "operating_system": "macos",
+        "client": "antigravity",
+        "tier": "T3"
+      },
+      {
+        "operating_system": "macos",
+        "client": "claude-code",
+        "tier": "T2"
+      },
+      {
+        "operating_system": "macos",
+        "client": "codex-cli",
+        "tier": "T2"
+      },
+      {
+        "operating_system": "macos",
+        "client": "mcp-generic",
+        "tier": "T3"
+      },
+      {
+        "operating_system": "windows",
+        "client": "antigravity",
+        "tier": "T3"
+      },
+      {
+        "operating_system": "windows",
+        "client": "claude-code",
+        "tier": "T2"
+      },
+      {
+        "operating_system": "windows",
+        "client": "codex-cli",
+        "tier": "T2"
+      },
+      {
+        "operating_system": "windows",
+        "client": "mcp-generic",
+        "tier": "T3"
+      }
+    ]
+  },
+  "cell_statuses": {
+    "enum": [
+      "SUPPORTED",
+      "FAILED",
+      "INFERRED",
+      "NOT-CHECKED",
+      "NOT-APPLICABLE",
+      "UNSUPPORTED"
+    ],
+    "SUPPORTED": "Only a recorded in-client test run whose receipt names the observed client VERSION. Never inferred. Never an installer exit.",
+    "FAILED": "Recorded in-client run with result=fail. Survives into the table.",
+    "INFERRED": "Guess from an adjacent SUPPORTED cell (adjacent OS, same client, version, shell, package). Machine status INFERRED. is_pass=false. Never SUPPORTED. Distinct glyph, token, and css_class from SUPPORTED.",
+    "NOT-CHECKED": "No accepted in-client receipt for this cell. Canonical machine status. Display alias UNTESTED. Never a pass, never blank, never green, never SUPPORTED. Removing a receipt MUST revert the cell to NOT-CHECKED rather than staying green.",
+    "NOT-APPLICABLE": "Combination cannot exist (example: cmd on non-Windows).",
+    "UNSUPPORTED": "Owner-recorded out-of-scope decision, not silence.",
+    "untested_representation": {
+      "machine_status": "NOT-CHECKED",
+      "display_alias": "UNTESTED",
+      "blank_forbidden": true,
+      "pass_aliases_forbidden": [
+        "CHECKED",
+        "GREEN",
+        "OK",
+        "PASS",
+        "RUN",
+        "SUPPORTED",
+        "TRUE",
+        "YES"
+      ],
+      "is_pass": false,
+      "glyph": "○",
+      "css_class": "matrix-cell-not-checked",
+      "token": "NOT-CHECKED"
+    }
+  },
+  "render_table": [
+    {
+      "status": "SUPPORTED",
+      "token": "SUPPORTED",
+      "display": "SUPPORTED",
+      "glyph": "●",
+      "css_class": "matrix-cell-supported",
+      "color_role": "pass",
+      "is_pass": true,
+      "machine_status": "SUPPORTED"
+    },
+    {
+      "status": "FAILED",
+      "token": "FAILED",
+      "display": "FAILED",
+      "glyph": "✖",
+      "css_class": "matrix-cell-failed",
+      "color_role": "fail",
+      "is_pass": false,
+      "machine_status": "FAILED"
+    },
+    {
+      "status": "INFERRED",
+      "token": "INFERRED",
+      "display": "INFERRED",
+      "glyph": "◇",
+      "css_class": "matrix-cell-inferred",
+      "color_role": "inferred",
+      "is_pass": false,
+      "machine_status": "INFERRED"
+    },
+    {
+      "status": "NOT-CHECKED",
+      "token": "NOT-CHECKED",
+      "display": "UNTESTED",
+      "glyph": "○",
+      "css_class": "matrix-cell-not-checked",
+      "color_role": "unknown",
+      "is_pass": false,
+      "machine_status": "NOT-CHECKED"
+    },
+    {
+      "status": "NOT-APPLICABLE",
+      "token": "NOT-APPLICABLE",
+      "display": "NOT-APPLICABLE",
+      "glyph": "–",
+      "css_class": "matrix-cell-na",
+      "color_role": "na",
+      "is_pass": false,
+      "machine_status": "NOT-APPLICABLE"
+    },
+    {
+      "status": "UNSUPPORTED",
+      "token": "UNSUPPORTED",
+      "display": "UNSUPPORTED",
+      "glyph": "■",
+      "css_class": "matrix-cell-unsupported",
+      "color_role": "out",
+      "is_pass": false,
+      "machine_status": "UNSUPPORTED"
+    }
+  ],
+  "evidence_rules": {
+    "supported_requires_recorded_run": true,
+    "installer_exit_is_not_evidence": true,
+    "observation_kind_required": "in-client",
+    "observed_client_version_must_equal_client_version": true,
+    "unpinned_version_cannot_be_supported": true,
+    "adjacent_inference_label": "INFERRED",
+    "adjacent_inference_never_supported": true,
+    "default_generator_does_not_infer": true,
+    "inference_does_not_chain": true,
+    "failed_cells_are_not_dropped": true,
+    "blank_cells_forbidden": true,
+    "all_green_on_one_platform_is_a_defect": true
+  },
+  "population_procedure": [
+    "Enumerate the cartesian product of declared axes. Every tuple is a cell.",
+    "Scan evidence roots for receipts. Reject installer-exit, unpinned versions, and intended!=observed version.",
+    "Accepted pass -> SUPPORTED. Accepted fail -> FAILED. Never omit FAILED.",
+    "Every remaining applicable cell is NOT-CHECKED with a reason. Never blank.",
+    "If infer=true, neighbours of SUPPORTED (adjacent OS only) become INFERRED, not SUPPORTED.",
+    "If untested_cell_count==0 and the program has run on one platform, emit defect all-green-on-partial-estate."
+  ],
+  "tests_required": [
+    {
+      "id": "untested-cell-control",
+      "requirement": "Remove a test result and assert the cell reverts to NOT-CHECKED rather than staying green",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe1_untested_cell.py"
+    },
+    {
+      "id": "inference-labelling",
+      "requirement": "An inferred cell must be visually and machine-distinguishable from a tested one",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe2_inference_label.py"
+    }
+  ],
+  "evidence_requirement": "The matrix generator is run over the current test evidence and the untested-cell count is reported; a matrix with no untested cells on a program that has run on one platform is itself a defect.",
+  "generator_run": {
+    "module": "command-center/p2-wave/probes/ARC-0095/matrix.py",
+    "infer": false,
+    "evidence_roots_scanned": [
+      "command-center/receipts",
+      "command-center/p2-wave/probes/ARC-0095/fixtures/live-evidence"
+    ],
+    "receipts_found": 0,
+    "receipts_accepted": 0,
+    "receipts_rejected": [],
+    "program_ran_on": [
+      "linux"
+    ],
+    "platforms_with_evidence": [],
+    "cell_count": 24,
+    "untested_cell_count": 24,
+    "supported_cell_count": 0,
+    "inferred_cell_count": 0,
+    "failed_cell_count": 0,
+    "status_counts": {
+      "SUPPORTED": 0,
+      "FAILED": 0,
+      "INFERRED": 0,
+      "NOT-CHECKED": 24,
+      "NOT-APPLICABLE": 0,
+      "UNSUPPORTED": 0
+    },
+    "blank_cells": 0,
+    "defects": [],
+    "cells": [
+      {
+        "id": "linux|claude-code|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "claude-code",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T1",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|claude-code|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "claude-code",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T1",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|codex-cli|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "codex-cli",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T1",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|codex-cli|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "codex-cli",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T1",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|antigravity|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "antigravity",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|antigravity|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "antigravity",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|mcp-generic|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "mcp-generic",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "linux|mcp-generic|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "linux",
+          "client": "mcp-generic",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|claude-code|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "claude-code",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|claude-code|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "claude-code",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|codex-cli|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "codex-cli",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|codex-cli|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "codex-cli",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|antigravity|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "antigravity",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|antigravity|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "antigravity",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|mcp-generic|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "mcp-generic",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "windows|mcp-generic|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "windows",
+          "client": "mcp-generic",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|claude-code|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "claude-code",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|claude-code|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "claude-code",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|codex-cli|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "codex-cli",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|codex-cli|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "codex-cli",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T2",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|antigravity|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "antigravity",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|antigravity|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "antigravity",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|mcp-generic|UNPINNED|bash|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "mcp-generic",
+          "client_version": "UNPINNED",
+          "shell": "bash",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      },
+      {
+        "id": "macos|mcp-generic|UNPINNED|powershell|UNPINNED",
+        "axes": {
+          "operating_system": "macos",
+          "client": "mcp-generic",
+          "client_version": "UNPINNED",
+          "shell": "powershell",
+          "package_version": "UNPINNED"
+        },
+        "support_tier": "T3",
+        "status": "NOT-CHECKED",
+        "render": {
+          "token": "NOT-CHECKED",
+          "display": "UNTESTED",
+          "glyph": "○",
+          "css_class": "matrix-cell-not-checked",
+          "color_role": "unknown",
+          "is_pass": false,
+          "machine_status": "NOT-CHECKED",
+          "aliases": [
+            "UNTESTED",
+            "NEVER-RUN"
+          ]
+        },
+        "evidence": [],
+        "inference": null,
+        "reason": "no recorded in-client run names this cell",
+        "is_pass": false
+      }
+    ],
+    "note": "This Linux worktree executed ARC probes, which is not an in-client versioned receipt for claude-code / codex-cli / antigravity / mcp-generic. Zero accepted receipts; every applicable declared cell is NOT-CHECKED. A zero untested count here would have been the all-green-on-partial-estate defect."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "untested-cell-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe1_untested_cell.py"
+    },
+    {
+      "id": "probe2",
+      "role": "inference-labelling",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0095/probe2_inference_label.py"
+    }
+  ],
+  "cloud_ok": false,
+  "registered": true,
+  "kind": "schema",
+  "observations": [
+    {
+      "name": "primary_artifact_bytes",
+      "measured": 31388,
+      "method": "filesystem-stat",
+      "anchor": "command-center/phase4/contracts/ARC-0095.json"
+    }
+  ],
+  "control_ids": [
+    "NC-ABSENT"
+  ]
+}

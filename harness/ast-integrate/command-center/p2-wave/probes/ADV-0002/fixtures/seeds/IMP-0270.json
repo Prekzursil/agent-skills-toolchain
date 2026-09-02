@@ -1,0 +1,324 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0270.json",
+  "tools/council/participants/select_random.py",
+  "command-center/p2-wave/probes/IMP-0270/pool.py",
+  "command-center/p2-wave/probes/IMP-0270/probe1_reproducibility.py",
+  "command-center/p2-wave/probes/IMP-0270/probe2_chisquare_unseeded.py",
+  "command-center/p2-wave/probes/IMP-0270/fixtures/pool.json"
+ ],
+ "artifacts": [
+  {
+   "bytes": 13011,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/participants/select_random.py",
+   "role": "primary-implementation",
+   "sha256": "3dbda7b529fcf7299c514c571127c35eddcec188e009c52ea56cb3a4c094b573"
+  }
+ ],
+ "chi_square_1000": {
+  "chi_square": 0.0,
+  "df": 2,
+  "expected": {
+   "anthropic": 2000.0,
+   "google": 2000.0,
+   "openai": 2000.0
+  },
+  "n_draws": 1000,
+  "observed": {
+   "anthropic": 2000.0,
+   "google": 2000.0,
+   "openai": 2000.0
+  },
+  "proportions_match": true,
+  "uniform_chi_square_vs_requested": 173.056
+ },
+ "completion_sentinel": "SUCCESS:IMP-0270",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0270.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "Named probes were executed live by write_receipts.py; _measure_one_delivered.py is the G-1 re-run after this file is on disk.",
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0270",
+    "fingerprint": "3cd50d26c600b41a9173e8b8663ec835",
+    "method": "command",
+    "raw_output": "deferred-until-receipt-and-manifest-exist",
+    "role": "verifier"
+   },
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/participants/select_random.py:181",
+   "claim": "Two runs with recorded seed 20260824 produced identical ordered rosters uniform=['google-02', 'anthropic-10', 'openai-01', 'anthropic-01', 'google-00', 'anthropic-03'] stratified=['openai-01', 'google-00', 'openai-07', 'anthropic-05', 'anthropic-07', 'google-03']; seed 424242 produced a different uniform roster ['google-04', 'anthropic-07', 'anthropic-10', 'openai-02', 'openai-09', 'anthropic-08'].",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0270/probe1_reproducibility.py",
+     "exit_code": 0,
+     "fingerprint": "f1e4c7f98f58fe26285119ffa66457ed",
+     "method": "command",
+     "raw_output": "{\"fresh_entropy_recorded_seed\": 20515414488449807, \"fresh_replay_match\": true, \"pass\": true, \"probe\": \"probe1-reproducibility\", \"stratified_other_ids\": [\"openai-08\", \"google-07\", \"openai-04\", \"anthropic-03\", \"google-05\", \"anthropic-08\"], \"stratified_roster_ids\": [\"openai-01\", \"google-00\", \"openai-07\", \"anthropic-05\", \"anthropic-07\", \"google-03\"], \"stratified_same_seed_match\": true, \"uniform_other_ids\": [\"google-04\", \"anthropic-07\", \"anthropic-10\", \"openai-02\", \"openai-09\", \"anthropic-08\"], \"uniform_roster_ids\": [\"google-02\", \"anthropic-10\", \"openai-01\", \"anthropic-01\", \"google-00\", \"anthropic-03\"], \"uniform_same_seed_match\": true, \"unit_id\": \"IMP-0270\"}\nsame_seed_match=True different_seed_differs=True uniform=['google-02', 'anthropic-10', 'openai-01', 'anthropic-01', 'google-00', 'anthropic-03'] stratified=['openai-01', 'google-00', 'openai-07', 'anthropic-05', 'anthropic-07', 'google-03'] fresh_replay=True seed=20260824\nSUCCESS:IMP-0270-probe1 reproducibility from recorded seed",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c independent Random(seed).sample replay (probe2_chisquare_unseeded.independent_uniform_ids / independent_stratified_ids)",
+     "exit_code": 0,
+     "fingerprint": "79d9c9c44608ee139348df1371931287",
+     "method": "command",
+     "raw_output": "{\"independent_replay_match\": true, \"stratified_roster_ids\": [\"openai-01\", \"google-00\", \"openai-07\", \"anthropic-05\", \"anthropic-07\", \"google-03\"], \"uniform_roster_ids\": [\"google-02\", \"anthropic-10\", \"openai-01\", \"anthropic-01\", \"google-00\", \"anthropic-03\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/participants/select_random.py:211",
+   "claim": "Over 1000 stratified draws, seat-stratum counts {'anthropic': 2000.0, 'google': 2000.0, 'openai': 2000.0} equalled requested quotas * n_draws {'anthropic': 2000.0, 'google': 2000.0, 'openai': 2000.0}; Pearson chi-square=0.0 (df=2, critical 5.991 at alpha=0.05). Uniform sampling over the same unbalanced pool is rejected by the same requested-quota check (chi2=173.056).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0270/probe2_chisquare_unseeded.py",
+     "exit_code": 0,
+     "fingerprint": "76a98e250efce36c087ce00088abfc1d",
+     "method": "command",
+     "raw_output": "{\"independent_replay_match\": true, \"n_draws\": 1000, \"pass\": true, \"probe\": \"probe2-chisquare-unseeded\", \"seeded_reproducibility_silent_on_good\": true, \"stratified_chi_square\": 0.0, \"stratified_expected\": {\"anthropic\": 2000.0, \"google\": 2000.0, \"openai\": 2000.0}, \"stratified_observed\": {\"anthropic\": 2000.0, \"google\": 2000.0, \"openai\": 2000.0}, \"stratified_proportions_match\": true, \"underfill_refused\": true, \"uniform_chi_square_vs_requested\": 173.056, \"uniform_observed\": {\"anthropic\": 2416.0, \"google\": 1584.0, \"openai\": 2000.0}, \"uniform_requested_chi_square_rejects\": true, \"unit_id\": \"IMP-0270\", \"unseeded_reproducibility_fired\": true, \"unseeded_roster_a\": [\"anthropic-03\", \"openai-07\", \"openai-06\", \"openai-05\", \"google-01\", \"google-03\"], \"unseeded_roster_b\": [\"anthropic-05\", \"google-04\", \"google-02\", \"openai-08\", \"google-01\", \"openai-07\"]}\nchi2_stratified=0.0 chi2_uniform_vs_requested=173.0560 unseeded_fired=True independent_replay=True n_draws=1000\nSUCCESS:IMP-0270-probe2 chi-square and unseeded negative control",
+     "role": "source"
+    },
+    {
+     "command": "recompute Pearson chi-square from observed vs n_draws*quota",
+     "exit_code": 0,
+     "fingerprint": "6e07b7ff64d5d6442e1a8b58e29ac22c",
+     "method": "file-read",
+     "raw_output": "{\"chi_square\": 0.0, \"df\": 2, \"expected\": {\"anthropic\": 2000.0, \"google\": 2000.0, \"openai\": 2000.0}, \"n_draws\": 1000, \"observed\": {\"anthropic\": 2000.0, \"google\": 2000.0, \"openai\": 2000.0}, \"proportions_match\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0270",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0270/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "negative_control_ids": [
+  "IMP-0270-nc-unseeded-rng",
+  "IMP-0270-nc-uniform-fails-requested-chi2"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"fired\": true, \"roster_a\": [\"anthropic-03\", \"openai-07\", \"openai-06\", \"openai-05\", \"google-01\", \"google-03\"], \"roster_b\": [\"anthropic-05\", \"google-04\", \"google-02\", \"openai-08\", \"google-01\", \"openai-07\"]}",
+   "description": "Unseeded RNG (seed=None, fresh entropy) must fail the seat-for-seat reproducibility test; the same test is silent on two draws that share recorded seed 20260824.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"match\": true, \"seed\": 20260824, \"uniform_roster_ids\": [\"google-02\", \"anthropic-10\", \"openai-01\", \"anthropic-01\", \"google-00\", \"anthropic-03\"]}",
+   "id": "IMP-0270-nc-unseeded-rng",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "uniform_chi2_vs_requested=173.056",
+   "description": "Chi-square against requested 2/2/2 quotas must REJECT uniform draws from the 12/10/8 pool (discriminator that stratified is not a relabelled uniform sampler) and stay silent on exact-quota stratified draws.",
+   "fired_on_bad_state": true,
+   "good_state_output": "stratified_chi2=0.0",
+   "id": "IMP-0270-nc-uniform-fails-requested-chi2",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-participants-module",
+ "probe_summaries": {
+  "probe1": {
+   "fresh_entropy_recorded_seed": 20515414488449807,
+   "fresh_replay_match": true,
+   "pass": true,
+   "probe": "probe1-reproducibility",
+   "stratified_other_ids": [
+    "openai-08",
+    "google-07",
+    "openai-04",
+    "anthropic-03",
+    "google-05",
+    "anthropic-08"
+   ],
+   "stratified_roster_ids": [
+    "openai-01",
+    "google-00",
+    "openai-07",
+    "anthropic-05",
+    "anthropic-07",
+    "google-03"
+   ],
+   "stratified_same_seed_match": true,
+   "uniform_other_ids": [
+    "google-04",
+    "anthropic-07",
+    "anthropic-10",
+    "openai-02",
+    "openai-09",
+    "anthropic-08"
+   ],
+   "uniform_roster_ids": [
+    "google-02",
+    "anthropic-10",
+    "openai-01",
+    "anthropic-01",
+    "google-00",
+    "anthropic-03"
+   ],
+   "uniform_same_seed_match": true,
+   "unit_id": "IMP-0270"
+  },
+  "probe2": {
+   "independent_replay_match": true,
+   "n_draws": 1000,
+   "pass": true,
+   "probe": "probe2-chisquare-unseeded",
+   "seeded_reproducibility_silent_on_good": true,
+   "stratified_chi_square": 0.0,
+   "stratified_expected": {
+    "anthropic": 2000.0,
+    "google": 2000.0,
+    "openai": 2000.0
+   },
+   "stratified_observed": {
+    "anthropic": 2000.0,
+    "google": 2000.0,
+    "openai": 2000.0
+   },
+   "stratified_proportions_match": true,
+   "underfill_refused": true,
+   "uniform_chi_square_vs_requested": 173.056,
+   "uniform_observed": {
+    "anthropic": 2416.0,
+    "google": 1584.0,
+    "openai": 2000.0
+   },
+   "uniform_requested_chi_square_rejects": true,
+   "unit_id": "IMP-0270",
+   "unseeded_reproducibility_fired": true,
+   "unseeded_roster_a": [
+    "anthropic-03",
+    "openai-07",
+    "openai-06",
+    "openai-05",
+    "google-01",
+    "google-03"
+   ],
+   "unseeded_roster_b": [
+    "anthropic-05",
+    "google-04",
+    "google-02",
+    "openai-08",
+    "google-01",
+    "openai-07"
+   ]
+  }
+ },
+ "profile": "council-participants-module",
+ "question": "Implement tools/council/participants/select_random.py providing uniform and stratified sampling whose seed is recorded in the run artifact. Falsifiable question: can a run be reproduced seat-for-seat from the recorded seed alone?",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0265 participant-registry fingerprint / effective-voice collision is outside this unit; select_random treats the caller-supplied pool ids as the sampling frame.",
+   "settling_experiment": "Deliver IMP-0265 and pass its pool through select_random.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Chi-square uses a tabulated alpha=0.05 critical value, not a live incomplete-gamma p-value.",
+   "settling_experiment": "Recompute p from the recorded observed/expected tables with an independent chi-square CDF.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0270-probe2-independent-replay-and-chisquare",
+  "starts_from": "tests, not the author's summary",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "run_artifact_examples": {
+  "stratified_seed_a": {
+   "requested_strata": {
+    "anthropic": 2,
+    "google": 2,
+    "openai": 2
+   },
+   "roster_ids": [
+    "openai-01",
+    "google-00",
+    "openai-07",
+    "anthropic-05",
+    "anthropic-07",
+    "google-03"
+   ],
+   "seed": 20260824,
+   "seed_source": "caller",
+   "stratum_census": {
+    "anthropic": 2,
+    "google": 2,
+    "openai": 2
+   }
+  },
+  "uniform_seed_a": {
+   "roster_ids": [
+    "google-02",
+    "anthropic-10",
+    "openai-01",
+    "anthropic-01",
+    "google-00",
+    "anthropic-03"
+   ],
+   "seed": 20260824,
+   "seed_source": "caller",
+   "stratum_census": {
+    "anthropic": 3,
+    "google": 2,
+    "openai": 1
+   }
+  }
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0270",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0270] question_or_target + evidence_requirement + tests_required; inputs cite _USER-PROMPTS.md:10915-10946 and 11-COUNCIL-SPECIFICATION; implementation tools/council/participants/select_random.py:181-select_uniform 211-select_stratified 263-reproduce",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "test_ids": [
+  "IMP-0270-reproducibility-from-seed",
+  "IMP-0270-stratum-chisquare-1000",
+  "IMP-0270-unseeded-breaks-reproducibility"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0270/probe1_reproducibility.py",
+   "id": "IMP-0270-reproducibility-from-seed",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0270/probe2_chisquare_unseeded.py",
+   "id": "IMP-0270-stratum-chisquare-1000",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0270/probe2_chisquare_unseeded.py",
+   "id": "IMP-0270-unseeded-breaks-reproducibility",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:46:00Z",
+  "started_at": "2026-08-24T18:46:00Z"
+ },
+ "title": "Random and stratified samplers with a recorded deterministic seed",
+ "unit_id": "IMP-0270"
+}

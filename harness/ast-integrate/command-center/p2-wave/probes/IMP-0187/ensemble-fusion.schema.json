@@ -1,0 +1,193 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/IMP-0187/ensemble-fusion.schema.json",
+  "title": "Ensemble fusion with a declared typed aggregation rule",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "strategy",
+    "aggregation",
+    "sources",
+    "independence",
+    "result",
+    "lineage"
+  ],
+  "properties": {
+    "strategy": { "type": "string", "const": "ensemble" },
+    "aggregation": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["rule"],
+      "properties": {
+        "rule": {
+          "type": "string",
+          "enum": [
+            "majority",
+            "weighted",
+            "evidence-gated",
+            "execution-consensus"
+          ]
+        },
+        "weights": {
+          "type": "object",
+          "additionalProperties": { "type": "number", "exclusiveMinimum": 0 }
+        },
+        "min_anchors": { "type": "integer", "minimum": 1 },
+        "distinguishing_inputs": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "rule": { "const": "weighted" } }, "required": ["rule"] },
+          "then": { "required": ["weights"] }
+        },
+        {
+          "if": {
+            "properties": { "rule": { "const": "evidence-gated" } },
+            "required": ["rule"]
+          },
+          "then": { "required": ["min_anchors"] }
+        },
+        {
+          "if": {
+            "properties": { "rule": { "const": "execution-consensus" } },
+            "required": ["rule"]
+          },
+          "then": { "required": ["distinguishing_inputs"] }
+        }
+      ]
+    },
+    "sources": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "input_ids", "output", "output_hash"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "vendor": { "type": ["string", "null"] },
+          "input_ids": {
+            "type": "array",
+            "minItems": 1,
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "briefing_id": { "type": ["string", "null"] },
+          "output": {},
+          "output_hash": { "type": "string", "minLength": 32 },
+          "weight": { "type": "number" },
+          "evidence_anchors": {
+            "type": "array",
+            "items": { "type": "string" }
+          },
+          "behavior": {
+            "type": "object",
+            "additionalProperties": true
+          }
+        }
+      }
+    },
+    "independence": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "verdict",
+        "raw_n",
+        "effective_n",
+        "flagged_member_ids",
+        "correlated_pairs"
+      ],
+      "properties": {
+        "verdict": {
+          "type": "string",
+          "enum": ["independent", "non-independent"]
+        },
+        "raw_n": { "type": "integer", "minimum": 2 },
+        "effective_n": { "type": "integer", "minimum": 1 },
+        "flagged_member_ids": {
+          "type": "array",
+          "items": { "type": "string" }
+        },
+        "correlated_pairs": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["a", "b", "agreed", "shared"],
+            "properties": {
+              "a": { "type": "string" },
+              "b": { "type": "string" },
+              "agreed": { "type": "boolean" },
+              "shared": {
+                "type": "array",
+                "items": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "result": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["verdict", "rule", "cluster_votes", "collapsed_correlated_mass"],
+      "properties": {
+        "verdict": { "type": ["string", "null"] },
+        "rule": {
+          "type": "string",
+          "enum": [
+            "majority",
+            "weighted",
+            "evidence-gated",
+            "execution-consensus"
+          ]
+        },
+        "reason": { "type": "string" },
+        "cluster_votes": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["cluster_id", "member_ids", "choice", "mass"],
+            "properties": {
+              "cluster_id": { "type": "string" },
+              "member_ids": {
+                "type": "array",
+                "items": { "type": "string" }
+              },
+              "choice": {},
+              "mass": { "type": "number" }
+            }
+          }
+        },
+        "collapsed_correlated_mass": { "type": "boolean" },
+        "postcondition": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["applied", "passed"],
+          "properties": {
+            "applied": { "type": "boolean" },
+            "passed": { "type": ["boolean", "null"] },
+            "note": { "type": "string" }
+          }
+        }
+      }
+    },
+    "lineage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["source_ids", "fusion_strategy"],
+      "properties": {
+        "source_ids": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string" }
+        },
+        "fusion_strategy": { "type": "string", "const": "ensemble" }
+      }
+    }
+  }
+}

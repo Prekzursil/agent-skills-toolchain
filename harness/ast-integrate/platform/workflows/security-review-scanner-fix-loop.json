@@ -1,0 +1,633 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "security-review-scanner-fix-loop",
+  "name": "Security review with a deterministic scanner fix-loop",
+  "description": "BP-SEC-01 (card 61 of 09-WORKFLOW-BLUEPRINT-LIBRARY.md) as an executable definition. Defining mechanism: the deterministic scanners and the reasoned review are BOTH mandatory and neither may stand alone, and every scanner finding enters a bounded fix-then-rescan LOOP instead of accumulating as a report line. The estate-specific addition the card demands is detector discipline: a scanner that ERRORS is a DETECTOR failure whose silence is not a pass, so the scanner-integrity probe runs as a subworkflow FIRST and its verdict gates whether any scanner silence may be read as clean.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["security-governance-and-risk", "engineering-and-reliability"],
+  "tags": ["bp-sec-01", "scanner", "fix-loop", "detector-discipline"],
+  "flagship": true,
+
+  "params": {
+    "target_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The diff, commit range or tree to review (e.g. 'origin/main...HEAD')"
+    },
+    "threat_context": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "What this change is trusted to do and by whom - a review with no threat context is a style pass"
+    },
+    "scanner_set": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 12,
+      "default": ["semgrep", "bandit", "gitleaks", "trivy", "lizard"],
+      "description": "Fan-out keys - one scanner per entry; each is version-pinned by pinned_versions"
+    },
+    "pinned_versions": {
+      "type": "object",
+      "required": true,
+      "description": "scanner -> exact version. A local green measured on a different version than CI verifies nothing.",
+      "schema": {
+        "type": "object",
+        "minProperties": 1,
+        "additionalProperties": { "type": "string", "minLength": 1 }
+      }
+    },
+    "risk_class": {
+      "type": "enum",
+      "enum": ["low", "medium", "high"],
+      "default": "medium",
+      "description": "Drives whether a cross-vendor second reviewer is required"
+    },
+    "max_fix_rounds": {
+      "type": "integer",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 10,
+      "description": "Bound on the fix-then-rescan loop"
+    }
+  },
+
+  "roles": {
+    "scanner-operator": {
+      "description": "Executes the pinned scanners and reports exit code, version and finding count without interpreting them",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:semgrep",
+        "Bash:bandit",
+        "Bash:gitleaks",
+        "Bash:trivy",
+        "Bash:lizard",
+        "Bash:python",
+        "Write(command-center/security/**)"
+      ],
+      "write_paths": ["command-center/security/**"],
+      "speaking_rights": "always"
+    },
+    "security-reviewer": {
+      "description": "Reasons over the code AND the scanner output against the auth/input/secret/endpoint checklist",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 2,
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/security/**)"],
+      "speaking_rights": "always"
+    },
+    "cross-vendor-reviewer": {
+      "description": "Second reviewer from a different vendor; a same-vendor reviewer shares the author's blind spots",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "mcp__codex__codex"],
+      "speaking_rights": "rebuttal-only"
+    },
+    "fixer": {
+      "description": "Applies the minimal change that closes a finding, or writes the suppression reason",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Write(command-center/security/**)", "Bash:python"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may accept a residual risk",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:semgrep",
+      "Bash:bandit",
+      "Bash:gitleaks",
+      "Bash:trivy",
+      "Bash:lizard",
+      "Bash:python",
+      "Write(command-center/security/**)",
+      "mcp__codex__codex"
+    ],
+    "deny": ["Bash", "WebFetch", "Bash:curl"],
+    "require_owner_approval": ["Write(command-center/security/ACCEPTED-RISKS.json)"],
+    "network": "read-only",
+    "write_paths": ["command-center/security/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json"],
+    "source_policy": {
+      "allow_domains": ["osv.dev", "github.com"],
+      "offline_only": false,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == cross-vendor-reviewer",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "cross-vendor independence for the second review"
+      }
+    ],
+    "escalation": {
+      "on": ["reviewer-refuted", "failure"],
+      "target": { "model": "opus", "vendor": "anthropic", "effort": "max" },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "every-finding-disposed": {
+      "predicate": "custom-expression",
+      "expression": "findings_without_disposition == 0 AND suppressions_without_written_reason == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "scanner-silence-is-trustworthy": {
+      "predicate": "custom-expression",
+      "expression": "scanner_detector_state == GREEN AND scanners_reporting_zero_findings_unproven == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "unit-complete": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12],
+      "blocking": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "subworkflows": {
+    "scanner-detector-integrity-probe": {
+      "workflow_id": "scanner-detector-integrity-probe",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/scanner-detector-integrity-probe.json"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "prove-scanners-can-fire",
+      "title": "Both-states control on every scanner BEFORE its silence is read as clean",
+      "kind": "subworkflow",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "workflow": {
+        "workflow_id": "scanner-detector-integrity-probe",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": { "fail_closed": true },
+      "isolation": "worktree",
+      "propagate_failure": true
+    },
+    {
+      "id": "detector-gate",
+      "title": "A scanner that cannot fire on a planted defect contributes no evidence",
+      "kind": "gate",
+      "depends_on": ["prove-scanners-can-fire"],
+      "gate_ref": "scanner-silence-is-trustworthy"
+    },
+    {
+      "id": "run-scanners",
+      "title": "Run each pinned scanner in parallel",
+      "kind": "fanout",
+      "depends_on": ["detector-gate"],
+      "over": {
+        "source": "param",
+        "ref": "scanner_set",
+        "item_var": "scanner",
+        "key_field": "scanner"
+      },
+      "max_concurrency": 5,
+      "arrival_stagger_ms": 200,
+      "max_items": 12,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "scan-one",
+          "title": "Execute one pinned scanner and record exit code plus version",
+          "kind": "task",
+          "role": "scanner-operator",
+          "timeout_seconds": 1800,
+          "work_unit": {
+            "id": "SEC-6101",
+            "title": "Run one pinned scanner and record its exit code, version and findings",
+            "phase": "7",
+            "question_or_target": "Execute the scanner named by the fan-out item at its pinned version over target_ref and record exit code, version string and every finding; classify a non-zero non-finding exit (e.g. 127) as a TOOL ERROR, never as zero findings.",
+            "inputs": ["params.target_ref", "params.pinned_versions", "fanout.item.scanner"],
+            "dependencies": [],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "scanner-operator",
+              "basis": "substantive subagents default to Opus"
+            },
+            "tool_permissions": ["Read", "Bash:semgrep", "Bash:bandit", "Bash:gitleaks", "Bash:trivy", "Bash:lizard", "Write(command-center/security/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1800,
+            "output_path": "command-center/security/scanner-runs",
+            "output_schema": "command-center/schema/security-report.schema.json",
+            "evidence_requirement": "the literal exit code, the version string printed by the scanner itself, and the finding count - three fields, none inferred from the others",
+            "tests_required": [
+              "an invalid scanner config must be reported as DETECTOR-FAILED, not as clean",
+              "exit code 127 must be classified as a tool error rather than zero findings"
+            ],
+            "reviewer_requirement": "the reasoned reviewer re-reads the raw scanner output, not this unit's summary of it",
+            "completion_sentinel": "SUCCESS:SEC-6101 emitted only when exit code, self-reported version and finding list are all present; otherwise FAILED:SEC-6101 <reason>",
+            "retry_policy": "two strikes then pivot to a different invocation form; never retry a config error",
+            "failure_classification": ["detector-failure", "scanner-error", "version-drift"],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "reject_result_matching": ["started in the background", "Check /codex:status"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "reasoned-review",
+      "title": "Reason over the code AND the scanner output against the checklist",
+      "kind": "task",
+      "depends_on": ["run-scanners"],
+      "role": "security-reviewer",
+      "timeout_seconds": 3600,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "SEC-6102",
+        "title": "Reasoned security review informed by, but not replaced by, the scanner output",
+        "phase": "7",
+        "question_or_target": "Review target_ref against the auth / user-input / secret / endpoint / process-spawn checklist in the supplied threat context, treating scanner output as one input rather than as the verdict, and emit a finding list with a severity and a disposition slot per finding.",
+        "inputs": ["params.target_ref", "params.threat_context", "command-center/security/scanner-runs"],
+        "dependencies": ["SEC-6101"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "security-reviewer",
+          "basis": "reasoning over a threat model is the substantive half of this workflow"
+        },
+        "tool_permissions": ["Read", "Grep", "Glob", "Write(command-center/security/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/security/reasoned-findings.json",
+        "output_schema": "command-center/schema/security-report.schema.json",
+        "evidence_requirement": "every finding anchored to a file:line in target_ref plus the checklist item it violates; a finding with no anchor is a hypothesis, not a finding",
+        "tests_required": [
+          "a planted hardcoded secret must appear in the finding list even if the scanner already flagged it (the review is not a scanner summariser)"
+        ],
+        "reviewer_requirement": "on risk_class high, one cross-vendor reviewer who did not see this unit's output as prefix context",
+        "completion_sentinel": "SUCCESS:SEC-6102 when every finding carries an anchor, a severity and an open disposition slot; otherwise FAILED:SEC-6102 <reason>",
+        "retry_policy": "two strikes then pivot; on a second empty result, escalate rather than re-prompting",
+        "failure_classification": ["overclaim", "missing-anchor", "threat-context-underspecified"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/security/reasoned-findings.json",
+          "schema_ref": "command-center/schema/security-report.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6102",
+          "consumers": ["fix-loop", "record-residual"]
+        }
+      ]
+    },
+    {
+      "id": "cross-vendor-second-review",
+      "title": "Cross-vendor second reviewer, required only on a high-risk change",
+      "kind": "task",
+      "depends_on": ["reasoned-review"],
+      "when": "risk_class == HIGH",
+      "role": "cross-vendor-reviewer",
+      "timeout_seconds": 3600,
+      "work_unit_ref": "ADV-0001"
+    },
+    {
+      "id": "fix-loop",
+      "title": "Fix then rescan until every finding has a disposition or the round budget is spent",
+      "kind": "loop",
+      "depends_on": ["cross-vendor-second-review"],
+      "loop_var": "fix_round",
+      "body": [
+        {
+          "id": "apply-fix",
+          "title": "Close the highest-severity open finding, or write its suppression reason",
+          "kind": "task",
+          "role": "fixer",
+          "timeout_seconds": 3600,
+          "work_unit_ref": "IMP-0001"
+        },
+        {
+          "id": "rescan",
+          "title": "Re-run the pinned scanners over the changed surface only",
+          "kind": "task",
+          "depends_on": ["apply-fix"],
+          "role": "scanner-operator",
+          "timeout_seconds": 1800,
+          "work_unit_ref": "TST-0001"
+        }
+      ],
+      "convergence": {
+        "max_iterations": 4,
+        "min_iterations": 1,
+        "converged_when": "findings_without_disposition == 0 AND new_findings_this_round == 0",
+        "no_progress_rounds": 2,
+        "metrics": [
+          { "name": "findings_without_disposition", "direction": "decrease", "target": 0 },
+          { "name": "new_findings_this_round", "direction": "decrease", "target": 0, "epsilon": 0 }
+        ],
+        "on_no_convergence": "escalate"
+      }
+    },
+    {
+      "id": "disposition-gate",
+      "title": "A suppression without a written reason is an undisposed finding",
+      "kind": "gate",
+      "depends_on": ["fix-loop"],
+      "gate_ref": "every-finding-disposed"
+    },
+    {
+      "id": "record-residual",
+      "title": "Name every residual risk explicitly - omission is not acceptance",
+      "kind": "task",
+      "depends_on": ["disposition-gate"],
+      "role": "security-reviewer",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "SEC-6103",
+        "title": "Record the residual-risk ledger for risks accepted rather than fixed",
+        "phase": "7",
+        "question_or_target": "For every finding disposed as accepted or deferred, record the risk, the reason, who accepted it and what would change the decision; a residual risk that is omitted rather than named is a defect of this workflow.",
+        "inputs": ["command-center/security/reasoned-findings.json", "command-center/security/scanner-runs"],
+        "dependencies": ["SEC-6102"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "security-reviewer",
+          "basis": "the same reviewer owns the residual it is accepting"
+        },
+        "tool_permissions": ["Read", "Write(command-center/security/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/security/residual-risk-ledger.json",
+        "output_schema": "command-center/schema/residual-risk-ledger.schema.json",
+        "evidence_requirement": "one ledger row per accepted or deferred finding, each naming the acceptor and the condition that would reopen it",
+        "tests_required": [
+          "a finding disposed as accepted with no ledger row must fail the gate (the omission control)"
+        ],
+        "reviewer_requirement": "owner sign-off is required to ACCEPT, not merely to read, a residual risk",
+        "completion_sentinel": "SUCCESS:SEC-6103 when the ledger row count equals the accepted-plus-deferred finding count; otherwise FAILED:SEC-6103 <reason>",
+        "retry_policy": "no retry - a mismatch is a real defect, not a transient",
+        "failure_classification": ["omitted-residual", "unattributed-acceptance"],
+        "owner_approval_required": true
+      },
+      "produces": [
+        {
+          "path": "command-center/security/residual-risk-ledger.json",
+          "schema_ref": "command-center/schema/residual-risk-ledger.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:SEC-6103",
+          "consumers": ["owner-accept-residual"]
+        }
+      ]
+    },
+    {
+      "id": "owner-accept-residual",
+      "title": "Only the owner may accept a residual risk",
+      "kind": "human_checkpoint",
+      "depends_on": ["record-residual"],
+      "prompt": "Accept the listed residual risks as written, or return the ledger with the risk that must be fixed before this change ships.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": ["accept-all", "return-with-required-fix", "reject"],
+      "decision_artifact": {
+        "path": "command-center/security/ACCEPTED-RISKS.json",
+        "schema_ref": "command-center/schema/receipt.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    },
+    {
+      "id": "completion-gate",
+      "title": "The one shared 12-condition completion predicate",
+      "kind": "gate",
+      "depends_on": ["owner-accept-residual"],
+      "gate_ref": "unit-complete"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "clean-or-fully-disposed",
+      "expression": "findings_without_disposition == 0 AND scanner_detector_state == GREEN",
+      "applies_to": "workflow",
+      "minimum_conditions": "scanners_executed >= 1 AND reasoned_review_completed == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "detector-failed-do-not-report-clean",
+      "expression": "scanner_detector_state == FAILED",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": ["scanner-transient", "quota-429-storm"],
+    "no_retry_on": ["scanner-config-invalid", "owner-blocked"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-accept-residual"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["detector-failure", "scanner-error", "omitted-residual"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-accept-residual",
+    "quarantine_path": "command-center/security/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/security-review",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "workflow_version", "stage_id", "item_key", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/security-review.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": ["stage_id", "item_key", "inputs_hash", "tool_versions"],
+    "store": "command-center/cache/security-review",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": ["tool-version-change", "target-ref-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report", "estimate"],
+    "plan_artifact": "command-center/dry-run/security-review-plan.json",
+    "forbid_tools": ["Bash:semgrep", "Bash:bandit", "Bash:gitleaks", "Bash:trivy", "Bash:lizard", "Write(command-center/security/**)"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": { "currency": "USD", "min": 0.4, "expected": 2.0, "max": 8.0 },
+    "wallclock_seconds": { "min": 300, "expected": 1800, "max": 7200 },
+    "tokens": { "expected": 300000, "max": 1200000 },
+    "tool_calls": { "expected": 90, "max": 400 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/security/**",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "examples", "tests", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/security-review-scanner-fix-loop.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": { "require_signature": false, "allow_publishers": ["prekzursil"] }
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-SEC-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/security-review",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/security-review@1.0.0"]
+  },
+
+  "outputs": {
+    "security-report": {
+      "path": "command-center/security/security-review-report.json",
+      "schema_ref": "command-center/schema/security-report.schema.json",
+      "min_bytes": 1024,
+      "register_in_manifest": true,
+      "consumers": ["command-center/security/ACCEPTED-RISKS.json", "owner-accept-residual"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "mandatory-both-arms-scan-and-review-with-bounded-fix-loop",
+      "distinguishing_stage": "prove-scanners-can-fire",
+      "distinguishing_gate": "scanner-silence-is-trustworthy",
+      "not_a_duplicate_because": "BP-SEC-06 reviews the TRUST ARCHITECTURE between fetched data and privileged capability; this reviews the estate's OWN code with deterministic scanners and repairs each finding in a loop."
+    },
+    "worked_example": {
+      "name": "auth endpoint change on a medium-risk branch",
+      "params": {
+        "target_ref": "origin/main...HEAD",
+        "threat_context": "adds a token-refresh endpoint reachable only from the local loopback listener; trusted to read but never write the credential store",
+        "scanner_set": ["semgrep", "bandit", "gitleaks"],
+        "pinned_versions": { "semgrep": "1.90.0", "bandit": "1.8.0", "gitleaks": "8.21.2" },
+        "risk_class": "medium",
+        "max_fix_rounds": 3
+      },
+      "expected_stage_path": [
+        "prove-scanners-can-fire",
+        "detector-gate",
+        "run-scanners",
+        "reasoned-review",
+        "fix-loop",
+        "disposition-gate",
+        "record-residual",
+        "owner-accept-residual",
+        "completion-gate"
+      ],
+      "skipped_stages": ["cross-vendor-second-review"],
+      "skipped_because": "risk_class is medium, so the `when: risk_class == HIGH` guard on the second reviewer does not fire",
+      "expected_artifacts": [
+        "command-center/security/reasoned-findings.json",
+        "command-center/security/residual-risk-ledger.json",
+        "command-center/security/ACCEPTED-RISKS.json",
+        "command-center/security/security-review-report.json"
+      ],
+      "expected_terminal": "SUCCESS:SEC-6103",
+      "narrative": "gitleaks fires on a test fixture holding a canary token (finding 1, disposed as suppressed with a written reason naming the fixture path); semgrep flags a missing input length bound on the new endpoint (finding 2, fixed in round 1); the rescan in round 1 returns zero new findings so the loop converges at one iteration; one residual is recorded - the loopback listener has no rate limit - and the owner accepts it with a reopen condition of 'if the listener is ever bound off-loopback'."
+    }
+  }
+}

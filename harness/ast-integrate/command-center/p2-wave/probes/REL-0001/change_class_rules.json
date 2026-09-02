@@ -1,0 +1,144 @@
+{
+  "schema_version": 1,
+  "unit_id": "REL-0001",
+  "title": "Semantic-version change-class rule table",
+  "spec_anchor": "WORK-UNIT-CATALOG.json REL-0001: plugin package, registry entry, blueprint pack, CouncilSpec schema",
+  "surfaces": [
+    "plugin_package",
+    "registry_entry",
+    "blueprint_pack",
+    "councilspec_schema"
+  ],
+  "required_keys_by_surface": {
+    "plugin_package": [
+      "name",
+      "version",
+      "description",
+      "hooks",
+      "tool_permissions"
+    ],
+    "registry_entry": [
+      "name",
+      "version",
+      "plugin_id",
+      "description"
+    ],
+    "blueprint_pack": [
+      "id",
+      "version",
+      "blueprints"
+    ]
+  },
+  "permission_fields": [
+    "tool_permissions",
+    "permissions"
+  ],
+  "hook_contract_fields": [
+    "event",
+    "stdin_schema",
+    "input_schema",
+    "signature",
+    "args",
+    "handler",
+    "stdin"
+  ],
+  "description_fields": [
+    "description",
+    "title",
+    "body",
+    "notes",
+    "comment"
+  ],
+  "version_fields": [
+    "version"
+  ],
+  "rules": [
+    {
+      "id": "required_manifest_key_removed",
+      "bump": "MAJOR",
+      "surfaces": [
+        "plugin_package",
+        "registry_entry",
+        "blueprint_pack"
+      ],
+      "when": "A key listed in required_keys_by_surface is present in the previous tree and absent in the new tree. Deleting a required manifest key is breaking even when the declared bump is PATCH."
+    },
+    {
+      "id": "permission_widened",
+      "bump": "MAJOR",
+      "surfaces": [
+        "plugin_package",
+        "registry_entry"
+      ],
+      "when": "The new tree declares a tool permission that the previous tree did not. Widening is MAJOR even though no key was removed."
+    },
+    {
+      "id": "hook_contract_signature_changed",
+      "bump": "MAJOR",
+      "surfaces": [
+        "plugin_package"
+      ],
+      "when": "A hook contract field (event, stdin_schema, input_schema, signature, args, handler, stdin) changes or a previously registered hook file disappears."
+    },
+    {
+      "id": "blueprint_id_retired",
+      "bump": "MAJOR",
+      "surfaces": [
+        "blueprint_pack"
+      ],
+      "when": "A blueprint id present in the previous pack is absent from the new pack."
+    },
+    {
+      "id": "schema_field_became_required",
+      "bump": "MAJOR",
+      "surfaces": [
+        "councilspec_schema"
+      ],
+      "when": "A JSON Schema required-array at the same schema path gains a name that was not required before. Making a field required is breaking."
+    },
+    {
+      "id": "contract_artifact_unparseable",
+      "bump": "MAJOR",
+      "surfaces": [
+        "plugin_package",
+        "registry_entry",
+        "blueprint_pack",
+        "councilspec_schema"
+      ],
+      "when": "A previously valid JSON contract artifact is no longer parseable, so required keys cannot be checked."
+    },
+    {
+      "id": "optional_contract_key_added",
+      "bump": "MINOR",
+      "surfaces": [
+        "plugin_package",
+        "registry_entry",
+        "blueprint_pack",
+        "councilspec_schema"
+      ],
+      "when": "An optional object key or schema property is added without tightening required, permissions, hook signatures, or retiring ids."
+    },
+    {
+      "id": "documentation_or_noncontract_edit",
+      "bump": "PATCH",
+      "surfaces": [
+        "plugin_package",
+        "registry_entry",
+        "blueprint_pack",
+        "councilspec_schema"
+      ],
+      "when": "Description/docs/non-contract bytes change, or an unmatched file is modified, without a higher-class finding on that path."
+    },
+    {
+      "id": "pure_rename_byte_identical",
+      "bump": "NONE",
+      "surfaces": [
+        "plugin_package",
+        "registry_entry",
+        "blueprint_pack",
+        "councilspec_schema"
+      ],
+      "when": "A path changes and the byte payload is identical. A pure rename is no-bump-required."
+    }
+  ]
+}

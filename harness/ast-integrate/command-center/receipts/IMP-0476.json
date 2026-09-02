@@ -1,0 +1,419 @@
+{
+  "answer_basis": "Three inventory checks (hooks.loaded, skills.registered, mcp.reachable) have at least one OK probe but fewer than two mechanically independent methods, so a single-signal aggregator would green them. The shipped two-signal command renders them NOT-CHECKED, never OK. two_signal_ok_from_one_probe_count=0.",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/IMP-0476.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "command-center/schema/health-report.schema.json",
+      "role": "schema"
+    },
+    {
+      "exists": true,
+      "path": "tools/plugin/healthcheck.py",
+      "role": "implementation"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0476/fixtures/inventory.json",
+      "role": "inventory"
+    }
+  ],
+  "check_count": 7,
+  "checks": [
+    {
+      "can_green_from_one_probe": false,
+      "component": "ledger",
+      "declared_probe_count": 2,
+      "id": "ledger.writable",
+      "mechanically_independent": true,
+      "naive_single_signal_would_green": true,
+      "probes": [
+        {
+          "command": "file-stat:ledger/marker.json",
+          "id": "ledger-stat",
+          "method": "file-stat",
+          "ok": true,
+          "output": "exists=True bytes=38 min_bytes=8",
+          "ran": true
+        },
+        {
+          "command": "content-hash:ledger/marker.json",
+          "id": "ledger-hash",
+          "method": "content-hash",
+          "ok": true,
+          "output": "sha256=93acf31be753a98cb458862167e949f46a91af618d2b363c49f14a85c49224cf expected=93acf31be753a98cb458862167e949f46a91af618d2b363c49f14a85c49224cf",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 2,
+      "status": "OK",
+      "title": "Ledger is present and byte-authentic (positive control)",
+      "unique_methods": [
+        "file-stat",
+        "content-hash"
+      ],
+      "violation": null
+    },
+    {
+      "can_green_from_one_probe": true,
+      "component": "hooks",
+      "declared_probe_count": 1,
+      "id": "hooks.loaded",
+      "mechanically_independent": false,
+      "naive_single_signal_would_green": true,
+      "probes": [
+        {
+          "command": "file-stat:hooks/marker.json",
+          "id": "hooks-stat",
+          "method": "file-stat",
+          "ok": true,
+          "output": "exists=True bytes=37 min_bytes=8",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 1,
+      "status": "NOT-CHECKED",
+      "title": "Hooks marker (single declared probe \u2014 must NOT-CHECKED)",
+      "unique_methods": [
+        "file-stat"
+      ],
+      "violation": "undeclared-source-probe"
+    },
+    {
+      "can_green_from_one_probe": true,
+      "component": "skills",
+      "declared_probe_count": 2,
+      "id": "skills.registered",
+      "mechanically_independent": false,
+      "naive_single_signal_would_green": true,
+      "probes": [
+        {
+          "command": "file-stat:skills/marker.json#a",
+          "id": "skills-stat-a",
+          "method": "file-stat",
+          "ok": true,
+          "output": "exists=True bytes=38 min_bytes=8",
+          "ran": true
+        },
+        {
+          "command": "file-stat:skills/marker.json#b",
+          "id": "skills-stat-b",
+          "method": "file-stat",
+          "ok": true,
+          "output": "exists=True bytes=38 min_bytes=8",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 2,
+      "status": "NOT-CHECKED",
+      "title": "Skills markers (cloned file-stat \u2014 not independent)",
+      "unique_methods": [
+        "file-stat"
+      ],
+      "violation": "single-signal-green"
+    },
+    {
+      "can_green_from_one_probe": true,
+      "component": "mcp",
+      "declared_probe_count": 1,
+      "id": "mcp.reachable",
+      "mechanically_independent": false,
+      "naive_single_signal_would_green": true,
+      "probes": [
+        {
+          "command": "json-keys:mcp/marker.json",
+          "id": "mcp-keys",
+          "method": "json-keys",
+          "ok": true,
+          "output": "keys=['component', 'healthy'] required=['component', 'healthy']",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 1,
+      "status": "NOT-CHECKED",
+      "title": "MCP marker (one probe declared, second source undeclared)",
+      "unique_methods": [
+        "json-keys"
+      ],
+      "violation": "undeclared-source-probe"
+    },
+    {
+      "can_green_from_one_probe": false,
+      "component": "router",
+      "declared_probe_count": 2,
+      "id": "router.responding",
+      "mechanically_independent": true,
+      "naive_single_signal_would_green": true,
+      "probes": [
+        {
+          "command": "file-stat:router/marker.json",
+          "id": "router-stat",
+          "method": "file-stat",
+          "ok": true,
+          "output": "exists=True bytes=39 min_bytes=8",
+          "ran": true
+        },
+        {
+          "command": "content-hash:router/marker.json",
+          "id": "router-hash",
+          "method": "content-hash",
+          "ok": false,
+          "output": "sha256=ca67ecbf65e840425402032ea2f5ab4668be17ee105c6f50146b0bd0583942d5 expected=0000000000000000000000000000000000000000000000000000000000000000",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 2,
+      "status": "DISAGREE",
+      "title": "Router present on disk but hash disagrees with expected",
+      "unique_methods": [
+        "file-stat",
+        "content-hash"
+      ],
+      "violation": null
+    },
+    {
+      "can_green_from_one_probe": false,
+      "component": "cache",
+      "declared_probe_count": 2,
+      "id": "cache.valid",
+      "mechanically_independent": true,
+      "naive_single_signal_would_green": false,
+      "probes": [
+        {
+          "command": "file-stat:cache/marker.json",
+          "id": "cache-stat",
+          "method": "file-stat",
+          "ok": false,
+          "output": "exists=False bytes=0 min_bytes=8",
+          "ran": true
+        },
+        {
+          "command": "content-hash:cache/marker.json",
+          "id": "cache-hash",
+          "method": "content-hash",
+          "ok": false,
+          "output": "missing",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 2,
+      "status": "FAIL",
+      "title": "Cache marker missing \u2014 both independent probes fail",
+      "unique_methods": [
+        "file-stat",
+        "content-hash"
+      ],
+      "violation": null
+    },
+    {
+      "can_green_from_one_probe": false,
+      "component": "deploy",
+      "declared_probe_count": 2,
+      "id": "deploy.in_sync",
+      "mechanically_independent": true,
+      "naive_single_signal_would_green": true,
+      "probes": [
+        {
+          "command": "file-stat:deploy/marker.json",
+          "id": "deploy-stat",
+          "method": "file-stat",
+          "ok": true,
+          "output": "exists=True bytes=38 min_bytes=8",
+          "ran": true
+        },
+        {
+          "command": "content-hash:deploy/marker.json",
+          "id": "deploy-hash",
+          "method": "content-hash",
+          "ok": true,
+          "output": "sha256=42f412f3f4953a44b1a52b3089b02373a7d5854a437fc41ebd9acbc27d640148 expected=42f412f3f4953a44b1a52b3089b02373a7d5854a437fc41ebd9acbc27d640148",
+          "ran": true
+        }
+      ],
+      "ran_probe_count": 2,
+      "status": "OK",
+      "title": "Deploy tree present and byte-authentic (second positive control)",
+      "unique_methods": [
+        "file-stat",
+        "content-hash"
+      ],
+      "violation": null
+    }
+  ],
+  "cloud_ok": false,
+  "command": {
+    "cli": "python3 -m tools.plugin.healthcheck --root command-center/p2-wave/probes/IMP-0476/fixtures/components --inventory command-center/p2-wave/probes/IMP-0476/fixtures/inventory.json",
+    "module": "tools.plugin.healthcheck",
+    "preserved_api": "installed_version(prefix, package) still requires plugin.json and health.json versions to agree"
+  },
+  "completion_sentinel": "SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL",
+  "disagree_count": 1,
+  "evidence": [
+    {
+      "anchor": "hooks.loaded status=NOT-CHECKED with one file-stat probe ok=true",
+      "claim": "A check that declares only one probe renders NOT-CHECKED, not OK, even when that probe is healthy.",
+      "ids": [
+        "hooks.loaded",
+        "mcp.reachable"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "skills.registered status=NOT-CHECKED unique_methods=['file-stat']",
+      "claim": "Two probes that are not mechanically independent (cloned file-stat) cannot green.",
+      "ids": [
+        "skills.registered"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "router.responding file-stat ok / content-hash fail",
+      "claim": "Two independent probes that disagree render DISAGREE, never OK.",
+      "ids": [
+        "router.responding"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "ledger.writable and deploy.in_sync file-stat + content-hash both ok",
+      "claim": "A genuinely healthy component with two independent agreeing probes renders OK.",
+      "ids": [
+        "ledger.writable",
+        "deploy.in_sync"
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "exact_question": "how many of the health checks can currently produce a green verdict from one probe alone?",
+  "exact_question_answer": 3,
+  "fail_count": 1,
+  "inventory": {
+    "id": "installed-component-inventory",
+    "imp_0471_receipt": {
+      "note": "Dependency receipt is absent on this worktree; inventory is the local installed-component fixture plus a live scan that found no prior health-check command besides plugin.healthcheck.installed_version.",
+      "path": "command-center/receipts/IMP-0471.json",
+      "present": false
+    },
+    "inventory_path": "command-center/p2-wave/probes/IMP-0476/fixtures/inventory.json",
+    "root": "command-center/p2-wave/probes/IMP-0476/fixtures/components"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0476/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+      "id": "probe1",
+      "role": "verdict-table"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe2_independence.py",
+      "id": "probe2",
+      "role": "independence-audit"
+    }
+  ],
+  "negative_controls": [
+    {
+      "description": "hooks.loaded declares one OK file-stat probe; two-signal command must not green it.",
+      "fired_on_bad_state": true,
+      "id": "C1-single-probe-hooks",
+      "kind": "single-declared-probe",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "router.responding file-stat OK and content-hash FAIL must be DISAGREE.",
+      "fired_on_bad_state": true,
+      "id": "C2-disagree-router",
+      "kind": "disagreeing-independent-probes",
+      "silent_on_good_state": true
+    }
+  ],
+  "not_checked_count": 3,
+  "output_schema": "command-center/schema/health-report.schema.json",
+  "question": "Implement the health-check command so every reported status is backed by two mechanically independent probes, and any single-probe check reports NOT-CHECKED rather than OK. Exact question: how many of the health checks can currently produce a green verdict from one probe alone?",
+  "registered": true,
+  "report_kind": "health-report",
+  "residual_unknowns": [
+    {
+      "claim": "command-center/receipts/IMP-0471.json is absent; detector two-state table was not joined.",
+      "settling_experiment": "Re-run this health-check against the IMP-0471 receipt once that unit is delivered.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "audited_checks": [
+      "ledger.writable",
+      "router.responding",
+      "skills.registered"
+    ],
+    "independent": true,
+    "notes": "Probe 2 re-reads bytes and st_size for ledger (agree), router (disagree), and skills (cloned file-stat, not independent). It does not call adjudicate().",
+    "reviewer_id": "IMP-0476-probe2-independence-audit",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "IMP-0471 detector two-state receipt was present",
+      "IMP-0043 production probe registry was imported"
+    ],
+    "proof_surface": "seven-check installed-component inventory under command-center/p2-wave/probes/IMP-0476/fixtures/components; tools.plugin.healthcheck two-signal adjudicator"
+  },
+  "sentinel": "SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL",
+  "single_probe_green_capable_count": 3,
+  "single_probe_green_capable_ids": [
+    "hooks.loaded",
+    "skills.registered",
+    "mcp.reachable"
+  ],
+  "spec_anchor": "catalog IMP-0476; IMP-0043 health-check runner; rules/common/single-signal-verification.md two mechanically independent probes; failure classes single-signal-green, undeclared-source-probe",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+      "id": "T1-single-probe-not-checked",
+      "name": "single-probe check renders NOT-CHECKED",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+      "id": "T2-disagree-never-ok",
+      "name": "two-probe disagreeing check renders DISAGREE never OK",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe1_verdicts.py",
+      "id": "T3-positive-healthy-component",
+      "name": "two-signal healthy component renders OK",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0476/probe2_independence.py",
+      "id": "T4-independence-audit",
+      "name": "three-check independence audit (file-stat vs content-hash vs clone)",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:15Z",
+    "started_at": "2026-08-25T00:57:15Z"
+  },
+  "title": "Health-check command built on two-signal probes only",
+  "two_signal_ok_count": 2,
+  "two_signal_ok_from_one_probe_count": 0,
+  "two_signal_ok_ids": [
+    "ledger.writable",
+    "deploy.in_sync"
+  ],
+  "unit_id": "IMP-0476"
+}

@@ -1,0 +1,30 @@
+I'll start from the existing RES-0167 probe tree, read any SUBAGENT-RETURN, and work toward a contract-green unit without touching git or the global catalog.The probe tree is thin—mostly cloud-ok sidecars. Next I’ll read the handoff, catalog contract, and measure script so we resume instead of rebuilding.The catalog question is the repair-loop attempt limit; the live artifact is still BLOCKED. I’ll pull the research file, a delivered unit’s return shape, and the measure/predicate rules next.G-1 needs `state=SUCCESS` plus live probes; I’ll inspect a delivered RES unit, the schema, `artifact_delivered`, and whether the original ledger snapshot still exists.I’ll census live catalog receipts for retry/fingerprint fields and inspect `r2e_loop.py` so the probes measure this host, not the missing frozen ledger.Existing `_restore_tail_marker.py` would rewrite the receipt during measure; I’ll make it read-only, then add two independent live probes and pack from their outputs.Mutant runs overwrote the green raws. I’ll restore the baseline transcripts, keep mutant output in a separate control file, then pack the receipt.**SUCCESS:delivered** for RES-0167.
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0167` printed:
+
+`SUCCESS:delivered RES-0167 predicate=delivered state=SUCCESS probes=4 raws=5 notes=_handoff_remeasure.py:0,_restore_tail_marker.py:0,probe1_status_event_fold.py:0,probe2_filesystem_transition_replay.py:0`
+
+CLOUD-OK harvest `unit_complete=true` was not treated as delivery. The prior receipt was self-declared BLOCKED, and the named probe scripts plus `sources/status.jsonl` were missing.
+
+This pass:
+
+- Wrote live `probe1_status_event_fold.py` and `probe2_filesystem_transition_replay.py` (catalog fold vs filesystem walk).
+- Made `_restore_tail_marker.py` read-only so measure-one cannot rewrite the packed receipt.
+- Re-ran both probes to exit 0. The grind mutant exits 1 on both.
+- Packed `command-center/research/deep-research-design/RES-0167-fix-review-repair-loop-limits.json` as `state=SUCCESS`.
+- Registered that path in the per-unit `UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 `02d9f760b85b78718fb130917a189fd4b6cee42f39c8b71718d486fa949dc55a`, 55170 bytes).
+
+**Policy from live measurement**
+
+| Item | Result |
+|---|---|
+| Attempt-2 success | 98/136 (72.1%, Wilson 64.0%–78.9%) |
+| Attempt-3 success | 16/20 (80.0%, Wilson 58.4%–91.9%) |
+| Fingerprint rows | 314/335 receipt `retry.attempts` |
+| Same-fp consecutive failures | 9 vs 31 changed-fp |
+| `r2e_loop.py` | `TWO_STRIKES=2`, zero fingerprint tokens |
+| Frozen `status.jsonl` | ABSENT (harvest 6/65 and 5/59 not re-run here) |
+
+Recommended rule: hard cap of 3 total attempts; fail-closed progress predicate (changed fingerprint + strict gate reduction + no new P0/P1 = PROGRESS; same fingerprint or missing input = NO-PROGRESS); escalate after the second same-fingerprint NO-PROGRESS; never attempt 4 in the same episode.
+
+Global `unit_manifest.py --write` was not run. Git was not mutated.

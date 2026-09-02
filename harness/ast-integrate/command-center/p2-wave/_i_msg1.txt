@@ -1,0 +1,59 @@
+feat(measure-guard): gate the P2 delivery predicate in CI, and close its fail-open
+
+`command-center/ready_units.py` decides whether each of the 2,007 work units is DELIVERED. Three
+rounds of build / audit / adversarial refutation hardened it -- bare `Path.exists()` counted 44
+delivered artifacts of which 43 self-declare BLOCKED or FAILED; condition 4b was added after a
+verifier proved `state: "SUCCESS"` was one word from a false green on the 23 meta-declaring units.
+Then it was left where nothing could run it:
+
+    grep -rn "ready_units" .github/workflows/   ->  0 hits
+    grep -rn "ready_units" tools/               ->  0 hits
+
+Every reference lived inside command-center/ itself, so a regression to that predicate, or a forged
+artifact committed under command-center/receipts/, was green on every pull request. That is the
+green-not-live shape the command-center step already says it exists to prevent, and the delivery
+half that wudeps (dependencies) left out.
+
+A FAIL-OPEN FOUND WHILE CHECKING WHETHER IT WAS SAFE TO WIRE. `_load_resolver()` returns None when
+the schema resolver cannot be imported -- the default state on a runner without jsonschema -- and
+the partition run reported green anyway. Measured two mechanically independent ways, with the lit
+state as the control:
+
+    self_test/LIT   exit=0  SUCCESS
+    main/LIT        exit=0  SUCCESS   contract-vacuity: 3 declarations ... (checker=live)
+    self_test/DARK  exit=1  FAILED:ready-units self-test the delivered() control does not discriminate
+    main/DARK       exit=0  SUCCESS   contract-vacuity: 367 declarations ... (checker=unavailable)
+
+`--self-test` failed closed; the partition run did not. With the checker completely dark -- all 367
+declarations unchecked, all 2,007 units ungated -- it still printed `SUCCESS:ready-units partition
+sums correctly`. A partition is not trustworthy because it sums; it is trustworthy because the
+predicate that produced it actually ran, and that distinction was missing from its own exit code.
+Fixed at the source, and `main/DARK` now exits 1 while `main/LIT` stays 0.
+
+THE GATE. tools/measure-guard/unitgate.py fails closed four ways, each with a control proven to
+fire on the known-broken state:
+  * the contract checker must be LIT before any count is printed -- known-vacuous rejected AND
+    known-discriminating accepted. Only the second half catches a DEAD checker, which calls
+    everything vacuous and sails through the first;
+  * the predicate's own 16 two-sided controls must still fire;
+  * the forged-completion detector must reject the shipped known-forged artifact. No real artifact
+    declares a done-state today, so without that fixture "0 forged completions" would be
+    indistinguishable from a detector incapable of finding one;
+  * every artifact is graded from the COMMITTED BLOB via `git cat-file`, never `git archive`, and
+    must agree with its worktree copy.
+Plus floors: under 1,500 units read or 40 artifacts found it fails rather than reporting a green
+computed over a collapsed read. Live result: 2007 units, 53 artifacts, 3 vacuous declarations.
+
+WIRING, AND WHY IT IS ASSERTED FROM A DIFFERENT STEP. `gate-p2-delivery` is its own step with
+`jsonschema==4.25.1` pinned to match test-platform; folding it into the measure-guard step would
+have falsified that step's honest "keeps to what it can honestly install" comment. A gate cannot
+defend its own presence -- deleting its step deletes the complainer -- so test_unitgate.py asserts
+the invocation from the COMMITTED quality.yml blob while running under the measure-guard step, with
+the removal half tested too.
+
+Note on this commit's scope: the quality.yml hunk was authored here but reached HEAD inside
+f087a6f6 (a sibling lane staged this worktree's file). That left HEAD invoking a script HEAD did
+not contain -- CI-red on main until this lands.
+
+21 new tests, every green-state assertion paired with a mutation that must go red; full
+measure-guard suite 115 passed. ruff format + check clean at the pinned 0.15.17.

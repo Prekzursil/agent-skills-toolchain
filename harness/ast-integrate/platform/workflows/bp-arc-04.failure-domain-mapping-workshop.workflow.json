@@ -1,0 +1,583 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-arc-04.failure-domain-mapping-workshop",
+ "name": "Failure-Domain Mapping Workshop",
+ "description": "Force every architectural option to declare its failure domains before it is chosen, by walking a catalogue of ten failure classes this estate has actually exhibited. Per applicable class the option must state the symptom, WHO NOTICES, the blast radius and a detection probe. If the answer to 'who notices' is nobody, or the domain has no probe, the option carries an unmonitored failure domain and must say so. Options are then compared on domains, not on features. An option with zero domains is a red flag, not a green light.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "security-governance-and-risk"
+ ],
+ "tags": [
+  "failure-domains",
+  "fail-open",
+  "who-notices",
+  "design-time"
+ ],
+ "flagship": true,
+ "params": {
+  "options": {
+   "type": "array",
+   "required": true,
+   "items": {
+    "type": "string"
+   },
+   "min_items": 1,
+   "description": "The architectural options to map; one mapper runs per option"
+  },
+  "failure_class_catalogue_path": {
+   "type": "path",
+   "required": true,
+   "description": "The maintained catalogue of measured failure classes; catalogue completeness bounds this blueprint"
+  },
+  "require_probe_per_domain": {
+   "type": "boolean",
+   "default": true,
+   "description": "When true, an applicable domain with no detection probe cannot be called handled"
+  }
+ },
+ "roles": {
+  "mapper": {
+   "description": "Walks the whole catalogue against exactly one option and declares each domain",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "min_participants": 1,
+   "max_participants": 16,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob"
+   ],
+   "speaking_rights": "always"
+  },
+  "comparator": {
+   "description": "Builds the cross-option table on DOMAINS, refusing to rank on features",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "judge",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Bash:python",
+    "Write(command-center/failure-domains/**)"
+   ],
+   "write_paths": [
+    "command-center/failure-domains/**"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash:python",
+   "Write(command-center/failure-domains/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/failure-domains/**"
+  ]
+ },
+ "model_routing": {
+  "strategy": "static",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "catalogue-fully-walked": {
+   "predicate": "custom-expression",
+   "expression": "classes_walked == classes_in_catalogue",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "unmonitored-declared": {
+   "predicate": "custom-expression",
+   "expression": "unmonitored_domains_undisclosed == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "zero-domains-is-a-red-flag": {
+   "predicate": "custom-expression",
+   "expression": "domains_applicable >= 1 OR option_declared_under_specified == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-walk",
+   "title": "S0-S3 WALK the catalogue per option and name a probe per domain",
+   "kind": "fanout",
+   "over": {
+    "source": "param",
+    "ref": "options",
+    "item_var": "option",
+    "key_field": "option"
+   },
+   "max_concurrency": 6,
+   "arrival_stagger_ms": 250,
+   "max_items": 16,
+   "on_item_failure": "abort",
+   "body": [
+    {
+     "id": "map-one-option",
+     "kind": "task",
+     "role": "mapper",
+     "timeout_seconds": 1800,
+     "work_unit": {
+      "id": "BP3-ARC04-S0",
+      "title": "Map one option against every class in the failure catalogue",
+      "phase": "2B",
+      "question_or_target": "For each of the ten measured failure classes, decide whether it applies to this option, and if so state symptom, who notices, blast radius and a detection probe.",
+      "inputs": [
+       "params.options",
+       "params.failure_class_catalogue_path"
+      ],
+      "dependencies": [],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "mapper",
+       "basis": "one mapper per option so the comparison table is built from independent walks"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "Glob"
+      ],
+      "execution_substrate": "local-parallel",
+      "timeout_seconds": 1800,
+      "output_path": "command-center/failure-domains/arc04-domains.json",
+      "output_schema": "command-center/schema/failure-taxonomy.schema.json",
+      "evidence_requirement": "every applicable domain names a concrete detection probe, or is explicitly marked unmonitored with who_notices=nobody",
+      "tests_required": [
+       "an option carrying a try/except ImportError guard MUST flag fail-open-on-missing-dependency",
+       "an option whose who_notices is 'the agent' for a fail-open class must be rejected, since the agent is exactly what does not notice",
+       "an option mapping to zero domains must be flagged under-specified, never accepted as safe"
+      ],
+      "reviewer_requirement": "the comparator, which cross-checks that all ten classes were walked",
+      "completion_sentinel": "SUCCESS:BP3-ARC04-S0 only when all ten catalogue classes appear in the artifact with an explicit applies true or false; otherwise FAILED:BP3-ARC04-S0 <reason>",
+      "retry_policy": "two strikes then pivot to a re-framed option description",
+      "failure_classification": [
+       "fail-open-on-missing-dependency",
+       "detector-truncation",
+       "spec-underspecified"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "barrier": {
+    "mode": "all",
+    "on_partial": "fail",
+    "reject_result_matching": [
+     "started in the background"
+    ],
+    "verify_artifact_exists": true
+   }
+  },
+  {
+   "id": "s0-gate",
+   "title": "S0 gate: the whole catalogue was walked, not a subset",
+   "kind": "gate",
+   "depends_on": [
+    "s0-walk"
+   ],
+   "gate_ref": "catalogue-fully-walked"
+  },
+  {
+   "id": "s3b-probe-inventory",
+   "title": "S3b MARK which probes exist today and which must be built",
+   "kind": "task",
+   "role": "comparator",
+   "depends_on": [
+    "s0-gate"
+   ],
+   "timeout_seconds": 1200,
+   "work_unit": {
+    "id": "BP3-ARC04-S3B",
+    "title": "Split declared probes into exists-today and must-be-built",
+    "phase": "2B",
+    "question_or_target": "For every named detection probe, establish whether it exists and runs today, or is a probe that would have to be built.",
+    "inputs": [
+     "command-center/failure-domains/arc04-domains.json"
+    ],
+    "dependencies": [
+     "BP3-ARC04-S0"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "comparator",
+     "basis": "a domain whose probe does not exist yet is an unmonitored domain today"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Bash:python"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/failure-domains/arc04-probe-inventory.json",
+    "output_schema": "command-center/schema/threat-coverage-matrix.schema.json",
+    "evidence_requirement": "each exists-today claim cites the file and the command that runs the probe",
+    "tests_required": [
+     "a probe claimed to exist must be shown to FIRE on a known-broken state before the claim is accepted",
+     "a probe that cannot be located must be classified must-be-built, never assumed present"
+    ],
+    "reviewer_requirement": "the mapper of the affected option confirms the classification",
+    "completion_sentinel": "SUCCESS:BP3-ARC04-S3B only when every exists-today probe cites a file and a command, and was shown to fire on a known-broken state; otherwise FAILED:BP3-ARC04-S3B <reason>",
+    "retry_policy": "two strikes then pivot to declaring the probe must-be-built",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/failure-domains/arc04-probe-inventory.json",
+     "schema_ref": "command-center/schema/threat-coverage-matrix.schema.json",
+     "min_bytes": 256,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-ARC04-S3B",
+     "consumers": [
+      "s4-compare"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s3-unmonitored-gate",
+   "title": "S3 gate: every unmonitored domain is disclosed, not quietly omitted",
+   "kind": "gate",
+   "depends_on": [
+    "s3b-probe-inventory"
+   ],
+   "gate_ref": "unmonitored-declared"
+  },
+  {
+   "id": "s4-compare",
+   "title": "S4 COMPARE options on DOMAINS, not on features",
+   "kind": "task",
+   "role": "comparator",
+   "depends_on": [
+    "s3-unmonitored-gate"
+   ],
+   "timeout_seconds": 1200,
+   "work_unit": {
+    "id": "BP3-ARC04-S4",
+    "title": "Build the cross-option comparison table keyed on failure domains",
+    "phase": "2B",
+    "question_or_target": "Rank the options by unmonitored-domain count and blast radius, explicitly refusing to rank on feature count.",
+    "inputs": [
+     "command-center/failure-domains/arc04-domains.json",
+     "command-center/failure-domains/arc04-probe-inventory.json"
+    ],
+    "dependencies": [
+     "BP3-ARC04-S3B"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "comparator",
+     "basis": "the comparison is arithmetic over declared domains; only the tie-break is judgement"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/failure-domains/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/failure-domains/arc04-comparison.json",
+    "output_schema": "command-center/schema/compatibility-matrix.schema.json",
+    "evidence_requirement": "the table shows, per option, each applicable class and whether it is monitored today",
+    "tests_required": [
+     "an option with the most features but the most unmonitored domains must not rank first"
+    ],
+    "reviewer_requirement": "the owner, who chooses among mapped options",
+    "completion_sentinel": "SUCCESS:BP3-ARC04-S4 only when every option column lists all ten classes with a monitored-today flag; otherwise FAILED:BP3-ARC04-S4 <reason>",
+    "retry_policy": "one retry then emit partial",
+    "failure_classification": [
+     "overclaim"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s4-gate",
+   "title": "S4 gate: an option with zero domains is under-specified, not safe",
+   "kind": "gate",
+   "depends_on": [
+    "s4-compare"
+   ],
+   "gate_ref": "zero-domains-is-a-red-flag"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "catalogue-walked",
+   "expression": "classes_walked == classes_in_catalogue AND unmonitored_domains_undisclosed == 0",
+   "applies_to": "workflow",
+   "minimum_conditions": "options_mapped >= 1",
+   "on_stop": "complete"
+  },
+  {
+   "id": "option-not-enumerable",
+   "expression": "failure_modes_enumerable == false",
+   "applies_to": "workflow",
+   "on_stop": "escalate"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "detector-failure",
+   "spec-underspecified"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "comparator"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "fail-fast",
+  "classify_as": [
+   "spec-underspecified",
+   "detector-failure",
+   "fail-open-on-missing-dependency"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "comparator",
+  "quarantine_path": "command-center/quarantine/arc04"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/arc04",
+  "granularity": "fanout-item",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "item_key"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/arc04.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "model_outputs"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "hash-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "inputs_hash"
+  ],
+  "store": "command-center/cache/arc04",
+  "ttl_seconds": 604800,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "graph"
+  ],
+  "plan_artifact": "command-center/dry-run/arc04-plan.json",
+  "forbid_tools": [
+   "Bash:python",
+   "Write(command-center/failure-domains/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 300,
+   "expected": 1800,
+   "max": 7200
+  },
+  "tokens": {
+   "min": 40000,
+   "expected": 200000,
+   "max": 600000
+  },
+  "tool_calls": {
+   "expected": 20,
+   "max": 150
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "read-only over the options; writes only under command-center/failure-domains/**",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-arc-04.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#the-ten-failure-classes",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "tools/detector-self-test",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/agent-architecture-audit",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-04",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "domains": {
+   "path": "command-center/failure-domains/arc04-domains.json",
+   "schema_ref": "command-center/schema/failure-taxonomy.schema.json",
+   "min_bytes": 512,
+   "register_in_manifest": true,
+   "consumers": [
+    "the comparator",
+    "bp-arc-01.architecture-tournament"
+   ]
+  },
+  "comparison": {
+   "path": "command-center/failure-domains/arc04-comparison.json",
+   "schema_ref": "command-center/schema/compatibility-matrix.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-04 (doc-order 31 of 96)",
+  "distinguishing_mechanism": "a fixed, MEASURED ten-class catalogue is walked against each option, and the load-bearing output is 'who notices' plus a named probe per domain. BP-ARC-03 audits what already exists; this maps options before one is chosen.",
+  "honest_bound": "catalogue completeness bounds this blueprint: it can only surface classes the catalogue contains. It maps; it does not prove. Proving a domain is handled is the testing family's job, not this one's.",
+  "worked_example": {
+   "name": "a try/except ImportError guard must flag fail-open",
+   "narrative": "An option is described by two traits: it guards an optional dependency with try/except ImportError, and it pins a ref. Both corresponding classes must come back applicable. A detection probe is supplied for the pinned ref but NOT for the fail-open guard, so fail-open-on-missing-dependency comes back unmonitored - and that is precisely the class that produced nine of nine disarmed checks at one measurement.",
+   "mechanism": "mechanisms.failure_domain_walk + mechanisms.unmonitored_domains",
+   "input": {
+    "option_traits": [
+     "try-except-importerror",
+     "pins-a-ref"
+    ],
+    "probes": {
+     "stale-pinned-ref": "re-resolve the ref and compare to the pin on every run"
+    }
+   },
+   "expected": {
+    "applicable": [
+     "fail-open-on-missing-dependency",
+     "stale-pinned-ref"
+    ],
+    "unmonitored": [
+     "fail-open-on-missing-dependency"
+    ],
+    "classes_walked": 10
+   },
+   "controls": [
+    {
+     "mutate": "add a probe for fail-open-on-missing-dependency",
+     "expected_unmonitored": 0,
+     "why": "the probe is what converts a declared domain into a monitored one"
+    },
+    {
+     "mutate": "empty the option traits",
+     "expected_applicable": 0,
+     "why": "zero applicable domains must be reachable, or the walk is rubber-stamping"
+    }
+   ]
+  }
+ }
+}

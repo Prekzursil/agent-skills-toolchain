@@ -1,0 +1,26 @@
+I'll start from the existing CC-0010 probe tree and measure what's already there before writing anything.The probe tree is thin — HANDOFF plus a CLOUD-OK refute. I’ll read those, the measurer, and a delivered unit as the contract pattern.The harvest receipt is BLOCKED and the 21 sidecars are missing. Next I’ll read the catalog, schema, and a delivered unit so we know the real G-1 bar.Harvest already refuted D2 (in-window write-restore). I’ll pull the catalog, schema, a delivered SUBAGENT-RETURN, and any leftover freeze harness.D2 is a real protocol hole, not a missing-file issue. I’ll implement fail-closed in-window write observation, restore runnable probes, and keep the existing CLOUD-OK refute.Content-manifest encoding matches the harvest digest in about half a second. Next I’ll implement the protocol and the four re-runnable probes.All five controls passed, including the transient-writer close and the harvest-era both-states reproduction. Next I’ll pack the receipt and per-unit manifest from those live outputs.**SUCCESS:delivered CC-0010** — `python command-center/p2-wave/_measure_one_delivered.py CC-0010` printed:
+
+`SUCCESS:delivered CC-0010 predicate=delivered state=SUCCESS probes=4 raws=7 notes=freeze_protocol.py:0,probe1_git_status.py:0,probe2_mtime.py:0,run_controls.py:0`
+
+Harvest `unit_complete` was a NEL marker on a BLOCKED receipt. This delivery actually closes the freeze hole and re-runs the named probes.
+
+**What was wrong.** CC-0010-D2: both quiescence signals only compared boundary state. A write-fsync-restore-mtime inside the window left git-status and mtime QUIESCENT and the protocol emitted BASELINE. The 21 harvest sidecars were also absent on this tree.
+
+**What was built.** A freeze protocol with the two named boundary signals plus fail-closed inotify for the whole window. Unread members of the nine snapshot classes stay NOT-CHECKED and force SAMPLE. Live controls:
+
+| Control | Result |
+|---|---|
+| Quiesced scratch clone | BASELINE |
+| Persistent tracked writer | SAMPLE |
+| Seven unread estate classes | NOT-CHECKED → SAMPLE |
+| Rollback of `53c37c6c` | 7911 blobs, manifest `e808beb9…` |
+| Transient write-restore (repaired) | SAMPLE |
+| Same race, harvest-era boundary-only mtime | BASELINE (D2 still independently reproducible) |
+
+**G-1 artifacts**
+- Receipt `command-center/receipts/CC-0010.json` — `state=SUCCESS`, schema 0 errors, D2 `resolved`
+- Per-unit `command-center/p2-wave/probes/CC-0010/UNIT-ARTIFACT-MANIFEST.json` — LF sha256 `c80829265ba2034775b06209553c8f665f7a771e5fbbb4f6cc7e854cb540085a` matches the live receipt
+- `command-center/p2-wave/probes/CC-0010/SUBAGENT-RETURN.json`
+- Prior `CLOUD-OK-REFUTE.json` left in place
+
+Bans kept: no git add/commit/push/stash/checkout/rebase on this tree, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Scratch `git init`/`clone -n --shared`/`update-ref`/`cat-file` only ran inside probe fixtures.

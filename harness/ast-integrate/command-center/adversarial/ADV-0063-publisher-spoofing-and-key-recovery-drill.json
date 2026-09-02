@@ -1,0 +1,324 @@
+{
+ "artifacts": [
+  {
+   "bytes": 13853,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0063/fixture_registry.py",
+   "role": "supporting",
+   "sha256": "3f76965bba93bbb4e7626f4f4aa41a5bf94c0258f96c7389c1f7f5757538e53c"
+  },
+  {
+   "bytes": 4571,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+   "role": "supporting",
+   "sha256": "c508b76c3299d39a8f32cc1e2e39794c351c628b8a1aa14dcbad581a6f8f1117"
+  },
+  {
+   "bytes": 5404,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+   "role": "supporting",
+   "sha256": "34c557269698b38bd33e59de5d3670e0c03c6f6402c6f1c9315a758cdc442fc3"
+  },
+  {
+   "bytes": 1143,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/supply-chain-attestation.schema.json",
+   "role": "supporting",
+   "sha256": "ad67be3a4562d97d6458f54051467a973bede62cfa018807692b94f6b795be74"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/adversarial/ADV-0063-publisher-spoofing-and-key-recovery-drill.json",
+   "consumer": "jsonschema.Draft202012Validator+local-disk-store",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/write_receipts.py",
+    "exit_code": 0,
+    "fingerprint": "ef51b2b5830f05c18b50d2ca528f30350203f60cb2499ad5a89edf26e6eeffcb",
+    "method": "schema-validate",
+    "raw_output": "local RefResolver store; garbage rejected; instance valid",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/ADV-0063/fixture_registry.py:publish",
+   "claim": "In a fixture registry, publishing pkg.owned@1.1.0 while authenticated as pub-B is refused; pub-A publishes 1.1.0 in the same run.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+     "exit_code": 0,
+     "fingerprint": "2a71f4ba7bc3f1270ccff1e9aa2e78dc92f188fe286b48d0e13f7881f6c5e674",
+     "method": "test-run",
+     "raw_output": "{\"create\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"reason\": \"new package; authenticated publisher becomes owner\"}, \"foreign_update\": {\"action\": \"REFUSED\", \"artifact_present\": false, \"authenticated_as\": \"pub-B\", \"owner\": \"pub-A\", \"package\": \"pkg.owned\", \"reason\": \"update of pkg.owned owned by pub-A refused for authenticated pub-B\"}, \"key_a\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-1\", \"public_hex\": \"52ddf08f1dc269162e45e2a237721913286e1d49eeeabcf2a5ddeaa7a547c805\"}, \"key_b\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-B-1\", \"public_hex\": \"615724eaf494bce5726fd0d9b330c3480262e5ca53780b7b18d90c187e5806e9\"}, \"naive_mutant\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"enforce_owner\": false, \"fired_on_bad_state\": true}, \"owner_update_control\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"authenticated_as\": \"pub-A\", \"reason\": \"authenticated publisher is the package owner\", \"versions_after\": [\"1.0.0\", \"1.1.0\"]}, \"pass\": true, \"probe\": \"probe1-cross-identity-publish\", \"production_census\": {\"any_present\": false, \"files\": {\"tools/marketplace/publish.py\": false, \"tools/marketplace/publisher_identity.py\": false, \"tools/marketplace/schema/publisher.schema.json\": false, \"tools/marketplace/tests/test_publisher_identity.py\": false, \"tools/marketplace/update_authorization.py\": false}, \"note\": \"IMP-0075 publisher-identity consumption and the production publish path are absent on this worktree. ADV-0063 exercises a fixture registry.\"}, \"secrets_serialized\": false, \"synthetic_keys_only\": true, \"unit_id\": \"ADV-0063\"}\nforeign_refused=True owner_update_accepted=True naive_mutant_accepted=True synthetic_keys_only=True\nSUCCESS:ADV-0063-probe1 identity B refused; identity A published its own update",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+     "exit_code": 0,
+     "fingerprint": "0429101ce77c30b36cda1ea58baf9ef812c348c76fbbf397dcd0f1ff0acd2366",
+     "method": "command",
+     "raw_output": "{\"key_new\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-replacement\", \"public_hex\": \"69a9032c980b0c546087880d20701fcabe626a53da1b18e655a5e0e3136a48dc\"}, \"key_old\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-compromised\", \"public_hex\": \"0a656f17b5e22d74e0ae007a6158c07a147962adfb9b5dcafc909c048b835d4f\"}, \"naive_consumer\": {\"fired_on_bad_state\": true, \"honor_revocation_point\": false, \"post_revocation_action\": \"ACCEPTED\"}, \"pass\": true, \"post_revocation_compromised_key\": {\"consumer\": \"REFUSED\", \"reason\": \"artifact signed at 2026-08-24T13:00:00Z after revocation point 2026-08-24T12:00:00Z\", \"registry_publish\": \"REFUSED\", \"signed_at\": \"2026-08-24T13:00:00Z\"}, \"pre_revocation\": {\"consumer\": \"ACCEPTED\", \"publish\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"pre_revocation_after_refresh\": {\"consumer\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"probe\": \"probe2-key-recovery\", \"recovery_steps\": [{\"action\": \"stamp-revocation-point\", \"key_id\": \"syn-A-compromised\", \"revoked_at\": \"2026-08-24T12:00:00Z\", \"step\": 1}, {\"action\": \"attach-replacement-public-key\", \"replacement_key_id\": \"syn-A-replacement\", \"replacement_public_hex\": \"69a9032c980b0c546087880d20701fcabe626a53da1b18e655a5e0e3136a48dc\", \"step\": 2}, {\"action\": \"publish-updated-identity-document\", \"step\": 3}], \"replacement_key\": {\"consumer\": \"ACCEPTED\", \"publish\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"revocation_point\": \"2026-08-24T12:00:00Z\", \"secrets_serialized\": false, \"synthetic_keys_only\": true, \"unit_id\": \"ADV-0063\"}\npre_accepted=True post_compromised_refused=True replacement_accepted=True naive_mutant_accepted=True\nSUCCESS:ADV-0063-probe2 consumer who trusted the compromised key refuses signatures after the revocation point",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ADV-0063/fixture_registry.py:documented_recovery_procedure",
+   "claim": "After documented recovery, the consumer refuses a post-revocation signature from the compromised fixture key, still accepts the pre-revocation artifact, and accepts the replacement key.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+     "exit_code": 0,
+     "fingerprint": "2a71f4ba7bc3f1270ccff1e9aa2e78dc92f188fe286b48d0e13f7881f6c5e674",
+     "method": "test-run",
+     "raw_output": "{\"create\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"reason\": \"new package; authenticated publisher becomes owner\"}, \"foreign_update\": {\"action\": \"REFUSED\", \"artifact_present\": false, \"authenticated_as\": \"pub-B\", \"owner\": \"pub-A\", \"package\": \"pkg.owned\", \"reason\": \"update of pkg.owned owned by pub-A refused for authenticated pub-B\"}, \"key_a\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-1\", \"public_hex\": \"52ddf08f1dc269162e45e2a237721913286e1d49eeeabcf2a5ddeaa7a547c805\"}, \"key_b\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-B-1\", \"public_hex\": \"615724eaf494bce5726fd0d9b330c3480262e5ca53780b7b18d90c187e5806e9\"}, \"naive_mutant\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"enforce_owner\": false, \"fired_on_bad_state\": true}, \"owner_update_control\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"authenticated_as\": \"pub-A\", \"reason\": \"authenticated publisher is the package owner\", \"versions_after\": [\"1.0.0\", \"1.1.0\"]}, \"pass\": true, \"probe\": \"probe1-cross-identity-publish\", \"production_census\": {\"any_present\": false, \"files\": {\"tools/marketplace/publish.py\": false, \"tools/marketplace/publisher_identity.py\": false, \"tools/marketplace/schema/publisher.schema.json\": false, \"tools/marketplace/tests/test_publisher_identity.py\": false, \"tools/marketplace/update_authorization.py\": false}, \"note\": \"IMP-0075 publisher-identity consumption and the production publish path are absent on this worktree. ADV-0063 exercises a fixture registry.\"}, \"secrets_serialized\": false, \"synthetic_keys_only\": true, \"unit_id\": \"ADV-0063\"}\nforeign_refused=True owner_update_accepted=True naive_mutant_accepted=True synthetic_keys_only=True\nSUCCESS:ADV-0063-probe1 identity B refused; identity A published its own update",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+     "exit_code": 0,
+     "fingerprint": "0429101ce77c30b36cda1ea58baf9ef812c348c76fbbf397dcd0f1ff0acd2366",
+     "method": "command",
+     "raw_output": "{\"key_new\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-replacement\", \"public_hex\": \"69a9032c980b0c546087880d20701fcabe626a53da1b18e655a5e0e3136a48dc\"}, \"key_old\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-compromised\", \"public_hex\": \"0a656f17b5e22d74e0ae007a6158c07a147962adfb9b5dcafc909c048b835d4f\"}, \"naive_consumer\": {\"fired_on_bad_state\": true, \"honor_revocation_point\": false, \"post_revocation_action\": \"ACCEPTED\"}, \"pass\": true, \"post_revocation_compromised_key\": {\"consumer\": \"REFUSED\", \"reason\": \"artifact signed at 2026-08-24T13:00:00Z after revocation point 2026-08-24T12:00:00Z\", \"registry_publish\": \"REFUSED\", \"signed_at\": \"2026-08-24T13:00:00Z\"}, \"pre_revocation\": {\"consumer\": \"ACCEPTED\", \"publish\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"pre_revocation_after_refresh\": {\"consumer\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"probe\": \"probe2-key-recovery\", \"recovery_steps\": [{\"action\": \"stamp-revocation-point\", \"key_id\": \"syn-A-compromised\", \"revoked_at\": \"2026-08-24T12:00:00Z\", \"step\": 1}, {\"action\": \"attach-replacement-public-key\", \"replacement_key_id\": \"syn-A-replacement\", \"replacement_public_hex\": \"69a9032c980b0c546087880d20701fcabe626a53da1b18e655a5e0e3136a48dc\", \"step\": 2}, {\"action\": \"publish-updated-identity-document\", \"step\": 3}], \"replacement_key\": {\"consumer\": \"ACCEPTED\", \"publish\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"revocation_point\": \"2026-08-24T12:00:00Z\", \"secrets_serialized\": false, \"synthetic_keys_only\": true, \"unit_id\": \"ADV-0063\"}\npre_accepted=True post_compromised_refused=True replacement_accepted=True naive_mutant_accepted=True\nSUCCESS:ADV-0063-probe2 consumer who trusted the compromised key refuses signatures after the revocation point",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "cloud_ok": false,
+  "notes": "G-1 for ADV-0063: live named probes exit 0, attestation state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild circle. Schema $ref resolved from disk. SUCCESS:ADV-0063 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0063 <reason>.",
+  "output_path": "command-center/adversarial/ADV-0063-publisher-spoofing-and-key-recovery-drill.json",
+  "output_schema": "command-center/schema/supply-chain-attestation.schema.json"
+ },
+ "manifest_registration": {
+  "entry_id": "ADV-0063",
+  "manifest_path": "command-center/p2-wave/probes/ADV-0063/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T01:08:28Z"
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "ACCEPTED",
+   "description": "A registry with enforce_owner=False must accept pub-B's update of pkg.owned so a broken authorisation check cannot be mistaken for a registry that never publishes.",
+   "fired_on_bad_state": true,
+   "good_state_output": "REFUSED",
+   "id": "NC-NAIVE-REGISTRY-SKIPS-OWNER",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "ACCEPTED",
+   "description": "A consumer with honor_revocation_point=False must accept a post-revocation signature from the compromised key, proving the honest consumer's REFUSE is the revocation-point check.",
+   "fired_on_bad_state": true,
+   "good_state_output": "REFUSED",
+   "id": "NC-NAIVE-CONSUMER-IGNORES-REVOCATION-POINT",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "supply-chain-auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "answer": "On the ADV-0063 fixture registry, identity B authenticated as pub-B cannot publish an update to pkg.owned owned by pub-A (REFUSED: update of pkg.owned owned by pub-A refused for authenticated pub-B). Identity A publishes its own 1.1.0 update (ACCEPTED). After the documented recovery stamps revoked_at=2026-08-24T12:00:00Z on the compromised fixture key, a consumer who already trusted that key refuses artifacts signed after the revocation point (REFUSED: artifact signed at 2026-08-24T13:00:00Z after revocation point 2026-08-24T12:00:00Z), still accepts the pre-revocation artifact, and accepts a replacement-key artifact (ACCEPTED). Production marketplace publisher-identity and publish-path files are absent (any_present=False); this drill does not rotate real credentials. SUCCESS:ADV-0063 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0063 <reason>.",
+  "control_ids": [
+   "T-REQUIRED-OWNER-SELF-UPDATE",
+   "NC-NAIVE-REGISTRY-SKIPS-OWNER",
+   "NC-NAIVE-CONSUMER-IGNORES-REVOCATION-POINT"
+  ],
+  "hard_constraint": {
+   "probe1": true,
+   "probe2": true,
+   "secrets_serialized": false,
+   "synthetic_keys_only": true
+  },
+  "kind": "supply-chain-attestation",
+  "lifecycle": {
+   "live_authentication_attempted": false,
+   "real_credential_touched": false,
+   "revoked": false,
+   "rotated": false,
+   "unset": false,
+   "values_printed": false
+  },
+  "named_probes_verbatim": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+    "exit_code": 0,
+    "id": "probe1",
+    "raw_output": "{\"create\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"reason\": \"new package; authenticated publisher becomes owner\"}, \"foreign_update\": {\"action\": \"REFUSED\", \"artifact_present\": false, \"authenticated_as\": \"pub-B\", \"owner\": \"pub-A\", \"package\": \"pkg.owned\", \"reason\": \"update of pkg.owned owned by pub-A refused for authenticated pub-B\"}, \"key_a\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-1\", \"public_hex\": \"52ddf08f1dc269162e45e2a237721913286e1d49eeeabcf2a5ddeaa7a547c805\"}, \"key_b\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-B-1\", \"public_hex\": \"615724eaf494bce5726fd0d9b330c3480262e5ca53780b7b18d90c187e5806e9\"}, \"naive_mutant\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"enforce_owner\": false, \"fired_on_bad_state\": true}, \"owner_update_control\": {\"action\": \"ACCEPTED\", \"artifact_present\": true, \"authenticated_as\": \"pub-A\", \"reason\": \"authenticated publisher is the package owner\", \"versions_after\": [\"1.0.0\", \"1.1.0\"]}, \"pass\": true, \"probe\": \"probe1-cross-identity-publish\", \"production_census\": {\"any_present\": false, \"files\": {\"tools/marketplace/publish.py\": false, \"tools/marketplace/publisher_identity.py\": false, \"tools/marketplace/schema/publisher.schema.json\": false, \"tools/marketplace/tests/test_publisher_identity.py\": false, \"tools/marketplace/update_authorization.py\": false}, \"note\": \"IMP-0075 publisher-identity consumption and the production publish path are absent on this worktree. ADV-0063 exercises a fixture registry.\"}, \"secrets_serialized\": false, \"synthetic_keys_only\": true, \"unit_id\": \"ADV-0063\"}\nforeign_refused=True owner_update_accepted=True naive_mutant_accepted=True synthetic_keys_only=True\nSUCCESS:ADV-0063-probe1 identity B refused; identity A published its own update",
+    "role": "cross-identity-publish-plus-owner-control"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+    "exit_code": 0,
+    "id": "probe2",
+    "raw_output": "{\"key_new\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-replacement\", \"public_hex\": \"69a9032c980b0c546087880d20701fcabe626a53da1b18e655a5e0e3136a48dc\"}, \"key_old\": {\"algorithm\": \"ed25519\", \"key_id\": \"syn-A-compromised\", \"public_hex\": \"0a656f17b5e22d74e0ae007a6158c07a147962adfb9b5dcafc909c048b835d4f\"}, \"naive_consumer\": {\"fired_on_bad_state\": true, \"honor_revocation_point\": false, \"post_revocation_action\": \"ACCEPTED\"}, \"pass\": true, \"post_revocation_compromised_key\": {\"consumer\": \"REFUSED\", \"reason\": \"artifact signed at 2026-08-24T13:00:00Z after revocation point 2026-08-24T12:00:00Z\", \"registry_publish\": \"REFUSED\", \"signed_at\": \"2026-08-24T13:00:00Z\"}, \"pre_revocation\": {\"consumer\": \"ACCEPTED\", \"publish\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"pre_revocation_after_refresh\": {\"consumer\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"probe\": \"probe2-key-recovery\", \"recovery_steps\": [{\"action\": \"stamp-revocation-point\", \"key_id\": \"syn-A-compromised\", \"revoked_at\": \"2026-08-24T12:00:00Z\", \"step\": 1}, {\"action\": \"attach-replacement-public-key\", \"replacement_key_id\": \"syn-A-replacement\", \"replacement_public_hex\": \"69a9032c980b0c546087880d20701fcabe626a53da1b18e655a5e0e3136a48dc\", \"step\": 2}, {\"action\": \"publish-updated-identity-document\", \"step\": 3}], \"replacement_key\": {\"consumer\": \"ACCEPTED\", \"publish\": \"ACCEPTED\", \"reason\": \"signature valid under trusted key and revocation policy\"}, \"revocation_point\": \"2026-08-24T12:00:00Z\", \"secrets_serialized\": false, \"synthetic_keys_only\": true, \"unit_id\": \"ADV-0063\"}\npre_accepted=True post_compromised_refused=True replacement_accepted=True naive_mutant_accepted=True\nSUCCESS:ADV-0063-probe2 consumer who trusted the compromised key refuses signatures after the revocation point",
+    "role": "key-compromise-recovery-consumer-acceptance"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+    "measured": "REFUSED",
+    "method": "fixture registry publish as pub-B of pkg.owned",
+    "name": "foreign_update_action"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+    "measured": "ACCEPTED",
+    "method": "fixture registry publish as pub-A of pkg.owned@1.1.0",
+    "name": "owner_update_action"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+    "measured": "REFUSED",
+    "method": "consumer accept after documented_recovery_procedure",
+    "name": "post_revocation_consumer_action"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+    "measured": true,
+    "method": "FixtureRegistry(enforce_owner=False)",
+    "name": "naive_owner_mutant_accepted"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+    "measured": true,
+    "method": "Consumer(honor_revocation_point=False)",
+    "name": "naive_revocation_mutant_accepted"
+   }
+  ],
+  "owner_gate": {
+   "applies_to": "real signing-key rotation or revocation",
+   "enforced": "this drill mints only in-memory synthetic Ed25519 keys and never reads, prints, rotates, or revokes a production credential",
+   "handed_to_owner": "any real-world rotation recommendation remains an owner action",
+   "owner_gated_part_approved": false
+  },
+  "pre_revocation_consumer": {
+   "consumer": "ACCEPTED",
+   "publish": "ACCEPTED",
+   "reason": "signature valid under trusted key and revocation policy"
+  },
+  "production_census": {
+   "any_present": false,
+   "files": {
+    "tools/marketplace/publish.py": false,
+    "tools/marketplace/publisher_identity.py": false,
+    "tools/marketplace/schema/publisher.schema.json": false,
+    "tools/marketplace/tests/test_publisher_identity.py": false,
+    "tools/marketplace/update_authorization.py": false
+   },
+   "note": "IMP-0075 publisher-identity consumption and the production publish path are absent on this worktree. ADV-0063 exercises a fixture registry."
+  },
+  "question": "Can a package be published or updated under another publisher's identity, and if a publisher key were compromised, does a documented and tested recovery path exist that invalidates artifacts signed after the compromise?",
+  "replacement_key_consumer": {
+   "consumer": "ACCEPTED",
+   "publish": "ACCEPTED",
+   "reason": "signature valid under trusted key and revocation policy"
+  },
+  "targets": [
+   {
+    "basis": "update of pkg.owned owned by pub-A refused for authenticated pub-B",
+    "observed_action": "REFUSED",
+    "target": "identity B can publish or update a package owned by identity A on the fixture registry",
+    "target_id": "T1-cross-identity-update",
+    "verdict": "REFUTED"
+   },
+   {
+    "basis": "authenticated publisher is the package owner",
+    "observed_action": "ACCEPTED",
+    "target": "identity A can publish an update to its own package",
+    "target_id": "T2-owner-self-update-control",
+    "verdict": "CONFIRMED",
+    "versions_after": [
+     "1.0.0",
+     "1.1.0"
+    ]
+   },
+   {
+    "basis": "artifact signed at 2026-08-24T13:00:00Z after revocation point 2026-08-24T12:00:00Z",
+    "observed_action": "REFUSED",
+    "pre_revocation_still_accepted": "ACCEPTED",
+    "replacement_key_accepted": "ACCEPTED",
+    "target": "documented recovery makes a consumer who already trusted the compromised key stop accepting artifacts signed after the revocation point",
+    "target_id": "T3-recovery-invalidates-post-revocation",
+    "verdict": "CONFIRMED"
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0075 publisher-identity consumption is not delivered on this worktree. Production cannot be attested as protected; the drill is fixture-complete.",
+   "settling_experiment": "Re-run Probe 1 against tools/marketplace/publish.py once IMP-0075 lands, using the same owner-gated synthetic-key constraint.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "NO automatic retry: this unit performs a destructive, state-changing or owner-gated drill. On failure STOP, preserve the partial artifact and the restore point, and report BLOCKED with the exact missing prerequisite"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 is mechanically different from probe 1 (consumer acceptance after recovery vs publisher authorisation). Owner sign-off is not claimed for real credential rotation; that remains owner-gated.",
+  "reviewer_id": "ADV-0063-probe2-consumer-acceptance-from-raw-fixture",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:ADV-0063 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0063 <reason>.",
+ "spec_anchor": "_USER-PROMPTS.md:10850, 10864",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+   "id": "T-PROBE-1-CROSS-IDENTITY",
+   "name": "cross-identity publish plus owner-update control",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe2_key_recovery.py",
+   "id": "T-PROBE-2-RECOVERY",
+   "name": "documented recovery with consumer refusal after revocation",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+   "id": "T-REQUIRED-OWNER-SELF-UPDATE",
+   "name": "control: identity A must be able to publish its own update",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0063/probe1_cross_identity_publish.py",
+   "id": "T-HARD-CONSTRAINT-SYNTHETIC-KEYS",
+   "name": "only synthetic keys generated for this drill are used; no real signing key or credential is created, read, rotated or revoked",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:08:28Z",
+  "started_at": "2026-08-25T01:08:28Z"
+ },
+ "unit_id": "ADV-0063"
+}

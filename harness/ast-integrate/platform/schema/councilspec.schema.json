@@ -1,0 +1,1522 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://schema.ast-integrate.local/councilspec/1.0.0",
+  "title": "CouncilSpec",
+  "description": "Typed, validated specification for a /council run. Authored from _USER-PROMPTS.md (Read-tool numbering): Phase 2C lines 10746-10768 (CouncilSpec configurables), Phase 7A lines 10915-10946 (full runtime vocabulary + the six required executable stopping examples at 10937-10942), and 'Council workflow - required production behavior' lines 11172-11244 (production behavior, presets, anti-failure detection). Every enum below is traceable to one of those lines; see x-spec-line on each block.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "council_id",
+    "objective",
+    "participants",
+    "topology",
+    "protocol",
+    "voting",
+    "stopping"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "pattern": "^1\\.[0-9]+\\.[0-9]+$",
+      "description": "CouncilSpec contract version. Major version 1 only for this schema."
+    },
+    "council_id": {
+      "type": "string",
+      "pattern": "^[a-z0-9][a-z0-9._-]{2,63}$"
+    },
+    "preset": {
+      "$ref": "#/$defs/preset_name"
+    },
+    "extends_preset": {
+      "$ref": "#/$defs/preset_name",
+      "description": "Presets are editable (spec 11200-11225): a spec MAY declare the preset it was forked from."
+    },
+    "participation": {
+      "type": "string",
+      "enum": ["human_only", "agent_only", "hybrid"],
+      "default": "agent_only",
+      "x-spec-line": "10922"
+    },
+    "objective": {
+      "$ref": "#/$defs/objective"
+    },
+    "participants": {
+      "$ref": "#/$defs/participants"
+    },
+    "preparation": {
+      "$ref": "#/$defs/preparation"
+    },
+    "topology": {
+      "$ref": "#/$defs/topology"
+    },
+    "protocol": {
+      "$ref": "#/$defs/protocol"
+    },
+    "budgets": {
+      "$ref": "#/$defs/budgets"
+    },
+    "targets": {
+      "$ref": "#/$defs/targets"
+    },
+    "voting": {
+      "$ref": "#/$defs/voting"
+    },
+    "consensus": {
+      "$ref": "#/$defs/consensus"
+    },
+    "stopping": {
+      "$ref": "#/$defs/stopping"
+    },
+    "outcomes": {
+      "$ref": "#/$defs/outcomes"
+    },
+    "deadlock": {
+      "$ref": "#/$defs/deadlock"
+    },
+    "anti_failure": {
+      "$ref": "#/$defs/anti_failure"
+    },
+    "outputs": {
+      "$ref": "#/$defs/outputs"
+    },
+    "audit": {
+      "$ref": "#/$defs/audit"
+    },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "title": { "type": "string", "minLength": 1 },
+        "notes": { "type": "string" },
+        "spec_citations": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^[^:]+:[0-9]+(-[0-9]+)?$" }
+        },
+        "owner": { "type": "string" },
+        "lineage": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "Source blueprint/preset lineage; fusions must stay decomposable (spec 11170)."
+        }
+      }
+    }
+  },
+  "$defs": {
+    "preset_name": {
+      "type": "string",
+      "x-spec-line": "11200-11225",
+      "enum": [
+        "hundred_idea_brainstorm",
+        "architecture_review_board",
+        "scientific_peer_review",
+        "code_review_tribunal",
+        "security_red_blue_council",
+        "incident_war_room",
+        "root_cause_council",
+        "product_strategy_council",
+        "requirements_council",
+        "plan_review_council",
+        "release_readiness_board",
+        "ethics_legal_board",
+        "risk_committee",
+        "roadmap_prioritization",
+        "forecasting_council",
+        "stakeholder_user_panel",
+        "negotiation_council",
+        "adversarial_collaboration",
+        "evidence_adjudication_jury",
+        "benchmark_results_jury",
+        "innovation_moonshot_council",
+        "postmortem_council",
+        "standing_watch_council",
+        "general_purpose_auto_composed",
+        "custom"
+      ]
+    },
+
+    "objective": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10750, 10921",
+      "required": ["statement", "risk_tier", "desired_output"],
+      "properties": {
+        "statement": { "type": "string", "minLength": 8 },
+        "charter": { "type": "string" },
+        "risk_tier": {
+          "type": "string",
+          "enum": ["low", "moderate", "high", "critical"]
+        },
+        "desired_output": {
+          "type": "string",
+          "enum": [
+            "decision",
+            "recommendation",
+            "ranked_options",
+            "idea_set",
+            "plan",
+            "review_verdict",
+            "risk_register",
+            "forecast",
+            "specification",
+            "root_cause",
+            "go_no_go",
+            "impossibility_proof"
+          ]
+        },
+        "success_criteria": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 4 }
+        },
+        "consensus_intent": {
+          "type": "string",
+          "enum": ["seek_consensus", "surface_disagreement", "adjudicate", "elicit_distribution"]
+        },
+        "confidence_target": { "$ref": "#/$defs/unit_interval" },
+        "evidence_requirements": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "citation_required": { "type": "boolean" },
+            "anchor_style": {
+              "type": "string",
+              "enum": ["file_line", "url", "command_output", "any"]
+            },
+            "min_independent_sources": { "type": "integer", "minimum": 0 },
+            "evidence_outranks_votes": {
+              "type": "boolean",
+              "description": "Spec 11198: 'Agreement is not proof; evidence gates outrank popularity.'"
+            }
+          }
+        },
+        "owner_constraints": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "approval_required": { "type": "boolean" },
+            "forbidden_actions": { "type": "array", "items": { "type": "string" } },
+            "deadline_minutes": { "type": "number", "exclusiveMinimum": 0 },
+            "budget_ceiling_tokens": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+
+    "participants": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10751-10753, 10923-10925, 11176-11181",
+      "required": ["selection", "count"],
+      "properties": {
+        "selection": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["exact", "automatic", "mixed"],
+              "description": "Spec 11176: explicit, automatic, and mixed participant selection."
+            },
+            "strategies": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "x-spec-line": "10923",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "exact",
+                  "automatic",
+                  "calibration_ranked",
+                  "expertise_ranked",
+                  "random",
+                  "stratified",
+                  "stakeholder_balanced",
+                  "model_diverse",
+                  "vendor_diverse",
+                  "adversarial"
+                ]
+              }
+            },
+            "explain_choices": {
+              "type": "boolean",
+              "description": "Spec 10765: auto-composed council must explain every choice and allow owner override."
+            },
+            "owner_override_allowed": { "type": "boolean" }
+          }
+        },
+        "count": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "x-spec-line": "10752, 11177",
+          "properties": {
+            "mode": { "type": "string", "enum": ["exact", "range", "elastic"] },
+            "exact_n": { "type": "integer", "minimum": 1, "maximum": 1024 },
+            "min": { "type": "integer", "minimum": 1, "maximum": 1024 },
+            "max": { "type": "integer", "minimum": 1, "maximum": 1024 },
+            "elastic": {
+              "type": "object",
+              "additionalProperties": false,
+              "properties": {
+                "scale_on": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "string",
+                    "enum": [
+                      "disagreement",
+                      "missing_expertise",
+                      "low_confidence",
+                      "idea_starvation",
+                      "deadlock",
+                      "risk_tier",
+                      "workload"
+                    ]
+                  }
+                },
+                "step": { "type": "integer", "minimum": 1 },
+                "cooldown_rounds": { "type": "integer", "minimum": 0 }
+              }
+            }
+          },
+          "allOf": [
+            {
+              "if": { "properties": { "mode": { "const": "exact" } }, "required": ["mode"] },
+              "then": { "required": ["exact_n"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "range" } }, "required": ["mode"] },
+              "then": { "required": ["min", "max"] }
+            },
+            {
+              "if": { "properties": { "mode": { "const": "elastic" } }, "required": ["mode"] },
+              "then": { "required": ["min", "max", "elastic"] }
+            }
+          ]
+        },
+        "diversity": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10753, 11179",
+          "properties": {
+            "min_distinct_vendors": { "type": "integer", "minimum": 1 },
+            "min_distinct_models": { "type": "integer", "minimum": 1 },
+            "min_distinct_expertise": { "type": "integer", "minimum": 1 },
+            "max_share_per_vendor": { "$ref": "#/$defs/unit_interval" }
+          }
+        },
+        "roster": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/participant" }
+        },
+        "role_templates": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/role_name" },
+          "description": "Spec 11178: role templates and custom roles."
+        },
+        "recruitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "dynamic": { "type": "boolean" },
+            "triggers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "missing_expertise",
+                  "deadlock",
+                  "fast_unanimity",
+                  "low_novelty",
+                  "owner_request",
+                  "conflict_disclosed"
+                ]
+              }
+            },
+            "max_recruits": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "replacement": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10762, 11192",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "triggers": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": [
+                  "inactivity",
+                  "role_collapse",
+                  "conflict_of_interest",
+                  "policy_violation",
+                  "hallucinated_expertise",
+                  "dominance",
+                  "prompt_injection_detected"
+                ]
+              }
+            },
+            "preserve_prior_positions": { "type": "boolean" }
+          }
+        },
+        "anonymity": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10753, 11180",
+          "properties": {
+            "mode": {
+              "type": "string",
+              "enum": ["none", "pseudonymous", "blind_to_peers", "double_blind"]
+            },
+            "reveal_after_round": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "information_partition": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10753, 11180",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "strategy": {
+              "type": "string",
+              "enum": ["none", "disjoint_evidence", "role_scoped", "staged_release", "hidden_profile"]
+            },
+            "partitions": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "additionalProperties": false,
+                "required": ["partition_id", "visible_to"],
+                "properties": {
+                  "partition_id": { "type": "string", "minLength": 1 },
+                  "visible_to": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+                  "sources": { "type": "array", "items": { "type": "string" } }
+                }
+              }
+            }
+          }
+        },
+        "conflicts_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "disclosure_required": { "type": "boolean" },
+            "on_conflict": {
+              "type": "string",
+              "enum": ["disclose_only", "recuse_from_vote", "exclude", "escalate_to_owner"]
+            }
+          }
+        },
+        "duplicate_detection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "dimensions": {
+              "type": "array",
+              "items": {
+                "type": "string",
+                "enum": ["model", "vendor", "prompt", "expertise", "position_similarity"]
+              }
+            },
+            "max_similarity": { "$ref": "#/$defs/unit_interval" }
+          }
+        }
+      }
+    },
+
+    "participant": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10753, 10925",
+      "required": ["participant_id", "role"],
+      "properties": {
+        "participant_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$" },
+        "display_name": { "type": "string" },
+        "kind": { "type": "string", "enum": ["agent", "human"], "default": "agent" },
+        "model": { "type": "string", "minLength": 1 },
+        "vendor": {
+          "type": "string",
+          "enum": ["anthropic", "openai", "google", "meta", "mistral", "xai", "local", "human", "other"]
+        },
+        "expertise": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 2 } },
+        "role": { "$ref": "#/$defs/role_name" },
+        "authority": {
+          "type": "string",
+          "enum": ["observer", "contributor", "voter", "chair", "judge", "veto_holder", "owner"]
+        },
+        "vote_weight": { "type": "number", "minimum": 0, "maximum": 100 },
+        "rights": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10925, 11037",
+          "properties": {
+            "may_speak": { "type": "boolean" },
+            "may_vote": { "type": "boolean" },
+            "may_veto": { "type": "boolean" },
+            "may_recruit": { "type": "boolean" },
+            "may_call_experiment": { "type": "boolean" }
+          }
+        },
+        "tools": { "type": "array", "items": { "type": "string", "minLength": 1 } },
+        "source_access": {
+          "type": "array",
+          "items": { "type": "string", "enum": ["repo", "web", "internal_docs", "transcripts", "none"] }
+        },
+        "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"] },
+        "context": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "briefing": { "type": "string" },
+            "artifacts": { "type": "array", "items": { "type": "string" } },
+            "partition_id": { "type": "string" },
+            "max_context_tokens": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "independence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sees_peers_before_first_position": { "type": "boolean" },
+            "fresh_context": { "type": "boolean" },
+            "shares_context_with": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "conflicts": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["kind"],
+            "properties": {
+              "kind": {
+                "type": "string",
+                "enum": ["authored_artifact", "prior_verdict", "vendor_interest", "owner_relationship", "other"]
+              },
+              "detail": { "type": "string" },
+              "recused": { "type": "boolean" }
+            }
+          }
+        },
+        "anonymous": { "type": "boolean" }
+      }
+    },
+
+    "role_name": {
+      "description": "Role templates (spec 11178) plus a custom: escape hatch.",
+      "oneOf": [
+        {
+          "type": "string",
+          "enum": [
+            "chair",
+            "moderator",
+            "facilitator",
+            "proposer",
+            "critic",
+            "judge",
+            "juror",
+            "red_team",
+            "blue_team",
+            "devils_advocate",
+            "steelman",
+            "domain_expert",
+            "security_reviewer",
+            "architect",
+            "product_manager",
+            "designer",
+            "scientist",
+            "statistician",
+            "legal_ethics",
+            "risk_officer",
+            "forecaster",
+            "user_advocate",
+            "stakeholder",
+            "negotiator",
+            "mediator",
+            "scribe",
+            "synthesizer",
+            "calibrator",
+            "verifier",
+            "observer"
+          ]
+        },
+        { "type": "string", "pattern": "^custom:[a-z][a-z0-9_]{2,47}$" }
+      ]
+    },
+
+    "preparation": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10754, 11181",
+      "properties": {
+        "research_required": { "type": "boolean" },
+        "independent_prep": { "type": "boolean" },
+        "min_sources": { "type": "integer", "minimum": 0 },
+        "prep_time_minutes": { "type": "number", "minimum": 0 },
+        "required_artifacts": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": ["evidence_pack", "prior_art_scan", "position_memo", "risk_list", "benchmark_baseline"]
+          }
+        }
+      }
+    },
+
+    "topology": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10926, 11193",
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "enum": [
+            "flat",
+            "chair_led",
+            "committee",
+            "caucus",
+            "proposer_critic_judge",
+            "red_blue",
+            "jury",
+            "delphi",
+            "pairwise_tournament",
+            "nested_subcouncil",
+            "council_of_councils"
+          ]
+        },
+        "chair": { "type": "string", "description": "participant_id of the chair." },
+        "committees": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["committee_id", "members"],
+            "properties": {
+              "committee_id": { "type": "string", "minLength": 1 },
+              "mandate": { "type": "string" },
+              "members": { "type": "array", "minItems": 1, "items": { "type": "string" } }
+            }
+          }
+        },
+        "caucuses": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["caucus_id", "members"],
+            "properties": {
+              "caucus_id": { "type": "string", "minLength": 1 },
+              "members": { "type": "array", "minItems": 1, "items": { "type": "string" } },
+              "private_rounds": { "type": "integer", "minimum": 0 }
+            }
+          }
+        },
+        "tournament": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "pairing": { "type": "string", "enum": ["round_robin", "swiss", "single_elim", "double_elim"] },
+            "comparisons_per_pair": { "type": "integer", "minimum": 1 },
+            "aggregation": { "type": "string", "enum": ["bradley_terry", "elo", "copeland", "borda"] }
+          }
+        },
+        "subcouncils": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#" },
+          "description": "Recursive: a subcouncil IS a CouncilSpec (spec 10926 nested subcouncil / council-of-councils, 11193)."
+        },
+        "fan_in": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "reducer": {
+              "type": "string",
+              "enum": ["synthesize", "vote_of_chairs", "meta_jury", "weighted_merge", "escalate_to_owner"]
+            },
+            "require_all_subcouncils_complete": { "type": "boolean" }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": { "kind": { "enum": ["nested_subcouncil", "council_of_councils"] } },
+            "required": ["kind"]
+          },
+          "then": { "required": ["subcouncils"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "chair_led" } }, "required": ["kind"] },
+          "then": { "required": ["chair"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "pairwise_tournament" } }, "required": ["kind"] },
+          "then": { "required": ["tournament"] }
+        }
+      ]
+    },
+
+    "protocol": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10755-10756, 10927-10928, 11182-11185",
+      "required": ["sequence"],
+      "properties": {
+        "sequence": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/protocol_stage" }
+        },
+        "speaking_order": {
+          "type": "string",
+          "enum": ["simultaneous", "round_robin", "random", "chair_directed", "seniority", "reverse_seniority", "lowest_confidence_first"]
+        },
+        "rounds": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min": { "type": "integer", "minimum": 0 },
+            "max": { "type": "integer", "minimum": 1 },
+            "divergence_before_convergence": {
+              "type": "boolean",
+              "description": "Spec 11184: mandatory divergence before convergence when configured."
+            }
+          }
+        },
+        "turn": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "max_words": { "type": "integer", "minimum": 1 },
+            "max_tokens": { "type": "integer", "minimum": 1 },
+            "time_limit_seconds": { "type": "number", "exclusiveMinimum": 0 }
+          }
+        },
+        "obligations": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10755, 11185",
+          "properties": {
+            "must_respond_to_prior": { "type": "boolean" },
+            "must_cite_evidence": { "type": "boolean" },
+            "steelman_before_rebuttal": { "type": "boolean" },
+            "forced_dissent": { "type": "boolean" },
+            "cross_examination": { "type": "boolean" },
+            "rebuttal_required": { "type": "boolean" },
+            "declare_confidence": { "type": "boolean" },
+            "declare_conflicts": { "type": "boolean" }
+          }
+        },
+        "critique_intensity": {
+          "type": "string",
+          "enum": ["gentle", "standard", "adversarial", "maximally_adversarial"]
+        },
+        "experiments": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowed": { "type": "boolean" },
+            "required_before_decision": {
+              "type": "boolean",
+              "description": "Spec 11198: 'stop only after an executable test settles the dispute.'"
+            },
+            "max_experiments": { "type": "integer", "minimum": 0 },
+            "runner": { "type": "string", "enum": ["local", "sandbox", "ci", "owner"] }
+          }
+        },
+        "custom_protocol": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "name": { "type": "string", "minLength": 1 },
+            "description": { "type": "string", "minLength": 1 },
+            "stages": { "type": "array", "items": { "type": "string" } }
+          }
+        }
+      }
+    },
+
+    "protocol_stage": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "x-spec-line": "10927, 11182",
+          "enum": [
+            "blind_independent_first_pass",
+            "brainstorm",
+            "round_robin",
+            "nominal_group",
+            "socratic",
+            "oxford",
+            "cross_examination",
+            "steelman_before_rebuttal",
+            "premortem",
+            "scenario",
+            "war_game",
+            "six_hats",
+            "fishbowl",
+            "prediction_confidence",
+            "negotiation",
+            "mediation",
+            "jury",
+            "delphi_round",
+            "synthesis",
+            "custom"
+          ]
+        },
+        "stage_id": { "type": "string", "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$" },
+        "rounds": { "type": "integer", "minimum": 1 },
+        "participants": {
+          "type": "array",
+          "items": { "type": "string" },
+          "description": "participant_id subset; omit for all."
+        },
+        "anonymous": { "type": "boolean" },
+        "independent": { "type": "boolean" },
+        "quotas": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10755, 10929",
+          "properties": {
+            "ideas_per_participant": { "type": "integer", "minimum": 1 },
+            "novel_ideas_per_round": { "type": "integer", "minimum": 1 },
+            "objections_per_participant": { "type": "integer", "minimum": 1 },
+            "counterexamples_per_round": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "exit_when": {
+          "$ref": "#/$defs/stop_expression",
+          "description": "Per-stage stopping expression; same composable grammar as the council-level rule."
+        },
+        "custom_name": { "type": "string", "minLength": 1 }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "custom" } }, "required": ["kind"] },
+          "then": { "required": ["custom_name"] }
+        }
+      ]
+    },
+
+    "budgets": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10928, 11181",
+      "properties": {
+        "effort": { "type": "string", "enum": ["low", "medium", "high", "xhigh", "max"] },
+        "time_minutes": { "type": "number", "exclusiveMinimum": 0 },
+        "tokens": { "type": "integer", "minimum": 1 },
+        "tool_calls": { "type": "integer", "minimum": 0 },
+        "sources": { "type": "integer", "minimum": 0 },
+        "experiments": { "type": "integer", "minimum": 0 },
+        "turns": { "type": "integer", "minimum": 1 },
+        "speaking_quota_per_participant": { "type": "integer", "minimum": 1 },
+        "min_engagement_turns": { "type": "integer", "minimum": 0 },
+        "max_inactivity_rounds": { "type": "integer", "minimum": 1 },
+        "rebuttal_depth": { "type": "integer", "minimum": 0 }
+      }
+    },
+
+    "targets": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10757, 10929, 11183",
+      "properties": {
+        "unique_ideas": { "type": "integer", "minimum": 1 },
+        "raw_ideas": { "type": "integer", "minimum": 1 },
+        "categories": { "type": "integer", "minimum": 1 },
+        "novelty_ratio": { "$ref": "#/$defs/unit_interval" },
+        "diversity_index": { "$ref": "#/$defs/unit_interval" },
+        "coverage_score": { "$ref": "#/$defs/unit_interval" },
+        "objections": { "type": "integer", "minimum": 1 },
+        "counterexamples": { "type": "integer", "minimum": 1 },
+        "evidence_items": { "type": "integer", "minimum": 1 },
+        "dedup": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Anti-gaming: spec 11236-11237 (idea-count gaming through trivial variants, duplicates passing as novelty).",
+          "properties": {
+            "enabled": { "type": "boolean" },
+            "max_similarity": { "$ref": "#/$defs/unit_interval" },
+            "trivial_variant_policy": {
+              "type": "string",
+              "enum": ["reject", "merge", "flag_for_review"]
+            }
+          }
+        }
+      }
+    },
+
+    "voting": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10758, 10930, 11187-11188",
+      "required": ["method"],
+      "properties": {
+        "method": {
+          "type": "string",
+          "enum": [
+            "synthesis_only",
+            "majority",
+            "supermajority",
+            "unanimity",
+            "consent_no_objection",
+            "ranked_choice",
+            "score",
+            "approval",
+            "condorcet",
+            "juror",
+            "judge",
+            "weighted",
+            "bayesian",
+            "veto",
+            "quorum",
+            "abstention",
+            "delegation"
+          ]
+        },
+        "supermajority_threshold": { "$ref": "#/$defs/unit_interval" },
+        "score_scale": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min": { "type": "number" },
+            "max": { "type": "number" }
+          }
+        },
+        "weights": {
+          "type": "object",
+          "description": "participant_id -> weight. Only meaningful for weighted/bayesian methods.",
+          "additionalProperties": { "type": "number", "minimum": 0 },
+          "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$" }
+        },
+        "quorum": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "min_voters": { "type": "integer", "minimum": 1 },
+            "min_fraction": { "$ref": "#/$defs/unit_interval" },
+            "on_failure": { "type": "string", "enum": ["no_decision", "extend_rounds", "recruit", "escalate_to_owner"] }
+          }
+        },
+        "veto": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "holders": { "type": "array", "items": { "type": "string" } },
+            "scope": { "type": "string", "enum": ["final_decision", "any_option", "safety_only", "legal_only"] },
+            "must_justify": { "type": "boolean" },
+            "overridable_by_owner": { "type": "boolean" }
+          }
+        },
+        "abstention": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowed": { "type": "boolean" },
+            "counts_toward_quorum": { "type": "boolean" },
+            "must_justify": { "type": "boolean" },
+            "strategic_abstention_check": {
+              "type": "boolean",
+              "description": "Spec 11352: detect strategic abstention."
+            }
+          }
+        },
+        "delegation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowed": { "type": "boolean" },
+            "max_chain_length": { "type": "integer", "minimum": 1 },
+            "cycles_forbidden": { "type": "boolean" },
+            "map": {
+              "type": "object",
+              "additionalProperties": { "type": "string" },
+              "propertyNames": { "pattern": "^[a-z0-9][a-z0-9._-]{1,63}$" }
+            }
+          }
+        },
+        "belief_aggregation": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10758, 11187",
+          "properties": {
+            "method": {
+              "type": "string",
+              "enum": ["none", "linear_pool", "logarithmic_pool", "bayesian_update", "median", "trimmed_mean", "calibration_weighted"]
+            },
+            "require_confidence_per_vote": { "type": "boolean" },
+            "calibration_source": { "type": "string" }
+          }
+        },
+        "evidence_gate": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "votes_require_evidence": { "type": "boolean" },
+            "evidence_outranks_majority": { "type": "boolean" },
+            "reject_evidence_free_majority": {
+              "type": "boolean",
+              "description": "Spec 11233: vote counting without evidence must be detected."
+            }
+          }
+        },
+        "tie_break": {
+          "type": "string",
+          "enum": ["chair", "judge", "coin_flip", "no_decision", "extend_rounds", "owner"]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "method": { "const": "supermajority" } }, "required": ["method"] },
+          "then": { "required": ["supermajority_threshold"] }
+        },
+        {
+          "if": { "properties": { "method": { "const": "weighted" } }, "required": ["method"] },
+          "then": { "required": ["weights"] }
+        },
+        {
+          "if": { "properties": { "method": { "const": "score" } }, "required": ["method"] },
+          "then": { "required": ["score_scale"] }
+        },
+        {
+          "if": { "properties": { "method": { "const": "delegation" } }, "required": ["method"] },
+          "then": { "required": ["delegation"] }
+        },
+        {
+          "if": { "properties": { "method": { "const": "quorum" } }, "required": ["method"] },
+          "then": { "required": ["quorum"] }
+        },
+        {
+          "if": { "properties": { "method": { "const": "veto" } }, "required": ["method"] },
+          "then": { "required": ["veto"] }
+        }
+      ]
+    },
+
+    "consensus": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10759, 11188",
+      "properties": {
+        "threshold": { "$ref": "#/$defs/unit_interval" },
+        "measure": { "type": "string", "enum": ["vote_share", "agreement_index", "pairwise_agreement", "confidence_overlap"] },
+        "minority_report": { "type": "string", "enum": ["required", "optional", "forbidden"] },
+        "dissent_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "preserve_verbatim": { "type": "boolean" },
+            "attributed": { "type": "boolean" },
+            "min_dissenters_to_block": { "type": "integer", "minimum": 1 },
+            "suppression_check": { "type": "boolean" }
+          }
+        },
+        "irreducible_disagreement_allowed": { "type": "boolean" },
+        "fast_unanimity_is_suspicious": {
+          "type": "boolean",
+          "description": "Spec 10944 / 11229: instant unanimity without independent reasoning must trigger a response."
+        }
+      }
+    },
+
+    "stopping": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10760-10761, 10931, 10937-10942, 11190",
+      "required": ["expression"],
+      "properties": {
+        "expression": { "$ref": "#/$defs/stop_expression" },
+        "source_expression": {
+          "type": "string",
+          "minLength": 3,
+          "description": "Human-authored form, e.g. 'unique_ideas >= 100 AND completeness_score >= 0.90'. MUST parse to the same tree as `expression` (enforced by the reference validator rule SEM-001, not by JSON Schema)."
+        },
+        "minimum_deliberation": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "10761",
+          "description": "Floors that must be satisfied BEFORE the stopping expression may fire.",
+          "properties": {
+            "min_rounds": { "type": "integer", "minimum": 0 },
+            "min_independent_positions": { "type": "integer", "minimum": 0 },
+            "min_minutes": { "type": "number", "minimum": 0 },
+            "every_participant_spoke": { "type": "boolean" },
+            "min_evidence_items": { "type": "integer", "minimum": 0 },
+            "min_objections_addressed": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "hard_caps": {
+          "type": "object",
+          "additionalProperties": false,
+          "description": "Unconditional termination guards; firing one yields outcome no_decision or conditional_decision.",
+          "properties": {
+            "max_rounds": { "type": "integer", "minimum": 1 },
+            "max_minutes": { "type": "number", "exclusiveMinimum": 0 },
+            "max_tokens": { "type": "integer", "minimum": 1 },
+            "on_cap": { "type": "string", "enum": ["no_decision", "conditional_decision", "escalate_to_owner", "synthesize_best_effort"] }
+          }
+        }
+      }
+    },
+
+    "stop_expression": {
+      "description": "Composable boolean stopping expression. AND = all_of, OR = any_of, NOT = not, plus weighted logic (spec 10760 ANY/ALL/weighted, 10931 AND/OR/NOT).",
+      "oneOf": [
+        { "$ref": "#/$defs/stop_leaf" },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["all_of"],
+          "properties": {
+            "all_of": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/stop_expression" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["any_of"],
+          "properties": {
+            "any_of": { "type": "array", "minItems": 2, "items": { "$ref": "#/$defs/stop_expression" } }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["not"],
+          "properties": {
+            "not": { "$ref": "#/$defs/stop_expression" }
+          }
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["weighted"],
+          "properties": {
+            "weighted": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["clauses", "threshold"],
+              "properties": {
+                "threshold": { "type": "number", "exclusiveMinimum": 0 },
+                "clauses": {
+                  "type": "array",
+                  "minItems": 1,
+                  "items": {
+                    "type": "object",
+                    "additionalProperties": false,
+                    "required": ["weight", "when"],
+                    "properties": {
+                      "weight": { "type": "number", "minimum": 0 },
+                      "when": { "$ref": "#/$defs/stop_expression" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    },
+
+    "stop_leaf": {
+      "description": "A typed metric comparison. The metric name determines the legal operators and the legal value type - the four branches have disjoint metric name sets, so exactly one can match.",
+      "oneOf": [
+        { "$ref": "#/$defs/stop_leaf_numeric" },
+        { "$ref": "#/$defs/stop_leaf_boolean" },
+        { "$ref": "#/$defs/stop_leaf_enum" },
+        { "$ref": "#/$defs/stop_leaf_custom" }
+      ]
+    },
+
+    "stop_leaf_numeric": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "op", "value"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "x-metric-domain": "numeric",
+          "enum": [
+            "unique_ideas",
+            "raw_ideas",
+            "deduplicated_ideas",
+            "novel_ideas",
+            "categories_covered",
+            "completeness_score",
+            "coverage_score",
+            "novelty_ratio",
+            "diversity_index",
+            "duplicate_ratio",
+            "consensus",
+            "vote_margin",
+            "confidence",
+            "calibration_error",
+            "rounds_elapsed",
+            "max_rounds",
+            "no_new_objection_rounds",
+            "no_new_idea_rounds",
+            "objections_open",
+            "objections_addressed",
+            "unresolved_load_bearing_counterexample",
+            "counterexamples_found",
+            "dissent_count",
+            "evidence_items",
+            "independent_positions",
+            "sources_gathered",
+            "experiments_run",
+            "experiments_passed",
+            "time_minutes",
+            "tokens_used",
+            "tool_calls_used",
+            "participants_active",
+            "inactivity_rounds",
+            "subcouncils_complete"
+          ]
+        },
+        "op": { "type": "string", "enum": [">=", ">", "<=", "<", "==", "!="] },
+        "value": { "type": "number" },
+        "note": { "type": "string" }
+      }
+    },
+
+    "stop_leaf_boolean": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "op", "value"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "x-metric-domain": "boolean",
+          "enum": [
+            "unanimity",
+            "consent_reached",
+            "quorum_met",
+            "evidence_saturation",
+            "proof_of_impossibility",
+            "executable_test_settled",
+            "deadlock_detected",
+            "minority_report_present",
+            "all_participants_spoke",
+            "owner_approved",
+            "divergence_complete",
+            "every_objection_addressed",
+            "novelty_target_met",
+            "prompt_injection_detected"
+          ]
+        },
+        "op": { "type": "string", "enum": ["==", "!="] },
+        "value": { "type": "boolean" },
+        "note": { "type": "string" }
+      }
+    },
+
+    "stop_leaf_enum": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "op", "value"],
+      "properties": {
+        "metric": {
+          "type": "string",
+          "x-metric-domain": "enum",
+          "enum": ["quality_gate", "decision_outcome", "verdict", "risk_verdict"]
+        },
+        "op": { "type": "string", "enum": ["==", "!="] },
+        "value": {
+          "type": "string",
+          "enum": [
+            "PASS",
+            "FAIL",
+            "BLOCKED",
+            "NOT_CHECKED",
+            "CONFIRMED",
+            "REFUTED",
+            "PARTIAL",
+            "DECIDED",
+            "CONDITIONAL",
+            "NO_DECISION",
+            "IRREDUCIBLE_DISAGREEMENT",
+            "PROOF_OF_IMPOSSIBILITY",
+            "ACCEPT",
+            "REJECT",
+            "ESCALATE"
+          ]
+        },
+        "note": { "type": "string" }
+      }
+    },
+
+    "stop_leaf_custom": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["metric", "op", "value", "value_type"],
+      "description": "Extension escape hatch. A custom metric MUST declare its value type so the evaluator stays typed.",
+      "properties": {
+        "metric": { "type": "string", "pattern": "^custom:[a-z][a-z0-9_]{2,47}$" },
+        "op": { "type": "string", "enum": [">=", ">", "<=", "<", "==", "!="] },
+        "value": { "type": ["number", "boolean", "string"] },
+        "value_type": { "type": "string", "enum": ["number", "boolean", "string"] },
+        "producer": { "type": "string", "description": "What computes this metric (tool, hook, or experiment id)." },
+        "note": { "type": "string" }
+      }
+    },
+
+    "outcomes": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10932, 11189",
+      "required": ["allowed"],
+      "properties": {
+        "allowed": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "decision",
+              "conditional_decision",
+              "no_decision",
+              "irreducible_disagreement",
+              "proof_of_impossibility",
+              "minority_report",
+              "dissent"
+            ]
+          }
+        },
+        "conditional_decision_requires": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 1 },
+          "description": "Conditions that must later be met for a conditional decision to become final."
+        }
+      }
+    },
+
+    "deadlock": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10762, 11191",
+      "properties": {
+        "detection": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "no_progress_rounds": { "type": "integer", "minimum": 1 },
+            "repetition_similarity": { "$ref": "#/$defs/unit_interval" },
+            "circular_citation_check": { "type": "boolean" },
+            "vote_oscillation_rounds": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "resolution": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "enum": [
+              "run_experiment",
+              "recruit_independent_critic",
+              "rotate_roles",
+              "blind_re_evaluation",
+              "forced_dissent",
+              "strongest_counterexample",
+              "narrow_scope",
+              "split_question",
+              "chair_ruling",
+              "judge_ruling",
+              "escalate_to_owner",
+              "declare_no_decision"
+            ]
+          }
+        },
+        "escalation": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "after_attempts": { "type": "integer", "minimum": 1 },
+            "to": { "type": "string", "enum": ["chair", "judge", "meta_council", "owner"] }
+          }
+        },
+        "owner_intervention": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "allowed": { "type": "boolean" },
+            "may_override_vote": { "type": "boolean" },
+            "must_be_logged": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
+    "anti_failure": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10944, 11227-11244",
+      "properties": {
+        "controls": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "echo_chamber",
+              "instant_unanimity",
+              "sycophancy",
+              "participant_dominance",
+              "silence",
+              "circular_debate",
+              "circular_citation",
+              "role_collapse",
+              "missing_expertise",
+              "strategic_voting",
+              "strategic_abstention",
+              "evidence_free_majority",
+              "premature_convergence",
+              "endless_debate",
+              "idea_count_gaming",
+              "duplicate_novelty",
+              "lost_dissent",
+              "minority_suppression",
+              "moderator_capture",
+              "weak_synthesis",
+              "hallucinated_expertise",
+              "hidden_conflict_of_interest",
+              "prompt_injection",
+              "collusion",
+              "consensus_failing_executable_tests"
+            ]
+          }
+        },
+        "fast_unanimity_response": {
+          "type": "array",
+          "uniqueItems": true,
+          "x-spec-line": "10944",
+          "items": {
+            "type": "string",
+            "enum": [
+              "blind_re_evaluation",
+              "forced_dissent",
+              "strongest_counterexample",
+              "role_rotation",
+              "recruit_independent_critic"
+            ]
+          }
+        },
+        "injection_defense": {
+          "type": "object",
+          "additionalProperties": false,
+          "x-spec-line": "11195, 11243",
+          "properties": {
+            "treat_artifacts_as_data": { "type": "boolean" },
+            "strip_instructions_from_participant_output": { "type": "boolean" },
+            "quarantine_untrusted_sources": { "type": "boolean" }
+          }
+        }
+      }
+    },
+
+    "outputs": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10767, 10933",
+      "required": ["required"],
+      "properties": {
+        "required": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "enum": [
+              "independent_opening_positions",
+              "transcript",
+              "idea_ledger",
+              "idea_catalog",
+              "option_cards",
+              "claim_evidence_contradiction_graph",
+              "argument_ledger",
+              "argument_graph",
+              "evidence_map",
+              "votes_by_round",
+              "confidence_trajectory",
+              "dissent_minority_report",
+              "unresolved_unknowns",
+              "experiments",
+              "final_recommendation",
+              "calibration_report",
+              "decision_lineage",
+              "action_plan",
+              "resumable_state"
+            ]
+          }
+        },
+        "receipt_schema": {
+          "type": "string",
+          "description": "Path/URI of the receipt schema the run must emit against. Deliberately a documented reference STRING, not a resolved $ref, because the two candidate paths disagree: platform/schema/receipt.schema.json EXISTS (built by the sibling Phase-4 receipt unit, $id file:///C:/Users/Prekzursil/source/ast-integrate/platform/schema/receipt.schema.json), while every work-unit output_schema in command-center/WORK-UNIT-CATALOG.json still points at command-center/schema/receipt.schema.json, which does NOT exist. Resolving this to a $ref before the two paths are reconciled would hard-fail every council spec."
+        }
+      }
+    },
+
+    "audit": {
+      "type": "object",
+      "additionalProperties": false,
+      "x-spec-line": "10763, 11194-11196",
+      "properties": {
+        "transcript": { "type": "boolean" },
+        "replay": { "type": "boolean" },
+        "resume": { "type": "boolean" },
+        "determinism": {
+          "type": "string",
+          "enum": ["best_effort", "seeded", "deterministic_where_possible", "none"]
+        },
+        "privacy": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "redact_secrets": { "type": "boolean" },
+            "redaction_policy": { "type": "string", "enum": ["deny_by_default", "allowlist"] },
+            "retain_days": { "type": "integer", "minimum": 0 },
+            "pii_policy": { "type": "string", "enum": ["forbid", "redact", "allow_owner_only"] }
+          }
+        },
+        "safety": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "forbid_irreversible_actions": { "type": "boolean" },
+            "owner_approval_for": { "type": "array", "items": { "type": "string" } }
+          }
+        },
+        "persistence": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "store": { "type": "string", "enum": ["filesystem", "ledger", "both", "none"] },
+            "path": { "type": "string" },
+            "checkpoint_every_round": { "type": "boolean" }
+          }
+        },
+        "calibration": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "post_run": { "type": "boolean" },
+            "score": { "type": "string", "enum": ["brier", "log_score", "crps", "none"] }
+          }
+        }
+      }
+    },
+
+    "unit_interval": { "type": "number", "minimum": 0, "maximum": 1 }
+  }
+}

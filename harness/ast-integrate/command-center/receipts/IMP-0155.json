@@ -1,0 +1,245 @@
+{
+ "answer": "Every candidate carries a provenance record of source, ref, retrieval_time, hash (sha256:<hex>), and retrieval_method. A second agent given only that record re-fetched identical bytes for 10/10 sampled candidates by executing posix-read and tar-member against the recorded source+ref. A record with a mutated ref that still has all five fields fails re-fetch with HashMismatch (detector fires on the decoy bytes). Field presence is not acceptance. SUCCESS:IMP-0155",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0155.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 8901,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/foundry/provenance.py",
+   "role": "supporting",
+   "sha256": "59b2b9cc0e35f9c53bb0d06361b6a4e3378c0e73a0f18397a5f53e1ea289203e"
+  },
+  {
+   "bytes": 73,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/foundry/__init__.py",
+   "role": "supporting",
+   "sha256": "115b7dd30d203abf70e726f80ae7c43d97466fe6d4d99beda5d7e41e7b649828"
+  },
+  {
+   "bytes": 5408,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0155/scenario.py",
+   "role": "supporting",
+   "sha256": "8c145afde694a7aa88d3210266a3902ee65565af27ab10db8548dc4344326090"
+  },
+  {
+   "bytes": 3134,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+   "role": "supporting",
+   "sha256": "694877ca0439d695fbca0542b2e91b883a032b2df46ae1a9e85a777fb926076f"
+  },
+  {
+   "bytes": 4430,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+   "role": "supporting",
+   "sha256": "80dce69401105c8b4f73bb963a6b6fe55d9f8c143d1f71573973838965cd466d"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0155",
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/foundry/provenance.py",
+   "consumer": "command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+   "executed": true,
+   "exit_code": 0,
+   "read_ok": true
+  },
+  {
+   "artifact_path": "tools/foundry/provenance.py",
+   "consumer": "command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+   "executed": true,
+   "exit_code": 0,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0155/probe1-refetch.raw.json",
+   "claim": "Re-fetch from the provenance record reproduced the recorded hash for 10/10 sampled candidates (methods ['posix-read', 'tar-member']). Computed, not asserted.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "refetch ref=wf-00.json method=posix-read bytes=153 matched=True\nrefetch ref=wf-01.json method=posix-read bytes=154 matched=True\nrefetch ref=wf-02.json method=posix-read bytes=155 matched=True\nrefetch ref=wf-03.json method=posix-read bytes=156 matched=True\nrefetch ref=wf-04.json method=posix-read bytes=157 matched=True\nrefetch ref=wf-05.json method=posix-read bytes=158 matched=True\nrefetch ref=wf-06.json method=posix-read bytes=159 matched=True\nrefetch ref=wf-07.json method=posix-read bytes=160 matched=True\nrefetch ref=wf-08.json method=tar-member bytes=161 matched=True\nrefetch ref=wf-09.json method=tar-member bytes=162 matched=True\nSUCCESS:IMP-0155-probe1 10/10 sampled provenance records re-fetch to recorded hash",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "matched=10 sampled=10",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0155/probe2-mutated-ref.raw.json",
+   "claim": "A mutated-ref record fails re-fetch (HashMismatch on an existing decoy) while the intact record passes. Both-states fired_on_bad=True silent_on_good=True.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "both-states method=posix-read good_ok=True mutated_ref=wf-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nboth-states method=tar-member good_ok=True mutated_ref=wf-tar-DECOY.json fired=True detector=HashMismatch fields_present_on_mutated=True\nSUCCESS:IMP-0155-probe2 mutated-ref fails re-fetch; intact record passes",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "fired_on_bad_state=True silent_on_good_state=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_requirement": {
+  "mutated_ref_both_states": {
+   "controls": [
+    {
+     "detector": "HashMismatch",
+     "fields_present_on_mutated": true,
+     "fired_on_bad_state": true,
+     "good_bytes": 153,
+     "good_ok": true,
+     "good_ref": "wf-00.json",
+     "method": "posix-read",
+     "mutated_ref": "wf-DECOY.json",
+     "report_error": "hash-mismatch",
+     "silent_on_good_state": true
+    },
+    {
+     "detector": "HashMismatch",
+     "fields_present_on_mutated": true,
+     "fired_on_bad_state": true,
+     "good_bytes": 161,
+     "good_ok": true,
+     "good_ref": "wf-08.json",
+     "method": "tar-member",
+     "mutated_ref": "wf-tar-DECOY.json",
+     "report_error": "hash-mismatch",
+     "silent_on_good_state": true
+    }
+   ],
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  "refetch_10_of_10": {
+   "computed": true,
+   "matched": 10,
+   "sampled": 10
+  }
+ },
+ "id": "IMP-0155",
+ "implementation": {
+  "hash_algorithm": "sha256",
+  "module": "tools/foundry/provenance.py",
+  "note": "ref is the fetch key; hash is verified after fetch. A mutated ref cannot succeed by consulting the hash as a locator.",
+  "record_fields": [
+   "source",
+   "ref",
+   "retrieval_time",
+   "hash",
+   "retrieval_method"
+  ],
+  "retrieval_methods_executed": [
+   "posix-read",
+   "tar-member"
+  ]
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0155/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "role": "refetch-10-of-10"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "role": "mutated-ref-both-states"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "posix-read ref mutated to wf-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+   "fired_on_bad_state": true,
+   "id": "mutated-ref-posix-read",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "tar-member ref mutated to wf-tar-DECOY.json; HashMismatch fires; intact record still re-fetches.",
+   "fired_on_bad_state": true,
+   "id": "mutated-ref-tar-member",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_path": "command-center/receipts/IMP-0155.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0154 append-only candidate registry is not delivered on this worktree; provenance attaches to a candidate wrapper and does not invent that registry.",
+   "settling_experiment": "Bind capture() to IMP-0154 import observations once that unit is live.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Named probe2 is mechanically independent of probe1: it mutates only ref on an otherwise complete record and requires HashMismatch, while probe1 samples 10 intact re-fetches.",
+  "reviewer_id": "IMP-0155-probe2-mutated-ref",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0155",
+ "spec_anchor": "_USER-PROMPTS.md:11152-11170 (Workflow Foundry required production behavior)",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe1_refetch.py",
+   "id": "t1-refetch-10-of-10",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0155/probe2_mutated_ref.py",
+   "id": "t2-mutated-ref-both-states",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:27Z",
+  "started_at": "2026-08-25T00:57:27Z"
+ },
+ "title": "Implement the provenance record: source, ref, retrieval time, hash, retrieval method",
+ "unit_id": "IMP-0155"
+}

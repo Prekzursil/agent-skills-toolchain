@@ -1,0 +1,319 @@
+{
+  "family": "generative-100-idea",
+  "members": [
+    {
+      "id": "C-G26-100-idea-brainstorm",
+      "kind": "council_preset_delta",
+      "name": "100-idea brainstorm",
+      "family": "generative-100-idea",
+      "base_spec_ref": "councilspec.v2.generative-base",
+      "base_version": "2.0.0",
+      "supersedes_or_extends": [
+        {
+          "relation": "extends",
+          "source": "CNL-0042 names P26 brainstorming-swarm; C-G26 is the catalog binding without a post-dedup quota",
+          "c_id": "C-G26"
+        },
+        {
+          "relation": "extends",
+          "source": "CNL-0002 names catalogue preset C-M01 as a 20-key surface",
+          "c_id": "C-M01"
+        }
+      ],
+      "protocol_bindings": [
+        {
+          "name": "brainstorming-swarm",
+          "round_kind": "generation",
+          "order": 1,
+          "protocol_id": "P26"
+        },
+        {
+          "name": "six-hats-rotation",
+          "round_kind": "coverage",
+          "order": 2,
+          "protocol_id": "P30"
+        }
+      ],
+      "roster": [
+        {
+          "role": "SwarmGenerator",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit mechanism-tagged ideas"
+        },
+        {
+          "role": "Analogist",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit cross-domain analogs"
+        },
+        {
+          "role": "Combiner",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit morphological combinations"
+        },
+        {
+          "role": "DistinctnessAuditor",
+          "generation_ok": false,
+          "critique_ok": true,
+          "may_drop_idea": true,
+          "obligation": "drop only canonical or high-jaccard duplicates"
+        },
+        {
+          "role": "CoverageMapper",
+          "generation_ok": false,
+          "critique_ok": true,
+          "may_drop_idea": false,
+          "obligation": "tag coverage holes; cannot veto"
+        },
+        {
+          "role": "FeasibilityAnnotator",
+          "generation_ok": false,
+          "critique_ok": true,
+          "may_drop_idea": false,
+          "obligation": "score feasibility; cannot drop"
+        }
+      ],
+      "voting": {
+        "method": "keep-all-that-pass-distinctness",
+        "quorum": 3,
+        "prune_on": "distinctness_fail_only"
+      },
+      "stopping": {
+        "expression": "unique_ideas >= 100 AND (saturated OR completeness_score >= 0.90)",
+        "unique_ideas_source": "post_dedup",
+        "unique_ideas_target": 100,
+        "feasibility_in_stop": false,
+        "min_rounds": 4,
+        "max_rounds": 24,
+        "completeness_floor": 0.9,
+        "allow_raw_count_stop": false
+      },
+      "consensus": {
+        "reducer": "shared-completion-predicate",
+        "local_completion_forbidden": true
+      },
+      "audit": {
+        "persist_transcript": true,
+        "hash_inputs": true,
+        "idea_ledger": "append_only"
+      },
+      "anti_failure": {
+        "on_split": "surface-disagreement",
+        "no_silent_average": true,
+        "critique_cannot_seat_in_generation": true
+      },
+      "targets": {
+        "unique_ideas": 100,
+        "count_signal": "canonical_mechanism_plus_jaccard"
+      },
+      "weighting": {
+        "novelty": 0.85,
+        "feasibility": 0.15
+      },
+      "generation_critique_split": {
+        "leak_policy": "reject-seating",
+        "generation_round_roles": [
+          "SwarmGenerator",
+          "Analogist",
+          "Combiner"
+        ],
+        "critique_round_roles": [
+          "DistinctnessAuditor",
+          "CoverageMapper",
+          "FeasibilityAnnotator"
+        ]
+      },
+      "distinctness_gate": {
+        "signals": [
+          "canonical_mechanism",
+          "token_jaccard"
+        ],
+        "jaccard_threshold": 0.85,
+        "canonical_match_is_duplicate": true,
+        "accept_rule": "distinctness_pass",
+        "novelty_floor": 0.0
+      },
+      "editable_dials": [
+        "stopping.unique_ideas_target",
+        "stopping.max_rounds",
+        "weighting.novelty",
+        "weighting.feasibility"
+      ],
+      "default_binding": {
+        "task_class": "quantity-first-generation",
+        "ranking_key": [
+          "coverage_gap",
+          "distinctness"
+        ]
+      }
+    },
+    {
+      "id": "C-G29-innovation-moonshot",
+      "kind": "council_preset_delta",
+      "name": "innovation moonshot",
+      "family": "generative-100-idea",
+      "base_spec_ref": "councilspec.v2.generative-base",
+      "base_version": "2.0.0",
+      "supersedes_or_extends": [
+        {
+          "relation": "extends",
+          "source": "CNL-0042 names P29 triz-contradiction; C-G29 is the catalog binding without a novelty floor",
+          "c_id": "C-G29"
+        },
+        {
+          "relation": "extends",
+          "source": "CNL-0042 names P31 constraint-relaxation as GENERATIVE",
+          "c_id": "C-G31"
+        },
+        {
+          "relation": "extends",
+          "source": "CNL-0002 names catalogue preset C-M01 as a 20-key surface",
+          "c_id": "C-M01"
+        }
+      ],
+      "protocol_bindings": [
+        {
+          "name": "triz-contradiction",
+          "round_kind": "contradiction",
+          "order": 1,
+          "protocol_id": "P29"
+        },
+        {
+          "name": "constraint-relaxation",
+          "round_kind": "relaxation",
+          "order": 2,
+          "protocol_id": "P31"
+        },
+        {
+          "name": "counterfactual-council",
+          "round_kind": "counterfactual",
+          "order": 3,
+          "protocol_id": "P32"
+        }
+      ],
+      "roster": [
+        {
+          "role": "WildInventor",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit high-novelty mechanisms"
+        },
+        {
+          "role": "ContradictionSolver",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit TRIZ contradiction resolutions"
+        },
+        {
+          "role": "ConstraintRelaxes",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit constraint-dropped variants"
+        },
+        {
+          "role": "Counterfactualist",
+          "generation_ok": true,
+          "critique_ok": false,
+          "may_drop_idea": false,
+          "obligation": "emit counterfactual mechanisms"
+        },
+        {
+          "role": "NoveltyScorer",
+          "generation_ok": false,
+          "critique_ok": true,
+          "may_drop_idea": true,
+          "obligation": "drop only below novelty_floor"
+        },
+        {
+          "role": "FeasibilityAnnotator",
+          "generation_ok": false,
+          "critique_ok": true,
+          "may_drop_idea": false,
+          "obligation": "score feasibility as ranking tie-break; cannot drop"
+        }
+      ],
+      "voting": {
+        "method": "novelty-lexicographic",
+        "quorum": 4,
+        "prune_on": "distinctness_fail_or_novelty_below_floor"
+      },
+      "stopping": {
+        "expression": "unique_ideas >= 100 AND novelty_median >= 0.80",
+        "unique_ideas_source": "post_dedup",
+        "unique_ideas_target": 100,
+        "feasibility_in_stop": false,
+        "min_rounds": 6,
+        "max_rounds": 30,
+        "novelty_median_floor": 0.8,
+        "allow_raw_count_stop": false
+      },
+      "consensus": {
+        "reducer": "shared-completion-predicate",
+        "local_completion_forbidden": true
+      },
+      "audit": {
+        "persist_transcript": true,
+        "hash_inputs": true,
+        "idea_ledger": "append_only"
+      },
+      "anti_failure": {
+        "on_split": "surface-disagreement",
+        "no_silent_average": true,
+        "critique_cannot_seat_in_generation": true
+      },
+      "targets": {
+        "unique_ideas": 100,
+        "count_signal": "canonical_mechanism_plus_jaccard"
+      },
+      "weighting": {
+        "novelty": 0.95,
+        "feasibility": 0.05
+      },
+      "generation_critique_split": {
+        "leak_policy": "reject-seating",
+        "generation_round_roles": [
+          "WildInventor",
+          "ContradictionSolver",
+          "ConstraintRelaxes",
+          "Counterfactualist"
+        ],
+        "critique_round_roles": [
+          "NoveltyScorer",
+          "FeasibilityAnnotator"
+        ]
+      },
+      "distinctness_gate": {
+        "signals": [
+          "canonical_mechanism",
+          "token_jaccard"
+        ],
+        "jaccard_threshold": 0.85,
+        "canonical_match_is_duplicate": true,
+        "accept_rule": "distinctness_pass AND novelty_score >= novelty_floor",
+        "novelty_floor": 0.7
+      },
+      "editable_dials": [
+        "stopping.unique_ideas_target",
+        "stopping.max_rounds",
+        "weighting.novelty",
+        "weighting.feasibility",
+        "distinctness_gate.novelty_floor"
+      ],
+      "default_binding": {
+        "task_class": "novelty-first-generation",
+        "ranking_key": [
+          "novelty_score",
+          "feasibility_score"
+        ]
+      }
+    }
+  ]
+}

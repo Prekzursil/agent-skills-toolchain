@@ -1,0 +1,187 @@
+{
+ "artifacts": [
+  {
+   "bytes": 9078,
+   "exists": true,
+   "path": "command-center/receipts/IMP-0421.json",
+   "role": "primary",
+   "sha256": "e84000936fc95fa38af3cb665d7b3da73ccdf8e0e3b2ca37c4d8785b22d96d8e"
+  },
+  {
+   "bytes": 10274,
+   "exists": true,
+   "path": "command-center/adapters/codex.py",
+   "role": "supporting",
+   "sha256": "3187cd4915bb294b02c6647d899538104ab8bcd05f0ed6b69adeaf5f314aeeec"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SENTINEL:IMP-0421:CODEX-ADAPTER-BLOCKING",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0421.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "notes": "measure runs after this emitter writes the artifact",
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/adapters/codex.py",
+   "claim": "A recorded dispatch puts the prompt file path on argv, not the prompt body, and AND-gates SUCCESS on exit 0 plus a non-empty parsed output-last-message file.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "CodexAdapter.dispatch via fake_codex.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"and_gate\": true, \"exit_code\": 0, \"output_bytes\": 336, \"prompt_file\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.prompt.txt\"}",
+     "role": "source"
+    },
+    {
+     "command": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.output-last-message.txt",
+     "exit_code": 0,
+     "method": "file-read",
+     "raw_output": "{\"echo\": \"IMP-0421 recorded invocation; prompt body must not appear on argv\", \"ok\": true, \"prompt_bytes\": 65, \"prompt_file\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.prompt.txt\", \"prompt_sha256\": \"d86cf27299ca62df8546a04cd7a1a8aa24f34008c52ebde044bbe3e82dda50e5\", \"vendor\": \"fake-codex\"}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0421/probe1_and_gate.py",
+   "claim": "Exit 0 with a missing or empty last-message file is severed-stream, not SUCCESS.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0421/probe1_and_gate.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"empty_class\": \"severed-stream\", \"empty_state\": \"SEVERED\", \"good_class\": null, \"good_parsed\": {\"ok\": true, \"probe\": \"good\"}, \"good_state\": \"SUCCESS\", \"missing_class\": \"severed-stream\", \"missing_error\": \"missing-output-last-message\", \"missing_state\": \"SEVERED\", \"prompt_body_on_argv_missing\": false, \"prompt_file_on_argv_missing\": true, \"whitespace_class\": \"severed-stream\", \"whitespace_state\": \"SEVERED\"}\nmissing_severed=True\nmissing_class=True\nmissing_not_success=True\nempty_severed=True\nempty_class=True\nwhitespace_severed=True\ngood_success=True\ngood_class_none=True\ngood_parsed_ok=True\nstdout_not_rescued=True\nprompt_file_on_argv=True\nprompt_body_not_on_argv=True\nignore_user_config=True\ndetector_control_naive_would_pass_missing=True\nboth_states_silent_on_good=True\nSUCCESS:IMP-0421-probe1 AND-gate severed-stream vs success",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0421/probe2_detached.py",
+   "claim": "Any attempt to background raises at the API boundary; _spawn uses subprocess.run and never Popen.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0421/probe2_detached.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"argv_has_background\": false, \"background_error\": \"background=True refused at API boundary; a detached result is unreachable by the fan-in barrier\", \"good_state\": \"SUCCESS\", \"ignore_user_config\": true, \"popen_in_module\": false, \"prompt_body_on_argv\": false, \"prompt_file_on_argv\": true, \"spawn_ast\": {\"found\": true, \"shell_true\": false, \"uses_popen\": false, \"uses_run\": true}, \"spy_calls_after_refused\": 0}\nbackground_raises=True\ndetached_raises=True\nflag_raises=True\nwin_detached_raises=True\nno_spawn_on_refuse=True\ngood_success=True\nno_background_on_argv=True\nprompt_file_on_argv=True\nprompt_body_not_on_argv=True\nignore_user_config=True\noutput_flag_present=True\nspawn_found=True\nspawn_uses_run=True\nspawn_no_popen=True\nspawn_no_shell=True\nmodule_no_popen=True\nspy_ran_once_on_good=True\nSUCCESS:IMP-0421-probe2 detached invocation raises at API boundary",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0421",
+ "implementation": {
+  "adapter_bytes": 10274,
+  "adapter_path": "command-center/adapters/codex.py",
+  "adapter_sha256": "3187cd4915bb294b02c6647d899538104ab8bcd05f0ed6b69adeaf5f314aeeec",
+  "and_gate": "exit-0 AND non-empty parsed output-last-message",
+  "blocking": true,
+  "fake_cli": "command-center/p2-wave/probes/IMP-0421/fake_codex.py",
+  "ignore_user_config": true,
+  "output_last_message": true,
+  "retry_policy": "max 1 retry ONLY on win-arg-limit, re-invoked with --ignore-user-config and file transport; all other failures escalate immediately",
+  "transport": "prompt-by-file"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0421/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "description": "exit 0 with missing last-message file classifies severed-stream, not SUCCESS; a [codex] stdout stream does not rescue it",
+   "fired_on_bad_state": true,
+   "id": "exit0-missing-output",
+   "kind": "and-gate",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "background=True / --background / DETACHED_PROCESS raise DetachedInvocationError before spawn",
+   "fired_on_bad_state": true,
+   "id": "background-kwarg",
+   "kind": "api-boundary",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0421: Codex adapter is blocking, prompt-by-file, AND-gated. Live named probes exit 0. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SENTINEL:IMP-0421:CODEX-ADAPTER-BLOCKING",
+ "output_path": "command-center/receipts/IMP-0421.json",
+ "output_schema": "command-center/schema/work-result.schema.json",
+ "question_or_target": "Implement the Codex adapter: blocking foreground invocation, prompt delivered by FILE not inline, --ignore-user-config, and an explicit output-last-message file. Exact target: a work-unit dispatch must be structurally unable to run detached, because a detached result is unreachable by the fan-in barrier.",
+ "recorded_invocation": {
+  "and_gate": true,
+  "argv": [
+   "/usr/bin/python3",
+   "-B",
+   "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/fake_codex.py",
+   "exec",
+   "--ignore-user-config",
+   "--output-last-message",
+   "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.output-last-message.txt",
+   "--prompt-file",
+   "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.prompt.txt"
+  ],
+  "classification": null,
+  "exit_code": 0,
+  "ignore_user_config": true,
+  "leaks": [],
+  "output_bytes": 336,
+  "output_last_message_file": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.output-last-message.txt",
+  "parsed": {
+   "echo": "IMP-0421 recorded invocation; prompt body must not appear on argv",
+   "ok": true,
+   "prompt_bytes": 65,
+   "prompt_file": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.prompt.txt",
+   "prompt_sha256": "d86cf27299ca62df8546a04cd7a1a8aa24f34008c52ebde044bbe3e82dda50e5",
+   "vendor": "fake-codex"
+  },
+  "parsed_ok": true,
+  "prompt_body_on_argv": false,
+  "prompt_file": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0421/_recorded/IMP-0421.prompt.txt",
+  "prompt_file_on_argv": true,
+  "state": "SUCCESS"
+ },
+ "registered": true,
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Named probe1 is the three-signal AND-gate (exit, file, parse). Named probe2 is the detached-invocation API-boundary test. Catalog independent-codex-reviewer is a separate scoring pass.",
+  "reviewer_id": "IMP-0421-probe1-and-gate",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0421:CODEX-ADAPTER-BLOCKING",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0421",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0421/probe1_and_gate.py",
+   "exit_code": 0,
+   "id": "probe1_and_gate",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0421/probe2_detached.py",
+   "exit_code": 0,
+   "id": "probe2_detached",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:55:12Z"
+ },
+ "title": "OpenAI-side work-unit adapter with prompt-by-file transport",
+ "unit_id": "IMP-0421"
+}

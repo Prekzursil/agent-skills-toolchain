@@ -1,0 +1,97 @@
+{
+  "artifacts": [
+    {
+      "bytes": 50231,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/BLD-0010.json",
+      "role": "primary",
+      "sha256": "300c910a1fa2c6d37e0ba6189b0626841c421cc57295d7f641dfa8682258e7ae"
+    },
+    {
+      "bytes": 6064,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/BLD-0010/probe1-environment-smoke.raw.txt",
+      "role": "supporting",
+      "sha256": "bd0957262a34bcb13d8b0818c4393d8fdb2ebeac11774ba8b2f8d2301dec63ed"
+    },
+    {
+      "bytes": 6545,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/BLD-0010/probe2-site-census.raw.txt",
+      "role": "supporting",
+      "sha256": "91e20623c1a7847b5a218e12f122aab2fcfc840479a590243597b23130c2d449"
+    },
+    {
+      "bytes": 6940,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/BLD-0010/runtime-measurements.json",
+      "role": "supporting",
+      "sha256": "698c2738b6286db539f35ab00f329e85dc43e6d5b18cc08d77c728ef94b994f6"
+    },
+    {
+      "bytes": 2811403,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/BLD-0010/site-inventory.json",
+      "role": "supporting",
+      "sha256": "177d374bb008941e1399ddd0c6c99c3807cc70e2a707fa282050da694b0dcc62"
+    },
+    {
+      "bytes": 490,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/BLD-0010/negative-naive-datetime.raw.txt",
+      "role": "control",
+      "sha256": "0d1539a173bc43cbfc6d02212ec09f3bfae0ba54dc32dcfccbddd64907974e2a"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:ADV-0002-partial-035 delivered",
+  "defects": [
+    {
+      "id": "BLD-0010-D1",
+      "severity": "P1",
+      "status": "open",
+      "summary": "tools/command-center/close.py:262 prints a dynamic exception; a Japanese missing catalog path raises UnicodeEncodeError on a strict cp1252 stream. validate.py has the same dynamic-path class."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/BLD-0010/site-inventory.json",
+      "consumer": "BLD-0010 site-inventory reader",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "inspect command-center/p2-wave/probes/BLD-0010/site-inventory.json",
+        "exit_code": 0,
+        "fingerprint": "59309ed4ae720138c40eafd4698f03de734e938ddf0672b0349b6d7da7137128",
+        "method": "file-read",
+        "raw_output": "files_read=683\nsites_shipped_runtime=94\nrisks=29\nscope_roots_absent=['platform', 'scripts', 'ci']\n",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/BLD-0010/probe1-environment-smoke.raw.txt",
+      "claim": "Under requested codepage cp1252, locale fr_FR.UTF-8, and TZ America/New_York with PYTHONIOENCODING unset, the four catalog tests were executed live: DST fall-back ordered, naive mutant RED, locale-sort stable with live Swedish collation control, and shipped CLI error rendering raises UnicodeEncodeError on a Japanese missing path.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 -B command-center/p2-wave/probes/BLD-0010/probe1_environment.py",
+          "exit_code": 0,
+          "fingerprint": "bd0957262a34bcb13d8b0818c4393d8fdb2ebeac11774ba8b2f8d2301dec63ed",
+          "method": "test-run",
+          "raw_output": "NAMED PROBE 1: ENVIRONMENT BEHAVIOURAL SMOKE MATRIX\nEVIDENCE_REQUIREMENT=Report the exact environment triple (codepage, locale, TZ) for every run, and the console encoding actually in effect - not the one requested.\nTEST_REQUIREMENT_1=cp1252 console with PYTHONIOENCODING unset: no shipped CLI banner or error message may raise UnicodeEncodeError.\nTEST_REQUIREMENT_2=DST fall-back: two ledger entries written at the repeated 01:30 local hour must remain deterministically ordered.\nTEST_REQUIREMENT_3=Negative control: introducing a naive datetime.now() into a timestamp path must make the suite RED - if it stays green the suite does not test this.\nTEST_REQUIREMENT_4=Locale sort: a list sorted for display must be stable under a non-English collation or must declare an explicit locale-independent key.\nRUN-ENV|id=probe1-runtime-matrix|codepage=cp1252|locale=fr_FR.UTF-8|TZ=America/New_York|os_codepage=N/A (Linux has no Windows console codepage API)|locale_charmap=UTF-8|console_stdout=utf-8|console_stderr=utf-8|PYTHONIOENCODING=<unset>\nTEST|T-ENVIRONMENT-TRIPLE|result=PASS|assertions=6|detail=RUN-ENV|id=probe1-runtime-matrix|codepage=cp1252|locale=fr_FR.UTF-8|TZ=America/New_York|os_codepage=N/A (Linux has no Windows console codepage API)|locale_charmap=UTF-8|console_stdout=utf-8|console_stderr=utf-8|PYTHONIOENCODING=<unset>\nTEST|T-CP1252-CONSOLE|result=FAIL|assertions=5|detail=ascii_unicode_error=False; non_cp1252_path_unicode_error=True\nTEST|T-DST-FALL-BACK|result=PASS|assertions=5|detail={\"aware_timestamps\": true, \"disk_append_order\": true, \"expected_utc\": [\"2024-11-03T05:30:00+00:00\", \"2024-11-03T06:30:00+00:00\"], \"ledger_seq\": [1, 2], \"ledger_timestamps\": [\"2024-11-03T05:30:00+00:00\", \"2024-11-03T06:30:00+00:00\"], \"local_fold\": [0, 1], \"local_wall\": [\"2024-11-03T01:30:00-04:00\", \"2024-11-03T01:30:00-05:00\"], \"passed\": true, \"replay_order\": true, \"replay_text\": [\"entry-1\", \"entry-2\"], \"sequence_order\": true, \"strict_timestamp_order\": true}\nTEST|T-DST-SPRING-FORWARD-SUPPORTING|result=PASS|assertions=5|detail={\"aware_timestamps\": true, \"disk_append_order\": true, \"expected_utc\": [\"2024-03-10T06:30:00+00:00\", \"2024-03-10T07:30:00+00:00\"], \"ledger_seq\": [1, 2], \"ledger_timestamps\": [\"2024-03-10T06:30:00+00:00\", \"2024-03-10T07:30:00+00:00\"], \"local_fold\": [0, 0], \"local_wall\": [\"2024-03-10T01:30:00-05:00\", \"2024-03-10T03:30:00-04:00\"], \"passed\": true, \"replay_order\": true, \"replay_text\": [\"entry-1\", \"entry-2\"], \"sequence_order\": true, \"strict_timestamp_order\": true}\nTEST|T-NAIVE-DATETIME-MUTANT|result=PASS|assertions=3|detail=red=True; aware=False; strict=False\nTEST|T-LOCALE-SORT|result=PASS|assertions=3|detail=python_stable=True; non_english_control=True\nTEST|T-REAL-WINDOWS-CP1252|result=NOT-RUN|assertions=1|detail=This Linux worker can set an actual Python cp1252 TextIO stream, but cannot claim a Windows console codepage or PowerShell culture run.\nCP1252-ASCII-CONTROL-BEGIN\nRUN-ENV|id=probe1-runtime-matrix|codepage=cp1252|locale=fr_FR.UTF-8|TZ=America/New_York|os_codepage=N/A (Linux has no Windows console codepage API)|locale_charmap=UTF-8|console_stdout=utf-8|console_stderr=utf-8|PYTHONIOENCODING=<unset>\nFAILED:cc-close cannot read /tmp/BLD-0010-ascii-missing.json: [Errno 2] No such file or directory: '/tmp/BLD-0010-ascii-missing.json'\nCP1252-ASCII-CONTROL-EXIT=1\nCP1252-ASCII-CONTROL-END\nCP1252-NONASCII-PATH-BEGIN\nRUN-ENV|id=probe1-runtime-matrix|codepage=cp1252|locale=fr_FR.UTF-8|TZ=America/New_York|os_codepage=N/A (Linux has no Windows console codepage API)|locale_charmap=UTF-8|console_stdout=utf-8|console_stderr=utf-8|PYTHONIOENCODING=<unset>\nbals,\n  File \"/usr/lib/python3.10/runpy.py\", line 86, in _run_code\n    exec(code, run_globals)\n  File \"/opt/p2/ast-integrate/tools/command-center/close.py\", line 314, in <module>\n    raise SystemExit(main())\n  File \"/opt/p2/ast-integrate/tools/command-center/close.py\", line 262, in main\n    print(f\"FAILED:cc-close cannot read {catalog_file}: {exc}\")\n  File \"/usr/lib/python3.10/encodings/cp1252.py\", line 19, in encode\n    return codecs.charmap_encode(input,self.errors,encoding_table)[0]\nUnicodeEncodeError: 'charmap' codec can't encode characters in position 42-44: character maps to <undefined>\nCP1252-NONASCII-PATH-EXIT=1\nCP1252-NONASCII-PATH-UNICODEENCODEERROR=true\nCP1252-NONASCII-PATH-END\nDST-FALL-BACK={\"label\": \"America/New_York fall-back 2024-11-03 repeated 01:30\", \"aware_timestamps\": true, \"disk_append_order\": true, \"sequence_order\": true, \"strict_timestamp_order\": true, \"replay_order\": true, \"replay_text\": [\"entry-1\", \"entry-2\"], \"ledger_seq\": [1, 2], \"ledger_timestamps\": [\"2024-11-03T05:30:00+00:00\", \"2024-11-03T06:30:00+00:00\"], \"local_wall\": [\"2024-11-03T01:30:00-04:00\", \"2024-11-03T01:30:00-05:00\"], \"local_fold\": [0, 1], \"expected_utc\": [\"2024-11-03T05:30:00+00:00\", \"2024-11-03T06:30:00+00:00\"], \"passed\": true, \"ledger\": \"command-center/p2-wave/probes/BLD-0010/dst-fallback-ledger.jsonl\"}\nDST-SPRING-FORWARD={\"label\": \"America/New_York spring-forward 2024-03-10 01:30 to 03:30\", \"aware_timestamps\": true, \"disk_append_order\": true, \"sequence_order\": true, \"strict_timestamp_order\": true, \"replay_order\": true, \"replay_text\": [\"entry-1\", \"entry-2\"], \"ledger_seq\": [1, 2], \"ledger_timestamps\": [\"2024-03-10T06:30:00+00:00\", \"2024-03-10T07:30:00+00:00\"], \"local_wall\": [\"2024-03-10T01:30:00-05:00\", \"2024-03-10T03:30:00-04:00\"], \"local_fold\": [0, 0], \"expected_utc\": [\"2024-03-10T06:30:00+00:00\", \"2024-03-10T07:30:00+00:00\"], \"passed\": true, \"ledger\": \"command-center/p2-wave/probes/BLD-0010/dst-spring-forward-ledger.jsonl\"}\nNAIVE-MUTANT-RED=true\nLOCALE-SORT={\"fixture\": [\"z\", \"a\", \"\u00e4\", \"\u00e5\", \"\u00f6\"], \"python_sorted\": [\"a\", \"z\", \"\u00e4\", \"\u00e5\", \"\u00f6\"], \"sv_SE_strxfrm_sorted\": [\"a\", \"z\", \"\u00e5\", \"\u00e4\", \"\u00f6\"], \"python_default_stable_across_locale\": true, \"non_english_collation_control_active\": true, \"requirement_passed\": true}\nMEASUREMENT_PATH=command-center/p2-wave/probes/BLD-0010/runtime-measurements.json\nMEASUREMENT_SHA256=698c2738b6286db539f35ab00f329e85dc43e6d5b18cc08d77c728ef94b994f6\nPROBE-1-COMPLETE:BLD-0010\nSUCCESS:BLD-0010-probe1\n",
+          "role": "source"
+        },
+        {
+          "command": "python3 -B command-center/p2-wave/probes/BLD-0010/probe2_site_census.py",
+          "exit_code": 0,
+          "fingerprint": "91e20623c1a7847b5a218e12f122aab2fcfc840479a590243597b23130c2d449",
+          "method": "static-analysis",
+          "raw_output": "NAMED PROBE 2: EXHAUSTIVE SYNTAX-SITE CENSUS\nEVIDENCE_REQUIREMENT=Report the exact environment triple (cod

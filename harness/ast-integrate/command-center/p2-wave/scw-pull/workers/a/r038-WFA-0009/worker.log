@@ -1,0 +1,32 @@
+I'll start from the existing WFA-0009 probe tree, read the return artifact if it's there, and only measure this unit against G-1.The probe tree exists but has no `SUBAGENT-RETURN.json` yet. Next I’ll read the handoff, the measure script, and a delivered unit so I know the exact G-1 contract.Cloud-ok already parked this as BLOCKED. I'll read the catalog contract, `ready_units`, and a delivered WFA unit so I know what honest SUCCESS actually requires.The catalog work is two-way reconciliation: provenance existence plus an inverse disk sweep. I’ll inspect the current receipt, find the registry on this box, and look for any existing probe scripts.The authoritative Windows registry is not mounted. Next I’ll inspect the AUD-0005 toolchain copies for 284 rows and provenance paths I can run honestly.The 284 IDs exist; declared provenance still does not. I’ll keep hunting for the original registry and inspect WFA-0001 plus receipt schemas so I don’t invent paths.I’ll extract the original probe A/B mechanisms from the receipt and a SUCCESS packer so the restored probes match the contract, not a rewrite.The 261589-byte registry is not on this tree, and two earlier measurements already treated that as the blocker. I’ll restore the named probes, remesure honestly, and park if the same missing-registry reason still holds.Named probes re-run and the mutants go red. Next I’ll pack an honest BLOCKED receipt from those live raws — the 284 provenance rows are still NOT-CHECKED.**FAILED:WFA-0009** — `predicate:self-declared:BLOCKED`
+
+G-1 did not go green. `python command-center/p2-wave/_measure_one_delivered.py WFA-0009` printed:
+
+`FAILED:delivered WFA-0009 predicate:self-declared:BLOCKED`
+
+The unit is **parked**. Two independent measurements share the same structural reason: the authoritative 261589-byte `08-WORKFLOW-CANDIDATE-REGISTRY.json` (284 rows with `candidates[].provenance`) is not on this Linux worktree, so all 284 provenance rows stay `NOT-CHECKED`. Inventing paths from the name/section index would have been a third pass around the same hole.
+
+### What was remesured
+
+Named probes were missing (cloud-ok already spent two file-only strikes). They were restored from the embedded mechanism; the existing cloud-ok tree was not thrown away.
+
+| Probe | Exit | Result |
+|---|---|---|
+| `probe_a_provenance.py` | 0 | 284 rows, `not_checked_count=284`, `stale_provenance_count=NOT-COMPUTABLE` |
+| `probe_b_inverse.py` | 0 | both directions: registry 284, disk 2, intersection 1, registry−disk 283, disk−registry 1 |
+| empty-as-hit mutant | 1 | `EXPECTED-RED` |
+| one-direction mutant | 1 | `EXPECTED-RED` |
+
+The preserved 284-row index at `command-center/p2-wave/probes/AUD-0005/_work/toolchain/command-center/_wfa2_entries.json` still matches sha256 `0f145965291ad77788fab7eff009b1a934ed599d9685862d7e7cd84533dcf5ac` and still has only `id` / `name` / `section` — no provenance field.
+
+### Honest artifact
+
+`command-center/wfa/WFA-0009-registry-disk-reconciliation.json` is **BLOCKED**, not SUCCESS. Elided digest matches (`0c5ab0aee2c816056937f4da01170f4393cda680a0d8a3f257b5003a0ef463ce`). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with live LF sha256 `7e6143570eda592d88fae46091da2320107f8336ca6af3d043deb232d81d8fff`.
+
+`ready_units.artifact_delivered` is `(False, self-declared:BLOCKED)`. Cloud-ok `ok=true` is not this delivery.
+
+### Required fix
+
+Mount the 261589-byte registry (or a Linux bind of it) and rerun `probe_a_provenance.py` until `not_checked_count=0`. Do not invent provenance from `_wfa2_entries.json`. Do not treat `probes/AUD-0005/_work/toolchain` as live catalog roots. Do not hand-flip `state=SUCCESS`.
+
+No git writes. No `unit_manifest.py --write`. No wave relaunch. Return file: `command-center/p2-wave/probes/WFA-0009/SUBAGENT-RETURN.json`.

@@ -1,0 +1,204 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/p2/cnl-0113/council-preset.schema.json",
+  "title": "CNL-0113 jury-family evidence and benchmark-results presets (unit-local contract)",
+  "$comment": "Catalog output_schema cites command-center/schema/council-preset.schema.json. On this tree that file is a generated shim ($ref to platform/schema/artifact-class-profiles.schema.json#/$defs/council-preset) and does not define $defs.preset. This unit-local schema is the executable Draft 2020-12 contract for C-J01/C-J02. CNL-0113 does not rewrite the shared shim.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "kind",
+    "question",
+    "answer",
+    "presets",
+    "nearest_sibling",
+    "instantiation",
+    "schema_validation",
+    "negative_control",
+    "reviewer",
+    "tests"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0113" },
+    "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0113" },
+    "kind": { "type": "string", "const": "council-preset-family" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "library_status": { "type": "object" },
+    "preset_type": { "type": "object" },
+    "schema_binding": { "type": "object" },
+    "presets": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "$ref": "#/$defs/preset" }
+    },
+    "nearest_sibling": {
+      "type": "object",
+      "required": ["subject_id", "sibling_id", "sibling_name", "distance", "differing_axes"],
+      "properties": {
+        "subject_id": { "type": "string" },
+        "sibling_id": { "type": "string" },
+        "sibling_name": { "type": "string" },
+        "distance": { "type": "integer", "minimum": 1 },
+        "differing_axes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "instantiation": { "type": "object" },
+    "schema_validation": { "type": "object" },
+    "negative_control": { "type": "object" },
+    "reviewer": { "type": "object" },
+    "tests": { "type": "array", "minItems": 4 }
+  },
+  "$defs": {
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "count", "votes", "obligation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "count": { "type": "integer", "minimum": 1 },
+        "votes": { "type": "boolean" },
+        "obligation": { "type": "string", "minLength": 8 }
+      }
+    },
+    "step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "protocol_id", "purpose"],
+      "properties": {
+        "order": { "type": "integer", "minimum": 1 },
+        "protocol_id": { "type": "string", "minLength": 2 },
+        "purpose": { "type": "string", "minLength": 8 }
+      }
+    },
+    "preset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "family",
+        "catalog_c_ids",
+        "base_spec_ref",
+        "delta",
+        "roles",
+        "protocol_schedule",
+        "voting",
+        "stopping",
+        "editable_dials",
+        "default_binding",
+        "anti_failure",
+        "audit",
+        "evidence_contract",
+        "outcome_types",
+        "oracles",
+        "recusal",
+        "version_policy",
+        "metadata"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 2 },
+        "name": { "type": "string", "minLength": 4 },
+        "family": { "type": "string", "minLength": 2 },
+        "catalog_c_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "base_spec_ref": { "type": "string", "minLength": 4 },
+        "delta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["overlays", "must_not_override"],
+          "properties": {
+            "overlays": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 2 }
+            },
+            "must_not_override": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 2 }
+            }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/role" }
+        },
+        "protocol_schedule": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/step" }
+        },
+        "voting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rule", "quorum", "who_votes", "oracle_veto"],
+          "properties": {
+            "rule": { "type": "string", "minLength": 4 },
+            "quorum": { "type": "integer", "minimum": 1 },
+            "who_votes": { "type": "string", "minLength": 2 },
+            "oracle_veto": { "type": ["boolean", "string"] }
+          }
+        },
+        "stopping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["expression", "max_rounds", "on_timeout", "forbid"],
+          "properties": {
+            "expression": { "type": "string", "minLength": 4 },
+            "max_rounds": { "type": "integer", "minimum": 1 },
+            "on_timeout": { "type": "string", "minLength": 2 },
+            "forbid": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        },
+        "editable_dials": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "default_binding": { "type": "object" },
+        "anti_failure": { "type": "object" },
+        "audit": { "type": "object" },
+        "evidence_contract": { "type": "string", "minLength": 16 },
+        "outcome_types": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "oracles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["id", "vetoes", "obligation"],
+            "properties": {
+              "id": { "type": "string" },
+              "vetoes": { "type": "string" },
+              "obligation": { "type": "string" }
+            }
+          }
+        },
+        "recusal": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 4 }
+        },
+        "version_policy": { "type": "object" },
+        "metadata": { "type": "object" }
+      }
+    }
+  }
+}

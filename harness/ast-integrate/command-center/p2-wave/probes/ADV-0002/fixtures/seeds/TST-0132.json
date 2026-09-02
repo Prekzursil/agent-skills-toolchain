@@ -1,0 +1,175 @@
+{
+ "artifacts": [
+  {
+   "bytes": 9526,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/download_client.py",
+   "role": "implementation",
+   "sha256": "b8e6309901ae734e8c5569b35ae207d5848c1ece68b9539c131c19c5332a252d"
+  },
+  {
+   "bytes": 855,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0132/scenario.py",
+   "role": "supporting",
+   "sha256": "b70461bbaa4b45774e026d1ba8531817b2a480caeae309ab1d3be4678d7108c4"
+  },
+  {
+   "bytes": 4613,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0132/loris_fixture.py",
+   "role": "supporting",
+   "sha256": "2923f4511545403022696d273e3c86b2da53e2051c8a5b9ead222ec642bc83f7"
+  },
+  {
+   "bytes": 3870,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0132/probe1_read_timeout_both_states.py",
+   "role": "supporting",
+   "sha256": "a431e6e0c324530e2e6ae49d10812e5ae21aff9173435f878a808d4037000598"
+  },
+  {
+   "bytes": 4631,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0132/probe2_connect_only_negative.py",
+   "role": "supporting",
+   "sha256": "515aca7e555d4c0b42e46068fb3377f0732af74f7716af96a26c2c6e2c3edf5e"
+  }
+ ],
+ "claim_under_test": "A registry download client with a declared read/idle timeout and throughput floor aborts a slow-loris trickle as network-fault within read_timeout + margin, not as generic unit-timeout. The same endpoint at full speed completes. A connect-timeout-only client fails that assertion.",
+ "classification": "network-fault",
+ "completion_sentinel": "SUCCESS:TST-0132",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0132.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0132",
+    "exit_code": 0,
+    "fingerprint": "9210d88ecf52c7a396b55e7ab4a19022",
+    "method": "command",
+    "raw_output": "pending live measure after this write",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/download_client.py:DownloadClient._read_http",
+   "claim": "Against a local registry that accepts immediately then trickles 1 byte / 50ms (\u224820 B/s, below a 400 B/s floor), the production client raises classification=network-fault (kind read-timeout or throughput-floor) with wall-clock elapsed <= declared read_timeout 0.35s + margin 0.90s. The classification is not unit-timeout. The same server serving /fast at full speed returns the expected payload well under the read timeout (both-states).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0132/probe1_read_timeout_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "70abf3d519d8a7a2221abf1229f519cf",
+     "method": "command",
+     "raw_output": "{\"accepted\": 2, \"deadline_s\": 1.25, \"fast\": {\"classification\": null, \"elapsed_s\": 0.0006234769998627598, \"kind\": null, \"message\": \"\", \"ok\": true, \"status\": 200}, \"fast_body_len\": 2070, \"fast_body_ok\": true, \"margin_s\": 0.9, \"read_timeout_s\": 0.35, \"slow\": {\"classification\": \"network-fault\", \"elapsed_s\": 0.20202811800004383, \"kind\": \"throughput-floor\", \"message\": \"throughput 24.8 B/s below floor 400.0 B/s\", \"ok\": false, \"status\": null}, \"slow_body_len\": 0, \"unit_timeout_s\": 5.0}\nSUCCESS:TST-0132-probe1 slow classification=network-fault kind=throughput-floor elapsed=0.202s deadline=1.250s fast_ok=True",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0132/probe2_connect_only_negative.py",
+     "exit_code": 0,
+     "fingerprint": "aa901bcd96bb857f28e5bdbc2ddf99cb",
+     "method": "command",
+     "raw_output": "{\"connect_only_after_close\": {\"classification\": \"network-fault\", \"elapsed_s\": 1.2545683060000101, \"kind\": \"truncated-headers\", \"message\": \"response ended before header terminator\", \"ok\": false, \"status\": null}, \"connect_only_premature\": null, \"connect_only_still_running_at_deadline\": true, \"deadline_s\": 1.25, \"margin_s\": 0.9, \"proper_slow_classification\": \"network-fault\", \"proper_slow_elapsed_s\": 0.20213394100005644, \"proper_slow_kind\": \"throughput-floor\", \"proper_slow_ok\": false, \"read_timeout_s\": 0.35, \"tst0132_assertion_holds_for_connect_only\": false}\nSUCCESS:TST-0132-probe2 connect-only still running at deadline=1.250s; TST-0132 assertion FAILS for that client",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/download_client.py:connect_timeout_only_client",
+   "claim": "A client configured with connect-timeout only (no read timeout, no throughput floor) remains blocked in recv at T = read_timeout + margin on the same slow-loris, so the TST-0132 assertion fails for that client. This proves the test distinguishes read timeout from connect timeout.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0132/probe2_connect_only_negative.py",
+     "exit_code": 0,
+     "fingerprint": "aa901bcd96bb857f28e5bdbc2ddf99cb",
+     "method": "command",
+     "raw_output": "{\"connect_only_after_close\": {\"classification\": \"network-fault\", \"elapsed_s\": 1.2545683060000101, \"kind\": \"truncated-headers\", \"message\": \"response ended before header terminator\", \"ok\": false, \"status\": null}, \"connect_only_premature\": null, \"connect_only_still_running_at_deadline\": true, \"deadline_s\": 1.25, \"margin_s\": 0.9, \"proper_slow_classification\": \"network-fault\", \"proper_slow_elapsed_s\": 0.20213394100005644, \"proper_slow_kind\": \"throughput-floor\", \"proper_slow_ok\": false, \"read_timeout_s\": 0.35, \"tst0132_assertion_holds_for_connect_only\": false}\nSUCCESS:TST-0132-probe2 connect-only still running at deadline=1.250s; TST-0132 assertion FAILS for that client",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0132/probe1_read_timeout_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "70abf3d519d8a7a2221abf1229f519cf",
+     "method": "command",
+     "raw_output": "{\"accepted\": 2, \"deadline_s\": 1.25, \"fast\": {\"classification\": null, \"elapsed_s\": 0.0006234769998627598, \"kind\": null, \"message\": \"\", \"ok\": true, \"status\": 200}, \"fast_body_len\": 2070, \"fast_body_ok\": true, \"margin_s\": 0.9, \"read_timeout_s\": 0.35, \"slow\": {\"classification\": \"network-fault\", \"elapsed_s\": 0.20202811800004383, \"kind\": \"throughput-floor\", \"message\": \"throughput 24.8 B/s below floor 400.0 B/s\", \"ok\": false, \"status\": null}, \"slow_body_len\": 0, \"unit_timeout_s\": 5.0}\nSUCCESS:TST-0132-probe1 slow classification=network-fault kind=throughput-floor elapsed=0.202s deadline=1.250s fast_ok=True",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0132/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "still running at read_timeout+margin",
+   "description": "Client with connect-timeout only must FAIL the read-timeout assertion on an immediately-accepted slow-loris",
+   "fired_on_bad_state": true,
+   "good_state_output": "network-fault within deadline",
+   "id": "connect-timeout-only",
+   "kind": "known-broken-client",
+   "silent_on_good_state": true
+  }
+ ],
+ "not_classification": "unit-timeout",
+ "notes": "G-1 for TST-0132: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write.",
+ "overall_verdict": "PASS",
+ "question": "When the registry accepts the connection then trickles bytes below the throughput floor, does a read/idle timeout fire and classify the unit `network-fault`?",
+ "report_kind": "fault_injection_report",
+ "residual_unknowns": [
+  {
+   "claim": "tools/lib/net-allowlist.mjs is absent from this worktree. TST-0132 exercised the download client against a loopback fixture, not a production registry host allowlist.",
+   "settling_experiment": "TST-0133 hermetic egress audit when net-allowlist exists.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "up to 3 attempts with full-jitter backoff"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "TST-0132-probe2-connect-only-negative",
+  "scope_not_agreement": "Probe 2 does not re-score probe 1's elapsed; it only checks that a connect-timeout-only client fails the same assertion.",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0132",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:TST-0132",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0132/probe1_read_timeout_both_states.py",
+   "id": "probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0132/probe2_connect_only_negative.py",
+   "id": "probe2",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:49:44Z",
+  "started_at": "2026-08-24T18:49:44Z"
+ },
+ "title": "Slow-loris response trips the READ timeout, not only the connect timeout",
+ "unit_id": "TST-0132"
+}

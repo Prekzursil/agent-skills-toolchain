@@ -1,0 +1,27 @@
+# rules/project/release.md
+shared:rules/project/release.md
+repo-unique:rules/project/release.md
+repo-pad:rules/project/release.md:0
+repo-pad:rules/project/release.md:1
+repo-pad:rules/project/release.md:2
+repo-pad:rules/project/release.md:3
+repo-pad:rules/project/release.md:4
+repo-pad:rules/project/release.md:5
+repo-pad:rules/project/release.md:6
+repo-pad:rules/project/release.md:7
+repo-pad:rules/project/release.md:8
+repo-pad:rules/project/release.md:9
+repo-pad:rules/project/release.md:10
+repo-pad:rules/project/release.md:11
+repo-pad:rules/project/release.md:12
+repo-pad:rules/project/release.md:13
+repo-pad:rules/project/release.md:14
+repo-pad:rules/project/release.md:15
+repo-pad:rules/project/release.md:16
+repo-pad:rules/project/release.md:17
+repo-pad:rules/project/release.md:18
+repo-pad:rules/project/release.md:19
+repo-pad:rules/project/release.md:20
+repo-pad:rules/project/release.md:21
+repo-pad:rules/project/release.md:22
+repo-pad:rules/project/release.md:23

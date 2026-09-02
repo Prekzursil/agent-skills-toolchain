@@ -1,0 +1,48 @@
+{
+  "_source_slice_file": "ADV-1.json",
+  "assigned_model_vendor_role": {
+    "model": "opus",
+    "role": "security-threat-modeler",
+    "vendor": "anthropic"
+  },
+  "bucket": "B10",
+  "completion_sentinel": "SUCCESS:ADV-0021 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0021 <reason>.",
+  "dependencies": [
+    "B07",
+    "B06"
+  ],
+  "evidence_requirement": "Probe 1: enumerate data flows and trust boundaries from the code (not the design doc) and populate a STRIDE cell per boundary, marking each mitigated / partially mitigated / unmitigated with a file:line for the control. Probe 2 (mechanically different): for every cell marked mitigated, execute the control's bypass attempt; a mitigation with no executable check is downgraded to unmitigated.",
+  "execution_substrate": "local-serialized",
+  "failure_classification": [
+    "overclaim",
+    "dependency-blocked"
+  ],
+  "id": "ADV-0021",
+  "inputs": [
+    "the install/update/repair/rollback/uninstall command implementations",
+    "the filesystem, registry and process surfaces each command touches",
+    "_USER-PROMPTS.md:10824-10842 (plugin requirements) and the permission model from Phase 4"
+  ],
+  "mechanism": "code-derived (not doc-derived) trust-boundary enumeration with executable verification of each claimed mitigation",
+  "not_a_duplicate_because": "the single structural threat model for the install path; ADV-0022..ADV-0038 each execute ONE concrete attack, and this unit is what tells them where to aim.",
+  "output_path": "command-center/adversarial/ADV-0021-install-path-stride-threat-model.json",
+  "output_schema": "command-center/schema/threat-model.schema.json",
+  "owner_approval_required": false,
+  "phase": "12",
+  "question_or_target": "What are the trust boundaries crossed during install, update, repair, rollback and uninstall, and for each boundary which STRIDE category has no mitigating control?",
+  "retry_policy": "two strikes then pivot (AGENTS.md 4b): after the SECOND failure on the same hypothesis, enumerate >=2 mechanically different attack vectors before any third attempt; consecutive FAILED on the same error fingerprint is the trigger",
+  "reviewer_requirement": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "slice": "ADV-1of2",
+  "spec_anchor": "_USER-PROMPTS.md:11049, 10824-10842",
+  "tests_required": [
+    "every unmitigated cell must be converted into either a named follow-up work unit or an explicitly accepted residual risk with an owner-visible impact statement - an unmitigated cell with neither is a unit failure"
+  ],
+  "timeout_seconds": 5400,
+  "title": "STRIDE threat model of the plugin installation and update path",
+  "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash"
+  ]
+}

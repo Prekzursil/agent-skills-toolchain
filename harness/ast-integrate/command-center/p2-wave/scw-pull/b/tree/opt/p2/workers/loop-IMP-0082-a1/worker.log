@@ -1,0 +1,27 @@
+
+===== launch 2026-08-20T09:00:14Z attempt=1 =====
+I'll start from the existing IMP-0082 probe tree and the unit contract, then implement until the named measure prints SUCCESS:delivered.Next I’ll read the catalog row, measure script, and a delivered IMP unit so this one can match the same contract.The probe tree is missing, so I’ll inspect similar delivered IMP units, marketplace code, and the receipt schema before building it.I’ll inspect receipt packing, schema resolution for compound contracts, and a delivered IMP unit that implemented similar marketplace code.There’s already a `platform/marketplace` tree. I’ll inspect it so IMP-0082 extends that model instead of duplicating it.I have the contract: a publish-time dependency graph with typed edges and an independent cycle oracle. Next I’ll implement the model, tests, probes, and lint hook.Required tests passed. Next I’ll run the named probes, pack the receipt, and measure delivery.The packer found a live receipt contract: artifact roles are closed, and each evidence claim needs both a source and a verifier probe. I’ll match that and repack.`tools/marketplace` already has other modules. I’ll check whether `__init__.py` overwrote their public API.**IMP-0082 is G-1 delivered on this worktree.** `python command-center/p2-wave/_measure_one_delivered.py IMP-0082` printed:
+
+`SUCCESS:delivered IMP-0082 predicate=delivered state=SUCCESS probes=4 raws=4 notes=independent_cycles.py:0,negative_control.py:0,probe_planted_cycle.py:0,run_required_tests.py:0`
+
+The probe tree was absent, so it was built rather than parked.
+
+**What landed**
+- Dependency model at `tools/marketplace/dependency.py`: kinds `required` / `optional` / `peer` / `dev`, version ranges, exact cycle paths, `publish_check()` (publish time, not install `RecursionError`).
+- Schema at `tools/marketplace/schema/dependency.schema.json`.
+- Catalog tests at `tools/marketplace/tests/test_dependency_graph.py` (self-cycle, two-node, long cycle, acyclic diamond, kind classification).
+- Publish/lint hook: `platform/marketplace/mkt/lint.py` MKT-L10 calls `publish_cycle_messages`.
+
+**Two signals**
+1. Detector sequences: `loop→loop`, `left→right→left`, `alpha→bravo→charlie→delta→echo→alpha`; diamond empty.
+2. Independent Tarjan SCC + start-node enumerator over the same required edge list: existence, membership, and canonical cycle set all agree.
+
+Negative control: acyclic diamond is silent; `leaf→root` goes red.
+
+**Receipt / manifest**
+- `command-center/receipts/IMP-0082.json` — `state=SUCCESS`, 35617 bytes
+- Live LF sha256 `fce3617be4e403f366935c6dc20cc5319f95cf3b27f43b8ae562a59b70f44656`
+- Per-unit `command-center/p2-wave/probes/IMP-0082/UNIT-ARTIFACT-MANIFEST.json` matches that hash
+- `command-center/p2-wave/probes/IMP-0082/SUBAGENT-RETURN.json` written
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no orchestrator relaunch. `cloud ok=true` was not treated as delivery. IMP-0070 version-range *resolution* is recorded as NOT-CHECKED; ranges are stored and schema-checked, and cycles are the required name-graph.

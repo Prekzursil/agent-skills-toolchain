@@ -1,0 +1,1069 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-cnc-04-full-text-adversarial-sibling-review",
+  "name": "Full-Text Adversarial Sibling Review",
+  "description": "Blueprint 19 of 96 (design card BP-CNC-04, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:1002). MECHANISM: the adversarial reviewer reads the siblings' COMPLETE output, never a digest, because full text is the only mechanism measured to catch a false shared premise. Digests are a forbidden input (measured: 18 UNVERIFIED tags survived into 30 digests against 127 in the source docs, and 87% of file:line refs die at the digest boundary). Two things are HARD: the review must land as a durable on-disk artifact - a review that exists only in a transcript is treated as NOT-RUN (measured: 540,583 tokens of adversarial review left zero artifacts) - and a context overflow must be repaired by SHARDING BY PREMISE, never by truncating lane text, because truncation reintroduces exactly the digest failure the blueprint exists to avoid. That repair is expressed as the only repair_loop in this range.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "collective-intelligence-and-meta-workflows",
+    "research-and-evidence"
+  ],
+  "tags": [
+    "adversarial-review",
+    "full-text",
+    "shared-premise",
+    "durable-artifact",
+    "bp-cnc-04"
+  ],
+  "flagship": true,
+  "params": {
+    "lane_outputs_full": {
+      "type": "array",
+      "items": {
+        "type": "path"
+      },
+      "min_items": 2,
+      "max_items": 128,
+      "description": "Paths to the siblings' COMPLETE outputs. Paths, at full length - a digest path here is a contract violation the digest-ban gate catches."
+    },
+    "shared_premises": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Premises believed to be shared by more than one lane. Optional input: the extract stage derives them and must not be constrained to this list.",
+      "default": []
+    },
+    "artifact_root": {
+      "type": "path",
+      "required": true,
+      "description": "Where the durable review is written. The write is MANDATORY, not a courtesy."
+    },
+    "max_reviewers": {
+      "type": "integer",
+      "default": 2,
+      "minimum": 1,
+      "maximum": 6,
+      "description": "Adversarial reviewers, each reading all siblings in full"
+    },
+    "context_budget_tokens": {
+      "type": "integer",
+      "default": 600000,
+      "minimum": 50000,
+      "maximum": 2000000,
+      "description": "When the assembled full text exceeds this, the repair loop shards BY PREMISE - never by truncating lane text"
+    }
+  },
+  "roles": {
+    "assembler": {
+      "description": "Assembles every lane output at FULL length and records each byte length, so a truncation is arithmetically detectable rather than a matter of trust",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/adversarial/**)"
+      ],
+      "write_paths": [
+        "command-center/adversarial/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "premise-extractor": {
+      "description": "Extracts the premises that MORE THAN ONE lane depends on - the cross-lane structure is the subject, not any single lane's conclusions",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/adversarial/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "adversary": {
+      "description": "Attacks one shared premise having read every sibling in full; must produce REFUTED or HOLDS with evidence, never a hedge",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "veto",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/adversarial/**)"
+      ],
+      "write_paths": [
+        "command-center/adversarial/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "cross-vendor-adversary": {
+      "description": "Optional cross-vendor adversary for the highest-consequence premise - a same-vendor adversary shares the lanes' blind spots",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "reconciler": {
+      "description": "Reconciles the per-premise verdicts and surfaces every UNVERIFIED tag that never reached a lane's own digest",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/adversarial/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - receives the refuted-premise register and decides which lanes must be re-run",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "mcp__codex__codex",
+      "Write(command-center/adversarial/**)"
+    ],
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/adversarial/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema",
+      "platform/lib"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "escalating",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == adversary",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "the adversary is the mechanism; routing it cheap defeats the blueprint"
+      },
+      {
+        "when": "stage_role == cross_vendor_adversary",
+        "target": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "effort": "high"
+        },
+        "reason": "cross-vendor independence on the top premise"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "low-confidence",
+        "reviewer-refuted",
+        "failure"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 2
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "digests-are-forbidden": {
+      "predicate": "custom-expression",
+      "expression": "digest_inputs == 0 AND truncated_lane_inputs == 0 AND assembled_bytes_match_source_bytes == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "durable-artifact-exists": {
+      "predicate": "completion-predicate-v1",
+      "predicate_ref": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate",
+      "conditions_required": [
+        1,
+        2,
+        3,
+        11,
+        12
+      ],
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "every-premise-has-a-verdict": {
+      "predicate": "custom-expression",
+      "expression": "premises_without_verdict == 0 AND hedged_verdicts == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "repair-was-verified": {
+      "predicate": "custom-expression",
+      "expression": "sharded_by_premise == true AND truncated_lane_inputs == 0 AND premises_without_verdict == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+  "stages": [
+    {
+      "id": "assemble",
+      "title": "S0 ASSEMBLE every lane output at FULL length and record byte lengths",
+      "kind": "task",
+      "role": "assembler",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0401",
+        "title": "Assemble all sibling lane outputs at full length with per-lane byte accounting",
+        "phase": "2B",
+        "question_or_target": "Read every declared lane output IN FULL and record its byte length and hash, so any later truncation is arithmetically detectable.",
+        "inputs": [
+          "params.lane_outputs_full",
+          "params.artifact_root"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "assembler",
+          "basis": "mechanical, but the byte accounting is what makes the no-truncation claim checkable"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/adversarial/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/adversarial/bp-cnc-04/assembly-manifest.json",
+        "output_schema": "command-center/schema/receipt.schema.json",
+        "evidence_requirement": "per lane: path, byte length, sha256, and whether the file is a digest or a full artifact - the digest determination cites the marker that decided it, so the classification is auditable",
+        "tests_required": [
+          "a lane path pointing at a digest must be classified DIGEST and fail the ban gate",
+          "the sum of assembled bytes must equal the sum of source bytes",
+          "both-states control: truncate one lane by one byte and confirm the byte-equality check FAILS, restore it and confirm it PASSES"
+        ],
+        "reviewer_requirement": "the reconciler re-hashes two lanes at random and confirms they match the manifest",
+        "completion_sentinel": "SUCCESS:WCNC-0401 emitted when assembly-manifest.json exists, parses, and assembled bytes equal source bytes for every lane; otherwise FAILED:WCNC-0401 <reason>",
+        "retry_policy": "no retry on a missing lane file - that is a caller input error; two strikes then pivot on a read failure",
+        "failure_classification": [
+          "digest-input",
+          "lane-file-missing",
+          "byte-mismatch"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/adversarial/bp-cnc-04/assembly-manifest.json",
+          "schema_ref": "command-center/schema/receipt.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0401",
+          "consumers": [
+            "digest-ban-gate",
+            "extract-premises",
+            "attack"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "digest-ban-gate",
+      "title": "S0b Digests are a FORBIDDEN input - assert full text before any attack runs",
+      "kind": "gate",
+      "depends_on": [
+        "assemble"
+      ],
+      "gate_ref": "digests-are-forbidden"
+    },
+    {
+      "id": "extract-premises",
+      "title": "S1 EXTRACT the premises that MORE THAN ONE lane depends on",
+      "kind": "task",
+      "role": "premise-extractor",
+      "depends_on": [
+        "digest-ban-gate"
+      ],
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WCNC-0402",
+        "title": "Extract cross-lane shared premises and count how many lanes depend on each",
+        "phase": "2B",
+        "question_or_target": "Identify every premise that at least two lanes build on, and for each record which lanes depend on it and where in their full text they rely on it.",
+        "inputs": [
+          "command-center/adversarial/bp-cnc-04/assembly-manifest.json",
+          "params.shared_premises"
+        ],
+        "dependencies": [
+          "WCNC-0401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "premise-extractor",
+          "basis": "a missed shared premise is an undetected cross-lane failure; this is not a cheap step"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/adversarial/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/adversarial/bp-cnc-04/shared-premises.json",
+        "output_schema": "command-center/schema/contradiction-register.schema.json",
+        "evidence_requirement": "each premise cites the file:line in EACH dependent lane's full text; a premise supplied by the caller but not actually found in two lanes is recorded as NOT-SHARED rather than carried forward",
+        "tests_required": [
+          "a caller-supplied premise that appears in only one lane must be recorded NOT-SHARED",
+          "the extractor must find a planted premise that three lanes build on"
+        ],
+        "reviewer_requirement": "the adversary confirms every premise carries an anchor in at least two lanes before attacking it",
+        "completion_sentinel": "SUCCESS:WCNC-0402 emitted when shared-premises.json exists, parses, and every listed premise carries anchors in >= 2 lanes; otherwise FAILED:WCNC-0402 <reason>",
+        "retry_policy": "two strikes then pivot: widen to a second extraction pass over the same full text, then escalate",
+        "failure_classification": [
+          "premise-not-shared",
+          "partial-artifact",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/adversarial/bp-cnc-04/shared-premises.json",
+          "schema_ref": "command-center/schema/contradiction-register.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0402",
+          "consumers": [
+            "attack",
+            "reconcile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "attack",
+      "title": "S2 ATTACK each shared premise, sharded BY PREMISE, every adversary reading all siblings in full",
+      "kind": "fanout",
+      "depends_on": [
+        "extract-premises"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/adversarial/bp-cnc-04/shared-premises.json",
+        "item_var": "premise",
+        "key_field": "premise_id"
+      },
+      "max_concurrency": 3,
+      "arrival_stagger_ms": 500,
+      "max_items": 64,
+      "on_item_failure": "quarantine",
+      "timeout_seconds": 10800,
+      "body": [
+        {
+          "id": "attack-one-premise",
+          "title": "Attack one shared premise on the FULL sibling text",
+          "kind": "task",
+          "role": "adversary",
+          "timeout_seconds": 3600,
+          "work_unit": {
+            "id": "WCNC-0403",
+            "title": "Adversarially attack one shared premise using every sibling at full length",
+            "phase": "2B",
+            "question_or_target": "Try to REFUTE the assigned premise using the siblings' full text and any rerunnable probe. Return REFUTED or HOLDS with evidence; a hedge is not a verdict.",
+            "inputs": [
+              "command-center/adversarial/bp-cnc-04/shared-premises.json",
+              "command-center/adversarial/bp-cnc-04/assembly-manifest.json",
+              "item.premise"
+            ],
+            "dependencies": [
+              "WCNC-0402"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "adversary",
+              "basis": "max effort: this is the mechanism the whole blueprint exists to run"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Bash:python",
+              "Write(command-center/adversarial/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/adversarial/bp-cnc-04/refutations/premise.json",
+            "output_schema": "command-center/schema/meta-review-finding.schema.json",
+            "evidence_requirement": "a REFUTED verdict carries a rerunnable command or a file:line that contradicts the premise; a HOLDS verdict names what was tried and failed to refute it, so HOLDS is a measurement rather than an absence of effort",
+            "tests_required": [
+              "plant a false premise that three lanes build on - the adversary must REFUTE it (this is the measured historical case)",
+              "two-arm control: run the identical review on DIGESTS only - it should MISS the planted premise, proving the full-text requirement is load-bearing rather than expensive habit",
+              "a hedged verdict must be rejected by the every-premise-has-a-verdict gate"
+            ],
+            "reviewer_requirement": "the cross-vendor adversary re-attacks the highest-consequence premise independently; the reconciler never averages two verdicts",
+            "completion_sentinel": "SUCCESS:WCNC-0403 emitted per premise when the refutation artifact exists, parses, and carries REFUTED or HOLDS with evidence; a context overflow emits FAILED:WCNC-0403 context-overflow which routes to the repair loop, NOT to truncation",
+            "retry_policy": "no retry by truncation, ever; a context overflow is repaired by sharding the premise into sub-premises and re-running on the same full text",
+            "failure_classification": [
+              "context-overflow",
+              "hedged-verdict",
+              "severed-stream",
+              "detector-failure"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status",
+          "based on the digest"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "write-review",
+      "title": "S3a WRITE the review to disk - MANDATORY; a transcript-only review is treated as NOT-RUN",
+      "kind": "task",
+      "role": "reconciler",
+      "depends_on": [
+        "attack"
+      ],
+      "checkpoint": true,
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WCNC-0404",
+        "title": "Write the durable adversarial review and surface every digest-swallowed UNVERIFIED tag",
+        "phase": "2B",
+        "question_or_target": "Write the review to the artifact root: one row per shared premise with its verdict and evidence, plus every UNVERIFIED tag present in a lane's full text that never reached that lane's own digest.",
+        "inputs": [
+          "command-center/adversarial/bp-cnc-04/refutations",
+          "command-center/adversarial/bp-cnc-04/shared-premises.json",
+          "params.artifact_root"
+        ],
+        "dependencies": [
+          "WCNC-0403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "the durable write is the design card's hard requirement and the measured gap"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/adversarial/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/adversarial/bp-cnc-04/review.json",
+        "output_schema": "command-center/schema/second-order-review.schema.json",
+        "evidence_requirement": "the review names, per refuted premise, every lane whose conclusions inherit the refutation - the blast radius, not just the first symptom; and lists the UNVERIFIED tags that died at each lane's digest boundary with their source anchors",
+        "tests_required": [
+          "the review file must exist and be non-empty - a transcript-only review counts as NOT-RUN",
+          "a refuted premise must list every dependent lane, not only the lane where it was found",
+          "both-states control: delete the review file and confirm the durable-artifact gate FAILS, restore it and confirm it PASSES"
+        ],
+        "reviewer_requirement": "one independent reader confirms the review file exists on disk, parses, and that the dependent-lane list matches the premise anchors",
+        "completion_sentinel": "SUCCESS:WCNC-0404 emitted when review.json exists, is above its minimum size, parses, is registered in the manifest, and names its consumers; otherwise FAILED:WCNC-0404 <reason>",
+        "retry_policy": "two strikes then pivot: write a PARTIAL review naming the premises still unverdicted rather than holding the whole thing in context",
+        "failure_classification": [
+          "artifact-not-written",
+          "partial-artifact",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/adversarial/bp-cnc-04/review.json",
+          "schema_ref": "command-center/schema/second-order-review.schema.json",
+          "min_bytes": 1024,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0404",
+          "consumers": [
+            "durable-gate",
+            "owner",
+            "bp-cnc-07-probe-wins-split-verdict-resolver"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "durable-gate",
+      "title": "S3b The durable artifact and a verdict per premise are both HARD requirements",
+      "kind": "gate",
+      "depends_on": [
+        "write-review"
+      ],
+      "gate_ref": "durable-artifact-exists"
+    },
+    {
+      "id": "verdict-coverage-gate",
+      "title": "S3c Every shared premise must carry a non-hedged verdict",
+      "kind": "gate",
+      "depends_on": [
+        "durable-gate"
+      ],
+      "gate_ref": "every-premise-has-a-verdict"
+    },
+    {
+      "id": "shard-repair",
+      "title": "S3d REPAIR a context overflow by sharding BY PREMISE - never by truncating lane text",
+      "kind": "repair_loop",
+      "depends_on": [
+        "verdict-coverage-gate"
+      ],
+      "target": [
+        "attack"
+      ],
+      "max_attempts": 3,
+      "classification_filter": [
+        "context-overflow",
+        "hedged-verdict",
+        "partial-artifact"
+      ],
+      "escalate_to": "owner",
+      "require_root_cause": true,
+      "diagnose": {
+        "id": "diagnose-overflow",
+        "title": "Diagnose WHY the attack could not complete, and prove it was not a truncation",
+        "kind": "task",
+        "role": "premise-extractor",
+        "timeout_seconds": 1800,
+        "work_unit": {
+          "id": "WCNC-0405",
+          "title": "Diagnose the root cause of an incomplete premise attack",
+          "phase": "2B",
+          "question_or_target": "Name the root cause of the incomplete attack and prove no lane text was truncated, quoting the byte accounting from the assembly manifest.",
+          "inputs": [
+            "command-center/adversarial/bp-cnc-04/refutations",
+            "command-center/adversarial/bp-cnc-04/assembly-manifest.json"
+          ],
+          "dependencies": [
+            "WCNC-0403"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "premise-extractor",
+            "basis": "the diagnosis must be done by a role that did not author the failing attack"
+          },
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Write(command-center/adversarial/**)"
+          ],
+          "execution_substrate": "local-single",
+          "timeout_seconds": 1800,
+          "output_path": "command-center/adversarial/bp-cnc-04/repair/diagnosis.json",
+          "output_schema": "command-center/schema/audit-finding.schema.json",
+          "evidence_requirement": "the diagnosis quotes the per-lane byte accounting to prove full text was used, and names the specific premise whose attack exceeded the budget",
+          "tests_required": [
+            "a diagnosis that cannot prove full-text input is itself rejected as a root cause"
+          ],
+          "reviewer_requirement": "the reconciler confirms the named root cause is falsifiable",
+          "completion_sentinel": "SUCCESS:WCNC-0405 emitted when diagnosis.json exists, parses, and names a falsifiable root cause with byte evidence; otherwise FAILED:WCNC-0405 <reason>",
+          "retry_policy": "no retry - a second guess at a root cause without new evidence is not a diagnosis",
+          "failure_classification": [
+            "root-cause-unproven",
+            "partial-artifact"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "repair": {
+        "id": "reshard-by-premise",
+        "title": "Split the offending premise into sub-premises and re-attack on the SAME full text",
+        "kind": "task",
+        "role": "adversary",
+        "timeout_seconds": 3600,
+        "work_unit": {
+          "id": "WCNC-0406",
+          "title": "Shard the offending premise into sub-premises and re-attack without truncating any lane",
+          "phase": "2B",
+          "question_or_target": "Split the premise that exceeded the context budget into independently attackable sub-premises and attack each on the unmodified full sibling text.",
+          "inputs": [
+            "command-center/adversarial/bp-cnc-04/repair/diagnosis.json",
+            "command-center/adversarial/bp-cnc-04/assembly-manifest.json"
+          ],
+          "dependencies": [
+            "WCNC-0405"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "adversary",
+            "basis": "the re-attack is the same mechanism at a finer grain, so it keeps the same role and effort"
+          },
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Bash:python",
+            "Write(command-center/adversarial/**)"
+          ],
+          "execution_substrate": "local-parallel",
+          "timeout_seconds": 3600,
+          "output_path": "command-center/adversarial/bp-cnc-04/repair/resharded-refutations.json",
+          "output_schema": "command-center/schema/meta-review-finding.schema.json",
+          "evidence_requirement": "each sub-premise verdict cites the same full-text anchors; the artifact asserts truncated_lane_inputs == 0 and carries the byte accounting that proves it",
+          "tests_required": [
+            "the re-shard must NOT reduce any lane's byte length - truncation is the forbidden repair",
+            "both-states control: attempt a truncating repair and confirm repair-was-verified FAILS; attempt a premise-sharding repair and confirm it PASSES"
+          ],
+          "reviewer_requirement": "the verify stage is an independent gate, not the adversary's own report",
+          "completion_sentinel": "SUCCESS:WCNC-0406 emitted when resharded-refutations.json exists, parses, every sub-premise has a verdict, and truncated_lane_inputs == 0; otherwise FAILED:WCNC-0406 <reason>",
+          "retry_policy": "two strikes then pivot: escalate to the owner rather than sharding a third time into meaninglessly small premises",
+          "failure_classification": [
+            "context-overflow",
+            "truncation-attempted",
+            "partial-artifact"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "verify": {
+        "id": "verify-reshard",
+        "title": "INDEPENDENT verify - a repair loop without one is a retry that reports success",
+        "kind": "gate",
+        "gate_ref": "repair-was-verified"
+      },
+      "timeout_seconds": 14400
+    },
+    {
+      "id": "reconcile",
+      "title": "S3e RECONCILE - name the blast radius of every refuted premise",
+      "kind": "task",
+      "role": "reconciler",
+      "depends_on": [
+        "shard-repair"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WCNC-0407",
+        "title": "Reconcile the verdicts and publish the refuted-premise register with its blast radius",
+        "phase": "2B",
+        "question_or_target": "Publish the final register: every refuted premise, every lane whose conclusions inherit the refutation, and what must be re-run.",
+        "inputs": [
+          "command-center/adversarial/bp-cnc-04/review.json",
+          "command-center/adversarial/bp-cnc-04/repair/resharded-refutations.json"
+        ],
+        "dependencies": [
+          "WCNC-0404",
+          "WCNC-0406"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "reconciler",
+          "basis": "the blast-radius trace is the part that turns a finding into remediation"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/adversarial/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/adversarial/bp-cnc-04/refuted-premise-register.json",
+        "output_schema": "command-center/schema/contradiction-register.schema.json",
+        "evidence_requirement": "for every refuted premise, the register lists each dependent lane and the specific conclusion that inherits the refutation - not merely that the lane is affected",
+        "tests_required": [
+          "a refuted premise with dependent lanes but an empty blast-radius list fails the register check",
+          "both-states control: remove one dependent lane from a register entry and confirm the completeness check FAILS, restore it and confirm it PASSES"
+        ],
+        "reviewer_requirement": "one independent reader spot-checks two register entries against the premise anchors in the lane full text",
+        "completion_sentinel": "SUCCESS:WCNC-0407 emitted when refuted-premise-register.json exists, parses, and every refuted premise names its dependent conclusions; otherwise FAILED:WCNC-0407 <reason>",
+        "retry_policy": "two strikes then pivot: emit the register with the incomplete entries flagged rather than a register that looks complete",
+        "failure_classification": [
+          "blast-radius-incomplete",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/adversarial/bp-cnc-04/refuted-premise-register.json",
+          "schema_ref": "command-center/schema/contradiction-register.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WCNC-0407",
+          "consumers": [
+            "owner",
+            "bp-cnc-05-governance-decision-gate",
+            "bp-cnc-07-probe-wins-split-verdict-resolver"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "every-shared-premise-verdicted",
+      "expression": "premises_without_verdict == 0 AND review_artifact_on_disk == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "digest_inputs == 0 AND truncated_lane_inputs == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "truncation-attempted",
+      "expression": "truncated_lane_inputs >= 1",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "review-not-written",
+      "expression": "review_artifact_on_disk == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 60,
+    "jitter": true,
+    "retry_on": [
+      "context-overflow",
+      "severed-stream",
+      "quota-429-storm"
+    ],
+    "no_retry_on": [
+      "truncation-attempted",
+      "digest-input",
+      "owner-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "context-overflow",
+      "digest-input",
+      "artifact-not-written",
+      "blast-radius-incomplete",
+      "hedged-verdict"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-cnc-04"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-cnc-04",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 172800,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-cnc-04.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "store": "command-center/cache/bp-cnc-04",
+    "ttl_seconds": 172800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "lane-hash-change",
+      "premise-set-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-cnc-04-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "mcp__codex__codex",
+      "Write(command-center/adversarial/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 3.0,
+      "expected": 12.0,
+      "max": 40.0
+    },
+    "wallclock_seconds": {
+      "min": 1800,
+      "expected": 7200,
+      "max": 21600
+    },
+    "tokens": {
+      "min": 400000,
+      "expected": 1600000,
+      "max": 5000000
+    },
+    "tool_calls": {
+      "expected": 150,
+      "max": 700
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only on the lane outputs plus writes under command-center/adversarial/bp-cnc-04/**; HIGH resource profile by construction - full text is the mechanism, not an inefficiency",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-cnc-04.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "rules/common/fan-out-contract.md#B6",
+        "relation": "CLEAN-ROOM-REIMPLEMENT",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "rules/common/fan-out-contract.md#B5",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "exec-reframe-v15-total-audit",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CNC-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "rules/common/fan-out-contract.md#B6"
+    ]
+  },
+  "outputs": {
+    "review": {
+      "path": "command-center/adversarial/bp-cnc-04/review.json",
+      "schema_ref": "command-center/schema/second-order-review.schema.json",
+      "min_bytes": 1024,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-05-governance-decision-gate"
+      ]
+    },
+    "refuted_premise_register": {
+      "path": "command-center/adversarial/bp-cnc-04/refuted-premise-register.json",
+      "schema_ref": "command-center/schema/contradiction-register.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-cnc-07-probe-wins-split-verdict-resolver"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 19,
+    "design_card": "BP-CNC-04",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:1002",
+    "acquisition_route": "BUILD-NEW",
+    "state_v": [
+      "NEW"
+    ],
+    "size_v": [
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "full sibling text as a hard input contract with byte-equality proof, digests banned by a blocking gate, per-premise sharded attack, a MANDATORY durable artifact enforced by the shared completion predicate, and the range's only repair_loop - whose whole purpose is to forbid the tempting repair (truncation) and require the correct one (shard by premise)",
+    "not_a_duplicate_because": "BP-CNC-01 reviews ONE artifact with five personas; this reviews the CROSS-LANE premise structure of many outputs and its distinguishing input is full text. BP-CNC-07 arbitrates between agents on ONE fact using their probes; this attacks the premises many lanes SHARE. It is the only blueprint in this range carrying a repair_loop and the only one whose gate uses the completion-predicate-v1 reducer.",
+    "contraindications": [
+      "lanes are genuinely independent and small - the cost outweighs the benefit",
+      "as a substitute for the per-lane quality gate - this is a cross-lane check, not a lane check"
+    ],
+    "conflicts_with": [
+      "any fan-in that discards lane text after digesting"
+    ],
+    "worked_examples": [
+      {
+        "name": "the planted shared premise - the measured historical case",
+        "params": {
+          "lane_outputs_full": [
+            "command-center/lanes/bp-1/full-output.md",
+            "command-center/lanes/bp-2/full-output.md",
+            "command-center/lanes/bp-3/full-output.md"
+          ],
+          "shared_premises": [
+            "the blueprint library holds 96 designs"
+          ],
+          "artifact_root": "command-center/adversarial/bp-cnc-04",
+          "max_reviewers": 2,
+          "context_budget_tokens": 600000
+        },
+        "expected_artifacts": [
+          "command-center/adversarial/bp-cnc-04/assembly-manifest.json",
+          "command-center/adversarial/bp-cnc-04/shared-premises.json",
+          "command-center/adversarial/bp-cnc-04/review.json",
+          "command-center/adversarial/bp-cnc-04/refuted-premise-register.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WCNC-0407 with one REFUTED premise",
+        "walkthrough": "S0 reads three lane outputs in full (412 KB, 380 KB, 297 KB) and records byte lengths and hashes. S0b confirms zero digest inputs and byte equality against source. S1 finds the premise `the library holds 96 designs` anchored in all three lanes, plus a second shared premise about the receipt-schema reference count. S2 attacks each: the adversary runs a mechanical card count over the library file, gets 108, and returns REFUTED with the exact command; the reference-count premise returns REFUTED at 234-not-269 with the resolver audit output. S3a writes review.json and additionally surfaces four UNVERIFIED tags that appear in lane full text but not in any lane digest. S3b/S3c pass. S3d does not fire (no overflow). S3e publishes the register naming, per refuted premise, each dependent conclusion: the per-unit range split, the flagship arithmetic, and the completeness claim.",
+        "expected_gate_outcomes": {
+          "digests-are-forbidden": "PASS - digest_inputs == 0, assembled bytes == source bytes",
+          "durable-artifact-exists": "PASS - conditions 1,2,3,11,12 satisfied",
+          "every-premise-has-a-verdict": "PASS - 2 premises, 2 verdicts, 0 hedges"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "two-arm control - the digest arm must MISS the premise",
+        "params": {
+          "lane_outputs_full": [
+            "command-center/lanes/bp-1/digest.md",
+            "command-center/lanes/bp-2/digest.md"
+          ],
+          "artifact_root": "command-center/adversarial/bp-cnc-04",
+          "max_reviewers": 1
+        },
+        "expected_artifacts": [
+          "command-center/adversarial/bp-cnc-04/assembly-manifest.json"
+        ],
+        "expected_terminal_state": "FAILED:WCNC-0401 digest-input",
+        "walkthrough": "Both declared lane paths are digests, so S0 classifies them DIGEST citing the marker that decided it, and S0b fails with on_fail=fail before any reviewer is paid for. This is the negative arm of the design card's decisive benchmark: run the review on digests and it MISSES the shared premise (measured: 18 UNVERIFIED tags survive into 30 digests against 127 in the docs, and 87% of file:line refs die at the digest boundary). If a future measurement shows the digest arm ALSO catching the premise, the full-text cost is not justified and this blueprint should be retired - that is the stated ship/no-ship condition, recorded here rather than buried.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "plant a false premise in the brief that 3 lanes build on - the reviewer must refute it (the measured historical case)",
+      "run the same review on digests only - it should MISS the premise, proving the full-text requirement is load-bearing"
+    ],
+    "unverified": "UNVERIFIED post-build. Settling experiment = the two-arm digest-versus-full-text benchmark above; if the digest arm also catches the premise the full-text cost is not justified. Confidence: likely-to-very-likely on the strength of the measured precedent (corpus band: very-likely 80-90%, expressed here as the nearest legal DSL band).",
+    "confidence_band_note": "The design card grades this very-likely (80-90%). The DSL confidence_band enum has five members and no very-likely, so estimate.confidence carries likely (55-80%) and the corpus band is recorded here verbatim.",
+    "council_presets_referenced": [
+      "platform/council/presets/C-D40-adversarial-collab-8.councilspec.json",
+      "platform/council/protocols/p12-adversarial-collaboration.councilspec.json"
+    ]
+  }
+}

@@ -1,0 +1,276 @@
+{
+ "answer": "YES. The pinned SchemaStore plugin-manifest schema has no top-level additionalProperties (lenient). Overlaying additionalProperties=false \u2014 the executable equivalent of `claude plugin validate --strict`, which is the strictest client mode documented and the strictest parser invocable on this estate (no claude CLI) \u2014 rejects a one-field mutant and names 'totally_unknown_field'. The emitter field set is a subset of the accepted properties; planting the same unknown key is refused on emit.",
+ "artifacts": [
+  {
+   "bytes": 3842,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0179/strict_parser.py",
+   "role": "supporting",
+   "sha256": "982c759fb8bc76c2e36992a39a43e70a97d7de1b400e6aa53b92320e9ec02b93"
+  },
+  {
+   "bytes": 2337,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0179/emitter.py",
+   "role": "supporting",
+   "sha256": "e4e00f73a0f9f5219fad0ea74ff18f49ae7a437804598a30abbf2258803ec92b"
+  },
+  {
+   "bytes": 2698,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+   "role": "supporting",
+   "sha256": "940f8262d8073438c099e3a741fb73f03d3c3e54a40fcee133f3fe5d7e1bdbe7"
+  },
+  {
+   "bytes": 2752,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0179/probe2_schema_diff.py",
+   "role": "supporting",
+   "sha256": "5b4eb6d232ef654181f15b29add27c1f2d06ad78a4c4ba246229746075271ad0"
+  },
+  {
+   "bytes": 70423,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0179/vendor/claude-code-plugin-manifest.schema.json",
+   "role": "supporting",
+   "sha256": "3f69938d71a47a72fa60050b2050dd620054708911defc1c1dcd7188dcb169f5"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:TST-0179",
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0179.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0179",
+    "exit_code": 0,
+    "fingerprint": "d21b7726c0a193bd4edab26b8fe8cd60",
+    "method": "command",
+    "raw_output": "scheduled after this receipt and the per-unit manifest exist",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0179/strict_parser.py",
+   "claim": "Strict parser rejects a clean-plus-unknown-field manifest and the error names 'totally_unknown_field'.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+     "exit_code": 0,
+     "fingerprint": "aed4e310fa1fb131dc04994b9ea6deb1",
+     "method": "command",
+     "raw_output": "{\"clean_accepted\": true, \"clean_keys\": [\"author\", \"description\", \"keywords\", \"license\", \"name\", \"version\"], \"diff_named_fields\": [\"totally_unknown_field\"], \"dirty_error_messages\": [\"Additional properties are not allowed ('totally_unknown_field' was unexpected)\"], \"dirty_error_names_field\": true, \"dirty_rejected\": true, \"lenient_accepts_unknown\": true, \"missing_name_rejected\": true, \"parser_named_fields\": [\"totally_unknown_field\"], \"pass\": true, \"planted_field\": \"totally_unknown_field\", \"probe\": \"probe1-unknown-field\", \"unit_id\": \"TST-0179\"}",
+     "role": "source"
+    },
+    {
+     "command": "parse_manifest(dirty, strict=True)",
+     "exit_code": 1,
+     "fingerprint": "46537567b71d90e2b7e687d5d7ebbce6",
+     "method": "in-process",
+     "raw_output": "Additional properties are not allowed ('totally_unknown_field' was unexpected)",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0179/emitter.py",
+   "claim": "Emitter field set is a subset of the vendor schema properties (6 of 22); planted unknown field is refused rather than written.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_schema_diff.py",
+     "exit_code": 0,
+     "fingerprint": "d27089aad49ff97d058ddce954b0505c",
+     "method": "command",
+     "raw_output": "{\"accepted_count\": 22, \"emitted_count\": 6, \"emitted_field_set\": [\"author\", \"description\", \"keywords\", \"license\", \"name\", \"version\"], \"emitter_refused_unknown\": true, \"emitter_subset_of_accepted\": true, \"extra_emitted_fields\": [], \"leaked_would_extra\": [\"totally_unknown_field\"], \"pass\": true, \"planted_field\": \"totally_unknown_field\", \"probe\": \"probe2-schema-diff\", \"refused_fields\": [\"totally_unknown_field\"], \"unit_id\": \"TST-0179\"}",
+     "role": "source"
+    },
+    {
+     "command": "schema_diff(emit_plugin_manifest())",
+     "exit_code": 0,
+     "fingerprint": "454a56c145b483d90885372d72971a8f",
+     "method": "in-process",
+     "raw_output": "{\"extra\": [], \"subset\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0179/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "bad_state_output": "lenient accepted unknown top-level field",
+   "description": "Disable the additionalProperties overlay (published vendor schema as-is). The dirty manifest must be ACCEPTED, proving the overlay is the rejecting rule.",
+   "fired_on_bad_state": true,
+   "good_state_output": "strict accepted clean manifest",
+   "id": "TST-0179-NC-lenient-vendor-schema",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "missing name rejected",
+   "description": "A manifest missing required `name` is rejected.",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean accepted",
+   "id": "TST-0179-NC-missing-required-name",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "parser": {
+  "accepted_count": 22,
+  "accepted_top_level_fields": [
+   "$schema",
+   "agents",
+   "author",
+   "channels",
+   "commands",
+   "dependencies",
+   "description",
+   "homepage",
+   "hooks",
+   "keywords",
+   "license",
+   "lspServers",
+   "mcpServers",
+   "monitors",
+   "name",
+   "outputStyles",
+   "repository",
+   "settings",
+   "skills",
+   "themes",
+   "userConfig",
+   "version"
+  ],
+  "claude_cli_present": false,
+  "equivalent_client_flag": "claude plugin validate --strict",
+  "id": "claude-code-plugin-manifest-strict",
+  "strictness": "additionalProperties:false overlay on vendor properties",
+  "vendor_bytes": 70423,
+  "vendor_comment": "Generated on 2026-04-23T05:09:41.810Z",
+  "vendor_schema": "command-center/p2-wave/probes/TST-0179/vendor/claude-code-plugin-manifest.schema.json",
+  "vendor_sha256": "3f69938d71a47a72fa60050b2050dd620054708911defc1c1dcd7188dcb169f5",
+  "vendor_source": "https://json.schemastore.org/claude-code-plugin-manifest.json"
+ },
+ "question": "Does the strict parser reject a plugin manifest carrying an unknown top-level field, with an error naming the field? PASS requires rejection under the STRICTEST supported client, and the authoring toolchain must never emit such a field.",
+ "report_kind": "parser_report",
+ "residual_unknowns": [
+  {
+   "claim": "claude CLI is not installed on this worktree, so `claude plugin validate --strict` was not invoked out of process. The JSON Schema overlay is the documented --strict semantics.",
+   "settling_experiment": "Install the Claude Code CLI matching the schema pin and re-run the dirty fixture under `claude plugin validate --strict`.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "probe2 diffs emitter keys against schema.properties and does not use the additionalProperties error path that probe1 measures.",
+  "reviewer_id": "TST-0179-probe2-schema-diff",
+  "verdict": "PASS"
+ },
+ "schema_diff": {
+  "accepted_count": 22,
+  "accepted_field_set": [
+   "$schema",
+   "agents",
+   "author",
+   "channels",
+   "commands",
+   "dependencies",
+   "description",
+   "homepage",
+   "hooks",
+   "keywords",
+   "license",
+   "lspServers",
+   "mcpServers",
+   "monitors",
+   "name",
+   "outputStyles",
+   "repository",
+   "settings",
+   "skills",
+   "themes",
+   "userConfig",
+   "version"
+  ],
+  "emitted_count": 6,
+  "emitted_field_set": [
+   "author",
+   "description",
+   "keywords",
+   "license",
+   "name",
+   "version"
+  ],
+  "emitter_subset_of_accepted": true,
+  "extra_emitted_fields": [],
+  "missing_required": []
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0179",
+ "spec_anchor": "_USER-PROMPTS.md:11302",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+   "id": "TST-0179-both-states-clean-accepted",
+   "name": "both-states control: a clean manifest is accepted",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe1_unknown_field.py",
+   "id": "TST-0179-regression-unknown-field-named",
+   "name": "regression seed: strict plugin parser rejects unknown fields (_USER-PROMPTS.md:11302)",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0179/probe2_schema_diff.py",
+   "id": "TST-0179-schema-diff-emitter-subset",
+   "name": "schema-diff: emitter field set \u2286 accepted properties",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:27:34Z",
+  "started_at": "2026-08-25T00:27:34Z"
+ },
+ "title": "Unknown top-level manifest field is rejected by the strict client parser",
+ "unit_id": "TST-0179",
+ "unknown_field_case": {
+  "error_names_field": true,
+  "field": "totally_unknown_field",
+  "named_by_parser": [
+   "totally_unknown_field"
+  ],
+  "named_by_set_diff": [
+   "totally_unknown_field"
+  ],
+  "parser_error": "Additional properties are not allowed ('totally_unknown_field' was unexpected)",
+  "rejected": true
+ }
+}

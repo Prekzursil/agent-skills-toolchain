@@ -1,0 +1,376 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/phase4/contracts/ARC-0078.json",
+  "title": "Plugin manifest contract and load-zero-hooks rejection (ARC-0078)",
+  "description": "Plugin manifest contract (ARC-0078).\nSUCCESS:ARC-0078\nRequired plugin.json fields are name, version, description, and engines. Optional fields are author, license, keywords, homepage, repository, commands, skills, and hooks.\nUnknown-field policy is strict for unprefixed keys and tolerant only for the reserved x- extension prefix: a bare unknown top-level key, including the recorded $schema key, is rejected; a key matching ^x-[a-z0-9-]+$ is accepted. Codex HooksFile serde(deny_unknown_fields) is the measured client: an extra key does not warn, it unloads every hook.\nEvery script entry (commands[] and hooks[].hooks[]) MUST declare an explicit interpreter from {python3, bash, pwsh, node} and a script path. A shebang is not a declaration. A bare .sh invocation on Windows is forbidden: cmd.exe PATHEXT does not include .sh and does not read #!.\nengines.host.min and optional engines.host.max declare the compatibility range against host client versions; engines.host.clients names the host products (claude-code, codex, cursor) the range applies to.\nThe validator MUST reject the exact recorded zero-hooks shape: a hooks file that carries a $schema (or any other unprefixed unknown) key. That shape made Codex report the plugin as installed while loading ZERO hooks. An empty hooks array is the same failure class and is also rejected.\nUpstream architecture ratification (ARC-0077) is not on disk in this worktree; the plugin-manifest contract is substrate-agnostic and does not wait on an ADV rebuild of the architecture packet.\nThis document is a Draft 2020-12 JSON Schema. Used as a contract it must reject the empty object, unrelated garbage, a missing required field, a script entry with no interpreter, and the recorded zero-hooks hooks.json that carries a $schema key. Unknown fields are forbidden except the x- extension prefix.",
+  "$comment": "SUCCESS:ARC-0078 schema_version=arc-0078.plugin-manifest.v1 contract_rel=command-center/phase4/contracts/ARC-0078.json. Unknown-field policy is strict for unprefixed keys and tolerant only for the reserved x- extension prefix: a bare unknown top-level key, including the recorded $schema key, is rejected; a key matching ^x-[a-z0-9-]+$ is accepted. Codex HooksFile serde(deny_unknown_fields) is the measured client: an extra key does not warn, it unloads every hook. Every script entry (commands[] and hooks[].hooks[]) MUST declare an explicit interpreter from {python3, bash, pwsh, node} and a script path. A shebang is not a declaration. A bare .sh invocation on Windows is forbidden: cmd.exe PATHEXT does not include .sh and does not read #!. The validator MUST reject the exact recorded zero-hooks shape: a hooks file that carries a $schema (or any other unprefixed unknown) key. That shape made Codex report the plugin as installed while loading ZERO hooks. An empty hooks array is the same failure class and is also rejected.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "name",
+    "version",
+    "description",
+    "engines"
+  ],
+  "propertyNames": {
+    "anyOf": [
+      {
+        "enum": [
+          "name",
+          "version",
+          "description",
+          "author",
+          "license",
+          "keywords",
+          "homepage",
+          "repository",
+          "commands",
+          "skills",
+          "hooks",
+          "engines"
+        ]
+      },
+      {
+        "pattern": "^x-[a-z0-9][a-z0-9-]*$"
+      }
+    ]
+  },
+  "patternProperties": {
+    "^x-[a-z0-9][a-z0-9-]*$": true
+  },
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[a-z0-9][a-z0-9-]{0,62}$"
+    },
+    "version": {
+      "type": "string",
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+    },
+    "description": {
+      "type": "string",
+      "minLength": 8,
+      "maxLength": 512
+    },
+    "author": {
+      "oneOf": [
+        {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "name"
+          ],
+          "properties": {
+            "name": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "email": {
+              "type": "string",
+              "maxLength": 128
+            },
+            "url": {
+              "type": "string",
+              "maxLength": 256
+            }
+          }
+        }
+      ]
+    },
+    "license": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64
+    },
+    "keywords": {
+      "type": "array",
+      "maxItems": 16,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32
+      }
+    },
+    "homepage": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "repository": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "commands": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "$ref": "#/$defs/script_entry"
+      }
+    },
+    "skills": {
+      "type": "array",
+      "maxItems": 64,
+      "items": {
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 256
+      }
+    },
+    "hooks": {
+      "oneOf": [
+        {
+          "type": "string",
+          "pattern": "^\\./.+\\.json$"
+        },
+        {
+          "$ref": "#/$defs/hooks_file"
+        }
+      ]
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host"
+      ],
+      "properties": {
+        "host": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "clients"
+          ],
+          "properties": {
+            "min": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+            },
+            "max": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+            },
+            "clients": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "claude-code",
+                  "codex",
+                  "cursor"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "$defs": {
+    "safe_string": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256
+    },
+    "script_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "name",
+        "interpreter",
+        "script"
+      ],
+      "properties": {
+        "name": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9][A-Za-z0-9._-]*$"
+        },
+        "interpreter": {
+          "type": "string",
+          "enum": [
+            "python3",
+            "bash",
+            "pwsh",
+            "node"
+          ]
+        },
+        "script": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9._/=+-][A-Za-z0-9._/=+-]*$"
+        },
+        "min_interpreter_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "maxItems": 16
+        }
+      }
+    },
+    "hook_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "event",
+        "interpreter",
+        "script"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "pattern": "^[a-z][a-z0-9._-]{0,62}$"
+        },
+        "event": {
+          "type": "string",
+          "enum": [
+            "PreToolUse",
+            "PostToolUse",
+            "UserPromptSubmit",
+            "Notification",
+            "Stop",
+            "SessionStart",
+            "SessionEnd",
+            "PreCompact",
+            "SubagentStart",
+            "PermissionRequest"
+          ]
+        },
+        "matcher": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 128
+        },
+        "interpreter": {
+          "type": "string",
+          "enum": [
+            "python3",
+            "bash",
+            "pwsh",
+            "node"
+          ]
+        },
+        "script": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "pattern": "^[A-Za-z0-9._/=+-][A-Za-z0-9._/=+-]*$"
+        },
+        "min_interpreter_version": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+        },
+        "args": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "maxLength": 128
+          },
+          "maxItems": 16
+        }
+      }
+    },
+    "hooks_file": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "hooks"
+      ],
+      "propertyNames": {
+        "enum": [
+          "schema_version",
+          "dispatcher",
+          "hooks"
+        ]
+      },
+      "properties": {
+        "schema_version": {
+          "type": "integer",
+          "const": 1
+        },
+        "dispatcher": {
+          "type": "string",
+          "const": "explicit-interpreter-only"
+        },
+        "hooks": {
+          "type": "array",
+          "minItems": 1,
+          "maxItems": 64,
+          "items": {
+            "$ref": "#/$defs/hook_entry"
+          }
+        }
+      },
+      "not": {
+        "required": [
+          "$schema"
+        ]
+      }
+    },
+    "engines": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "host"
+      ],
+      "properties": {
+        "host": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "min",
+            "clients"
+          ],
+          "properties": {
+            "min": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+            },
+            "max": {
+              "type": "string",
+              "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:[-+][A-Za-z0-9.-]+)?$"
+            },
+            "clients": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": {
+                "type": "string",
+                "enum": [
+                  "claude-code",
+                  "codex",
+                  "cursor"
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "not": {
+    "required": [
+      "$schema"
+    ]
+  }
+}

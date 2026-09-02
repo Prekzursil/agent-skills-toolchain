@@ -1,0 +1,27 @@
+I'll start from the existing RES-0168 probe tree and the measure script, then resume whatever is already built rather than starting over.The probe dir is mostly cloud-ok leftovers; the receipt already exists. Next I’ll read the unit spec, HANDOFF, and a successful sibling so I can resume the real probes.The receipt is still BLOCKED and the named probe scripts are missing. I’ll pull the catalog contract, a delivered sibling, and any leftover probe sources next.I’ll pull the measurement-run schema, a delivered sibling’s artifacts, and the rest of the RES-0168 receipt so the defects are explicit.I’ll inspect the report routes, a SUCCESS measurement-run, and the generic-report schema so the rebuilt probes can close D2–D4 honestly.The harvest probes never measured routing. I’ll add live named probes that load the spec, compute ALLOW/BLOCK, and go red on a route mutant.Routing-only first, then the live probes, so we catch spec mistakes before spending HTTP budget.The DOWN fixture still admitted via fallbacks. I’ll force a no-fallback backend down so that branch actually blocks.All four probes exited 0. Next I’ll pack the receipt and run the delivery measure.Measure printed SUCCESS:delivered. I’ll re-pack from the live re-run bytes, then write SUBAGENT-RETURN.**SUCCESS:delivered RES-0168**
+
+```
+SUCCESS:delivered RES-0168 predicate=delivered state=SUCCESS probes=4 raws=10 notes=control_both_states.py:0,probe1_preflight.py:0,probe2_admission.py:0,refute_routing.py:0
+```
+
+The harvest file was a UNIT-COMPLETE receipt with `state=BLOCKED`: the named probes were not on disk, a full-route mutant stayed green, and admission was a hard-coded BLOCK. That is not this delivery.
+
+What this unit now measures:
+
+- **16 source classes** are bound in `routing_spec.json`. Both probes read `primary_backend` and host-bind each class canary.
+- **Detector control:** IANA example-domains is UP; `http://127.0.0.1:1/` is DOWN.
+- **Routing mutant:** replacing all 16 primaries with `refute-nonexistent-backend` makes both probes **RED**.
+- **Admission is computed:** healthy fixture **ALLOW**; remaining=0, DOWN, and AUTH fixtures **BLOCK**.
+- **Live 50-agent fan-out is BLOCK** (SearxNG/Firecrawl unconfigured, Tor policy-blocked, Crossref concurrency=1). That is a measurement, not a green-wash.
+
+Condition 11 is the per-unit manifest (`STRUCTURAL-CONDITION-11.md` option 1), not a global `unit_manifest.py --write`.
+
+| Item | Value |
+|---|---|
+| Receipt | `command-center/research/deep-research-design/RES-0168-source-class-backend-routing-preflight.json` |
+| State | `SUCCESS` |
+| Bytes / sha256 | 66820 / `168a6e5a4aebeca0162bf9b478e77a651d50a534b67a53456d847248615d28a8` |
+| Per-unit manifest | `command-center/p2-wave/probes/RES-0168/UNIT-ARTIFACT-MANIFEST.json` |
+| Return | `command-center/p2-wave/probes/RES-0168/SUBAGENT-RETURN.json` |
+
+Constraints kept: no git writes, no global catalog `--write`, no key rotation, no wave relaunch. Cloud-ok harvest was not treated as delivery. D5 remains a P2 residual (canonical `_USER-PROMPTS.md` still absent).

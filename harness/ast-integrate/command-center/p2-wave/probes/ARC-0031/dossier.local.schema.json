@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/ARC-0031/dossier.local.schema.json",
+  "title": "ARC-0031 A5 DESIGN.json live contract",
+  "$comment": "Pivot from command-center/schema/architecture-dossier.schema.json. That shim $ref targets https://ast-integrate.invalid/ which jsonschema 4.10.3 Draft7Validator fetches over the network and raises RefResolutionError. A second attempt on that same fingerprint is a grind; this file is the named required_fix for live emit on this worktree. It is NOT a rewrite of the catalog output_schema path.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "question",
+    "answer",
+    "file_set",
+    "load_order",
+    "delivery_guarantee",
+    "lifecycle",
+    "ledger_schema",
+    "claim_mechanism",
+    "idempotence_samples",
+    "tests",
+    "negative_controls",
+    "evidence",
+    "artifacts"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "unit_id": { "const": "ARC-0031" },
+    "state": { "type": "string", "enum": ["SUCCESS"] },
+    "sentinel": { "const": "SUCCESS:ARC-0031" },
+    "completion_sentinel": { "const": "SUCCESS:ARC-0031" },
+    "question": { "type": "string", "minLength": 80 },
+    "answer": { "type": "string", "minLength": 80 },
+    "file_set": { "type": "array", "minItems": 5 },
+    "load_order": { "type": "array", "minItems": 5 },
+    "delivery_guarantee": {
+      "type": "object",
+      "required": ["claimed", "not_claimed", "mechanism"],
+      "properties": {
+        "claimed": { "type": "string", "pattern": "at-least-once" },
+        "not_claimed": { "type": "string", "pattern": "exactly-once" },
+        "mechanism": {
+          "type": "object",
+          "required": ["record_type", "fields"],
+          "properties": {
+            "record_type": { "const": "CLAIM" },
+            "fields": {
+              "type": "array",
+              "minItems": 4,
+              "allOf": [
+                { "contains": { "const": "claim_id" } },
+                { "contains": { "const": "fencing_token" } },
+                { "contains": { "const": "lease_until_ns" } },
+                { "contains": { "const": "dedupe_key" } }
+              ]
+            }
+          }
+        }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "required": ["states", "transitions"],
+      "properties": {
+        "states": { "type": "array", "minItems": 8 },
+        "transitions": { "type": "array", "minItems": 8 }
+      }
+    },
+    "ledger_schema": {
+      "type": "object",
+      "required": ["properties"],
+      "properties": {
+        "properties": {
+          "type": "object",
+          "required": [
+            "claim_id",
+            "fencing_token",
+            "lease_until_ns",
+            "dedupe_key"
+          ]
+        }
+      }
+    },
+    "claim_mechanism": { "type": "object" },
+    "idempotence_samples": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3
+    },
+    "tests": { "type": "array", "minItems": 2 },
+    "negative_controls": { "type": "array", "minItems": 2 },
+    "evidence": { "type": "array", "minItems": 2 },
+    "artifacts": { "type": "array", "minItems": 1 }
+  }
+}

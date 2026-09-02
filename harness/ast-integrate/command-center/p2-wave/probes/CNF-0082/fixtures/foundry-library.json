@@ -1,0 +1,170 @@
+{
+  "schema_version": 1,
+  "library_id": "foundry.local-incumbents",
+  "workflows": [
+    {
+      "id": "wf.catalog-class.discovery-only",
+      "kind": "workflow",
+      "discovery_only": true,
+      "capabilities": [
+        "static-scan",
+        "write-config"
+      ],
+      "covers": {
+        "intents": [
+          "catalog-class discovery",
+          "record blueprints without execution"
+        ],
+        "constraints": {
+          "discovery_only": true
+        }
+      },
+      "quality": 92,
+      "params": {
+        "schema": {
+          "repo": {
+            "type": "string",
+            "required": true
+          }
+        },
+        "values": {
+          "repo": "."
+        }
+      },
+      "stages": [
+        {
+          "id": "discover",
+          "kind": "static-scan",
+          "inputs": [
+            "repo"
+          ],
+          "outputs": [
+            "candidates.json"
+          ],
+          "depends_on": []
+        },
+        {
+          "id": "record",
+          "kind": "write-config",
+          "inputs": [
+            "candidates.json"
+          ],
+          "outputs": [
+            "blueprint.json"
+          ],
+          "depends_on": [
+            "discover"
+          ]
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      }
+    },
+    {
+      "id": "wf.license-inventory.static",
+      "kind": "workflow",
+      "discovery_only": true,
+      "capabilities": [
+        "static-scan"
+      ],
+      "covers": {
+        "intents": [
+          "license inventory"
+        ],
+        "constraints": {
+          "discovery_only": true
+        }
+      },
+      "quality": 70,
+      "params": {
+        "schema": {
+          "repo": {
+            "type": "string",
+            "required": true
+          }
+        },
+        "values": {
+          "repo": "."
+        }
+      },
+      "stages": [
+        {
+          "id": "scan-licenses",
+          "kind": "static-scan",
+          "inputs": [
+            "repo"
+          ],
+          "outputs": [
+            "licenses.json"
+          ],
+          "depends_on": []
+        }
+      ],
+      "stopping": {
+        "max_stages": 1,
+        "on_error": "halt"
+      }
+    },
+    {
+      "capabilities": [
+        "static-scan",
+        "write-config"
+      ],
+      "covers": {
+        "constraints": {
+          "discovery_only": true
+        },
+        "intents": [
+          "cnf-0082 foundry plant"
+        ]
+      },
+      "discovery_only": true,
+      "id": "wf.cnf0082.foundry.superior",
+      "kind": "workflow",
+      "params": {
+        "schema": {
+          "repo": {
+            "type": "string",
+            "required": true
+          }
+        },
+        "values": {
+          "repo": "."
+        }
+      },
+      "quality": 99,
+      "stages": [
+        {
+          "id": "discover",
+          "kind": "static-scan",
+          "inputs": [
+            "repo"
+          ],
+          "outputs": [
+            "candidates.json"
+          ],
+          "depends_on": []
+        },
+        {
+          "id": "record",
+          "kind": "write-config",
+          "inputs": [
+            "candidates.json"
+          ],
+          "outputs": [
+            "blueprint.json"
+          ],
+          "depends_on": [
+            "discover"
+          ]
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      }
+    }
+  ]
+}

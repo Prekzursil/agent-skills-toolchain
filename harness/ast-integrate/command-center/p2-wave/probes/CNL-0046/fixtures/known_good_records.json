@@ -1,0 +1,326 @@
+[
+  {
+    "composition_preconditions": [
+      "at_least_two_child_protocol_ids",
+      "fan_in_rule_in_majority_owner_cite_child_evidence",
+      "child_completion_before_parent_synthesis",
+      "no_two_children_with_exclusive_floor_on_one_roster",
+      "parent_may_not_overrule_child_without_citing_child_evidence"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P52",
+    "missing_element": null,
+    "slug": "nested-subcouncils-meta-council",
+    "stop_tags": [
+      "wait_children"
+    ],
+    "turn_schedule": [
+      {
+        "action": "OPEN_CHILD",
+        "actor": "parent_chair",
+        "bound": "n_children>=2",
+        "id": "start",
+        "next": "run"
+      },
+      {
+        "action": "RUN_INNER",
+        "actor": "children",
+        "bound": "each_child.stopping",
+        "id": "run",
+        "next": "fan_in"
+      },
+      {
+        "action": "FAN_IN",
+        "actor": "parent_chair",
+        "bound": "cite_each_child_record",
+        "id": "fan_in",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "parent_stopping_after_children",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "child_inner",
+      "parent_outer"
+    ]
+  },
+  {
+    "composition_preconditions": [
+      "ordered_rungs_with_executable_triggers",
+      "each_rung_names_successor_protocol_or_owner_gate",
+      "deadlock_detector_distinct_from_slow_progress",
+      "seize_floor_only_on_trigger_fire"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P53",
+    "missing_element": null,
+    "slug": "escalation-ladder",
+    "stop_tags": [
+      "override_escalate"
+    ],
+    "turn_schedule": [
+      {
+        "action": "WATCH",
+        "actor": "detector",
+        "bound": "progress_metric",
+        "id": "start",
+        "next": "seize"
+      },
+      {
+        "action": "SEIZE_FLOOR",
+        "actor": "escalator",
+        "bound": "one_turn",
+        "id": "seize",
+        "next": "rung"
+      },
+      {
+        "action": "ESCALATE",
+        "actor": "escalator",
+        "bound": "rung_table",
+        "id": "rung",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "rung_terminal_or_resume",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "seize_on_trigger"
+    ]
+  },
+  {
+    "composition_preconditions": [
+      "at_least_two_vendor_partitions",
+      "identical_inner_protocol_card_and_charter",
+      "no_cross_talk_until_compare",
+      "compare_rule_executable"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P54",
+    "missing_element": null,
+    "slug": "cross-vendor-mirrored",
+    "stop_tags": [
+      "both_mirrors"
+    ],
+    "turn_schedule": [
+      {
+        "action": "OPEN_CHILD",
+        "actor": "splitter",
+        "bound": "n_mirrors>=2",
+        "id": "start",
+        "next": "run"
+      },
+      {
+        "action": "MIRROR_STEP",
+        "actor": "mirrors",
+        "bound": "inner.stopping_each",
+        "id": "run",
+        "next": "compare"
+      },
+      {
+        "action": "COMPARE",
+        "actor": "comparator",
+        "bound": "divergence_threshold",
+        "id": "compare",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "both_mirrors_and_compare",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "parallel_clocks"
+    ]
+  },
+  {
+    "composition_preconditions": [
+      "shadow_seats_cannot_take_primary_floor",
+      "shadow_read_access_subset_named",
+      "shadow_verdict_recorded_not_mixed_into_primary_votes",
+      "shadow_stop_must_not_trigger_primary_stop"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P55",
+    "missing_element": null,
+    "slug": "shadow-council",
+    "stop_tags": [
+      "shadow_isolated"
+    ],
+    "turn_schedule": [
+      {
+        "action": "RUN_INNER",
+        "actor": "primary",
+        "bound": "primary.stopping",
+        "id": "start",
+        "next": "observe"
+      },
+      {
+        "action": "SHADOW_OBSERVE",
+        "actor": "shadow",
+        "bound": "no_floor_token",
+        "id": "observe",
+        "next": "seal"
+      },
+      {
+        "action": "SHADOW_SEAL",
+        "actor": "shadow",
+        "bound": "shadow_record_only",
+        "id": "seal",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "primary_stop_shadow_isolated",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "silent_no_floor"
+    ]
+  },
+  {
+    "composition_preconditions": [
+      "inner_protocol_emits_majority_or_decision",
+      "dissent_exists_or_designated_minority_seat",
+      "preservation_path_to_synthesis_is_structural",
+      "synthesis_blocked_until_minority_attached"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P56",
+    "missing_element": null,
+    "slug": "minority-report-mandatory",
+    "stop_tags": [
+      "delay_for_minority"
+    ],
+    "turn_schedule": [
+      {
+        "action": "RUN_INNER",
+        "actor": "inner",
+        "bound": "inner.stopping",
+        "id": "start",
+        "next": "lock"
+      },
+      {
+        "action": "MAJORITY_LOCK",
+        "actor": "majority",
+        "bound": "decision_record",
+        "id": "lock",
+        "next": "minority"
+      },
+      {
+        "action": "MINORITY_ATTACH",
+        "actor": "minority_seat",
+        "bound": "must_exist",
+        "id": "minority",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "decision_plus_minority",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "post_decision_slot"
+    ]
+  },
+  {
+    "composition_preconditions": [
+      "at_least_two_candidate_stopping_expressions",
+      "tournament_scoring_rule_executable",
+      "each_candidate_statically_valid",
+      "exactly_one_winner_armed_as_live_stop"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P57",
+    "missing_element": null,
+    "slug": "stopping-rule-tournament",
+    "stop_tags": [
+      "tournament_pick"
+    ],
+    "turn_schedule": [
+      {
+        "action": "TOURNAMENT_EVAL",
+        "actor": "arms",
+        "bound": "n_candidates>=2",
+        "id": "start",
+        "next": "pick"
+      },
+      {
+        "action": "TOURNAMENT_EVAL",
+        "actor": "chair",
+        "bound": "scoring_rule",
+        "id": "pick",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "winning_stop_only",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "tournament_last_floor"
+    ]
+  },
+  {
+    "composition_preconditions": [
+      "owner_seat_with_halt_continue_restart_rights",
+      "step_boundaries_named_on_inner_protocol",
+      "invalidating_changes_force_restart_not_quiet_continue",
+      "audit_records_owner_gate_outcome"
+    ],
+    "family": "META-COMPOSITION",
+    "id": "P58",
+    "missing_element": null,
+    "slug": "owner-in-the-loop-stepwise",
+    "stop_tags": [
+      "owner_gate"
+    ],
+    "turn_schedule": [
+      {
+        "action": "RUN_INNER",
+        "actor": "inner",
+        "bound": "until_step_boundary",
+        "id": "start",
+        "next": "gate"
+      },
+      {
+        "action": "OWNER_GATE",
+        "actor": "owner",
+        "bound": "halt_continue_restart",
+        "id": "gate",
+        "next": "end"
+      },
+      {
+        "action": "TERMINAL",
+        "actor": "runtime",
+        "bound": "owner_halt_or_inner_complete",
+        "id": "end",
+        "next": null
+      }
+    ],
+    "turn_tags": [
+      "owner_boundary"
+    ]
+  }
+]

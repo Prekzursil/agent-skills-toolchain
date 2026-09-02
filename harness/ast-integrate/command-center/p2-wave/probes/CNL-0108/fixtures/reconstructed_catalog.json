@@ -1,0 +1,370 @@
+{
+  "reconstruction_note": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json is absent on this worktree. These sibling records are reconstructed from WORK-UNIT-CATALOG.json named P-ids (CNL-0038..CNL-0046 family listings) plus C-M01 cited by CNL-0002. This is not a 72-preset disk count.",
+  "source_citations": [
+    "command-center/WORK-UNIT-CATALOG.json id=CNL-0002 C-M01",
+    "command-center/WORK-UNIT-CATALOG.json id=CNL-0044 P44 postmortem-5whys-causal",
+    "command-center/WORK-UNIT-CATALOG.json id=CNL-0045 P47 incident-war-room P46 architecture-review-board",
+    "command-center/WORK-UNIT-CATALOG.json id=CNL-0039 P08 red-blue-team",
+    "command-center/WORK-UNIT-CATALOG.json id=CNL-0106 code-review tribunal"
+  ],
+  "library_on_disk": false,
+  "presets": [
+    {
+      "id": "C-M01",
+      "name": "Catalog-class editable four-voice panel",
+      "family": "GENERAL",
+      "artifact_type": "council-preset",
+      "base_spec_ref": "CouncilSpec/v2",
+      "base_spec_version": "2.0.0",
+      "default_binding": { "protocol_ids": ["P01"] },
+      "protocol_schedule": [
+        {
+          "order": 1,
+          "protocol_id": "P01",
+          "purpose": "Free-form moderated panel as the default binding"
+        }
+      ],
+      "roster": [
+        {
+          "id": "Architect",
+          "obligation": "Propose a structured option set",
+          "permission": "Request a round extension",
+          "right": "Record a minority report"
+        },
+        {
+          "id": "Skeptic",
+          "obligation": "Name the strongest counterexample",
+          "permission": "Challenge any claim",
+          "right": "Refuse a silent average"
+        },
+        {
+          "id": "Pragmatist",
+          "obligation": "Cost each option against a budget",
+          "permission": "Drop options that cannot ship",
+          "right": "Demand a stopping expression"
+        },
+        {
+          "id": "Critic",
+          "obligation": "Score each option against a rubric",
+          "permission": "Veto an unrubricated close",
+          "right": "Attach dissent to the transcript"
+        }
+      ],
+      "voting": { "method": "unanimous-or-record-dissent", "quorum": 4 },
+      "consensus": {
+        "reducer": "shared-completion-predicate-name",
+        "local_completion_forbidden": true
+      },
+      "stopping": {
+        "expr": { "op": "OR", "args": [{ "var": "rounds", "gte": 8 }, { "var": "unanimous", "eq": true }] },
+        "on_timeout": "halt",
+        "max_rounds": 8
+      },
+      "anti_failure": { "on_split": "surface-disagreement", "no_silent_average": true },
+      "audit": { "persist_transcript": true, "hash_inputs": true },
+      "editable_dials": ["stopping.max_rounds", "voting.quorum"],
+      "outcome_type": "decision",
+      "evidence_contract": { "order": "review-comments", "unevidenced_cause": "accepted-as-review-note" },
+      "floor_policy": {
+        "min_rounds": 2,
+        "min_independent_briefs": 2,
+        "min_evidence": 1,
+        "may_skip_minimum_deliberation": false,
+        "skip_scope": "none",
+        "ceiling_max_rounds": 8
+      },
+      "clock": { "kind": "session", "action_pressure": false },
+      "supersedes": ["P01"]
+    },
+    {
+      "id": "C-ER47",
+      "name": "Incident war-room protocol wrapper",
+      "family": "ENGINEERING-REVIEW",
+      "artifact_type": "council-preset",
+      "base_spec_ref": "CouncilSpec/v2",
+      "base_spec_version": "2.0.0",
+      "default_binding": { "protocol_ids": ["P47"] },
+      "protocol_schedule": [
+        {
+          "order": 1,
+          "protocol_id": "P47",
+          "purpose": "Run catalogued incident-war-room as a generic review session"
+        }
+      ],
+      "roster": [
+        {
+          "id": "Incident-Commander",
+          "obligation": "Call and close the session",
+          "permission": "Seat reviewers",
+          "right": "Cast the session-close vote"
+        },
+        {
+          "id": "Reviewer",
+          "obligation": "Produce a written review note",
+          "permission": "Ask for more logs",
+          "right": "Record dissent"
+        },
+        {
+          "id": "Scribe",
+          "obligation": "Persist the transcript",
+          "permission": "Pause for clarification",
+          "right": "Refuse an unlogged decision"
+        }
+      ],
+      "voting": { "method": "majority-quorum", "quorum": 2 },
+      "consensus": { "reducer": "majority-of-seated", "local_completion_forbidden": true },
+      "stopping": {
+        "expr": { "op": "OR", "args": [{ "var": "rounds", "gte": 8 }, { "var": "session_closed", "eq": true }] },
+        "on_timeout": "halt",
+        "max_rounds": 8
+      },
+      "anti_failure": { "on_split": "surface-disagreement", "no_silent_average": true },
+      "audit": { "persist_transcript": true, "hash_inputs": true },
+      "editable_dials": ["stopping.max_rounds"],
+      "outcome_type": "session-close",
+      "evidence_contract": { "order": "review-comments", "unevidenced_cause": "accepted-as-review-note" },
+      "floor_policy": {
+        "min_rounds": 2,
+        "min_independent_briefs": 2,
+        "min_evidence": 1,
+        "may_skip_minimum_deliberation": false,
+        "skip_scope": "none",
+        "ceiling_max_rounds": 8
+      },
+      "clock": { "kind": "session", "action_pressure": false },
+      "supersedes": ["P47"]
+    },
+    {
+      "id": "C-TC44",
+      "name": "Postmortem 5-whys causal protocol wrapper",
+      "family": "TRADECRAFT",
+      "artifact_type": "council-preset",
+      "base_spec_ref": "CouncilSpec/v2",
+      "base_spec_version": "2.0.0",
+      "default_binding": { "protocol_ids": ["P44"] },
+      "protocol_schedule": [
+        {
+          "order": 1,
+          "protocol_id": "P44",
+          "purpose": "Run catalogued postmortem-5whys-causal as a prose causal chain"
+        }
+      ],
+      "roster": [
+        {
+          "id": "Facilitator",
+          "obligation": "Walk the five-whys chain to a written close",
+          "permission": "Reorder speakers",
+          "right": "Block a skip of a why-link"
+        },
+        {
+          "id": "Analyst",
+          "obligation": "Draft each why-link in prose",
+          "permission": "Cite logs without attaching them",
+          "right": "Propose a root cause"
+        },
+        {
+          "id": "Scribe",
+          "obligation": "Record the chain verbatim",
+          "permission": "Ask for a restatement",
+          "right": "Refuse an unlogged close"
+        }
+      ],
+      "voting": { "method": "consensus", "quorum": 3 },
+      "consensus": { "reducer": "unanimous-prose-chain", "local_completion_forbidden": true },
+      "stopping": {
+        "expr": { "op": "OR", "args": [{ "var": "causal_chain_complete", "eq": true }, { "var": "rounds", "gte": 12 }] },
+        "on_timeout": "halt",
+        "max_rounds": 12
+      },
+      "anti_failure": { "on_split": "surface-disagreement", "no_silent_average": true },
+      "audit": { "persist_transcript": true, "hash_inputs": true },
+      "editable_dials": ["stopping.max_rounds"],
+      "outcome_type": "causal-narrative",
+      "evidence_contract": { "order": "5whys-prose", "unevidenced_cause": "accepted-as-prose" },
+      "floor_policy": {
+        "min_rounds": 2,
+        "min_independent_briefs": 2,
+        "min_evidence": 1,
+        "may_skip_minimum_deliberation": false,
+        "skip_scope": "none",
+        "ceiling_max_rounds": 12
+      },
+      "clock": { "kind": "after-action", "action_pressure": false },
+      "supersedes": ["P44"]
+    },
+    {
+      "id": "C-ER46",
+      "name": "Architecture review board protocol wrapper",
+      "family": "ENGINEERING-REVIEW",
+      "artifact_type": "council-preset",
+      "base_spec_ref": "CouncilSpec/v2",
+      "base_spec_version": "2.0.0",
+      "default_binding": { "protocol_ids": ["P46"] },
+      "protocol_schedule": [
+        {
+          "order": 1,
+          "protocol_id": "P46",
+          "purpose": "Score a design against an architecture rubric"
+        }
+      ],
+      "roster": [
+        {
+          "id": "Chair",
+          "obligation": "Apply the rubric and close the board",
+          "permission": "Add a specialist seat",
+          "right": "Issue FAIL without majority if rubric gate is red"
+        },
+        {
+          "id": "Architect",
+          "obligation": "Defend the design against the rubric",
+          "permission": "Amend the design mid-board",
+          "right": "Request a continuance"
+        },
+        {
+          "id": "Skeptic",
+          "obligation": "Name the first unmitigated failure mode",
+          "permission": "Demand an oracle",
+          "right": "Record a FAIL vote"
+        }
+      ],
+      "voting": { "method": "rubric-gated-majority", "quorum": 3 },
+      "consensus": { "reducer": "rubric-then-majority", "local_completion_forbidden": true },
+      "stopping": {
+        "expr": { "op": "OR", "args": [{ "var": "rubric_complete", "eq": true }, { "var": "rounds", "gte": 6 }] },
+        "on_timeout": "halt",
+        "max_rounds": 6
+      },
+      "anti_failure": { "on_split": "surface-disagreement", "no_silent_average": true },
+      "audit": { "persist_transcript": true, "hash_inputs": true },
+      "editable_dials": ["stopping.max_rounds"],
+      "outcome_type": "go-no-go",
+      "evidence_contract": { "order": "review-comments", "unevidenced_cause": "accepted-as-review-note" },
+      "floor_policy": {
+        "min_rounds": 2,
+        "min_independent_briefs": 2,
+        "min_evidence": 1,
+        "may_skip_minimum_deliberation": false,
+        "skip_scope": "none",
+        "ceiling_max_rounds": 6
+      },
+      "clock": { "kind": "session", "action_pressure": false },
+      "supersedes": ["P46"]
+    },
+    {
+      "id": "C-ADV08",
+      "name": "Red-blue team protocol wrapper",
+      "family": "ADVERSARIAL",
+      "artifact_type": "council-preset",
+      "base_spec_ref": "CouncilSpec/v2",
+      "base_spec_version": "2.0.0",
+      "default_binding": { "protocol_ids": ["P08"] },
+      "protocol_schedule": [
+        {
+          "order": 1,
+          "protocol_id": "P08",
+          "purpose": "Run catalogued red-blue-team as an attack/defend pair"
+        }
+      ],
+      "roster": [
+        {
+          "id": "Red",
+          "obligation": "Produce an attack artifact a cooperative seat could not fake",
+          "permission": "Use the published attack budget",
+          "right": "Refuse a 'secure because time expired' close"
+        },
+        {
+          "id": "Blue",
+          "obligation": "Produce a defence artifact against each red finding",
+          "permission": "Spend the defence budget",
+          "right": "Demand a residual-risk record"
+        },
+        {
+          "id": "Referee",
+          "obligation": "Score findings against the win-condition table",
+          "permission": "Stop a budget overrun",
+          "right": "Reject a time-expiry-as-security claim"
+        }
+      ],
+      "voting": { "method": "referee-scored", "quorum": 3 },
+      "consensus": { "reducer": "finding-table-not-vote", "local_completion_forbidden": true },
+      "stopping": {
+        "expr": { "op": "OR", "args": [{ "var": "red_budget_exhausted", "eq": true }, { "var": "rounds", "gte": 10 }] },
+        "on_timeout": "halt",
+        "max_rounds": 10
+      },
+      "anti_failure": { "on_split": "surface-disagreement", "no_silent_average": true },
+      "audit": { "persist_transcript": true, "hash_inputs": true },
+      "editable_dials": ["stopping.max_rounds"],
+      "outcome_type": "finding-table",
+      "evidence_contract": { "order": "review-comments", "unevidenced_cause": "accepted-as-review-note" },
+      "floor_policy": {
+        "min_rounds": 2,
+        "min_independent_briefs": 2,
+        "min_evidence": 1,
+        "may_skip_minimum_deliberation": false,
+        "skip_scope": "none",
+        "ceiling_max_rounds": 10
+      },
+      "clock": { "kind": "session", "action_pressure": false },
+      "supersedes": ["P08"]
+    },
+    {
+      "id": "C-ER-CRT",
+      "name": "Code-review tribunal with executable oracle",
+      "family": "ENGINEERING-REVIEW",
+      "artifact_type": "council-preset",
+      "base_spec_ref": "CouncilSpec/v2",
+      "base_spec_version": "2.0.0",
+      "default_binding": { "protocol_ids": ["P45"] },
+      "protocol_schedule": [
+        {
+          "order": 1,
+          "protocol_id": "P45",
+          "purpose": "Peer-review the change then let the oracle settle disputed claims"
+        }
+      ],
+      "roster": [
+        {
+          "id": "Author",
+          "obligation": "Submit the change and a reproduction",
+          "permission": "Rebut a review",
+          "right": "Demand the oracle be run"
+        },
+        {
+          "id": "Reviewer",
+          "obligation": "File a finding or an explicit no-finding",
+          "permission": "Request a patch",
+          "right": "Cast a merge vote that the oracle may override"
+        },
+        {
+          "id": "Oracle-Clerk",
+          "obligation": "Run the named test and paste its exit code",
+          "permission": "Refuse a majority that contradicts the test",
+          "right": "Halt merge on a failing oracle"
+        }
+      ],
+      "voting": { "method": "oracle-overrides-majority", "quorum": 2 },
+      "consensus": { "reducer": "oracle-then-majority", "local_completion_forbidden": true },
+      "stopping": {
+        "expr": { "op": "AND", "args": [{ "var": "oracle_ran", "eq": true }, { "var": "reviews_filed", "gte": 2 }] },
+        "on_timeout": "halt",
+        "max_rounds": 5
+      },
+      "anti_failure": { "on_split": "surface-disagreement", "no_silent_average": true },
+      "audit": { "persist_transcript": true, "hash_inputs": true },
+      "editable_dials": ["stopping.max_rounds"],
+      "outcome_type": "merge-verdict",
+      "evidence_contract": { "order": "evidence-first", "unevidenced_cause": "rejected" },
+      "floor_policy": {
+        "min_rounds": 1,
+        "min_independent_briefs": 2,
+        "min_evidence": 1,
+        "may_skip_minimum_deliberation": false,
+        "skip_scope": "none",
+        "ceiling_max_rounds": 5
+      },
+      "clock": { "kind": "session", "action_pressure": false },
+      "supersedes": ["P45"]
+    }
+  ]
+}

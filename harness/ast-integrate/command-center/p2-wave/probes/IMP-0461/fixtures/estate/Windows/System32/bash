@@ -1,0 +1,35 @@
+#!/usr/bin/env python3
+"""Fixture Windows System32 / WSL bash: CRLF-strict passthrough to real bash."""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+from pathlib import Path
+
+
+def real_bash() -> str:
+    env = os.environ.get("IMP0461_REAL_BASH", "").strip()
+    if env:
+        return env
+    found = shutil.which("bash")
+    if found:
+        return found
+    for cand in ("/bin/bash", "/usr/bin/bash"):
+        if os.path.isfile(cand):
+            return cand
+    raise SystemExit("IMP0461 fixture: no real bash to wrap")
+
+
+def main(argv: list[str]) -> int:
+    here = Path(__file__).resolve()
+    if argv[:1] == ["--imp0461-identity"]:
+        sys.stdout.write(f"family=wsl-system\npath={here}\n")
+        return 0
+    # No CR stripping: this is the non-tolerant interpreter.
+    return subprocess.call([real_bash(), *argv])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

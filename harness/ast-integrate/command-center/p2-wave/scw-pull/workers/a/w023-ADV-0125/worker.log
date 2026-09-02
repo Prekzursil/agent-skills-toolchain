@@ -1,0 +1,34 @@
+I'll start from the existing ADV-0125 probe tree and the measurement contract, then resume from whatever is already built.Existing probes are in place. Next I’ll read the return artifact, catalog contract, and measurement script so I know what “delivered” actually requires.The return file still says BLOCKED. I’ll inspect the live artifact, probe scripts, and a recently delivered unit so we can resume instead of rebuilding.ADV-0120 shows the delivery pattern. I’ll inspect the receipt schema next and measure the current ADV-0125 tree as it stands.The receipt is already `SUCCESS` and the manifest hash matches. Next I’ll re-run the live probes and the official measure gate.Both named probes exited 0. I'll run the official measure next, then write the return files from that result.Measure already printed `SUCCESS:delivered`. I’ll write the two required artifacts from the live hashes, then remasure so the return file matches the gate.**SUCCESS:delivered ADV-0125**
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0125` printed:
+
+`SUCCESS:delivered ADV-0125 predicate=delivered state=SUCCESS probes=3 raws=2 notes=outcome_join_gate.py:0,probe1_burst.py:0,probe2_outcome_join.py:0`
+
+That line held on a second remasure after the return files were written.
+
+### What was resumed
+The existing probe tree was kept. Named probes were re-run live to exit 0:
+
+| Probe | Exit | Result |
+|---|---|---|
+| `probe1_burst.py` | 0 | Healthy 4/4, 0 provider retries, min first-arrival gap **3001.741 ms** |
+| `probe2_outcome_join.py` | 0 | 20 joined rows; **8** 429-only FAILED |
+| `outcome_join_gate.py` | 0 | Fired on bad FAILED-429 rows; silent on RETRY-PENDING |
+
+### Honest non-BLOCKED artifact
+`command-center/adversarial/ADV-0125-arrival-rate-storm-and-429.json` is **214086** bytes, `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` sha256 `113fda03255f130ef71254c803c9bb38568dafbd69754624adac90058585c68a` matches the live LF hash. `ready_units.artifact_delivered` is `(True, delivered)`.
+
+Local findings (not a green scheduler):
+
+- Arrival stagger: **CONFIRMED**
+- 429 backoff: **REFUTED** (Retry-After delays ~1.5–3.3 ms)
+- 429-as-unit-failure: **REFUTED** (8 storm units FAILED on 429-only codes)
+- Overload concurrency reduction: **REFUTED** (8 fast 429s abort the wave; canary HTTP delta 0)
+
+Cloud and cross-vendor MCP rails stay per-target **BLOCKED** residuals (no checked-in scheduler path). That is not a same-fingerprint park: the earlier CLOUD-OK refute was “named probes absent + self-declared BLOCKED,” and those two reasons are closed.
+
+### Written
+- `command-center/p2-wave/probes/ADV-0125/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0125/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` was not treated as delivery.

@@ -1,0 +1,312 @@
+{
+  "artifact": "P13-BLINDSPOT-REVIEW",
+  "unit": "depth/p13-blindspot",
+  "status": "MEASURED",
+  "date": "2026-08-10",
+  "spec_anchor": "_USER-PROMPTS.md:11066-11082",
+  "companion_md": "command-center/P13-BLINDSPOT-REVIEW.md",
+  "receipt": "command-center/receipts/BLD-0023.json",
+  "headline": "1 of 2,007 catalogued work units produced the artifact it declared. The catalog is an orphaned plan: it carries no execution-state field and its 2,007 declared output paths intersect the program's own ARTIFACT-MANIFEST in 0 places, so plan and delivery cannot be reconciled by anything in the repo. Separately, the entire platform/ tree has zero CI on any OS, and the suite fails 24 tests on Linux.",
+  "questions": [
+    {
+      "id": "Q01",
+      "question": "what files were never read",
+      "verdict": "NOT-CHECKED",
+      "finding": "No transcript read-ledger was built (that is BLD-0001's method). Reported as NOT-CHECKED rather than approximated: a proxy would be indistinguishable from the real answer while being wrong. Structural facts only: the corpus holds 610 tracked files and the spec restricts reading to lines 10473-11437 of an ~11,400-line document, so ~90% of the governing prompt is out of declared scope by construction."
+    },
+    {
+      "id": "Q02",
+      "question": "what clients were never tested",
+      "verdict": "CONFIRMED",
+      "finding": "Exactly one client is exercised: claude-code (12 token occurrences) plus a single antigravity reference. Codex/OpenAI is a first-class vendor throughout the program but is not a tested install target. min_client/max_client semver gating exists at platform/plugin/schemas.py:709-710 with no non-claude-code test. Cursor, Windsurf, Zed, Continue, Copilot: zero references."
+    },
+    {
+      "id": "Q03",
+      "question": "what platforms were never tested",
+      "verdict": "CONFIRMED",
+      "finding": "platform/ has ZERO CI on any OS (0 hits across 7 workflow files; positive control command-center=5, monitorcore=22, mcpctl=28). All 13 CI jobs are ubuntu-latest, no matrix. macOS never exercised by any route despite being in the plugin platforms enum. Measured on Linux by this unit: 24 failed / 3875 passed / 37 skipped vs Windows 0 / 3847 / 14; 22 of 24 failures in platform/routing, root-caused to the live ~/.claude coupling."
+    },
+    {
+      "id": "Q04",
+      "question": "what owner requirements disappeared",
+      "verdict": "CONFIRMED",
+      "finding": "All three owner-input slots in the governing spec are still literal placeholders (_USER-PROMPTS.md:10516 option IDs, :10520 overrides, :10524 release mode) and all 27 owner questions are OPEN (OWNER-DECISIONS.md:5). OQ-3 (release mode) is open with 'Phase 15 branches entirely on it', so the brief's 'PR-ONLY is binding' is an EXECUTOR assumption with no owner decision record. OQ-4 asks whether the scope substitution was ever approved: 'No approval record exists anywhere I searched.'"
+    },
+    {
+      "id": "Q05",
+      "question": "what option IDs were silently dropped",
+      "verdict": "CONFIRMED",
+      "finding": "None newly. OPTION-ID-RESOLUTION.json measured 283 options with MD/JSON symmetric difference 0, zero title mismatches, and 70 owner-decided in exact agreement across three encodings; the historic 31-way M-NN collision was re-prefixed to MECH-NN. The live gap is not dropped IDs but that OQ-1 was never answered, so no option ID was ever SELECTED."
+    },
+    {
+      "id": "Q06",
+      "question": "what failures were normalized away",
+      "verdict": "CONFIRMED",
+      "finding": "488 suppression constructs over 355 in-scope deliverable files, 13 regex patterns each proven on a known-positive and a known-negative line first. Largest classes: 112 '# pragma: no cover', 33 pytest.skip() absence guards, 16 '|| true'. TWO OF MY OWN COUNTS WERE CORRECTED DOWNWARD: the except-clause pattern matched 290 lines but only 29 are true swallows (body pass/.../continue), and continue-on-error matched 3 of which 2 are inside YAML comments, leaving exactly 1 live (routing-benchmark.yml:96, self-labelled shadow)."
+    },
+    {
+      "id": "Q07",
+      "question": "what unknowns remain",
+      "verdict": "CONFIRMED",
+      "finding": "13 unknowns (U-1..U-13) on UNKNOWNS-REGISTER.md, none retired; each names its settling experiment. Load-bearing: U-4 (only 7 of 46 failure classes seeded), U-8 (everything marked [inherited] was never re-probed by its own author), U-13 (live vs repo harness never compared). Beyond the register: Phase 13's own contracted artifact did not exist - blindspot-register, contradiction-register and prior-art-register schemas all ship with ZERO instances repo-wide. This unit emits the first blindspot-register instance."
+    },
+    {
+      "id": "Q08",
+      "question": "what existing work was ignored",
+      "verdict": "CONFIRMED",
+      "finding": "The repo already holds the disposition machinery the 2,007 units never used: tools/command-center/close.py + render.py, whose generated header at OWNER-DECISIONS.md:1 states dispositions are closed by running close.py and re-rendering. The 103-item register uses it; the 2,007-unit catalog does not, hence zero receipts and no disposition field. Also ignored: the declared target itself (target 2048, count 2007, shortfall 41, never closed) and hooks/semantic-router, the pre-existing router that CI still gates instead of platform/routing."
+    },
+    {
+      "id": "Q09",
+      "question": "what test could falsely pass",
+      "verdict": "CONFIRMED",
+      "finding": "Latent, not live. The dominant shape is absence-is-not-failure: test_catalog_conformance.py:33-34 'if not CATALOG.is_file(): pytest.skip(...)' carrying '# pragma: no cover'. 33 such guards exist. Correctly scoped: NONE currently fire - a targeted run of the guarded modules gave 221 passed / 0 skipped. The risk compounds with Q03: the guard branch is invisible to coverage and platform/ has no CI, so a deletion flipping 100+ conformance tests from PASS to SKIP would be caught by nothing. My first proof attempt returned masks_found=0, which was a DETECTOR FAILURE (platform/ shadows the stdlib platform module), pivoted per AGENTS.md 4b rather than attempted a third time."
+    },
+    {
+      "id": "Q10",
+      "question": "what threat actor was not modeled",
+      "verdict": "CONFIRMED",
+      "finding": "No STRIDE threat-model artifact exists: every STRIDE hit is a catalog declaration. All 14 spec-required phase-12 refuter lenses are unexecuted (phase 12: 129 catalogued / 0 produced; command-center/adversarial/ does not exist), including the 'cross-platform behavior' refuter that would have caught the Linux failures. The unmodeled actor with a live counterpart already found by a sibling lane is the malicious/compromised publisher plus stale mirror (two CONFIRMED revocation escapes). The actor I judge least modeled is the operator's own fan-out, which the catalog itself flags: 'a threat model that excludes the operator's own fan-out is incomplete by construction'."
+    },
+    {
+      "id": "Q11",
+      "question": "what would break at 10x scale",
+      "verdict": "PARTIAL",
+      "finding": "Structural facts read, no load test run (NOT-CHECKED). (1) The catalog is a 5.36 MB single JSON blob json.loads'd whole by the conformance tests, schema resolver, authorization gate and renderer; at 10x that is ~54 MB per invocation with no index, no streaming, no pagination. (2) platform/ shadows the stdlib platform module - proven, not inferred, by 'No module named platform.lib; platform is not a package' - survivable only because no __init__.py exists. (3) Wall-clock is already binding: ~211s on Windows, and with zero CI nobody will run it by hand at 10x. (4) A hard-killed plugin install wedges the prefix for 1 hour (sibling finding), which dominates at 10x install concurrency."
+    }
+  ],
+  "blind_spot_register": [
+    {
+      "id": "BS-01",
+      "blind_spot": "2,006 of 2,007 catalogued units produced nothing; no plan-to-delivery reconciliation exists",
+      "severity": "P0",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-02",
+      "blind_spot": "Scope substitution (2,048 -> a few dozen units) never approved (OQ-4)",
+      "severity": "P0",
+      "disposition": "OWNER DECISION",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-03",
+      "blind_spot": "platform/ has zero CI on any OS; the 3,847-test green is hand-run and unreproducible",
+      "severity": "P0",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-04",
+      "blind_spot": "CI is ubuntu-latest only (13/13 jobs); Windows and macOS ungated",
+      "severity": "P1",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-05",
+      "blind_spot": "24 Linux full-suite failures (measured)",
+      "severity": "P1",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-06",
+      "blind_spot": "macOS never exercised, yet declared in the plugin platforms enum",
+      "severity": "P2",
+      "disposition": "ACCEPTED RISK",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-07",
+      "blind_spot": "Release mode is an executor assumption; OQ-3 open",
+      "severity": "P1",
+      "disposition": "OWNER DECISION",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-08",
+      "blind_spot": "3 spec owner-input placeholders still literal; 27/27 owner questions open",
+      "severity": "P1",
+      "disposition": "OWNER DECISION",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-09",
+      "blind_spot": "0/103 register receipts exist; 26 DONE-VERIFIED items have inline evidence but no schema-valid receipt",
+      "severity": "P1",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-10",
+      "blind_spot": "No STRIDE threat model; all 14 phase-12 refuter lenses unexecuted",
+      "severity": "P1",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-11",
+      "blind_spot": "239/261 mcp__-bearing units unapproved",
+      "severity": "P1",
+      "disposition": "OWNER DECISION",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-12",
+      "blind_spot": "33 absence-is-skip guards + 112 '# pragma: no cover', invisible to coverage and to nonexistent CI",
+      "severity": "P2",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-13",
+      "blind_spot": "Only 7 of 46 named failure classes seeded as regressions (U-4, not re-verified here)",
+      "severity": "P2",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-14",
+      "blind_spot": "Codex/OpenAI is a first-class vendor but never a tested install client",
+      "severity": "P2",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-15",
+      "blind_spot": "No transcript read-ledger, so Q01 is unanswerable today (BLD-0001)",
+      "severity": "P2",
+      "disposition": "ACCEPTED RISK",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-16",
+      "blind_spot": "5.36 MB monolithic catalog parsed whole on every consumer path",
+      "severity": "P2",
+      "disposition": "ACCEPTED RISK",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-17",
+      "blind_spot": "platform/ shadows stdlib platform; safe only because no __init__.py exists",
+      "severity": "P2",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-18",
+      "blind_spot": "41-unit declared shortfall against the 2,048 target, never closed",
+      "severity": "P3",
+      "disposition": "ACCEPTED RISK",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-19",
+      "blind_spot": "contradiction-register and prior-art-register schemas ship with zero instances",
+      "severity": "P3",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-20",
+      "blind_spot": "ARTIFACT-MANIFEST.json lists itself with bytes 0 / sha256 '(self)'; cannot verify itself",
+      "severity": "P3",
+      "disposition": "ACCEPTED RISK",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-21",
+      "blind_spot": "platform/routing measured against the live ~/.claude, so Phase 8 numbers are machine-specific and no CI runner can pass; an unused ROUTING_HOME seam exists",
+      "severity": "P1",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-22",
+      "blind_spot": "routing-benchmark.yml gates hooks/semantic-router, not platform/routing, fail-open; two routers exist and T-13's evidence cites the older one",
+      "severity": "P1",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    },
+    {
+      "id": "BS-23",
+      "blind_spot": "The receipt predicate cannot express an audit unit that correctly found defects: SUCCESS is forbidden while any P0/P1 is open, so phase-12/13 units cannot emit SUCCESS when they succeed",
+      "severity": "P2",
+      "disposition": "WORK UNIT",
+      "acceptor": null
+    }
+  ],
+  "counts": {
+    "questions_total": 11,
+    "questions_confirmed": 9,
+    "questions_partial": 1,
+    "questions_not_checked": 1,
+    "blind_spots_total": 23,
+    "blind_spots_p0": 3,
+    "blind_spots_p1": 9,
+    "work_units": 14,
+    "owner_decisions": 4,
+    "accepted_risks": 5
+  },
+  "owner_decisions_required": [
+    {
+      "id": "BS-02",
+      "blind_spot": "Scope substitution (2,048 -> a few dozen units) never approved (OQ-4)",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-06",
+      "blind_spot": "macOS never exercised, yet declared in the plugin platforms enum",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-07",
+      "blind_spot": "Release mode is an executor assumption; OQ-3 open",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-08",
+      "blind_spot": "3 spec owner-input placeholders still literal; 27/27 owner questions open",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-11",
+      "blind_spot": "239/261 mcp__-bearing units unapproved",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-15",
+      "blind_spot": "No transcript read-ledger, so Q01 is unanswerable today (BLD-0001)",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-16",
+      "blind_spot": "5.36 MB monolithic catalog parsed whole on every consumer path",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-18",
+      "blind_spot": "41-unit declared shortfall against the 2,048 target, never closed",
+      "acceptor": "Prekzursil"
+    },
+    {
+      "id": "BS-20",
+      "blind_spot": "ARTIFACT-MANIFEST.json lists itself with bytes 0 / sha256 '(self)'; cannot verify itself",
+      "acceptor": "Prekzursil"
+    }
+  ],
+  "my_own_corrected_measurements": [
+    "except-clause census: 290 -> 29 (the pattern matched correct handlers too)",
+    "CI continue-on-error: 3 -> 1 live (2 occurrences sit inside YAML comments)",
+    "skip-mask monkeypatch probe reported masks_found=0, which was a detector failure (platform/ shadows the stdlib platform module), not a finding"
+  ],
+  "detector_controls_run": [
+    "output-existence: known-present file, known-present dir, known-absent path, known-present-but-empty file - all 4 correct before any count",
+    "CI grep: positive control on three known-present strings (5/22/28 hits) before accepting the 0 for platform/",
+    "suppression census: 13 patterns each fired on a known-positive and stayed silent on a known-negative line",
+    "Linux report: refuses to emit unless the summary's failure count equals the number of parsed FAILED lines",
+    "receipt: 5 seeded mutants (drop report.kind, empty observations, drop control_ids, single-probe evidence, drop failure object) all REJECTED while the real receipt validates with 0 errors"
+  ]
+}

@@ -1,0 +1,164 @@
+{
+  "artifacts": [
+    {
+      "bytes": 15719,
+      "exists": true,
+      "path": "tools/command-center/partial_preserve.py",
+      "role": "primary-implementation",
+      "sha256": "0fee346cb86a1caa9de1be5ebbb0e4788438a672b9ecfbcaa9d630a83c10e3e3"
+    }
+  ],
+  "completion_sentinel": "SENTINEL:IMP-0453:PARTIALS-PRESERVED",
+  "evidence": [
+    {
+      "anchor": "tools/command-center/partial_preserve.py:kill_late_run",
+      "claim": "kill-late: partial file survived SIGKILL with 65536 bytes, classified INCOMPLETE, and referenced from the run ledger.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0453/probe1_kill_late.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"bytes\": 65536,\n  \"child_returncode\": -9,\n  \"classification\": \"INCOMPLETE\",\n  \"fingerprint\": {\n    \"dev\": 2049,\n    \"ino\": 1053958,\n    \"mtime_ns\": 1787621483131830823,\n    \"size\": 65536\n  },\n  \"header_ok\": true,\n  \"id\": \"kill-late-survives\",\n  \"ledger_path\": \"/tmp/imp-0453-53wozlhx/run-ledger.jsonl\",\n  \"ledger_referenced\": true,\n  \"ledger_row\": {\n    \"bytes\": 65536,\n    \"classification\": \"INCOMPLETE\",\n    \"deleted\": false,\n    \"event\": \"failure\",\n    \"path\": \"/tmp/imp-0453-53wozlhx/late-unit.artifact\",\n    \"preserved\": true,\n    \"reason\": \"kill-late\",\n    \"run_id\": \"kill-late-1\",\n    \"status\": \"INCOMPLETE\",\n    \"ts_monotonic\": 5229.114397223\n  },\n  \"pass\": true,\n  \"path\": \"/tmp/imp-0453-53wozlhx/late-unit.artifact\",\n  \"preserved\": true,\n  \"same_inode\": true,\n  \"sentinel_absent\": true,\n  \"status\": \"INCOMPLETE\"\n}\nbytes=65536 classification=INCOMPLETE ledger_referenced=True same_inode=True\nSUCCESS:IMP-0453-probe1 kill-late partial preserved and classified INCOMPLETE",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/command-center/partial_preserve.py:preserve_on_failure",
+      "claim": "mutation that unlinks partials on failure turns the preservation test red; a complete artifact (sentinel own-line or JSON completion_sentinel) is not classified INCOMPLETE.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0453/probe2_cleanup_mutation.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"absent_control\": \"ABSENT\",\n  \"audit\": {\n    \"classify_reads_bytes\": true,\n    \"mutant_cleanup_does_delete\": true,\n    \"preserve_delete_calls\": [],\n    \"preserve_does_not_delete\": true\n  },\n  \"both_states\": {\n    \"absent_is_absent\": true,\n    \"complete_not_incomplete\": true,\n    \"exists_as_complete_fires\": true,\n    \"honest_preserve_green\": true,\n    \"json_complete_is_complete\": true,\n    \"mention_is_incomplete\": true,\n    \"mutant_cleanup_turns_preservation_red\": true\n  },\n  \"complete_control\": {\n    \"classification\": \"COMPLETE\",\n    \"json_classification\": \"COMPLETE\",\n    \"status\": \"SUCCESS\"\n  },\n  \"exists_as_complete_mutant\": \"COMPLETE\",\n  \"honest\": {\n    \"bytes\": 65536,\n    \"classification\": \"INCOMPLETE\",\n    \"exists\": true\n  },\n  \"id\": \"cleanup-mutation-and-complete-control\",\n  \"mention_control\": \"INCOMPLETE\",\n  \"mutant_cleanup\": {\n    \"deleted\": true,\n    \"existed_before\": true,\n    \"preservation_test_pass\": false,\n    \"survives\": false,\n    \"turns_test_red\": true\n  },\n  \"pass\": true\n}\nhonest_green=True mutant_red=True complete_cls=COMPLETE\nSUCCESS:IMP-0453-probe2 cleanup mutation turns red; complete is not INCOMPLETE",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "IMP-0453",
+  "implementation": {
+    "audit": {
+      "classify_reads_bytes": true,
+      "preserve_delete_calls": [],
+      "preserve_does_not_delete": true
+    },
+    "body_bytes_kill_late": 65536,
+    "module": "tools/command-center/partial_preserve.py",
+    "operator": "sentinel-last durable write; classify by exact sentinel carry; preserve_on_failure never unlinks",
+    "partial_preserve_bytes": 15719,
+    "partial_preserve_sha256": "0fee346cb86a1caa9de1be5ebbb0e4788438a672b9ecfbcaa9d630a83c10e3e3"
+  },
+  "killed_late_evidence": {
+    "bytes": 65536,
+    "child_returncode": -9,
+    "classification": "INCOMPLETE",
+    "ledger_referenced": true,
+    "ledger_row": {
+      "bytes": 65536,
+      "classification": "INCOMPLETE",
+      "deleted": false,
+      "event": "failure",
+      "path": "/tmp/imp-0453-cwjgskf0/late-unit.artifact",
+      "preserved": true,
+      "reason": "kill-late",
+      "run_id": "kill-late-1",
+      "status": "INCOMPLETE",
+      "ts_monotonic": 5229.004513435
+    },
+    "preserved": true,
+    "same_inode": true,
+    "status": "INCOMPLETE"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0453/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "After SIGKILL, preserve_on_failure keeps the same inode and byte size; it does not rewrite a fake partial.",
+      "id": "IMP-0453-C1-kill-late-inode-stable",
+      "kind": "computed-count",
+      "same_inode": true
+    },
+    {
+      "description": "Honest preserve_on_failure: file survives (green). Planted unlink-on-failure: preservation test red.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0453-C2-cleanup-mutation-both-states",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "complete_classification": "COMPLETE",
+      "description": "A complete artifact carrying the sentinel is COMPLETE/SUCCESS, never INCOMPLETE. A quoted mention is still INCOMPLETE.",
+      "id": "IMP-0453-C3-complete-not-incomplete",
+      "kind": "negative-control",
+      "mention_classification": "INCOMPLETE"
+    }
+  ],
+  "notes": "G-1 IMP-0453: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SENTINEL:IMP-0453:PARTIALS-PRESERVED",
+  "output_path": "command-center/receipts/IMP-0453.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "premise": {
+    "action": "Created probes/IMP-0453 and tools/command-center/partial_preserve.py on this sparse worktree. Did not exit on predicate:absent. IMP-0415 reducer and IMP-0434 atomic writer receipts were absent; this unit ships durable sentinel-last writes plus failure preservation.",
+    "catalog_inputs": [
+      "command-center/receipts/",
+      "command-center/receipts/IMP-0415.json"
+    ],
+    "inputs_were_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is the planted unlink-on-failure mutant plus the exists-as-complete mutant and the complete-artifact negative control. AST audit requires classify to read bytes and preserve_on_failure to call no unlink/remove/rmtree.",
+    "reviewer_id": "IMP-0453-probe2-cleanup-mutation",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SENTINEL:IMP-0453:PARTIALS-PRESERVED",
+  "spec_anchor": "spec line 11313 / FC-11313: an artifact that exists but carries no sentinel is INCOMPLETE, must be PRESERVED, and must never be deleted or reported as success",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "bytes": 65536,
+      "classification": "INCOMPLETE",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0453/probe1_kill_late.py",
+      "exit_code": 0,
+      "id": "kill-late-survives",
+      "result": "PASS"
+    },
+    {
+      "both_states": {
+        "absent_is_absent": true,
+        "complete_not_incomplete": true,
+        "exists_as_complete_fires": true,
+        "honest_preserve_green": true,
+        "json_complete_is_complete": true,
+        "mention_is_incomplete": true,
+        "mutant_cleanup_turns_preservation_red": true
+      },
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0453/probe2_cleanup_mutation.py",
+      "exit_code": 0,
+      "id": "cleanup-mutation-turns-red",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:31:23Z",
+    "started_at": "2026-08-25T01:31:23Z"
+  },
+  "title": "Partial-artifact preservation and INCOMPLETE classification",
+  "unit_id": "IMP-0453"
+}

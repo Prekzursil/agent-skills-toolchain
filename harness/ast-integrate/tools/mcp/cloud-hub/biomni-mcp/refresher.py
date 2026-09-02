@@ -1,0 +1,534 @@
+#!/usr/bin/env python3
+"""Biomni refresh-at-source broker — keep the Bearer fresh, hands-off, via a browser profile.
+
+The companion to ``broker.py``. Phylo's WorkOS session keeps its refresh token in an
+HttpOnly cookie and rotates it (one-time-use), so a copied refresh token can't be
+shared — the ONLY stable way to keep a fresh Bearer without a human each time is to
+let a browser that OWNS the session mint it. This does exactly that:
+
+Biomni's live API authenticates with a ``session_id`` COOKIE (no Bearer — verified
+against the running app). Google blocks OAuth sign-in inside an automation-driven
+browser, so the WORKING path is ``--cdp``: you sign into Biomni in your NORMAL Chrome
+(started with ``--remote-debugging-port``), and the refresher ATTACHES over CDP and
+reads the ``session_id`` cookie from that live session — no bot login, nothing evaded.
+
+  * ``login``  — launch a HEADED persisted profile; YOU sign in once (dead for Google
+                 SSO — use ``--cdp`` instead).
+  * ``refresh``— capture the fresh session token and write it to the broker's store
+                 (chmod-600 file or OS keyring). With ``--cdp`` it reads the ``session_id``
+                 cookie from your attached Chrome (the Biomni path).
+  * ``watch``  — ``refresh`` on a loop (also keeps the session sliding-alive).
+
+``broker.py`` then serves that stored token to the connector, which holds none. The
+token flows browser -> this process -> store, entirely LOCAL; it is never printed
+(masked only) and never enters the connector, the hub, or an agent's context. YOU do
+the one-time sign-in; nothing here handles a password.
+
+Requires Playwright:  ``pip install playwright`` then ``playwright install chromium``.
+
+Examples:
+  python refresher.py login                       # sign in once (headed)
+  python refresher.py refresh                     # one fresh token -> ~/.biomni-mcp/broker_token
+  python refresher.py watch --interval 1800       # keep it fresh every 30 min
+  python refresher.py refresh --profile ~/.biomni-mcp/profiles/andrei --out-keyring biomni:andrei
+"""
+
+from __future__ import annotations
+
+import argparse
+import contextlib
+import json
+import os
+import sys
+import time
+import urllib.error
+import urllib.request
+
+WEB_URL = "https://biomni.phylo.bio"
+API_HOST = "api.phylo.bio"
+SIGNIN_HOST = "signin.phylo.bio"
+CAPTURE_TIMEOUT_MS = 45_000
+LOGIN_TIMEOUT_MS = 300_000  # 5 min for the human to finish signing in
+# The authenticated endpoint used to decide whether a captured cookie is LIVE.
+AUTH_CHECK_URL = f"https://{API_HOST}/v2/auth/me"
+AUTH_CHECK_TIMEOUT = 15.0
+
+
+def _default_profile() -> str:
+    return os.path.join(os.path.expanduser("~"), ".biomni-mcp", "profiles", "default")
+
+
+def _default_store_file() -> str:
+    return os.path.join(os.path.expanduser("~"), ".biomni-mcp", "broker_token")
+
+
+# --------------------------------------------------------------------------- #
+# Pure helpers (unit-tested; no browser)
+# --------------------------------------------------------------------------- #
+def _mask(token: str) -> str:
+    """Non-reversible preview; never the full value."""
+    if not token:
+        return ""
+    return f"...{token[-4:]}" if len(token) > 8 else "set"
+
+
+def bearer_from_auth_header(value: str) -> str:
+    """Extract the token from an ``Authorization: Bearer <token>`` value; "" otherwise."""
+    if not isinstance(value, str):
+        return ""
+    parts = value.split(None, 1)
+    if len(parts) == 2 and parts[0].lower() == "bearer" and parts[1].strip():
+        return parts[1].strip()
+    return ""
+
+
+def select_bearer(captured: list[str]) -> str:
+    """Pick the best Bearer from captured Authorization headers (longest wins)."""
+    tokens = [bearer_from_auth_header(v) for v in captured]
+    tokens = [t for t in tokens if t]
+    return max(tokens, key=len) if tokens else ""
+
+
+def check_session_cookie(
+    value: str,
+    cookie_name: str = "session_id",
+    url: str = AUTH_CHECK_URL,
+    timeout: float = AUTH_CHECK_TIMEOUT,
+) -> str:
+    """Ask the API whether this session cookie is still accepted.
+
+    Returns ``valid`` | ``revoked`` | ``unknown``.
+
+    A NON-EMPTY cookie is not proof of a live session: Phylo/WorkOS revoke
+    server-side while Chrome keeps handing back the same opaque value. Without
+    this check ``refresh`` stored that dead value and exited 0, and ``watch``
+    re-stored it every interval -- both reporting recovery from exactly the stale
+    -cookie 401 the README tells you to fix by running them.
+
+    ``unknown`` (transport error, 5xx, any non-2xx that is not 401/403)
+    deliberately does NOT count as revoked: an upstream blip must not throw away
+    a working token.
+    """
+    if not value:
+        return "revoked"
+    req = urllib.request.Request(url, headers={"Cookie": f"{cookie_name}={value}"})
+    try:
+        with urllib.request.urlopen(req, timeout=timeout) as resp:  # noqa: S310
+            return "valid" if 200 <= resp.status < 300 else "unknown"
+    except urllib.error.HTTPError as exc:
+        return "revoked" if exc.code in (401, 403) else "unknown"
+    except (urllib.error.URLError, OSError, ValueError):
+        return "unknown"
+
+
+def write_token(store: dict, token: str) -> str:
+    """Write the token to the configured store; return a human status. Never logs it."""
+    if store["kind"] == "file":
+        _write_token_file(store["path"], token)
+        return f"wrote token ({_mask(token)}) -> file {store['path']} (chmod 600)"
+    if store["kind"] == "keyring":
+        import keyring  # noqa: PLC0415  (optional dep, lazy)
+
+        keyring.set_password(store["service"], store["user"], token)
+        return (
+            f"wrote token ({_mask(token)}) -> keyring "
+            f"{store['service']}:{store['user']}"
+        )
+    raise ValueError(f"unknown store kind {store['kind']!r}")
+
+
+def _write_token_file(path: str, token: str) -> None:
+    """Atomically write the token with restrictive (0600) permissions."""
+    parent = os.path.dirname(path)
+    if parent:
+        os.makedirs(parent, exist_ok=True)
+    tmp = path + ".tmp"
+    # 0600 at CREATION -- the temp file holds the same session token as the
+    # destination, so chmod-ing only after os.replace left it world-readable at
+    # the process umask for the length of every write.
+    fd = os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
+    with os.fdopen(fd, "w", encoding="utf-8") as fh:
+        fh.write(token)
+    os.replace(tmp, path)
+    try:  # best-effort lockdown (Windows honours only the read-only bit)
+        os.chmod(path, 0o600)
+    except OSError:
+        pass
+
+
+def resolve_store(args) -> dict:
+    """Build the store spec from CLI args (file default, or keyring)."""
+    if getattr(args, "out_keyring", ""):
+        service, _, user = args.out_keyring.partition(":")
+        return {"kind": "keyring", "service": service, "user": user or "biomni"}
+    return {"kind": "file", "path": args.out_file or _default_store_file()}
+
+
+def plan_accounts(
+    names: list[str], base_port: int, profiles_dir: str = "", tokens_dir: str = ""
+) -> list[dict]:
+    """Map account names -> profile dir, token-store file, broker port, connector env.
+
+    One broker + one refresher profile per account; the port increments so
+    ``bm_account_cycle`` rotates by pointing the connector at the next broker.
+    """
+    base = os.path.join(os.path.expanduser("~"), ".biomni-mcp")
+    profiles_dir = profiles_dir or os.path.join(base, "profiles")
+    tokens_dir = tokens_dir or os.path.join(base, "tokens")
+    return [
+        {
+            "name": name,
+            "profile": os.path.join(profiles_dir, name),
+            "store_file": os.path.join(tokens_dir, name),
+            "port": base_port + i,
+            "api_base": f"http://127.0.0.1:{base_port + i}",
+        }
+        for i, name in enumerate(names)
+    ]
+
+
+def render_accounts_block(plan: list[dict]) -> str:
+    """The cloud-hub accounts.json ``biomni`` block for the plan — NO tokens, just handles."""
+    accounts = [
+        {
+            "name": a["name"],
+            "label": f"{a['name']} (broker :{a['port']})",
+            "env": {"BIOMNI_API_BASE": a["api_base"], "BIOMNI_BROKER": "1"},
+        }
+        for a in plan
+    ]
+    active = plan[0]["name"] if plan else None
+    return json.dumps({"biomni": {"active": active, "accounts": accounts}}, indent=2)
+
+
+def render_daemons(plan: list[dict]) -> list[str]:
+    """Per-account daemon commands: one broker + one refresher-watch pair each."""
+    lines: list[str] = []
+    for a in plan:
+        lines.append(
+            f"BIOMNI_BROKER_TOKEN_FILE={a['store_file']} "
+            f"python biomni-mcp/broker.py --port {a['port']}"
+        )
+        lines.append(
+            f"python biomni-mcp/refresher.py watch "
+            f"--profile {a['profile']} --out-file {a['store_file']}"
+        )
+    return lines
+
+
+# --------------------------------------------------------------------------- #
+# Playwright shell (lazy import; not unit-tested — needs a real browser)
+# --------------------------------------------------------------------------- #
+def _playwright():
+    """Import Playwright lazily; return (module, error_hint)."""
+    try:
+        from playwright.sync_api import sync_playwright  # noqa: PLC0415
+    except Exception as exc:  # noqa: BLE001
+        return None, (
+            "Playwright not available; `pip install playwright` then "
+            f"`playwright install chromium` ({exc})"
+        )
+    return sync_playwright, None
+
+
+def _capture_cookie(
+    cdp_url: str, url: str, cookie_name: str, timeout_ms: int
+) -> tuple[str, str]:
+    """Attach to a running Chrome via CDP and read Biomni's session cookie; (value, error).
+
+    Biomni authenticates to api.phylo.bio with a ``session_id`` COOKIE (no Bearer),
+    so we read that cookie from the live, already-signed-in session — no bot login,
+    nothing evaded. If it is missing OR server-revoked, we open the app once to let
+    the session re-establish, then re-read and RE-CHECK it: presence alone is not
+    freshness (see :func:`check_session_cookie`).
+    """
+    sync_playwright, err = _playwright()
+    if err:
+        return "", err
+
+    def _find(ctx) -> str:
+        for c in ctx.cookies(["https://api.phylo.bio"]):
+            if c.get("name") == cookie_name and c.get("value"):
+                return c["value"]
+        return ""
+
+    with sync_playwright() as p:
+        try:
+            browser = p.chromium.connect_over_cdp(cdp_url)
+        except Exception as exc:  # noqa: BLE001
+            return "", (
+                f"could not attach to Chrome at {cdp_url} ({exc}); start Chrome with "
+                "--remote-debugging-port=9222 (ideally a dedicated profile)."
+            )
+        ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+        value = _find(ctx)
+        state = check_session_cookie(value, cookie_name)
+        if state == "revoked":  # missing OR dead: open the app once, then re-read
+            page = ctx.new_page()
+            try:
+                page.goto(url, timeout=60_000)
+                page.wait_for_timeout(min(8000, timeout_ms))
+                value = _find(ctx)
+            except Exception:  # noqa: BLE001
+                value = _find(ctx)
+            finally:
+                with contextlib.suppress(Exception):
+                    page.close()
+            state = check_session_cookie(value, cookie_name)
+    if state != "revoked":  # valid, or unverifiable (do not discard on a blip)
+        return value, ""
+    if value:
+        return "", (
+            f"the '{cookie_name}' cookie in that Chrome is REJECTED by {API_HOST} "
+            "(HTTP 401/403) — the server-side session was revoked or expired. Sign "
+            "into Biomni again in that browser, then retry."
+        )
+    return "", (
+        f"no '{cookie_name}' cookie for api.phylo.bio in that Chrome — sign into "
+        "Biomni there first, then retry."
+    )
+
+
+def _capture_bearer(
+    profile: str, url: str, headless: bool, timeout_ms: int, cdp_url: str = ""
+) -> tuple[str, str]:
+    """Capture a fresh Bearer from api.phylo.bio; (token, error).
+
+    Persistent-profile mode (default) launches its own browser. CDP mode
+    (``cdp_url`` set) ATTACHES to your already-running, already-signed-in Chrome
+    (started with ``--remote-debugging-port``) and reads the token from that live
+    session — no bot login happens, so Google's automation block never applies.
+    """
+    sync_playwright, err = _playwright()
+    if err:
+        return "", err
+    captured: list[str] = []
+    landed_on_signin = {"v": False}
+    with sync_playwright() as p:
+        own_page = False
+        if cdp_url:
+            try:
+                browser = p.chromium.connect_over_cdp(cdp_url)
+            except Exception as exc:  # noqa: BLE001
+                return "", (
+                    f"could not attach to Chrome at {cdp_url} ({exc}); start Chrome "
+                    "with --remote-debugging-port=9222 (ideally a dedicated profile)."
+                )
+            ctx = browser.contexts[0] if browser.contexts else browser.new_context()
+            page = ctx.new_page()
+            own_page = True
+        else:
+            ctx = p.chromium.launch_persistent_context(
+                user_data_dir=profile, headless=headless
+            )
+            page = ctx.pages[0] if ctx.pages else ctx.new_page()
+        try:
+
+            def _on_request(req):
+                if API_HOST in req.url:
+                    auth = req.headers.get("authorization")
+                    if auth:
+                        captured.append(auth)
+
+            page.on("request", _on_request)
+            page.goto(url, timeout=60_000)
+            deadline = time.monotonic() + timeout_ms / 1000.0
+            while time.monotonic() < deadline:
+                if select_bearer(captured):
+                    break
+                if SIGNIN_HOST in (page.url or ""):
+                    landed_on_signin["v"] = True
+                    if (
+                        headless or cdp_url
+                    ):  # only headed profile-login waits for a human
+                        break
+                page.wait_for_timeout(1000)
+        finally:
+            if cdp_url:
+                if own_page:  # close only OUR tab; never close the user's real Chrome
+                    with contextlib.suppress(Exception):
+                        page.close()
+            else:
+                ctx.close()
+    token = select_bearer(captured)
+    if token:
+        return token, ""
+    if landed_on_signin["v"]:
+        return "", (
+            "that Chrome is not signed into Biomni (redirected to signin.phylo.bio) — "
+            "sign in there, then retry."
+            if cdp_url
+            else "not signed in for this profile (redirected to signin.phylo.bio) — run "
+            "`refresher.py login` and complete sign-in in the browser."
+        )
+    return "", "no api.phylo.bio Authorization header seen before timeout"
+
+
+def cmd_login(args) -> int:
+    """Headed sign-in: launch the persisted profile so the user authenticates once."""
+    print(
+        f"[refresher] opening {args.url} (headed) — sign in; capture completes on success."
+    )
+    token, err = _capture_bearer(
+        args.profile, args.url, headless=False, timeout_ms=LOGIN_TIMEOUT_MS
+    )
+    if err:
+        print(f"[refresher] login incomplete: {err}", file=sys.stderr)
+        return 1
+    print(
+        f"[refresher] signed in; session saved to profile {args.profile} ({_mask(token)})."
+    )
+    print("[refresher] you can now run `refresh` / `watch` headless.")
+    return 0
+
+
+def _capture(args) -> tuple[str, str]:
+    """Route to the working capture: session COOKIE via CDP (Biomni's real auth), else
+    the legacy header capture via a persisted profile (dead for Google SSO)."""
+    if args.cdp:
+        return _capture_cookie(args.cdp, args.url, args.cookie_name, args.timeout_ms)
+    return _capture_bearer(
+        args.profile, args.url, headless=True, timeout_ms=args.timeout_ms
+    )
+
+
+def cmd_refresh(args) -> int:
+    """Headless one-shot: capture the fresh session token and write it to the store."""
+    store = resolve_store(args)
+    token, err = _capture(args)
+    if err:
+        print(f"[refresher] refresh failed: {err}", file=sys.stderr)
+        return 1
+    print(f"[refresher] {write_token(store, token)}")
+    return 0
+
+
+def cmd_watch(args) -> int:
+    """Loop ``refresh`` every ``--interval`` seconds (keeps the session sliding-alive)."""
+    store = resolve_store(args)
+    print(f"[refresher] watching: refresh every {args.interval}s -> {store['kind']}")
+    while True:
+        token, err = _capture(args)
+        if err:
+            print(f"[refresher] refresh failed (will retry): {err}", file=sys.stderr)
+        else:
+            print(f"[refresher] {write_token(store, token)}")
+        try:
+            time.sleep(max(60, args.interval))
+        except KeyboardInterrupt:
+            return 0
+
+
+def cmd_gather(args) -> int:
+    """Cycle headed sign-ins across accounts; store each token; emit the rotation wiring.
+
+    YOU sign into each profile (pick a different Google account + approve — each is a
+    real grant of Phylo access to that identity). The cycling, per-account token
+    capture/storage, and the accounts.json + daemon wiring are automated.
+    """
+    if args.accounts:
+        names = [n.strip() for n in args.accounts.split(",") if n.strip()]
+    else:
+        names = [f"account{i + 1}" for i in range(args.count)]
+    if not names:
+        print(
+            "[refresher] give --accounts name1,name2,... or --count N", file=sys.stderr
+        )
+        return 2
+    plan = plan_accounts(names, args.base_port)
+    print(
+        f"[refresher] gathering {len(names)} account(s). Each opens a HEADED sign-in — "
+        "pick a DIFFERENT Google account per profile and approve."
+    )
+    done: list[dict] = []
+    for a in plan:
+        print(f"\n[refresher] --- {a['name']} --- sign in when the browser opens.")
+        token, err = _capture_bearer(
+            a["profile"], args.url, headless=False, timeout_ms=LOGIN_TIMEOUT_MS
+        )
+        if err:
+            print(f"[refresher] {a['name']}: SKIPPED ({err})", file=sys.stderr)
+            continue
+        print(
+            f"[refresher] {a['name']}: {write_token({'kind': 'file', 'path': a['store_file']}, token)}"
+        )
+        done.append(a)
+    if not done:
+        print("[refresher] no accounts gathered.", file=sys.stderr)
+        return 1
+    print(
+        "\n=== accounts.json `biomni` block (paste into the git-crypt accounts.json) ==="
+    )
+    print(render_accounts_block(done))
+    print(
+        "\n=== per-account daemons (run each, e.g. as background/scheduled tasks) ==="
+    )
+    for line in render_daemons(done):
+        print("  " + line)
+    return 0
+
+
+def build_parser() -> argparse.ArgumentParser:
+    ap = argparse.ArgumentParser(
+        description="Biomni refresh-at-source broker (Playwright)"
+    )
+    ap.add_argument(
+        "--profile", default=_default_profile(), help="persisted browser profile dir"
+    )
+    ap.add_argument("--url", default=WEB_URL, help="Biomni web app URL")
+    ap.add_argument(
+        "--out-file",
+        default="",
+        help="token store file (default ~/.biomni-mcp/broker_token)",
+    )
+    ap.add_argument(
+        "--out-keyring", default="", help="write to OS keyring service[:user] instead"
+    )
+    ap.add_argument(
+        "--timeout-ms", type=int, default=CAPTURE_TIMEOUT_MS, help="capture timeout"
+    )
+    ap.add_argument(
+        "--cdp",
+        default="",
+        help="attach to a running Chrome via CDP (e.g. http://127.0.0.1:9222) and "
+        "read the session cookie from its live session — no bot login (refresh/watch)",
+    )
+    ap.add_argument(
+        "--cookie-name",
+        default="session_id",
+        help="the api.phylo.bio auth cookie to capture in CDP mode (default session_id)",
+    )
+    sub = ap.add_subparsers(dest="cmd", required=True)
+    sub.add_parser("login", help="headed sign-in (once per profile)")
+    sub.add_parser("refresh", help="headless one-shot token refresh")
+    w = sub.add_parser("watch", help="headless refresh on a loop")
+    w.add_argument(
+        "--interval", type=int, default=1800, help="seconds between refreshes"
+    )
+    g = sub.add_parser(
+        "gather", help="cycle headed sign-ins across accounts + emit rotation wiring"
+    )
+    g.add_argument("--accounts", default="", help="comma-separated account names")
+    g.add_argument(
+        "--count", type=int, default=0, help="or: N generic accounts (account1..N)"
+    )
+    g.add_argument(
+        "--base-port", type=int, default=8787, help="first broker port (incremented)"
+    )
+    return ap
+
+
+def main(argv: list[str]) -> int:
+    args = build_parser().parse_args(argv)
+    if not hasattr(args, "interval"):
+        args.interval = 1800
+    return {
+        "login": cmd_login,
+        "refresh": cmd_refresh,
+        "watch": cmd_watch,
+        "gather": cmd_gather,
+    }[args.cmd](args)
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

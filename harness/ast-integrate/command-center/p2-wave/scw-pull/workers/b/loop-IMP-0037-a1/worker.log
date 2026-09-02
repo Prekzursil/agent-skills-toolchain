@@ -1,0 +1,21 @@
+
+===== launch 2026-08-20T08:58:37Z attempt=1 =====
+I'll start from the existing IMP-0037 probe tree and unit contract, then implement anything still missing until the named measure prints SUCCESS:delivered.IMP-0037 is a new unit: intercept edits to deployed copies and route them back to repo source. Next I’ll read the provenance, hook, and receipt contract so we can implement it rather than park on an absent probe tree.The unit is a missing PreToolUse hook: warn on deployed-copy edits, stay silent on live-only and repo paths, and fail open. I’ll pull the receipt/hook contracts and a delivered IMP unit as the template.The unit was never started, so I’ll implement the PreToolUse hook, wire it, and add both-states probes that discriminate deployed copies from live-only and repo paths.Measure printed SUCCESS:delivered. I’ll re-pack the receipt from the re-run probe raws, confirm the measure still passes, then write SUBAGENT-RETURN.IMP-0037 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0037` printed:
+
+`SUCCESS:delivered IMP-0037 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe1_deployed_vs_liveonly.py:0,probe2_independent_oracle.py:0,run_required_tests.py:0`
+
+The probe tree did not exist, so this unit was built rather than parked on an absent first measure.
+
+**What landed**
+- `hooks/deployed-copy-edit/check.py` — PreToolUse inject-only advisory. A live path with an IMP-0033 provenance record names the repo `source_path`. Fail-open; never blocks.
+- `hooks/_dispatch/manifest.json` — registers that check. This source-export worktree had no prior hook fleet.
+- Catalog tests: deployed path warns; live-only path silent; repo path silent. Negative control: deleting the provenance record silences the same path (the record, not a live-tree prefix, is the trigger).
+
+**Delivery artifacts**
+- Receipt: `command-center/receipts/IMP-0037.json` (`state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0037/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 `61dafefdbe94bc27bd5c267a54dc37d1a044e772b45b8d9a426c671e07b2ba0c`)
+- Return: `command-center/p2-wave/probes/IMP-0037/SUBAGENT-RETURN.json`
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no finish-everything-close / p2-cloud-ok-deliver relaunch.

@@ -1,0 +1,185 @@
+{
+ "artifacts": [
+  {
+   "bytes": 4571,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/schema/publisher.schema.json",
+   "role": "supporting",
+   "sha256": "a83cd4f2bb9bc7ba9510a8b27e4614766d2cc6075e17bd74acaf45660b6b4d19"
+  },
+  {
+   "bytes": 7297,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/publisher.py",
+   "role": "supporting",
+   "sha256": "04737fb121a43c8e72af0c417227bedd1058fdf87f18df826c055bbdaddb439d"
+  },
+  {
+   "bytes": 1318,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/custody.py",
+   "role": "supporting",
+   "sha256": "d9ddcfb247ff61507c49926bc76d3d01780ae974e1e01385d51a942b277793fa"
+  },
+  {
+   "bytes": 5603,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/audit.py",
+   "role": "supporting",
+   "sha256": "489c6f1625680d30d1a24e62ab43129584b83389f58275d1c804ad2081ccf6f4"
+  },
+  {
+   "bytes": 1405,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/fixtures/publishers.json",
+   "role": "supporting",
+   "sha256": "d6b78c53865b6db75aee84159772f685c6a2e4e95cfc1bb453149b6c3bf9e634"
+  },
+  {
+   "bytes": 5930,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/tests/test_publisher_identity.py",
+   "role": "supporting",
+   "sha256": "1a434c49d5090d7f82eb3c5db7295558604744139bd7ec4a7aea1fa4a03e2674"
+  },
+  {
+   "bytes": 2698,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0075/probe1_validity_window.py",
+   "role": "supporting",
+   "sha256": "ad850f33a8d299c918646a9864b0ed2667b6a7fbb6993d4c20b78572944e1a21"
+  },
+  {
+   "bytes": 2291,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0075/probe2_lifecycle_audit.py",
+   "role": "supporting",
+   "sha256": "e69122865af737c57df83ac39ef54716c3ca149d29e33ae65f297ca30b43ff09"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0075",
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/publisher.py:PublicKey.window_status",
+   "claim": "A key outside its validity window is rejected for verification, and an in-window key on the same publisher is accepted in the same run.",
+   "id": "signal-1-validity-window",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0075/probe1_validity_window.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"at\": \"2026-08-24T18:00:00Z\", \"expired\": {\"accepted\": false, \"reason\": \"REJECTED_EXPIRED\"}, \"in_window\": {\"accepted\": true, \"reason\": \"ACCEPTED_IN_WINDOW\"}, \"not_yet_valid\": {\"accepted\": false, \"reason\": \"REJECTED_NOT_YET_VALID\"}, \"pass\": true, \"probe\": \"probe1-validity-window\", \"same_run_negative_control\": true, \"unit_id\": \"IMP-0075\", \"unknown_publisher\": {\"accepted\": false, \"reason\": \"REJECTED_UNKNOWN_PUBLISHER\"}, \"usable_key_ids\": [\"k-current\"]}\nexpired_rejected=True in_window_accepted=True usable=['k-current'] unknown_rejected=True\nSUCCESS:IMP-0075-probe1 expired rejected and in-window accepted in one run",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/audit.py:scan_tree",
+   "claim": "A static AST audit of tools/marketplace (excluding tests) finds zero key-generation/rotation/deletion call paths, and the same auditor reports a planted rotate_key / generate_private_key plant (non-vacuous).",
+   "id": "signal-2-lifecycle-audit",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0075/probe2_lifecycle_audit.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"custody_holder\": \"owner\", \"lifecycle_refused\": true, \"non_vacuous\": true, \"pass\": true, \"plant_found\": true, \"plant_hit_count\": 2, \"plant_names\": [\"rotate_key\", \"rsa.generate_private_key\"], \"private_material_hits\": [], \"probe\": \"probe2-lifecycle-audit\", \"production_hit_count\": 0, \"production_hits\": [], \"unit_id\": \"IMP-0075\"}\nproduction_hits=0 plant_found=True secrets=0 lifecycle_refused=True\nSUCCESS:IMP-0075-probe2 production clean and planted call detected",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0075",
+ "implementation": {
+  "audit": "tools/marketplace/audit.py",
+  "custody_policy": "tools/marketplace/custody.py",
+  "fixtures": "tools/marketplace/fixtures/publishers.json",
+  "lifecycle_apis_present": false,
+  "loader": "tools/marketplace/publisher.py",
+  "notes": "Fixture public material is RFC 8032 Ed25519 test-vector public keys. No private keys are stored. Cryptographic signature verify is IMP-0077.",
+  "owner_creates_holds_rotates_keys": true,
+  "private_keys_in_tree": false,
+  "program_may_not": [
+   "create a key",
+   "rotate a key",
+   "revoke a key",
+   "regenerate a key"
+  ],
+  "role": "consume-and-window-check-only",
+  "schema": "tools/marketplace/schema/publisher.schema.json"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0075/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "description": "In-window key must verify successfully in the same run that rejects the expired key.",
+   "fired_on_bad_state": true,
+   "id": "in-window-key-accepted-alongside-expired-reject",
+   "kind": "same-run-negative-control",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Auditor must find a planted rotate_key/generate_private_key; a silent auditor fails the unit.",
+   "fired_on_bad_state": true,
+   "id": "planted-lifecycle-call-detected",
+   "kind": "non-vacuous-auditor",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0075: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not create, rotate, revoke, or print keys.",
+ "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/publisher.schema.json",
+ "question": "Model publisher identity (id, display name, public keys with validity windows, contact) and document custody: the owner creates, holds and rotates keys personally; no tool in this program may create, rotate, revoke or regenerate a key. Implement only the consumption side plus a validity-window check.",
+ "report_kind": "implementation-receipt",
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry on anything key-related; escalate to the owner"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 independently greps/AST-walks for key-lifecycle calls and confirms the audit is not vacuously green.",
+  "reviewer_id": "IMP-0075-probe2-lifecycle-audit",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0075",
+ "spec_anchor": "_USER-PROMPTS.md:10849 publisher identity; AGENTS.md#9 owner-gated credentials",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_publisher_identity.py",
+   "covers": [
+    "valid window",
+    "expired key",
+    "unknown publisher",
+    "multiple keys",
+    "audit zero lifecycle APIs",
+    "audit finds planted call",
+    "negative control in-window success in same run"
+   ],
+   "exit_code": 0,
+   "id": "test_publisher_identity",
+   "output_tail": "PASS test_schema_validates_fixture\nPASS test_valid_window\nPASS test_expired_key\nPASS test_not_yet_valid\nPASS test_unknown_publisher\nPASS test_unknown_key\nPASS test_multiple_keys\nPASS test_negative_control_same_run\nPASS test_audit_zero_lifecycle_apis\nPASS test_audit_finds_planted_call\nPASS test_no_private_material\nPASS test_lifecycle_refused\nSUCCESS:IMP-0075 tests 12 passed",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:31Z",
+  "started_at": "2026-08-25T00:59:31Z"
+ },
+ "title": "Publisher identity model and key custody policy",
+ "unit_id": "IMP-0075"
+}

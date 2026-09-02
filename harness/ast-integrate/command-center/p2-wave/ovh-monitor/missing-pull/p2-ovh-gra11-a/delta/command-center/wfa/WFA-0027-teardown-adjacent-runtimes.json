@@ -1,0 +1,837 @@
+{
+ "licenses": {
+  "recorded_before_any_excerpt": true,
+  "retrieved_on": "2026-08-24",
+  "method": "HTTPS GET of LICENSE files from the published GitHub repositories, stored under cache/ before any source excerpt was copied into the SweepReport.",
+  "runtimes": [
+   {
+    "id": "langgraph",
+    "spdx": "MIT",
+    "copyright": "Copyright (c) 2024 LangChain, Inc.",
+    "license_url": "https://raw.githubusercontent.com/langchain-ai/langgraph/main/LICENSE",
+    "repo": "https://github.com/langchain-ai/langgraph",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.LICENSE"
+   },
+   {
+    "id": "crewai",
+    "spdx": "MIT",
+    "copyright": "Copyright (c) 2025 crewAI, Inc.",
+    "license_url": "https://raw.githubusercontent.com/crewAIInc/crewAI/main/LICENSE",
+    "repo": "https://github.com/crewAIInc/crewAI",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.LICENSE"
+   },
+   {
+    "id": "autogen",
+    "spdx": "MIT",
+    "copyright": "Copyright (c) Microsoft Corporation.",
+    "license_url": "https://raw.githubusercontent.com/microsoft/autogen/main/LICENSE-CODE",
+    "repo": "https://github.com/microsoft/autogen",
+    "note": "Repository root LICENSE is CC-BY-4.0 documentation license; code license is LICENSE-CODE (MIT). Only LICENSE-CODE is used to authorize code excerpts.",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.LICENSE-CODE"
+   },
+   {
+    "id": "temporal",
+    "spdx": "MIT",
+    "copyright": "Copyright (c) 2022 Temporal Technologies Inc.",
+    "license_url": "https://raw.githubusercontent.com/temporalio/sdk-python/main/LICENSE",
+    "repo": "https://github.com/temporalio/sdk-python",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal.LICENSE"
+   },
+   {
+    "id": "airflow",
+    "spdx": "Apache-2.0",
+    "license_url": "https://raw.githubusercontent.com/apache/airflow/main/LICENSE",
+    "repo": "https://github.com/apache/airflow",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.LICENSE"
+   },
+   {
+    "id": "prefect",
+    "spdx": "Apache-2.0",
+    "license_url": "https://raw.githubusercontent.com/PrefectHQ/prefect/main/LICENSE",
+    "repo": "https://github.com/PrefectHQ/prefect",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.LICENSE"
+   },
+   {
+    "id": "dagster",
+    "spdx": "Apache-2.0",
+    "license_url": "https://raw.githubusercontent.com/dagster-io/dagster/master/LICENSE",
+    "repo": "https://github.com/dagster-io/dagster",
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.LICENSE"
+   }
+  ]
+ },
+ "unit_id": "WFA-0027",
+ "title": "Teardown of adjacent orchestration runtimes: extract the mechanism, refuse the runtime",
+ "state": "SUCCESS",
+ "completion_sentinel": "SUCCESS:WFA-0027",
+ "retrieved_on": "2026-08-24",
+ "chosen_control_plane": {
+  "id": null,
+  "spec": "command-center/phase3/A1/DESIGN.json",
+  "spec_present": false,
+  "layout": "command-center/control-plane/A1/ (static JSON capabilities; no resident runtime)",
+  "catalog_input_13_ARCHITECTURE_CANDIDATES_md": "absent-on-this-worktree",
+  "user_prompt_10727": "cited via WORK-UNIT-CATALOG.json WFA-0027 inputs; _USER-PROMPTS.md absent on this worktree"
+ },
+ "question": "For LangGraph, CrewAI, AutoGen, Temporal, Airflow, Prefect and Dagster: what is the transferable orchestration MECHANISM that can be reimplemented on the chosen control plane, and what exactly, if imported wholesale, would create a second control plane?",
+ "method": {
+  "licenses_recorded_before_excerpts": true,
+  "source": "published GitHub repositories (not marketing pages)",
+  "independent_corroboration": "A1 sketch interpreter in sketch.py executes retry, HITL pause/resume, fan-out and barrier with zero imports of the seven runtimes.",
+  "runtimes_installed": false,
+  "runtimes_vendored": false,
+  "runtimes_added_as_dependency": false
+ },
+ "counts": {
+  "runtimes": 7,
+  "mechanism_rows": 42,
+  "separable": 24,
+  "non_separable_rejected": 18
+ },
+ "mechanisms": [
+  {
+   "runtime": "langgraph",
+   "mechanism": "state_model",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "libs/langgraph/langgraph/graph/state.py",
+    "line": 1177,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.state.py",
+    "excerpt": "def compile("
+   },
+   "a1_sketch": {
+    "kind": "workflow",
+    "state": {
+     "payload": {}
+    },
+    "note": "Callable Annotated reducers are NON-SEPARABLE; named merge 'concat'|'last' in JSON is SEPARABLE."
+   },
+   "transfer": "A1 workflow JSON is a finite named-stage list. Shared state is a JSON object in the sidecar checkpoint, not a Python reducer graph.",
+   "wholesale_import_creates_second_control_plane": "Importing langgraph.graph.StateGraph.compile() as the executor."
+  },
+  {
+   "runtime": "langgraph",
+   "mechanism": "checkpointing",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "libs/checkpoint/langgraph/checkpoint/base/__init__.py",
+    "line": 92,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.checkpoint.init.py",
+    "excerpt": "class Checkpoint(TypedDict):"
+   },
+   "a1_sketch": {
+    "kind": "sidecar",
+    "path": "checkpoints/<workflow_id>.json"
+   },
+   "transfer": "Persist {id, ts, payload, cursor} next to the A1 workflow file. thread_id maps to the workflow instance id in MANIFEST.json.",
+   "wholesale_import_creates_second_control_plane": "langgraph-checkpoint-postgres as a live store owned by LangGraph."
+  },
+  {
+   "runtime": "langgraph",
+   "mechanism": "retry_semantics",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "libs/langgraph/langgraph/types.py",
+    "line": 418,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.types.py",
+    "excerpt": "class RetryPolicy(NamedTuple):"
+   },
+   "a1_sketch": {
+    "kind": "retry",
+    "max_attempts": 3,
+    "backoff_factor": 2.0
+   },
+   "transfer": "Stage field max_attempts + backoff_factor as numbers in the .wf.json. No Pregel retry loop.",
+   "wholesale_import_creates_second_control_plane": "langgraph.pregel retry runner."
+  },
+  {
+   "runtime": "langgraph",
+   "mechanism": "human_in_the_loop",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "libs/langgraph/langgraph/types.py",
+    "line": 851,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.types.py",
+    "excerpt": "def interrupt(value: Any) -> Any:"
+   },
+   "a1_sketch": {
+    "kind": "hitl",
+    "id": "approve"
+   },
+   "transfer": "HITL stage writes status=awaiting_human and stops. Resume injects human into the checkpoint. Node re-entry from the start is NOT copied; A1 resumes at the HITL stage cursor.",
+   "wholesale_import_creates_second_control_plane": "Command(resume=...) plus InMemorySaver from langgraph."
+  },
+  {
+   "runtime": "langgraph",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "libs/langgraph/langgraph/types.py",
+    "line": 704,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.types.py",
+    "excerpt": "class Send:"
+   },
+   "a1_sketch": {
+    "kind": "fan_out",
+    "items": [
+     "a",
+     "b",
+     "c"
+    ]
+   },
+   "transfer": "fan_out stage emits a static item list; join stage is a barrier on len(items). Dynamic Send from a Python function is NON-SEPARABLE (executable policy; A1 DESIGN first inexpressible construct).",
+   "wholesale_import_creates_second_control_plane": "Send() from inside a compiled StateGraph."
+  },
+  {
+   "runtime": "langgraph",
+   "mechanism": "resume",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "libs/langgraph/langgraph/graph/state.py",
+    "line": 1204,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/langgraph.state.py",
+    "excerpt": "**Important**: When a checkpointer is enabled, you should pass a `thread_id`"
+   },
+   "a1_sketch": {
+    "kind": "resume",
+    "from": "checkpoint.cursor"
+   },
+   "transfer": "Re-load the sidecar checkpoint and continue from cursor. Same workflow id, no second runtime.",
+   "wholesale_import_creates_second_control_plane": "graph.invoke(..., config={configurable:{thread_id}})."
+  },
+  {
+   "runtime": "crewai",
+   "mechanism": "state_model",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "lib/crewai/src/crewai/process.py",
+    "line": 9,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.process.py",
+    "excerpt": "sequential = \"sequential\""
+   },
+   "a1_sketch": {
+    "process": "sequential",
+    "stages": [
+     "t1",
+     "t2"
+    ]
+   },
+   "transfer": "Process.sequential is an ordered stage list. Hierarchical manager-agent assignment is a council protocol id, not a Crew runtime.",
+   "wholesale_import_creates_second_control_plane": "crewai.Crew.kickoff()."
+  },
+  {
+   "runtime": "crewai",
+   "mechanism": "retry_semantics",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "lib/crewai/src/crewai/task.py",
+    "line": 275,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.task.py",
+    "excerpt": "max_retries: int | None = Field("
+   },
+   "a1_sketch": {
+    "kind": "retry",
+    "max_attempts": 3
+   },
+   "transfer": "guardrail_max_retries maps to stage.max_attempts. Guardrail callables themselves are executable policy: NON-SEPARABLE; a named halt on schema-fail is SEPARABLE.",
+   "wholesale_import_creates_second_control_plane": "Task.execute with CrewAI guardrail functions."
+  },
+  {
+   "runtime": "crewai",
+   "mechanism": "human_in_the_loop",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "lib/crewai/src/crewai/task.py",
+    "line": 233,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.task.py",
+    "excerpt": "human_input: bool | None = Field("
+   },
+   "a1_sketch": {
+    "kind": "hitl"
+   },
+   "transfer": "Boolean HITL flag on a stage. The CrewAI input() prompt loop is not imported.",
+   "wholesale_import_creates_second_control_plane": "Task(human_input=True) inside Crew.kickoff."
+  },
+  {
+   "runtime": "crewai",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "lib/crewai/src/crewai/crew.py",
+    "line": 1051,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.crew.py",
+    "excerpt": "if self.process == Process.sequential:"
+   },
+   "a1_sketch": {
+    "process": "sequential"
+   },
+   "transfer": "Sequential is a barrier after each stage. Hierarchical fan-out of manager-chosen agents is NON-SEPARABLE without a static agent list.",
+   "wholesale_import_creates_second_control_plane": "Process.hierarchical manager_llm."
+  },
+  {
+   "runtime": "crewai",
+   "mechanism": "checkpointing",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "lib/crewai/src/crewai/crew.py",
+    "line": 992,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.crew.py",
+    "excerpt": "def kickoff("
+   },
+   "a1_sketch": null,
+   "transfer": "CrewAI kickoff is an in-process run; durable checkpoint is not a separable published primitive independent of the Crew runtime. A1 uses its own sidecar instead of Crew memory.",
+   "wholesale_import_creates_second_control_plane": "crewai memory/storage backends."
+  },
+  {
+   "runtime": "crewai",
+   "mechanism": "resume",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "lib/crewai/src/crewai/crew.py",
+    "line": 1053,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/crewai.crew.py",
+    "excerpt": "elif self.process == Process.hierarchical:"
+   },
+   "a1_sketch": null,
+   "transfer": "No published resume-from-checkpoint API separable from kickoff. Rejected; A1 resume is the sidecar cursor, not CrewAI.",
+   "wholesale_import_creates_second_control_plane": "Crew.kickoff after a partial in-memory run."
+  },
+  {
+   "runtime": "autogen",
+   "mechanism": "state_model",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py",
+    "line": 73,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.base_group_chat.py",
+    "excerpt": "termination_condition: TerminationCondition | None = None,"
+   },
+   "a1_sketch": {
+    "roles": [
+     "Architect",
+     "Skeptic"
+    ],
+    "max_turns": 3,
+    "halt": "max_turns"
+   },
+   "transfer": "Participants as council role ids; max_turns as declarative halt. TerminationCondition callables are NON-SEPARABLE.",
+   "wholesale_import_creates_second_control_plane": "autogen_agentchat.teams.BaseGroupChat runtime."
+  },
+  {
+   "runtime": "autogen",
+   "mechanism": "retry_semantics",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py",
+    "line": 74,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.base_group_chat.py",
+    "excerpt": "max_turns: int | None = None,"
+   },
+   "a1_sketch": null,
+   "transfer": "AutoGen publishes turn caps, not a task RetryPolicy separable from AgentRuntime. Stage retries come from A1, not AutoGen.",
+   "wholesale_import_creates_second_control_plane": "AgentRuntime retry internals."
+  },
+  {
+   "runtime": "autogen",
+   "mechanism": "human_in_the_loop",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py",
+    "line": 668,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.base_group_chat.py",
+    "excerpt": "Different from termination, pausing the team does not cause the"
+   },
+   "a1_sketch": {
+    "kind": "hitl"
+   },
+   "transfer": "Pause vs terminate: A1 HITL is pause (awaiting_human) not halt. Do not import UserProxyAgent.",
+   "wholesale_import_creates_second_control_plane": "UserProxyAgent / human input loop."
+  },
+  {
+   "runtime": "autogen",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py",
+    "line": 70,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.base_group_chat.py",
+    "excerpt": "participants: List[ChatAgent | Team],"
+   },
+   "a1_sketch": {
+    "roles": [
+     "a",
+     "b"
+    ],
+    "turn_order": "round_robin"
+   },
+   "transfer": "Static participant list is a barrier set. Speaker-selection LLM is NON-SEPARABLE executable policy.",
+   "wholesale_import_creates_second_control_plane": "SelectorGroupChat with a model client."
+  },
+  {
+   "runtime": "autogen",
+   "mechanism": "checkpointing",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py",
+    "line": 87,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.base_group_chat.py",
+    "excerpt": "self._termination_condition = termination_condition"
+   },
+   "a1_sketch": null,
+   "transfer": "Team state lives inside AgentRuntime. No separable checkpointer interface comparable to LangGraph BaseCheckpointSaver.",
+   "wholesale_import_creates_second_control_plane": "autogen_core AgentRuntime."
+  },
+  {
+   "runtime": "autogen",
+   "mechanism": "resume",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python/packages/autogen-agentchat/src/autogen_agentchat/teams/_group_chat/_base_group_chat.py",
+    "line": 256,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/autogen.base_group_chat.py",
+    "excerpt": "Once the team is stopped, the termination condition is reset."
+   },
+   "a1_sketch": null,
+   "transfer": "Stop/reset is not A1 sidecar resume. Rejected as runtime-entangled.",
+   "wholesale_import_creates_second_control_plane": "team.reset() / runtime resume."
+  },
+  {
+   "runtime": "temporal",
+   "mechanism": "retry_semantics",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "temporalio/common.py",
+    "line": 37,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal.common.py",
+    "excerpt": "class RetryPolicy:"
+   },
+   "a1_sketch": {
+    "kind": "retry",
+    "initial_interval_s": 1,
+    "backoff_coefficient": 2.0,
+    "maximum_attempts": 5
+   },
+   "transfer": "Numeric retry fields copy onto an A1 stage. The SDK apply_to_proto path is not used.",
+   "wholesale_import_creates_second_control_plane": "workflow.execute_activity(..., retry_policy=RetryPolicy(...))."
+  },
+  {
+   "runtime": "temporal",
+   "mechanism": "state_model",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "temporalio/worker/_worker.py",
+    "line": 92,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal._worker.py",
+    "excerpt": "class Worker:"
+   },
+   "a1_sketch": null,
+   "transfer": "Workflow state is an event history owned by the Temporal server. That history service is a second control plane.",
+   "wholesale_import_creates_second_control_plane": "temporalio.worker.Worker + Temporal server."
+  },
+  {
+   "runtime": "temporal",
+   "mechanism": "checkpointing",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "temporalio/worker/_worker.py",
+    "line": 93,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal._worker.py",
+    "excerpt": "Worker to process workflows and/or activities."
+   },
+   "a1_sketch": null,
+   "transfer": "Durability is the server history, not a JSON sidecar. Cannot sketch without the server.",
+   "wholesale_import_creates_second_control_plane": "Temporal event history."
+  },
+  {
+   "runtime": "temporal",
+   "mechanism": "human_in_the_loop",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "temporalio/common.py",
+    "line": 111,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal.common.py",
+    "excerpt": "class WorkflowIDReusePolicy(IntEnum):"
+   },
+   "a1_sketch": {
+    "kind": "hitl",
+    "signal": "approve"
+   },
+   "transfer": "Signals/updates are the HITL mechanism in Temporal; A1 models them as hitl stages keyed by workflow id. The worker that delivers signals is NON-SEPARABLE.",
+   "wholesale_import_creates_second_control_plane": "workflow.wait_condition + Worker poller."
+  },
+  {
+   "runtime": "temporal",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "temporalio/common.py",
+    "line": 53,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal.common.py",
+    "excerpt": "maximum_attempts: int = 0"
+   },
+   "a1_sketch": {
+    "kind": "fan_out"
+   },
+   "transfer": "Child-workflow fan-out is asyncio gather in Temporal; A1 uses static fan_out+join. Dynamic child spawns from workflow code are NON-SEPARABLE.",
+   "wholesale_import_creates_second_control_plane": "workflow.start_child_workflow inside a Worker."
+  },
+  {
+   "runtime": "temporal",
+   "mechanism": "resume",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "temporalio/worker/_worker.py",
+    "line": 54,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/temporal._worker.py",
+    "excerpt": "class PollerBehaviorSimpleMaximum:"
+   },
+   "a1_sketch": null,
+   "transfer": "Resume is worker poll of the task queue against server history. That poller is the second scheduler.",
+   "wholesale_import_creates_second_control_plane": "PollerBehaviorSimpleMaximum against Temporal server."
+  },
+  {
+   "runtime": "airflow",
+   "mechanism": "retry_semantics",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "airflow-core/src/airflow/models/taskinstance.py",
+    "line": 776,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.taskinstance.py",
+    "excerpt": "self.try_number = 0"
+   },
+   "a1_sketch": {
+    "kind": "retry",
+    "max_attempts": 3
+   },
+   "transfer": "try_number/max_tries are integers on a stage. Exponential backoff numbers copy; the scheduler that re-queues TI is NON-SEPARABLE.",
+   "wholesale_import_creates_second_control_plane": "airflow scheduler TaskInstance requeue."
+  },
+  {
+   "runtime": "airflow",
+   "mechanism": "human_in_the_loop",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "airflow-core/src/airflow/models/hitl.py",
+    "line": 136,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.hitl.py",
+    "excerpt": "class HITLDetail(Base, HITLDetailPropertyMixin):"
+   },
+   "a1_sketch": {
+    "kind": "hitl",
+    "options": [
+     "approve",
+     "reject"
+    ]
+   },
+   "transfer": "HITL as a record {subject, options, responded_at} is data. The metadata DB table plus scheduler wait is the second plane if imported.",
+   "wholesale_import_creates_second_control_plane": "airflow.models.hitl.HITLDetail ORM + scheduler."
+  },
+  {
+   "runtime": "airflow",
+   "mechanism": "state_model",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "airflow-core/src/airflow/models/dag.py",
+    "line": 329,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.dag.py",
+    "excerpt": "# Last time the scheduler started"
+   },
+   "a1_sketch": null,
+   "transfer": "DAG + DagModel + scheduler heartbeat is Airflow's control plane. A1 already has workflow JSON; do not import DAG.",
+   "wholesale_import_creates_second_control_plane": "airflow.models.dag.DAG + scheduler."
+  },
+  {
+   "runtime": "airflow",
+   "mechanism": "checkpointing",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "airflow-core/src/airflow/models/taskinstance.py",
+    "line": 637,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.taskinstance.py",
+    "excerpt": "try_number: Mapped[int] = mapped_column(Integer, default=0)"
+   },
+   "a1_sketch": null,
+   "transfer": "TaskInstance rows in the metadata DB are Airflow's checkpoint. Importing that DB is a second state store.",
+   "wholesale_import_creates_second_control_plane": "Airflow metadata database."
+  },
+  {
+   "runtime": "airflow",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "airflow-core/src/airflow/models/taskinstance.py",
+    "line": 801,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.taskinstance.py",
+    "excerpt": "def insert_mapping("
+   },
+   "a1_sketch": {
+    "kind": "fan_out",
+    "items": [
+     0,
+     1,
+     2
+    ]
+   },
+   "transfer": "Mapped task indexes are a static fan-out list. Dynamic task mapping from runtime XCom is NON-SEPARABLE executable expansion.",
+   "wholesale_import_creates_second_control_plane": "TaskInstance.insert_mapping via the executor."
+  },
+  {
+   "runtime": "airflow",
+   "mechanism": "resume",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "airflow-core/src/airflow/models/dag.py",
+    "line": 190,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/airflow.dag.py",
+    "excerpt": "Get the data interval of the next scheduled run."
+   },
+   "a1_sketch": null,
+   "transfer": "Clear/retry of TaskInstance is scheduler-owned. A1 resume is sidecar cursor only.",
+   "wholesale_import_creates_second_control_plane": "airflow scheduler next_dagrun."
+  },
+  {
+   "runtime": "prefect",
+   "mechanism": "retry_semantics",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "src/prefect/tasks.py",
+    "line": 336,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.tasks.py",
+    "excerpt": "retries: An optional number of times to retry on task run failure."
+   },
+   "a1_sketch": {
+    "kind": "retry",
+    "max_attempts": 3,
+    "retry_delay_seconds": 5
+   },
+   "transfer": "retries + retry_delay_seconds as JSON numbers on a stage.",
+   "wholesale_import_creates_second_control_plane": "@task(retries=...) under a Prefect worker."
+  },
+  {
+   "runtime": "prefect",
+   "mechanism": "human_in_the_loop",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "src/prefect/flow_engine.py",
+    "line": 1235,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.flow_engine.py",
+    "excerpt": "except (Abort, Pause) as exc:"
+   },
+   "a1_sketch": {
+    "kind": "hitl"
+   },
+   "transfer": "Pause exception maps to awaiting_human. The Prefect API that stores Paused state is a second plane.",
+   "wholesale_import_creates_second_control_plane": "prefect.Pause handled by the Prefect API."
+  },
+  {
+   "runtime": "prefect",
+   "mechanism": "state_model",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "src/prefect/flow_engine.py",
+    "line": 638,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.flow_engine.py",
+    "excerpt": "class FlowRunEngine(BaseFlowRunEngine[P, R]):"
+   },
+   "a1_sketch": null,
+   "transfer": "FlowRunEngine is Prefect's execution owner. A1 will not host it.",
+   "wholesale_import_creates_second_control_plane": "prefect.flow_engine.FlowRunEngine."
+  },
+  {
+   "runtime": "prefect",
+   "mechanism": "checkpointing",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "src/prefect/tasks.py",
+    "line": 347,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.tasks.py",
+    "excerpt": "persist_result: A toggle indicating whether the result of this task"
+   },
+   "a1_sketch": null,
+   "transfer": "Result storage / API persistence is Prefect's store. Sidecar JSON is A1's store.",
+   "wholesale_import_creates_second_control_plane": "Prefect result storage + API."
+  },
+  {
+   "runtime": "prefect",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "src/prefect/tasks.py",
+    "line": 142,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.tasks.py",
+    "excerpt": "retries: Optional[int]"
+   },
+   "a1_sketch": {
+    "kind": "fan_out"
+   },
+   "transfer": "Task map/submit fan-out is a list of stage clones in A1. Prefect TaskRunner is not imported.",
+   "wholesale_import_creates_second_control_plane": "Prefect TaskRunner / work pool."
+  },
+  {
+   "runtime": "prefect",
+   "mechanism": "resume",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "src/prefect/flow_engine.py",
+    "line": 1931,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/prefect.flow_engine.py",
+    "excerpt": "except (Abort, Pause) as exc:"
+   },
+   "a1_sketch": null,
+   "transfer": "Resume of a Paused flow run is API+worker owned.",
+   "wholesale_import_creates_second_control_plane": "Prefect work pool resume."
+  },
+  {
+   "runtime": "dagster",
+   "mechanism": "retry_semantics",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python_modules/dagster/dagster/_core/execution/retries.py",
+    "line": 31,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.retries.py",
+    "excerpt": "class RetryMode(Enum):"
+   },
+   "a1_sketch": {
+    "kind": "retry",
+    "mode": "enabled",
+    "max_attempts": 3
+   },
+   "transfer": "RetryMode ENABLED/DISABLED plus per-step attempt counts are JSON enums on a stage.",
+   "wholesale_import_creates_second_control_plane": "dagster executor retry re-enqueue."
+  },
+  {
+   "runtime": "dagster",
+   "mechanism": "checkpointing",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python_modules/dagster/dagster/_core/execution/retries.py",
+    "line": 65,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.retries.py",
+    "excerpt": "class RetryState:"
+   },
+   "a1_sketch": null,
+   "transfer": "RetryState.previous_attempts is in-run executor state, persisted by DagsterInstance. That instance is a second store.",
+   "wholesale_import_creates_second_control_plane": "DagsterInstance run storage."
+  },
+  {
+   "runtime": "dagster",
+   "mechanism": "state_model",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python_modules/dagster/dagster/_core/execution/retries.py",
+    "line": 22,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.retries.py",
+    "excerpt": "def get_retries_config():"
+   },
+   "a1_sketch": null,
+   "transfer": "Job/op graphs plus dagster-daemon are Dagster's control plane. A1 already has workflow JSON.",
+   "wholesale_import_creates_second_control_plane": "dagster-daemon + DagsterInstance."
+  },
+  {
+   "runtime": "dagster",
+   "mechanism": "human_in_the_loop",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python_modules/dagster/dagster/_core/execution/retries.py",
+    "line": 12,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.retries.py",
+    "excerpt": "from dagster._core.errors import DagsterRunNotFoundError"
+   },
+   "a1_sketch": null,
+   "transfer": "Fetched Dagster source for this unit is the retry module; it has no HITL primitive. Sensors/UI approval live in dagster-daemon. Recorded NON-SEPARABLE rather than invented.",
+   "wholesale_import_creates_second_control_plane": "dagster-webserver / daemon sensor ticks."
+  },
+  {
+   "runtime": "dagster",
+   "mechanism": "fan_out_and_barrier",
+   "verdict": "SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python_modules/dagster/dagster/_core/execution/retries.py",
+    "line": 34,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.retries.py",
+    "excerpt": "# Designed for use of inner plan execution within \"orchestrator\" engine such as multiprocess,"
+   },
+   "a1_sketch": {
+    "kind": "fan_out"
+   },
+   "transfer": "Inner-plan vs orchestrator is exactly the second-plane split. Static fan_out+join stays on A1; multiprocess engine stays out.",
+   "wholesale_import_creates_second_control_plane": "Dagster multiprocess orchestrator engine."
+  },
+  {
+   "runtime": "dagster",
+   "mechanism": "resume",
+   "verdict": "NON-SEPARABLE",
+   "source_anchor": {
+    "repo_path": "python_modules/dagster/dagster/_core/execution/retries.py",
+    "line": 56,
+    "cache": "command-center/p2-wave/probes/WFA-0027/cache/dagster.retries.py",
+    "excerpt": "def for_inner_plan(self) -> \"RetryMode\":"
+   },
+   "a1_sketch": null,
+   "transfer": "from_failure / retry from DagsterInstance is daemon-owned.",
+   "wholesale_import_creates_second_control_plane": "DagsterInstance launch_from_failure."
+  }
+ ],
+ "second_control_plane_if_imported_wholesale": [
+  {
+   "runtime": "langgraph",
+   "would_import": "langgraph.graph.StateGraph.compile / langgraph.pregel",
+   "second_plane": "Pregel executor plus checkpointer backend as live scheduler"
+  },
+  {
+   "runtime": "crewai",
+   "would_import": "crewai.Crew.kickoff",
+   "second_plane": "Crew process engine (sequential/hierarchical) as a second scheduler"
+  },
+  {
+   "runtime": "autogen",
+   "would_import": "autogen_agentchat teams + autogen_core AgentRuntime",
+   "second_plane": "AgentRuntime message loop as a second event bus"
+  },
+  {
+   "runtime": "temporal",
+   "would_import": "temporalio.worker.Worker + Temporal server",
+   "second_plane": "history service + task-queue pollers (PollerBehaviorSimpleMaximum)"
+  },
+  {
+   "runtime": "airflow",
+   "would_import": "airflow DAG + scheduler + metadata DB",
+   "second_plane": "scheduler heartbeat and TaskInstance store"
+  },
+  {
+   "runtime": "prefect",
+   "would_import": "prefect.flow_engine.FlowRunEngine + API/work pool",
+   "second_plane": "Prefect API as run state owner"
+  },
+  {
+   "runtime": "dagster",
+   "would_import": "dagster-daemon + DagsterInstance",
+   "second_plane": "daemon/orchestrator engine and instance storage"
+  }
+ ],
+ "a1_sketch_exercise": {
+  "workflow_id": "wf.wfa0027.separable-demo",
+  "pause_status": "awaiting_human",
+  "resume_status": "done",
+  "payload_keys": [
+   "approve",
+   "fan",
+   "finish",
+   "flaky",
+   "join"
+  ],
+  "fan_join": [
+   "a",
+   "b",
+   "c"
+  ],
+  "retry_attempts": 3
+ },
+ "tests_required": {
+  "non_separable_rejected_not_sketched": true,
+  "separable_has_sketch": true,
+  "no_runtime_installed_or_vendored": true,
+  "license_recorded_before_excerpt": true
+ },
+ "emitted_at": "2026-08-25T00:55:02Z"
+}

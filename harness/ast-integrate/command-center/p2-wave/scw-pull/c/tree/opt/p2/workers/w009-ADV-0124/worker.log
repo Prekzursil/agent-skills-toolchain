@@ -1,0 +1,22 @@
+I'll start from the existing ADV-0124 probe tree, read SUBAGENT-RETURN.json if it exists, and resume rather than rebuild.Existing probe tree is present. Next I’ll read the current return artifacts, the measure script, and the unit contract so I can resume rather than rebuild.The previous return is a cloud-ok refute, not delivery. I’ll pull the catalog contract, the current artifact, and how a delivered sibling unit looks.The receipt already claims SUCCESS; I’ll check whether that is honest by reading the catalog contract, `ready_units`, and the live probe scripts.Measure re-runs every non-skipped `*.py` in the probe dir. I’ll inspect those extras and a delivered sibling so we don’t fail on helper scripts.Windows-path helpers would fail the measure re-run. I’ll inspect the rest of the probe tree and a delivered sibling return format, then make those helpers Linux-safe.I'll make the Windows-path helpers Linux-safe, then re-run the named probes from the existing tree.`platform/coordination/session.py` is missing on this tree. I’ll locate the real coordination sources before re-running the probes.P13 and ADV-0112 contain the original classifier contract. I’ll extract the remaining coordination source fragments from those receipts.The monitor sources are absent from this seed. I’ll restore the documented `platform/coordination` contract so the existing named probes can re-run, then execute them.Probe 2 is green. Next I’ll run the four-state matrix against real child lock holders.Both named probes exited 0 on live Linux children. I’ll correct the leftover SIGSTOP wording, then pack the receipt from these raws.Measure printed `SUCCESS:delivered`. I’ll collect live hashes and write the per-unit return artifact.**SUCCESS:delivered ADV-0124**
+
+```
+SUCCESS:delivered ADV-0124 predicate=delivered state=SUCCESS probes=4 raws=2 notes=_handoff_remeasure.py:0,_stat_handoff.py:0,probe1_four_state_matrix.py:0,probe2_signal_source_audit.py:0
+```
+
+Resumed the existing probe tree. The previous return was a cloud-ok refute (`probes absent`); that is not this turn’s failure, so the unit was not parked.
+
+This seed had no `platform/coordination` package, so the documented two-signal classifier was restored (ADV-0112 matrix + P13 lock fragments) in order to run the named probes against real kernel locks. That is not a byte-identical copy of the missing original (`session.py` sha256 `436e0e8f…` is not on this disk).
+
+Live four-state matrix on this host:
+
+| True state | Reported | Evidence |
+|---|---|---|
+| running, monitor alive | **LIVE** | process `R`, CPU ticks, lock `HELD-BY-OTHER` |
+| running, monitor dead | **UNVERIFIED** | process `R`, stale heartbeat, lock held (not reaped) |
+| finished 11 hours ago | **CLOSED** | `closed_at`, lock `FREE` |
+| idle-sleep stall | **UNVERIFIED** | process `S`, CPU 0, same signature as dead-monitor |
+
+Finished vs stalled is distinct. Dead-monitor vs stall is structurally undecidable. Probe 2: zero mtime reads in `classify()`, `fcntl.flock`, both mutants go red.
+
+Receipt `command-center/adversarial/ADV-0124-monitor-liveness-four-state-matrix.json` is `state=SUCCESS` only after those probes exited 0. Per-unit manifest sha256 matches live LF digest `1ee5676c09c7cb6a27a9587fde3f103550ea3fc74485f632739e44c09fa3aab1`. `ready_units.artifact_delivered=True`. No git writes, no global `unit_manifest.py --write`.

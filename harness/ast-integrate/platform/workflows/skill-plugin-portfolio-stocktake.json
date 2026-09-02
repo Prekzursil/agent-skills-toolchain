@@ -1,0 +1,802 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "skill-plugin-portfolio-stocktake",
+  "name": "Skill and plugin portfolio stocktake - PARK by default, USER scope only",
+  "description": "Blueprint 96 of 96 (design BP-MNT-05). Inventory what is installed, what is enabled, what actually LOADS and what is actually USED, then prune against a measured context budget. Mechanism: a four-way join (installed x enabled x loaded x used) where the defining axis is MEASURED per-artifact context cost, converging in a bounded loop until the budget is met; the default verdict is PARK (reversible) rather than DROP, because unused is not the same as unusable. Two hard rules: apply at USER scope only - the UI toggle writes project scope and the artifact returns the moment the cwd changes - and never recursive-delete a backup directory, because those contain junctions into the live vault.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "security-governance-and-risk"
+  ],
+  "tags": [
+    "portfolio",
+    "context-budget",
+    "park-not-drop",
+    "user-scope"
+  ],
+  "flagship": false,
+  "params": {
+    "context_budget_tokens": {
+      "type": "integer",
+      "required": true,
+      "minimum": 1000,
+      "maximum": 400000,
+      "description": "The per-turn always-loaded ceiling the portfolio must fit under. Pruning without a target is taste, not budgeting."
+    },
+    "inventory_roots": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "string"
+      },
+      "description": "ABSOLUTE roots to inventory (plugins, skills, MCP configs, rules). A depth-limited walk here is how a stocktake reports a floor as a total."
+    },
+    "usage_telemetry_path": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to usage telemetry. Where telemetry is missing the verdict is PARK, never DROP - absence of evidence of use is not evidence of non-use."
+    },
+    "backup_dirs_excluded_from_delete": {
+      "type": "array",
+      "min_items": 0,
+      "items": {
+        "type": "string"
+      },
+      "default": [],
+      "description": "Backup directories that must be excluded from ANY delete path. These contain junctions into the live vault, so a recursive delete inside them destroys the live tree."
+    },
+    "apply_scope": {
+      "type": "enum",
+      "enum": [
+        "user",
+        "dry-run-only"
+      ],
+      "default": "user",
+      "description": "USER scope or no apply at all. Project scope is deliberately not an option: it is not a durable cure."
+    },
+    "max_prune_rounds": {
+      "type": "integer",
+      "default": 4,
+      "minimum": 1,
+      "maximum": 12,
+      "description": "Bound on the convergence loop. A prune loop whose only exit is 'budget met' spins forever when the remaining artifacts are all load-bearing."
+    }
+  },
+  "roles": {
+    "inventory-scanner": {
+      "description": "Enumerates installed, enabled and loaded sets with an unbounded walk, and reports the three counts separately",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/portfolio/**)"
+      ],
+      "write_paths": [
+        "command-center/portfolio/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "portfolio-judge": {
+      "description": "Assigns KEEP / PARK / DROP per artifact against the measured cost and the telemetry, defaulting to PARK under uncertainty",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "max",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/portfolio/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - approves the apply, and is the only one who may authorise a DROP over a PARK",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash:python",
+      "Write(command-center/portfolio/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "require_owner_approval": [
+      "Bash:python"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/portfolio/**"
+    ],
+    "forbid_write_paths": [
+      ".claude/skills/**",
+      ".agents/skills/**",
+      ".claude/settings.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "escalating",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == portfolio-judge",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "max"
+        },
+        "reason": "judging whether a rarely-used artifact is load-bearing is the one irreversible-if-wrong decision here"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "low-confidence"
+      ],
+      "target": {
+        "model": "opus",
+        "vendor": "anthropic",
+        "effort": "max"
+      },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "walk-was-unbounded": {
+      "predicate": "custom-expression",
+      "expression": "walk_depth_limited == false AND installed_count >= enabled_count",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "park-is-the-default": {
+      "predicate": "custom-expression",
+      "expression": "drops_without_telemetry == 0 AND uncertain_verdicts_are_park == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "junction-safety": {
+      "predicate": "custom-expression",
+      "expression": "recursive_delete_paths == 0 AND backup_dirs_excluded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "user-scope-only": {
+      "predicate": "custom-expression",
+      "expression": "apply_scope == user OR apply_scope == dry-run-only",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "inventory-four-ways",
+      "title": "installed vs enabled vs loaded vs used - four counts, not one",
+      "kind": "task",
+      "role": "inventory-scanner",
+      "timeout_seconds": 3600,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-9601",
+        "title": "Enumerate the portfolio four ways with an unbounded walk",
+        "phase": "10",
+        "question_or_target": "Enumerate every artifact under inventory_roots with an UNBOUNDED walk, then classify each into installed, enabled, loaded-this-session, and present-in-usage-telemetry. Report all four counts separately - the installed-to-enabled ratio is the headline and it is invisible if the counts are merged.",
+        "inputs": [
+          "params.inventory_roots",
+          "params.usage_telemetry_path"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "inventory-scanner",
+          "basis": "enumeration is mechanical, but deciding what counts as LOADED versus merely present requires reading how the loader resolves the artifact"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Bash:python",
+          "Write(command-center/portfolio/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/portfolio/portfolio-inventory.json",
+        "output_schema": "command-center/schema/audit-inventory.schema.json",
+        "evidence_requirement": "the four counts, the walk command showing no depth limit, and per artifact which of the four sets it belongs to; the file the enabled flag was read from must be named, because the enabled map lives in a different file from the one most readers assume",
+        "tests_required": [
+          "both-states control: an artifact enabled at PROJECT scope must be shown to disappear from the enabled set when the cwd changes, while a USER-scope one does not - this is the measurement that justifies the user-scope-only rule",
+          "a depth-limited walk must be rejected: the installed count is exactly the number this stage exists to get right",
+          "the enabled flag must be read from the file that actually governs it, and that file must be named in the evidence"
+        ],
+        "reviewer_requirement": "one independent reader who recounts the installed set with a different walk and confirms the same total",
+        "completion_sentinel": "SUCCESS:BPW-9601 emitted only when all four counts are present, the walk is proven unbounded, and the enabled-flag source file is named; otherwise FAILED:BPW-9601 <reason>",
+        "retry_policy": "no retry with the same walk - a count that needs a retry needs a different instrument, not a second attempt",
+        "failure_classification": [
+          "walk-depth-limited",
+          "enabled-map-wrong-file",
+          "telemetry-absent"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/portfolio/portfolio-inventory.json",
+          "schema_ref": "command-center/schema/audit-inventory.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9601",
+          "consumers": [
+            "prune-to-budget",
+            "gate-walk"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-walk",
+      "title": "A depth-limited walk reports a floor as a total",
+      "kind": "gate",
+      "depends_on": [
+        "inventory-four-ways"
+      ],
+      "gate_ref": "walk-was-unbounded"
+    },
+    {
+      "id": "measure-per-artifact-cost",
+      "title": "The defining axis: measured always-loaded cost per artifact",
+      "kind": "task",
+      "role": "inventory-scanner",
+      "depends_on": [
+        "gate-walk"
+      ],
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "BPW-9602",
+        "title": "Measure each artifact's always-loaded context contribution",
+        "phase": "10",
+        "question_or_target": "For every ENABLED artifact measure its always-loaded contribution to per-turn context, split from its lazily-loaded body. Sum the always-loaded column and compare against context_budget_tokens - that sum, not the artifact count, is what the portfolio is being pruned against.",
+        "inputs": [
+          "command-center/portfolio/portfolio-inventory.json",
+          "params.context_budget_tokens"
+        ],
+        "dependencies": [
+          "BPW-9601"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "inventory-scanner",
+          "basis": "the split between always-loaded and lazily-loaded is what makes the number actionable, and it depends on how the router resolves each artifact"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/portfolio/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/portfolio/per-artifact-cost.json",
+        "output_schema": "command-center/schema/measurement-run.schema.json",
+        "evidence_requirement": "per artifact the always-loaded and lazily-loaded token counts with the tokeniser named, and the always-loaded SUM against the budget",
+        "tests_required": [
+          "an artifact loaded lazily through a router must show a small always-loaded figure and a large lazy one; identical figures mean the split was not measured",
+          "the always-loaded sum must be reproducible from the per-artifact column - a total that does not equal its parts is a detector failure"
+        ],
+        "reviewer_requirement": "the portfolio judge reads the costs; a judge working from artifact COUNTS rather than measured cost is prohibited by this workflow's design",
+        "completion_sentinel": "SUCCESS:BPW-9602 emitted only when every enabled artifact has both figures and the sum equals the column total; otherwise FAILED:BPW-9602 <reason>",
+        "retry_policy": "one retry with a different tokeniser if any figure is zero; a second zero means the instrument cannot see the artifact and the stocktake proceeds with that artifact marked UNMEASURED",
+        "failure_classification": [
+          "measurement-zero",
+          "sum-mismatch",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/portfolio/per-artifact-cost.json",
+          "schema_ref": "command-center/schema/measurement-run.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9602",
+          "consumers": [
+            "prune-to-budget"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "prune-to-budget",
+      "title": "Bounded convergence: prune until the budget is met or nothing more is safe to park",
+      "kind": "loop",
+      "depends_on": [
+        "measure-per-artifact-cost"
+      ],
+      "loop_var": "prune_round",
+      "timeout_seconds": 14400,
+      "body": [
+        {
+          "id": "judge-one-round",
+          "kind": "task",
+          "role": "portfolio-judge",
+          "timeout_seconds": 3600,
+          "work_unit": {
+            "id": "BPW-9603",
+            "title": "Assign KEEP / PARK / DROP for this round, defaulting to PARK",
+            "phase": "10",
+            "question_or_target": "For the highest-cost unresolved artifacts, assign KEEP (load-bearing or in recent use), PARK (reversible removal - the default whenever usage is unclear) or DROP (only with telemetry showing genuine disuse AND owner authorisation). Recompute the always-loaded sum after this round's verdicts.",
+            "inputs": [
+              "command-center/portfolio/per-artifact-cost.json",
+              "command-center/portfolio/portfolio-inventory.json",
+              "params.context_budget_tokens"
+            ],
+            "dependencies": [
+              "BPW-9602"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "portfolio-judge",
+              "basis": "max effort: unused is not the same as unusable, and a wrongly-dropped rarely-used but load-bearing skill is the expensive error here"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Write(command-center/portfolio/**)"
+            ],
+            "execution_substrate": "local-serialized",
+            "timeout_seconds": 3600,
+            "output_path": "command-center/portfolio/prune-verdicts.json",
+            "output_schema": "command-center/schema/disposition-table.schema.json",
+            "evidence_requirement": "per artifact the verdict, its measured always-loaded cost, its telemetry evidence (or the explicit absence of telemetry), and the recomputed sum after this round",
+            "tests_required": [
+              "an artifact with NO telemetry must receive PARK, never DROP",
+              "a DROP must carry both telemetry evidence of disuse and a reference to owner authorisation",
+              "both-states control: a demonstrably load-bearing artifact with low usage must receive KEEP - a judge that parks everything cheap is optimising the budget, not the portfolio"
+            ],
+            "reviewer_requirement": "the owner checkpoint reviews the verdict table before anything is applied; this stage never applies its own verdicts",
+            "completion_sentinel": "SUCCESS:BPW-9603 emitted only when every artifact considered this round has a verdict with its cost and telemetry state, and the recomputed sum is recorded; otherwise FAILED:BPW-9603 <reason>",
+            "retry_policy": "two strikes then pivot: if two rounds produce no reduction in the always-loaded sum, stop pruning and report that the remaining portfolio is at its floor rather than attempting a third round",
+            "failure_classification": [
+              "drop-without-telemetry",
+              "no-progress",
+              "overclaim"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 4,
+        "min_iterations": 1,
+        "converged_when": "always_loaded_sum <= context_budget_tokens OR safe_to_park_remaining == 0",
+        "no_progress_rounds": 2,
+        "metrics": [
+          {
+            "name": "always_loaded_sum",
+            "direction": "decrease",
+            "epsilon": 100
+          },
+          {
+            "name": "safe_to_park_remaining",
+            "direction": "decrease",
+            "target": 0
+          }
+        ],
+        "on_no_convergence": "emit-partial"
+      }
+    },
+    {
+      "id": "gate-park-default",
+      "title": "No DROP without telemetry",
+      "kind": "gate",
+      "depends_on": [
+        "prune-to-budget"
+      ],
+      "gate_ref": "park-is-the-default"
+    },
+    {
+      "id": "gate-junctions",
+      "title": "Never recursive-delete a backup containing junctions into the live vault",
+      "kind": "gate",
+      "depends_on": [
+        "gate-park-default"
+      ],
+      "gate_ref": "junction-safety"
+    },
+    {
+      "id": "gate-scope",
+      "title": "USER scope, or no apply at all",
+      "kind": "gate",
+      "depends_on": [
+        "gate-junctions"
+      ],
+      "gate_ref": "user-scope-only"
+    },
+    {
+      "id": "owner-approve-apply",
+      "title": "Applying a stocktake can disable something mid-task",
+      "kind": "human_checkpoint",
+      "depends_on": [
+        "gate-scope"
+      ],
+      "prompt": "The verdict table is attached with measured always-loaded cost per artifact and the recomputed sum against the budget. Apply at USER scope, apply PARK-only, or leave as a report? Any DROP needs your explicit authorisation here.",
+      "approvers": [
+        "owner"
+      ],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": [
+        "apply-user-scope",
+        "apply-park-only",
+        "report-only",
+        "abandon"
+      ],
+      "decision_artifact": {
+        "path": "command-center/portfolio/stocktake-decision.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true,
+        "consumers": [
+          "owner"
+        ]
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "budget-met-or-floor-reached",
+      "expression": "always_loaded_sum <= context_budget_tokens OR safe_to_park_remaining == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "walk_depth_limited == false AND cost_measured == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-telemetry-so-park-only",
+      "expression": "telemetry_present == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "weighted-stocktake-quality",
+      "expression": {
+        "weighted": {
+          "terms": [
+            {
+              "expr": "drops_without_telemetry == 0",
+              "weight": 0.4
+            },
+            {
+              "expr": "walk_depth_limited == false",
+              "weight": 0.3
+            },
+            {
+              "expr": "recursive_delete_paths == 0",
+              "weight": 0.3
+            }
+          ],
+          "threshold": 1.0
+        }
+      },
+      "applies_to": "workflow",
+      "on_stop": "complete"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": [
+      "measurement-zero"
+    ],
+    "no_retry_on": [
+      "drop-without-telemetry",
+      "walk-depth-limited",
+      "no-progress"
+    ],
+    "pivot": {
+      "after_attempts": 1,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner-approve-apply"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "walk-depth-limited",
+      "drop-without-telemetry",
+      "measurement-zero",
+      "no-progress"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner-approve-apply",
+    "quarantine_path": "command-center/quarantine/portfolio-stocktake"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/portfolio-stocktake",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 604800,
+    "on_stale": "restart"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/portfolio-stocktake.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "stage_id",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/portfolio-stocktake",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "inventory-root-change",
+      "budget-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/dry-run/portfolio-stocktake-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/portfolio/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-05 - the measured state: 98 plugins installed against 9 enabled (a 10:1 ratio), and a daily skill set of about 82 loading against a vault of about 335 lazy-loaded through a router",
+    "cost": {
+      "currency": "USD",
+      "min": 0.3,
+      "expected": 2.2,
+      "max": 10.0
+    },
+    "wallclock_seconds": {
+      "min": 600,
+      "expected": 5400,
+      "max": 86400
+    },
+    "tokens": {
+      "min": 40000,
+      "expected": 300000,
+      "max": 1200000
+    },
+    "tool_calls": {
+      "min": 15,
+      "expected": 110,
+      "max": 500
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible-with-effort",
+      "blast_radius": "an apply changes what loads in EVERY future turn of every session. PARK is reversible by re-enabling; DROP is not, which is why DROP needs telemetry plus owner authorisation. The live skill and settings trees are forbid-write here, so an apply is a separate authorised action rather than a side effect of the audit.",
+      "requires_owner_approval": true
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "cache-manifest"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/portfolio-stocktake.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "warn"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-05",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/skill-stocktake",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "owner - the portfolio inventory"
+      },
+      {
+        "source": "skills/mcp-fleet-curation",
+        "relation": "MERGE",
+        "license": "owner-proprietary",
+        "credit": "owner - the USER-scope disable cure and the periodic audit cadence"
+      },
+      {
+        "source": "commands/context-budget",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner - the context measurement across agents, skills, MCP servers and rules"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/skill-stocktake@current",
+      "re-enable any PARKed artifact at USER scope"
+    ]
+  },
+  "outputs": {
+    "verdicts": {
+      "path": "command-center/portfolio/prune-verdicts.json",
+      "schema_ref": "command-center/schema/disposition-table.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9603",
+      "consumers": [
+        "owner",
+        "marketplace-publication-governance"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 96,
+      "of": 96,
+      "design_card": "BP-MNT-05",
+      "design_family": "D18-maintenance",
+      "spec_category": "security-governance-and-risk",
+      "acquisition_route": "MERGE",
+      "flagship": false
+    },
+    "mechanism": "a four-way join (installed x enabled x loaded x used) whose ordering axis is MEASURED always-loaded cost, resolved in a bounded convergence loop with two exits - budget met, or nothing left that is safe to park. PARK is the default verdict and DROP requires telemetry plus owner authorisation, so the error direction points at recoverable over-caution rather than at losing a load-bearing artifact.",
+    "not_a_duplicate_because": {
+      "vs_marketplace-publication-governance": "that is the PUBLISHER side and runs once per artifact before it exists in any catalogue; this is the CONSUMER side and runs periodically over everything already installed. They share a measurement technique and share nothing else - and this one CONSUMES the manifests that one produces.",
+      "vs_shared-grounding-pack-emission": "that ranks a code tree under a token budget for prompt injection; this ranks an installed harness portfolio under a per-turn budget for pruning. Both are budget-constrained rankings; one produces an artifact to inject, the other produces verdicts to apply.",
+      "vs_detector-truncation-audit": "that audits whether a count is a total or a floor; this one is a COUNTING surface and could legitimately be audited by it - which is why the unbounded walk is a blocking gate here rather than a convention."
+    },
+    "contraindications": [
+      "NOT during active work - an apply can disable something mid-task",
+      "NOT as a pretext to remove a rarely-used but load-bearing skill; that is precisely what PARK-by-default protects"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "scope-persistence",
+        "given": "an artifact disabled at project scope",
+        "expect": "it RETURNS when the cwd changes, while a USER-scope disable persists - the measurement that justifies the user-scope-only rule"
+      },
+      {
+        "id": "junction-exclusion",
+        "given": "a backup directory containing junctions into the live vault",
+        "expect": "it is excluded from every delete path; recursive_delete_paths must be 0"
+      },
+      {
+        "id": "before-after-token-cost",
+        "given": "one prune cycle applied at USER scope",
+        "expect": "a measurable reduction in per-turn always-loaded tokens; no reduction means the cycle pruned lazily-loaded weight, which was never the cost"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "quarterly-stocktake",
+        "params": {
+          "context_budget_tokens": 24000,
+          "inventory_roots": [
+            "C:/Users/Prekzursil/.claude/plugins",
+            "C:/Users/Prekzursil/.claude/skills",
+            "C:/Users/Prekzursil/.agents/skills",
+            "C:/Users/Prekzursil/.claude/rules"
+          ],
+          "usage_telemetry_path": "C:/Users/Prekzursil/.claude/event-ledger/usage.jsonl",
+          "backup_dirs_excluded_from_delete": [
+            "C:/Users/Prekzursil/.claude/harness-restore-20260806"
+          ],
+          "apply_scope": "user",
+          "max_prune_rounds": 4
+        },
+        "inventory": {
+          "installed": 98,
+          "enabled": 9,
+          "loaded_this_session": 82,
+          "present_in_telemetry": 41
+        },
+        "cost": {
+          "always_loaded_sum_before": 31480,
+          "budget": 24000,
+          "tokeniser": "cl100k_base"
+        },
+        "rounds": [
+          {
+            "prune_round": 1,
+            "verdicts": {
+              "KEEP": 6,
+              "PARK": 3,
+              "DROP": 0
+            },
+            "always_loaded_sum": 27100
+          },
+          {
+            "prune_round": 2,
+            "verdicts": {
+              "KEEP": 2,
+              "PARK": 4,
+              "DROP": 0
+            },
+            "always_loaded_sum": 23400
+          }
+        ],
+        "convergence": "always_loaded_sum 23,400 <= 24,000 at round 2; no DROP issued because 7 of the 7 parked artifacts had no telemetry rows",
+        "terminal_state": "SUCCESS:BPW-9603 -> owner decision: apply-user-scope, PARK-only",
+        "note": "Zero DROPs is the expected outcome of a first cycle, not a failure to act: with telemetry covering only 41 of 98 artifacts, PARK is the only verdict the evidence supports. The 98-vs-9 installed-to-enabled ratio is the headline, and it is only visible because the four counts are reported separately."
+      }
+    ],
+    "owner_decision": "none as a design question - but the APPLY is an owner checkpoint, and any DROP requires explicit authorisation there rather than being inferred from low usage.",
+    "unverified": [
+      "The 98-installed / 9-enabled and 82-of-335 figures are quoted from the design card and are NOT re-measured by this artifact. Settling experiment = stage inventory-four-ways, whose whole purpose is to replace those quoted numbers with measured ones.",
+      "That a prune cycle reduces per-turn cost at all is UNVERIFIED on this estate: if most weight is lazily loaded through a router, parking artifacts may reduce the artifact COUNT while barely moving the always-loaded sum. Settling experiment = the before-after-token-cost benchmark. This is the load-bearing assumption of the whole blueprint and it is rated roughly-even until that measurement exists."
+    ]
+  }
+}

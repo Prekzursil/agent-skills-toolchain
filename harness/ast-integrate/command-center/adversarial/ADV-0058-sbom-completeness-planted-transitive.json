@@ -1,0 +1,434 @@
+{
+  "unit_id": "ADV-0058",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0058 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0058 <reason>.",
+  "report_kind": "supply-chain-attestation",
+  "report": {
+    "kind": "supply-chain-attestation",
+    "observations": [
+      {
+        "name": "components_in_shipped_artifact",
+        "measured": 6,
+        "method": "zip member enumeration + purl markers",
+        "anchor": "probe1_setdiff.artifact_purls"
+      },
+      {
+        "name": "components_listed_in_sbom",
+        "measured": 2,
+        "method": "sbom.cdx.json component walk",
+        "anchor": "probe1_setdiff.sbom_purls"
+      },
+      {
+        "name": "present_in_artifact_absent_from_sbom",
+        "measured": 4,
+        "method": "set difference artifact - sbom",
+        "anchor": "probe1_setdiff.present_in_artifact_absent_from_sbom"
+      },
+      {
+        "name": "plants_missed_by_sbom",
+        "measured": 4,
+        "method": "planted marker check independent of set-diff",
+        "anchor": "probe2_plants.plants_missed_by_sbom"
+      }
+    ],
+    "control_ids": [
+      "T-DECLARED-DEPENDENCY-CONTROL",
+      "NC-MANIFEST-ONLY-MUTANT"
+    ]
+  },
+  "profile": "supply-chain-attestation",
+  "schema_version": 1,
+  "title": "SBOM completeness against a planted undeclared transitive dependency",
+  "question": "Does the SBOM list every component actually present in the shipped artifact, including transitive, vendored, bundled-binary and runtime-downloaded components?",
+  "spec_anchor": "_USER-PROMPTS.md:10857, 11111",
+  "claim_under_test": "Does the SBOM list every component actually present in the shipped artifact, including transitive, vendored, bundled-binary and runtime-downloaded components?",
+  "overall_verdict": "REFUTED",
+  "completion_sentinel": "SUCCESS:ADV-0058 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0058 <reason>.",
+  "shipped_artifact": {
+    "path": "command-center/p2-wave/probes/ADV-0058/fixtures/adv0058-shipped-artifact.zip",
+    "generator_config": {
+      "generator": "adv0058-manifest-only-cyclonedx",
+      "include_cache": false,
+      "include_native": false,
+      "include_node_modules": true,
+      "include_vendor": false,
+      "include_wheels": false,
+      "inputs": [
+        "package.json",
+        "package-lock.json"
+      ],
+      "note": "Walks the package manifest and node_modules only. Vendored trees, runtime-download caches, bundled wheels and native binaries are outside the configured walk."
+    },
+    "sbom_path_inside_zip": "sbom.cdx.json"
+  },
+  "probe1_setdiff": {
+    "artifact_purls": [
+      "pkg:generic/native-helper@9.1.0",
+      "pkg:npm/adv0058-app@1.0.0",
+      "pkg:npm/declared-normal@2.3.4",
+      "pkg:npm/runtime-fetched-helper@4.5.6",
+      "pkg:npm/stealth-transitive@7.8.9",
+      "pkg:pypi/bundled-wheel-helper@3.2.1"
+    ],
+    "sbom_purls": [
+      "pkg:npm/adv0058-app@1.0.0",
+      "pkg:npm/declared-normal@2.3.4"
+    ],
+    "in_both": [
+      "pkg:npm/adv0058-app@1.0.0",
+      "pkg:npm/declared-normal@2.3.4"
+    ],
+    "present_in_artifact_absent_from_sbom": [
+      "pkg:generic/native-helper@9.1.0",
+      "pkg:npm/runtime-fetched-helper@4.5.6",
+      "pkg:npm/stealth-transitive@7.8.9",
+      "pkg:pypi/bundled-wheel-helper@3.2.1"
+    ],
+    "listed_in_sbom_absent_from_artifact": [],
+    "zero_difference": false,
+    "declared_in_both": true,
+    "plants_in_artifact": [
+      "pkg:npm/stealth-transitive@7.8.9",
+      "pkg:npm/runtime-fetched-helper@4.5.6",
+      "pkg:pypi/bundled-wheel-helper@3.2.1",
+      "pkg:generic/native-helper@9.1.0"
+    ],
+    "plants_in_sbom": [],
+    "enumeration_broken": false,
+    "components": [
+      {
+        "purl": "pkg:generic/native-helper@9.1.0",
+        "kind": "bundled-native-binary",
+        "path": "bin/native-helper"
+      },
+      {
+        "purl": "pkg:npm/adv0058-app@1.0.0",
+        "kind": "application",
+        "path": "package.json"
+      },
+      {
+        "purl": "pkg:npm/declared-normal@2.3.4",
+        "kind": "declared-direct",
+        "path": "node_modules/declared-normal/package.json"
+      },
+      {
+        "purl": "pkg:npm/runtime-fetched-helper@4.5.6",
+        "kind": "runtime-download",
+        "path": ".cache/runtime-download/runtime-fetched-helper/package.json"
+      },
+      {
+        "purl": "pkg:npm/stealth-transitive@7.8.9",
+        "kind": "vendored-transitive",
+        "path": "vendor/stealth-transitive/package.json"
+      },
+      {
+        "purl": "pkg:pypi/bundled-wheel-helper@3.2.1",
+        "kind": "bundled-wheel",
+        "path": "vendor/wheels/bundled_wheel_helper-3.2.1-py3-none-any.whl"
+      }
+    ]
+  },
+  "probe2_plants": {
+    "independent_of_probe1_setdiff": true,
+    "plants": [
+      {
+        "purl": "pkg:npm/stealth-transitive@7.8.9",
+        "channel": "vendored-subdirectory",
+        "marker_path": "vendor/stealth-transitive/PLANTED-MARKER.txt",
+        "present_in_artifact": true,
+        "listed_in_sbom": false,
+        "missed_by_sbom": true
+      },
+      {
+        "purl": "pkg:npm/runtime-fetched-helper@4.5.6",
+        "channel": "runtime-download-cache",
+        "marker_path": ".cache/runtime-download/runtime-fetched-helper/PLANTED-MARKER.txt",
+        "present_in_artifact": true,
+        "listed_in_sbom": false,
+        "missed_by_sbom": true
+      },
+      {
+        "purl": "pkg:pypi/bundled-wheel-helper@3.2.1",
+        "channel": "bundled-wheel",
+        "marker_path": "vendor/wheels/bundled_wheel_helper-3.2.1-py3-none-any.whl",
+        "present_in_artifact": true,
+        "listed_in_sbom": false,
+        "missed_by_sbom": true
+      },
+      {
+        "purl": "pkg:generic/native-helper@9.1.0",
+        "channel": "bundled-native-binary",
+        "marker_path": "bin/native-helper",
+        "present_in_artifact": true,
+        "listed_in_sbom": false,
+        "missed_by_sbom": true
+      }
+    ],
+    "plants_present_in_artifact": true,
+    "plants_listed_in_sbom": [],
+    "plants_missed_by_sbom": [
+      "pkg:npm/stealth-transitive@7.8.9",
+      "pkg:npm/runtime-fetched-helper@4.5.6",
+      "pkg:pypi/bundled-wheel-helper@3.2.1",
+      "pkg:generic/native-helper@9.1.0"
+    ],
+    "generator_configured_to_skip_plant_paths": true,
+    "manifest_only_generator_would_report_success": true
+  },
+  "targets": [
+    {
+      "target_id": "T0-universal-completeness",
+      "target": "every identified artifact component is billed in the SBOM",
+      "verdict": "REFUTED",
+      "missing": [
+        "pkg:generic/native-helper@9.1.0",
+        "pkg:npm/runtime-fetched-helper@4.5.6",
+        "pkg:npm/stealth-transitive@7.8.9",
+        "pkg:pypi/bundled-wheel-helper@3.2.1"
+      ]
+    },
+    {
+      "target_id": "T1-application",
+      "target": "pkg:npm/adv0058-app@1.0.0",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "target_id": "T2-declared-control",
+      "target": "pkg:npm/declared-normal@2.3.4",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "target_id": "T3-vendored-transitive",
+      "target": "pkg:npm/stealth-transitive@7.8.9",
+      "verdict": "REFUTED",
+      "channel": "vendored-subdirectory"
+    },
+    {
+      "target_id": "T4-runtime-downloaded-cache",
+      "target": "pkg:npm/runtime-fetched-helper@4.5.6",
+      "verdict": "REFUTED",
+      "channel": "runtime-download"
+    },
+    {
+      "target_id": "T5-bundled-wheel",
+      "target": "pkg:pypi/bundled-wheel-helper@3.2.1",
+      "verdict": "REFUTED",
+      "channel": "bundled-wheel"
+    },
+    {
+      "target_id": "T6-bundled-native-binary",
+      "target": "pkg:generic/native-helper@9.1.0",
+      "verdict": "REFUTED",
+      "channel": "bundled-native-binary"
+    },
+    {
+      "target_id": "T7-manifest-only-generator-misses-plants",
+      "target": "generator that reads the manifest reports success while missing plants",
+      "verdict": "CONFIRMED",
+      "missed": [
+        "pkg:npm/stealth-transitive@7.8.9",
+        "pkg:npm/runtime-fetched-helper@4.5.6",
+        "pkg:pypi/bundled-wheel-helper@3.2.1",
+        "pkg:generic/native-helper@9.1.0"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Unpacking the shipped zip yields 6 components; the SBOM lists 2; absent from SBOM: pkg:generic/native-helper@9.1.0, pkg:npm/runtime-fetched-helper@4.5.6, pkg:npm/stealth-transitive@7.8.9, pkg:pypi/bundled-wheel-helper@3.2.1. declared-normal is in both sets.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "probe1_setdiff",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/probe1_artifact_setdiff.py",
+          "raw_output": "{\"artifact_purls\": [\"pkg:generic/native-helper@9.1.0\", \"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:npm/stealth-transitive@7.8.9\", \"pkg:pypi/bundled-wheel-helper@3.2.1\"], \"declared_in_both\": true, \"enumeration_broken\": false, \"in_both\": [\"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\"], \"listed_in_sbom_absent_from_artifact\": [], \"pass\": true, \"plants_in_artifact\": [\"pkg:npm/stealth-transitive@7.8.9\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:pypi/bundled-wheel-helper@3.2.1\", \"pkg:generic/native-helper@9.1.0\"], \"plants_in_sbom\": [], \"present_in_artifact_absent_from_sbom\": [\"pkg:generic/native-helper@9.1.0\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:npm/stealth-transitive@7.8.9\", \"pkg:pypi/bundled-wheel-helper@3.2.1\"], \"probe\": \"probe1-artifact-setdiff\", \"sbom_purls\": [\"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\"], \"unit_id\": \"ADV-0058\", \"zero_difference\": false, \"zip\": \"command-center/p2-wave/probes/ADV-0058/fixtures/adv0058-shipped-artifact.zip\"}\nartifact_n=6 sbom_n=2 missing_from_sbom=4 declared_in_both=True\nSUCCESS:ADV-0058-probe1 artifact-vs-sbom set-diff",
+          "fingerprint": "6ad5efa75b236300efaefd5a01ac0725750963a0007f83c31251fe81ab4f0430",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/control_enumerator.py",
+          "raw_output": "{\"declared_in_both\": true, \"enumeration_broken\": false, \"id\": \"T-DECLARED-DEPENDENCY-CONTROL\", \"name\": \"control: a normally declared dependency must appear in both sets; a zero-difference result that also misses the planted component means the artifact enumeration is not working\", \"pass\": true, \"plants_in_artifact\": [\"pkg:npm/stealth-transitive@7.8.9\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:pypi/bundled-wheel-helper@3.2.1\", \"pkg:generic/native-helper@9.1.0\"], \"zero_difference\": false}",
+          "fingerprint": "0e9e55e49020bc11519c86add31315b04cb61fb7628c0f8aaf910f247c862e2d",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Planted marker files for vendored, runtime-download, bundled wheel and native binary are present in the zip; none of those PURLs appear in sbom.cdx.json. The generator config skips those paths, so a manifest-only generator reports success.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "probe2_plants",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/probe2_direct_plant.py",
+          "raw_output": "{\"generator_configured_to_skip_plant_paths\": true, \"independent_of_probe1_setdiff\": true, \"manifest_only_generator_would_report_success\": true, \"pass\": true, \"plants\": [{\"channel\": \"vendored-subdirectory\", \"listed_in_sbom\": false, \"marker_path\": \"vendor/stealth-transitive/PLANTED-MARKER.txt\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:npm/stealth-transitive@7.8.9\"}, {\"channel\": \"runtime-download-cache\", \"listed_in_sbom\": false, \"marker_path\": \".cache/runtime-download/runtime-fetched-helper/PLANTED-MARKER.txt\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:npm/runtime-fetched-helper@4.5.6\"}, {\"channel\": \"bundled-wheel\", \"listed_in_sbom\": false, \"marker_path\": \"vendor/wheels/bundled_wheel_helper-3.2.1-py3-none-any.whl\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:pypi/bundled-wheel-helper@3.2.1\"}, {\"channel\": \"bundled-native-binary\", \"listed_in_sbom\": false, \"marker_path\": \"bin/native-helper\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:generic/native-helper@9.1.0\"}], \"plants_listed_in_sbom\": [], \"plants_missed_by_sbom\": [\"pkg:npm/stealth-transitive@7.8.9\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:pypi/bundled-wheel-helper@3.2.1\", \"pkg:generic/native-helper@9.1.0\"], \"plants_present_in_artifact\": true, \"probe\": \"probe2-direct-plant\", \"unit_id\": \"ADV-0058\", \"zip\": \"command-center/p2-wave/probes/ADV-0058/fixtures/adv0058-shipped-artifact.zip\"}\nplants_present=True missed_by_sbom=pkg:npm/stealth-transitive@7.8.9,pkg:npm/runtime-fetched-helper@4.5.6,pkg:pypi/bundled-wheel-helper@3.2.1,pkg:generic/native-helper@9.1.0 generator_skips_plants=True\nSUCCESS:ADV-0058-probe2 planted-dependency vs SBOM listing",
+          "fingerprint": "b8b2cfbc8e1b78d1b58aa9fd9e1718e12e80c89525fefc6280b7754eadc1693b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/control_enumerator.py",
+          "raw_output": "{\"fired_on_bad_state\": true, \"id\": \"NC-MANIFEST-ONLY-ZERO-DIFFERENCE\", \"mutant_purls\": [\"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\"], \"mutant_zero_difference\": true, \"name\": \"A generator that reads the manifest rather than the artifact reports success (zero-diff) while missing planted components\", \"pass\": true, \"plants_in_full_enumeration\": [\"pkg:npm/stealth-transitive@7.8.9\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:pypi/bundled-wheel-helper@3.2.1\", \"pkg:generic/native-helper@9.1.0\"], \"plants_in_mutant\": [], \"silent_on_good_state\": true, \"summary\": \"Manifest-only walk matches the SBOM exactly and omits every planted component that the full archive walk finds.\"}",
+          "fingerprint": "ac4968d2a953c71bc14e67ffb844a99b47366930911e9e27ea0795d4dc3e0ee7",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "name": "Enumerate components from the shipped archive and set-diff the SBOM",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/probe1_artifact_setdiff.py",
+      "raw_output": "{\"artifact_purls\": [\"pkg:generic/native-helper@9.1.0\", \"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:npm/stealth-transitive@7.8.9\", \"pkg:pypi/bundled-wheel-helper@3.2.1\"], \"declared_in_both\": true, \"enumeration_broken\": false, \"in_both\": [\"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\"], \"listed_in_sbom_absent_from_artifact\": [], \"pass\": true, \"plants_in_artifact\": [\"pkg:npm/stealth-transitive@7.8.9\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:pypi/bundled-wheel-helper@3.2.1\", \"pkg:generic/native-helper@9.1.0\"], \"plants_in_sbom\": [], \"present_in_artifact_absent_from_sbom\": [\"pkg:generic/native-helper@9.1.0\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:npm/stealth-transitive@7.8.9\", \"pkg:pypi/bundled-wheel-helper@3.2.1\"], \"probe\": \"probe1-artifact-setdiff\", \"sbom_purls\": [\"pkg:npm/adv0058-app@1.0.0\", \"pkg:npm/declared-normal@2.3.4\"], \"unit_id\": \"ADV-0058\", \"zero_difference\": false, \"zip\": \"command-center/p2-wave/probes/ADV-0058/fixtures/adv0058-shipped-artifact.zip\"}\nartifact_n=6 sbom_n=2 missing_from_sbom=4 declared_in_both=True\nSUCCESS:ADV-0058-probe1 artifact-vs-sbom set-diff"
+    },
+    {
+      "id": "probe2",
+      "name": "Confirm planted files exist in the zip and check SBOM listing",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/probe2_direct_plant.py",
+      "raw_output": "{\"generator_configured_to_skip_plant_paths\": true, \"independent_of_probe1_setdiff\": true, \"manifest_only_generator_would_report_success\": true, \"pass\": true, \"plants\": [{\"channel\": \"vendored-subdirectory\", \"listed_in_sbom\": false, \"marker_path\": \"vendor/stealth-transitive/PLANTED-MARKER.txt\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:npm/stealth-transitive@7.8.9\"}, {\"channel\": \"runtime-download-cache\", \"listed_in_sbom\": false, \"marker_path\": \".cache/runtime-download/runtime-fetched-helper/PLANTED-MARKER.txt\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:npm/runtime-fetched-helper@4.5.6\"}, {\"channel\": \"bundled-wheel\", \"listed_in_sbom\": false, \"marker_path\": \"vendor/wheels/bundled_wheel_helper-3.2.1-py3-none-any.whl\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:pypi/bundled-wheel-helper@3.2.1\"}, {\"channel\": \"bundled-native-binary\", \"listed_in_sbom\": false, \"marker_path\": \"bin/native-helper\", \"missed_by_sbom\": true, \"present_in_artifact\": true, \"purl\": \"pkg:generic/native-helper@9.1.0\"}], \"plants_listed_in_sbom\": [], \"plants_missed_by_sbom\": [\"pkg:npm/stealth-transitive@7.8.9\", \"pkg:npm/runtime-fetched-helper@4.5.6\", \"pkg:pypi/bundled-wheel-helper@3.2.1\", \"pkg:generic/native-helper@9.1.0\"], \"plants_present_in_artifact\": true, \"probe\": \"probe2-direct-plant\", \"unit_id\": \"ADV-0058\", \"zip\": \"command-center/p2-wave/probes/ADV-0058/fixtures/adv0058-shipped-artifact.zip\"}\nplants_present=True missed_by_sbom=pkg:npm/stealth-transitive@7.8.9,pkg:npm/runtime-fetched-helper@4.5.6,pkg:pypi/bundled-wheel-helper@3.2.1,pkg:generic/native-helper@9.1.0 generator_skips_plants=True\nSUCCESS:ADV-0058-probe2 planted-dependency vs SBOM listing"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-PROBE-1-SETDIFF",
+      "name": "Unpack the shipped artifact and set-difference against the SBOM",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/probe1_artifact_setdiff.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T-PROBE-2-PLANT",
+      "name": "Confirm planted dependency files exist and the SBOM omits them",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/probe2_direct_plant.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T-DECLARED-DEPENDENCY-CONTROL",
+      "name": "control: a normally declared dependency must appear in both sets; a zero-difference result that also misses the planted component means the artifact enumeration is not working",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/control_enumerator.py",
+      "result": "PASS",
+      "output_tail": "declared_in_both=True enumeration_broken=False"
+    },
+    {
+      "id": "T-MANIFEST-ONLY-MUTANT-GOES-RED",
+      "name": "A generator that reads the manifest rather than the artifact reports success (zero-diff) while missing planted components",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0058/control_enumerator.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-MANIFEST-ONLY-ZERO-DIFFERENCE",
+      "kind": "known-broken-fixture",
+      "description": "A generator that reads the manifest rather than the artifact reports success (zero-diff) while missing planted components -- Manifest-only walk matches the SBOM exactly and omits every planted component that the full archive walk finds.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutant_zero_difference=True plants_in_mutant=[]",
+      "good_state_output": "plants_in_full_enumeration=['pkg:npm/stealth-transitive@7.8.9', 'pkg:npm/runtime-fetched-helper@4.5.6', 'pkg:pypi/bundled-wheel-helper@3.2.1', 'pkg:generic/native-helper@9.1.0']"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "ADV-0058-probe2-direct-plant",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Input: zip marker paths and sbom.cdx.json; probe1 set-diff prose unread. Counterexample: pkg:npm/stealth-transitive@7.8.9, pkg:npm/runtime-fetched-helper@4.5.6, pkg:pypi/bundled-wheel-helper@3.2.1, pkg:generic/native-helper@9.1.0. Probe 2 re-derives the undeclared-plant counterexample from the raw zip members and the generator config, not from probe 1's set-diff table. Catalog-required Anthropic/opus refuter was not dispatched on this G-1 lane."
+  },
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5-codex",
+    "role": "supply-chain-auditor",
+    "execution_substrate": "worktree-isolated"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0058-sbom-completeness-planted-transitive.json",
+      "bytes": 25148,
+      "sha256": "f67e445f7cbb714434d9ecfd4cf017633996e47b6351cac9e4320b2459f491d2",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/supply-chain-attestation.schema.json",
+      "bytes": 1181,
+      "sha256": "480a17ac1a8e7cd5ed46823e3f826d66239ea4118ac0d056e2faed1e0d2479fc",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0058/fixtures/adv0058-shipped-artifact.zip",
+      "bytes": 3968,
+      "sha256": "f8e5850f127bb4668287e20e7feb6e922c8998436d8f4e490d726863bdc835a6",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0058/probe1_artifact_setdiff.py",
+      "bytes": 3073,
+      "sha256": "5eddb82740598410118b4602ded3ac928f0970c862920796fa7966c882fe70a3",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ADV-0058/probe2_direct_plant.py",
+      "bytes": 3583,
+      "sha256": "74911271ced633883b6041cfd700dd3d46145f7cc3c94b15168c0a767300af25",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "min_bytes_threshold": 1024,
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ADV-0058/UNIT-ARTIFACT-MANIFEST.json",
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0058/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0058",
+    "registered_at": "2026-08-27T22:31:27Z"
+  },
+  "cloud_ok": false,
+  "timestamps": {
+    "started_at": "2026-08-27T22:31:27Z",
+    "ended_at": "2026-08-27T22:31:27Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "single-shot; the shipped zip fixture and generator config are deterministic, so a retry re-derives the same set-diff"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "This unit plants undeclared components inside a shipped fixture zip because this worktree has no production SBOM generator. A later generator that walks vendor/, .cache/, wheels and native binaries would need a fresh probe.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "point the probes at a production SBOM generator that walks vendor/, cache, wheel and native paths and re-run the set-diff"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads round-trip reader (build_artifact.py condition-12 check)",
+      "artifact_path": "command-center/adversarial/ADV-0058-sbom-completeness-planted-transitive.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "python3 -c \"import json;json.load(open('command-center/adversarial/ADV-0058-sbom-completeness-planted-transitive.json'))\"",
+        "raw_output": "json.loads round-trip on command-center/adversarial/ADV-0058-sbom-completeness-planted-transitive.json (pre-registration serialization): bytes=24252 unit_id=ADV-0058 sentinel_present=True artifact_purls_n=6 read_ok=True",
+        "fingerprint": "1bfa7529b1a72890592500c24f1e1146dc55a11a6dc3f70d40b896d723b6f5e5",
+        "exit_code": 0
+      }
+    }
+  ]
+}

@@ -1,0 +1,237 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h63-rule-authoring-review",
+  "preset": "requirements_council",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Review a new or edited behavioural rule before it lands, requiring every route it names to be verified present and a both-states example to be supplied, with all comments dispositioned.",
+    "charter": "MANDATE. A rule that names a route is only as good as the route. The measured failure class is a rule that instructs an agent to use a command, path or skill that does not exist at that name - the rule reads authoritative, the dependency is dangling, and the agent follows it into nothing. So every install dependency and every named route in the draft must be verified PRESENT, by listing it rather than by remembering it. Second, the rule must carry a BOTH-STATES example: a concrete case where the rule fires and a concrete case where it does not. A rule that cannot be shown not-firing is unfalsifiable advice and will be applied everywhere. The council closes only when every comment has been dispositioned - accepted, rejected with a reason, or deferred with an owner - never silently dropped.",
+    "risk_tier": "high",
+    "desired_output": "specification",
+    "success_criteria": [
+      "every route, path, command and skill the rule names is shown to exist",
+      "a both-states example is present: one firing case and one non-firing case",
+      "every review comment is dispositioned, with zero left open",
+      "the rule's scope is stated, so it cannot silently apply everywhere"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.85,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "land a rule naming a route nobody verified",
+        "ship a rule with no non-firing example",
+        "close the review with open comments"
+      ],
+      "deadline_minutes": 45
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "stakeholder_balanced"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 5, "min": 5, "max": 5 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "roster": [
+      {
+        "participant_id": "editor",
+        "display_name": "Editor - owns the draft and chairs the review",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["rule authoring", "normative writing"],
+        "role": "custom:editor",
+        "authority": "chair",
+        "rights": { "may_speak": true, "may_vote": true },
+        "source_access": ["repo", "internal_docs"],
+        "context": {
+          "briefing": "Chair the disposition of every comment. Your own draft is not privileged: a comment you disagree with is rejected WITH A REASON on the record, not quietly dropped."
+        }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security - does this rule weaken a non-negotiable",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["policy layering", "safety floors"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "context": {
+          "briefing": "Layers may only ADD restriction downward. Block any draft that relaxes a safety floor, even implicitly through a broader exception."
+        }
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist - demands the both-states example",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["falsifiability", "detector control"],
+        "role": "custom:methodologist",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true },
+        "context": {
+          "briefing": "Require a case where the rule does NOT fire. A rule with only firing examples cannot be checked and will be over-applied; the non-firing case is what makes it a rule rather than a slogan."
+        }
+      },
+      {
+        "participant_id": "scope-guardian",
+        "display_name": "Scope guardian - verifies every named route exists",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["dependency verification", "scope semantics"],
+        "role": "custom:scope_guardian",
+        "authority": "voter",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true },
+        "source_access": ["repo", "internal_docs"],
+        "context": {
+          "briefing": "For each route the draft names, produce a listing that shows it. Also state the rule's load scope explicitly - a rule that loads always and a rule that loads on a path match are different instruments, and mislabelling one as the other silently demotes it."
+        }
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative - the rule binds the owner's agents",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["owner intent", "estate policy"],
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": true, "triggers": ["role_collapse", "dominance"], "preserve_prior_positions": true }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": ["prior_art_scan", "evidence_pack"]
+  },
+  "topology": { "kind": "chair_led", "chair": "editor" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "solo-read", "rounds": 1, "independent": true },
+      { "kind": "custom", "stage_id": "route-verification", "custom_name": "verify every named route, path, command and skill exists", "rounds": 1, "participants": ["scope-guardian"] },
+      { "kind": "custom", "stage_id": "both-states-example", "custom_name": "supply one firing and one non-firing example", "rounds": 1, "participants": ["methodologist", "editor"] },
+      { "kind": "custom", "stage_id": "comment-disposition", "custom_name": "disposition every comment: accept, reject with reason, or defer with an owner", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "approve-or-return", "rounds": 1 }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 1, "max": 2 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "declare_confidence": true,
+      "rebuttal_required": true
+    },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 4, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 45, "turns": 20, "experiments": 4 },
+  "targets": { "evidence_items": 6, "objections": 3 },
+  "voting": {
+    "method": "consent_no_objection",
+    "veto": { "holders": ["security", "owner-rep"], "scope": "safety_only", "must_justify": true, "overridable_by_owner": true },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:named_routes_verified_present == true AND custom:both_states_example_given == true AND objections_open == 0",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:named_routes_verified_present", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:both_states_example_given", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "objections_open", "op": "==", "value": 0 }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 45, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the rule lands with its scope declared and a deferred-comment owner named"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["run_experiment", "narrow_scope", "split_question", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "lost_dissent",
+      "minority_suppression",
+      "moderator_capture",
+      "weak_synthesis",
+      "evidence_free_majority",
+      "hallucinated_expertise"
+    ],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "argument_ledger",
+      "evidence_map",
+      "experiments",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["landing the rule in the live tree"] },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-h63", "checkpoint_every_round": true },
+    "calibration": { "post_run": false, "score": "none" }
+  },
+  "metadata": {
+    "title": "Rule authoring review (advisory, owner-approved)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H63", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocols P19,P45"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2076", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H63 `rule-authoring-review`, global ordinal 63, tier standard, protocols P19/P45, 5 seats, 2 rounds, default binding ADVISORY, OWNER-DECISION YES. The design's note names the guarded class: a dangling dependency where a rule names a route that does not exist. || EDITABLE DIALS: (1) rule_path -> the route-verification stage and the scope-guardian seat's source_access. (2) frontmatter_scope -> the scope-guardian briefing; declaring the load scope is a dial with a counter-intuitive edge, because adding a path filter to an always-loaded rule DEMOTES it to lazy loading rather than clarifying it. Secondary dials: budgets.time_minutes (45), targets.objections (3), voting.veto.holders, consensus.threshold. || VOCABULARY MAP (design term -> CouncilSpec enum): voting `all_comments_dispositioned` -> voting.method `consent_no_objection` PLUS the objections_open == 0 stopping clause; the ballot expresses the consent model and the stopping clause expresses the disposition requirement, and neither alone is the design. topology.kind `chair_led` with chair `editor` gives the disposition a named owner. roles `editor` -> custom:editor, `security` -> security_reviewer (enum), `methodologist` -> custom:methodologist, `scope_guardian` -> custom:scope_guardian, `owner_rep` -> custom:owner_rep (kind human, vendor human, authority owner). Outcomes map CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision. `evidence standard: grounded_file_line` -> anchor_style `file_line`. || CUSTOM METRICS AND THEIR PRODUCERS: custom:named_routes_verified_present (boolean; produced by the scope-guardian with a listing per named route - a listing, not a recollection) and custom:both_states_example_given (boolean; produced by the both-states-example stage requiring one firing and one non-firing case). Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with stopping.expression by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. The SEM-012 WARN is expected and non-blocking. || WHY objections_open == 0 USES EQUALITY RATHER THAN A THRESHOLD: `objections_open <= 2` would let the council close over live objections, which is precisely the silent-drop failure the design targets. Equality to zero is the only form that means dispositioned - and note that rejecting a comment with a reason DOES close it, so this clause demands disposition, not agreement."
+  }
+}

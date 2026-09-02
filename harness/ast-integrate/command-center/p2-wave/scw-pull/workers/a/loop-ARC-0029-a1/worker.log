@@ -1,0 +1,26 @@
+
+===== launch 2026-08-20T07:41:28Z attempt=1 =====
+I'll start by reading the claim-verify-gate skill and inspecting the existing ARC-0029 probe tree so we can resume from what's already built.The probe tree is missing, so I’ll look up what ARC-0029 is and how delivered units are measured.Next I’ll pull the catalog row, the delivery predicate, and a delivered ARC unit as the template.I’ll inspect the test-plan schema, sibling A4 units, and a delivered TEST-PLAN receipt so the ARC-0029 artifact matches the real contract.I'll implement the missing ARC-0029 probe tree: a labelled corpus, a reference selector, live named probes, then pack the TEST-PLAN receipt.I’m creating the corpus, shared selector, and four standalone probes so measure can re-run them independently.I’ll fix the reviewer-probe fail path, then run the four named probes to see what they actually measure.Recall is green, but T12 is budget-bound rather than hitting k=3, and a couple of extra selections leak through shared words. I’ll tighten the tokeniser and budget so the flood and explanation tests actually bind.**ARC-0029 is G-1 contract-green on this worktree.** `python command-center/p2-wave/_measure_one_delivered.py ARC-0029` printed `SUCCESS:delivered`.
+
+The probe tree did not exist, so it was created and implemented rather than parked on `predicate:absent`.
+
+**What shipped**
+- Receipt: `command-center/phase3/A4/TEST-PLAN.json` (`state=SUCCESS`, `report.kind=test-plan`, 27296 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0029/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 `f21e77c3d101b4bab487c5420ab9f8d254b62150e2a4b33a3f81ebc823bb1300`, matches disk)
+- Handoff: `command-center/p2-wave/probes/ARC-0029/SUBAGENT-RETURN.json`
+
+**Suite (live, re-runnable)**
+GatewaySelect over an 8-capability index and **16 author-written tasks** (13 labelled, 2 no-fit, 1 flood). Gold is not an input to the selector. Held-out slice is paired and disclosed.
+
+| Control | Result |
+|---|---|
+| In-sample recall | 1.0 (10/10) |
+| Held-out recall | 1.0 (3/3) |
+| Flood fixture T12 | `n_selected=3` (ceiling binds, does not exceed) |
+| No-fit T11/T16 | fallback fires |
+| Remove `skill:claim-verify-gate` | retrieved-gold drops by exactly 2 |
+| Reviewer hole | `permissions-star-rewrite` stays green (ARC-0027 TOCTOU is out of scope) |
+
+Named probes that measure re-ran to exit 0: `control_mutation.py`, `probe1_recall.py`, `probe2_flood_fallback.py`, `probe3_reviewer_hole.py`.
+
+`command-center/phase3/A4/DESIGN.json` is still absent; the suite binds to the declared GatewaySelect interface instead of parking. No git writes, no global catalog `--write`, no wave relaunch.

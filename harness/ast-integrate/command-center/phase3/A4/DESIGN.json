@@ -1,0 +1,507 @@
+{
+ "answer": "A4 is a single mediating gateway: INDEX.json lists every installed capability as a compact record (id, kind, selector_tags, summary, body_rel, activation_cost_processes, deactivate_method). Gateway.select scores tag overlap against the index and does not load bodies. Gateway.activate materializes the body and, for mcp_mount, spawns a stdio child; Gateway.deactivate runs the kind-specific path (unload-context / unregister-dispatcher / unload-rule-table / drop-compiled-stages / drop-overlay / reap-stdio-child) and returns the session to the measured floor. When nothing is selected the resident set is 1 process and 5596 bytes (INDEX.json + GATEWAY.json + index.schema.json). The always-on baseline of the same inventory, measured with the same resident() function, is 3 processes and 10109 bytes. Per-session budget max_activated_processes=1 max_activated_bytes=20000 on_exhaustion=REFUSE: the second MCP mount is refused and not spawned. NOT_INSTALLED (absent from index) is distinct from not_selected (in index, below threshold). The FIRST construct that is not expressible as an index record without activation is a capability whose match criterion is only a runtime side-effect of executing its body (no static selector_tags).",
+ "architecture_class": "gateway-lazy-activation",
+ "architecture_id": "A4",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/phase3/A4/DESIGN.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/control-plane/A4/INDEX.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/architecture-dossier.schema.json",
+   "role": "supporting"
+  }
+ ],
+ "budget": {
+  "max_activated_bytes": 20000,
+  "max_activated_processes": 1,
+  "on_exhaustion": "REFUSE"
+ },
+ "completion_sentinel": "SUCCESS:ARC-0024",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/phase3/A4/DESIGN.json",
+   "consumer": "command-center/p2-wave/probes/ARC-0024/probe1_lifecycle.py",
+   "executed": true,
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/phase3/A4/DESIGN.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py ARC-0024",
+   "executed": false,
+   "note": "Measure runs after this emit and after named probes."
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0024/gateway.py",
+   "claim": "Resident-set floor (nothing selected) and always-on baseline were measured with the same resident() function.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "resident_set.floor",
+   "claim": "Floor is 1 process / 5596 bytes; always-on baseline is 3 processes / 10109 bytes.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0024/probe1_lifecycle.py",
+   "claim": "Every capability class has a deactivation path that restores the floor.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/ARC-0024/probe2_budget.py",
+   "claim": "Exhausted per-session budget REFUSES the next activation and does not materialize it.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "expressibility.libraries_on_this_tree",
+   "claim": "Library files 09-WORKFLOW-BLUEPRINT-LIBRARY.json and 12-COUNCIL-PROTOCOLS-AND-PRESETS.json were read from disk on this worktree.",
+   "verdict": "REFUTED"
+  },
+  {
+   "anchor": "resident_set.live_os_this_box",
+   "claim": "The Windows-estate 23x65 stdio MCP process figure was re-measured on this Linux worktree today.",
+   "verdict": "REFUTED"
+  }
+ ],
+ "expressibility": {
+  "cardinality_from_library_bytes": "NOT-CHECKED",
+  "cardinality_reason": "09-WORKFLOW-BLUEPRINT-LIBRARY.json and 12-COUNCIL-PROTOCOLS-AND-PRESETS.json are absent on this worktree.",
+  "catalogue_claim": "Every capability class (skill, hook, rule, workflow_blueprint, council_preset, mcp_mount) is expressible as an a4-index/v1 record without inlining the body.",
+  "declarative_subset_still_maps": true,
+  "first_non_expressible_construct": "capability whose match criterion is only a runtime side-effect of executing its body (no static selector_tags or summary that can be indexed without loading the body)",
+  "libraries_on_this_tree": {
+   "09-WORKFLOW-BLUEPRINT-LIBRARY.json": false,
+   "12-COUNCIL-PROTOCOLS-AND-PRESETS.json": false,
+   "command-center/OWNER-DECISIONS.md": true,
+   "command-center/phase3/ROSTER.json": true,
+   "command-center/phase3/RUBRIC.json": true,
+   "skills/council/SKILL.md": true
+  },
+  "stop_reason": "Indexing a capability that can only be recognized by running it would require activation-before-select, which contradicts lazy activation. We stop at that construct rather than add an execute-to-discover hatch. The 96+48+64 live libraries are NOT claimed to be indexed on this tree (files absent).",
+  "stopped_at_first_inexpressible": true,
+  "structural_rule": "A capability is expressible iff it has a unique id, a kind in a4-index/v1, at least one static selector_tag, a summary, a body_rel that exists on disk, a deactivate_method equal to the kind table, and leaks_after_deactivate=false."
+ },
+ "file_set": [
+  {
+   "notes": "Draft-07 schema for a4-index/v1 records.",
+   "path": "command-center/control-plane/A4/index.schema.json",
+   "role": "index-schema"
+  },
+  {
+   "notes": "Budget, selection threshold, lifecycle states. Always resident.",
+   "path": "command-center/control-plane/A4/GATEWAY.json",
+   "role": "gateway-config"
+  },
+  {
+   "notes": "Compact records only. Bodies are referenced, not inlined.",
+   "path": "command-center/control-plane/A4/INDEX.json",
+   "role": "capability-index"
+  },
+  {
+   "notes": "Materialized only on activate(). Not part of the idle resident set.",
+   "path": "command-center/control-plane/A4/bodies/",
+   "role": "capability-bodies"
+  },
+  {
+   "notes": "Measured prototype of select/activate/deactivate/budget.",
+   "path": "command-center/p2-wave/probes/ARC-0024/gateway.py",
+   "role": "executable-prototype"
+  }
+ ],
+ "index_format": {
+  "body_policy": "Bodies live under bodies/ and are not copied into the index. Activate reads them; select does not.",
+  "duplicate_ids": "FAIL-CLOSED: load aborts.",
+  "kinds": [
+   "skill",
+   "hook",
+   "rule",
+   "workflow_blueprint",
+   "council_preset",
+   "mcp_mount"
+  ],
+  "path": "command-center/control-plane/A4/INDEX.json",
+  "record_fields": [
+   "id",
+   "kind",
+   "selector_tags",
+   "summary",
+   "body_rel",
+   "activation_cost_processes",
+   "deactivate_method",
+   "leaks_after_deactivate",
+   "installed"
+  ],
+  "schema": "a4-index/v1"
+ },
+ "lifecycle": {
+  "deactivate_by_kind": {
+   "council_preset": "drop-overlay",
+   "hook": "unregister-dispatcher",
+   "mcp_mount": "reap-stdio-child",
+   "rule": "unload-rule-table",
+   "skill": "unload-context",
+   "workflow_blueprint": "drop-compiled-stages"
+  },
+  "leaks_declared": false,
+  "states": [
+   "indexed",
+   "selected",
+   "activating",
+   "active",
+   "deactivating",
+   "indexed"
+  ],
+  "totality": {
+   "every_kind_has_deactivate": true,
+   "executable": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0024/probe1_lifecycle.py",
+   "per_kind": [
+    {
+     "activated": "ACTIVATED",
+     "deactivate_method": "unload-context",
+     "deactivated": "DEACTIVATED",
+     "grew": true,
+     "id": "skill.council",
+     "kind": "skill",
+     "ok": true,
+     "restored_floor": true
+    },
+    {
+     "activated": "ACTIVATED",
+     "deactivate_method": "unregister-dispatcher",
+     "deactivated": "DEACTIVATED",
+     "grew": true,
+     "id": "hook.pre-tool",
+     "kind": "hook",
+     "ok": true,
+     "restored_floor": true
+    },
+    {
+     "activated": "ACTIVATED",
+     "deactivate_method": "unload-rule-table",
+     "deactivated": "DEACTIVATED",
+     "grew": true,
+     "id": "rule.no-secrets",
+     "kind": "rule",
+     "ok": true,
+     "restored_floor": true
+    },
+    {
+     "activated": "ACTIVATED",
+     "deactivate_method": "drop-compiled-stages",
+     "deactivated": "DEACTIVATED",
+     "grew": true,
+     "id": "wf.catalog-class.discovery-only",
+     "kind": "workflow_blueprint",
+     "ok": true,
+     "restored_floor": true
+    },
+    {
+     "activated": "ACTIVATED",
+     "deactivate_method": "drop-overlay",
+     "deactivated": "DEACTIVATED",
+     "grew": true,
+     "id": "council.preset.catalog-class.editable",
+     "kind": "council_preset",
+     "ok": true,
+     "restored_floor": true
+    },
+    {
+     "activated": "ACTIVATED",
+     "deactivate_method": "reap-stdio-child",
+     "deactivated": "DEACTIVATED",
+     "grew": true,
+     "id": "mcp.filesystem",
+     "kind": "mcp_mount",
+     "ok": true,
+     "restored_floor": true
+    }
+   ]
+  }
+ },
+ "load_order": [
+  {
+   "order": 1,
+   "path": "command-center/control-plane/A4/index.schema.json"
+  },
+  {
+   "order": 2,
+   "path": "command-center/control-plane/A4/GATEWAY.json"
+  },
+  {
+   "order": 3,
+   "path": "command-center/control-plane/A4/INDEX.json"
+  },
+  {
+   "notes": "Loaded per-id on activate, never at gateway start.",
+   "order": 4,
+   "path": "command-center/control-plane/A4/bodies/"
+  }
+ ],
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0024/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0024/probe1_lifecycle.py",
+   "id": "probe1",
+   "role": "lifecycle-totality"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0024/probe2_budget.py",
+   "id": "probe2",
+   "role": "budget-refuse"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "incomplete-lifecycle-rejected",
+   "description": "An index record with an empty deactivate_method and leaks_after_deactivate=true must fail the lifecycle totality checker. Production index records must remain leak-free.",
+   "fired_on_bad_state": true,
+   "good_state_output": "floor-restored-after-deactivate",
+   "id": "ARC0024-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "WARN_ACTIVATED second stdio child spawned",
+   "description": "A warn-only mutant (enforce_budget=False) materializes a second MCP child; production enforce_budget=True must REFUSE and leave process/byte counts unchanged.",
+   "fired_on_bad_state": true,
+   "good_state_output": "REFUSED materialized=false",
+   "id": "ARC0024-C2",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "per_session_budget": {
+  "demonstration": {
+   "executable": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0024/probe2_budget.py",
+   "first_mcp": "ACTIVATED",
+   "refused_did_not_materialize": true,
+   "second_mcp": "REFUSED",
+   "second_reason": "budget-exhausted:processes 2>1",
+   "warn_only_mutant_materializes_second_mcp": true
+  },
+  "max_activated_bytes": 20000,
+  "max_activated_processes": 1,
+  "on_exhaustion": "REFUSE",
+  "warn_is_not_enforcement": true
+ },
+ "precedence": {
+  "budget_vs_selection": "A selected id may still be REFUSED at activate() when the session budget is exhausted. Refusal is not a select miss.",
+  "duplicate_in_one_file": "FAIL-CLOSED: the index is invalid and the gateway refuses to start.",
+  "loader": "JSON Schema validate + id uniqueness + body existence check. No evaluator.",
+  "merge": "No field-level merge of index records. Replacement is whole-record on a future overlay; this prototype has a single INDEX.json.",
+  "not_installed": "An id absent from the index is NOT_INSTALLED. Select never invents ids.",
+  "rule": "INDEX.json is the discovery SSOT. A body file is materialized only after activate(id) for an installed record. Generated or hand-copied bodies do not become discoverable until indexed.",
+  "tie_break": "Duplicate ids in INDEX.json FAIL-CLOSED (load aborts). No timestamp, mtime, or runtime coin-flip."
+ },
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "architect",
+  "vendor": "cursor"
+ },
+ "question": "Specify a gateway / lazy-activation architecture: one mediating entry point that INDEXES all capabilities but materializes (loads, mounts, spawns) only what a task selects. Define the index format, the selection interface, the activation and DEACTIVATION lifecycle, the per-session budget it enforces, and exactly what remains resident when nothing is selected.",
+ "resident_set": {
+  "baseline_always_on": {
+   "bytes": 10109,
+   "processes": 3,
+   "when": "every index id activated, including both stdio MCP children"
+  },
+  "delta_bytes": 4513,
+  "delta_processes": 2,
+  "floor": {
+   "bytes": 5596,
+   "contents": [
+    "gateway host process",
+    "INDEX.json",
+    "GATEWAY.json",
+    "index.schema.json"
+   ],
+   "processes": 1,
+   "when": "nothing selected / nothing activated"
+  },
+  "live_os_this_box": {
+   "available": false,
+   "mcp_stub_or_mcp_server_processes": 0,
+   "note": "This headless Linux worktree is not the Windows estate. Catalog figures such as 23 sessions x 65 stdio servers are NOT re-measured here and are not cited as today's floor."
+  },
+  "measurement_method": "resident() = 1 gateway host process + live stdio children; bytes = utf-8 INDEX.json + GATEWAY.json + index.schema.json + sum of currently activated body files. Same function for floor (activated=[]) and always-on baseline (every index id).",
+  "same_method_for_floor_and_baseline": true
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Byte-identity of indexing the absent 96/48/64 live libraries.",
+   "settling_experiment": "Place 09-WORKFLOW-BLUEPRINT-LIBRARY.json and 12-COUNCIL-PROTOCOLS-AND-PRESETS.json on disk and emit one index record per library id without loading bodies.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot: after two failed attempts on the same framing, enumerate at least two alternative decompositions before a third attempt (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Named probe1 re-derives lifecycle totality from the live index and execute activate/deactivate per kind. This is the catalog lifecycle-totality test, not a second human architect.",
+  "paired_adversarial_note": "ARC-0030 depends on this DESIGN.json. Waiting for ARC-0030 before closing ARC-0024 is a deadlock; G-1 for this unit does not require that circle. No ADV rebuild.",
+  "paired_adversarial_unit": "ARC-0030",
+  "reviewer_id": "ARC-0024-probe1-lifecycle-auditor",
+  "verdict": "PASS"
+ },
+ "samples": [
+  {
+   "id": "skill.council",
+   "kind": "skill",
+   "source_citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+   "source_id": "skills/council/SKILL.md",
+   "transcription": {
+    "body_not_in_index": true,
+    "form": "a4-index/v1",
+    "index_record": {
+     "activation_cost_processes": 0,
+     "body_rel": "bodies/skill.council.md",
+     "deactivate_method": "unload-context",
+     "id": "skill.council",
+     "installed": true,
+     "kind": "skill",
+     "leaks_after_deactivate": false,
+     "selector_tags": [
+      "council",
+      "prompt",
+      "roles"
+     ],
+     "summary": "Four-voice prompt skill; static sections, no CouncilSpec compiler."
+    },
+    "roles": [
+     "Architect",
+     "Skeptic",
+     "Pragmatist",
+     "Critic"
+    ]
+   },
+   "verdict": "EXPRESSIBLE"
+  },
+  {
+   "id": "wf.catalog-class.discovery-only",
+   "kind": "workflow_blueprint",
+   "source_citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A08].evidence",
+   "source_id": "09-WORKFLOW-BLUEPRINT-LIBRARY.json#discovery_only",
+   "transcription": {
+    "body_not_in_index": true,
+    "discovery_only": true,
+    "form": "a4-index/v1",
+    "index_record": {
+     "activation_cost_processes": 0,
+     "body_rel": "bodies/wf.catalog-class.discovery-only.json",
+     "deactivate_method": "drop-compiled-stages",
+     "id": "wf.catalog-class.discovery-only",
+     "installed": true,
+     "kind": "workflow_blueprint",
+     "leaks_after_deactivate": false,
+     "selector_tags": [
+      "workflow",
+      "discovery",
+      "catalog-class"
+     ],
+     "summary": "Discovery-only blueprint: finite stages, declarative halt, no eval."
+    },
+    "stages_in_body": 2
+   },
+   "verdict": "EXPRESSIBLE"
+  },
+  {
+   "id": "mcp.filesystem",
+   "kind": "mcp_mount",
+   "source_citation": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0024].question_or_target",
+   "source_id": "mcp.filesystem.stdio",
+   "transcription": {
+    "activation_cost_processes": 1,
+    "body_not_in_index": true,
+    "form": "a4-index/v1",
+    "index_record": {
+     "activation_cost_processes": 1,
+     "body_rel": "bodies/mcp.filesystem.json",
+     "deactivate_method": "reap-stdio-child",
+     "id": "mcp.filesystem",
+     "installed": true,
+     "kind": "mcp_mount",
+     "leaks_after_deactivate": false,
+     "selector_tags": [
+      "mcp",
+      "filesystem",
+      "stdio"
+     ],
+     "summary": "Stdio MCP filesystem mount. Deactivate reaps the child process."
+    },
+    "transport": "stdio"
+   },
+   "verdict": "EXPRESSIBLE"
+  }
+ ],
+ "schema_version": 1,
+ "selection_interface": {
+  "activates": false,
+  "input": {
+   "id": "task-id",
+   "tags": [
+    "tag",
+    "..."
+   ]
+  },
+  "live_example": {
+   "not_installed_probe": "NOT_INSTALLED",
+   "selected_ids": [
+    "skill.council",
+    "council.preset.catalog-class.editable"
+   ],
+   "task_tags": [
+    "council",
+    "prompt"
+   ]
+  },
+  "method": "tag-overlap",
+  "name": "Gateway.select",
+  "not_installed_vs_not_selected": "lookup(id) is INSTALLED iff the id is in INDEX.json. not_selected means the id is installed but score < threshold. activate() on an unknown id returns NOT_INSTALLED without budget side effects.",
+  "outputs": [
+   "selected",
+   "not_selected",
+   "not_installed"
+  ],
+  "threshold": 1
+ },
+ "sentinel": "SUCCESS:ARC-0024",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0024]",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0024/probe1_lifecycle.py",
+   "id": "T1-lifecycle-totality",
+   "name": "Lifecycle totality: every capability class has a defined deactivation path; activate then deactivate restores the floor",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0024/probe2_budget.py",
+   "id": "T2-budget-refuse",
+   "name": "Budget-enforcement demonstration: the gateway REFUSES an activation once the budget is exhausted, not merely warns",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-26T04:38:09Z",
+  "started_at": "2026-08-24T18:40:00Z"
+ },
+ "title": "A4 (gateway / lazy-activation): Design the gateway with an explicit activation lifecycle and a resident-set floor",
+ "unit_id": "ARC-0024"
+}

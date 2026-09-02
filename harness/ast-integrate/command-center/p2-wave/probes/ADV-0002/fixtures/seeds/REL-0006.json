@@ -1,0 +1,282 @@
+{
+  "acceptance_probe": {
+    "after": {
+      "output": "BEHAVIOR:n-1-accept",
+      "passed": true,
+      "version_string": "1.0.0-n-1"
+    },
+    "before": {
+      "output": "BEHAVIOR:n-candidate",
+      "passed": false,
+      "version_string": "2.0.0-n"
+    },
+    "command": "/usr/bin/python3 -B /tmp/rel0006-canary-n9a146ek/plugin/hooks/on_session.py",
+    "expected_output": "BEHAVIOR:n-1-accept",
+    "version_string_disqualified": {
+      "acceptance_output": "BEHAVIOR:n-candidate",
+      "acceptance_passed": false,
+      "reason": "VERSION reads 1.0.0-n-1 while the N-1 acceptance probe still observes 'BEHAVIOR:n-candidate'; restored behaviour, not the version file, is the acceptance signal.",
+      "version_string": "1.0.0-n-1"
+    }
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/REL-0006.json",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+      "role": "schema"
+    },
+    {
+      "path": "command-center/p2-wave/probes/REL-0006/drill.py",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "retrievability",
+      "quote": "fetched_sha256=761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8 manifest_sha256=761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8 match=True"
+    },
+    {
+      "kind": "acceptance-before",
+      "quote": "passed=False output='BEHAVIOR:n-candidate' command=/usr/bin/python3 -B /tmp/rel0006-canary-n9a146ek/plugin/hooks/on_session.py"
+    },
+    {
+      "kind": "acceptance-after",
+      "quote": "passed=True output='BEHAVIOR:n-1-accept' command=/usr/bin/python3 -B /tmp/rel0006-canary-n9a146ek/plugin/hooks/on_session.py"
+    },
+    {
+      "kind": "mttr",
+      "quote": "seconds=0.021050921 clock_source=time.perf_counter_ns (monotonic, process-local) + time.time_ns (Unix epoch CLOCK_REALTIME) from retrievability-gate-begin to N-1-acceptance-pass runbook_slo_seconds=30.0 within_slo=True"
+    }
+  ],
+  "isolation": {
+    "asserted_distinct": true,
+    "isolated_home": "tempfile.mkdtemp(prefix=rel0006-canary-) destroyed after each test",
+    "owner_home": "/root",
+    "touched_owner_profile": false
+  },
+  "kind": "lifecycle-drill-receipt",
+  "min_bytes_threshold": 1000,
+  "mttr": {
+    "both_states": {
+      "measured_s": 0.021050921,
+      "pass": true,
+      "real_slo_accepts": true,
+      "slo_s": 30.0,
+      "tiny_slo_accepts": false,
+      "tiny_slo_s": 1e-12
+    },
+    "clock_source": "time.perf_counter_ns (monotonic, process-local) + time.time_ns (Unix epoch CLOCK_REALTIME) from retrievability-gate-begin to N-1-acceptance-pass",
+    "decision": "retrievability-gate-begin",
+    "nanoseconds": 21050921,
+    "restored": "n-1-acceptance-probe-pass",
+    "runbook_path": "command-center/p2-wave/probes/REL-0006/fixtures/RUNBOOK-FRAGMENT.md",
+    "runbook_slo_seconds": 30.0,
+    "seconds": 0.021050921,
+    "within_slo": true
+  },
+  "negative_controls": [
+    {
+      "fired": true,
+      "id": "corrupt-n1-blocks-before-downgrade"
+    },
+    {
+      "fired": true,
+      "id": "tiny-slo-rejects-measured-mttr"
+    },
+    {
+      "fired": true,
+      "id": "isolation-rejects-owner-home"
+    },
+    {
+      "fired": true,
+      "id": "inverse-refuses-owner-delete"
+    }
+  ],
+  "owner_files": {
+    "changed": [],
+    "missing": [],
+    "post_hashes": {
+      "plugin/owner-authored/edited-rule.md": "e56597dded99d432e00f686ded79a2e90e555bf66ac51acc76ecc09b1c92aa05",
+      "plugin/owner-authored/in-flight-ledger.json": "4d999727b585b21955126a5f849eb1182577dc60f0c9ae88b05fd958e29acf27",
+      "plugin/owner-authored/settings.json": "c6b009e44fcdd28a1b8db8114db4cd7f3c8a8716dd1eccd989ec1773efdb7c3c",
+      "plugin/owner-authored/skill.md": "cf9a83c6ccd62b32839b38ca1772f3cdda45e35683e6cf4210654ce617eeb103"
+    },
+    "pre_hashes": {
+      "plugin/owner-authored/edited-rule.md": "e56597dded99d432e00f686ded79a2e90e555bf66ac51acc76ecc09b1c92aa05",
+      "plugin/owner-authored/in-flight-ledger.json": "4d999727b585b21955126a5f849eb1182577dc60f0c9ae88b05fd958e29acf27",
+      "plugin/owner-authored/settings.json": "c6b009e44fcdd28a1b8db8114db4cd7f3c8a8716dd1eccd989ec1773efdb7c3c",
+      "plugin/owner-authored/skill.md": "cf9a83c6ccd62b32839b38ca1772f3cdda45e35683e6cf4210654ce617eeb103"
+    },
+    "skipped_owner_paths": [
+      "plugin/owner-authored/skill.md",
+      "plugin/owner-authored/settings.json",
+      "plugin/owner-authored/edited-rule.md",
+      "plugin/owner-authored/in-flight-ledger.json"
+    ]
+  },
+  "question": "Implementation target: rehearse going backwards. Check the blocking precondition first -- the N-1 artifact must be fetchable from the release store and its sha256 must equal the value recorded in ROLLBACK-MANIFEST.md, because a plan that assumes an artifact nobody can fetch is not a plan -- then downgrade the canary and prove restoration by re-running the N-1 acceptance probe rather than by reading a version string. Record wall-clock time from decision to restored behaviour as the MTTR figure the runbook will quote.",
+  "retrievability": {
+    "corrupt_control_blocked": true,
+    "corrupt_fetched_sha256": "347958754a6db6f83f1319e9b312f22874ca5d7126be2ff19a525ec5ba4b6859",
+    "downgrade_started_after_corrupt": false,
+    "fetched_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+    "manifest_path": "/tmp/rel0006-store-0002rx3_/ROLLBACK-MANIFEST.md",
+    "manifest_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+    "match": true,
+    "store_n1_path": "/tmp/rel0006-store-0002rx3_/n-1.zip"
+  },
+  "retry_policy": {
+    "note": "Each named-probe re-run uses a freshly created isolated HOME.",
+    "resumable_with_mandatory_restore": true,
+    "resume_boundary": "snapshot-before-downgrade"
+  },
+  "reviewer": {
+    "independent": true,
+    "reviewer_id": "REL-0006-probe2-restore-mttr",
+    "scope": "Re-executes T3 and T4 on a fresh isolated HOME from recorded commands.",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "scope": {
+    "B07_packaged_artifact": "absent from this worktree; fixture zips are the store",
+    "REL-0002": "absent; inverses.json is a local typed-inverse stand-in",
+    "REL-0004": "absent; isolated HOME is this unit's canary, not REL-0004's rig",
+    "REL-0005": "absent; N profile is installed in-probe rather than inherited",
+    "catalog_ROLLBACK_MANIFEST_md": "absent; rehearsal used probe-owned fixture store",
+    "catalog_RUNBOOK_md": "absent; rehearsal used fixtures/RUNBOOK-FRAGMENT.md",
+    "touched_owner_profile": false
+  },
+  "sentinel": "SUCCESS:REL-0006",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json REL-0006 (output_schema=lifecycle-drill-receipt; tests T1-T4)",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "behaviour_still_n": true,
+      "blocked": true,
+      "downgrade_started": false,
+      "error": "retrievability-blocked fetched=347958754a6db6f83f1319e9b312f22874ca5d7126be2ff19a525ec5ba4b6859 expected=761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8 path=/tmp/rel0006-store-q3wg15sz/n-1.zip",
+      "fetched_sha256": "347958754a6db6f83f1319e9b312f22874ca5d7126be2ff19a525ec5ba4b6859",
+      "id": "T1-corrupt-n1-blocks-before-downgrade",
+      "live_id": "T1-corrupt-n1-blocks-before-downgrade",
+      "manifest_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+      "name": "Corrupt stored N-1 blocks before any inverse runs",
+      "result": "PASS",
+      "version_after": "2.0.0-n"
+    },
+    {
+      "acceptance_command": "/usr/bin/python3 -B /tmp/rel0006-canary-a1isup__/plugin/hooks/on_session.py",
+      "acceptance_output": "BEHAVIOR:n-candidate",
+      "acceptance_passed": false,
+      "id": "T2-version-string-reports-n1-behaviour-still-n",
+      "live_id": "T2-version-string-reports-n1-behaviour-still-n",
+      "n1_acceptance_on_n1_install": true,
+      "name": "VERSION reports N-1 while N-1 acceptance still fails",
+      "result": "PASS",
+      "version_string": "1.0.0-n-1",
+      "why_version_is_disqualified": "VERSION reads 1.0.0-n-1 while the N-1 acceptance probe still observes 'BEHAVIOR:n-candidate'; restored behaviour, not the version file, is the acceptance signal."
+    },
+    {
+      "acceptance_after": {
+        "command": "/usr/bin/python3 -B /tmp/rel0006-canary-jbx4eg_i/plugin/hooks/on_session.py",
+        "output": "BEHAVIOR:n-1-accept",
+        "passed": true
+      },
+      "changed": [],
+      "fetched_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+      "id": "T3-owner-authored-files-preserved",
+      "inverse_refuses_owner_delete": {
+        "error": "owner-skill: inverse deletes a path the installer did not create",
+        "refused": true
+      },
+      "live_id": "T3-owner-authored-files-preserved",
+      "manifest_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+      "missing": [],
+      "name": "Owner-authored files keep pre-downgrade sha256",
+      "post_hashes": {
+        "plugin/owner-authored/edited-rule.md": "e56597dded99d432e00f686ded79a2e90e555bf66ac51acc76ecc09b1c92aa05",
+        "plugin/owner-authored/in-flight-ledger.json": "4d999727b585b21955126a5f849eb1182577dc60f0c9ae88b05fd958e29acf27",
+        "plugin/owner-authored/settings.json": "c6b009e44fcdd28a1b8db8114db4cd7f3c8a8716dd1eccd989ec1773efdb7c3c",
+        "plugin/owner-authored/skill.md": "cf9a83c6ccd62b32839b38ca1772f3cdda45e35683e6cf4210654ce617eeb103"
+      },
+      "pre_hashes": {
+        "plugin/owner-authored/edited-rule.md": "e56597dded99d432e00f686ded79a2e90e555bf66ac51acc76ecc09b1c92aa05",
+        "plugin/owner-authored/in-flight-ledger.json": "4d999727b585b21955126a5f849eb1182577dc60f0c9ae88b05fd958e29acf27",
+        "plugin/owner-authored/settings.json": "c6b009e44fcdd28a1b8db8114db4cd7f3c8a8716dd1eccd989ec1773efdb7c3c",
+        "plugin/owner-authored/skill.md": "cf9a83c6ccd62b32839b38ca1772f3cdda45e35683e6cf4210654ce617eeb103"
+      },
+      "restored_paths": [
+        "plugin/VERSION",
+        "plugin/plugin.json",
+        "plugin/hooks/on_session.py",
+        "plugin/payload/behaviour.txt"
+      ],
+      "result": "PASS",
+      "skipped_owner_paths": [
+        "plugin/owner-authored/skill.md",
+        "plugin/owner-authored/settings.json",
+        "plugin/owner-authored/edited-rule.md",
+        "plugin/owner-authored/in-flight-ledger.json"
+      ]
+    },
+    {
+      "acceptance_after_downgrade": {
+        "command": "/usr/bin/python3 -B /tmp/rel0006-canary-n9a146ek/plugin/hooks/on_session.py",
+        "output": "BEHAVIOR:n-1-accept",
+        "passed": true,
+        "version_string": "1.0.0-n-1"
+      },
+      "acceptance_before_downgrade": {
+        "command": "/usr/bin/python3 -B /tmp/rel0006-canary-n9a146ek/plugin/hooks/on_session.py",
+        "output": "BEHAVIOR:n-candidate",
+        "passed": false,
+        "version_string": "2.0.0-n"
+      },
+      "acceptance_before_upgrade_on_n1": {
+        "output": "BEHAVIOR:n-1-accept",
+        "passed": true
+      },
+      "fetched_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+      "id": "T4-mttr-named-clock-vs-runbook",
+      "isolation_negative": {
+        "error": "isolated HOME resolved to owner profile: /root",
+        "fired": true,
+        "touched_owner_profile": false
+      },
+      "live_id": "T4-mttr-named-clock-vs-runbook",
+      "manifest_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8",
+      "mttr": {
+        "clock_source": "time.perf_counter_ns (monotonic, process-local) + time.time_ns (Unix epoch CLOCK_REALTIME) from retrievability-gate-begin to N-1-acceptance-pass",
+        "decision": "retrievability-gate-begin",
+        "nanoseconds": 21050921,
+        "restored": "n-1-acceptance-probe-pass",
+        "runbook_path": "command-center/p2-wave/probes/REL-0006/fixtures/RUNBOOK-FRAGMENT.md",
+        "runbook_slo_seconds": 30.0,
+        "seconds": 0.021050921,
+        "wall_end_unix_ns": 1787619278490141350,
+        "wall_start_unix_ns": 1787619278469089019,
+        "within_slo": true
+      },
+      "mttr_both_states": {
+        "measured_s": 0.021050921,
+        "pass": true,
+        "real_slo_accepts": true,
+        "slo_s": 30.0,
+        "tiny_slo_accepts": false,
+        "tiny_slo_s": 1e-12
+      },
+      "name": "Named-clock MTTR compared to runbook SLO",
+      "result": "PASS",
+      "store": {
+        "manifest_path": "/tmp/rel0006-store-0002rx3_/ROLLBACK-MANIFEST.md",
+        "n1_path": "/tmp/rel0006-store-0002rx3_/n-1.zip",
+        "n1_sha256": "761c22811c2a1cdc8be3b93532133c66fd6df9d4465fb841139439ab615492e8"
+      }
+    }
+  ],
+  "title": "Downgrade drill: retrievability, behaviour restore, measured MTTR",
+  "ts": "2026-08-25T00:54:38Z",
+  "unit_id": "REL-0006"
+}

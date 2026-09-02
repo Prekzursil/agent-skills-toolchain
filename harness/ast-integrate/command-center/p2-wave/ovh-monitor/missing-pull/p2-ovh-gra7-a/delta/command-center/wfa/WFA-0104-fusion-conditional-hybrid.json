@@ -1,0 +1,834 @@
+{
+  "branches": [
+    {
+      "id": "br.search",
+      "is_default": false,
+      "predicate": {
+        "field": "task_class",
+        "op": "eq",
+        "value": "search"
+      },
+      "reachable": true,
+      "source_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+        "branch_id": "br.search",
+        "is_default": false,
+        "predicate_classes": [
+          "search"
+        ],
+        "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer.",
+        "served_classes": [
+          "search"
+        ],
+        "source_id": "wf.scout"
+      },
+      "source_id": "wf.scout",
+      "taken_count_enumeration": 4,
+      "taken_count_fuzz": 138,
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "search"
+      }
+    },
+    {
+      "id": "br.extract",
+      "is_default": false,
+      "predicate": {
+        "field": "task_class",
+        "op": "eq",
+        "value": "extract"
+      },
+      "reachable": true,
+      "source_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+        "branch_id": "br.extract",
+        "is_default": false,
+        "predicate_classes": [
+          "extract"
+        ],
+        "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize.",
+        "served_classes": [
+          "extract"
+        ],
+        "source_id": "wf.extract"
+      },
+      "source_id": "wf.extract",
+      "taken_count_enumeration": 4,
+      "taken_count_fuzz": 105,
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "extract"
+      }
+    },
+    {
+      "id": "br.transform",
+      "is_default": false,
+      "predicate": {
+        "field": "task_class",
+        "op": "eq",
+        "value": "transform"
+      },
+      "reachable": true,
+      "source_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+        "branch_id": "br.transform",
+        "is_default": false,
+        "predicate_classes": [
+          "transform"
+        ],
+        "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate.",
+        "served_classes": [
+          "transform"
+        ],
+        "source_id": "wf.transform"
+      },
+      "source_id": "wf.transform",
+      "taken_count_enumeration": 4,
+      "taken_count_fuzz": 130,
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "transform"
+      }
+    },
+    {
+      "id": "br.default",
+      "is_default": true,
+      "predicate": {
+        "op": "true"
+      },
+      "reachable": true,
+      "source_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+        "branch_id": "br.default",
+        "is_default": true,
+        "predicate_classes": [],
+        "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class.",
+        "residual_classes": [
+          "summarize"
+        ],
+        "served_classes": [
+          "summarize"
+        ],
+        "source_id": "wf.general"
+      },
+      "source_id": "wf.general",
+      "taken_count_enumeration": 4,
+      "taken_count_fuzz": 107,
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "summarize"
+      }
+    }
+  ],
+  "declared_negative_controls": [
+    {
+      "expect": "multiply-routed",
+      "plant": "overlap"
+    },
+    {
+      "expect": "unrouted",
+      "plant": "hole"
+    },
+    {
+      "expect": "source-unfit",
+      "plant": "unfit"
+    },
+    {
+      "expect": "default-unexercised",
+      "plant": "default-starved"
+    }
+  ],
+  "default_branch_id": "br.default",
+  "default_exercised": true,
+  "default_explicit": true,
+  "default_witness": {
+    "budget": "cheap",
+    "locale": "en",
+    "task_class": "summarize"
+  },
+  "dependencies_note": "Catalog depends on WFA-0044 (IR spec) and WFA-0035 (task-fit). Neither artifact is on this worktree. The operator uses a finite typed IR sufficient to round-trip stages with source_anchor, and a local task-fit table with per-source deciding quotes.",
+  "evidence": [
+    {
+      "default_taken": 4,
+      "id": "A",
+      "kind": "enumeration",
+      "multiply_routed": 0,
+      "requirement": "exhaustiveness proven over the declared input type by enumeration or by a default branch that is reachable",
+      "source_probe": {
+        "command": "typed_universe+count_routing",
+        "engine": "enumerate_routing"
+      },
+      "universe_size": 16,
+      "unrouted": 0,
+      "verdict": "CONFIRMED",
+      "verifier_probe": {
+        "command": "fuzz_inputs+count_routing",
+        "engine": "fuzz_routing"
+      }
+    },
+    {
+      "default_taken": 107,
+      "id": "B",
+      "kind": "fuzz",
+      "multiply_routed": 0,
+      "n": 480,
+      "requirement": "a fuzz run over generated inputs in which every input reaches exactly one branch",
+      "source_probe": {
+        "command": "fuzz_inputs+count_routing",
+        "engine": "fuzz_routing"
+      },
+      "unrouted": 0,
+      "verdict": "CONFIRMED",
+      "verifier_probe": {
+        "command": "typed_universe+count_routing",
+        "engine": "enumerate_routing"
+      }
+    }
+  ],
+  "exhaustiveness": {
+    "agreement_with_first_match": true,
+    "default_taken": 4,
+    "derivation": "exclusive-specialized-predicates-then-default",
+    "method": "typed-universe-enumeration",
+    "multiply_routed": 0,
+    "taken": {
+      "br.default": 4,
+      "br.extract": 4,
+      "br.search": 4,
+      "br.transform": 4
+    },
+    "universe_size": 16,
+    "unrouted": 0
+  },
+  "fused_workflow": {
+    "id": "wfa.fusion.conditional-hybrid.WFA-0104.fused",
+    "sources": {
+      "wf.extract": {
+        "id": "wf.extract",
+        "served_classes": [
+          "extract"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+          },
+          {
+            "id": "slice",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "span-extract",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+          "class_id": "extract",
+          "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+        }
+      },
+      "wf.general": {
+        "id": "wf.general",
+        "served_classes": [
+          "summarize"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+          },
+          {
+            "id": "reduce",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "summarize",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+          "class_id": "summarize",
+          "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+        }
+      },
+      "wf.scout": {
+        "id": "wf.scout",
+        "served_classes": [
+          "search"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+          },
+          {
+            "id": "fanout",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "index-search",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+          "class_id": "search",
+          "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+        }
+      },
+      "wf.transform": {
+        "id": "wf.transform",
+        "served_classes": [
+          "transform"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+          },
+          {
+            "id": "rewrite",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "schema-rewrite",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+          "class_id": "transform",
+          "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+        }
+      }
+    },
+    "stages": [
+      {
+        "default_branch_id": "br.default",
+        "dispatch": "first-match",
+        "id": "router",
+        "inputs": [
+          "runtime"
+        ],
+        "kind": "runtime-dispatch",
+        "outputs": [
+          "routed-source"
+        ]
+      }
+    ],
+    "stopping": {
+      "max_stages": 2,
+      "on_error": "halt"
+    },
+    "strategy": "conditional-hybrid"
+  },
+  "fuzz": {
+    "default_taken": 107,
+    "distinct_envs": 16,
+    "method": "seeded-prng-shuffled-keys",
+    "multiply_routed": 0,
+    "n": 480,
+    "seed": 104,
+    "taken": {
+      "br.default": 107,
+      "br.extract": 105,
+      "br.search": 138,
+      "br.transform": 130
+    },
+    "unrouted": 0
+  },
+  "id": "wfa.fusion.conditional-hybrid.WFA-0104",
+  "input_type": {
+    "fields": {
+      "budget": {
+        "kind": "enum",
+        "values": [
+          "cheap",
+          "expensive"
+        ]
+      },
+      "locale": {
+        "kind": "enum",
+        "values": [
+          "en",
+          "ja"
+        ]
+      },
+      "task_class": {
+        "kind": "enum",
+        "values": [
+          "search",
+          "extract",
+          "transform",
+          "summarize"
+        ]
+      }
+    }
+  },
+  "kind": "FusionResult",
+  "lineage": {
+    "branch_ids": [
+      "br.search",
+      "br.extract",
+      "br.transform",
+      "br.default"
+    ],
+    "default_branch_id": "br.default",
+    "source_ids": [
+      "wf.scout",
+      "wf.extract",
+      "wf.transform",
+      "wf.general"
+    ],
+    "strategy": "conditional-hybrid"
+  },
+  "notes": "Conditional-hybrid fusion: exclusive typed predicates, explicit reachable default, independent fuzz with zero unrouted and zero multiply-routed inputs. SUCCESS:WFA-0104",
+  "operator": {
+    "dispatch": "tools/workflow_fusion/conditional_hybrid.py",
+    "entry": "emit_fusion_result",
+    "module": "command-center/p2-wave/probes/WFA-0104/hybrid_op.py"
+  },
+  "question": "Implementation target: an operator that routes execution to one of several source workflows by a typed predicate over the input, with an explicit default branch and a proof that the predicate set is exhaustive - so no input can fall through unrouted.",
+  "reachability_proof": {
+    "agreement": true,
+    "assignment_owner": [
+      {
+        "branch_id": "br.search",
+        "env": {
+          "budget": "cheap",
+          "locale": "en",
+          "task_class": "search"
+        },
+        "mask": 9,
+        "source_id": "wf.scout"
+      },
+      {
+        "branch_id": "br.extract",
+        "env": {
+          "budget": "cheap",
+          "locale": "en",
+          "task_class": "extract"
+        },
+        "mask": 10,
+        "source_id": "wf.extract"
+      },
+      {
+        "branch_id": "br.transform",
+        "env": {
+          "budget": "cheap",
+          "locale": "en",
+          "task_class": "transform"
+        },
+        "mask": 12,
+        "source_id": "wf.transform"
+      },
+      {
+        "branch_id": "br.default",
+        "env": {
+          "budget": "cheap",
+          "locale": "en",
+          "task_class": "summarize"
+        },
+        "mask": 8,
+        "source_id": "wf.general"
+      },
+      {
+        "branch_id": "br.search",
+        "env": {
+          "budget": "cheap",
+          "locale": "ja",
+          "task_class": "search"
+        },
+        "mask": 9,
+        "source_id": "wf.scout"
+      },
+      {
+        "branch_id": "br.extract",
+        "env": {
+          "budget": "cheap",
+          "locale": "ja",
+          "task_class": "extract"
+        },
+        "mask": 10,
+        "source_id": "wf.extract"
+      },
+      {
+        "branch_id": "br.transform",
+        "env": {
+          "budget": "cheap",
+          "locale": "ja",
+          "task_class": "transform"
+        },
+        "mask": 12,
+        "source_id": "wf.transform"
+      },
+      {
+        "branch_id": "br.default",
+        "env": {
+          "budget": "cheap",
+          "locale": "ja",
+          "task_class": "summarize"
+        },
+        "mask": 8,
+        "source_id": "wf.general"
+      },
+      {
+        "branch_id": "br.search",
+        "env": {
+          "budget": "expensive",
+          "locale": "en",
+          "task_class": "search"
+        },
+        "mask": 9,
+        "source_id": "wf.scout"
+      },
+      {
+        "branch_id": "br.extract",
+        "env": {
+          "budget": "expensive",
+          "locale": "en",
+          "task_class": "extract"
+        },
+        "mask": 10,
+        "source_id": "wf.extract"
+      },
+      {
+        "branch_id": "br.transform",
+        "env": {
+          "budget": "expensive",
+          "locale": "en",
+          "task_class": "transform"
+        },
+        "mask": 12,
+        "source_id": "wf.transform"
+      },
+      {
+        "branch_id": "br.default",
+        "env": {
+          "budget": "expensive",
+          "locale": "en",
+          "task_class": "summarize"
+        },
+        "mask": 8,
+        "source_id": "wf.general"
+      },
+      {
+        "branch_id": "br.search",
+        "env": {
+          "budget": "expensive",
+          "locale": "ja",
+          "task_class": "search"
+        },
+        "mask": 9,
+        "source_id": "wf.scout"
+      },
+      {
+        "branch_id": "br.extract",
+        "env": {
+          "budget": "expensive",
+          "locale": "ja",
+          "task_class": "extract"
+        },
+        "mask": 10,
+        "source_id": "wf.extract"
+      },
+      {
+        "branch_id": "br.transform",
+        "env": {
+          "budget": "expensive",
+          "locale": "ja",
+          "task_class": "transform"
+        },
+        "mask": 12,
+        "source_id": "wf.transform"
+      },
+      {
+        "branch_id": "br.default",
+        "env": {
+          "budget": "expensive",
+          "locale": "ja",
+          "task_class": "summarize"
+        },
+        "mask": 8,
+        "source_id": "wf.general"
+      }
+    ],
+    "bitmask_reachable": [
+      "br.search",
+      "br.extract",
+      "br.transform",
+      "br.default"
+    ],
+    "cfg_reachable": [
+      "br.search",
+      "br.extract",
+      "br.transform",
+      "br.default"
+    ],
+    "hits": {
+      "br.default": 4,
+      "br.extract": 4,
+      "br.search": 4,
+      "br.transform": 4
+    },
+    "universe_size": 16,
+    "unreachable": [],
+    "unrouted_count": 0,
+    "unrouted_witness": null
+  },
+  "reviewer": {
+    "independent": true,
+    "reviewer_id": "WFA-0104-probe2-fuzz",
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:WFA-0104",
+  "sources": {
+    "wf.extract": {
+      "id": "wf.extract",
+      "served_classes": [
+        "extract"
+      ],
+      "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+        },
+        {
+          "id": "slice",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "span-extract",
+          "outputs": [
+            "result.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      },
+      "task_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+        "class_id": "extract",
+        "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+      }
+    },
+    "wf.general": {
+      "id": "wf.general",
+      "served_classes": [
+        "summarize"
+      ],
+      "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+        },
+        {
+          "id": "reduce",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "summarize",
+          "outputs": [
+            "result.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      },
+      "task_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+        "class_id": "summarize",
+        "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+      }
+    },
+    "wf.scout": {
+      "id": "wf.scout",
+      "served_classes": [
+        "search"
+      ],
+      "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+        },
+        {
+          "id": "fanout",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "index-search",
+          "outputs": [
+            "result.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      },
+      "task_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+        "class_id": "search",
+        "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+      }
+    },
+    "wf.transform": {
+      "id": "wf.transform",
+      "served_classes": [
+        "transform"
+      ],
+      "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+        },
+        {
+          "id": "rewrite",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "schema-rewrite",
+          "outputs": [
+            "result.json"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      },
+      "task_fit": {
+        "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+        "class_id": "transform",
+        "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+      }
+    }
+  },
+  "state": "SUCCESS",
+  "strategy": "conditional-hybrid",
+  "tests": [
+    {
+      "detail": "fuzz n=480 unrouted=0 multiply_routed=0 default_taken=107",
+      "id": "fuzz-zero-unrouted-zero-multiply",
+      "result": "PASS"
+    },
+    {
+      "detail": "enumeration default_taken=4 witness={'budget': 'cheap', 'locale': 'en', 'task_class': 'summarize'}",
+      "id": "default-exercised-by-real-input",
+      "result": "PASS"
+    },
+    {
+      "detail": "every branch carries served_classes and a task-fit quote",
+      "id": "branch-source-fit-quotes",
+      "result": "PASS"
+    }
+  ],
+  "title": "Fusion operator: conditional-hybrid, routing to a different source by input predicate",
+  "unit_id": "WFA-0104"
+}

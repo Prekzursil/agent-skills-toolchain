@@ -1,0 +1,27 @@
+# rules/project/owners.md
+shared:rules/project/owners.md
+live-unique:rules/project/owners.md
+live-pad:rules/project/owners.md:0
+live-pad:rules/project/owners.md:1
+live-pad:rules/project/owners.md:2
+live-pad:rules/project/owners.md:3
+live-pad:rules/project/owners.md:4
+live-pad:rules/project/owners.md:5
+live-pad:rules/project/owners.md:6
+live-pad:rules/project/owners.md:7
+live-pad:rules/project/owners.md:8
+live-pad:rules/project/owners.md:9
+live-pad:rules/project/owners.md:10
+live-pad:rules/project/owners.md:11
+live-pad:rules/project/owners.md:12
+live-pad:rules/project/owners.md:13
+live-pad:rules/project/owners.md:14
+live-pad:rules/project/owners.md:15
+live-pad:rules/project/owners.md:16
+live-pad:rules/project/owners.md:17
+live-pad:rules/project/owners.md:18
+live-pad:rules/project/owners.md:19
+live-pad:rules/project/owners.md:20
+live-pad:rules/project/owners.md:21
+live-pad:rules/project/owners.md:22
+live-pad:rules/project/owners.md:23

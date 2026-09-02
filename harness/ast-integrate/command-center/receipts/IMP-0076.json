@@ -1,0 +1,685 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0076",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0076",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0076; owner_questions Q9 (OPEN) measurement-only ratings; inputs IMP-0075 publisher identity, IMP-0094 conformance score",
+  "question": "Compute a publisher trust level from measurable, auditable inputs (signed releases, conformance pass rate, advisory response time, provenance completeness) and explicitly exclude download counts, stars and ratings, per the estate's measurement-only stance on quality signals.",
+  "answer": "Trust is a four-term integer millipoint average (formula tl-v1-millipoints-10000). Weights: signed_releases 30, conformance_pass_rate 30, advisory_response_time 20, provenance_completeness 20. Floor division throughout. UNRATED iff published_version_count=0. LOW < 4000 mp, MEDIUM < 7000 mp, else HIGH. DEFAULT-TRUSTED is not a level. Popularity keys are walked, listed, and discarded; they never enter scoring_input_sha256. Advisory_count=0 is N/A (excluded). Zero conformance runs on a published publisher scores 0 and stays in the average so skipping the validator cannot renormalize to HIGH. Q9 remains OPEN as an owner question; this unit implements the contracted measurement-only computational stance without closing Q9.",
+  "formula": {
+    "version": "tl-v1-millipoints-10000",
+    "weights": {
+      "signed_releases": 30,
+      "conformance_pass_rate": 30,
+      "advisory_response_time": 20,
+      "provenance_completeness": 20
+    },
+    "signed": "millipoints = (ratio_mp * volume_mp) // 10000 where ratio_mp = (signed * 10000) // (signed+unsigned) and volume_mp = min(10000, (signed * 10000) // 5)",
+    "conformance": "millipoints = (passes * 10000) // runs; zero runs on a publisher with published versions scores 0 (included)",
+    "advisory": "if advisory_count==0: N/A excluded; else max(0, 10000 - (median_hours * 10000) // 720); null median (unanswered) scores 0",
+    "provenance": "millipoints = (complete * 10000) // published_version_count",
+    "aggregate": "sum(weight * millipoints for included) // sum(included weights)",
+    "levels": {
+      "UNRATED": "no published versions",
+      "LOW": "score_millipoints < 4000",
+      "MEDIUM": "4000 <= score_millipoints < 7000",
+      "HIGH": "score_millipoints >= 7000"
+    },
+    "excluded_inputs": [
+      "downloads",
+      "stars",
+      "ratings",
+      "install_count",
+      "and aliases listed in trust_levels.POPULARITY_KEYS"
+    ]
+  },
+  "min_bytes_threshold": 128,
+  "artifacts": [
+    {
+      "path": "tools/marketplace/trust_levels.py",
+      "bytes": 10531,
+      "sha256": "fec8fbd7d487cfe71ed80706e8e8bfc3009359f8005e9e5dbf4faaacc0622a43",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/schema/trust-levels.schema.json",
+      "bytes": 1844,
+      "sha256": "75e9f2fb0ed09887fa2bed160504974d2041f05073a5ad7652755d55fd7e6903",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/fixtures/trust_publishers.json",
+      "bytes": 5110,
+      "sha256": "8fd09f0f842e3fc73d42a7a72356d73a8d6cdfb5f86b0c60da69472bfb188f71",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "tools/marketplace/tests/test_trust_levels.py",
+      "bytes": 8307,
+      "sha256": "19899cec31253524c7716b241ee8e713151c445e849a354a892b4223f17ba3a6",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0076/hand_derive.py",
+      "bytes": 2607,
+      "sha256": "7bd0207cb3609afa68fb8e8b17271380006b78623afb5daf0a2e7ac2fac01221",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0076/probe1_hand_derived.py",
+      "bytes": 3717,
+      "sha256": "5571d45edb77713bdb395536c241fbc23508b230e3938e064fe83f496d90378f",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0076/probe2_gaming.py",
+      "bytes": 4527,
+      "sha256": "9f5fa82a692d1afd04a22cb9367373f9e9305d082c9ca61f6588f00fe05bff46",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "fixture_publishers": [
+    {
+      "id": "unrated-empty",
+      "hand_derived": {
+        "level": "UNRATED",
+        "score_millipoints": null,
+        "signed_mp": null,
+        "conformance_mp": null,
+        "advisory_mp": null,
+        "provenance_mp": null
+      },
+      "library": {
+        "level": "UNRATED",
+        "score_millipoints": null,
+        "scoring_input_sha256": "fe0cfb58bb4ef7d97317da8892d7b7f9d8da96fa6e0736fa2664c8be0dc76cfa",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": null,
+            "weight": 30,
+            "included": false,
+            "reason": "no published versions; not scored"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": null,
+            "weight": 30,
+            "included": false,
+            "reason": "no published versions; not scored"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": null,
+            "weight": 20,
+            "included": false,
+            "reason": "no published versions; not scored"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": null,
+            "weight": 20,
+            "included": false,
+            "reason": "no published versions; not scored"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "UNRATED",
+        "score_millipoints": null,
+        "signed_mp": null,
+        "conformance_mp": null,
+        "advisory_mp": null,
+        "provenance_mp": null
+      },
+      "match": true
+    },
+    {
+      "id": "alice",
+      "hand_derived": {
+        "level": "HIGH",
+        "score_millipoints": 10000,
+        "signed_mp": 10000,
+        "conformance_mp": 10000,
+        "advisory_mp": 10000,
+        "provenance_mp": 10000
+      },
+      "library": {
+        "level": "HIGH",
+        "score_millipoints": 10000,
+        "scoring_input_sha256": "dd91af053c1c05e8a53f35e886981bb32c6a9bb5d6e2055798b520c48d2d5a96",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "passes/runs integer millipoints"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": 10000,
+            "weight": 20,
+            "included": true,
+            "reason": "linear decay from 0h=10000 to 720h=0"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 10000,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "HIGH",
+        "score_millipoints": 10000,
+        "signed_mp": 10000,
+        "conformance_mp": 10000,
+        "advisory_mp": 10000,
+        "provenance_mp": 10000
+      },
+      "match": true
+    },
+    {
+      "id": "bob",
+      "hand_derived": {
+        "level": "MEDIUM",
+        "score_millipoints": 4500,
+        "signed_mp": 5000,
+        "conformance_mp": 4000,
+        "advisory_mp": 4000,
+        "provenance_mp": 5000
+      },
+      "library": {
+        "level": "MEDIUM",
+        "score_millipoints": 4500,
+        "scoring_input_sha256": "a993f33ead52dbe2fa70923eaf07b8332c20390d41c4ea9dd0ef642ba18d8b2e",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 5000,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 4000,
+            "weight": 30,
+            "included": true,
+            "reason": "passes/runs integer millipoints"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": 4000,
+            "weight": 20,
+            "included": true,
+            "reason": "linear decay from 0h=10000 to 720h=0"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 5000,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "MEDIUM",
+        "score_millipoints": 4500,
+        "signed_mp": 5000,
+        "conformance_mp": 4000,
+        "advisory_mp": 4000,
+        "provenance_mp": 5000
+      },
+      "match": true
+    },
+    {
+      "id": "carol",
+      "hand_derived": {
+        "level": "LOW",
+        "score_millipoints": 1320,
+        "signed_mp": 4400,
+        "conformance_mp": 0,
+        "advisory_mp": 0,
+        "provenance_mp": 0
+      },
+      "library": {
+        "level": "LOW",
+        "score_millipoints": 1320,
+        "scoring_input_sha256": "40028a2a26ac4226367e75a0b5367c405049a0b3916d1f275756e8ff0f047378",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 4400,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 0,
+            "weight": 30,
+            "included": true,
+            "reason": "passes/runs integer millipoints"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": 0,
+            "weight": 20,
+            "included": true,
+            "reason": "advisories present but median response is null (unanswered)"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 0,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "LOW",
+        "score_millipoints": 1320,
+        "signed_mp": 4400,
+        "conformance_mp": 0,
+        "advisory_mp": 0,
+        "provenance_mp": 0
+      },
+      "match": true
+    },
+    {
+      "id": "skip-conformance",
+      "hand_derived": {
+        "level": "MEDIUM",
+        "score_millipoints": 6250,
+        "signed_mp": 10000,
+        "conformance_mp": 0,
+        "advisory_mp": null,
+        "provenance_mp": 10000
+      },
+      "library": {
+        "level": "MEDIUM",
+        "score_millipoints": 6250,
+        "scoring_input_sha256": "0d88fe39b6bd332b37164731d4db51b1cf5462b984920f381f11cec410a491d4",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 0,
+            "weight": 30,
+            "included": true,
+            "reason": "zero conformance runs on a published publisher scores 0 and stays in the average"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": null,
+            "weight": 20,
+            "included": false,
+            "reason": "advisory_count=0; N/A excluded from the average"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 10000,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "MEDIUM",
+        "score_millipoints": 6250,
+        "signed_mp": 10000,
+        "conformance_mp": 0,
+        "advisory_mp": null,
+        "provenance_mp": 10000
+      },
+      "match": true
+    },
+    {
+      "id": "no-advisories-good",
+      "hand_derived": {
+        "level": "HIGH",
+        "score_millipoints": 10000,
+        "signed_mp": 10000,
+        "conformance_mp": 10000,
+        "advisory_mp": null,
+        "provenance_mp": 10000
+      },
+      "library": {
+        "level": "HIGH",
+        "score_millipoints": 10000,
+        "scoring_input_sha256": "6f63199635755e57104bb4b9c2a5843d45bb21b10abbeb17b580f61087443679",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "passes/runs integer millipoints"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": null,
+            "weight": 20,
+            "included": false,
+            "reason": "advisory_count=0; N/A excluded from the average"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 10000,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "HIGH",
+        "score_millipoints": 10000,
+        "signed_mp": 10000,
+        "conformance_mp": 10000,
+        "advisory_mp": null,
+        "provenance_mp": 10000
+      },
+      "match": true
+    },
+    {
+      "id": "near-low",
+      "hand_derived": {
+        "level": "LOW",
+        "score_millipoints": 3500,
+        "signed_mp": 6000,
+        "conformance_mp": 3000,
+        "advisory_mp": 2000,
+        "provenance_mp": 2000
+      },
+      "library": {
+        "level": "LOW",
+        "score_millipoints": 3500,
+        "scoring_input_sha256": "6bed2fa63f3ac0fe2a074a0e8642f31c62a9cf358bf7b4b50c0bdab5cbf1dc64",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 6000,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 3000,
+            "weight": 30,
+            "included": true,
+            "reason": "passes/runs integer millipoints"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": 2000,
+            "weight": 20,
+            "included": true,
+            "reason": "linear decay from 0h=10000 to 720h=0"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 2000,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "LOW",
+        "score_millipoints": 3500,
+        "signed_mp": 6000,
+        "conformance_mp": 3000,
+        "advisory_mp": 2000,
+        "provenance_mp": 2000
+      },
+      "match": true
+    },
+    {
+      "id": "near-high",
+      "hand_derived": {
+        "level": "HIGH",
+        "score_millipoints": 8000,
+        "signed_mp": 10000,
+        "conformance_mp": 10000,
+        "advisory_mp": 0,
+        "provenance_mp": 10000
+      },
+      "library": {
+        "level": "HIGH",
+        "score_millipoints": 8000,
+        "scoring_input_sha256": "f68a8915be0def945548d24b7d443a5aaa67dcb1051b0d351f6739c527467a52",
+        "components": [
+          {
+            "name": "signed_releases",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "ratio * volume; volume saturates at 5 signed releases"
+          },
+          {
+            "name": "conformance_pass_rate",
+            "millipoints": 10000,
+            "weight": 30,
+            "included": true,
+            "reason": "passes/runs integer millipoints"
+          },
+          {
+            "name": "advisory_response_time",
+            "millipoints": 0,
+            "weight": 20,
+            "included": true,
+            "reason": "advisories present but median response is null (unanswered)"
+          },
+          {
+            "name": "provenance_completeness",
+            "millipoints": 10000,
+            "weight": 20,
+            "included": true,
+            "reason": "complete versions / published_version_count"
+          }
+        ]
+      },
+      "independent_oracle": {
+        "level": "HIGH",
+        "score_millipoints": 8000,
+        "signed_mp": 10000,
+        "conformance_mp": 10000,
+        "advisory_mp": 0,
+        "provenance_mp": 10000
+      },
+      "match": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/marketplace/fixtures/trust_publishers.json",
+      "claim": "Computed trust levels for the fixture publishers equal the hand-derived millipoint arithmetic in that file, and equal an independent oracle that does not import trust_levels.py.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_trust_levels.py",
+          "exit_code": 0,
+          "raw_output": "est_signed_releases_up_moves_low_to_medium (__main__.DirectionalInputs.test_signed_releases_up_moves_low_to_medium) ... ok\ntest_skip_conformance_then_add_runs_moves_medium_to_high (__main__.DirectionalInputs.test_skip_conformance_then_add_runs_moves_medium_to_high) ... ok\ntest_zero_conformance_runs_scores_zero_and_stays_in_average (__main__.DirectionalInputs.test_zero_conformance_runs_scores_zero_and_stays_in_average) ... ok\ntest_default_fixture_is_repo_file (__main__.FixturePath.test_default_fixture_is_repo_file) ... ok\ntest_popularity_inputs_move_nothing (__main__.GamingControl.test_popularity_inputs_move_nothing) ... ok\ntest_scoring_sha_excludes_popularity_keys (__main__.GamingControl.test_scoring_sha_excludes_popularity_keys) ... ok\ntest_empty_history_is_unrated_never_default_trusted (__main__.NegativeControlUnrated.test_empty_history_is_unrated_never_default_trusted) ... ok\ntest_empty_plus_popularity_and_self_asserted_trust_stays_unrated (__main__.NegativeControlUnrated.test_empty_plus_popularity_and_self_asserted_trust_stays_unrated) ... ok\ntest_output_schema_accepts_library_dict (__main__.NegativeControlUnrated.test_output_schema_accepts_library_dict) ... ok\ntest_fixture_three_way_matches_hand_derived (__main__.TrustLevelFixtures.test_fixture_three_way_matches_hand_derived) ... ok\ntest_formula_version_pinned (__main__.TrustLevelFixtures.test_formula_version_pinned) ... ok\n\n----------------------------------------------------------------------\nRan 16 tests in 0.003s\n\nOK"
+        },
+        {
+          "role": "verifier",
+          "method": "independent-integer-oracle",
+          "command": "command-center/p2-wave/probes/IMP-0076/hand_derive.py via emit_receipt three-way match",
+          "exit_code": 0,
+          "raw_output": "publishers=8 all_match=True"
+        }
+      ]
+    },
+    {
+      "anchor": "tools/marketplace/trust_levels.py:scoring_input_sha256",
+      "claim": "Inflating downloads, stars, and ratings on fixture alice does not change level, millipoints, component vector, or scoring_input_sha256. Excluded inputs are omitted from the canonical scoring blob, not down-weighted.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B -c compute_publisher_trust(alice vs alice+downloads/stars/ratings)",
+          "exit_code": 0,
+          "raw_output": "clean_level=HIGH gamed_level=HIGH clean_mp=10000 gamed_mp=10000 sha_equal=True"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0076/probe2_gaming.py",
+          "exit_code": "deferred-to-write_receipts-live-rerun",
+          "raw_output": "named probe2 is the live verifier; emit records the in-process gaming control here"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_trust_levels.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_trust_levels.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "unrated-empty",
+      "kind": "no-measurable-history",
+      "description": "A publisher with published_version_count=0 is UNRATED, never DEFAULT-TRUSTED.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "UNRATED",
+      "good_state_output": "HIGH for alice"
+    },
+    {
+      "id": "popularity-gaming",
+      "kind": "excluded-input-invariance",
+      "description": "Downloads/stars/ratings inflation must not move trust. A real conformance drop on near-high must move HIGH\u2192MEDIUM so the detector is not silent in both states.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "conformance 2/10 \u2192 MEDIUM",
+      "good_state_output": "alice+downloads unchanged HIGH/10000"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0076-probe2-gaming-control",
+    "independent": true,
+    "fresh_context": true,
+    "verdict": "PASS",
+    "gaming_strategy": "Inflate downloads, stars, ratings, and install_count on a HIGH publisher, including nested metrics.weekly_downloads.",
+    "gaming_works": false,
+    "notes": "Popularity inflation left scoring_input_sha256 unchanged. A strategy that would still work is fabricating conformance runs or stub signed releases: this unit consumes measurements and does not authenticate them. That integrity belongs to IMP-0077 signatures and IMP-0094 conformance evidence, not to this formula."
+  },
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0076.json",
+      "consumer": "IMP-0078 trust policy engine (contracted, not yet delivered)",
+      "executed": false,
+      "read_ok": false,
+      "probe": {
+        "role": "declared-consumer",
+        "method": "catalog",
+        "command": "WORK-UNIT-CATALOG.json#IMP-0078 depends on IMP-0076",
+        "exit_code": 0,
+        "raw_output": "dependency recorded; engine not in this unit"
+      }
+    },
+    {
+      "artifact_path": "tools/marketplace/trust_levels.py",
+      "consumer": "tools/marketplace/tests/test_trust_levels.py",
+      "executed": true,
+      "exit_code": 0,
+      "read_ok": true,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_trust_levels.py",
+        "exit_code": 0,
+        "raw_output": "t_scoring_sha_excludes_popularity_keys) ... ok\ntest_empty_history_is_unrated_never_default_trusted (__main__.NegativeControlUnrated.test_empty_history_is_unrated_never_default_trusted) ... ok\ntest_empty_plus_popularity_and_self_asserted_trust_stays_unrated (__main__.NegativeControlUnrated.test_empty_plus_popularity_and_self_asserted_trust_stays_unrated) ... ok\ntest_output_schema_accepts_library_dict (__main__.NegativeControlUnrated.test_output_schema_accepts_library_dict) ... ok\ntest_fixture_three_way_matches_hand_derived (__main__.TrustLevelFixtures.test_fixture_three_way_matches_hand_derived) ... ok\ntest_formula_version_pinned (__main__.TrustLevelFixtures.test_formula_version_pinned) ... ok\n\n----------------------------------------------------------------------\nRan 16 tests in 0.003s\n\nOK"
+      }
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0076/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Owner question Q9 is still OPEN. This unit adopts measurement-only ratings as its computational stance; it does not record an owner signature closing Q9.",
+      "settling_experiment": "Owner answers Q9 in OWNER-DECISIONS.md.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "The formula trusts its input measurements. Fabricated conformance or stub signed releases can still yield HIGH.",
+      "settling_experiment": "IMP-0077 signature verification and IMP-0094 decomposable quality score must make those measurements expensive to fake.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-worktree"
+  },
+  "named_probe_commands": [
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0076/probe1_hand_derived.py",
+    "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0076/probe2_gaming.py"
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:00:04Z",
+    "ended_at": "2026-08-25T01:00:04Z"
+  },
+  "cloud_ok": false,
+  "notes": "G-1 delivery for IMP-0076. Live named probes are probe1_hand_derived and probe2_gaming. Did not run global unit_manifest.py --write. SUCCESS:IMP-0076"
+}

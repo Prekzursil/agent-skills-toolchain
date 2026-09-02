@@ -1,0 +1,45 @@
+{
+  "id": "wf.hermetic.gates-and-stops",
+  "spec_version": "imp-0199/v1",
+  "params": {"case_id": "emulatable-twin"},
+  "max_steps": 32,
+  "nodes": [
+    {
+      "id": "unit.ingest",
+      "kind": "unit",
+      "capabilities": ["structure-walk", "param-bind"]
+    },
+    {
+      "id": "gate.ready",
+      "kind": "gate",
+      "capabilities": ["gate-eval"],
+      "rule": "predecessors-ok",
+      "awaits": ["unit.ingest"]
+    },
+    {
+      "id": "loop.refine",
+      "kind": "loop",
+      "capabilities": ["loop-bound"],
+      "max_iterations": 3,
+      "body": ["unit.tick"]
+    },
+    {
+      "id": "unit.tick",
+      "kind": "unit",
+      "capabilities": ["structure-walk", "local-receipt-write"]
+    },
+    {
+      "id": "stop.budget",
+      "kind": "stopping_rule",
+      "capabilities": ["stopping-rule"],
+      "rule": "max-steps",
+      "max_steps": 32
+    }
+  ],
+  "edges": [
+    ["unit.ingest", "gate.ready"],
+    ["gate.ready", "loop.refine"],
+    ["loop.refine", "unit.tick"],
+    ["unit.tick", "stop.budget"]
+  ]
+}

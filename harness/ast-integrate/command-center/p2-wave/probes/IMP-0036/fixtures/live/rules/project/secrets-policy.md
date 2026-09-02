@@ -1,0 +1,27 @@
+# rules/project/secrets-policy.md
+shared:rules/project/secrets-policy.md
+live-unique:rules/project/secrets-policy.md
+live-pad:rules/project/secrets-policy.md:0
+live-pad:rules/project/secrets-policy.md:1
+live-pad:rules/project/secrets-policy.md:2
+live-pad:rules/project/secrets-policy.md:3
+live-pad:rules/project/secrets-policy.md:4
+live-pad:rules/project/secrets-policy.md:5
+live-pad:rules/project/secrets-policy.md:6
+live-pad:rules/project/secrets-policy.md:7
+live-pad:rules/project/secrets-policy.md:8
+live-pad:rules/project/secrets-policy.md:9
+live-pad:rules/project/secrets-policy.md:10
+live-pad:rules/project/secrets-policy.md:11
+live-pad:rules/project/secrets-policy.md:12
+live-pad:rules/project/secrets-policy.md:13
+live-pad:rules/project/secrets-policy.md:14
+live-pad:rules/project/secrets-policy.md:15
+live-pad:rules/project/secrets-policy.md:16
+live-pad:rules/project/secrets-policy.md:17
+live-pad:rules/project/secrets-policy.md:18
+live-pad:rules/project/secrets-policy.md:19
+live-pad:rules/project/secrets-policy.md:20
+live-pad:rules/project/secrets-policy.md:21
+live-pad:rules/project/secrets-policy.md:22
+live-pad:rules/project/secrets-policy.md:23

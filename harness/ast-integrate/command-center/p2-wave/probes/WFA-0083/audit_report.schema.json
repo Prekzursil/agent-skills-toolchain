@@ -1,0 +1,185 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-center/p2-wave/probes/WFA-0083/audit_report.schema.json",
+  "title": "WFA AuditReport (local stand-in until WFA-0001 schema pack exists)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unit_id",
+    "record_type",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "scope",
+    "census",
+    "findings",
+    "hash_policy",
+    "consumer_policy",
+    "controls",
+    "tests",
+    "reviewer",
+    "artifacts",
+    "manifest_path",
+    "declared_output_schema",
+    "schema_pack_status"
+  ],
+  "properties": {
+    "unit_id": { "const": "WFA-0083" },
+    "record_type": { "const": "AuditReport" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "pattern": "^SUCCESS:WFA-0083" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "scope": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bucket", "catalog_path", "wfa_manifest_path", "program_manifest_path"],
+      "properties": {
+        "bucket": { "const": "WFA" },
+        "catalog_path": { "type": "string", "minLength": 8 },
+        "wfa_manifest_path": { "type": "string", "minLength": 8 },
+        "program_manifest_path": { "type": "string", "minLength": 8 }
+      }
+    },
+    "census": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_wfa_units",
+        "expected_outputs",
+        "present_on_disk",
+        "registered",
+        "unemitted",
+        "present_paths",
+        "unemitted_ids_head"
+      ],
+      "properties": {
+        "catalog_wfa_units": { "type": "integer", "minimum": 1 },
+        "expected_outputs": { "type": "integer", "minimum": 1 },
+        "present_on_disk": { "type": "integer", "minimum": 0 },
+        "registered": { "type": "integer", "minimum": 0 },
+        "unemitted": { "type": "integer", "minimum": 0 },
+        "present_paths": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 8 }
+        },
+        "unemitted_ids_head": {
+          "type": "array",
+          "items": { "type": "string", "pattern": "^WFA-[0-9]{4}$" }
+        }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "severity", "verdict", "summary"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "severity": { "type": "string", "enum": ["INFO", "WARN", "P1", "P2"] },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED"]
+          },
+          "summary": { "type": "string", "minLength": 16 }
+        }
+      }
+    },
+    "hash_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "normalization", "source", "forbidden_source"],
+      "properties": {
+        "algorithm": { "const": "sha256" },
+        "normalization": { "const": "CRLF-to-LF" },
+        "source": { "type": "string", "minLength": 8 },
+        "forbidden_source": { "const": "working-tree" }
+      }
+    },
+    "consumer_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reader", "required_fields_by_type", "existence_is_not_readability"],
+      "properties": {
+        "reader": { "type": "string", "minLength": 8 },
+        "required_fields_by_type": { "type": "object" },
+        "existence_is_not_readability": { "const": true }
+      }
+    },
+    "controls": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "blob_not_worktree",
+        "manifest_entry_without_file",
+        "file_without_manifest_entry",
+        "malformed_consumer"
+      ],
+      "properties": {
+        "blob_not_worktree": { "type": "object" },
+        "manifest_entry_without_file": { "type": "object" },
+        "file_without_manifest_entry": { "type": "object" },
+        "malformed_consumer": { "type": "object" }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["id", "requirement", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "requirement": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] },
+          "detail": { "type": "string" }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_id", "verdict", "independent", "scope_not_agreement"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "minLength": 3 },
+        "independent": { "type": "boolean" },
+        "scope_not_agreement": { "const": true }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "exists": { "const": true },
+          "role": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "manifest_path": { "type": "string", "minLength": 8 },
+    "declared_output_schema": { "type": "string", "minLength": 8 },
+    "schema_pack_status": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["path", "present", "note"],
+      "properties": {
+        "path": { "type": "string", "minLength": 8 },
+        "present": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 16 }
+      }
+    },
+    "notes": { "type": "string" }
+  }
+}

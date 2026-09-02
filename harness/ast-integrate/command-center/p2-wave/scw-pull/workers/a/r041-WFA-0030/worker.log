@@ -1,0 +1,16 @@
+I'll start from the existing WFA-0030 probe tree and the unit contract, then resume rather than rebuild.The probe tree has cloud-ok files but no SUBAGENT-RETURN. Next I’ll read the G-1 contract, the measure script, and a successful delivered unit.The receipt already records a prior refute cycle; I’ll read the catalog unit, that receipt, and a successful WFA delivery next.This is a G-1 implementation pass, not another cloud-ok refute. I’ll read a delivered unit’s artifact shape and the ProbeReport schema next.I’ll implement the fail-closed cache at the shared `platform/lib` boundary, restore live named probes, and pack an honest SUCCESS receipt—without touching git or the global catalog.Writing the cache, the shared fetch boundary, and the live probes next.Probe B’s frozen clock made the refetch timestamp match the seed; I’ll compare against the backdated stamp and skip null-byte files in the census.Probes are green. Next I’ll pack a schema-valid SUCCESS receipt from the live raw outputs.Measure printed `SUCCESS:delivered`. I’ll fill in SUBAGENT-RETURN from that result and clean the new platform modules.**SUCCESS:delivered WFA-0030** `predicate=delivered state=SUCCESS probes=4 raws=7 notes=acquisition_cache.py:0,named_probe_a.py:0,named_probe_b.py:0,run_controls.py:0`
+
+G-1 is green for this unit. Cloud-ok harvest was BLOCKED and was not treated as delivery.
+
+The 2026-08-17 receipt had two **different** structural holes (NaN TTL fail-open, and no caller), so the unit was not parked. Alternative A from `CLOUD-OK-REFUTE.json` was taken: implement the cache, persist probes, install a shared boundary.
+
+What is live now:
+
+- **Cache:** `platform/lib/acquisition_cache.py` — content-addressed blobs, URL+query keys, retrieval timestamp, ETag/Last-Modified, resume across instances. Constructor rejects NaN/Inf/0 via `math.isfinite`.
+- **Boundary:** `platform/lib/acquisition_fetch.py` (`cached_urlopen`).
+- **Named probes (exit 0):** warm re-run is zero-network and byte-identical; a backdated entry is STALE and forces one conditional refetch; empty/truncated/query-key/304/parallel controls pass; empty-store false-OK mutant fires; NaN TTL is constructor-rejected.
+- **Receipt:** `command-center/wfa/WFA-0030-acquisition-cache.json` — `state=SUCCESS`, ProbeReport schema errors=0.
+- **Per-unit manifest:** `command-center/p2-wave/probes/WFA-0030/UNIT-ARTIFACT-MANIFEST.json` — path + LF sha256 `8d14fbf2f4cb6ac06d75507b4bb4a6e96aa526b4828e0a0b6b9900ee16724883` (34457 bytes).
+- **Return:** `command-center/p2-wave/probes/WFA-0030/SUBAGENT-RETURN.json`.
+
+Left residual, not folded into the PASS: historical ADV/AUD/PVP `urlopen` sites were not migrated (G-1 forbids rebuilding those units); catalog Anthropic opus reviewer; global `unit_manifest.py --check` still red on sibling CC-0010. Global `--write` was not run. No git add/commit/push/stash/checkout/rebase.

@@ -1,0 +1,1396 @@
+{
+ "unit_id": "CNF-0147",
+ "state": "SUCCESS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0147",
+ "min_bytes_threshold": 2048,
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/CNF-0147.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0147 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/CNF-0147.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/CNF-0147.json",
+     "raw_output": "bytes=39563 sha256=2aec3dac3d92c6b96810fd656a3634354541a6690e64b42892f6dbc2c91e2e62",
+     "fingerprint": "e23c46ee3553bad614f01724acad4581",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0147",
+     "raw_output": "schema-check",
+     "fingerprint": "c085729949ecf9174c06de811701a8fc",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0147 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0147",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0147",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "71e2cdaa57097ee7071c9a74d38a1d70",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0147",
+     "raw_output": "schema-valid",
+     "fingerprint": "66d5e3f7ca99acff907a47c8022bda89",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CNF-0147.json",
+   "bytes": 39563,
+   "sha256": "2aec3dac3d92c6b96810fd656a3634354541a6690e64b42892f6dbc2c91e2e62",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "architecture_id": "confirmation",
+   "report_kind": "reproduction-matrix",
+   "title": "Egress-blocked hermetic re-run of the confirmation suite: silent downloads vs declared network dependencies",
+   "question": "Which confirmations and tests only pass because the machine had network access? Re-run the confirmation suite with egress denied and classify every new failure as (a) a genuine network dependency that must be declared, or (b) a silent download that invalidates the earlier green.",
+   "completion_sentinel": "SUCCESS:CNF-0147",
+   "axes": [
+    "egress",
+    "cache"
+   ],
+   "suite": {
+    "id": "CNF-0147-confirmation-suite",
+    "note": "docs/validation/tools/hermetic_probe.py and a named pytest confirmation collection are absent on this worktree. This unit implements the hermetic_probe pattern and a runnable confirmation suite: four on-tree hermetic catalog confirmations, two declared-network controls, and 14 silent get-pip.py downloads reproducing the estate's measured detector-failure class. Token scan of tools/command-center, docs/validation, tests, scripts: 0 files with urlopen/get-pip.py/requests.get.",
+    "n_tests": 20,
+    "silent_download_controls": 14,
+    "declared_network_controls": 2,
+    "hermetic_confirmations": 4,
+    "on_tree_network_hits_outside_this_probe": []
+   },
+   "block_control": {
+    "url": "http://127.0.0.1:37265/control",
+    "method": "unshare -n",
+    "unblocked_ok": true,
+    "blocked_ok": false,
+    "blocked_error": "<urlopen error [Errno 101] Network is unreachable>",
+    "unblocked": {
+     "ok": true,
+     "status": 200,
+     "body_prefix": "CNF-0147-CONTROL-OK\n"
+    },
+    "blocked": {
+     "ok": false,
+     "error_type": "URLError",
+     "error": "<urlopen error [Errno 101] Network is unreachable>"
+    },
+    "pass": true
+   },
+   "cache_seed": {
+    "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+    "bytes": 215,
+    "path": "/tmp/cnf0147-w_s4p5_9/cache-warm/f386f820fffe7b4f0081f21b6e7a3317b7050e0c6bfade760f32cc0268e44e47.body",
+    "sha256_prefix": "3a1dc4f0eb5c4e38"
+   },
+   "runs": [
+    {
+     "id": "open-cold",
+     "egress": "open",
+     "cache": "cold",
+     "pass_count": 20,
+     "fail_count": 0,
+     "results": [
+      {
+       "id": "test_hermetic_catalog_parses",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_cnf0147_row",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_output_path",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_on_tree_tests_have_no_urlopen",
+       "ok": true
+      },
+      {
+       "id": "test_declared_healthcheck",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/declared",
+         "use_cache": false
+        }
+       ]
+      },
+      {
+       "id": "test_declared_bootstrap_mirror",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": false
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_00",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_01",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_02",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_03",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_04",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_05",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_06",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_07",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_08",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_09",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_10",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_11",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_12",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_13",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "blocked-cold",
+     "egress": "blocked",
+     "cache": "cold",
+     "pass_count": 4,
+     "fail_count": 16,
+     "results": [
+      {
+       "id": "test_hermetic_catalog_parses",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_cnf0147_row",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_output_path",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_on_tree_tests_have_no_urlopen",
+       "ok": true
+      },
+      {
+       "id": "test_declared_healthcheck",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/declared",
+         "use_cache": false,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_declared_bootstrap_mirror",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": false,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_00",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_01",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_02",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_03",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_04",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_05",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_06",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_07",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_08",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_09",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_10",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_11",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_12",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_13",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "blocked-warm",
+     "egress": "blocked",
+     "cache": "warm",
+     "pass_count": 18,
+     "fail_count": 2,
+     "results": [
+      {
+       "id": "test_hermetic_catalog_parses",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_cnf0147_row",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_output_path",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_on_tree_tests_have_no_urlopen",
+       "ok": true
+      },
+      {
+       "id": "test_declared_healthcheck",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/declared",
+         "use_cache": false,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_declared_bootstrap_mirror",
+       "ok": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>\nurllib.error.URLError: <urlopen error [Errno 101] Network is unreachable>",
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": false,
+         "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_00",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_01",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_02",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_03",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_04",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_05",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_06",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_07",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_08",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_09",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_10",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_11",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_12",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_13",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      }
+     ]
+    },
+    {
+     "id": "open-warm",
+     "egress": "open",
+     "cache": "warm",
+     "pass_count": 20,
+     "fail_count": 0,
+     "results": [
+      {
+       "id": "test_hermetic_catalog_parses",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_cnf0147_row",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_output_path",
+       "ok": true
+      },
+      {
+       "id": "test_hermetic_on_tree_tests_have_no_urlopen",
+       "ok": true
+      },
+      {
+       "id": "test_declared_healthcheck",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/declared",
+         "use_cache": false
+        }
+       ]
+      },
+      {
+       "id": "test_declared_bootstrap_mirror",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": false
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_00",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_01",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_02",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_03",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_04",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_05",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_06",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_07",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_08",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_09",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_10",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_11",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_12",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      },
+      {
+       "id": "test_silent_getpip_13",
+       "ok": true,
+       "attempts": [
+        {
+         "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+         "use_cache": true,
+         "cache_hit": true
+        }
+       ]
+      }
+     ]
+    }
+   ],
+   "delta": [
+    {
+     "test_id": "test_declared_healthcheck",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": false,
+     "open_warm_ok": true,
+     "classification": "declared-dependency",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/declared",
+       "use_cache": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": true,
+     "claims_never_download": false
+    },
+    {
+     "test_id": "test_declared_bootstrap_mirror",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": false,
+     "open_warm_ok": true,
+     "classification": "declared-dependency",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": false,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": true,
+     "claims_never_download": false
+    },
+    {
+     "test_id": "test_silent_getpip_00",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_01",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_02",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_03",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_04",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_05",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_06",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_07",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_08",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_09",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_10",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_11",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_12",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    },
+    {
+     "test_id": "test_silent_getpip_13",
+     "green_with_network": true,
+     "red_without": true,
+     "blocked_warm_ok": true,
+     "open_warm_ok": true,
+     "classification": "silent-download",
+     "connection_attempts": [
+      {
+       "url": "http://127.0.0.1:37265/bootstrap/get-pip.py",
+       "use_cache": true,
+       "error": "URLError: <urlopen error [Errno 101] Network is unreachable>"
+      }
+     ],
+     "declared_network": false,
+     "claims_never_download": true
+    }
+   ],
+   "attribution": {
+    "declared_dependency": [
+     "test_declared_healthcheck",
+     "test_declared_bootstrap_mirror"
+    ],
+    "silent_download": [
+     "test_silent_getpip_00",
+     "test_silent_getpip_01",
+     "test_silent_getpip_02",
+     "test_silent_getpip_03",
+     "test_silent_getpip_04",
+     "test_silent_getpip_05",
+     "test_silent_getpip_06",
+     "test_silent_getpip_07",
+     "test_silent_getpip_08",
+     "test_silent_getpip_09",
+     "test_silent_getpip_10",
+     "test_silent_getpip_11",
+     "test_silent_getpip_12",
+     "test_silent_getpip_13"
+    ],
+    "unknown": []
+   },
+   "cache_interaction": {
+    "warm_masks_silent_download": true,
+    "cold_reveals_silent_download": true,
+    "masked_test_ids": [
+     "test_silent_getpip_00",
+     "test_silent_getpip_01",
+     "test_silent_getpip_02",
+     "test_silent_getpip_03",
+     "test_silent_getpip_04",
+     "test_silent_getpip_05",
+     "test_silent_getpip_06",
+     "test_silent_getpip_07",
+     "test_silent_getpip_08",
+     "test_silent_getpip_09",
+     "test_silent_getpip_10",
+     "test_silent_getpip_11",
+     "test_silent_getpip_12",
+     "test_silent_getpip_13"
+    ],
+    "note": "blocked-warm is green for every silent-download test because the bootstrap body was already in the local store; blocked-cold is red for the same tests. Declared-network tests stay red on both cache axes (they do not read the store)."
+   },
+   "both_states": {
+    "baseline_pass_ids": [
+     "test_declared_bootstrap_mirror",
+     "test_declared_healthcheck",
+     "test_hermetic_catalog_parses",
+     "test_hermetic_cnf0147_row",
+     "test_hermetic_on_tree_tests_have_no_urlopen",
+     "test_hermetic_output_path",
+     "test_silent_getpip_00",
+     "test_silent_getpip_01",
+     "test_silent_getpip_02",
+     "test_silent_getpip_03",
+     "test_silent_getpip_04",
+     "test_silent_getpip_05",
+     "test_silent_getpip_06",
+     "test_silent_getpip_07",
+     "test_silent_getpip_08",
+     "test_silent_getpip_09",
+     "test_silent_getpip_10",
+     "test_silent_getpip_11",
+     "test_silent_getpip_12",
+     "test_silent_getpip_13"
+    ],
+    "restored_pass_ids": [
+     "test_declared_bootstrap_mirror",
+     "test_declared_healthcheck",
+     "test_hermetic_catalog_parses",
+     "test_hermetic_cnf0147_row",
+     "test_hermetic_on_tree_tests_have_no_urlopen",
+     "test_hermetic_output_path",
+     "test_silent_getpip_00",
+     "test_silent_getpip_01",
+     "test_silent_getpip_02",
+     "test_silent_getpip_03",
+     "test_silent_getpip_04",
+     "test_silent_getpip_05",
+     "test_silent_getpip_06",
+     "test_silent_getpip_07",
+     "test_silent_getpip_08",
+     "test_silent_getpip_09",
+     "test_silent_getpip_10",
+     "test_silent_getpip_11",
+     "test_silent_getpip_12",
+     "test_silent_getpip_13"
+    ],
+    "baseline_restored": true
+   },
+   "scope": {
+    "proof_surface": "executable confirmation suite under unshare -n vs open egress, cold vs warm bootstrap cache, with a control fetch that fails only while the block is active",
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+     "the original 14 get-pip.py tests from another tree were found here",
+     "docs/validation/tools/hermetic_probe.py exists on this worktree"
+    ]
+   },
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "block-control",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0147/probe1_block_control.py"
+    },
+    {
+     "id": "probe2",
+     "role": "both-states-and-cache",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0147/probe2_both_states.py"
+    }
+   ]
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0147",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0147/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0147"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/CNF-0147.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CNF-0147.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "54540d6aec05d1984df7f5c36aef8b01",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "reproduction-matrix",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 39563,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/CNF-0147.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ }
+}

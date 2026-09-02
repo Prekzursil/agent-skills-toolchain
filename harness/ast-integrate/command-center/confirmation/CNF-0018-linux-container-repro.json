@@ -1,0 +1,445 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1119,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/repro-report.schema.json",
+   "role": "supporting",
+   "sha256": "21a5dc1750154c179bd49fd16c5265f34a51d2583893d5799f609212484c21a4"
+  },
+  {
+   "bytes": 12413,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0018/measure.py",
+   "role": "supporting",
+   "sha256": "a321581a24b4db02bec9c8d43600142944791571a9836d637296aa5c7823f36d"
+  },
+  {
+   "bytes": 7133,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0018/container.py",
+   "role": "supporting",
+   "sha256": "0a2b53282b97d6f1b471f0192fb798832e2b37b9187286948ab94d4b6822bd00"
+  },
+  {
+   "bytes": 1045,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0018/fixtures/register.md",
+   "role": "supporting",
+   "sha256": "22c5259d24a50fef986c245412f01b9065e8087996bba563e74aaf0bdf10376a"
+  },
+  {
+   "bytes": 17002,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/validate.py",
+   "role": "supporting",
+   "sha256": "8d54812f8c46ca930d0439e7de4b62548ecdb6bb478739efa579e1ceabf767ba"
+  },
+  {
+   "bytes": 10906,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/seed.py",
+   "role": "supporting",
+   "sha256": "8d79725c4bd9d9cbdff6a2ebe4f2660a539037b3e456c2818557af1df66aa3e4"
+  },
+  {
+   "bytes": 17710,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/render.py",
+   "role": "supporting",
+   "sha256": "f9f1ca3b383cfd024c50744a68442b1ef7d74c618c3686b30bbc53cfc84b9253"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0018-linux-container-repro.json",
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 platform/lib/schema_resolver.py command-center/confirmation/CNF-0018-linux-container-repro.json command-center/schema/repro-report.schema.json",
+    "exit_code": 0,
+    "fingerprint": "484b0fc9a6844304ca53f67a309524da",
+    "method": "schema-validate",
+    "raw_output": "SUCCESS:schema-valid (in-memory before write; re-checked after write)",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/command-center/validate.py:225",
+   "claim": "The three Phase-0 CRLF detectors PASS on LF bytes inside the disposable Linux isolation and FAIL on a CRLF copy of the same logical text (Windows-only).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0018/container.py",
+     "exit_code": 0,
+     "fingerprint": "5b7964964d1a973b80a4ad874e6b2fe3",
+     "method": "command",
+     "raw_output": "[{\"classification\": \"Windows-only\", \"id\": \"F-CRLF-VALIDATE-REACH6\", \"linux\": \"PASS\", \"windows_simulated\": \"FAIL\"}, {\"classification\": \"Windows-only\", \"id\": \"F-CRLF-SEED-PROVENANCE\", \"linux\": \"PASS\", \"windows_simulated\": \"FAIL\"}, {\"classification\": \"Windows-only\", \"id\": \"F-CRLF-RENDER-MANIFEST\", \"linux\": \"PASS\", \"windows_simulated\": \"FAIL\"}, {\"classification\": \"cross-platform\", \"id\": \"F-XP-BLANK-REGISTER-SHA256\", \"linux\": \"FAIL\", \"windows_simulated\": \"FAIL\"}]",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c isolate-LF-vs-CRLF-sha256 of fixtures/register.md",
+     "exit_code": 0,
+     "fingerprint": "caa11a2b880fc4dfe637759946aa37b7",
+     "method": "byte-compare",
+     "raw_output": "linux_raw==lf_norm; windows_sim_raw!=lf_norm for the three CRLF rows",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/command-center/validate.py:266",
+   "claim": "Empty provenance.register_sha256 still fails REACH-6 inside the same isolation, so a green CRLF table is not silent-setup.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0018/container.py # F-XP-BLANK-REGISTER-SHA256",
+     "exit_code": 0,
+     "fingerprint": "9864f6fa9ce0b013508887574776ffe4",
+     "method": "test-run",
+     "raw_output": "xp linux_container=FAIL classification=cross-platform",
+     "role": "source"
+    },
+    {
+     "command": "tools/command-center/validate.py:258",
+     "exit_code": 0,
+     "fingerprint": "2fe2d0501b5a93ac422292a26c9630ee",
+     "method": "file-read",
+     "raw_output": "provenance.register_sha256 is missing or empty -- the snapshot digest check cannot run",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0018/probe1_container_sees_failure.py",
+    "id": "probe1"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0018/probe2_crlf_windows_only.py",
+    "id": "probe2"
+   }
+  ],
+  "notes": "G-1 for CNF-0018. Did not run global unit_manifest.py --write. No git checkout. No ADV rebuild."
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0018",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0018/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "description": "Dropping known_failure_reproduced while keeping state=SUCCESS is the overclaim control probe2 flips.",
+   "fired_on_bad_state": true,
+   "id": "NC-MUTANT-DROP-KNOWN-FAILURE",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Blank register_sha256 must FAIL REACH-6 in the container (both-states: good LF register is silent on that check).",
+   "fired_on_bad_state": true,
+   "id": "NC-XP-BLANK-DIGEST",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-linux",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "report": {
+  "baseline_source": {
+   "declared_input": "command-center/BASELINE-SNAPSHOT.json",
+   "present": true,
+   "reconstruction": "File absent. Eight Phase 0 failures named in catalog BLD-0024 (three Windows-CRLF, four sibling TDD red, one POSIX-only). The three CRLF detectors are the live validate.py REACH-6, seed.py provenance, and render.py manifest hashers."
+  },
+  "checkout": {
+   "git_available": false,
+   "image_digest": "96d1c43f78a8510c8eb77a238dfa0c0d24c372402c58f49b45a5b5824022b6dd",
+   "reason": "worktree has no .git; sha is sha256 of the measured file set",
+   "sha": "6444e0fc75354254aed5440a5362a7ddaf7836332be76e61b13688b79d3f3755"
+  },
+  "claim_under_test": "The three Phase 0 CRLF-artefact failures are properties of Windows working-tree bytes (core.autocrlf), not of the code on an LF Linux checkout. A fourth, line-ending-independent failure must still go red in the container.",
+  "container": {
+   "docker_available": true,
+   "git_available": false,
+   "image_bytes": 102400,
+   "image_digest": "96d1c43f78a8510c8eb77a238dfa0c0d24c372402c58f49b45a5b5824022b6dd",
+   "kind": "unshare-user-pid+extracted-tar-image",
+   "modal_sandbox_available": false,
+   "note": "docker/podman/modal absent; isolation is a hashed tar image extracted into a throwaway root and executed under unshare user+pid when available",
+   "python": "3.12.3",
+   "uname": "Linux 6.18.33.2-microsoft-standard-WSL2 x86_64"
+  },
+  "control_ids": [
+   "T-KNOWN-FAILURE-NOT-SILENT-GREEN",
+   "NC-MUTANT-DROP-KNOWN-FAILURE",
+   "NC-XP-BLANK-DIGEST"
+  ],
+  "failures": [
+   {
+    "anchor": "tools/command-center/validate.py:225",
+    "classification": "Windows-only",
+    "detail": {
+     "baseline_detector": {
+      "crlf_count_windows_sim": 23,
+      "lf_normalised_sha256": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "linux_bytes": 1022,
+      "linux_pass": true,
+      "linux_raw_sha256": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "windows_sim_bytes": 1045,
+      "windows_sim_fail": true,
+      "windows_sim_raw_sha256": "22c5259d24a50fef986c245412f01b9065e8087996bba563e74aaf0bdf10376a"
+     },
+     "current_validate_lf_normalised": {
+      "linux_pass": true,
+      "linux_reach6": [],
+      "windows_sim_pass": true,
+      "windows_sim_reach6": []
+     }
+    },
+    "id": "F-CRLF-VALIDATE-REACH6",
+    "linux_container": {
+     "host": "linux-isolation",
+     "outcome": "PASS"
+    },
+    "title": "cc-validate REACH-6 hashed working-tree bytes (Windows autocrlf FAIL, Linux LF PASS)",
+    "windows_simulated": {
+     "method": "CRLF-materialised copy of identical logical text",
+     "outcome": "FAIL"
+    }
+   },
+   {
+    "anchor": "tools/command-center/seed.py:136",
+    "classification": "Windows-only",
+    "detail": {
+     "baseline_detector": {
+      "crlf_count_windows_sim": 23,
+      "lf_normalised_sha256": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "linux_bytes": 1022,
+      "linux_pass": true,
+      "linux_raw_sha256": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "windows_sim_bytes": 1045,
+      "windows_sim_fail": true,
+      "windows_sim_raw_sha256": "22c5259d24a50fef986c245412f01b9065e8087996bba563e74aaf0bdf10376a"
+     },
+     "current_seed_lf_normalised": {
+      "crlf_recorded": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "lf_recorded": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "linux_pass": true,
+      "want_lf": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "windows_sim_pass": true
+     }
+    },
+    "id": "F-CRLF-SEED-PROVENANCE",
+    "linux_container": {
+     "host": "linux-isolation",
+     "outcome": "PASS"
+    },
+    "title": "seed.py --force recorded a raw worktree digest validate.py could not satisfy on Windows",
+    "windows_simulated": {
+     "method": "CRLF-materialised copy of identical logical text",
+     "outcome": "FAIL"
+    }
+   },
+   {
+    "anchor": "tools/command-center/render.py:246",
+    "classification": "Windows-only",
+    "detail": {
+     "baseline_detector": {
+      "crlf_count_windows_sim": 23,
+      "lf_normalised_sha256": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "linux_bytes": 1022,
+      "linux_pass": true,
+      "linux_raw_sha256": "a3fb8af84fc3e6545e84ba54ba40095a8bfb4325c177f54b0805d94f8770dda9",
+      "windows_sim_bytes": 1045,
+      "windows_sim_fail": true,
+      "windows_sim_raw_sha256": "22c5259d24a50fef986c245412f01b9065e8087996bba563e74aaf0bdf10376a"
+     },
+     "current_render_lf_normalised": {
+      "linux_bytes": 37,
+      "linux_pass": true,
+      "linux_sha256": "e47f8eea2c372b0b4b1e44f198e99b3ce629ad150c737e6f3a85e2e3f3fd76ae",
+      "windows_sim_bytes": 37,
+      "windows_sim_pass": true,
+      "windows_sim_sha256": "e47f8eea2c372b0b4b1e44f198e99b3ce629ad150c737e6f3a85e2e3f3fd76ae"
+     }
+    },
+    "id": "F-CRLF-RENDER-MANIFEST",
+    "linux_container": {
+     "host": "linux-isolation",
+     "outcome": "PASS"
+    },
+    "title": "cc-render hashed working-tree bytes so a Windows manifest drifted on Linux CI",
+    "windows_simulated": {
+     "method": "CRLF-materialised copy of identical logical text",
+     "outcome": "FAIL"
+    }
+   },
+   {
+    "anchor": "tools/command-center/validate.py:266",
+    "classification": "cross-platform",
+    "detail": {
+     "blank_digest": {
+      "fired": true,
+      "linux_fail": true,
+      "reach6": [
+       {
+        "check": "REACH-6",
+        "detail": "provenance.register_sha256 is missing or empty -- the snapshot digest check cannot run, so REACH-6 fails closed",
+        "id": "-"
+       }
+      ],
+      "windows_sim_fail": true
+     }
+    },
+    "id": "F-XP-BLANK-REGISTER-SHA256",
+    "linux_container": {
+     "host": "linux-isolation",
+     "outcome": "FAIL"
+    },
+    "title": "validate() fail-closes on empty provenance.register_sha256 (platform-independent)",
+    "windows_simulated": {
+     "method": "same validate() mutation; no EOL axis",
+     "outcome": "FAIL"
+    }
+   }
+  ],
+  "git_archive_not_run": "worktree has no .git; git archive / git cat-file were not available. The third CRLF artefact is cc-render's worktree hasher (render.py), the documented twin of REACH-6, not a git-archive byte-route (that is CNF-0019).",
+  "kind": "repro-report",
+  "known_failure_reproduced": true,
+  "observations": [
+   {
+    "anchor": "tools/command-center/validate.py:225",
+    "measured": "PASS",
+    "method": "hashed-tar-image + unshare-or-extracted-root running measure.py",
+    "name": "F-CRLF-VALIDATE-REACH6 linux_container"
+   },
+   {
+    "anchor": "tools/command-center/seed.py:136",
+    "measured": "PASS",
+    "method": "hashed-tar-image + unshare-or-extracted-root running measure.py",
+    "name": "F-CRLF-SEED-PROVENANCE linux_container"
+   },
+   {
+    "anchor": "tools/command-center/render.py:246",
+    "measured": "PASS",
+    "method": "hashed-tar-image + unshare-or-extracted-root running measure.py",
+    "name": "F-CRLF-RENDER-MANIFEST linux_container"
+   },
+   {
+    "anchor": "tools/command-center/validate.py:266",
+    "measured": "FAIL",
+    "method": "hashed-tar-image + unshare-or-extracted-root running measure.py",
+    "name": "F-XP-BLANK-REGISTER-SHA256 linux_container"
+   },
+   {
+    "anchor": "tools/command-center/validate.py:266",
+    "measured": true,
+    "method": "F-XP-BLANK-REGISTER-SHA256 must FAIL in the container",
+    "name": "known_failure_reproduced"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0018/container.py:build_image_tar",
+    "measured": "5b135ed4c582d406c452bb571633c892cf78b07d635029c9a890b040421b7d18",
+    "method": "sha256 of the disposable tar image of IMAGE_RELS",
+    "name": "image_digest"
+   }
+  ],
+  "output_path": "command-center/confirmation/CNF-0018-linux-container-repro.json",
+  "output_schema": "command-center/schema/repro-report.schema.json",
+  "per_failure_table": [
+   {
+    "classification": "Windows-only",
+    "id": "F-CRLF-VALIDATE-REACH6",
+    "linux": "PASS",
+    "windows_simulated": "FAIL"
+   },
+   {
+    "classification": "Windows-only",
+    "id": "F-CRLF-SEED-PROVENANCE",
+    "linux": "PASS",
+    "windows_simulated": "FAIL"
+   },
+   {
+    "classification": "Windows-only",
+    "id": "F-CRLF-RENDER-MANIFEST",
+    "linux": "PASS",
+    "windows_simulated": "FAIL"
+   },
+   {
+    "classification": "cross-platform",
+    "id": "F-XP-BLANK-REGISTER-SHA256",
+    "linux": "FAIL",
+    "windows_simulated": "FAIL"
+   }
+  ],
+  "question": "Is the baseline failure a property of the code or of Windows? Reproduce it inside a disposable Linux container checked out at the identical commit and report, per failure, whether it is cross-platform, Windows-only, or Linux-only. The three CRLF-artefact failures measured in the Phase 0 baseline are the specific hypothesis under test."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "command-center/BASELINE-SNAPSHOT.json is absent; the three CRLF ids are reconstructed from live detector comments.",
+   "settling_experiment": "Place BASELINE-SNAPSHOT.json in command-center/ and re-run the container measure against the snapshot ids.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "docker/podman/nerdctl/modal are absent; isolation is a hashed tar image plus unshare user+pid when available.",
+   "settling_experiment": "Re-run on a host with docker using the same IMAGE_RELS digest.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "one retry only when the failure classifies as environment-transient (429, DNS, disk, runner eviction); a logic or evidence failure is never retried, it is filed"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "probe2 re-reads the artifact and independently re-runs the container measure; it does not inherit emit.py's conclusion without checking image_digest, sentinel, schema, and the FAIL-on-known-failure control.",
+  "reviewer_id": "CNF-0018-probe2-crlf-windows-only",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0018 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the container reproduced at least one known failure, establishing it is not silently green for setup reasons. Any other terminal state is FAILED:CNF-0018 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0018",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0018/container.py",
+   "id": "T-CRLF-PASS-IN-CONTAINER",
+   "name": "the three suspected CRLF failures must PASS in the container if the CRLF hypothesis is right",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0018/container.py",
+   "id": "T-KNOWN-FAILURE-NOT-SILENT-GREEN",
+   "name": "at least one known cross-platform failure must FAIL in the container, proving the container can see failures at all",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T21:34:13Z",
+  "started_at": "2026-08-25T21:34:13Z"
+ },
+ "unit_id": "CNF-0018",
+ "container": {
+  "image_digest": "96d1c43f78a8510c8eb77a238dfa0c0d24c372402c58f49b45a5b5824022b6dd"
+ }
+}

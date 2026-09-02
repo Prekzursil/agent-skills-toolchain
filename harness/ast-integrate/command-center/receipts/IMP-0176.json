@@ -1,0 +1,280 @@
+{
+ "artifacts": [
+  {
+   "bytes": 5796,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0176/detect.py",
+   "role": "primary",
+   "sha256": "a232571c1ce41507aa2d79b88bf9177373c52b25aaa772be5e3c51a5effa6a9f"
+  },
+  {
+   "bytes": 3170,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0176/trees.py",
+   "role": "supporting",
+   "sha256": "8162df698814caf995a4d5cca5a3d8100a81ee48ecec39b53d03b2ca65eeaa3b"
+  },
+  {
+   "bytes": 4511,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0176/fixtures/components.json",
+   "role": "supporting",
+   "sha256": "6fa52c8f7c99014d19b9f215295e2bb20101678396f5f76dadb769e5bf9c4199"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0176.json",
+   "consumer": "json.loads catalog output_path",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c \"import json; json.load(open('command-center/receipts/IMP-0176.json')); print('json.loads ok')\"",
+    "exit_code": 0,
+    "fingerprint": "2b138e6059487c7a456e1e828d84af242aef31f722fb44978bc88ee84e05e49d",
+    "method": "schema-validate",
+    "raw_output": "json.loads ok",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0176/probe1_both_states.py",
+   "claim": "A synthetic contradictory pair is flagged: require-unanimity vs forbid-unanimity, and required-egress vs required-airgap.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0176/probe1_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "2e04b1b94599df811e99db9b029ce91550a717b77e0f629d43e48195f85d3e8d",
+     "method": "test-run",
+     "raw_output": "individual id=stop-unanimity-required valid=True hits={'stop': [], 'tool': []}\nindividual id=stop-unanimity-forbidden valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-egress-required valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-airgap-declared valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-unanimity-egress valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-forbid-airgap valid=True hits={'stop': [], 'tool': []}\nconflict_pair stop-unanimity-required vs stop-unanimity-forbidden conflict=True stop=[{'code': 'POLARITY', 'axis': 'stop.quorum', 'symbol': 'unanimity', 'left_polarity': 'require', 'right_polarity': 'forbid'}] tool=[]\nconflict_pair tool-egress-required vs tool-airgap-declared conflict=True stop=[] tool=[{'code': 'EXCLUSIVE', 'axis': 'tool.network', 'left_symbol': 'egress', 'right_symbol': 'airgap'}]\ncompatible_pair lookalike-prose-unanimity-egress vs lookalike-prose-forbid-airgap conflict=False stop=[] tool=[]\nprose_swap conflict_still=True lookalike_still_silent=True\nkeyword_control conflict_pair=False lookalike=True (lookalike must be True so the control can false-positive)\nfired_on_contradiction=['stop-unanimity-required|stop-unanimity-forbidden', 'tool-egress-required|tool-airgap-declared'] silent_on_lookalike=['lookalike-prose-unanimity-egress|lookalike-prose-forbid-airgap'] prose_independent=True keyword_false_positive=True\nSUCCESS:IMP-0176-probe1 contradictory flagged; look-alike not flagged",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0176/verify_pair.py",
+     "exit_code": 0,
+     "fingerprint": "74e2b9c2fb3963170efea00864eae6eb569933e40336bf666fd1fc060bb16363",
+     "method": "command",
+     "raw_output": "conflict=True lookalike=False\nSUCCESS:IMP-0176-verify-pair",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0176/probe2_ast.py",
+   "claim": "A superficially similar but compatible pair is NOT flagged, and detection reads stop_tree/tool_tree rather than prose (AST).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0176/probe2_ast.py",
+     "exit_code": 0,
+     "fingerprint": "577a7492ebac3c3ebffabe8fc010bfe7eae0c26fd05fa8c8d2a7818fc7c2b342",
+     "method": "static-analysis",
+     "raw_output": "ast detect.py keys=['axis', 'child', 'children', 'id', 'left_id', 'op', 'polarity', 'right_id', 'symbol', 'threshold', 'tree', 'weight']\nast trees.py keys=['axis', 'child', 'children', 'op', 'polarity', 'stop_tree', 'symbol', 'threshold', 'tool_tree', 'tree', 'weight']\nprose_key_reads=[]\ntree_keys_present=['axis', 'children', 'op', 'polarity', 'stop_tree', 'symbol', 'tool_tree']\ndescription_mutant same_verdict=True conflict=False\nast_no_prose_reads=True tree_fields_named=True no_regex=True description_mutant_silent=True\nSUCCESS:IMP-0176-probe2 AST assertion: trees, not prose",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0176/verify_ast.py",
+     "exit_code": 0,
+     "fingerprint": "dd501e36f6ab2cd64fc2cee8f278a76979b6563a8b91ceb62cde0db8323816be",
+     "method": "file-read",
+     "raw_output": "prose_key_reads=[]\nSUCCESS:IMP-0176-verify-ast",
+     "role": "verifier"
+    }
+   ],
+   "unverified": false,
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "implementation": {
+   "detector": "command-center/p2-wave/probes/IMP-0176/detect.py",
+   "method": "Walk ALL/ANY/NOT/WEIGHTED/ATOM to extract forced (axis, symbol, polarity) triples. POLARITY = require vs forbid on the same axis+symbol. EXCLUSIVE = two distinct required values on a closed axis (stop.quorum, tool.network). component_trees() reads only stop_tree and tool_tree.",
+   "tree_grammar": "command-center/p2-wave/probes/IMP-0176/trees.py"
+  },
+  "individual_validity": {
+   "lookalike-prose-forbid-airgap": {
+    "hits": {
+     "stop": [],
+     "tool": []
+    },
+    "valid": true
+   },
+   "lookalike-prose-unanimity-egress": {
+    "hits": {
+     "stop": [],
+     "tool": []
+    },
+    "valid": true
+   },
+   "stop-unanimity-forbidden": {
+    "hits": {
+     "stop": [],
+     "tool": []
+    },
+    "valid": true
+   },
+   "stop-unanimity-required": {
+    "hits": {
+     "stop": [],
+     "tool": []
+    },
+    "valid": true
+   },
+   "tool-airgap-declared": {
+    "hits": {
+     "stop": [],
+     "tool": []
+    },
+    "valid": true
+   },
+   "tool-egress-required": {
+    "hits": {
+     "stop": [],
+     "tool": []
+    },
+    "valid": true
+   }
+  },
+  "p2_deliver": {
+   "global_unit_manifest_write": false,
+   "named_probes_exit_0": true,
+   "per_unit_manifest": "command-center/p2-wave/probes/IMP-0176/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "pair_results": [
+   {
+    "got_conflict": true,
+    "left": "tool-egress-required",
+    "match": true,
+    "right": "tool-airgap-declared",
+    "stop": [],
+    "tool": [
+     {
+      "axis": "tool.network",
+      "code": "EXCLUSIVE",
+      "left_symbol": "egress",
+      "right_symbol": "airgap"
+     }
+    ],
+    "want_conflict": true
+   },
+   {
+    "got_conflict": true,
+    "left": "stop-unanimity-required",
+    "match": true,
+    "right": "stop-unanimity-forbidden",
+    "stop": [
+     {
+      "axis": "stop.quorum",
+      "code": "POLARITY",
+      "left_polarity": "require",
+      "right_polarity": "forbid",
+      "symbol": "unanimity"
+     }
+    ],
+    "tool": [],
+    "want_conflict": true
+   },
+   {
+    "got_conflict": false,
+    "left": "lookalike-prose-unanimity-egress",
+    "match": true,
+    "right": "lookalike-prose-forbid-airgap",
+    "stop": [],
+    "tool": [],
+    "want_conflict": false
+   }
+  ],
+  "title": "Implement component conflict detection (contradictory stop rules, incompatible tool policy)"
+ },
+ "manifest_registration": {
+  "entry_id": "IMP-0176",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0176/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T00:57:14Z"
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "individual id=stop-unanimity-required valid=True hits={'stop': [], 'tool': []}\nindividual id=stop-unanimity-forbidden valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-egress-required valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-airgap-declared valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-unanimity-egress valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-forbid-airgap valid=True hits={'stop': [], 'tool': []}\nconflict_pair stop-unanimity-required vs stop-unanimity-forbidden conflict=True stop=[{'code': 'POLARITY', 'axis': 'stop.quorum', 'symbol': 'unanimity', 'left_polarity': 'require', 'right_polarity': 'forbid'}] tool=[]\nconflict_pair tool-egress-required vs tool-airgap-declared conflict=True stop=[] tool=[{'code': 'EXCLUSIVE', 'axis': 'tool.network', 'left_symbol': 'egress', 'right_symbol': 'airgap'}]\ncompatible_pair lookalike-prose-unanimity-egress vs lookalike-prose-forbid-airgap conflict=False stop=[] tool=[]\nprose_swap conflict_still=True lookalike_still_silent=True\nkeyword_control conflict_pair=False lookalike=True (lookalike must be True so the control can false-positive)\nfired_on_contradiction=['stop-unanimity-required|stop-unanimity-forbidden', 'tool-egress-required|tool-airgap-declared'] silent_on_lookalike=['lookalike-prose-unanimity-egress|lookalike-prose-forbid-airgap'] prose_independent=True keyword_false_positive=True\nSUCCESS:IMP-0176-probe1 contradictory flagged; look-alike not flagged",
+   "description": "Planted polarity/exclusive trees must fire; look-alike trees whose prose names unanimity/egress/air-gap must stay silent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "individual id=stop-unanimity-required valid=True hits={'stop': [], 'tool': []}\nindividual id=stop-unanimity-forbidden valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-egress-required valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-airgap-declared valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-unanimity-egress valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-forbid-airgap valid=True hits={'stop': [], 'tool': []}\nconflict_pair stop-unanimity-required vs stop-unanimity-forbidden conflict=True stop=[{'code': 'POLARITY', 'axis': 'stop.quorum', 'symbol': 'unanimity', 'left_polarity': 'require', 'right_polarity': 'forbid'}] tool=[]\nconflict_pair tool-egress-required vs tool-airgap-declared conflict=True stop=[] tool=[{'code': 'EXCLUSIVE', 'axis': 'tool.network', 'left_symbol': 'egress', 'right_symbol': 'airgap'}]\ncompatible_pair lookalike-prose-unanimity-egress vs lookalike-prose-forbid-airgap conflict=False stop=[] tool=[]\nprose_swap conflict_still=True lookalike_still_silent=True\nkeyword_control conflict_pair=False lookalike=True (lookalike must be True so the control can false-positive)\nfired_on_contradiction=['stop-unanimity-required|stop-unanimity-forbidden', 'tool-egress-required|tool-airgap-declared'] silent_on_lookalike=['lookalike-prose-unanimity-egress|lookalike-prose-forbid-airgap'] prose_independent=True keyword_false_positive=True\nSUCCESS:IMP-0176-probe1 contradictory flagged; look-alike not flagged",
+   "id": "NC-planted-conflict-vs-lookalike",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "keyword_control lookalike=True",
+   "description": "A description-keyword matcher false-positives the look-alike; the tree detector does not. Prose swap leaves structural verdicts.",
+   "fired_on_bad_state": true,
+   "good_state_output": "structural lookalike conflict=False",
+   "id": "NC-keyword-false-positive",
+   "kind": "adversarial-payload",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-local-p2-deliver",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Catalog depends on IMP-0166 and IMP-0175 receipts; those catalog output_path files are absent on this worktree. This unit ships the predicate-tree grammar it consumes (trees.py) rather than reading missing receipts.",
+   "settling_experiment": "Deliver IMP-0166 and IMP-0175 on this worktree, then re-bind detect.py to their live grammar if the on-disk shapes differ.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot - after the second failure on the same error fingerprint, enumerate >=2 alternative approaches before a third attempt"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Mechanical AST walk of detect.py/trees.py plus a description-only mutant. Catalog named probe2 is the independent tree-not-prose reviewer. This Linux session re-ran both named probes live. Global unit_manifest.py --write was not used.",
+  "reviewed_at": "2026-08-25T00:57:14Z",
+  "reviewer_id": "IMP-0176-probe2-ast-tree-not-prose",
+  "vendor": "xai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0176",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:49008-49051",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 6,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0176/probe1_both_states.py",
+   "id": "T1-both-states",
+   "name": "contradictory pair flagged; compatible look-alike not flagged",
+   "output_tail": "individual id=stop-unanimity-required valid=True hits={'stop': [], 'tool': []}\nindividual id=stop-unanimity-forbidden valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-egress-required valid=True hits={'stop': [], 'tool': []}\nindividual id=tool-airgap-declared valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-unanimity-egress valid=True hits={'stop': [], 'tool': []}\nindividual id=lookalike-prose-forbid-airgap valid=True hits={'stop': [], 'tool': []}\nconflict_pair stop-unanimity-required vs stop-unanimity-forbidden conflict=True stop=[{'code': 'POLARITY', 'axis': 'stop.quorum', 'symbol': 'unanimity', 'left_polarity': 'require', 'right_polarity': 'forbid'}] tool=[]\nconflict_pair tool-egress-required vs tool-airgap-declared conflict=True stop=[] tool=[{'code': 'EXCLUSIVE', 'axis': 'tool.network', 'left_symbol': 'egress', 'right_symbol': 'airgap'}]\ncompatible_pair lookalike-prose-unanimity-egress vs lookalike-prose-forbid-airgap conflict=False stop=[] tool=[]\nprose_swap conflict_still=True lookalike_still_silent=True\nkeyword_control conflict_pair=False lookalike=True (lookalike must be True so the control can false-positive)\nfired_on_contradiction=['stop-unanimity-required|stop-unanimity-forbidden', 'tool-egress-required|tool-airgap-declared'] silent_on_lookalike=['lookalike-prose-unanimity-egress|lookalike-prose-forbid-airgap'] prose_independent=True keyword_false_positive=True\nSUCCESS:IMP-0176-probe1 contradictory flagged; look-alike not flagged",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0176/probe2_ast.py",
+   "id": "T2-ast-not-prose",
+   "name": "detection reads the predicate tree, not the prose",
+   "output_tail": "ast detect.py keys=['axis', 'child', 'children', 'id', 'left_id', 'op', 'polarity', 'right_id', 'symbol', 'threshold', 'tree', 'weight']\nast trees.py keys=['axis', 'child', 'children', 'op', 'polarity', 'stop_tree', 'symbol', 'threshold', 'tool_tree', 'tree', 'weight']\nprose_key_reads=[]\ntree_keys_present=['axis', 'children', 'op', 'polarity', 'stop_tree', 'symbol', 'tool_tree']\ndescription_mutant same_verdict=True conflict=False\nast_no_prose_reads=True tree_fields_named=True no_regex=True description_mutant_silent=True\nSUCCESS:IMP-0176-probe2 AST assertion: trees, not prose",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0.0,
+  "ended_at": "2026-08-25T00:57:14Z",
+  "started_at": "2026-08-25T00:57:14Z"
+ },
+ "unit_id": "IMP-0176"
+}

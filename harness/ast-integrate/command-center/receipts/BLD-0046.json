@@ -1,0 +1,485 @@
+{
+  "schema_version": 1,
+  "unit_id": "BLD-0046",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:BLD-0046",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:23024-23072",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "supply-chain-auditor",
+    "execution_substrate": "linux-p2-deliver"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/BLD-0046.json",
+      "bytes": 22728,
+      "sha256": "977d60cd1dc47da850a513a7a2bfb799e65008dc036315527ee95c1a1abcb8a8",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/decay-inventory.schema.json",
+      "bytes": 1048,
+      "sha256": "839b04c58457d26b2a079e6c6a8142fc64d7d551fcd640cb13b86de8ea98ca8b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/BLD-0046/inventory-snapshot.json",
+      "bytes": 7479,
+      "sha256": "ae3fcfe0307d20a8b201abb14406aab088e3ffb0f12968d1187e8fdb3b31317b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/BLD-0046/classify.py",
+      "bytes": 2279,
+      "sha256": "53d524929119d8f7479fc8bc5e32bf4ac6fa9e1f08e34b4a547869190a73d671",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/BLD-0046/inventory.py",
+      "bytes": 9432,
+      "sha256": "50a3c4912bb3f8fa9a554ec0c9509f3ce344d8038a10d39c71ba4101b6a69472",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/BLD-0046/fixtures/stored-osv-lodash-4.17.20.json",
+      "bytes": 283,
+      "sha256": "2fcdc00db1af6b9bd996e893b2140117785bc8c4ba24f09facb059f09b9fa4d2",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Re-querying https://api.osv.dev/v1/query for lodash@4.17.20 returns a GHSA set that differs from the stored fixture, so the advisory source is live rather than cached.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0046/fixtures/stored-osv-lodash-4.17.20.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "http",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe1_liveness.py",
+          "raw_output": "{\"endpoint\": \"https://api.osv.dev/v1/query\", \"live_ids\": [\"GHSA-29mw-wpgm-hmr9\", \"GHSA-35jh-r3h4-6jhm\", \"GHSA-f23m-r3pf-42rh\", \"GHSA-r5fr-rjxr-66jc\", \"GHSA-xxjr-mmjv-4gpg\"], \"package\": \"lodash\", \"pass\": true, \"probe\": \"probe1-liveness\", \"query_timestamp\": \"2026-08-25T00:57:51Z\", \"sets_differ\": true, \"stored_ids\": [\"GHSA-29mw-wpgm-hmr9\"], \"unit_id\": \"BLD-0046\", \"version\": \"4.17.20\"}\nstored=['GHSA-29mw-wpgm-hmr9'] live=['GHSA-29mw-wpgm-hmr9', 'GHSA-35jh-r3h4-6jhm', 'GHSA-f23m-r3pf-42rh', 'GHSA-r5fr-rjxr-66jc', 'GHSA-xxjr-mmjv-4gpg'] only_live=['GHSA-35jh-r3h4-6jhm', 'GHSA-f23m-r3pf-42rh', 'GHSA-r5fr-rjxr-66jc', 'GHSA-xxjr-mmjv-4gpg']\nSUCCESS:BLD-0046-probe1 live advisory set differs from stored",
+          "fingerprint": "d63cd7f36c37265c8f22d6641882d3a942b10002edd4300a298c2edc09af8f17",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python3 -c read fixtures/stored-osv-lodash-4.17.20.json and diff vuln_ids against live OSV ids",
+          "raw_output": "stored_ids=['GHSA-29mw-wpgm-hmr9'] live_ids=['GHSA-29mw-wpgm-hmr9', 'GHSA-35jh-r3h4-6jhm', 'GHSA-f23m-r3pf-42rh', 'GHSA-r5fr-rjxr-66jc', 'GHSA-xxjr-mmjv-4gpg'] sets_differ=True",
+          "fingerprint": "1b6d501e6d6564284351e58e89eac2f769712ec195e892d0fe5257d11bbbdccc",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "A missing scanner binary exits 127 and classifies TOOL-FAILURE, never CLEAN. quality/lint (ruff) has no live external input and is excluded from the decaying-green inventory.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0046/classify.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe2_controls.py",
+          "raw_output": "{\"exit_127\": {\"binary\": \"osv-scanner-not-installed-bld0046\", \"classification\": \"TOOL-FAILURE\", \"exit_code\": 127, \"not_clean\": true, \"pass\": true}, \"local_gate\": \"quality/lint\", \"local_gate_in_inventory\": false, \"pass\": true, \"probe\": \"probe2-controls\", \"undated_treated_as\": \"UNKNOWN\", \"unit_id\": \"BLD-0046\"}\nexit_127=127 class=TOOL-FAILURE excluded=quality/lint undated=quality/deps\nSUCCESS:BLD-0046-probe2 TOOL-FAILURE and local-gate exclusion",
+          "fingerprint": "8f9dcf2c5e8242a5531243f157bf8adc1b65fee0312270a120cc44a9c9e380ef",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python3 -c classify_scanner_exit(127) and LOCAL_CONTROL_GATE not in build_inventory()['entries']",
+          "raw_output": "exit_127=127 class=TOOL-FAILURE local_gate=quality/lint in_inventory=false excluded=7",
+          "fingerprint": "a3781448e4982d2b95f7cca8293281ee3580e9386bfed7c6b9aeaf4ad0e5704c",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "liveness",
+      "name": "Live OSV re-query differs from stored lodash advisory set",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe1_liveness.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "{\"endpoint\": \"https://api.osv.dev/v1/query\", \"live_ids\": [\"GHSA-29mw-wpgm-hmr9\", \"GHSA-35jh-r3h4-6jhm\", \"GHSA-f23m-r3pf-42rh\", \"GHSA-r5fr-rjxr-66jc\", \"GHSA-xxjr-mmjv-4gpg\"], \"package\": \"lodash\", \"pass\": true, \"probe\": \"probe1-liveness\", \"query_timestamp\": \"2026-08-25T00:57:51Z\", \"sets_differ\": true, \"stored_ids\": [\"GHSA-29mw-wpgm-hmr9\"], \"unit_id\": \"BLD-0046\", \"version\": \"4.17.20\"}\nstored=['GHSA-29mw-wpgm-hmr9'] live=['GHSA-29mw-wpgm-hmr9', 'GHSA-35jh-r3h4-6jhm', 'GHSA-f23m-r3pf-42rh', 'GHSA-r5fr-rjxr-66jc', 'GHSA-xxjr-mmjv-4gpg'] only_live=['GHSA-35jh-r3h4-6jhm', 'GHSA-f23m-r3pf-42rh', 'GHSA-r5fr-rjxr-66jc', 'GHSA-xxjr-mmjv-4gpg']\nSUCCESS:BLD-0046-probe1 live advisory set differs from stored"
+    },
+    {
+      "id": "exit-127",
+      "name": "Scanner exit 127 classifies TOOL-FAILURE never CLEAN",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe2_controls.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "{\"exit_127\": {\"binary\": \"osv-scanner-not-installed-bld0046\", \"classification\": \"TOOL-FAILURE\", \"exit_code\": 127, \"not_clean\": true, \"pass\": true}, \"local_gate\": \"quality/lint\", \"local_gate_in_inventory\": false, \"pass\": true, \"probe\": \"probe2-controls\", \"undated_treated_as\": \"UNKNOWN\", \"unit_id\": \"BLD-0046\"}\nexit_127=127 class=TOOL-FAILURE excluded=quality/lint undated=quality/deps\nSUCCESS:BLD-0046-probe2 TOOL-FAILURE and local-gate exclusion"
+    },
+    {
+      "id": "local-gate-excluded",
+      "name": "quality/lint ruff gate is absent from decaying inventory",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe2_controls.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "excluded=quality/lint in_inventory=false"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-missing-scanner-127",
+      "kind": "absent-input",
+      "description": "Invoking osv-scanner-not-installed-bld0046 must classify TOOL-FAILURE (bad). python3 --version remains a non-127 good-state process and is not folded into CLEAN-for-missing-tool.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "exit=127 class=TOOL-FAILURE",
+      "good_state_output": "classify_scanner_exit(0)=CLEAN"
+    },
+    {
+      "id": "NC-undated-green-unknown",
+      "kind": "known-broken-fixture",
+      "description": "A stored CLEAN with query_timestamp=null classifies UNDATED-GREEN / UNKNOWN, never PASS.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "control.undated-advisory-receipt=UNDATED-GREEN/UNKNOWN",
+      "good_state_output": "FRESH-STAMPED/WITHIN-TTL when timestamp is inside TTL"
+    },
+    {
+      "id": "NC-local-ruff-not-inventoried",
+      "kind": "known-broken-fixture",
+      "description": "quality/lint has no live external input; listing it in the decaying inventory is the bad state this control fires on.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "would list quality/lint in entries",
+      "good_state_output": "quality/lint present_in_inventory=false"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "BLD-0046-probe1-osv-requery",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Named probe1 re-queries api.osv.dev and diffs GHSA sets. Named probe2 exercises exit 127 and the local-gate exclusion. Catalog Anthropic-vendor human review is independent of G-1 probe-green.",
+    "reviewed_at": "2026-08-25T00:57:51Z"
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/BLD-0046/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "BLD-0046",
+    "registered_at": "2026-08-25T00:57:51Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/BLD-0046/emit.py:offline_validator",
+      "artifact_path": "command-center/receipts/BLD-0046.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 -B command-center/p2-wave/probes/BLD-0046/emit.py # offline Draft202012Validator against decay-inventory shim",
+        "raw_output": "schema_error_count=0",
+        "fingerprint": "62278fdbe8bd5094de6ff5e5639ea2e0d5bf935e60b80e552dd78e12be8f4cbd",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:50Z",
+    "ended_at": "2026-08-25T00:57:51Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Retry once on a transient network error with the error recorded; a second failure is reported NOT-CHECKED with the endpoint named, never folded into a pass.",
+    "attempts": [
+      {
+        "attempt": 1,
+        "outcome": "SUCCESS",
+        "started_at": "2026-08-25T00:57:50Z"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "GitHub Actions created_at for cited run ids may be NOT-CHECKED when api.github.com refuses an unauthenticated lookup; those rows stay UNDATED-GREEN / UNKNOWN.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run github_run() with a repo-scoped token and reclassify rows whose created_at then parses."
+    }
+  ],
+  "report": {
+    "kind": "decay-inventory",
+    "observations": [
+      {
+        "name": "live_source_entry_count",
+        "measured": 7,
+        "method": "AUD-0041 YAML inventory plus BLD-0046 control fixtures",
+        "anchor": "command-center/p2-wave/probes/BLD-0046/inventory-snapshot.json"
+      },
+      {
+        "name": "decaying_stored_green_count",
+        "measured": 4,
+        "method": "TST-0235 max-age 86400s plus undated/invalidated fixtures",
+        "anchor": "command-center/p2-wave/probes/BLD-0046/inventory-snapshot.json"
+      },
+      {
+        "name": "undated_green_count",
+        "measured": 1,
+        "method": "classify_stored_green with missing timestamp",
+        "anchor": "command-center/p2-wave/probes/BLD-0046/inventory-snapshot.json"
+      },
+      {
+        "name": "excluded_local_gate_count",
+        "measured": 7,
+        "method": "LOCAL_MARKERS without LIVE_OVERRIDE",
+        "anchor": "command-center/p2-wave/probes/BLD-0046/inventory-snapshot.json"
+      },
+      {
+        "name": "live_osv_sets_differ",
+        "measured": true,
+        "method": "POST https://api.osv.dev/v1/query lodash@4.17.20",
+        "anchor": "https://api.osv.dev/v1/query"
+      },
+      {
+        "name": "exit_127_is_tool_failure",
+        "measured": true,
+        "method": "invoke missing osv-scanner-not-installed-bld0046",
+        "anchor": "command-center/p2-wave/probes/BLD-0046/scanner.py"
+      },
+      {
+        "name": "local_ruff_gate_in_inventory",
+        "measured": false,
+        "method": "build_inventory gate_id membership",
+        "anchor": "command-center/p2-wave/probes/BLD-0046/inventory-snapshot.json"
+      }
+    ],
+    "control_ids": [
+      "liveness-osv-requery",
+      "exit-127-tool-failure",
+      "local-gate-excluded"
+    ],
+    "question": "Which green result silently expires? Inventory every gate whose verdict depends on a live external input (advisory databases, marketplace indexes, package registries, model/vendor availability, quota state, network reachability). A last-week CI green is not a control for today.",
+    "question_answer": "As of 2026-08-25T00:57:51Z, 7 live-source gates/receipts were inventoried and 7 local gates were excluded. Decaying stored greens: 4 (UNDATED-GREEN=1, EXPIRED=2, INVALIDATED=1). Undated greens are UNKNOWN, never PASS. Stale/invalidated stored greens are NOT-CHECKED per TST-0235. Live OSV re-query of lodash@4.17.20 returned 5 GHSA ids versus stored ['GHSA-29mw-wpgm-hmr9']. Scanner exit 127 classifies TOOL-FAILURE. quality/lint is excluded. SUCCESS:BLD-0046",
+    "as_of": "2026-08-25T00:57:51Z",
+    "freshness_policy": {
+      "source_unit": "TST-0235",
+      "consumed_not_rebuilt": true,
+      "stale_stored_green_is": "NOT-CHECKED",
+      "max_age_seconds": 86400,
+      "undated_is": "UNDATED-GREEN",
+      "treated_as_when_undated": "UNKNOWN",
+      "retry_transient_once": true,
+      "second_failure_is": "NOT-CHECKED"
+    },
+    "classification_counts": {
+      "LIVE-NO-STORED-GREEN": 3,
+      "EXPIRED": 2,
+      "UNDATED-GREEN": 1,
+      "INVALIDATED": 1
+    },
+    "treated_as_counts": {
+      "NOT-APPLICABLE": 3,
+      "NOT-CHECKED": 3,
+      "UNKNOWN": 1
+    },
+    "entries": [
+      {
+        "gate_id": "autofix-models/draft-fix",
+        "live_input_class": "model-vendor-availability",
+        "endpoint": "https://models.github.ai",
+        "query_timestamp": null,
+        "max_age_seconds": 86400,
+        "classification": "LIVE-NO-STORED-GREEN",
+        "treated_as": "NOT-APPLICABLE",
+        "cited_as_green": false,
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+        "rationale": "Live-source gate is present in CI YAML; the Actions sample does not cite a stored green for this job."
+      },
+      {
+        "gate_id": "codex-runner/run",
+        "live_input_class": "model-vendor-availability",
+        "endpoint": "codex-cli-vendor-api",
+        "query_timestamp": null,
+        "max_age_seconds": 86400,
+        "classification": "LIVE-NO-STORED-GREEN",
+        "treated_as": "NOT-APPLICABLE",
+        "cited_as_green": false,
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+        "rationale": "Live-source gate is present in CI YAML; the Actions sample does not cite a stored green for this job."
+      },
+      {
+        "gate_id": "dependabot-auto-merge/auto-merge",
+        "live_input_class": "advisory-database",
+        "endpoint": "https://api.osv.dev/v1/query",
+        "query_timestamp": null,
+        "max_age_seconds": 86400,
+        "classification": "LIVE-NO-STORED-GREEN",
+        "treated_as": "NOT-APPLICABLE",
+        "cited_as_green": false,
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+        "rationale": "Live-source gate is present in CI YAML; the Actions sample does not cite a stored green for this job."
+      },
+      {
+        "gate_id": "quality/deps",
+        "live_input_class": "advisory-database",
+        "endpoint": "https://api.osv.dev/v1/query",
+        "query_timestamp": "2026-08-11T18:55:55Z",
+        "max_age_seconds": 86400,
+        "classification": "EXPIRED",
+        "treated_as": "NOT-CHECKED",
+        "cited_as_green": true,
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "rationale": "Cited CI success for a live-source gate; timestamp compared to TST-0235/AUD-0023 24h max-age. Stale stored green is NOT-CHECKED, never a pass.",
+        "stored_verdict": "success",
+        "run_id": 31525279780
+      },
+      {
+        "gate_id": "routing-benchmark/routing-benchmark",
+        "live_input_class": "model-vendor-availability",
+        "endpoint": "ollama-pull://SEMROUTER_EMBED_MODEL",
+        "query_timestamp": "2026-08-11T18:55:55Z",
+        "max_age_seconds": 86400,
+        "classification": "EXPIRED",
+        "treated_as": "NOT-CHECKED",
+        "cited_as_green": true,
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "rationale": "Cited CI success for a live-source gate; timestamp compared to TST-0235/AUD-0023 24h max-age. Stale stored green is NOT-CHECKED, never a pass.",
+        "stored_verdict": "success",
+        "run_id": 31525279795
+      },
+      {
+        "gate_id": "control.undated-advisory-receipt",
+        "live_input_class": "advisory-database",
+        "endpoint": "https://api.osv.dev/v1/query",
+        "query_timestamp": null,
+        "max_age_seconds": 86400,
+        "classification": "UNDATED-GREEN",
+        "treated_as": "UNKNOWN",
+        "cited_as_green": true,
+        "citation_path": "command-center/p2-wave/probes/BLD-0046/fixtures/undated-cited-green.json",
+        "rationale": "Control fixture: a stored green with no timestamp must classify UNDATED-GREEN / UNKNOWN.",
+        "stored_verdict": "CLEAN"
+      },
+      {
+        "gate_id": "control.invalidated-advisory-receipt",
+        "live_input_class": "advisory-database",
+        "endpoint": "https://api.osv.dev/v1/query",
+        "query_timestamp": "2026-01-15T00:00:00Z",
+        "max_age_seconds": 86400,
+        "classification": "INVALIDATED",
+        "treated_as": "NOT-CHECKED",
+        "cited_as_green": true,
+        "citation_path": "command-center/p2-wave/probes/BLD-0046/fixtures/invalidated-cited-green.json",
+        "rationale": "Control fixture: stored green produced before an input change that could invalidate it.",
+        "stored_verdict": "CLEAN"
+      }
+    ],
+    "excluded_local_gates": [
+      {
+        "gate_id": "no-runtime-junk/no-runtime-junk",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      },
+      {
+        "gate_id": "quality/lint",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      },
+      {
+        "gate_id": "quality/types",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      },
+      {
+        "gate_id": "quality/test-node",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      },
+      {
+        "gate_id": "quality/test-platform",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      },
+      {
+        "gate_id": "quality/sast",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      },
+      {
+        "gate_id": "quality/secrets",
+        "citation_path": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+        "why_excluded": "Verdict depends on repo bytes and a pinned local tool, not a live advisory, registry, marketplace, model, quota, or reachability source."
+      }
+    ],
+    "controls": {
+      "liveness": {
+        "endpoint": "https://api.osv.dev/v1/query",
+        "package": "lodash",
+        "version": "4.17.20",
+        "stored_ids": [
+          "GHSA-29mw-wpgm-hmr9"
+        ],
+        "live_ids": [
+          "GHSA-29mw-wpgm-hmr9",
+          "GHSA-35jh-r3h4-6jhm",
+          "GHSA-f23m-r3pf-42rh",
+          "GHSA-r5fr-rjxr-66jc",
+          "GHSA-xxjr-mmjv-4gpg"
+        ],
+        "sets_differ": true,
+        "query_timestamp": "2026-08-25T00:57:51Z",
+        "pass": true
+      },
+      "exit_127": {
+        "binary": "osv-scanner-not-installed-bld0046",
+        "exit_code": 127,
+        "classification": "TOOL-FAILURE",
+        "not_clean": true,
+        "pass": true
+      },
+      "local_gate_excluded": {
+        "gate_id": "quality/lint",
+        "present_in_inventory": false,
+        "pass": true
+      }
+    }
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "p2_deliver": true,
+    "title": "Decaying-green inventory: gates whose verdict depends on a live source",
+    "cloud_ok": false,
+    "unit_manifest_write": false,
+    "git_operations_invoked": false,
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "advisory-liveness",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe1_liveness.py"
+      },
+      {
+        "id": "probe2",
+        "role": "exit127-and-local-exclusion",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0046/probe2_controls.py"
+      }
+    ],
+    "completion_line": "UNIT-COMPLETE:BLD-0046"
+  }
+}

@@ -1,0 +1,136 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/WFA-0099/audit-report.schema.json",
+  "title": "WFA-0099 AuditReport (collapse trail)",
+  "description": "Discriminating AuditReport for reversible collapse trails. Empty objects and BLOCKED stubs must fail. The WFA schema pack (WFA-0001) is absent; this local schema is the live checker.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "trail_records",
+    "restore_rehearsals",
+    "schema_validation",
+    "append_only",
+    "entry_point",
+    "tests",
+    "reviewer",
+    "catalog_tests_required",
+    "evidence_requirement",
+    "named_probes"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "WFA-0099" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "pattern": "^SUCCESS:WFA-0099" },
+    "report_kind": { "type": "string", "const": "collapse-audit-trail" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "trail_records": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "object", "required": ["surviving_id", "absorbed_ids", "primary_signal", "pre_records", "preserved_union", "event_hash"] }
+    },
+    "restore_rehearsals": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "primary_signal",
+          "surviving_id",
+          "absorbed_ids",
+          "equal",
+          "pre_sha256",
+          "restored_sha256"
+        ],
+        "properties": {
+          "primary_signal": {
+            "type": "string",
+            "enum": ["LEXICAL", "EMBEDDING", "STRUCTURAL"]
+          },
+          "surviving_id": { "type": "string" },
+          "absorbed_ids": { "type": "array", "minItems": 1 },
+          "equal": { "type": "boolean", "const": true },
+          "pre_sha256": { "type": "object" },
+          "restored_sha256": { "type": "object" }
+        }
+      }
+    },
+    "schema_validation": {
+      "type": "object",
+      "required": ["trail_records_valid", "report_schema_rejects_garbage", "pack_status"],
+      "properties": {
+        "trail_records_valid": { "type": "boolean", "const": true },
+        "report_schema_rejects_garbage": { "type": "boolean", "const": true },
+        "pack_status": { "type": "string" }
+      }
+    },
+    "append_only": {
+      "type": "object",
+      "required": ["pass", "intact_ok", "rewrite_api_raised", "mutated_ok"],
+      "properties": {
+        "pass": { "type": "boolean", "const": true },
+        "intact_ok": { "type": "boolean", "const": true },
+        "rewrite_api_raised": { "type": "boolean", "const": true },
+        "mutated_ok": { "type": "boolean", "const": false }
+      }
+    },
+    "entry_point": {
+      "type": "object",
+      "required": ["pass", "direct_commit_raised", "silent_trail_raised"],
+      "properties": {
+        "pass": { "type": "boolean", "const": true },
+        "direct_commit_raised": { "type": "boolean", "const": true },
+        "silent_trail_raised": { "type": "boolean", "const": true }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 8 },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "catalog_tests_required": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "string" }
+    },
+    "evidence_requirement": { "type": "string", "minLength": 40 },
+    "named_probes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 16 }
+        }
+      }
+    }
+  }
+}

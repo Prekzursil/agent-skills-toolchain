@@ -1,0 +1,251 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": {
+  "atomic_crash_partials": 0,
+  "atomic_crash_trials": 100,
+  "control_crash_partials": 100,
+  "control_scan_detected": true,
+  "production_writers_atomic": true,
+  "summary": "Production publishers atomic_publish and child_atomic write a sibling tmp then os.replace; 100 SIGKILLs at seeded-random offsets left 0 readable partials at dest (classes={'old_complete': 100}). Planted non_atomic_publish and child_non_atomic are flagged by the AST scan and produced 100 readable partials under the same crash campaign. Catalog receipt itself is published with atomic_publish.",
+  "verdict": "YES"
+ },
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0146.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0146/writers.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0146/scan.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0146/crash.py",
+   "role": "supporting"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0146",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0146/probe1_static_scan.py",
+   "claim": "Static AST scan enumerates write sites; production is ATOMIC; planted non-atomic control is detected.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0146/probe2_crash_injection.py",
+   "claim": "100 SIGKILLs at randomized offsets: atomic dest never a partial; non-atomic control exposes partials (100).",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_requirement": {
+  "crash_injection": true,
+  "static_scan": true,
+  "two_independent_signals": true
+ },
+ "id": "TST-0146",
+ "measurements": {
+  "crash": {
+   "atomic_class_counts": {
+    "old_complete": 100
+   },
+   "atomic_partial_count": 0,
+   "atomic_ready": 100,
+   "control_class_counts": {
+    "partial": 100
+   },
+   "control_partial_count": 100,
+   "n_trials": 100,
+   "offsets_head": [
+    610,
+    636,
+    2617,
+    1408,
+    3228,
+    3371,
+    330,
+    715,
+    2373,
+    1219,
+    3743,
+    409
+   ],
+   "payload_len": 4096,
+   "seed": 146
+  },
+  "scan": {
+   "control": [
+    {
+     "calls": [
+      "Path",
+      "dest.parent.mkdir",
+      "dest.write_bytes"
+     ],
+     "class": "NON_ATOMIC",
+     "file": "writers.py",
+     "has_replace": false,
+     "has_tmp": false,
+     "inplace_writes": [
+      "dest.write_bytes"
+     ],
+     "name": "non_atomic_publish",
+     "open_modes": []
+    },
+    {
+     "calls": [
+      "Path",
+      "_write_chunks",
+      "dest.open",
+      "dest.parent.mkdir"
+     ],
+     "class": "NON_ATOMIC",
+     "file": "writers.py",
+     "has_replace": false,
+     "has_tmp": false,
+     "inplace_writes": [],
+     "name": "child_non_atomic",
+     "open_modes": [
+      "wb"
+     ]
+    }
+   ],
+   "emit": {
+    "calls": [
+     "Path",
+     "SystemExit",
+     "atomic_publish",
+     "datetime.now",
+     "encode",
+     "is_file",
+     "json.dumps",
+     "len",
+     "main",
+     "out_path.parent.mkdir",
+     "print",
+     "resolve",
+     "run_both",
+     "scan_emit_receipt",
+     "scan_writers",
+     "str",
+     "strftime",
+     "sys.path.insert"
+    ],
+    "file": "emit_receipt.py",
+    "imports": [
+     "N_TRIALS",
+     "Path",
+     "annotations",
+     "atomic_publish",
+     "datetime",
+     "run_both",
+     "scan_emit_receipt",
+     "scan_writers",
+     "timezone"
+    ],
+    "inplace_catalog_write": false,
+    "ok": true,
+    "uses_atomic_publish": true
+   },
+   "production": [
+    {
+     "calls": [
+      "Path",
+      "dest.parent.mkdir",
+      "fh.fileno",
+      "fh.flush",
+      "fh.write",
+      "os.fdopen",
+      "os.fsync",
+      "os.replace",
+      "str",
+      "tempfile.mkstemp",
+      "tmp.unlink"
+     ],
+     "class": "ATOMIC",
+     "file": "writers.py",
+     "has_replace": true,
+     "has_tmp": true,
+     "inplace_writes": [],
+     "name": "atomic_publish",
+     "open_modes": []
+    },
+    {
+     "calls": [
+      "Path",
+      "_write_chunks",
+      "dest.parent.mkdir",
+      "len",
+      "open",
+      "os.fdopen",
+      "os.fsync",
+      "os.replace",
+      "rf.fileno",
+      "rf.flush",
+      "rf.write",
+      "str",
+      "tempfile.mkstemp",
+      "time.sleep",
+      "tmp.unlink"
+     ],
+     "class": "ATOMIC",
+     "file": "writers.py",
+     "has_replace": true,
+     "has_tmp": true,
+     "inplace_writes": [],
+     "name": "child_atomic",
+     "open_modes": [
+      "w"
+     ]
+    }
+   ]
+  }
+ },
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/predicate_report",
+ "output_schema_present": true,
+ "question": "Do all writers publish via a temporary file plus atomic rename, so a crash cannot expose a partial artifact? Target: prove it two ways - a static scan of all write paths AND a crash-injection run that SIGKILLs the writer mid-write. PASS requires zero readable partial artifacts across 100 injected crashes.",
+ "report_kind": "predicate_report",
+ "reviewer": {
+  "independent": true,
+  "method": "Probe 2 crash-injects SIGKILL and classifies dest bytes; it does not consult the AST scan. Probe 1 does not run SIGKILL.",
+  "reviewer_id": "TST-0146-probe2-crash-injection",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:TST-0146",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "detail": "AST scan classifies atomic_publish/child_atomic as ATOMIC and the planted writers as NON_ATOMIC.",
+   "id": "detector-control",
+   "result": "PASS"
+  },
+  {
+   "detail": "100 SIGKILLs; atomic partials=0; control partials=100.",
+   "id": "crash-injection-100",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:04:26Z",
+  "started_at": "2026-08-25T01:04:26Z"
+ },
+ "title": "Every artifact writer publishes atomically (tmp + rename)",
+ "unit_id": "TST-0146",
+ "universe": {
+  "control_writers": [
+   "non_atomic_publish",
+   "child_non_atomic"
+  ],
+  "note": "Universe is the designated artifact publishers for this unit (writers.py production path + emit_receipt.py). Other units' emit_receipt.py files are out of scope for this harness.",
+  "production_writers": [
+   "atomic_publish",
+   "child_atomic"
+  ]
+ }
+}

@@ -1,0 +1,419 @@
+{
+  "fetched_at": "2026-08-24T18:00:00Z",
+  "program": {
+    "id": "ast-integrate-harness",
+    "improvement": "Harness-level: plugin/skill/hook/MCP actually load and run; confirmation predicates fail closed on missing artifacts; test runners execute FAIL_TO_PASS; not a weight-level capability bump.",
+    "surfaces": [
+      "plugin",
+      "skill",
+      "hook",
+      "mcp",
+      "confirmation_predicate",
+      "test_runner",
+      "patch_apply",
+      "tool_loop"
+    ],
+    "inputs_absent_on_clone": [
+      "command-center/sources/REGISTER.md",
+      "C:/Users/Prekzursil/.claude/harness-restore-20260806/05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md"
+    ]
+  },
+  "benchmarks": [
+    {
+      "id": "swe-bench",
+      "name": "SWE-bench",
+      "popular": true,
+      "environment_kind": "repo_issue_repair",
+      "improvement_id": "patch-apply-fail-to-pass-runner",
+      "measures": "Whether an agent can edit a real GitHub repository so that FAIL_TO_PASS tests start passing and PASS_TO_PASS tests stay green.",
+      "does_not_measure": "Raw next-token coding skill on a docstring (HumanEval) or knowledge QA; also does not isolate harness quality from retrieval quality unless the retriever is ablated.",
+      "contamination_status": "UNMEASURED as a detector with a false-positive rate. Authors' Table 7 date split is not a contamination test: Claude 2 oracle 4.87% before 2023 vs 4.23% after 2023.",
+      "saturation_status": "Not saturated in the introducing paper (best BM25 Claude 2 1.96%). Later public forks (Verified/Pro) are a different row.",
+      "strongest_caveat": "The 4.80% oracle figure (Table 18) uses gold-edited files; it is an upper bound on retrieval, not a claim that the harness is solved. GPT-4 oracle is a 25% subset.",
+      "claims": [
+        {
+          "id": "swe-bm25-claude2",
+          "arxiv": "2310.06770",
+          "doi": "10.48550/arXiv.2310.06770",
+          "permalink": "https://arxiv.org/abs/2310.06770",
+          "section": "Table 5 BM25 full SWE-bench % Resolved (prose in §5 still says 1.96%)",
+          "metric": "percent_resolved",
+          "effect_size": 1.97,
+          "effect_unit": "percent",
+          "effect_label": "Claude 2 BM25 resolve rate on full SWE-bench (Table 5)",
+          "baseline_value": 0.17,
+          "baseline_unit": "percent",
+          "baseline_label": "ChatGPT-3.5 BM25 resolve rate, same Table 5",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "swe-oracle-claude2",
+          "arxiv": "2310.06770",
+          "doi": "10.48550/arXiv.2310.06770",
+          "permalink": "https://arxiv.org/abs/2310.06770",
+          "section": "Section 5 citing Appendix Table 18",
+          "metric": "percent_resolved",
+          "effect_size": 4.8,
+          "effect_unit": "percent",
+          "effect_label": "Claude 2 oracle-retriever resolve rate (§5 / Table 18 4.80)",
+          "baseline_value": 1.96,
+          "baseline_unit": "percent",
+          "baseline_label": "Claude 2 BM25 resolve rate quoted in §5 (Table 2 13k is 1.96)",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "swe-date-split",
+          "arxiv": "2310.06770",
+          "doi": "10.48550/arXiv.2310.06770",
+          "permalink": "https://arxiv.org/abs/2310.06770",
+          "section": "Table 7 oracle retrieval, before vs after 2023",
+          "metric": "percent_resolved",
+          "effect_size": 4.23,
+          "effect_unit": "percent",
+          "effect_label": "Claude 2 oracle resolve rate on after-2023 issues",
+          "baseline_value": 4.87,
+          "baseline_unit": "percent",
+          "baseline_label": "Claude 2 oracle resolve rate on before-2023 issues",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "gaia",
+      "name": "GAIA",
+      "popular": true,
+      "environment_kind": "plugin_tool_assistant",
+      "improvement_id": "plugin-actually-invoked",
+      "measures": "Whether a general assistant can produce the exact short answer to a real-world question that needs tools (web, files, multimodal) across Level 1/2/3.",
+      "does_not_measure": "Long-horizon repo repair, GUI desktop use, or policy-constrained multi-turn customer-service state.",
+      "contamination_status": "Partially held-out: 300 of 466 answers withheld for the leaderboard. Not a measured canary-string contamination rate (UNMEASURED FP).",
+      "saturation_status": "Not saturated in the paper: GPT-4+plugins 15% overall vs human 92%; Level 3 is 0 for every model reported.",
+      "strongest_caveat": "The plugins setting is 'set by humans' (table footnote): 30.3% Level 1 is an oracle-ish upper bound on tool help, not an automated plugin router.",
+      "claims": [
+        {
+          "id": "gaia-plugins-vs-human",
+          "arxiv": "2311.12983",
+          "doi": "10.48550/arXiv.2311.12983",
+          "permalink": "https://arxiv.org/abs/2311.12983",
+          "section": "Abstract (human 92% vs GPT-4 plugins 15%)",
+          "metric": "success_rate_percent",
+          "effect_size": 15,
+          "effect_unit": "percent",
+          "effect_label": "GPT-4 equipped with plugins overall success",
+          "baseline_value": 92,
+          "baseline_unit": "percent",
+          "baseline_label": "Human respondent overall success, same abstract",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "gaia-l1-plugins-vs-gpt4",
+          "arxiv": "2311.12983",
+          "doi": "10.48550/arXiv.2311.12983",
+          "permalink": "https://arxiv.org/abs/2311.12983",
+          "section": "Appendix table of per-level scores (Level 1 column)",
+          "metric": "success_rate_percent",
+          "effect_size": 30.3,
+          "effect_unit": "percent",
+          "effect_label": "GPT-4 + plugins Level 1 success (plugins set by humans)",
+          "baseline_value": 9.1,
+          "baseline_unit": "percent",
+          "baseline_label": "GPT-4 without plugins Level 1 success (9.1 ± 2.5)",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "gaia-l3-zero",
+          "arxiv": "2311.12983",
+          "doi": "10.48550/arXiv.2311.12983",
+          "permalink": "https://arxiv.org/abs/2311.12983",
+          "section": "Appendix per-level table, Level 3 column; also body '0% for the hardest'",
+          "metric": "success_rate_percent",
+          "effect_size": 0,
+          "effect_unit": "percent",
+          "effect_label": "GPT-4 + plugins Level 3 success",
+          "baseline_value": 87.3,
+          "baseline_unit": "percent",
+          "baseline_label": "Human annotator Level 3 success",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "tau-bench",
+      "name": "τ-bench",
+      "popular": true,
+      "environment_kind": "tool_api_policy",
+      "improvement_id": "tool-policy-pass-hat-k",
+      "measures": "Whether a tool-using agent can finish a user conversation so the database matches the annotated goal AND it follows domain policy, measured as pass^1 and reliability pass^k.",
+      "does_not_measure": "Repo patch quality, GUI grounding, or knowledge QA. User utterances are LM-simulated.",
+      "contamination_status": "Synthetic schema/API/tasks; not a public GitHub-issue dump. Contamination rate UNMEASURED (no canary study in the paper).",
+      "saturation_status": "Not saturated in the paper: gpt-4o function-calling 61.2% retail / 35.2% airline; pass^8 < 25% retail.",
+      "strongest_caveat": "pass^k uses LM-sampled user and agent turns; temperature 0.0 agent / 1.0 user. A harness that only lifts pass^1 can still be unreliable at pass^8.",
+      "claims": [
+        {
+          "id": "tau-gpt4o-retail",
+          "arxiv": "2406.12045",
+          "doi": "10.48550/arXiv.2406.12045",
+          "permalink": "https://arxiv.org/abs/2406.12045",
+          "section": "Table 2 function-calling pass^1, retail column",
+          "metric": "pass_hat_1_percent",
+          "effect_size": 61.2,
+          "effect_unit": "percent",
+          "effect_label": "gpt-4o function-calling pass^1 on τ-retail",
+          "baseline_value": 20.0,
+          "baseline_unit": "percent",
+          "baseline_label": "gpt-3.5-turbo pass^1 on τ-retail, Table 2",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "tau-gpt4o-airline",
+          "arxiv": "2406.12045",
+          "doi": "10.48550/arXiv.2406.12045",
+          "permalink": "https://arxiv.org/abs/2406.12045",
+          "section": "Table 2 function-calling pass^1, airline column; also § experiments text 35.2%",
+          "metric": "pass_hat_1_percent",
+          "effect_size": 35.2,
+          "effect_unit": "percent",
+          "effect_label": "gpt-4o function-calling pass^1 on τ-airline",
+          "baseline_value": 61.2,
+          "baseline_unit": "percent",
+          "baseline_label": "gpt-4o pass^1 on the easier τ-retail split, Table 2",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "tau-pass8-retail",
+          "arxiv": "2406.12045",
+          "doi": "10.48550/arXiv.2406.12045",
+          "permalink": "https://arxiv.org/abs/2406.12045",
+          "section": "Abstract and § 'Agent consistency via pass^k' / Figure 4 (retail)",
+          "metric": "pass_hat_8_percent",
+          "effect_size": 25,
+          "effect_unit": "percent",
+          "effect_label": "Upper bound stated as pass^8 < 25% on τ-retail for gpt-4o FC",
+          "baseline_value": 61.2,
+          "baseline_unit": "percent",
+          "baseline_label": "Same agent's pass^1 on τ-retail, Table 2 (61.2%)",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "agentbench",
+      "name": "AgentBench",
+      "popular": true,
+      "environment_kind": "shell_os_agent",
+      "improvement_id": "shell-hook-executes",
+      "measures": "LLM-as-agent success across eight interactive environments; the OS/DB slices measure shell and structured-tool interaction.",
+      "does_not_measure": "This program's confirmation predicate, plugin marketplace install, or GUI desktop use. Game/puzzle slices (DCG, LTP) are not harness-plugin tests.",
+      "contamination_status": "UNMEASURED. Environments are interactive simulators, not a static leaked test set, but no canary/FP study is reported.",
+      "saturation_status": "Not saturated in Table 3: gpt-4 overall 4.01 vs llama-2-70b 0.78; OS 42.4 vs 9.7.",
+      "strongest_caveat": "OA is a weighted average (Section 4.1), not a raw capability. Only the OS/DB slices are claimed as detectors for this program's hook/shell surface.",
+      "claims": [
+        {
+          "id": "agentbench-gpt4-oa",
+          "arxiv": "2308.03688",
+          "doi": "10.48550/arXiv.2308.03688",
+          "permalink": "https://arxiv.org/abs/2308.03688",
+          "section": "Table 3 test-set overall AgentBench score (OA)",
+          "metric": "overall_agentbench_score",
+          "effect_size": 4.01,
+          "effect_unit": "oa",
+          "effect_label": "gpt-4 0613 overall AgentBench score",
+          "baseline_value": 0.78,
+          "baseline_unit": "oa",
+          "baseline_label": "llama-2-70b chat OA, Table 3",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "agentbench-os",
+          "arxiv": "2308.03688",
+          "doi": "10.48550/arXiv.2308.03688",
+          "permalink": "https://arxiv.org/abs/2308.03688",
+          "section": "Table 3 OS column",
+          "metric": "os_success_percent",
+          "effect_size": 42.4,
+          "effect_unit": "percent",
+          "effect_label": "gpt-4 0613 OS environment score",
+          "baseline_value": 9.7,
+          "baseline_unit": "percent",
+          "baseline_label": "llama-2-70b chat OS score, Table 3",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "humaneval",
+      "name": "HumanEval",
+      "popular": true,
+      "environment_kind": "static_function_completion",
+      "improvement_id": null,
+      "measures": "Functional correctness of a Python function synthesized from a docstring, via pass@k unit tests.",
+      "does_not_measure": "Multi-file repo repair, tool/MCP invocation, plugin loading, hooks, or confirmation predicates.",
+      "contamination_status": "Subsequent literature treats HumanEval as contaminated for later models; the introducing paper does not report a contamination detector FP rate (UNMEASURED).",
+      "saturation_status": "Saturated as a frontier agent metric: it is a 164-problem function-completion set, not an agent harness eval.",
+      "strongest_caveat": "A popular coding number that is routinely cited as 'agent' performance. It is not. Codex-12B 28.81% pass@1 vs GPT-3 ~0% is a pretraining/finetune effect.",
+      "claims": [
+        {
+          "id": "humaneval-codex12b",
+          "arxiv": "2107.03374",
+          "doi": "10.48550/arXiv.2107.03374",
+          "permalink": "https://arxiv.org/abs/2107.03374",
+          "section": "Table 1 Codex-12B pass@1; abstract GPT-3 solves 0%",
+          "metric": "pass_at_1_percent",
+          "effect_size": 28.81,
+          "effect_unit": "percent",
+          "effect_label": "Codex-12B HumanEval pass@1",
+          "baseline_value": 0.0,
+          "baseline_unit": "percent",
+          "baseline_label": "GPT-3 HumanEval solve rate stated as 0% in the abstract",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "humaneval-codex12b-pass100",
+          "arxiv": "2107.03374",
+          "doi": "10.48550/arXiv.2107.03374",
+          "permalink": "https://arxiv.org/abs/2107.03374",
+          "section": "Table 1 Codex-12B pass@100",
+          "metric": "pass_at_100_percent",
+          "effect_size": 72.31,
+          "effect_unit": "percent",
+          "effect_label": "Codex-12B HumanEval pass@100",
+          "baseline_value": 28.81,
+          "baseline_unit": "percent",
+          "baseline_label": "Same model pass@1, Table 1",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "mmlu",
+      "name": "MMLU",
+      "popular": true,
+      "environment_kind": "static_knowledge_qa",
+      "improvement_id": null,
+      "measures": "Few-shot multiple-choice accuracy across 57 academic/professional subjects.",
+      "does_not_measure": "Tool use, repo editing, plugin loading, hooks, MCP, or any harness loop.",
+      "contamination_status": "Later work documents train-set leakage for many MMLU items; the introducing paper does not give a detector FP rate (UNMEASURED).",
+      "saturation_status": "Saturated as a frontier discriminator; original GPT-3 X-Large 43.9% vs chance 25% is a knowledge-scale result, not an agent result.",
+      "strongest_caveat": "Marking MMLU applicable would confuse model-weight gains with this program's harness work.",
+      "claims": [
+        {
+          "id": "mmlu-gpt3-xl",
+          "arxiv": "2009.03300",
+          "doi": "10.48550/arXiv.2009.03300",
+          "permalink": "https://arxiv.org/abs/2009.03300",
+          "section": "Table 1 GPT-3 X-Large few-shot average; body § Model Size and Accuracy",
+          "metric": "few_shot_accuracy_percent",
+          "effect_size": 43.9,
+          "effect_unit": "percent",
+          "effect_label": "GPT-3 175B few-shot weighted accuracy",
+          "baseline_value": 25.0,
+          "baseline_unit": "percent",
+          "baseline_label": "Random chance on four-way multiple choice",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "osworld",
+      "name": "OSWorld",
+      "popular": true,
+      "environment_kind": "gui_computer_use",
+      "improvement_id": null,
+      "measures": "Success rate of multimodal agents completing 369 open-ended tasks on a real Ubuntu/Windows/macOS desktop with screenshot and/or a11y-tree observations.",
+      "does_not_measure": "Plugin/hook/MCP loading in a CLI coding harness, confirmation predicates, or SWE-style patch tests.",
+      "contamination_status": "Tasks are interactive computer-use scripts, not a static exam. No canary FP rate is reported (UNMEASURED).",
+      "saturation_status": "Not saturated vs humans in the paper: GPT-4 a11y-tree 12.24% vs human 72.36%. Still inapplicable to THIS program.",
+      "strongest_caveat": "A popular agent benchmark that would detect GUI grounding and pyautogui loops this worktree does not implement.",
+      "claims": [
+        {
+          "id": "osworld-gpt4-a11y",
+          "arxiv": "2404.07972",
+          "doi": "10.48550/arXiv.2404.07972",
+          "permalink": "https://arxiv.org/abs/2404.07972",
+          "section": "Table 5 a11y-tree GPT-4 overall; §4.2",
+          "metric": "success_rate_percent",
+          "effect_size": 12.24,
+          "effect_unit": "percent",
+          "effect_label": "GPT-4 a11y-tree overall success on OSWorld",
+          "baseline_value": 72.36,
+          "baseline_unit": "percent",
+          "baseline_label": "Human overall success, Table 5 / §4.2",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "webarena",
+      "name": "WebArena",
+      "popular": true,
+      "environment_kind": "web_gui_nav",
+      "improvement_id": null,
+      "measures": "End-to-end success rate of a web agent following natural-language commands on realistic self-hosted sites.",
+      "does_not_measure": "This program's plugin/hook/MCP/confirmation surface. No WebArena browser environment ships here.",
+      "contamination_status": "Self-hosted sites reduce copy-paste of live web answers; no canary FP rate (UNMEASURED).",
+      "saturation_status": "Not saturated in the paper: best GPT-4 14.41% vs human 78.24% (Table 2). Still inapplicable to THIS program.",
+      "strongest_caveat": "Table 2's 14.41% is GPT-4 CoT without the unachievable-task hint; the CoT+UA-hint GPT-4 cell is 11.70%. Citing 14.41% without the human 78.24% would be E3.",
+      "claims": [
+        {
+          "id": "webarena-gpt4",
+          "arxiv": "2307.13854",
+          "doi": "10.48550/arXiv.2307.13854",
+          "permalink": "https://arxiv.org/abs/2307.13854",
+          "section": "Table 2 GPT-4 CoT without UA hint; abstract",
+          "metric": "success_rate_percent",
+          "effect_size": 14.41,
+          "effect_unit": "percent",
+          "effect_label": "GPT-4 CoT end-to-end success rate",
+          "baseline_value": 78.24,
+          "baseline_unit": "percent",
+          "baseline_label": "Human success rate, Table 2",
+          "headline_without_baseline": false
+        }
+      ]
+    },
+    {
+      "id": "swe-bench-verified-public",
+      "name": "SWE-bench Verified (public set)",
+      "popular": true,
+      "environment_kind": "public_saturated_repair",
+      "improvement_id": null,
+      "measures": "Intended: a 500-problem human-filtered subset of SWE-bench with fairer tests. In 2026 OpenAI stopped using it as a frontier signal.",
+      "does_not_measure": "Clean harness-level improvement on the public set: remaining failures mix broken tests and memorized gold patches.",
+      "contamination_status": "OpenAI 2026 blog: frontier models reproduced gold patches verbatim on some tasks. No numeric contamination rate is given (that claim is E3). Broken-test prevalence on the o3-fail audit is E2.",
+      "saturation_status": "OpenAI treats the public Verified set as no longer a frontier coding signal (Feb 2026 blog).",
+      "strongest_caveat": "The 59.4% figure is of 138 o3-fail problems (27.6% of 500), not of the whole set. It cannot be restated as '59.4% of SWE-bench Verified is broken'.",
+      "claims": [
+        {
+          "id": "swev-broken-tests",
+          "arxiv": null,
+          "doi": null,
+          "permalink": "https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/",
+          "section": "OpenAI 2026 blog: audit of 138 o3-fail Verified problems",
+          "metric": "percent_audited_with_flawed_tests",
+          "effect_size": 59.4,
+          "effect_unit": "percent",
+          "effect_label": "Share of 138 audited o3-fail problems with material test/description issues",
+          "baseline_value": 0.0,
+          "baseline_unit": "percent",
+          "baseline_label": "Assumed-fair tests (0% flawed) that Verified was created to provide",
+          "headline_without_baseline": false
+        },
+        {
+          "id": "swev-verbatim-gold",
+          "arxiv": null,
+          "doi": null,
+          "permalink": "https://openai.com/index/why-we-no-longer-evaluate-swe-bench-verified/",
+          "section": "OpenAI 2026 blog contamination paragraph (no rate table)",
+          "metric": "verbatim_gold_patch_reproduction",
+          "effect_size": null,
+          "effect_unit": null,
+          "effect_label": "Headline: every frontier model reproduced gold patches verbatim on some tasks",
+          "baseline_value": null,
+          "baseline_unit": null,
+          "baseline_label": null,
+          "headline_without_baseline": true
+        }
+      ]
+    }
+  ]
+}

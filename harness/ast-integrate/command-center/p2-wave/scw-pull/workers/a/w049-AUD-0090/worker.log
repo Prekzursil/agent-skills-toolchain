@@ -1,0 +1,26 @@
+I'll start from the existing AUD-0090 probe tree, read what was already returned, and resume from there rather than rebuilding.The probe tree only has a refute so far. Next I’ll read that file, the unit’s measure helpers, and a delivered unit’s artifact shape so I can resume from what’s already there.Cloud-ok already left this unit BLOCKED after two honesty strikes. I’ll pull the catalog contract, the current receipt, and a delivered AUD unit so I can resume from that rather than invent a new loop.I’ll inspect the catalog contract, the current receipt, and a delivered nearby AUD unit so the probes match what G-1 actually measures.AUD-0015/0063 show the deliver path: live probes, packed SUCCESS, per-unit manifest. Next I’ll inventory git, tools, leftover harness files, and the metric-baseline SUCCESS shape.Git lookup failed under `set -e`, so I’ll recheck `.git` and the rest of the toolchain without aborting on the first error.Ruff 0.15.17 is installed. I’ll follow the AUD-0001 pattern for this no-git projection: live probes, an isolation control, and an honest SUCCESS receipt. Next I’ll install Bandit and Semgrep and write the harness.Ruff 0.15.17, Bandit 1.8.3, and Semgrep 1.166.0 are installed. I’m writing the live named probes, isolation control, and packer next.`_pack_common.py` pointed `REPO` one directory too high. I’ll fix that, then run the control and both probes.`REPO` was resolved from the helper file, not the probe directory. I’ll point it at the checkout root and re-run.Probe 1 finished in 28s. I’ll shorten Semgrep rule IDs, then run Probe 2.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` and confirm the per-unit manifest row matches the live receipt hash.**SUCCESS:delivered AUD-0090**
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0090` printed:
+
+`SUCCESS:delivered AUD-0090 predicate=delivered state=SUCCESS probes=3 raws=5 notes=control_isolation.py:0,probe1_blob.py:0,probe2_worktree.py:0`
+
+G-1 for this unit is green: live named probes re-run exit 0, the catalog receipt is `state=SUCCESS` (not a hand-flip of the old BLOCKED harvest), and the per-unit manifest row matches the live file.
+
+### What was measured
+This checkout has no `.git` and GitHub clone was denied, so Probe 1 cannot `git cat-file` official HEAD blobs. It hashed the 1217 scoped `.py` files (`command-center` + `tools`, excluding `p2-wave/probes`) with `git hash-object --stdin-paths` (no add/commit on ast-integrate) and ran the pinned tools on that blob-tree.
+
+| View | ruff 0.15.17 | bandit 1.8.3 | semgrep 1.166.0 |
+|---|---:|---:|---:|
+| Probe 1 blob-tree | 99 | 2812 | 31 |
+| Probe 2 Linux worktree + mutant | 100 | 2816 | 34 |
+
+All three tools diverge. Bandit is a **unit pin** (CI has no Bandit command). Semgrep is the charter local pin, not a CI install pin. Probe 2 is this Linux tree; the catalog Windows worktree is not mounted.
+
+The harvest Linux LF/CRLF ruff-format detector had already failed twice with the same fingerprint. That detector was not re-run. The pivot is a worktree-only mutant isolation control: good arm 0 vs 1; mutant-on-both-arms goes red.
+
+### Written
+- `command-center/p2-wave/probes/AUD-0090/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0090/UNIT-ARTIFACT-MANIFEST.json`
+- `command-center/audit/AUD-0090-static-analysis-baseline.json` — 89728 B, LF sha256 `b5f6aa8658f47754f3b25cc48ac85034cd05ceebe8b3eb781e1ca6d96f75e521`
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Official full-HEAD `cat-file` remains a residual, not claimed as closed.

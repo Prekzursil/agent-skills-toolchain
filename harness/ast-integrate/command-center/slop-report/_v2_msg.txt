@@ -1,0 +1,59 @@
+test(slop): adversarial verification -- 20/20 probes re-executed, and the audit cites a residual that is not in the repo
+
+Round-2 BUILD and the CLEAN audit both hold. Every DoD item re-executed at the live
+HEAD rather than read, several by a wider method than either lane used.
+
+CONFIRMED by execution
+  D2 both states .... default rc 0 / PASS / quiet 0 · --sentinel legacy rc 1 / FAIL /
+                      quiet 7. Distinguished by exit code, not by one green run. If the
+                      fix were reverted the flag would not parse (argparse rc 2), so
+                      _r2_fix_verify still fails -- both directions covered.
+  gate @ HEAD ....... ruff check rc=0, format --check rc=0, 0 would-reformat, 6/6
+                      controls, 2402 tracked .py, 0 CRLF. The lane added no CI red.
+  commits ........... my own name-status loop over all 8 lane commits (6 builder + 2
+                      auditor): ancestors of HEAD, counts 6/8/29/10/4/2/15/6 exact,
+                      0 deletions, 0 foreign paths.
+  frozen ............ measured across the ENTIRE lane history (fa87d1a2~1..HEAD, both
+                      rounds) instead of 61e69cf2..HEAD: 0 commits touching, 0 diff,
+                      0 dirty, for casualty/probes (7) and p2-wave/probes (25).
+  suite ............. all 20 committed lane probes rc 0 from the committed state, with
+                      a runner control proving exit codes are observed (known-pass rc 0
+                      vs known-fail rc 1).
+  O2 is a property .. re-derived at a rev NEITHER lane measured: 305 - 45 + 6 = 266 =
+                      the measured widen blast radius. Residual 0. Not a one-rev fluke.
+  gitignore/ruff .... 45 tracked command-center/_*.py, 45 negation lines, 0 missing on
+                      disk, 0 tracked deletions anywhere in the worktree.
+  inherited round-1 . R12 re-run with a controlled matcher: 0 advver/M14 paths tracked
+                      or on disk (control finds 117 slop-report). R9: 13 empty dirs.
+
+FINDINGS, none blocking, none a defect in the builder's code
+  F1 the audit CONFIRMS "builder residual #6 (receipt drift)". SLOP-BUILD-R2.md has
+     exactly five numbered residuals and the phrase appears in zero lane .md files;
+     `git grep "residual #6" HEAD` hits ONLY _aud2_rot.py and _aud2_msg.txt -- the
+     auditor's own files. The quote came from an ephemeral handoff, so on a clone the
+     citation dangles. That is this lane's own round-1 finding, recursed one level. The
+     underlying property is real: _aud2_rot.py on a clean tree returns rc 0,
+     DRIFT-BENIGN-AND-DETECTOR-PROVEN. Fix is a sentence in the AUDIT, not in BUILD.
+  F2 "exactly 6 receipts dirty" is scoped to a six-probe list. The full 20-probe set
+     dirties 14, including 8 of the auditor's OWN receipts -- undisclosed, same benign
+     class.
+  F3 _aud2_dod34.py:89-93 computes `untouched` with no len(files)>0 guard, so a frozen
+     path that did not EXIST would report untouched. Latent, not live (both dirs exist);
+     the builder's _r2_frozen.py:81 has exactly that guard.
+  F4 A-O1 confirmed and grown: 208 @f009c680 -> 233 @2caafe53 -> 266 @1461850c. The
+     recommendation (do not widen) is unaffected and strengthens.
+
+MY OWN DETECTOR FAILURES (2), recorded rather than deleted
+  1. `Get-Content | Measure-Object -Line` said 275 lines while Select-String returned a
+     heading at line 326. Measure-Object -Line drops empty strings. A self-contradicting
+     output is a detector failure, not a finding; the file is 339 lines.
+  2. My runner ran 14 receipt-writing probes before _aud2_rot.py, whose precondition is a
+     clean tree. It returned PRECONDITION-FAILED-TREE-ALREADY-DIRTY rc 1 and I first read
+     that as "the suite does not reproduce". Restored the 15 paths (all clean at start, no
+     sibling commit had touched them) and re-ran clean -> rc 0. The probe failing closed
+     was correct; my ordering was the bug -- the same ambient-state rot the auditor
+     rebuilt that probe to avoid, now reproduced a third time, in the verifier.
+
+Committed rather than left on one disk, because this report cites them and the lane's
+own round-1 finding was exactly that class. Verified ruff-clean at the CI pin (0.15.17)
+BEFORE committing: `All checks passed!` / `1 file already formatted`.

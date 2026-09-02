@@ -1,0 +1,431 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p26-brainstorming-swarm",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Produce a wide, mechanically deduplicated option space by binding every seat to a DISTINCT lens and generating independently and simultaneously.",
+    "charter": "N seats each bound to a distinct lens generate with no critique; dedup and cluster mechanically; stop on unique-idea saturation, not on agreement.",
+    "risk_tier": "low",
+    "desired_output": "idea_set",
+    "success_criteria": [
+      "200 unique ideas survive mechanical deduplication",
+      "duplicate_ratio stays at or below 0.5 - above that the LENS LIST, not the seat count, is the constraint",
+      "pairwise idea-set Jaccard is reported per lens pair so lens collapse is visible"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "evidence_requirements": {
+      "citation_required": false,
+      "anchor_style": "any",
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "mixed",
+      "strategies": [
+        "expertise_ranked",
+        "model_diverse",
+        "vendor_diverse",
+        "stratified"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "elastic",
+      "min": 5,
+      "max": 24,
+      "elastic": {
+        "scale_on": [
+          "idea_starvation",
+          "workload"
+        ],
+        "step": 4,
+        "cooldown_rounds": 1
+      }
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_models": 2,
+      "min_distinct_expertise": 4,
+      "max_share_per_vendor": 0.6
+    },
+    "roster": [
+      {
+        "participant_id": "lens-mechanism",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "mechanism design"
+        ],
+        "context": {
+          "briefing": "Lens: novel MECHANISMS only. Do not critique, do not converge."
+        }
+      },
+      {
+        "participant_id": "lens-failure-mode",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "failure analysis"
+        ],
+        "context": {
+          "briefing": "Lens: FAILURE MODES that imply a new option. Do not critique peers."
+        }
+      },
+      {
+        "participant_id": "lens-prior-art",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "prior art",
+          "external literature"
+        ],
+        "source_access": [
+          "web",
+          "internal_docs"
+        ],
+        "context": {
+          "briefing": "Lens: PRIOR ART from outside this estate. Cite the external source."
+        }
+      },
+      {
+        "participant_id": "lens-constraint",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "operations research"
+        ],
+        "context": {
+          "briefing": "Lens: what becomes possible if ONE constraint is relaxed."
+        }
+      },
+      {
+        "participant_id": "dedup-clerk",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "verifier",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "taxonomy",
+          "mechanical deduplication"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "Deduplicate MECHANICALLY (normalised-text and set-overlap), never by opinion. Report pairwise idea-set Jaccard per lens pair."
+        }
+      }
+    ],
+    "role_templates": [
+      "proposer",
+      "verifier",
+      "custom:lens_owner"
+    ],
+    "anonymity": {
+      "mode": "pseudonymous"
+    },
+    "recruitment": {
+      "dynamic": true,
+      "triggers": [
+        "low_novelty",
+        "missing_expertise"
+      ],
+      "max_recruits": 12
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "prompt",
+        "expertise",
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "diverge",
+        "rounds": 4,
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 15,
+          "novel_ideas_per_round": 5
+        },
+        "exit_when": {
+          "any_of": [
+            {
+              "metric": "unique_ideas",
+              "op": ">=",
+              "value": 200
+            },
+            {
+              "metric": "no_new_idea_rounds",
+              "op": ">=",
+              "value": 2
+            }
+          ]
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "mechanical_dedup_and_lens_overlap_report",
+        "stage_id": "dedup",
+        "rounds": 1,
+        "participants": [
+          "dedup-clerk"
+        ],
+        "exit_when": {
+          "metric": "duplicate_ratio",
+          "op": "<=",
+          "value": 0.5
+        }
+      },
+      {
+        "kind": "nominal_group",
+        "stage_id": "cluster",
+        "rounds": 2
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "catalogue"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 900
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": false,
+      "steelman_before_rebuttal": false,
+      "rebuttal_required": false,
+      "cross_examination": false,
+      "declare_confidence": false,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "gentle"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "turns": 60,
+    "speaking_quota_per_participant": 6,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 2
+  },
+  "targets": {
+    "unique_ideas": 200,
+    "raw_ideas": 320,
+    "categories": 12,
+    "novelty_ratio": 0.6,
+    "diversity_index": 0.6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": {
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[unique_ideas >= 200, duplicate_ratio <= 0.5, no_new_idea_rounds >= 2, diversity_index >= 0.6]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unique_ideas",
+          "op": ">=",
+          "value": 200
+        },
+        {
+          "metric": "duplicate_ratio",
+          "op": "<=",
+          "value": 0.5
+        },
+        {
+          "metric": "no_new_idea_rounds",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "metric": "diversity_index",
+          "op": ">=",
+          "value": 0.6
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 4
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 120,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "no_decision",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "rotate_roles",
+      "narrow_scope",
+      "split_question"
+    ],
+    "escalation": {
+      "after_attempts": 3,
+      "to": "chair"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "echo_chamber",
+      "premature_convergence",
+      "participant_dominance",
+      "silence",
+      "weak_synthesis"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "recruit_independent_critic",
+      "role_rotation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "idea_ledger",
+      "idea_catalog",
+      "option_cards",
+      "transcript",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p26-brainstorming-swarm",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P26 brainstorming swarm (GENERATIVE)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:522",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:527",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:533",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:534"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P26 brainstorming-swarm"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (7 declared): (1) idea_count_gaming and (2) duplicate_novelty are gated by targets.dedup (trivial variants MERGE, they do not count) and by the duplicate_ratio <= 0.5 leaf in the stopping rule, so a run cannot buy termination with trivial variants; (3) echo_chamber and (4) premature_convergence are cut structurally - every seat is fresh_context, sees_peers_before_first_position is false, and critique is banned in the divergence stage; (5) participant_dominance is capped by speaking_quota_per_participant; (6) silence is caught by max_inactivity_rounds and min_engagement_turns; (7) weak_synthesis is answered by the mechanical dedup stage plus a required idea_catalog. FAST UNANIMITY in a DIVERGENCE phase means the lens list collapsed, not that the answer is right, so the response is forced_dissent + recruit_independent_critic + role_rotation. MECHANICAL, NOT LLM-JUDGED: dedup is a set/text algorithm per fan-out-contract C4 - on this estate LLM judgement on a mechanical comparison measured 86% accurate with 100% of errors pointing at data loss. UNVERIFIED: the 200-unique-idea target and the 0.5 duplicate_ratio ceiling are the card's numbers, not measurements of this lens list; the settling experiment is one real run reporting unique_ideas and duplicate_ratio with per-lens-pair Jaccard."
+  }
+}

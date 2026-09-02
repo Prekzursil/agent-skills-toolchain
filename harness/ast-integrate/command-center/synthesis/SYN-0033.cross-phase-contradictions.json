@@ -1,0 +1,329 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1057,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/contradiction-report.schema.json",
+   "role": "supporting",
+   "sha256": "8dcbbc9898d7bc91ecae339dff872f6fb740a2fff014c229949b183b3713cd5f"
+  },
+  {
+   "bytes": 15436,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/SYN-0033/sweep.py",
+   "role": "supporting",
+   "sha256": "d8e7d3d2bdff0a70ee79c9b1f62401342b39b832dd4e4a3e0b8c84aa53fb04e4"
+  },
+  {
+   "bytes": 1912,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/SYN-0033/schema_local.py",
+   "role": "supporting",
+   "sha256": "db7604fb3b461e8f6efeac3530e8421d18d4bb3174f7ab897cd3b7eb3da48b1a"
+  },
+  {
+   "bytes": 3660,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/SYN-0033/fixtures/planted/CLAIM-REGISTRY.json",
+   "role": "fixture",
+   "sha256": "dcb8757a8c05cf8d56aed99550d5f025a4c84626f1144e51f9e1ce1ddc328553"
+  },
+  {
+   "bytes": 428,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/SYN-0033/fixtures/planted/SYN-0011.adjudications.json",
+   "role": "fixture",
+   "sha256": "82c1df437cfed14397e06d4841a821703c83248eec8edb3e5dd12a29e5401713"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/synthesis/SYN-0033.cross-phase-contradictions.json",
+   "consumer": "command-center/p2-wave/probes/SYN-0033/schema_local.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c \"import schema_local as S, json; from pathlib import Path; print(S.errors_of(json.loads(Path('command-center/synthesis/SYN-0033.cross-phase-contradictions.json').read_text())))\"",
+    "exit_code": 0,
+    "fingerprint": "ba050a8452c416b0117fb62d4cb50c41",
+    "method": "schema-validate",
+    "raw_output": "in-process OfflineResolver errors_of before write",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/CLAIM-REGISTRY.json",
+   "claim": "Live CLAIM-REGISTRY present=True claims_loaded=12 phased=0 examined_pair_count=0 verdict=NOT-CHECKED.",
+   "probes": [
+    {
+     "command": "python3 -c \"from sweep import live_sweep, verdict_for; from pathlib import Path; r=live_sweep(Path('.').resolve()); print(verdict_for(r), r['examined_pair_count'])\"",
+     "exit_code": 0,
+     "fingerprint": "17521d501146f8cc9d8adf605278875b",
+     "method": "file-read",
+     "raw_output": "verdict=NOT-CHECKED examined=0 open=0 settled=0 claims=12",
+     "role": "source"
+    }
+   ],
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/SYN-0033/fixtures/planted/CLAIM-REGISTRY.json",
+   "claim": "Planted D-17 cross-phase pair is OPEN; intra-phase Feature-X is excluded; latency pair stays SETTLED; empty fixture examined=0 is NOT-CHECKED.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c \"import controls as C; print(C.all_controls()['ok'])\"",
+     "exit_code": 0,
+     "fingerprint": "1b16454734844f25f04a2a1c0bf97de5",
+     "method": "test-run",
+     "raw_output": "planted_open=['C-P10-MEASURE-D17::C-P2-RESEARCH-D17'] intra_skipped=['C-P5-IMPL-X::C-P5-IMPL-X-NEG'] settled=['C-P11-CONFIRMER-Y::C-P5-NOTE-Y'] empty_examined=0",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe1_planted_cross_phase.py",
+     "exit_code": 0,
+     "fingerprint": "c29ad7388b34195d51edc1b8bbd33ab6",
+     "method": "command",
+     "raw_output": "probe1 re-runs planted and intra-phase controls",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "cloud_ok": false,
+  "output_path": "command-center/synthesis/SYN-0033.cross-phase-contradictions.json",
+  "required_fix": null
+ },
+ "manifest_registration": {
+  "entry_id": "SYN-0033",
+  "manifest_path": "command-center/p2-wave/probes/SYN-0033/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 800,
+ "negative_controls": [
+  {
+   "bad_state_output": "['C-P10-MEASURE-D17::C-P2-RESEARCH-D17']",
+   "description": "Planted Phase-2 vs Phase-10 D-17 pair must be reported OPEN with a settling probe.",
+   "fired_on_bad_state": true,
+   "good_state_output": "empty_examined=0 verdict=NOT-CHECKED",
+   "id": "planted-cross-phase-open",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "['C-P5-IMPL-X::C-P5-IMPL-X-NEG']",
+   "description": "Same-phase Feature-X exclusive pair is Phase-1 dedup territory and must not appear in this sweep.",
+   "fired_on_bad_state": true,
+   "good_state_output": "scoped_differently_skipped=1",
+   "id": "intra-phase-not-double-reported",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "examined=0 verdict=NOT-CHECKED",
+   "description": "Empty registry must publish examined_pair_count=0 as NOT-CHECKED, never CONFIRMED absence.",
+   "fired_on_bad_state": true,
+   "good_state_output": "empty fixture is the known-good zero",
+   "id": "empty-registry-denominator",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "contradiction-analyst",
+  "vendor": "xai"
+ },
+ "profile": "contradiction-report",
+ "report": {
+  "answer": "NOT-CHECKED: the live registry loaded 12 claims but produced examined_pair_count=0 (phased=0, distinct_phases=0, unphased=12). A zero without cross-phase pairs is not CONFIRMED absence. SUCCESS:SYN-0033 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the examined-pair count is published and every open contradiction names a settling probe. Any other terminal state is FAILED:SYN-0033 <classification> with the diagnostic tail attached.",
+  "contradictions": [],
+  "control_ids": [
+   "planted-cross-phase-open",
+   "intra-phase-not-double-reported",
+   "empty-registry-denominator"
+  ],
+  "counts": {
+   "adjudication_pairs_loaded": 0,
+   "claims_loaded": 12,
+   "contradiction_count": 0,
+   "distinct_phase_count": 0,
+   "examined_pair_count": 0,
+   "intra_phase_exclusive_skipped": 0,
+   "intra_phase_pairs_excluded": 0,
+   "open_count": 0,
+   "phased_claim_count": 0,
+   "scoped_differently_skipped": 0,
+   "settled_count": 0,
+   "unphased_claim_count": 12
+  },
+  "examined_pair_count": 0,
+  "fixture_controls": {
+   "empty_examined": 0,
+   "empty_verdict": "NOT-CHECKED",
+   "intra_exclusive_skipped": [
+    "C-P5-IMPL-X::C-P5-IMPL-X-NEG"
+   ],
+   "intra_phase_pairs_excluded": 5,
+   "planted_examined": 23,
+   "planted_open_ids": [
+    "C-P10-MEASURE-D17::C-P2-RESEARCH-D17"
+   ],
+   "scoped_differently_skipped": 1,
+   "settled_ids": [
+    "C-P11-CONFIRMER-Y::C-P5-NOTE-Y"
+   ]
+  },
+  "inputs_on_disk": {
+   "adjudications": {
+    "path": "command-center/synthesis/SYN-0011.adjudications.json",
+    "present": false
+   },
+   "b08_phase10": {
+    "paths_checked": [
+     "command-center/receipts/B08.json",
+     "command-center/TEST-REGISTRY.json",
+     "command-center/phase10"
+    ],
+    "present": true
+   },
+   "b09_phase11": {
+    "paths_checked": [
+     "command-center/receipts/B09.json",
+     "command-center/confirmation/records",
+     "command-center/confirmation/B09"
+    ],
+    "present": false
+   },
+   "claim_registry": {
+    "path": "command-center/CLAIM-REGISTRY.json",
+    "present": true
+   }
+  },
+  "kind": "contradiction-report",
+  "live_adjudications_error": "absent",
+  "live_registry_error": null,
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe1_planted_cross_phase.py",
+    "id": "probe1"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe2_settled_and_honesty.py",
+    "id": "probe2"
+   }
+  ],
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/SYN-0033/sweep.py:sweep",
+    "measured": 0,
+    "method": "cross-phase-unordered-pairs",
+    "name": "examined_pair_count"
+   },
+   {
+    "anchor": "command-center/CLAIM-REGISTRY.json",
+    "measured": 12,
+    "method": "claim-registry-parse",
+    "name": "claims_loaded"
+   },
+   {
+    "anchor": "command-center/CLAIM-REGISTRY.json",
+    "measured": true,
+    "method": "stat",
+    "name": "registry_present"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/SYN-0033/fixtures/planted/CLAIM-REGISTRY.json",
+    "measured": true,
+    "method": "planted-fixture-sweep",
+    "name": "planted_open_detected"
+   }
+  ],
+  "open_contradictions_all_named_settling_probe": true,
+  "open_ids": [],
+  "pair_formula": "unordered pairs (i,j) among phased claims with phase(i) != phase(j); intra-phase pairs are excluded (Phase 1 dedup); unphased claims are counted separately and never enter the denominator",
+  "phases_seen": [],
+  "question": "Question: which claims from different phases contradict each other and were never reconciled -- a Phase 2 research finding versus a Phase 10 measurement, a Phase 5 implementation note versus a Phase 11 confirmer verdict? Target: apply the Phase 1 contradiction-edge schema ACROSS phase boundaries, which intra-phase dedup never sees, and route each surviving contradiction to raw-source adjudication.",
+  "settled_ids": [],
+  "title": "Cross-phase contradiction sweep: research versus test result versus confirmer verdict",
+  "verdict": "NOT-CHECKED"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Live CLAIM-REGISTRY.json rows CC-1..CC-12 carry no phase field (unphased=12), so they never enter the cross-phase pair denominator.",
+   "settling_experiment": "Add a phase field to each live claim (or a join from the producing unit's catalog phase) and re-run sweep.py.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "command-center/synthesis/SYN-0011.adjudications.json is absent (adjudications_error=absent).",
+   "settling_experiment": "Deliver SYN-0011 adjudications and re-join settled pairs before treating any live OPEN row as final.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the 2nd failure carrying the same error fingerprint, enumerate >=2 mechanically different approaches before any 3rd attempt"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe2 re-derives SETTLED-not-reopened, scoped-differently silence, empty-denominator, and live honesty from fixtures and disk before reading this conclusion.",
+  "reviewer_id": "SYN-0033-probe2-settled-not-reopened",
+  "vendor": "anthropic",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:SYN-0033 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the examined-pair count is published and every open contradiction names a settling probe. Any other terminal state is FAILED:SYN-0033 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:SYN-0033",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe1_planted_cross_phase.py",
+   "id": "T1-planted-cross-phase-detected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe1_planted_cross_phase.py",
+   "id": "T2-intra-phase-pairs-excluded",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe2_settled_and_honesty.py",
+   "id": "T3-already-adjudicated-SETTLED",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe2_settled_and_honesty.py",
+   "id": "T4-empty-zero-has-denominator",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0033/probe2_settled_and_honesty.py",
+   "id": "T5-scoped-differently-not-reported",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0.001361,
+  "ended_at": "2026-08-25T01:06:17Z",
+  "started_at": "2026-08-25T01:06:17Z"
+ },
+ "unit_id": "SYN-0033",
+ "verdict": "NOT-CHECKED",
+ "examined_pair_count": 0,
+ "open_count": 0,
+ "settled_count": 0,
+ "verdict_basis": "live sweep of command-center/CLAIM-REGISTRY.json: registry present but zero phased claims, so zero cross-phase pairs were examinable; zero examined pairs is published as NOT-CHECKED, never as a pass"
+}

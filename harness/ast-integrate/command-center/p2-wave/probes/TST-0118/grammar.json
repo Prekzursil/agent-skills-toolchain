@@ -1,0 +1,172 @@
+{
+  "$comment": "Committed grammar for TST-0118. Documents derived from these productions are syntactically valid; semantic hostility is expressed inside the productions (empty barrier awaits, omitted loop convergence, cyclic Ident refs, deep ref chains).",
+  "start": ["Library", "Manifest"],
+  "max_nesting": 8,
+  "ident_pattern": "^[a-z][a-z0-9-]{0,23}$",
+  "productions": {
+    "Ident": {
+      "type": "token",
+      "pattern": "^[a-z][a-z0-9-]{0,23}$"
+    },
+    "Library": {
+      "type": "object",
+      "required": ["kind", "workflows"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "workflow-library"},
+        "workflows": {
+          "type": "array",
+          "items": "Workflow",
+          "minItems": 1
+        }
+      }
+    },
+    "Workflow": {
+      "type": "object",
+      "required": ["id", "nodes"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "nodes": {
+          "type": "array",
+          "items": "Node",
+          "minItems": 1
+        },
+        "edges": {
+          "type": "array",
+          "items": "Edge"
+        }
+      }
+    },
+    "Node": {
+      "type": "oneOf",
+      "options": [
+        "UnitNode",
+        "SubworkflowNode",
+        "BarrierNode",
+        "LoopNode",
+        "FanoutNode",
+        "CheckpointNode",
+        "RetryNode",
+        "ResumeNode"
+      ]
+    },
+    "UnitNode": {
+      "type": "object",
+      "required": ["id", "type", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "unit"},
+        "body": {"type": "string", "minLength": 1}
+      }
+    },
+    "SubworkflowNode": {
+      "type": "object",
+      "required": ["id", "type", "ref"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "subworkflow"},
+        "ref": "Ident"
+      }
+    },
+    "BarrierNode": {
+      "type": "object",
+      "required": ["id", "type", "awaits"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "barrier"},
+        "awaits": {"type": "array", "items": "Ident"}
+      }
+    },
+    "LoopNode": {
+      "type": "object",
+      "required": ["id", "type", "body"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "loop"},
+        "body": "Ident",
+        "convergence": "Convergence"
+      }
+    },
+    "Convergence": {
+      "type": "object",
+      "required": ["rule"],
+      "additionalProperties": false,
+      "properties": {
+        "rule": {
+          "enum": ["all-complete", "any-complete", "quorum", "fixed-point"]
+        }
+      }
+    },
+    "FanoutNode": {
+      "type": "object",
+      "required": ["id", "type", "members"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "fanout"},
+        "members": {
+          "type": "array",
+          "items": "Ident",
+          "minItems": 1
+        }
+      }
+    },
+    "CheckpointNode": {
+      "type": "object",
+      "required": ["id", "type", "prompt"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "checkpoint"},
+        "prompt": {"type": "string", "minLength": 1}
+      }
+    },
+    "RetryNode": {
+      "type": "object",
+      "required": ["id", "type", "target", "max_attempts"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "retry"},
+        "target": "Ident",
+        "max_attempts": {"type": "integer", "minimum": 1}
+      }
+    },
+    "ResumeNode": {
+      "type": "object",
+      "required": ["id", "type", "checkpoint"],
+      "additionalProperties": false,
+      "properties": {
+        "id": "Ident",
+        "type": {"const": "resume"},
+        "checkpoint": "Ident"
+      }
+    },
+    "Edge": {
+      "type": "array",
+      "items": "Ident",
+      "minItems": 2,
+      "maxItems": 2
+    },
+    "Manifest": {
+      "type": "object",
+      "required": ["kind", "id", "permissions", "entry"],
+      "additionalProperties": false,
+      "properties": {
+        "kind": {"const": "component-manifest"},
+        "id": "Ident",
+        "permissions": {
+          "type": "array",
+          "items": "Ident",
+          "minItems": 1
+        },
+        "entry": "Ident"
+      }
+    }
+  }
+}

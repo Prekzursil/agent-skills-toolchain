@@ -1,0 +1,518 @@
+{
+ "unit_id": "CNF-0159",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0159",
+ "min_bytes_threshold": 2048,
+ "schema_version": 1,
+ "evidence": [
+  {
+   "claim": "CNF-0159 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/CNF-0159.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/CNF-0159.json",
+     "raw_output": "bytes=10080 sha256=63774efcbea318b2b2bcdd5c72a88e7abbc4f815cbcdb4c02e76d7ef642e2e69",
+     "fingerprint": "5a68fd0e814d69e8c428e2763b21d24e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0159",
+     "raw_output": "schema-check",
+     "fingerprint": "c2de0543f606c78fc303f2ab2db44c19",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0159 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0159",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0159",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "25f8bc46d2a48618aa4329f5974485d7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0159",
+     "raw_output": "schema-valid",
+     "fingerprint": "219c1d9188997b9548553538a2552edb",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CNF-0159.json",
+   "bytes": 10080,
+   "sha256": "63774efcbea318b2b2bcdd5c72a88e7abbc4f815cbcdb4c02e76d7ef642e2e69",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:CNF-0159",
+   "title": "Dispatch-integrity gate: reject fire-and-forget receipts before any digest is read",
+   "question_or_target": "Implementation target: a fan-in gate that runs BEFORE any confirmation digest is read and rejects (a) any result containing 'started in the background' or 'Check /codex:status', (b) any result whose contracted output file fails Test-Path, and (c) any result whose file is empty or unparsable. Measured precedent: 3 of 3 cross-vendor agents returned plausible digests for files that do not exist, and one agent's entire final answer was a background receipt whose real finding was discarded unread.",
+   "output_schema": "command-center/schema/confirmation-tooling-receipt.schema.json",
+   "implementation": {
+    "gate": "command-center/confirmation/dispatch_integrity/gate.py",
+    "pipeline": "command-center/confirmation/dispatch_integrity/pipeline.py",
+    "digest_reader": "command-center/confirmation/dispatch_integrity/digest_reader.py",
+    "ledger": "command-center/confirmation/dispatch_integrity/historical_ledger.jsonl",
+    "call_order": "fan_in calls evaluate_result, returns on reject, then calls read_digest",
+    "test_path_equivalent": "pathlib.Path.is_file (PowerShell Test-Path -PathType Leaf)",
+    "notes": "CNF-0154 dispatch records are absent on this worktree (present=False). The historical ledger freezes the catalog's measured precedent as JSONL and the gate is exercised on those rows. A reconstructed ledger is not a live CNF-0154 MCP transcript; it is the bad input the catalog names."
+   },
+   "checks_per_result": [
+    {
+     "source": "historical_ledger",
+     "ledger_id": "hist-fnf-001",
+     "kind": "fire-and-forget-background-receipt",
+     "accepted": false,
+     "rejected_by": "background_receipt",
+     "file_opened": false,
+     "digest_reader_invoked": false,
+     "checks": [
+      {
+       "name": "background_receipt",
+       "passed": false,
+       "skipped": false,
+       "detail": "markers=started in the background,Check /codex:status"
+      },
+      {
+       "name": "test_path",
+       "passed": false,
+       "skipped": true,
+       "detail": "skipped after background_receipt"
+      },
+      {
+       "name": "parseable",
+       "passed": false,
+       "skipped": true,
+       "detail": "skipped after background_receipt"
+      }
+     ]
+    },
+    {
+     "source": "historical_ledger",
+     "ledger_id": "hist-phantom-openai",
+     "kind": "plausible-digest-missing-file",
+     "accepted": false,
+     "rejected_by": "test_path",
+     "file_opened": false,
+     "digest_reader_invoked": false,
+     "checks": [
+      {
+       "name": "background_receipt",
+       "passed": true,
+       "skipped": false,
+       "detail": "no-background-markers"
+      },
+      {
+       "name": "test_path",
+       "passed": false,
+       "skipped": false,
+       "detail": "missing:/opt/p2/ast-integrate/command-center/receipts/CNF-0154.json"
+      },
+      {
+       "name": "parseable",
+       "passed": false,
+       "skipped": true,
+       "detail": "skipped: Test-Path failed (file not opened)"
+      }
+     ]
+    },
+    {
+     "source": "historical_ledger",
+     "ledger_id": "hist-phantom-anthropic",
+     "kind": "plausible-digest-missing-file",
+     "accepted": false,
+     "rejected_by": "test_path",
+     "file_opened": false,
+     "digest_reader_invoked": false,
+     "checks": [
+      {
+       "name": "background_receipt",
+       "passed": true,
+       "skipped": false,
+       "detail": "no-background-markers"
+      },
+      {
+       "name": "test_path",
+       "passed": false,
+       "skipped": false,
+       "detail": "missing:/opt/p2/ast-integrate/command-center/receipts/CNF-0154.json"
+      },
+      {
+       "name": "parseable",
+       "passed": false,
+       "skipped": true,
+       "detail": "skipped: Test-Path failed (file not opened)"
+      }
+     ]
+    },
+    {
+     "source": "historical_ledger",
+     "ledger_id": "hist-phantom-xai",
+     "kind": "plausible-digest-missing-file",
+     "accepted": false,
+     "rejected_by": "test_path",
+     "file_opened": false,
+     "digest_reader_invoked": false,
+     "checks": [
+      {
+       "name": "background_receipt",
+       "passed": true,
+       "skipped": false,
+       "detail": "no-background-markers"
+      },
+      {
+       "name": "test_path",
+       "passed": false,
+       "skipped": false,
+       "detail": "missing:/opt/p2/ast-integrate/command-center/receipts/CNF-0154.json"
+      },
+      {
+       "name": "parseable",
+       "passed": false,
+       "skipped": true,
+       "detail": "skipped: Test-Path failed (file not opened)"
+      }
+     ]
+    }
+   ],
+   "confirmation_output_census": {
+    "confirmation_units_with_output_path": 192,
+    "present_nonempty": 12,
+    "absent_or_empty": 180,
+    "cnf0154_contracted_path": "command-center/receipts/CNF-0154.json",
+    "cnf0154_present": false,
+    "sample_absent": [
+     "CNF-0001",
+     "CNF-0002",
+     "CNF-0003",
+     "CNF-0004",
+     "CNF-0005",
+     "CNF-0006",
+     "CNF-0007",
+     "CNF-0008",
+     "CNF-0009",
+     "CNF-0010",
+     "CNF-0011",
+     "CNF-0012"
+    ]
+   },
+   "tests_run": [
+    {
+     "id": "probe1-known-broken",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0159/probe1_known_broken.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "covers": [
+      "synthetic background receipt rejected",
+      "digest naming nonexistent path rejected before parse",
+      "historical fire-and-forget ledger row rejected",
+      "empty and unparsable files rejected by parseable"
+     ]
+    },
+    {
+     "id": "probe2-both-states-order",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0159/probe2_both_states_order.py",
+     "result": "PASS",
+     "exit_code": 0,
+     "covers": [
+      "valid result with real non-empty parsable file passes silently",
+      "AST call-order: gate before digest reader",
+      "reviewer plausible digest with no file refused"
+     ]
+    }
+   ],
+   "ts": "2026-08-25T00:56:34Z",
+   "SUCCESS:CNF-0159": true
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0159",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/CNF-0159.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0159/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0159"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/CNF-0159.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CNF-0159.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "8e68e34d1708d0a0e79448dd0f6bf68c",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "confirmation-tooling-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 10080,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/CNF-0159.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:CNF-0159",
+ "title": "Dispatch-integrity gate: reject fire-and-forget receipts before any digest is read",
+ "question_or_target": "Implementation target: a fan-in gate that runs BEFORE any confirmation digest is read and rejects (a) any result containing 'started in the background' or 'Check /codex:status', (b) any result whose contracted output file fails Test-Path, and (c) any result whose file is empty or unparsable. Measured precedent: 3 of 3 cross-vendor agents returned plausible digests for files that do not exist, and one agent's entire final answer was a background receipt whose real finding was discarded unread.",
+ "output_schema": "command-center/schema/confirmation-tooling-receipt.schema.json",
+ "implementation": {
+  "gate": "command-center/confirmation/dispatch_integrity/gate.py",
+  "pipeline": "command-center/confirmation/dispatch_integrity/pipeline.py",
+  "digest_reader": "command-center/confirmation/dispatch_integrity/digest_reader.py",
+  "ledger": "command-center/confirmation/dispatch_integrity/historical_ledger.jsonl",
+  "call_order": "fan_in calls evaluate_result, returns on reject, then calls read_digest",
+  "test_path_equivalent": "pathlib.Path.is_file (PowerShell Test-Path -PathType Leaf)",
+  "notes": "CNF-0154 dispatch records are absent on this worktree (present=False). The historical ledger freezes the catalog's measured precedent as JSONL and the gate is exercised on those rows. A reconstructed ledger is not a live CNF-0154 MCP transcript; it is the bad input the catalog names."
+ },
+ "checks_per_result": [
+  {
+   "source": "historical_ledger",
+   "ledger_id": "hist-fnf-001",
+   "kind": "fire-and-forget-background-receipt",
+   "accepted": false,
+   "rejected_by": "background_receipt",
+   "file_opened": false,
+   "digest_reader_invoked": false,
+   "checks": [
+    {
+     "name": "background_receipt",
+     "passed": false,
+     "skipped": false,
+     "detail": "markers=started in the background,Check /codex:status"
+    },
+    {
+     "name": "test_path",
+     "passed": false,
+     "skipped": true,
+     "detail": "skipped after background_receipt"
+    },
+    {
+     "name": "parseable",
+     "passed": false,
+     "skipped": true,
+     "detail": "skipped after background_receipt"
+    }
+   ]
+  },
+  {
+   "source": "historical_ledger",
+   "ledger_id": "hist-phantom-openai",
+   "kind": "plausible-digest-missing-file",
+   "accepted": false,
+   "rejected_by": "test_path",
+   "file_opened": false,
+   "digest_reader_invoked": false,
+   "checks": [
+    {
+     "name": "background_receipt",
+     "passed": true,
+     "skipped": false,
+     "detail": "no-background-markers"
+    },
+    {
+     "name": "test_path",
+     "passed": false,
+     "skipped": false,
+     "detail": "missing:/opt/p2/ast-integrate/command-center/receipts/CNF-0154.json"
+    },
+    {
+     "name": "parseable",
+     "passed": false,
+     "skipped": true,
+     "detail": "skipped: Test-Path failed (file not opened)"
+    }
+   ]
+  },
+  {
+   "source": "historical_ledger",
+   "ledger_id": "hist-phantom-anthropic",
+   "kind": "plausible-digest-missing-file",
+   "accepted": false,
+   "rejected_by": "test_path",
+   "file_opened": false,
+   "digest_reader_invoked": false,
+   "checks": [
+    {
+     "name": "background_receipt",
+     "passed": true,
+     "skipped": false,
+     "detail": "no-background-markers"
+    },
+    {
+     "name": "test_path",
+     "passed": false,
+     "skipped": false,
+     "detail": "missing:/opt/p2/ast-integrate/command-center/receipts/CNF-0154.json"
+    },
+    {
+     "name": "parseable",
+     "passed": false,
+     "skipped": true,
+     "detail": "skipped: Test-Path failed (file not opened)"
+    }
+   ]
+  },
+  {
+   "source": "historical_ledger",
+   "ledger_id": "hist-phantom-xai",
+   "kind": "plausible-digest-missing-file",
+   "accepted": false,
+   "rejected_by": "test_path",
+   "file_opened": false,
+   "digest_reader_invoked": false,
+   "checks": [
+    {
+     "name": "background_receipt",
+     "passed": true,
+     "skipped": false,
+     "detail": "no-background-markers"
+    },
+    {
+     "name": "test_path",
+     "passed": false,
+     "skipped": false,
+     "detail": "missing:/opt/p2/ast-integrate/command-center/receipts/CNF-0154.json"
+    },
+    {
+     "name": "parseable",
+     "passed": false,
+     "skipped": true,
+     "detail": "skipped: Test-Path failed (file not opened)"
+    }
+   ]
+  }
+ ],
+ "confirmation_output_census": {
+  "confirmation_units_with_output_path": 192,
+  "present_nonempty": 12,
+  "absent_or_empty": 180,
+  "cnf0154_contracted_path": "command-center/receipts/CNF-0154.json",
+  "cnf0154_present": false,
+  "sample_absent": [
+   "CNF-0001",
+   "CNF-0002",
+   "CNF-0003",
+   "CNF-0004",
+   "CNF-0005",
+   "CNF-0006",
+   "CNF-0007",
+   "CNF-0008",
+   "CNF-0009",
+   "CNF-0010",
+   "CNF-0011",
+   "CNF-0012"
+  ]
+ },
+ "tests_run": [
+  {
+   "id": "probe1-known-broken",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0159/probe1_known_broken.py",
+   "result": "PASS",
+   "exit_code": 0,
+   "covers": [
+    "synthetic background receipt rejected",
+    "digest naming nonexistent path rejected before parse",
+    "historical fire-and-forget ledger row rejected",
+    "empty and unparsable files rejected by parseable"
+   ]
+  },
+  {
+   "id": "probe2-both-states-order",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0159/probe2_both_states_order.py",
+   "result": "PASS",
+   "exit_code": 0,
+   "covers": [
+    "valid result with real non-empty parsable file passes silently",
+    "AST call-order: gate before digest reader",
+    "reviewer plausible digest with no file refused"
+   ]
+  }
+ ],
+ "ts": "2026-08-25T00:56:34Z",
+ "SUCCESS:CNF-0159": true
+}

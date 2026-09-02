@@ -1,0 +1,47 @@
+{
+  "id": "wf.engineering.migration-rehearsal",
+  "kind": "workflow_blueprint",
+  "title": "Migration rehearsal against a copy",
+  "discovery_only": false,
+  "example_id": "ex.migration.schema-v1-to-v2",
+  "preset_id": "preset.migration.copy-then-apply",
+  "stages": [
+    {
+      "id": "copy-production",
+      "kind": "rehearse-copy",
+      "inputs": ["production"],
+      "outputs": ["scratch"]
+    },
+    {
+      "id": "apply-on-copy",
+      "kind": "migrate",
+      "inputs": ["scratch"],
+      "outputs": ["scratch-migrated"]
+    },
+    {
+      "id": "verify-planted-user-data",
+      "kind": "hash-check",
+      "inputs": ["scratch-migrated", "planted-path"],
+      "outputs": ["rehearsal-receipt.json"]
+    }
+  ],
+  "stopping": {
+    "max_stages": 3,
+    "on_error": "halt",
+    "reject": "rehearsal-would-write-production"
+  },
+  "smoke_test": {
+    "id": "smoke.migration.rehearse",
+    "entry": "runner.smoke_migration"
+  },
+  "capability_vector": {
+    "taxonomy_id": "engineering-reliability.capability-taxonomy",
+    "taxonomy_version": "1.0.0",
+    "axes": {
+      "refactor.equivalence-argument": 0,
+      "migrate.rehearse-copy": 1,
+      "supply.advisory-decay": 0,
+      "vendor.canonical-roundtrip": 0
+    }
+  }
+}

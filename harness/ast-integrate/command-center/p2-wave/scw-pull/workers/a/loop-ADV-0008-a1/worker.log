@@ -1,0 +1,818 @@
+
+===== launch 2026-08-19T18:04:19Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and resume from its return artifact, then measure what still blocks G-1.Existing probe files are in place. Next I’ll read the return artifacts, handoff, and the delivery measurer so we resume instead of rebuilding.The tree already claims SUCCESS. I’ll re-run the live measure and inspect the artifact and probes instead of trusting that claim.I’ll measure the live unit and inspect the delivery predicate so we know whether the claimed SUCCESS still holds.Measure already printed `SUCCESS:delivered`. I’ll independently re-run the named probes and check the artifact, digest, and reviewer fields for honesty.G-1 already measures green. I’ll re-run the named probes and independently check schema, digest, and manifest hash before rewriting the return files.Live probes still exit 0 and the digest still matches. I’ll rewrite the per-unit return files from this session’s measurements, then re-run the delivery gate.**SUCCESS:delivered** for ADV-0008.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree on `/opt/p2/ast-integrate`. Did not scrap it. Named probes re-ran exit 0:
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 computed) |
+| `probe2_mutate.py` | reds=`M1,M2,M5-control,M6-control`; uncovered=`M3a,M3b,M4,M5,M6`; leftover=`[]`; M4 reached the detector |
+| `probe3_verifiers.py` | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib control present |
+
+Artifact is honest non-BLOCKED: `state=SUCCESS`, schema errors=0, self-digest matches, `ready_units.artifact_delivered=(True, delivered)`. Live LF sha256 `56082593d89dacc1448e95404b66290bce1be29efdf8d4fd15c070d11d5ba6ad`.
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (per-unit row only)
+
+Did not git-mutate, did not run `unit_manifest.py --write` on the global catalog, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. Did not park: G-1 is met; the 2026-08-16 c9+c11 pair is not a G-1 structural block. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T18:07:57Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and resume from SUBAGENT-RETURN, then drive this unit to a contract-green measurement.The probe tree is already there. Next I’ll read the handoff, return file, and the measure script so I resume the existing work instead of starting over.The return file already claims SUCCESS. I’ll re-read the artifact, delivery predicate, and probes, then re-run the live measure instead of trusting that claim.I’ll inspect the schema, probe builders, and a recently delivered sibling so this unit’s SUCCESS artifact stays honest and measure-green.I’ll extract the artifact’s SUCCESS-required fields, then re-run the three named probes so this session’s measure is live.The existing SUCCESS artifact looks schema-shaped. I’ll re-run the three named probes this session and then measure, instead of trusting the prior return file.Live probes re-confirmed the same findings. I’ll refresh the per-unit manifest, then run the delivery measure.**SUCCESS:delivered** ADV-0008
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0008` printed:
+
+`SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit only. The existing probe tree was resumed; probes were not scrapped.
+
+**This session re-ran the three named probes (all exit 0):**
+
+| Probe | Tail |
+|---|---|
+| `probe1_enumerate.py` | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| `probe2_mutate.py` | `SUCCESS:ADV-0008-probe2 reds=M1,M2,M5-control,M6-control uncovered=M3a,M3b,M4,M5,M6` leftover=`[]`, M4 reached the detector |
+| `probe3_verifiers.py` | `SUCCESS:ADV-0008-probe3` filesystem-walk needle silent + control fired; no `--collect-only`; importlib present |
+
+**Science (unchanged, re-proven on this Linux tree):** seven uncovered runner clauses (`C-INV2-DENIED-MCP-5`, `C-INV3J-JUNCTION-GATE`, `C-INV4a-COLLECTION-CROSSCHECK`, `C-INV4c-RATCHET`, `C-INV5-RESOLVABLE-OWNING-PROCESS`, `C-INV5-CONTROL-8812`, `C-INV6-FRONTMATTER-EACH-FILE`). Windows live-junction walk is NOT-CHECKED (quarantine absent). Subject is the portable reconstruction under `probes/ADV-0008/subject/`.
+
+**Artifact / registration**
+
+- Catalog output `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` is already honest `state=SUCCESS` (schema 0 errors, self-digest matches, 85243 B LF).
+- Live LF sha256: `56082593d89dacc1448e95404b66290bce1be29efdf8d4fd15c070d11d5ba6ad`
+- Per-unit `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` rewritten to that hash.
+- `SUBAGENT-RETURN.json` written for this session.
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park: G-1 uses the per-unit manifest and does not gate catalog vendor. No global `unit_manifest.py --write`, no git add/commit/push/stash/checkout/rebase, no key rotation, no finish-everything / cloud-ok relaunch. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T18:12:46Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the claim-verify-gate, then resume whatever is already built instead of rebuilding.Existing probe artifacts are in place. Next I’ll read the handoff, the current return files, and the measure script so I know what “delivered” actually requires.The return file already claims SUCCESS; I’ll re-measure it live and inspect the artifact plus `artifact_delivered` so I don’t take that claim on trust.I’ll run the live measure and named probes in parallel, and inspect the schema plus a delivered sibling so the SUCCESS path isn’t assumed.Measure already prints `SUCCESS:delivered`. I’ll independently re-run the named probes and check the artifact’s digest, schema, and reviewer fields so that SUCCESS isn’t just inherited.Measure is already green. I’ll now check whether this session’s probe outputs still match the artifact, and whether the digest, schema, and per-unit manifest still line up.The unit is already measure-green. I’ll re-run the three named probes this session, then write the return files and re-measure so the SUCCESS claim is from live output, not the previous return.Probes all exited 0 with the same science. I’ll write this session’s return files against the live artifact hash, then re-measure.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+ADV-0008 is G-1 contract-green on `/opt/p2/ast-integrate`. I resumed the existing probe tree and did not scrap it.
+
+This session re-ran the three named probes; all exited 0:
+
+- `probe1_enumerate.py` — `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed)
+- `probe2_mutate.py` — reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector
+- `probe3_verifiers.py` — filesystem-walk needle silent with control fired; no `--collect-only`; importlib control present
+
+The catalog artifact stayed honest `state=SUCCESS` (schema 0 errors, self-digest matches). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` at live LF sha256 `56082593d89dacc1448e95404b66290bce1be29efdf8d4fd15c070d11d5ba6ad`.
+
+I did not git-write, did not run `unit_manifest.py --write`, and did not treat cloud `ok=true` as delivery. Catalog Anthropic-opus review remains residual, not a G-1 gate.
+
+===== launch 2026-08-19T18:18:14Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and resume from `SUBAGENT-RETURN.json` rather than rebuilding. First I'm reading the unit files, the claim-verify-gate skill, and how delivery is measured.The probe tree is already there. Next I’ll read the return artifact, the per-unit manifest, the measurement script, and the handoff so I can resume from the last honest state.The return file already claims SUCCESS, so I’ll treat that as a hypothesis and re-check the artifact, G-1 rules, and live probes against the measure script.The on-disk SUCCESS claim may be stale: the artifact hash and the per-unit manifest hash already disagree. I’ll re-run the named probes, inspect the schema/self-digest, and measure delivery from live bytes.The artifact already claims SUCCESS; I’ll check reviewer/schema fields and run the live probes plus the measure so we don’t treat a stale return as delivery.Probes look runnable on Linux. I’m re-running the three named probes now and, in parallel, checking the packer/schema so we can rebuild the artifact from live output.All three named probes exited 0. Next I’ll read their live tails and pack an honest SUCCESS artifact plus the per-unit manifest from those results.Live probes match the science. I’ll pack a SUCCESS artifact from those results, correct the stale junction observation, and register the live hash in the per-unit manifest.**SUCCESS:delivered** ADV-0008.
+
+G-1 is met on this Linux worktree. Existing probes were resumed, not rebuilt from scratch.
+
+Live named probes (this session, all exit 0):
+- `probe1_enumerate.py` — mapped **0/19** TEST-REGISTRY ids
+- `probe2_mutate.py` — reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector
+- `probe3_verifiers.py` — V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib control present
+
+Honest non-BLOCKED artifact at `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json`:
+- `state=SUCCESS`, schema 0 errors, 12/12 mutant controls
+- live Windows quarantine junctions **NOT-CHECKED** (absent here), measured **0**
+- per-unit `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `9ac833eaf65fd30241f8f3fc80a614cd8f2022586ada6a2577317ee52f9cf8d9`
+
+Measure line:
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+No git add/commit/push, no global `unit_manifest.py --write`, no key rotation, no finish-everything relaunch. Catalog Anthropic-opus review remains a residual, not a G-1 gate. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T18:26:31Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact, and only then measure or write anything.The probe tree is already there. Next I’ll read the return artifacts, measure script, and a delivered sibling so I know the exact G-1 contract.Existing return already claims SUCCESS; I’ll re-run the live measure and inspect the probes and artifact so I don’t trust that claim.Measure already prints SUCCESS. I’ll check whether that SUCCESS is honest or a hand-flip, and whether two independent refutes share a structural block.Measure passed on disk; I’m checking whether SUCCESS is schema-honest (especially `independent`) and where G-1 actually lives.Previous G-1 packing is already on disk. I’ll re-run the named probes this session and only re-pack if live results diverge.I'll re-run the three named probes from this session, then re-pack the artifact so hashes match the live output.Live probes match the science. I’ll re-pack the receipt from this session’s probe files so the hashes and embedded output stay honest.Pack is consistent. Next I’ll run the delivery measure, then write this session’s return from that live line.**SUCCESS:delivered** for ADV-0008.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/` (did not scrap it). This session re-ran the three named probes; all exited 0:
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `mapped=0/19` (computed, not hardcoded) |
+| `probe2_mutate.py` | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector |
+| `probe3_verifiers.py` | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib control present |
+
+Packed an honest **SUCCESS** refutation-record from those live files (schema 0 errors, 12/12 mutant controls, self-digest matches). Per-unit manifest names catalog `output_path` with live LF sha256 `69acab61fbae56a0fe4a067c9ccb9750ddf792fb0dd85d9357949f241cb26041`.
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git add/commit/push/stash/checkout/rebase, did not run `unit_manifest.py --write` on the global catalog, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` was not used. Catalog Anthropic-opus review remains a residual, not a G-1 gate.
+
+===== launch 2026-08-19T18:30:53Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the claim-verify-gate skill, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return files, measure script, and handoff so I know what to resume.Existing files already claim SUCCESS; I’ll re-run the live probes and the delivery measure instead of trusting that claim.I’ll inspect G-1 requirements and the probe scripts, then re-run the live probes instead of trusting the previous SUCCESS claim.Artifact is already SUCCESS. I’ll re-run the three named probes live and recapture their raw output.Probes all exited 0 with the expected mapping and mutation matrix. Next I’ll pack the SUCCESS artifact and per-unit manifest from those live files.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` against the live hashes.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped. This session re-ran all three named probes (exit 0), packed an honest `SUCCESS` artifact from those live files, and registered the catalog output in the per-unit manifest.
+
+| Gate | Result |
+|---|---|
+| probe1 | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| probe2 | `reds=M1,M2,M5-control,M6-control` `uncovered=M3a,M3b,M4,M5,M6` leftover=`[]` M4 reached detector |
+| probe3 | filesystem-walk (this tree is not a git repo); needle silent + control fired; no `--collect-only` |
+| schema | 0 errors, 12/12 mutant controls fired, self-digest matches |
+| artifact | `state=SUCCESS`, not hand-flipped; packed after live probes |
+| per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` |
+
+Catalog output `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` is 87493 bytes LF, live sha256 `d9ed313cb36240e8778f21365ce18dc5a629e3719e307307a536bd968e139320`.
+
+Did not git-mutate, did not run `unit_manifest.py --write` on the global catalog, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` was not used. The 2026-08-16 c9+c11 pair is residual, not a G-1 park.
+
+===== launch 2026-08-19T18:34:17Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact if it's there, and resume from that instead of rebuilding.Existing probes and handoff files are in place. Next I’ll read the return artifact, the unit contract, and how delivery is judged.A prior return already claims SUCCESS. I’ll re-run the live probes and the delivery measure so we know whether that still holds.I'll pull the catalog row and current artifact, then run the live probes and the delivery measure.Measure already printed `SUCCESS:delivered`. I’ll re-run the named probes in this session and check the packed artifact still matches those live results.Live probe JSON still matches the pack contract. I’ll re-run the three named probes this session, then re-pack the artifact from those results.Measure printed `SUCCESS:delivered`. I’ll write this session’s return artifact and keep the per-unit manifest aligned with the packed bytes.**SUCCESS:delivered** ADV-0008.
+
+G-1 is green for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped.
+
+This session re-ran the three named probes; all exited 0:
+
+- `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY mappings, computed)
+- `SUCCESS:ADV-0008-probe2 reds=M1,M2,M5-control,M6-control uncovered=M3a,M3b,M4,M5,M6`
+- `SUCCESS:ADV-0008-probe3` (V1 needle silent + control fired; V3 no `--collect-only`, importlib present)
+
+Packed an honest `state=SUCCESS` artifact from those live files (schema 0 errors, 12/12 mutant controls, leftover junctions `[]`, M4 reached the detector). Per-unit manifest names the catalog `output_path` with live LF sha256 `7e57cc6bd7bfd68bb919e7e7343808f2b1058701570c2b3bd7c7cdd5d3fa276e`.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Science still holds: seven uncovered runner clauses (deniedMcpServers, INV-3.J gate, `--collect-only`, ratchet, OwningProcess, CTRL8812, per-file frontmatter). Windows live junctions remain NOT-CHECKED (quarantine absent here). Catalog Anthropic-opus review is residual, not a G-1 gate; the 2026-08-16 c9+c11 pair was not used to park.
+
+Did not git add/commit/push/stash/checkout/rebase, did not run `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T18:38:52Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact and unit contract, then resume only what's still needed for a G-1 contract-green delivery.Existing probe artifacts are in place. Next I’ll read the return files, measure contract, and unit brief so we resume from what’s already there.The return file already claims SUCCESS; I’ll re-run the measure and inspect `artifact_delivered` so we only keep that if it still holds.I’ll inspect the pack/status scripts and catalog schema, then re-run the live probes instead of trusting the prior SUCCESS claim.I’ll inspect the probe mapping logic, then re-run the three named probes live so this session’s evidence is real.The tree is not a git repo, so probe 3 will keep the filesystem walk. I’m re-running the three named probes from the existing scripts.All three probes exited 0. Next I’ll pack the SUCCESS artifact and per-unit manifest from this session’s live probe files.The packed artifact is SUCCESS with a matching per-unit manifest. I’ll run the live delivery measure next.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` with those live hashes and probe tails.**SUCCESS:delivered** ADV-0008. G-1 is contract-green on this Linux worktree.
+
+This session resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/` and did not scrap it. Live named probes all exited 0:
+
+| Probe | Tail |
+|---|---|
+| `probe1_enumerate.py` | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| `probe2_mutate.py` | `SUCCESS:ADV-0008-probe2 reds=M1,M2,M5-control,M6-control uncovered=M3a,M3b,M4,M5,M6` leftover=`[]`, M4 reached the detector |
+| `probe3_verifiers.py` | `SUCCESS:ADV-0008-probe3` (filesystem-walk, not a git repo; no `--collect-only`; importlib control present) |
+
+Packed an honest `state=SUCCESS` artifact from those live files (schema 0 errors, 12/12 mutant controls). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with live LF sha256 `e0490a2784663521118d47aa02aa848009ad83efea40996b825cd026575e4ac8`.
+
+Measure:
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Catalog Anthropic-opus review remains residual, not a G-1 gate. Did not git add/commit/push, did not run `unit_manifest.py --write` on the global catalog, and did not use `cloud ok=true`.
+
+===== launch 2026-08-19T18:50:58Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read any return artifact, and resume from what's already built rather than starting over.The probe tree is already populated. Next I’ll read the return artifacts, handoff, and measure script so I can resume from the current state.I'll run the live measure and inspect the artifact, probes, and `artifact_delivered` predicate so we know whether this unit is actually green.The measure already prints `SUCCESS:delivered`. I’ll re-run the named probes and check the artifact, schema, and `artifact_delivered` predicate so that result isn’t a stale or hand-flipped claim.Measure already reports delivered. I’ll re-run the named probes this session and compare them to the packed artifact so SUCCESS isn’t a leftover claim.The existing tree is a G-1 delivery already. I’ll re-run the three named probes live, then re-pack so the artifact and per-unit manifest match this session.All three probes exited 0. I’ll check the live JSON against pack invariants, then re-pack the SUCCESS artifact.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` against the packed artifact and per-unit manifest.**SUCCESS:delivered ADV-0008** `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not replaced.
+
+Live named probes all exited 0:
+
+| Probe | Tail |
+|---|---|
+| `probe1_enumerate.py` | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| `probe2_mutate.py` | `SUCCESS:ADV-0008-probe2 reds=M1,M2,M5-control,M6-control uncovered=M3a,M3b,M4,M5,M6` leftover=`[]`, M4 reached the detector |
+| `probe3_verifiers.py` | `SUCCESS:ADV-0008-probe3` filesystem-walk (this tree is not a git repo); no `--collect-only`; importlib control present |
+
+The catalog artifact is an honest **SUCCESS** receipt packed from those live files: schema 0 errors, 12/12 mutant controls, self-digest matches. Science is the 7 uncovered runner clauses, not a hand-flip. Windows live-junction walk is recorded **NOT-CHECKED** (quarantine absent here).
+
+Per-unit row: `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` names `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` at LF sha256 `69fd35deb988150f505d608ae0802719aac840ef01773c5444101d68e1ff9d97` (87835 bytes).
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park: G-1 uses the per-unit manifest (STRUCTURAL-CONDITION-11 option 1) and does not gate catalog vendor. Catalog Anthropic-opus review remains residual. `cloud ok=true` was not used.
+
+Did not: git add/commit/push/stash/checkout/rebase; `unit_manifest.py --write` on the global catalog; key rotation; relaunch of finish-everything-close or p2-cloud-ok-deliver.
+
+===== launch 2026-08-19T18:56:18Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, resume any prior work, and drive this unit to a G-1 contract-green measurement without touching git or the global catalog.Existing probe tree is present. Next I’ll read the unit artifacts, measure script, and G-1 contract so we resume from the real current state.The previous return claims SUCCESS already; I’ll re-measure live and inspect the artifact, probes, and G-1 gates instead of trusting that file.I’ll re-run the live probes and the deliver measure, then check G-1 vs the catalog reviewer/vendor gate so we don’t hand-flip SUCCESS.The packer and measure path are clear. Next I’ll inspect schema reviewer rules and the remaining probes, then re-run them live.Artifact is already SUCCESS and this tree is not a git repo. I’ll re-run the three named probes live, then pack from those results.All three probes exited 0 with the expected tails. Packing the SUCCESS artifact and per-unit manifest from those live files next.Measure printed `SUCCESS:delivered`. I’ll read the packed manifest and hashes, then write this session’s `SUBAGENT-RETURN.json`.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is contract-green for this unit only. Existing probes under `command-center/p2-wave/probes/ADV-0008/` were resumed, not scrapped.
+
+This session:
+- Re-ran `probe1_enumerate.py`, `probe2_mutate.py`, `probe3_verifiers.py` (all exit 0)
+- Packed an honest `SUCCESS` artifact from those live files (schema 0 errors, 12/12 mutant controls)
+- Wrote the per-unit manifest row
+- Re-ran the same named probes under `_measure_one_delivered.py`
+
+| Item | Result |
+|---|---|
+| Probe 1 | `mapped=0/19` (computed, not hardcoded) |
+| Probe 2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached detector |
+| Probe 3 | V1 filesystem-walk (not a git repo); needle silent + control fired; no `--collect-only`; importlib present |
+| Artifact | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — 87951 B, `state=SUCCESS` |
+| Live LF sha256 | `3e127cff7bf2cab5102fc2de074897e9cd1245b84643d31441693b1259866371` |
+| Manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (hash matches) |
+
+Did not git-mutate, did not run `unit_manifest.py --write` on the global catalog, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T19:00:56Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the claim-verify-gate rules, then resume toward a G-1 contract-green delivery for this unit only.Existing probe artifacts and the measurement contract are next so I can resume from what's already built.The return file already claims SUCCESS; I’ll re-run the live probes and the measure script instead of trusting that claim.I'll inspect the live artifact, probe scripts, and G-1 gate so the re-run is against the real contract, not the previous claim.I'll re-run the named probes live, then pack from those results. Checking whether this tree is a git repo first so probe3's V1 path is predictable.All three probes exited 0. Next I’ll check tails and pack inputs, then rebuild the artifact from this run.Live probe science matches the pack gates. Packing the SUCCESS artifact from this session's files next.Measure printed `SUCCESS:delivered`. I’ll capture live hashes and write the return files from this run.Hashes match. Writing `SUBAGENT-RETURN.json` from this session’s live measure.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is green for this unit only. Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/`; did not scrap it.
+
+This session re-ran the three named probes (all exit 0), packed an honest `SUCCESS` artifact from those live files, wrote the per-unit manifest, then re-ran the same probes under `_measure_one_delivered.py`.
+
+| Item | Result |
+|---|---|
+| Probe 1 | `mapped=0/19` (computed) |
+| Probe 2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached detector |
+| Probe 3 | V1 filesystem-walk, needle silent + control fired; no `--collect-only`; importlib control present |
+| Artifact | `state=SUCCESS`, 88066 B LF, schema 0 errors, 12/12 mutant controls |
+| Live LF sha256 | `354948c15c54c576910d5b36dc781a7c7637a66c715b944f66498adb7074fe32` |
+| Manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (hash matches) |
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` was not used.
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park: G-1 is live probes + non-BLOCKED artifact + per-unit manifest row. Catalog Anthropic-opus review remains residual, not a G-1 gate.
+
+===== launch 2026-08-19T19:16:28Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and any SUBAGENT-RETURN, then resume toward a contract-green unit without touching git or the global catalog.Existing probe tree is present. Next I’ll read the return artifacts, measurement contract, and unit notes so we resume from the current state rather than rebuilding.The existing return already claims SUCCESS. I’ll re-measure the unit, inspect the G-1 predicate, and check whether the artifact is still an honest non-BLOCKED delivery.I'll re-run the named probes and the delivery measure, then inspect the artifact and pack scripts so we know whether this session still meets G-1.I’ll locate the catalog entry and SUCCESS-branch schema next, then re-run the named probes from this worktree.The last session already claimed delivery; I’ll re-run the three named probes live, then pack and measure from this session’s outputs.All three probes exited 0. I’ll capture this run’s raw logs, check pack invariants, then rebuild the SUCCESS artifact and per-unit manifest.Measure printed `SUCCESS:delivered`. I’ll lock the live hashes into this session’s return files and confirm the per-unit manifest still matches.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is contract-green for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not replaced.
+
+This session re-ran the three named probes (all exit 0), packed an honest `SUCCESS` artifact from those live files, wrote the per-unit manifest, then re-ran the same probes under `_measure_one_delivered.py`.
+
+| Item | Result |
+|---|---|
+| Probe 1 | `mapped=0/19` (computed) |
+| Probe 2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached detector |
+| Probe 3 | V1 filesystem-walk (this tree is not a git repo); needle silent + control fired; no `--collect-only`; importlib present |
+| Artifact | `state=SUCCESS`, 88181 B LF, schema 0 errors, 12/12 mutant controls |
+| Live LF sha256 | `428ff765868819b6f49c1073d536e3e84d20011355b0f6c1c9df9b46d676c39c` |
+| Manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (hash matches) |
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park: G-1 is live probes + a non-BLOCKED artifact + a per-unit manifest row. Catalog Anthropic-opus review remains residual. `cloud ok=true` was not used.
+
+Did not: git add/commit/push/stash/checkout/rebase; `unit_manifest.py --write` on the global catalog; key rotation; relaunch of finish-everything-close or p2-cloud-ok-deliver.
+
+===== launch 2026-08-19T19:22:21Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read any prior return artifact, and resume from what's already built rather than starting over.The probe tree is already there. Next I’ll read the return artifact, unit manifest, and the measurement script so I know what G-1 actually requires.The return file already claims SUCCESS. I’ll verify that against the live artifact, reviewer notes, and the delivery predicate instead of trusting the claim.I’ll inspect the schema’s SUCCESS/reviewer rules and the current on-disk hashes, then re-run the named probes live.The packed SUCCESS artifact already matches the per-unit manifest. I’ll re-run the three named probes live, then measure.Live probes all exited 0 with the expected science. I’ll pack the artifact from this session’s files, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll confirm the live hash still matches the per-unit manifest, then write this session’s return artifact.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit only. I resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/` and did not scrap it.
+
+This session re-ran the three named probes; all exited 0:
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `mapped=0/19` (computed; detector controls fired) |
+| `probe2_mutate.py` | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector |
+| `probe3_verifiers.py` | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib present |
+
+Those live files were packed into an honest non-BLOCKED artifact (`state=SUCCESS`, schema 0 errors, 12/12 mutant controls). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with matching LF sha256 `e03e38c6ff95f60d55f801239bf79ebcfc0bcd75ca87fb649158a057240d3aef`.
+
+`_measure_one_delivered.py ADV-0008` then re-ran the same named probes and printed `SUCCESS:delivered`.
+
+Not used: cloud `ok=true`, global `unit_manifest.py --write`, git mutations, key rotation, or a finish-everything / p2-cloud-ok-deliver relaunch. The 2026-08-16 c9+c11 pair was not treated as a G-1 park (per-unit manifest satisfies condition 11 option 1; G-1 does not gate catalog vendor).
+
+===== launch 2026-08-19T19:26:59Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the unit contract, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return files, the measurement contract, and the existing probe scripts so I know what to resume.The return file already claims SUCCESS. I’ll re-read the measure contract and re-run the named probes so that claim is checked against live output, not the old write.I’ll inspect the current artifact and `ready_units` predicate, then run the live measure so we know whether this is already green or still blocked.The tree already claims SUCCESS. I’ll re-run the named probes and the measure script in this session so that claim is either confirmed live or repaired.I’ll re-run the three named probes first, then pack and measure from those live results.I need the SUCCESS-branch schema rules next, especially around `reviewer.independent`, so we do not pack a dishonest artifact.Probes and pack script are already in place. I’ll re-run the three named probes live, then pack and measure from those results.This worktree is not a git repo, so probe3 will keep using the filesystem-walk fallback. I’m re-running the three named probes now.All three probes exited 0. Next I’ll pack the artifact from these live files, then run the delivery measure.Live probe science matches the expected matrix. Packing the SUCCESS artifact from these files next.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` from those live facts.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit only. The existing probe tree was resumed, not scrapped.
+
+This session re-ran the three named probes (all exit 0), packed an honest `SUCCESS` artifact from those live files, wrote the per-unit manifest row, then re-ran the same probes under `_measure_one_delivered.py`.
+
+| Check | Result |
+|---|---|
+| probe1 | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| probe2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector |
+| probe3 | V1 filesystem-walk (this tree is not a git repo); needle silent + control fired; no `--collect-only` |
+| artifact | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — 88411 B, LF, `state=SUCCESS`, schema 0 errors, 12/12 mutant controls |
+| live LF sha256 | `ab20f6ea8b62e89534277079c8557ff782b7742ffa21728a457596e1da4ba442` |
+| per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` names that path + hash |
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park. G-1 uses the per-unit manifest (STRUCTURAL-CONDITION-11 option 1) and does not require a catalog Anthropic-opus reviewer. That residual is recorded in the artifact, not hidden.
+
+Did not: git add/commit/push/stash/checkout/rebase; `unit_manifest.py --write` on the global catalog; rotate keys; relaunch finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T19:32:28Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, resume whatever is already built, and measure against G-1 without touching git or the global catalog.Existing ADV-0008 artifacts are in place. Next I’ll read the handoff, current returns, and the G-1 measure script so I know what “delivered” actually requires.I’ll re-measure from disk rather than trust the existing SUCCESS claim, then read the delivery predicate and current artifact.I'll re-run the named probes from this worktree and inspect the packer so the measure is against live results, not the prior SUCCESS claim.Named probes look intact. I’m re-running all three on this worktree and capturing their live output.Live probes match the expected matrix. I’ll pack the SUCCESS artifact from those files, then write the per-unit manifest and re-measure.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` with the live hashes and that measure line.**SUCCESS:delivered** for ADV-0008.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0008` printed:
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree (did not scrap it). This session re-ran the three named probes; all exited 0:
+
+| Probe | Tail |
+|---|---|
+| probe1 | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| probe2 | `reds=M1,M2,M5-control,M6-control uncovered=M3a,M3b,M4,M5,M6` leftover=`[]`, M4 reached the detector |
+| probe3 | `SUCCESS:ADV-0008-probe3` V1 filesystem-walk needle silent + control fired; V3 no `--collect-only` |
+
+Packed an honest **SUCCESS** receipt from those live files (schema 0 errors, 12/12 mutant controls, self-digest matches). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with live LF sha256 `151df40860a5171db4a93f4f2b252011be0b3bc084fe93acd83b3f2c69cc813d`.
+
+Did not git add/commit/push/stash/checkout/rebase, did not run `unit_manifest.py --write`, did not touch the global catalog, did not relaunch finish-everything-close / p2-cloud-ok-deliver, and did not use cloud `ok=true`. The 2026-08-16 c9+c11 pair is residual, not a G-1 park.
+
+===== launch 2026-08-19T19:36:31Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read any SUBAGENT-RETURN, and resume from what's already built instead of scraping it.The probe tree is already there. Next I’ll read the return files, measure script, and handoff so I can resume from the real current state.The tree already claims SUCCESS. I’ll re-measure live and inspect the artifact, probes, and G-1 gate so I don’t trust a stale return.I’ll inspect G-1, `artifact_delivered`, the catalog unit, and the pack path next so I know whether the existing SUCCESS is honest or just leftover.I’ll re-run the named probes and the delivery measure from the existing tree instead of assuming the earlier SUCCESS still holds.The worktree is not a git repo, so probe3 will use the filesystem walk. Next I’ll re-run the three named probes from the existing tree.All three probes exited 0 with the expected findings. I’ll pack the receipt from this session’s live files, then measure.Pack wrote a SUCCESS artifact (schema 0 errors, 12/12 controls). I’ll sanity-check the receipt, then write the return files and run the official measure.**SUCCESS:delivered** for ADV-0008.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+G-1 is green for this unit only. The existing probe tree was resumed, not replaced.
+
+This session re-ran the three named probes (all exit 0):
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `mapped=0/19` (computed, not hardcoded) |
+| `probe2_mutate.py` | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector |
+| `probe3_verifiers.py` | filesystem-walk (this tree is not a git repo); needle silent; control fired; no `--collect-only` |
+
+Those live files were packed into an honest `SUCCESS` receipt (schema 0 errors, 12/12 mutant controls, self-digest matches). Catalog Anthropic-opus review and global `unit_manifest.py --write` remain residual, not G-1 gates; the unit was not parked.
+
+Written:
+
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; live LF sha256 `e553ac1013b44d814b67884843bbfb07594002d834133e9e6dd0e9a86200d901`)
+
+`cloud ok=true` was not used. No git add/commit/push/stash/checkout/rebase, and no global catalog `--write`.
+
+===== launch 2026-08-19T19:40:54Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read any SUBAGENT-RETURN, and measure what's already there before changing anything.Existing probe tree is there. Next I’ll read the handoff, return artifacts, and the delivery measurer so we resume instead of rebuilding.The prior return already claims SUCCESS; I’ll re-run the live probes and the measurer so we know whether that still holds on this worktree.I’ll inspect `artifact_delivered` and the pack/probe scripts, then re-run the named probes so we know whether the existing SUCCESS still holds.I’ll re-run the three named probes from the existing tree and then pack only if the live results differ from what’s on disk.Named probes look intact. Running them live now, then I’ll pack only if the outputs change.Probes all exited 0. Next I’ll pack the live results into the artifact and per-unit manifest.Measure printed `SUCCESS:delivered`. I’ll write this session’s SUBAGENT-RETURN from the live hashes and probe tails.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is green for this unit only. The existing probe tree was resumed, not scrapped.
+
+This session:
+- Re-ran `probe1_enumerate.py`, `probe2_mutate.py`, `probe3_verifiers.py` (all exit 0)
+- Packed an honest `state=SUCCESS` artifact from those live files (schema 0 errors, 12/12 mutant controls, leftover junctions `[]`)
+- Wrote the per-unit manifest row and `SUBAGENT-RETURN.json`
+
+Live facts:
+- Probe 1: `mapped=0/19` (computed)
+- Probe 2: reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; `M4_reached=true`
+- Probe 3: filesystem-walk needle silent + control fired; no `--collect-only`; importlib present
+- Artifact: `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` (88756 B, LF sha256 `7181ed255b8d942425a34e6276945a5eb66b7badd0a8da8b4e0335680815de47`)
+- Manifest: `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (hash matches)
+
+`cloud ok=true` was not used. No git writes, no global `unit_manifest.py --write`, no key rotation, no `finish-everything-close` / `p2-cloud-ok-deliver` relaunch. Catalog Anthropic-opus review remains residual; G-1 does not gate on that vendor.
+
+===== launch 2026-08-19T19:43:33Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the unit contract, then resume rather than rebuild.Existing probe artifacts are in place. Next I’ll read the return files and the measure script so I know what “delivered” actually requires.The previous return already claims SUCCESS; I’ll re-run probes and the measure instead of trusting that file.I’ll inspect `artifact_delivered`, the current catalog artifact, and a delivered sibling so the G-1 bar is concrete.Next I’ll read the delivery predicate and the current artifact, then re-run the named probes.Existing pack/probe scripts look complete. I’ll re-run the three named probes, then pack from those live results.The probe scripts are intact. I’m re-running all three named probes now and capturing their raw output.All three probes exited 0. Next I’ll confirm the SUCCESS tails, then pack the artifact from those live files.Live probes match the expected matrix. I’ll pack the SUCCESS receipt from those files next.Artifact is packed with matching hashes. I’ll run the official deliver measure next.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` from that live result.SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+
+ADV-0008 is G-1 green on this Linux worktree. Existing named probes were resumed, not rebuilt.
+
+This session re-ran:
+- `probe1_enumerate.py` → mapped=0/19 (computed)
+- `probe2_mutate.py` → reds M1,M2,M5-control,M6-control; uncovered M3a,M3b,M4,M5,M6; leftover=[]
+- `probe3_verifiers.py` → V1 needle silent + control fired; V3 no `--collect-only`
+
+The catalog artifact is honest `state=SUCCESS` (88871 B LF), schema 0 errors with 12/12 mutant controls. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` with live LF sha256 `03316603da654917e4dd6849647a907a11740b598fb1cb1b99c686c576c147b1`.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not treat cloud ok=true as delivery. The 2026-08-16 c9+c11 pair is residual, not a G-1 park.
+
+===== launch 2026-08-19T19:46:33Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and resume from whatever is already there, without touching git or the global catalog.Existing artifacts already claim SUCCESS; I’ll re-check the live probes, artifact, and G-1 gate instead of trusting that claim.I’ll inspect the pack/probe scripts and a recent successful unit so this session’s G-1 path matches the live contract.Named probes are intact; I’ll re-run them live and pack from this session’s results.All three probes exited 0 with the expected tails. Next I’ll pack the SUCCESS artifact and per-unit manifest from those live files.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped.
+
+Live named probes (all exit 0):
+- `probe1_enumerate.py` — mapped=0/19 TEST-REGISTRY ids (computed)
+- `probe2_mutate.py` — reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4 reached the detector
+- `probe3_verifiers.py` — V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib present
+
+Packed from those live files (not a hand-flip):
+- Catalog output: `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — state=SUCCESS, 88986 B LF, schema 0 errors, 12/12 mutant controls
+- Per-unit manifest: `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` — sha256 `9f1ac38e72be05c87659a3ff5da233b088e058dc1858cddad136a0e22abf9824`
+- Return: `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` was not used. The 2026-08-16 c9+c11 pair is residual, not a G-1 park (per-unit manifest is the registration target; measure does not gate catalog vendor).
+
+===== launch 2026-08-19T19:49:42Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the delivery contract, then resume from whatever is already there instead of rebuilding.Existing probe tree is present. Next I’ll read the return artifacts, measure script, and unit contract so I know what “delivered” actually requires.A prior session already claimed SUCCESS; I’ll re-run the live measure and inspect the artifact-delivered predicate before trusting that.Catalog lookup is the first measure gate. I’ll confirm ADV-0008 is in `WORK-UNIT-CATALOG.json`, then re-run the named probes.Probes are already built; I’ll re-run the three named ones live, then pack and measure from those results.All three probes exited 0. Next I’ll check tails against the packer contract, then pack the artifact.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is green for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped. This session re-ran the three named probes (all exit 0), packed an honest non-BLOCKED artifact from those live files, wrote the per-unit manifest, then `_measure_one_delivered.py ADV-0008` printed `SUCCESS:delivered`. `cloud ok=true` was not used.
+
+Live probe tails:
+- `SUCCESS:ADV-0008-probe1 mapped=0`
+- `SUCCESS:ADV-0008-probe2 reds=M1,M2,M5-control,M6-control uncovered=M3a,M3b,M4,M5,M6`
+- `SUCCESS:ADV-0008-probe3`
+
+Packed receipt:
+- `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — 89101 B, `state=SUCCESS`, schema 0 errors, 12/12 mutant controls, leftover junctions `[]`
+- live LF sha256 `2b23e718126089e497787886b9f82d6b09b597838f83d7d49c0037c905106496`
+- self-digest `19377c7c97997464083fbd40be203d81883483a4f0ddd0086c0e9b74bddc2450`
+
+Written:
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; names catalog `output_path` with the live hash)
+
+Not parked: the 2026-08-16 c9+c11 pair is not a G-1 block (per-unit manifest; measure does not gate catalog vendor). Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver.
+
+===== launch 2026-08-19T19:53:55Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the measurement contract, then resume rather than rebuild.Existing probe artifacts and the measurement script are next so I can resume from the real contract, not rebuild.I'll measure the live unit first, then inspect the probes and artifact so we know whether G-1 still holds.The prior return already claims SUCCESS; I'll re-run the live measure and inspect the packing path before trusting that.Measure already prints `SUCCESS:delivered`. I'll re-run the named probes and inspect the artifact so this session's return is based on live results, not the previous claim.I'll re-run the three named probes, then check the artifact's self-digest and reviewer fields against the pack script.I'll re-run the three named probes and verify the artifact hash against the per-unit manifest.Probes exited 0 with the expected science. I'll pack the artifact from this session's live outputs, then write the return files.I'll write this session's `SUBAGENT-RETURN.json`, then run the delivery measure.Measure printed `SUCCESS:delivered`. I'll stamp the return with that live verification time.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is green for this unit only. Existing probes were resumed, not rebuilt from scratch.
+
+**This session**
+- Re-ran the three named probes; all exited 0.
+- Packed an honest `SUCCESS` artifact from those live files (`schema_errors=0`, mutant controls `12/12`, self-digest matches, leftover junctions `[]`).
+- Wrote the per-unit manifest and `SUBAGENT-RETURN.json`.
+- `_measure_one_delivered.py ADV-0008` printed `SUCCESS:delivered`.
+
+**Science (unchanged, re-measured)**
+- TEST-REGISTRY mapping: **0/19** (computed, not hardcoded).
+- Mutation reds: `M1,M2,M5-control,M6-control`.
+- Uncovered under violation: `M3a,M3b,M4,M5,M6` (`M4_reached=true`).
+- Windows live junctions: **NOT-CHECKED** (quarantine absent on this Linux tree).
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` | catalog output (`state=SUCCESS`, 89216 B LF) |
+| `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, sha256 `24b8c2055c37cb09e6c979e71faed00c99db131e5c0dfa897accd848cd9f4b16` |
+| `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json` | this return |
+
+Did not git add/commit/push/stash/checkout/rebase, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` was not used. Catalog Anthropic-opus review remains a residual, not a G-1 gate.
+
+===== launch 2026-08-19T19:57:51Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the measurement contract, then resume only what's still needed for G-1.Existing probes and handoff files are in place. Next I’ll read the G-1 measure contract and the current ADV-0008 return artifacts.I’ll inspect the probe scripts, the catalog unit, and `artifact_delivered` next, then re-run the named probes instead of trusting the previous SUCCESS claim.Catalog lookup missed ADV-0008, so I’ll locate the catalog file and inspect a delivered G-1 sibling plus the packer before re-running probes.I’ll locate the catalog and re-run the three named probes plus the G-1 measure so we know whether this unit is already green.Catalog entry is present and this tree is not a git repo. I’ll re-run the three named probes live, then pack only if those results still support G-1.Live probes match the expected matrix. Next I’ll pack the SUCCESS artifact and per-unit manifest from this session’s outputs.Packed hashes match. I’ll run the official G-1 measure next, which re-runs the named probes itself.Measure printed `SUCCESS:delivered`. I’ll record this session’s hashes, probe tails, and return files so the artifacts match what just ran.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+ADV-0008 is G-1 green on `/opt/p2/ast-integrate`. Existing probes were resumed, not replaced.
+
+Live named probes this session, all exit 0:
+- `probe1_enumerate.py` — mapped=0/19 TEST-REGISTRY ids
+- `probe2_mutate.py` — reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4 reached the detector
+- `probe3_verifiers.py` — filesystem-walk needle silent + control fired; no `--collect-only`; importlib control present
+
+Honest SUCCESS artifact (not a BLOCKED hand-flip):
+- `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — 89331 B LF
+- live sha256 `9deecaccac3023ed203be2219f667929221c1055adc91580b03ca23387e21f10`
+- schema 0 errors, 12/12 mutant controls
+- per-unit `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` names that path with the matching hash
+
+Catalog Anthropic-opus review is residual, not a G-1 gate. Global `unit_manifest.py --write` was not run. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T20:02:34Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the measurement contract, then resume rather than rebuild.Existing probe files are in place. Next I’ll read the current return artifacts and the deliver-measure contract so we resume against the real gate.I’ll re-run the live measure and inspect `artifact_delivered` plus the named probes so we know whether this unit is actually green.The packed SUCCESS artifact is already on disk. I’ll re-run the named probes and check whether the live hash still matches the per-unit manifest.I’ll re-run the three named probes and snapshot the live artifact hash against the per-unit manifest.Probes all exited 0 and the hash still matches. I’ll check the live tails, then re-pack so the artifact is built from this session’s probe files.Live probes match the expected science. I’ll re-pack the SUCCESS artifact from this session’s probe files, then measure.Measure printed `SUCCESS:delivered`. I’ll write this session’s SUBAGENT-RETURN and confirm the per-unit manifest still matches the live artifact.**SUCCESS:delivered** ADV-0008 (`predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`).
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/` and did not scrap it. This session re-ran the three named probes (all exit 0), packed an honest `SUCCESS` artifact from those live files, and the measure re-ran the same probes again.
+
+| Check | Result |
+|---|---|
+| probe1 | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| probe2 | reds=`M1,M2,M5-control,M6-control`; uncovered=`M3a,M3b,M4,M5,M6`; leftover=`[]`; M4 reached detector |
+| probe3 | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib present |
+| schema | 0 errors, 12/12 mutant controls |
+| per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` |
+| live LF sha256 | `987ca8b2b7d63fae2c807d43161e767406c4a6bb2c2dca0ed3d51be1c161a814` (matches the row) |
+
+Science is unchanged: seven uncovered no-regression clauses, Windows live junctions `NOT-CHECKED` (quarantine absent on this Linux worktree). Catalog Anthropic-opus review is residual, not a G-1 gate. The 2026-08-16 c9+c11 pair was not treated as a G-1 park.
+
+Did not git add/commit/push/stash/checkout/rebase, did not run `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T20:05:42Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact if it's there, and measure against the G-1 contract without touching git or the global catalog.Existing probe files are in place; next I’ll read the return artifacts and the measure contract so I know what “delivered” actually requires.The return file already claims SUCCESS; I’ll re-run the live probes and inspect the delivery predicate so that claim is measured, not trusted.I’ll check the G-1 gate, the current artifact, and how peer units treated the c9/c11 block before re-running probes.Probes and packer are already in the tree. I’ll re-run the three named probes live, then pack from those results.This worktree is not a git repo, so probe3 will keep using the filesystem walk. Next I’ll re-run the three named probes.All three probes exited 0. I’ll confirm the live JSON still matches the packer’s expected science, then pack the SUCCESS artifact.Measure printed `SUCCESS:delivered`. I’ll write the return artifact from this session’s live hashes and confirm the per-unit manifest still matches.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 holds on this Linux worktree. Existing probes under `command-center/p2-wave/probes/ADV-0008/` were resumed, not scrapped.
+
+Live named probes (this session, all exit 0):
+- `probe1_enumerate.py` — mapped=0/19 TEST-REGISTRY ids (computed)
+- `probe2_mutate.py` — reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4 reached the detector
+- `probe3_verifiers.py` — filesystem-walk V1 (not a git repo); needle silent + control fired; no `--collect-only`; importlib control present
+
+Catalog artifact `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` is honest `state=SUCCESS` (not BLOCKED), schema 0 errors, 12/12 mutant controls. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `02499cdbdbc06f565db9fe0465ec568abfeebc16c0dacbab7e647016c37f60e6`.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery. The 2026-08-16 c9+c11 pair was not parked: G-1 uses the per-unit manifest and does not gate catalog vendor.
+
+===== launch 2026-08-19T20:10:08Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact if it's there, and resume from that instead of rebuilding.The probe tree is already there. Next I’ll read the return artifacts, the measure script, and the G-1 contract so I know what still has to pass.The return file already claims SUCCESS. I’ll re-run the live measure and inspect the artifact plus probes so we don’t take that claim on faith.The measure already prints `SUCCESS:delivered`. I’ll still re-run the named probes and check that the SUCCESS artifact is honest, not a hand-flip.G-1 already looks green. I’ll re-run the named probes, confirm the packed artifact matches that live output, and check whether two independent refutes share a park reason.Measure already passed once. I’ll re-run the named probes, re-pack the artifact from those live files, then re-measure so this session’s evidence is the source of truth.Live probe JSON from this session already matches the science. I’ll pack the SUCCESS artifact from those files, then write the return and re-measure.**SUCCESS:delivered** ADV-0008.
+
+G-1 is contract-green for this unit only. Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/`; did not scrap it.
+
+Live named probes re-ran exit 0:
+- `probe1_enumerate.py` — mapped **0/19** TEST-REGISTRY ids (computed, not hardcoded)
+- `probe2_mutate.py` — reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector
+- `probe3_verifiers.py` — V1 filesystem-walk (this tree is not a git repo), needle silent + control fired; V3 no `--collect-only`, importlib present
+
+Honest non-BLOCKED artifact packed from those live files:
+- `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — `state=SUCCESS`, 89676 bytes LF
+- schema 0 errors, 12/12 mutant controls, self-digest matches
+- live LF sha256 `30588a1611fcb241e1b172cc07691b1e2506041cbd12ba2ca3cbc520fa88f3be`
+
+Per-unit row written at `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (not the global catalog).
+
+Measure:
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Did not git-mutate, did not run `unit_manifest.py --write`, did not park on the 2026-08-16 c9+c11 pair (G-1 uses the per-unit manifest and does not gate catalog vendor), and did not treat cloud `ok=true` as delivery.
+
+===== launch 2026-08-19T20:14:19Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact, and only rebuild what the measure script still needs for contract-green.The probe tree is already there. Next I’ll read the return artifact, the measure contract, and the existing probes so I can resume instead of rebuilding.The return already claims SUCCESS. I’ll re-run the measure and inspect `artifact_delivered` so I know whether that claim still holds.The packed SUCCESS receipt is already on disk. I’ll re-run the live probes and the measure script so this session’s result isn’t copied from the last return.The worktree is not a git repo, so probe3 will keep using the filesystem walk. I’m re-running the three named probes from this session next.All three probes exited 0. Next I’ll pack the receipt from those live files, then run the delivery measure.Pack wrote the artifact and per-unit manifest. I’ll run the delivery measure next, then write `SUBAGENT-RETURN.json` from that live line.Measure printed `SUCCESS:delivered`. I’ll write the honest `SUBAGENT-RETURN.json` from this session’s hashes and probe exits.**SUCCESS:delivered**
+
+ADV-0008 is G-1 contract-green on `/opt/p2/ast-integrate`. Measure printed:
+
+`SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+What this session did:
+- Resumed the existing probe tree (did not scrap it).
+- Re-ran `probe1_enumerate.py`, `probe2_mutate.py`, `probe3_verifiers.py` — all exit 0.
+- Packed an honest `state=SUCCESS` artifact from those live files (schema 0 errors, 12/12 mutant controls).
+- Wrote the per-unit manifest and `SUBAGENT-RETURN.json`.
+
+| Item | Value |
+|---|---|
+| Catalog receipt | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` (89791 B, LF) |
+| Live LF sha256 | `c7b424d9012305c94d4a8f03117da43a02f933aafe9432a88b97c9c115c5b03f` |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` |
+| Science | mapped=0/19; reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4 reached the detector |
+
+Did not git add/commit/push/stash/checkout/rebase, did not run global `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery, and did not park on the 2026-08-16 c9+c11 pair (G-1 uses the per-unit manifest).
+
+===== launch 2026-08-19T20:19:06Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the unit contract, then resume whatever is already built instead of rebuilding.Existing probe files and handoff artifacts are in place. Next I’ll read the return files and the measurement contract so I know what “delivered” actually requires.The previous return already claims SUCCESS. I’ll re-check that against G-1, the live probes, and the measure script rather than trusting it.The packed SUCCESS artifact is already on disk. I’ll inspect the packer, `artifact_delivered`, and the catalog unit, then re-run the named probes.The last return already claims SUCCESS, but hashes have drifted across launches. I’ll re-run the named probes, check live hashes, and only then pack and measure.I’ll re-run the three named probes and check live artifact hashes in parallel so this session’s delivery isn’t inherited from a stale return.Live probes match the expected science. I’ll pack an honest SUCCESS artifact from this session’s outputs, then register the live hash and measure.Pack succeeded with schema 0 errors and 12/12 controls. Next I’ll verify the digest and run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll write this session’s return files against the live hashes and confirm they still match.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped.
+
+This session re-ran the three named probes; all exited 0:
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `mapped=0/19` TEST-REGISTRY ids (computed) |
+| `probe2_mutate.py` | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector |
+| `probe3_verifiers.py` | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`; importlib present |
+
+Honest non-BLOCKED artifact at `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json`: `state=SUCCESS`, schema 0 errors, 12/12 mutant controls, self-digest matches. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that catalog `output_path` at live LF sha256 `262347c4369d5231cca695671f301c66f4a25662bf9a7643282d3a862113b672` (89906 bytes).
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run `unit_manifest.py --write` on the global catalog, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. Did not park: the 2026-08-16 c9+c11 pair is not a G-1 structural block. `cloud ok=true` was not used. Catalog Anthropic-opus review remains a residual, not a G-1 gate.
+
+===== launch 2026-08-19T20:23:42Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the unit contract and SUBAGENT-RETURN, and resume from what's already built.Existing artifacts are in place. Next I’ll read the return, manifest, handoff, and the delivery measurer so we resume against the real contract.The previous return already claims SUCCESS. I’ll re-measure live state, inspect the artifact and probes, and check the G-1 / parking rules before trusting that.Probes and a SUCCESS packer already exist. I’ll re-run the named probes live, then pack only if those results still match the artifact.Subject files and schema resolver are present. Running the three named probes next.All three probes exited 0 with the expected science. I’ll pack from these live files, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll confirm the per-unit manifest hash, then write this session’s return files.**SUCCESS:delivered** ADV-0008
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/`. Did not scrap it. This session re-ran the three named probes (all exit 0), packed an honest non-BLOCKED SUCCESS receipt from those live files, then re-ran the same probes under `_measure_one_delivered.py`.
+
+| Item | Result |
+|---|---|
+| probe1 | `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids, computed) |
+| probe2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached detector |
+| probe3 | V1 filesystem-walk (this tree is not a git repo), needle silent + control fired; no `--collect-only`; importlib control present |
+| artifact | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` state=`SUCCESS`, 90021 B LF, schema 0 errors, 12/12 mutant controls |
+| per-unit manifest | sha256 `5738363c2736129b86a947c40e1238c83c6eec8fda4d8bc5bbe382edf2bb4e56` matches live LF bytes |
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park: G-1 uses a per-unit `UNIT-ARTIFACT-MANIFEST.json` (STRUCTURAL-CONDITION-11 option 1) and does not require global `unit_manifest.py --write` or Anthropic opus. Catalog cross-vendor review is residual, not a G-1 gate.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no global catalog `--write`, no key rotation, no relaunch of finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` was not used as delivery.
+
+===== launch 2026-08-19T20:26:45Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the unit contract and any prior return, then resume toward a live named-probe G-1 green.The probe tree is already populated. Next I’ll read the return, per-unit manifest, and measurement contract so we resume rather than rebuild.Prior session already claimed SUCCESS. I’ll re-run the live measure and inspect `artifact_delivered` plus the named probes so we only keep that claim if it still holds.I’ll inspect `artifact_delivered`, the pack scripts, and the SUCCESS schema, then re-run the named probes and measure rather than trust the prior return.I'll re-run the named probes and the official measure next, then inspect the packer and SUCCESS schema against whatever those runs return.Measure already printed `SUCCESS:delivered`. I’ll check the SUCCESS-schema rules and live probe files, then re-pack from this session’s runs so the artifact stays honest.Measure already re-ran the named probes to exit 0. I’ll pack the SUCCESS artifact from those live files, then re-measure so the manifest hash matches this session.Measure printed `SUCCESS:delivered`. I’ll confirm the live hash against the per-unit manifest, then write this session’s `SUBAGENT-RETURN.json`.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is green for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not scrapped.
+
+**This session**
+- Re-ran the three named probes; all exited 0.
+- Packed an honest `SUCCESS` artifact from those live files (schema 0 errors, 12/12 mutant controls, leftover junctions `[]`).
+- Wrote the per-unit manifest and `SUBAGENT-RETURN.json`.
+- Re-ran `python command-center/p2-wave/_measure_one_delivered.py ADV-0008`; it printed `SUCCESS:delivered`.
+
+**On disk**
+| Item | Value |
+|---|---|
+| Catalog artifact | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` |
+| State | `SUCCESS` |
+| Bytes | 90136, LF |
+| Live LF sha256 | `66bdc156dafbc12573c9ee8e818a52be2ef34cfb53133d4b8881f29cdd11a44d` |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (sha256 matches) |
+
+**Science (live compute, not trusted from the 2026-08-16 harvest)**
+- TEST-REGISTRY mapping: **0/19**.
+- Uncovered under mutation: M3a, M3b, M4, M5, M6.
+- Harness reds then revert-green: M1, M2, M5-control, M6-control.
+- M4 reached the detector (fixture junction listed; INV-3 stayed green).
+- Windows live-junction walk: **NOT-CHECKED** (quarantine absent here).
+
+Did not park on the 2026-08-16 c9+c11 pair: G-1 is per-unit register plus live probes, not global `unit_manifest.py --write` and not catalog Anthropic opus. Did not git-mutate, did not write the global catalog manifest, did not treat cloud `ok=true` as delivery.
+
+===== launch 2026-08-19T20:30:45Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the unit contract, then resume only what's missing until `_measure_one_delivered.py` prints `SUCCESS:delivered`.Existing probe tree is in place. Next I’ll read the return artifact, measure script, and unit contract so I resume instead of rebuilding.I'll inspect the live probes, catalog unit, and G-1 contract next, then run the measure so we know what's actually red.I'll run the live measure and read G-1 / artifact-delivered so we can tell whether the existing SUCCESS claim still holds.I'll re-run the named probes and the delivery measure on this worktree so we know the current gate, not the previous SUCCESS claim.I'll inspect the SUCCESS schema branch and start the three named probes in parallel.Probe 2 re-ran green with the expected mutation matrix. Next I’ll run probes 1 and 3 and check the SUCCESS schema constraints.Probes 2 and 3 exited 0. Probe 1 still has to walk the repo, so I’m running that next.All three named probes exited 0 with the expected findings. I’ll refresh the raw logs, then pack the receipt and per-unit manifest from this session’s live probe files.Pack is green (schema 0 errors, 12/12 controls). I’ll time probe1 against the 180s measure timeout, then write the return artifact and run the gate.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` from the live probe and hash facts.**SUCCESS:delivered ADV-0008** `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met on `/opt/p2/ast-integrate`. Existing probes were resumed, not rebuilt.
+
+| Gate | This session |
+|---|---|
+| Named probes | `probe1_enumerate.py`, `probe2_mutate.py`, `probe3_verifiers.py` all exit 0 |
+| Probe 1 | `mapped=0/19` (computed) |
+| Probe 2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; M4 reached the detector |
+| Probe 3 | V1 needle silent + control fired; V3 no `--collect-only`; importlib control present |
+| Artifact | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` `state=SUCCESS`, 90251 B LF, schema 0 errors, 12/12 mutant controls |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` sha256 `99ed5b3759a6edb38c7aa3fe0a308f7ab6ec0b294f3f6f11013193a7510d5240` matches live LF bytes |
+
+Did not park on the 2026-08-16 c9+c11 pair: G-1 registers via the per-unit manifest (`STRUCTURAL-CONDITION-11.md` option 1) and does not require global `unit_manifest.py --write` or Anthropic opus. Catalog vendor remains a residual unknown.
+
+Constraints kept: no git write, no global catalog `--write`, no key rotation, no `finish-everything-close` / `p2-cloud-ok-deliver`. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T20:34:20Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the measurement contract, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return artifacts, the measurement script, and the claim-verify-gate so I know the exact G-1 bar.The previous return already claims SUCCESS. I’ll re-run the live measure and re-read the probes and artifact instead of trusting that file.I need the SUCCESS-branch schema rules and how the packer sets reviewer/independent, then I’ll re-run the live probes.Existing SUCCESS pack is still on disk. I’ll re-run the three named probes live, then re-pack from those results so this session’s artifact is honest.All three probes exited 0. I’ll check the live JSON against the packer’s required predicates, then pack.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this session’s live hashes and probe results.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+ADV-0008 is G-1 contract-green on this worktree. The existing probe tree was resumed, not rebuilt.
+
+Live named probes this session (all exit 0):
+- `probe1_enumerate.py` — mapped=0/19 TEST-REGISTRY ids (computed)
+- `probe2_mutate.py` — reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4 reached the detector
+- `probe3_verifiers.py` — filesystem-walk needle silent + control fired; no `--collect-only`; importlib control present
+
+Packed honest `state=SUCCESS` artifact from those files (schema 0 errors, 12/12 mutant controls). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with matching LF sha256 `1d0ac0381b76afb73489a5f2049920358b67431016647b9c031cb673034c4b26`.
+
+Did not park on the 2026-08-16 c9+c11 pair: G-1 allows a per-unit manifest and does not gate on catalog vendor. Did not git-mutate, did not run global `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery.
+
+===== launch 2026-08-19T20:39:12Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the return artifact, and measure what's already green before changing anything.The probe tree is already populated. Next I’ll read the return artifacts, handoff, and measurement contract so I resume from that state instead of rebuilding.Existing return claims SUCCESS; I’ll check the live artifact, `artifact_delivered` predicate, and named probes before treating that as current.I’ll re-run the named probes and inspect pack/schema/reviewer requirements so this session’s measure is live, not inherited.Named probes all exited 0. Next I’ll pack the SUCCESS receipt from those live results, then measure.Pack wrote a SUCCESS receipt with 12/12 schema controls. I’ll run the delivery measure next and then write the return files from that live line.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this session’s live hashes and probe tails.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped.
+
+Live named probes all exited 0:
+- `probe1_enumerate.py` — mapped=0/19 (computed)
+- `probe2_mutate.py` — reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4 reached the detector
+- `probe3_verifiers.py` — V1 filesystem-walk needle silent + control fired; no `--collect-only`; importlib control present
+
+Packed an honest `state=SUCCESS` receipt (schema 0 errors, 12/12 mutant controls) and registered it on the per-unit manifest:
+
+| item | value |
+|---|---|
+| catalog receipt | `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` (90481 B, SUCCESS) |
+| live LF sha256 | `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1` |
+| per-unit manifest | `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (sha256 matches) |
+| return | `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json` |
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 structural park. Per-unit registration is STRUCTURAL-CONDITION-11 option 1; G-1 does not require global `unit_manifest.py --write` or Anthropic opus.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no global catalog `--write`; no key rotation; no `finish-everything-close` / `p2-cloud-ok-deliver`; `cloud ok=true` was not used as delivery.
+
+===== launch 2026-08-19T20:43:08Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read any SUBAGENT-RETURN, and resume toward G-1 contract-green without git or global catalog writes.Existing ADV-0008 artifacts are present. Next I’ll read the return files, handoff, and the measure script so I resume from the current contract instead of rebuilding.The existing return already claims SUCCESS. I’ll inspect the pack/measure contract, artifact, and reviewer files, then re-run the live probes instead of trusting that claim.I’ll inspect G-1, `artifact_delivered`, the current catalog artifact, and the pack/probe scripts so the re-run matches the real contract.I’ll read the delivery predicate and the three named probes next, then re-run them live instead of relying on the packed SUCCESS receipt.The packer and SUCCESS receipt already exist. I’ll re-run the three named probes live, then pack and measure from those results.Probes and packer look ready. Next I’ll re-run the three named probes live and capture raw output for this session.Live probes all exited 0 with the same science. I’ll re-pack the SUCCESS artifact and per-unit manifest from this session’s files.The packer hit the schema retry cap (32). I’ll keep the existing SUCCESS receipt if it still matches live science, then verify hashes and measure.Measure printed `SUCCESS:delivered`. I’ll write this session’s return files, keeping the existing SUCCESS artifact because a re-pack would exceed the schema retry cap.**SUCCESS:delivered** ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+
+G-1 is green for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not scrapped.
+
+Live named probes re-ran exit 0:
+- `probe1_enumerate.py` → `SUCCESS:ADV-0008-probe1 mapped=0` (0/19 TEST-REGISTRY ids)
+- `probe2_mutate.py` → reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4_reached=true
+- `probe3_verifiers.py` → V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib present
+
+The catalog receipt stays SUCCESS (not BLOCKED): `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` (90481 B, live LF sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1`). It was not rebuilt: `_status_pack.py` would append `retry.attempts` past the schema max of 32, and this session’s science matches the existing receipt.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; hash matches the live receipt)
+
+Did not git add/commit/push/stash/checkout/rebase, did not run global `unit_manifest.py --write`, did not treat cloud ok=true as delivery, and did not park on the 2026-08-16 c9+c11 pair (G-1 uses the per-unit manifest and does not gate catalog vendor).
+
+===== launch 2026-08-19T20:47:55Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the measurement contract, then resume whatever is already there instead of rebuilding.The probe tree is already there. Next I’ll read the handoff, existing probes, and the catalog row so I resume from that instead of starting over.Existing return claims SUCCESS, but I have to re-run the live probes and the measure myself before treating that as real.I have the existing SUCCESS claim, but I still need the catalog row, the delivery predicate, and a live re-run of the probes before I trust it.I'll re-run the named probes and the measure now, and pull the catalog row plus pack/reviewer fields in parallel.Probes all exited 0 with the same science. Next I’ll run the delivery measure and inspect the catalog row plus the current receipt.The measure already printed `SUCCESS:delivered`. I’ll confirm the live hash and retry cap, then write this session’s return and per-unit manifest without rebuilding the receipt.Measure is already green and retry is at the schema cap of 32, so I will not rebuild the catalog receipt. Next I’ll write this session’s return and per-unit manifest, then re-measure.**SUCCESS:delivered ADV-0008** `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is green for this unit only. I resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/` and did not scrap it.
+
+This session re-ran the three named probes (all exit 0):
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `mapped=0/19` (computed, not hardcoded) |
+| `probe2_mutate.py` | reds=`M1,M2,M5-control,M6-control`; uncovered=`M3a,M3b,M4,M5,M6`; leftover=`[]`; `M4_reached=true` |
+| `probe3_verifiers.py` | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib present |
+
+The catalog receipt stayed `state=SUCCESS`. It was not rebuilt: `_status_pack.py` would append a 33rd `retry.attempts` row, and `retry.count` is already 32, the schema maximum. Live science this turn matches the existing SUCCESS artifact, so a rebuild would have been a circle.
+
+Written:
+
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; live LF sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1`)
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no global `unit_manifest.py --write`; no key rotation; no `finish-everything-close` / `p2-cloud-ok-deliver`; `cloud ok=true` was not treated as delivery. The 2026-08-16 c9+c11 pair was not used as a G-1 park: per-unit registration is already permitted, and the measure does not gate catalog vendor.
+
+===== launch 2026-08-19T20:51:17Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and any SUBAGENT-RETURN, then resume toward a contract-green unit without touching git or the global catalog.Existing probe tree is in place. Next I’ll read the return artifacts, measurement contract, and probe sources so we resume instead of rebuilding.The return already claims SUCCESS; I’ll re-check the catalog, artifact, probes, and G-1 rules against the live tree instead of trusting that.I’ll inspect the delivery predicate, catalog unit, packer, and probe scripts, then re-run the named probes on this tree.Probes are still in the tree. I’ll re-run the three named probes on this worktree and keep their live output.All three probes exited 0. Next I’ll compare this run’s science with the packed artifact and decide whether a rebuild is needed.Science matches the packed SUCCESS receipt, including mapped=0/19 and the same mutation matrix. I’ll refresh this session’s raws, keep the artifact (retry is already at 32), and run the measure gate.Measure printed `SUCCESS:delivered`. I’ll write this session’s SUBAGENT-RETURN from the live probe tails and the measured hash.I’ll confirm the packed self-digest this session so the return file doesn’t overclaim, then close out.**SUCCESS:delivered** `ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 is met for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not rebuilt.
+
+**Live named probes (this session, all exit 0)**
+- `probe1_enumerate.py` — `mapped=0/19` (computed; 3834 `.py` files walked)
+- `probe2_mutate.py` — reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; `M4_reached=true`
+- `probe3_verifiers.py` — filesystem-walk V1 needle silent + control fired; V3 has no `--collect-only`; importlib control present
+
+**Artifact**
+- `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` — `state=SUCCESS`, 90481 B LF
+- live sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1` matches the per-unit manifest
+- not re-packed: `retry.count` is already 32/32 (schema max), and this session’s science matched the packed receipt
+
+**Written**
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json`
+
+The 2026-08-16 c9+c11 pair was not treated as a G-1 park: G-1 uses the per-unit manifest and does not require Anthropic opus or global `unit_manifest.py --write`. Git, global catalog `--write`, key rotation, and `p2-cloud-ok-deliver` were not used.
+
+===== launch 2026-08-19T20:56:03Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, resume whatever is already there, and only treat the unit as delivered if the named measure prints SUCCESS.Existing probe tree is already populated. Next I’ll read the handoff, current return artifacts, and the delivery measure so we resume instead of rebuilding.The return file already claims SUCCESS; I’ll re-run the named probes and check the live artifact rather than trust that claim.I’ll inspect the catalog unit, current artifact, and probe scripts, then re-run the named probes so delivery is measured live.I’ll re-run the three named probes and inspect packing, reviewer, and retry state so we know whether the existing SUCCESS receipt is still honest.Probes and artifact look intact. I’ll re-run the three named probes, check hashes, then run the delivery measure.Named probes all exited 0 with the same science as the packed receipt. I’ll confirm this run’s JSON, refresh the per-unit return files, then run the delivery measure.**SUCCESS:delivered** for ADV-0008 on `/opt/p2/ast-integrate`.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree. Did not scrap it, and did not rebuild the catalog receipt (retry.count is already 32/32; this session’s science matched).
+
+Live named probes, all exit 0:
+- `probe1_enumerate.py` — mapped=0/19
+- `probe2_mutate.py` — reds=M1,M2,M5-control,M6-control; uncovered=M3a,M3b,M4,M5,M6; leftover=[]; M4_reached=true
+- `probe3_verifiers.py` — V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`
+
+Artifact is honest SUCCESS (not BLOCKED). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` with live LF sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1`.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not park. The 2026-08-16 c9+c11 pair is one reviewer session, not two independent G-1 refutes, and G-1 uses the per-unit manifest rather than global `unit_manifest.py --write` or Anthropic opus. Cloud `ok=true` was not used. No git mutations, no global catalog `--write`, no key rotation, no `finish-everything-close` / `p2-cloud-ok-deliver` relaunch.
+
+===== launch 2026-08-19T20:59:34Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the measurement contract, then resume rather than rebuild.Existing probes are in place. Next I’ll read the return artifact, the measure script, and a delivered unit so I know the G-1 bar.The return file already claims SUCCESS; I’ll re-run probes and the measure rather than trust that claim.I’ll inspect the G-1 contract, the live artifact, and the status/pack scripts so we know what “delivered” actually requires.I’ll inspect the live receipt and G-1 policy, then re-run the named probes on this worktree.Probes and packer are already on disk. I’ll re-run the named probes this session and check whether the SUCCESS receipt still matches live science.Raw logs are already there from 20:57. I’ll re-run the three named probes now so this session has live exit-0 evidence.Live science still matches the packed SUCCESS receipt. I’ll refresh the per-unit return files without re-packing (retry is already at the schema max of 32).Measure printed `SUCCESS:delivered`. I’ll lock that line into `SUBAGENT-RETURN.json` with this session’s timestamps.**SUCCESS:delivered** ADV-0008 `predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0`
+
+G-1 for this unit is green on `/opt/p2/ast-integrate`. Existing probes were resumed, not rebuilt.
+
+This session re-ran the three named probes (`_status_run_probes.py`); all exited 0:
+
+| Probe | Result |
+|---|---|
+| probe1 | `mapped=0/19` (computed) |
+| probe2 | reds `M1,M2,M5-control,M6-control`; uncovered `M3a,M3b,M4,M5,M6`; leftover `[]`; `M4_reached=true` |
+| probe3 | V1 filesystem-walk needle silent + control fired; V3 no `--collect-only`, importlib present |
+
+Catalog receipt stayed `state=SUCCESS` (not re-packed: `retry.count` is already 32/32, schema max). Live science matched that packed receipt, so it was left in place rather than rebuilt.
+
+- output: `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` (90481 B, LF sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1`)
+- per-unit row: `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` (same hash)
+- return: `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json`
+
+Not parked: the 2026-08-16 `HANDOFF.md` / `P2-REVIEWER-RETURN.json` pair is one reviewer session, not two independent G-1 refutes, and c9+c11 is not a G-1 cannot-meet (per-unit register; measure does not gate catalog vendor).
+
+Constraints kept: no git mutate, no global `unit_manifest.py --write`, no key rotation, no `finish-everything-close` / `p2-cloud-ok-deliver`. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T21:03:52Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and the unit contract, then resume rather than rebuild.The probe tree is already there. Next I’ll read the return artifacts, handoff, and the measurement script so I resume from what’s already built.I’ll re-run the live probes and the delivery measure against the existing tree, then inspect the catalog artifact if anything fails.The artifact already claims SUCCESS. I’ll re-run the named probes and the measure, and inspect `artifact_delivered` so this session’s evidence is live, not inherited.I’ll inspect retry/schema constraints and start the three named probes so this session has live exit codes.The catalog lookup is the first failure point I’ll check, then I’ll re-run the named probes.I’ll re-run the three named probes on this tree, then measure delivery against those live exits.Live science matches the packed SUCCESS receipt, so I will not re-pack (retry is already at the schema cap of 32). Next I’ll run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll write this session’s return files without re-packing the catalog receipt.**SUCCESS:delivered** ADV-0008 on `/opt/p2/ast-integrate`.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree; did not scrap it. This session re-ran the three named probes via `_status_run_probes.py` (all exit 0):
+
+| Probe | Result |
+|---|---|
+| `probe1_enumerate.py` | `mapped=0/19` (computed; 3834 py files walked; 139 `def test_` control) |
+| `probe2_mutate.py` | reds=`M1,M2,M5-control,M6-control`; uncovered=`M3a,M3b,M4,M5,M6`; leftover=`[]`; `M4_reached=true` |
+| `probe3_verifiers.py` | V1 filesystem-walk (not a git repo) needle silent + control fired; V3 no `--collect-only`, importlib present |
+
+That science still matches the packed SUCCESS receipt at `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` (LF sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1`). The receipt was **not** rebuilt: `retry.count` is already 32/32 (schema max). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching hash.
+
+Did not park. The 2026-08-16 `HANDOFF.md` / `P2-REVIEWER-RETURN.json` pair is one reviewer session, not two independent G-1 refutes, and c9+c11 is not a G-1 structural cannot-meet (per-unit register is already permitted).
+
+Constraints kept: no git write, no global `unit_manifest.py --write`, no key rotation, no finish-everything-close / p2-cloud-ok-deliver relaunch. `cloud ok=true` was not used.
+
+===== launch 2026-08-19T21:15:51Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree, read the unit contract and any SUBAGENT-RETURN, then resume from what's already built rather than scraping it.The probe tree is already populated. Next I’ll read the return artifact, measurement contract, and a delivered unit so we resume against the real gate rather than rebuilding.Existing return already claims SUCCESS:delivered. I’ll re-run the live probes and the measure script, and inspect the artifact so we don’t treat that claim as delivery.Probes and a SUCCESS receipt already exist. I’ll re-run them live, check the schema/pack constraints, and only rewrite artifacts if the measure still fails.I’ll re-run the three named probes from the existing tree, then measure against the current SUCCESS receipt instead of re-packing past the retry cap.Measure printed `SUCCESS:delivered`. I’ll record this session’s live probe tails and write the return artifact.**SUCCESS:delivered** for ADV-0008.
+
+```
+SUCCESS:delivered ADV-0008 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe1_enumerate.py:0,probe2_mutate.py:0,probe3_verifiers.py:0
+```
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0008/`. Did not scrap it.
+
+**This session**
+- Re-ran the three named probes via `_status_run_probes.py`, then again inside the measure script. All exited 0.
+- Live science is unchanged: mapped **0/19**, reds **M1, M2, M5-control, M6-control**, uncovered **M3a, M3b, M4, M5, M6**, leftover junctions `[]`, `M4_reached=true`.
+- Left the catalog SUCCESS receipt in place. `_status_pack.py` would append a 33rd retry past the schema max of 32; science still matches the packed receipt.
+- Wrote the per-unit manifest and `SUBAGENT-RETURN.json`. Did not run `unit_manifest.py --write` on the global catalog.
+
+**G-1 artifacts**
+| File | Role |
+|---|---|
+| `command-center/adversarial/ADV-0008-no-regression-uncovered-clauses.json` | honest `state=SUCCESS` receipt (90481 B, schema 0 errors) |
+| `command-center/p2-wave/probes/ADV-0008/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, sha256 `e42c00afbca917f57c1b89af3819eb4026d0097ea35054d1b248c2d4ec36e8d1` |
+| `command-center/p2-wave/probes/ADV-0008/SUBAGENT-RETURN.json` | this session’s return |
+
+Did not park. The 2026-08-16 `HANDOFF.md` / `P2-REVIEWER-RETURN.json` pair is one reviewer session, not two independent G-1 refutes, and c9/c11 is not a G-1 structural cannot-meet. `cloud ok=true` was not used. No git add/commit/push/stash/checkout/rebase.
+
+===== launch 2026-08-19T21:31:29Z attempt=1 =====
+I'll start from the existing ADV-0008 probe tree and unit contract, then resume from `SUBAGENT-RETURN.json` rather than rebuilding.The probe tree is already there. Next I’ll read the return artifact, measure contract, and current probe status so I can resume from what’s built.I’ll inspect the live artifact, reviewer returns, and probe scripts next so I can re-run them instead of trusting the previous SUCCESS claim.I’ll pull the G-1 gate, catalog row, pack/status scripts, and a comparable delivered unit so the current SUCCESS claim can be checked against the contract.

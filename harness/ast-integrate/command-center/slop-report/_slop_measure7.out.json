@@ -1,0 +1,479 @@
+{
+ "no_runtime_junk_yml": [
+  "name: no-runtime-junk",
+  "",
+  "# Fails when git TRACKS runtime state that must never be committed: the harness manifest",
+  "# (installed.json), virtualenvs / node_modules / bytecode / tool caches, or a nested .git",
+  "# gitlink (mode 160000). Complements the gitleaks secrets gate in quality.yml.",
+  "# Detection is a `shell: python` step to avoid CRLF-in-bash issues on this Windows repo.",
+  "",
+  "on:",
+  "  push:",
+  "    branches: [main]",
+  "  pull_request:",
+  "    branches: [main]",
+  "  workflow_dispatch:",
+  "",
+  "permissions:",
+  "  contents: read",
+  "",
+  "concurrency:",
+  "  group: no-runtime-junk-${{ github.ref }}",
+  "  cancel-in-progress: true",
+  "",
+  "jobs:",
+  "  no-runtime-junk:",
+  "    name: gate-no-runtime-junk",
+  "    runs-on: ubuntu-latest",
+  "    steps:",
+  "      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1",
+  "      - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97 # v7.0.0",
+  "        with:",
+  "          python-version: \"3.11\"",
+  "      - name: fail if runtime junk is tracked",
+  "        shell: python",
+  "        run: |",
+  "          import subprocess, sys",
+  "",
+  "          # Directory segments that must never be tracked (matched as a full path segment,",
+  "          # so \"prevent/venv-notes.md\" does NOT trip on \"venv\").",
+  "          BAD_DIR_SEGMENTS = {",
+  "              \".venv\", \"venv\", \"node_modules\", \"__pycache__\", \".pytest_cache\", \".ruff_cache\",",
+  "          }",
+  "          # Basenames that must never be tracked.",
+  "          BAD_BASENAMES = {\"installed.json\"}",
+  "",
+  "          def tracked_files():",
+  "              out = subprocess.check_output([\"git\", \"ls-files\", \"-z\"])",
+  "              return [p for p in out.decode(\"utf-8\", \"replace\").split(\"\\0\") if p]",
+  "",
+  "          def gitlinks():",
+  "              # `git ls-files -s`: mode objecthash stage\\tpath ; gitlink mode == 160000.",
+  "              out = subprocess.check_output([\"git\", \"ls-files\", \"-s\", \"-z\"])",
+  "              found = []",
+  "              for rec in out.decode(\"utf-8\", \"replace\").split(\"\\0\"):",
+  "                  if not rec:",
+  "                      continue",
+  "                  meta, _, path = rec.partition(\"\\t\")",
+  "                  if meta.split(\" \", 1)[0] == \"160000\":",
+  "                      found.append(path)",
+  "              return found",
+  "",
+  "          violations = []",
+  "          for path in tracked_files():",
+  "              segments = path.split(\"/\")",
+  "              if BAD_DIR_SEGMENTS.intersection(segments):",
+  "                  violations.append((\"runtime-dir\", path))",
+  "              elif segments[-1] in BAD_BASENAMES:",
+  "                  violations.append((\"runtime-file\", path))",
+  "          for path in gitlinks():",
+  "              violations.append((\"nested-git-gitlink\", path))",
+  "",
+  "          if violations:",
+  "              print(\"Tracked runtime junk detected (must be gitignored / removed):\")",
+  "              for kind, path in sorted(violations):",
+  "                  print(f\"  [{kind}] {path}\")",
+  "              sys.exit(1)",
+  "          print(\"OK: no tracked runtime junk.\")",
+  "      - name: crcp reports must stay deny-by-default",
+  "        shell: python",
+  "        run: |",
+  "          import subprocess, sys",
+  "",
+  "          # tools/crcp/reports/ holds live auth / session / health dumps (one of them has",
+  "          # carried a value-shaped `sk-\u2026` string). Its .gitignore must DENY the whole tree",
+  "          # and re-admit only the human-written .md narratives, so a merely-renamed dump",
+  "          # cannot be committed by accident. A name-by-name allowlist fails OPEN.",
+  "          #",
+  "          # Both-states gate: MUST_IGNORE catches removal/weakening of the deny patterns;",
+  "          # MUST_SEE catches an over-broad rewrite that also swallows the .md narratives.",
+  "          # Every probe path is synthetic and untracked, so the check is index-independent.",
+  "          MUST_IGNORE = [",
+  "              \"tools/crcp/reports/gatecheck_audit.json\",",
+  "              \"tools/crcp/reports/gatecheck_cookies.txt\",",
+  "              \"tools/crcp/reports/gatecheck_watch.jsonl\",",
+  "              \"tools/crcp/reports/gatecheck_state.db\",",
+  "              \"tools/crcp/reports/gatecheck_capture.har\",",
+  "              \"tools/crcp/reports/web_endgame/gatecheck_nested.json\",",
+  "          ]",
+  "          MUST_SEE = [",
+  "              \"tools/crcp/reports/gatecheck_narrative.md\",",
+  "              \"tools/crcp/reports/web_endgame/gatecheck_nested.md\",",
+  "          ]",
+  "",
+  "          def is_ignored(path):",
+  "              # --no-index so an already-tracked path cannot skew the answer; check-ignore",
+  "              # exits 0 when the path IS ignored, 1 when it is not.",
+  "              return subprocess.run(",
+  "                  [\"git\", \"check-ignore\", \"--no-index\", \"-q\", path]",
+  "              ).returncode == 0",
+  "",
+  "          failures = []",
+  "          for path in MUST_IGNORE:",
+  "              if not is_ignored(path):",
+  "                  failures.append(f\"  [fails-open] {path} is NOT ignored but must be\")",
+  "          for path in MUST_SEE:",
+  "              if is_ignored(path):",
+  "                  failures.append(f\"  [over-broad] {path} IS ignored but must stay visible\")",
+  "",
+  "          if failures:",
+  "              print(\"tools/crcp/.gitignore no longer denies by default:\")",
+  "              print(\"\\n\".join(failures))",
+  "              sys.exit(1)",
+  "          print(\"OK: crcp reports deny-by-default holds (6 denied, 2 admitted).\")",
+  ""
+ ],
+ "no_runtime_junk_bytes": 5052,
+ "p13_orphan_plan": {
+  "artifact": "P13-ORPHAN-PLAN",
+  "unit": "depth/p13-blindspot",
+  "status": "MEASURED",
+  "signal_2_probe": "set intersection of declared output_path universe vs delivered file universes",
+  "universes": {
+   "declared_output_paths_distinct": 2007,
+   "artifact_manifest_paths": 13,
+   "git_tracked_files": 8911,
+   "ondisk_command_center_files": 569
+  },
+  "intersections": {
+   "declared_AND_artifact_manifest": [],
+   "declared_AND_artifact_manifest_n": 0,
+   "declared_AND_git_tracked": [
+    "command-center/wfa/schema/wfa-schema-pack.json"
+   ],
+   "declared_AND_git_tracked_n": 1,
+   "declared_AND_ondisk_cc": [
+    "command-center/wfa/schema/wfa-schema-pack.json"
+   ],
+   "declared_AND_ondisk_cc_n": 1
+  },
+  "register_receipt_contract": {
+   "items_total": 103,
+   "declared_receipt_paths_existing": 0,
+   "done_verified_n": 26,
+   "done_verified_without_receipt_n": 26,
+   "done_verified_without_receipt_ids": [
+    "T-01",
+    "T-02",
+    "T-03",
+    "T-04",
+    "T-05",
+    "T-06",
+    "T-07",
+    "T-08",
+    "T-09",
+    "T-10",
+    "T-11",
+    "T-12",
+    "T-13",
+    "T-14",
+    "T-15",
+    "T-16",
+    "T-17",
+    "T-18",
+    "T-19",
+    "T-20",
+    "T-21",
+    "T-22",
+    "T-23",
+    "T-24",
+    "T-25",
+    "T-26"
+   ],
+   "receipts_dir_exists": false
+  },
+  "status_census_items": {
+   "OPEN": 60,
+   "DONE-VERIFIED": 26,
+   "IN-FLIGHT": 5,
+   "SUPERSEDED": 5,
+   "DONE-CLAIMED": 3,
+   "DROPPED-BY-OWNER": 3,
+   "UNKNOWN": 1
+  },
+  "disposition_x_status": {
+   "None | OPEN": 60,
+   "DONE-VERIFIED | DONE-VERIFIED": 26,
+   "None | IN-FLIGHT": 5,
+   "SUPERSEDED | SUPERSEDED": 5,
+   "None | DONE-CLAIMED": 3,
+   "DROPPED-BY-OWNER | DROPPED-BY-OWNER": 3,
+   "None | UNKNOWN": 1
+  }
+ },
+ "p13_orphan_plan_py_head": [
+  "\"\"\"P13 corroboration: is the 2,007-unit catalog an ORPHANED plan?",
+  "",
+  "Signal 1 (already run, p13_execution_gap.py): per-path existence -> 1/2007 present.",
+  "Signal 2 (HERE, mechanically different): SET INTERSECTION between",
+  "  (a) the catalog's declared output_path universe, and",
+  "  (b) the artifacts the program actually delivered (ARTIFACT-MANIFEST.json + the",
+  "      real on-disk tracked file list),",
+  "computed as set algebra rather than per-path stat().",
+  "",
+  "If the intersection is ~empty while (b) is large, the two namespaces are disjoint:",
+  "real work was delivered, but NOT at the paths the catalog contracted for -- so the",
+  "catalog cannot answer \"what was dropped\", which is itself the blind spot.",
+  "",
+  "Also checks the 103-item register's receipt contract: items marked DONE-VERIFIED",
+  "whose declared receipt output_path does not exist.",
+  "",
+  "Read-only apart from one JSON report.",
+  "\"\"\"",
+  "",
+  "from __future__ import annotations",
+  "",
+  "import json",
+  "import pathlib",
+  "import subprocess",
+  "import sys",
+  ""
+ ],
+ "clean_markdown": {
+  "clean_markdown.py": {
+   "sha": "d3b86deb30dbeb96f8a2",
+   "sha_lf": "a696ed32091ae6cefbcc",
+   "tracked": true,
+   "bytes": 3285
+  },
+  "skills/consensus-tooluniverse-research/scripts/clean_markdown.py": {
+   "sha": "ffc636b464a9a30cad4b",
+   "sha_lf": "e4396625042b012ea673",
+   "tracked": true,
+   "bytes": 4606
+  },
+  ".agents/skills/consensus-tooluniverse-research/scripts/clean_markdown.py": {
+   "sha": "ffc636b464a9a30cad4b",
+   "sha_lf": "e4396625042b012ea673",
+   "tracked": true,
+   "bytes": 4606
+  }
+ },
+ "clean_markdown_refs": [
+  ".agents/skills/consensus-tooluniverse-research/SKILL.md:33:python scripts/clean_markdown.py",
+  ".agents/skills/consensus-tooluniverse-research/SKILL.md:50:Then `scripts/clean_markdown.py` converts Consensus render-tags (`consensus_meter`, `search_strategy_diagram`,",
+  ".agents/skills/consensus-tooluniverse-research/references/BEST-METHOD.md:35:### Stage 1b \u2014 `_workspace/clean_markdown.py`  (formatting + graph manifest)",
+  ".agents/skills/consensus-tooluniverse-research/references/BEST-METHOD.md:79:& $py _workspace\\clean_markdown.py                          # readable formatting + graph manifest",
+  ".agents/skills/consensus-tooluniverse-research/scripts/extract_consensus.py:7:No auth needed (shared threads are public). Pair with clean_markdown.py for readable output + the",
+  "command-center/_wfa5_features.json:13055:     \"text\": \"`The skill bundles 3 Python scripts (extract_consensus.py, clean_markdown.py, resolve_and_download.py) that currently HARDCODE the workspace path C:\\\\\\\\Users\\\\\\\\Prekzursil\\\\\\\\Downloads\\\\\\\\proof_empty and a fi\"",
+  "docs/audit-design-2026-07-13/B-doc-registry-COMPLETE.json:90:    {\"cluster\": 54, \"path\": \"C:/Users/Prekzursil/.claude/skills.daily\", \"docs\": 126, \"class\": \"canonical\", \"canonical_for\": \"the CURATED ACTIVE daily skill set (75 dirs/77 SKILL.md) that ~/.claude/skills points at each session\", \"supersedes\": null, \"superseded_by\": null, \"one_line\": \"Curated daily-loaded subset from source/skills + .agents/library, deployed as PROCESSED copies (clean_markdown.py on deploy -> md5 differs from source, expected). Distinct ACTIVE role.\", \"fold_or_flag\": \"KEEP canonical (what's live). Do NOT hand-edit here (edit source, redeploy). source->daily parity is a hygiene check, not a fold.\", \"confidence\": \"high\", \"slice\": 5},",
+  "docs/audit-design-2026-07-13/B-reconcile-5.json:102:      \"one_line\": \"Curated daily-loaded subset drawn from the union of source/skills + .agents/library, deployed as PROCESSED copies (ui-audit SKILL.md here != source by md5 \u2014 expected, toolchain runs clean_markdown.py on deploy). Distinct ACTIVE role from source.\",",
+  "docs/audit-design-2026-07-13/B-reconcile-5.md:17:| 54 | `.claude/skills.daily` | 126 | **canonical** | The curated ACTIVE daily skill set (75 dirs) that `~/.claude/skills` loads. Processed deploy copies (md5 \u2260 source \u2014 expected `clean_markdown.py`). |",
+  "harness-sota-2026-07-18-corpus/P1B12.md:132:| `clean_markdown.py` | 1 | 3,285 | Markdown normalization helper | healthy presence; no runtime validation |",
+  "harness-sota-2026-07-18-corpus/P1C06.md:24:| P1C06-A21-F6 | The \u201cauto-generated\u201d manifest has no tracked generator or parity guard, and its last-changing commit already contained the same 35-entry gap. | Auto-generation claim at `C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\skills\\SKILLS-MANIFEST.md:3`; cleaner target at `C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\clean_markdown.py:49-65`; validator loop without manifest assertion at `C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\scripts\\validate-all-skills.ps1:94-117`; bounded tracked searches of `.github/`, `ci/`, `scripts/`, `.quality/`, and `package.json` found no generator/guard; historical `git show`/`git ls-tree` at `efe368d` returned `manifest_rows=157`, `actual_skill_dirs=192`, `missing=35`. | Manifest generation / validation | HIGH (`high x S`) | SUPPORTED \u2014 a detector-bounded absence search plus positive controls (cleaner and validator references) and historical tree output support both halves; **very likely (80-90%)** internal support because \u201cno tracked generator\u201d is only as exhaustive as the explicitly bounded locations. | None exact. | BUILD-SMALL |",
+  "harness-sota-2026-07-18-corpus/P1C06.md:85:  {\"stable_id\":\"P1C06-A21-F6\",\"claim\":\"The auto-generated manifest has no tracked generator or parity guard, and its last-changing commit already contained the same 35-entry gap.\",\"exact_evidence\":\"Auto-generation claim at C:\\\\Users\\\\Prekzursil\\\\source\\\\agent-skills-toolchain\\\\skills\\\\SKILLS-MANIFEST.md:3; cleaner target at clean_markdown.py:49-65; validator loop without manifest assertion at scripts\\\\validate-all-skills.ps1:94-117; bounded tracked searches of .github/, ci/, scripts/, .quality/, and package.json found no generator/guard; historical git show/git ls-tree at efe368d returned manifest_rows=157, actual_skill_dirs=192, missing=35.\",\"subsystem\":\"manifest generation / validation\",\"claimed_severity\":\"HIGH (high x S)\",\"evidence_support\":\"SUPPORTED\",\"duplicate\":null,\"native_vs_build\":\"BUILD-SMALL\"},",
+  "platform/corpus/CANONICAL-CLAIMS.json:35117:        \"clean_markdown.py\",",
+  "skills/consensus-tooluniverse-research/SKILL.md:33:python scripts/clean_markdown.py",
+  "skills/consensus-tooluniverse-research/SKILL.md:50:Then `scripts/clean_markdown.py` converts Consensus render-tags (`consensus_meter`, `search_strategy_diagram`,",
+  "skills/consensus-tooluniverse-research/references/BEST-METHOD.md:35:### Stage 1b \u2014 `_workspace/clean_markdown.py`  (formatting + graph manifest)",
+  "skills/consensus-tooluniverse-research/references/BEST-METHOD.md:79:& $py _workspace\\clean_markdown.py                          # readable formatting + graph manifest",
+  "skills/consensus-tooluniverse-research/scripts/extract_consensus.py:7:No auth needed (shared threads are public). Pair with clean_markdown.py for readable output + the"
+ ],
+ "root_files": {
+  ".git": {
+   "bytes": 87,
+   "tracked": false,
+   "last_commit": "(never committed)"
+  },
+  ".gitattributes": {
+   "bytes": 1049,
+   "tracked": true,
+   "last_commit": "757d49cc 2026-07-27 reconcile: land the parked fix/mcp-health-agentmail-fbmessenger work o"
+  },
+  ".gitignore": {
+   "bytes": 3933,
+   "tracked": true,
+   "last_commit": "3678417c 2026-08-12 fix(skills): reconcile live-ahead drift into the repo -- a redeploy to"
+  },
+  ".gitleaks.toml": {
+   "bytes": 13079,
+   "tracked": true,
+   "last_commit": "ae8205a4 2026-08-12 fix(quality): clear gate-sast and gate-secrets -- the wave's synthetic"
+  },
+  ".npmrc": {
+   "bytes": 40,
+   "tracked": true,
+   "last_commit": "e44d916d 2026-03-23 Sync agent skills to superpowers v5.0.5"
+  },
+  ".semgrepignore": {
+   "bytes": 2233,
+   "tracked": true,
+   "last_commit": "900ae141 2026-07-23 fix(mcp): register fb-messenger + agent-mail in canonical set, add app"
+  },
+  "AGENTS.md": {
+   "bytes": 7924,
+   "tracked": true,
+   "last_commit": "696ed513 2026-08-09 chore: retire the ChatGPT-web orchestration lane (5 trees, 77 files) +"
+  },
+  "CLAUDE.md": {
+   "bytes": 1578,
+   "tracked": true,
+   "last_commit": "3beea1a9 2026-07-27 chore(docs): retire the AgentBridge protocol blocks (the tools they na"
+  },
+  "JOBMON_DESIGN_GRILL.md": {
+   "bytes": 7238,
+   "tracked": true,
+   "last_commit": "22d44d80 2026-07-11 feat(taskwatch_monitor): general-purpose long-task progress monitor (1"
+  },
+  "LEADERBOARD.md": {
+   "bytes": 7275,
+   "tracked": true,
+   "last_commit": "2e54592c 2026-06-27 Add grill-me-extensive skill + best-of LEADERBOARD (#15)"
+  },
+  "QUALITY-CHARTER.md": {
+   "bytes": 5528,
+   "tracked": true,
+   "last_commit": "696ed513 2026-08-09 chore: retire the ChatGPT-web orchestration lane (5 trees, 77 files) +"
+  },
+  "README.md": {
+   "bytes": 19221,
+   "tracked": true,
+   "last_commit": "696ed513 2026-08-09 chore: retire the ChatGPT-web orchestration lane (5 trees, 77 files) +"
+  },
+  "RECONCILE-LOG.md": {
+   "bytes": 6231,
+   "tracked": true,
+   "last_commit": "672824f8 2026-07-19 salvage(fleet-wave2): rescue orphaned audit docs, no-runtime-junk gate"
+  },
+  "REPO-TOPOLOGY.md": {
+   "bytes": 8390,
+   "tracked": true,
+   "last_commit": "0a2ea64b 2026-08-10 docs(topology): record the SSOT - ast-integrate is a WORKTREE, 9 check"
+  },
+  "SECURITY.md": {
+   "bytes": 2355,
+   "tracked": true,
+   "last_commit": "69a82276 2026-07-06 ci: adopt QZT lean quality gate + SECURITY policy, get quality GREEN ("
+  },
+  "_f7_syncskills_probe.py": {
+   "bytes": 3461,
+   "tracked": true,
+   "last_commit": "d53485ce 2026-08-11 chore: commit six root-level probes a TRACKED audit cites but a clone "
+  },
+  "_refute_f1_codex_stubs.py": {
+   "bytes": 4213,
+   "tracked": true,
+   "last_commit": "d53485ce 2026-08-11 chore: commit six root-level probes a TRACKED audit cites but a clone "
+  },
+  "_refute_f4_atomicity.py": {
+   "bytes": 6784,
+   "tracked": true,
+   "last_commit": "d53485ce 2026-08-11 chore: commit six root-level probes a TRACKED audit cites but a clone "
+  },
+  "_refute_f6_probe.py": {
+   "bytes": 5243,
+   "tracked": true,
+   "last_commit": "d53485ce 2026-08-11 chore: commit six root-level probes a TRACKED audit cites but a clone "
+  },
+  "_refute_f6_probe2.py": {
+   "bytes": 3730,
+   "tracked": true,
+   "last_commit": "d53485ce 2026-08-11 chore: commit six root-level probes a TRACKED audit cites but a clone "
+  },
+  "_refute_f6_probe3.py": {
+   "bytes": 3059,
+   "tracked": true,
+   "last_commit": "d53485ce 2026-08-11 chore: commit six root-level probes a TRACKED audit cites but a clone "
+  },
+  "clean_markdown.py": {
+   "bytes": 3285,
+   "tracked": true,
+   "last_commit": "094992ed 2026-06-28 ci: drive lean quality gate to green (ruff, basedpyright, opengrep)"
+  },
+  "osv-scanner.toml": {
+   "bytes": 3484,
+   "tracked": true,
+   "last_commit": "89d20e64 2026-08-09 deps: consolidated dependency pass \u2014 clear 8 osv findings and close th"
+  },
+  "package-lock.json": {
+   "bytes": 985,
+   "tracked": true,
+   "last_commit": "696ed513 2026-08-09 chore: retire the ChatGPT-web orchestration lane (5 trees, 77 files) +"
+  },
+  "package.json": {
+   "bytes": 468,
+   "tracked": true,
+   "last_commit": "89d20e64 2026-08-09 deps: consolidated dependency pass \u2014 clear 8 osv findings and close th"
+  },
+  "ruff.toml": {
+   "bytes": 3750,
+   "tracked": true,
+   "last_commit": "4573b603 2026-08-12 style: close the CI-red -- 0 tracked ruff findings, with two exclusion"
+  }
+ },
+ "untracked_py_excl_mine": 103,
+ "ruff_fmt_fail": [
+  "command-center\\_adv0031\\analyze.py",
+  "command-center\\_adv0031\\build_artifact.py",
+  "command-center\\_adv0031\\extract_evidence.py",
+  "command-center\\_adv0031\\harness.py",
+  "command-center\\_adv0031\\precise_sink.py",
+  "command-center\\_adv0031\\show.py",
+  "command-center\\_adv0031\\show2.py",
+  "command-center\\_adv0031\\sleeper.py",
+  "command-center\\grounding\\_s2_bytestable.py",
+  "command-center\\grounding\\_s2_render_probe.py",
+  "command-center\\hook-audit\\_h1_inventory.py",
+  "command-center\\hook-audit\\_h2_unwired.py",
+  "command-center\\hook-audit\\_h3_hooksjson.py",
+  "command-center\\mcp-audit\\_probe_matrix.py",
+  "command-center\\mcp-audit\\_probe_three_signals.py",
+  "command-center\\p2-next\\split_review_gate.py",
+  "command-center\\p2-next\\vendor_satisfiability.py",
+  "command-center\\ssot\\measure_clones.py",
+  "command-center\\ssot\\measure_unique_depth.py",
+  "command-center\\ssot\\report_pass3.py",
+  "command-center\\ssot\\scan_inbound_refs.py",
+  "docs\\_lane_docs_detector.py",
+  "docs\\rule-audit\\_probe_alwayson_diff.py",
+  "docs\\rule-audit\\_probe_rule_inventory.py",
+  "docs\\rule-audit\\_probe_summarize.py",
+  "platform\\lib\\_p12_receipt_defect_census.py",
+  "platform\\lib\\_p12_refute_predicate2.py",
+  "platform\\lib\\_p12_refute_substrate.py",
+  "platform\\lib\\workflows\\_p12_refute_distinctness.py",
+  "platform\\lib\\workflows\\_p12_refute_semantic_overlap.py",
+  "platform\\routing\\_p12_refute_supersede_direction.py"
+ ],
+ "ruff_fmt_fail_n": 31,
+ "ruff_lint_violations": [
+  "docs\\rule-audit\\_probe_alwayson_diff.py:33:27: E741 Ambiguous variable name: `l`",
+  "docs\\rule-audit\\_probe_alwayson_diff.py:38:8: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_mh_measure4.py:22:18: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_mh_measure6.py:23:18: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_mh_measure6.py:47:12: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_mh_measure6.py:63:27: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_mh_measure6.py:64:26: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_mh_probe_drift.py:32:19: E741 Ambiguous variable name: `l`",
+  "platform\\architecture\\_secfirst_measure2.py:230:15: E741 Ambiguous variable name: `l`",
+  "platform\\lib\\_p12_refute_predicate.py:107:5: F841 Local variable `mp` is assigned to but never used",
+  "platform\\lib\\_p12_refute_predicate2.py:24:34: F401 [*] `completion_predicate.Outcome` imported but unused"
+ ],
+ "ruff_lint_files": [
+  "docs\\rule-audit\\_probe_alwayson_diff.py",
+  "platform\\architecture\\_mh_measure4.py",
+  "platform\\architecture\\_mh_measure6.py",
+  "platform\\architecture\\_mh_probe_drift.py",
+  "platform\\architecture\\_secfirst_measure2.py",
+  "platform\\lib\\_p12_refute_predicate.py",
+  "platform\\lib\\_p12_refute_predicate2.py"
+ ],
+ "ruff_lint_n": 11,
+ "quality_ruff_steps": [
+  "#   1. lint-format     ruff 0.15.17          ruff check + ruff format --check (honors ruff.toml)",
+  "name: gate-lint-format (ruff)",
+  "# Self-contained pinned ruff (mirrors reframe): honors the committed ruff.toml",
+  "# (extend-exclude = vendored ralph-orchestrator tree + notebook templates). ruff",
+  "# check = lint + sec-lint; ruff format --check = the format gate. Keep the pin in",
+  "- name: gate-lint-format ruff (install)",
+  "pip install ruff==0.15.17",
+  "- name: gate-lint-format ruff check",
+  "run: ruff check --output-format=github .",
+  "- name: gate-lint-format ruff format --check",
+  "run: ruff format --check .",
+  "# rules/ had NO gate of any kind before this step: ruff, basedpyright, npm and",
+  "# `ruff format` on the snapshot (this gate lints the whole repo; the live tree is not"
+ ],
+ "quality_step_count": 86,
+ "adv0041_excerpt": "e352dddfc017ba18e0786b4\",\n          \"exit_code\": 0\n        },\n        {\n          \"role\": \"verifier\",\n          \"method\": \"test-run\",\n          \"command\": \"python C:/Users/Prekzursil/AppData/Local/Temp/adv0041/runtime_amplify.py  (9 invocations whose argv contains NO identity token: only `~` or a relative path)\",\n          \"raw_output\": \"cases=9  cases_with_AMPLIFIED_hit=4  cases_with_traceback=0\\nAMPLIFIED = the token was ABSENT from argv and PRESENT in the rendered message.\\n\\n[tilde/build-missing-runtime] exit=11 argv_had_identity_token=False\\n    AMPLIFIED username: what happened : 19 declared runtime module(s) are missing from C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\platform\\\\~\\\\.adv0041-amp\\\\relroot\\\\platform\\\\plugin\\n    AMPLIFIED home-path: what happened : 19 declared runtime module(s) are missing from C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\platform\\\\~\\\\.adv0041-amp\\\\relroot\\\\platform\\\\plugin\\n[tilde/install-missing-package] exit=2 argv_had_identity_token=False\\n    AMPLIFIED username: what happened : package not found: C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\platform\\\\~\\\\.adv0041-amp\\\\nope.zip\\n    AMPLIFIED home-path: what happened : package not found: "
+}

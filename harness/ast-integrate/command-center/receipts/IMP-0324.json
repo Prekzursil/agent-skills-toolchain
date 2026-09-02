@@ -1,0 +1,309 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0324",
+  "title": "Prompt-injection and collusion defense on participant artifacts",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0324",
+  "completion_sentinel": "SUCCESS:IMP-0324",
+  "spec_anchor": "_USER-PROMPTS.md:11344,11062,11298-11347; AGENTS.md \u00a79 untrusted DATA",
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-antifail-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "question": "Implement tools/council/antifail/injection.py treating every participant turn, transcript and fetched source as untrusted DATA and detecting coordinated collusion signatures. Falsifiable question: can text inside a participant's turn cause a later stage to change its instructions, and does the defense survive base64, unicode-confusable and split-token encodings?",
+  "answer": "No. With the structural DATA envelope enabled, none of 30 payloads across 5 encodings mutated later-stage instructions (instruction sha256 held at 6adfa83cadfcd285\u2026; policy stayed DEFAULT_SYNTHESIS). The same payloads, and a split-across-seats canary, change policy to ATTACKER_CANARY_IMP0324 when the defense is disabled, so the behaviour probe is sensitive. Collusion-split, collusion-sync, and same-tuple signatures fire on the decoded stream. Detector verdicts are not the hold criterion.",
+  "min_bytes_threshold": 2048,
+  "artifact_paths": [
+    "command-center/receipts/IMP-0324.json",
+    "tools/council/antifail/injection.py",
+    "command-center/p2-wave/probes/IMP-0324/probe1_corpus.py",
+    "command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py"
+  ],
+  "artifacts": [
+    {
+      "path": "tools/council/antifail/injection.py",
+      "role": "primary-module",
+      "exists": true,
+      "bytes": 25691,
+      "sha256": "f13f4c35e8cf422524635d059124372b78408b37b0946517e24dc4fbebdf4c2c",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0324/probe1_corpus.py",
+      "role": "named-probe",
+      "exists": true,
+      "bytes": 2802,
+      "sha256": "02bca2fb53fa67ca9e324a24f9d6dcdcee7e62375bbdd19018405005fd7c77f3",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py",
+      "role": "named-probe",
+      "exists": true,
+      "bytes": 3642,
+      "sha256": "20745a7538f3534eb5959470cc9fcc705d3a2aaba6683ab92ea7a29d164baeab",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/council/antifail/injection.py",
+      "claim": "Live 30-payload corpus (6 families \u00d7 5 encodings: plaintext, base64, unicode-confusable, split-token, hex) is blocked on the instruction channel. Block rate per encoding: plaintext=1.00 (n=6, detector=1.00), base64=1.00 (n=6, detector=1.00), unicode-confusable=1.00 (n=6, detector=1.00), split-token=1.00 (n=6, detector=1.00), hex=1.00 (n=6, detector=1.00). Benign FPR=0.0 on 10 texts.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe1_corpus.py",
+          "raw_output": "{\"block_rate_per_encoding\": {\"base64\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"hex\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"plaintext\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"split-token\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"unicode-confusable\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}}, \"false_positive_rate\": 0.0, \"n_payloads\": 30, \"ok\": true}",
+          "fingerprint": "d6b914a45dda0e68750f1a92d223c08c",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "function",
+          "command": "tools.council.antifail.injection.run_corpus_report",
+          "raw_output": "{\"block_rate_per_encoding\": {\"base64\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"hex\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"plaintext\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"split-token\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}, \"unicode-confusable\": {\"block_rate\": 1.0, \"detector_fire\": 6, \"detector_rate\": 1.0, \"instruction_held\": 6, \"n\": 6, \"policy_held\": 6}}, \"false_positive_rate\": 0.0, \"n_payloads\": 30, \"ok\": true}",
+          "fingerprint": "35a2e00f14e5b2c0849e9240b9a3f6cd",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "anchor": "spec:11344",
+      "claim": "A transcript-borne instruction does not alter a later stage when defense is on: instruction_sha256 equals the baseline 6adfa83cadfcd285a99f5406bed96f276873eb6561e9d685b97e279a2a102f6f, policy remains DEFAULT_SYNTHESIS, behaviour string is unchanged. Fetched sources and split-across-seat canaries are likewise held. This verdict uses digest/policy/behaviour, not detector FIRE.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py",
+          "raw_output": "{\"collusion_split_detected\": true, \"collusion_sync_detected\": true, \"collusion_tuple_detected\": true, \"defended_policy\": \"DEFAULT_SYNTHESIS\", \"independent_of_detector\": true, \"negative_control_defense_disabled_transcript\": true, \"ok\": true, \"spec_11344_transcript_held\": true, \"undefended_policy\": \"ATTACKER_CANARY_IMP0324\"}",
+          "fingerprint": "569d34c4a47653fc2d6f877d9d5225ab",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "function",
+          "command": "tools.council.antifail.injection.run_behaviour_report",
+          "raw_output": "{\"collusion_split_detected\": true, \"collusion_sync_detected\": true, \"collusion_tuple_detected\": true, \"defended_policy\": \"DEFAULT_SYNTHESIS\", \"independent_of_detector\": true, \"negative_control_defense_disabled_transcript\": true, \"ok\": true, \"spec_11344_transcript_held\": true, \"undefended_policy\": \"ATTACKER_CANARY_IMP0324\"}",
+          "fingerprint": "48729467864d0af51714d5ceda23e105",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "anchor": "negative-control:defense-disabled",
+      "claim": "Disabling the defense concatenates participant bytes onto the instruction channel. The same transcript, fetched, and split fixtures then change policy to ATTACKER_CANARY_IMP0324 and diverge the behaviour string, proving the probe can observe instruction change.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py",
+          "raw_output": "{\"collusion_split_detected\": true, \"collusion_sync_detected\": true, \"collusion_tuple_detected\": true, \"defended_policy\": \"DEFAULT_SYNTHESIS\", \"independent_of_detector\": true, \"negative_control_defense_disabled_transcript\": true, \"ok\": true, \"spec_11344_transcript_held\": true, \"undefended_policy\": \"ATTACKER_CANARY_IMP0324\"}",
+          "fingerprint": "569d34c4a47653fc2d6f877d9d5225ab",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "function",
+          "command": "run_behaviour_report.negative_control_defense_disabled_*",
+          "raw_output": "{\"collusion_split_detected\": true, \"collusion_sync_detected\": true, \"collusion_tuple_detected\": true, \"defended_policy\": \"DEFAULT_SYNTHESIS\", \"independent_of_detector\": true, \"negative_control_defense_disabled_transcript\": true, \"ok\": true, \"spec_11344_transcript_held\": true, \"undefended_policy\": \"ATTACKER_CANARY_IMP0324\"}",
+          "fingerprint": "ab5f23de4ca067d36f9565b45485e70d",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "test_ids": [
+    "t-corpus-30-across-5-encodings",
+    "t-spec-11344-transcript-hold",
+    "t-collusion-split-sync-tuple"
+  ],
+  "tests": [
+    {
+      "id": "t-corpus-30-across-5-encodings",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe1_corpus.py",
+      "result": "PASS"
+    },
+    {
+      "id": "t-spec-11344-transcript-hold",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py",
+      "result": "PASS"
+    },
+    {
+      "id": "t-collusion-split-sync-tuple",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_control_ids": [
+    "nc-defense-disabled-transcript",
+    "nc-defense-disabled-fetched",
+    "nc-benign-fpr"
+  ],
+  "negative_controls": [
+    {
+      "id": "nc-defense-disabled-transcript",
+      "kind": "defense-disabled",
+      "description": "same payload changes later-stage policy when wrap_as_data is skipped",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "ATTACKER_CANARY_IMP0324",
+      "good_state_output": "DEFAULT_SYNTHESIS"
+    },
+    {
+      "id": "nc-defense-disabled-fetched",
+      "kind": "defense-disabled",
+      "description": "fetched-source encoding hijacks policy only with defense off",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "policy-changed",
+      "good_state_output": "policy-held"
+    },
+    {
+      "id": "nc-benign-fpr",
+      "kind": "known-good-fixture",
+      "description": "benign participant text must not fire the injection detector",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "n/a-corpus-is-the-bad-state",
+      "good_state_output": "fpr=0.0"
+    }
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer": {
+    "reviewer_id": "IMP-0324-probe1-corpus-correctness",
+    "role": "correctness",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "starts_from": "named probes, not the author summary"
+  },
+  "security_refuter": {
+    "reviewer_id": "IMP-0324-probe2-behaviour-security-refuter",
+    "role": "security-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "default_on_insufficient_evidence": "REFUTED",
+    "spec_anchor": "_USER-PROMPTS.md:11062",
+    "note": "Defaults to REFUTED unless instruction-hold and the defense-disabled divergence are both measured. Detector FIRE alone is insufficient evidence."
+  },
+  "block_rate_per_encoding": {
+    "plaintext": {
+      "n": 6,
+      "detector_fire": 6,
+      "instruction_held": 6,
+      "policy_held": 6,
+      "detector_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "base64": {
+      "n": 6,
+      "detector_fire": 6,
+      "instruction_held": 6,
+      "policy_held": 6,
+      "detector_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "unicode-confusable": {
+      "n": 6,
+      "detector_fire": 6,
+      "instruction_held": 6,
+      "policy_held": 6,
+      "detector_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "split-token": {
+      "n": 6,
+      "detector_fire": 6,
+      "instruction_held": 6,
+      "policy_held": 6,
+      "detector_rate": 1.0,
+      "block_rate": 1.0
+    },
+    "hex": {
+      "n": 6,
+      "detector_fire": 6,
+      "instruction_held": 6,
+      "policy_held": 6,
+      "detector_rate": 1.0,
+      "block_rate": 1.0
+    }
+  },
+  "false_positive_rate": 0.0,
+  "behaviour": {
+    "baseline_instruction_sha256": "6adfa83cadfcd285a99f5406bed96f276873eb6561e9d685b97e279a2a102f6f",
+    "spec_11344_transcript_held": true,
+    "fetched_source_held": true,
+    "collusion_split_held": true,
+    "negative_control_defense_disabled_transcript": true,
+    "collusion_split_detected": true,
+    "collusion_sync_detected": true,
+    "collusion_tuple_detected": true,
+    "independent_of_detector": true
+  },
+  "collusion_signatures": [
+    "collusion-split (payload reconstitutes only across seats)",
+    "collusion-sync (same injection family in two seats)",
+    "collusion-tuple (same vendor+model+context_digest under two role labels)"
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe1_corpus.py"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-24T18:37:00Z",
+    "ended_at": "2026-08-25T01:00:57Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0324/UNIT-ARTIFACT-MANIFEST.json",
+    "note": "per-unit manifest only; did not run unit_manifest.py --write"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0324/probe1_corpus.py",
+      "artifact_path": "command-center/receipts/IMP-0324.json",
+      "executed": true,
+      "read_ok": true
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0324/probe2_behaviour.py",
+      "artifact_path": "command-center/receipts/IMP-0324.json",
+      "executed": true,
+      "read_ok": true
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Council kernel IMP-0264 and dissent pipeline IMP-0312 are not present as delivered modules on this worktree. injection.consume() is the contract those runtimes must call; this unit does not claim a live kernel already does.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "After IMP-0264 exists, assert every topology turn, transcript write, and fetch ingress calls consume() before a later stage reads the bytes."
+    },
+    {
+      "claim": "The later stage under test is a structural instruction-field isolator plus a gullible policy extractor over decoded variants of that field. A live LLM that ignores DATA fences and obeys fenced participant prose is an IMP-0480-class residual, not measured here.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Feed fenced envelopes to a real consumer model and require byte-identical stage output versus a clean envelope."
+    },
+    {
+      "claim": "Homoglyph folding covers a finite Latin/Cyrillic/Greek set. Stacked encodings (confusable then base64 then split) and unlisted scripts are not in the 30-payload matrix.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Extend the corpus with stacked encodings and additional scripts; fail closed on unknown folds."
+    }
+  ],
+  "defects": [],
+  "cloud_ok": false
+}

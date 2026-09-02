@@ -1,0 +1,774 @@
+[
+  {
+    "number": 75972,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+      "http_status": 200,
+      "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+      "bytes": 6388,
+      "ratelimit_remaining": "41"
+    },
+    "title": "Plugin-sourced hooks.json never fires, even though the plugin shows installed + enabled (no error, no registry entry evidence)",
+    "state": "open",
+    "html_url": "https://github.com/anthropics/claude-code/issues/75972",
+    "body_len": 2561,
+    "body_head": "**Claude Code version:** 2.1.202 (macOS/Darwin)\n\n**Summary:** A plugin's `hooks.json` (`SessionStart`, `Stop`, `PreToolUse`, `PostToolUse`, `PreSkill` hooks) never fires, despite the plugin being installed, enabled, and its cached `hooks.json` matching the source repo exactly. The plugin's skills/agents work normally \u2014 only the hooks are silently inert.\n\n**Setup (verified correct):**\n- Plugin `base-tools@claude-base` appears in `~/.claude/plugins/installed_plugins.json` (auto-installed as a dependency of another plugin, `scope: user`, `auto: true`)\n- Explicitly enabled in `~/.claude/settings.json` \u2192 `\"enabledPlugins\": {\"base-tools@claude-base\": true}`\n- Cached `hooks.json` is byte-identical to the plugin source, with standard `${CLAUDE_PLUGIN_ROOT}/hooks/*.sh` command entries for `SessionS",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:macos",
+      "area:hooks",
+      "area:plugins",
+      "reproduced"
+    ],
+    "closed_at": null,
+    "created_at": "2026-07-09T05:32:13Z",
+    "updated_at": "2026-08-17T02:09:02Z",
+    "comments": 2,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/75972",
+      "final_url": "https://github.com/anthropics/claude-code/issues/75972",
+      "http_status": 200,
+      "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+      "bytes": 282836,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/75972/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/75972/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "003983528f168f188c156ecde18e5480481f559df551fd49870ad50dd701be5d",
+      "bytes": 5878
+    },
+    "comment_count_fetched": 2,
+    "comment_heads": [
+      {
+        "user": "dkkplk",
+        "created": "2026-07-09T06:03:09Z",
+        "head": "**Additional isolating data point:** I tested whether a hook defined *directly* in `.claude/settings.local.json`'s own `\"hooks\"` key (not via a plugin) fires correctly.\n\nTest hook \u2014 `PreToolUse`/`Bash`, blocks any command containing a unique marker string:\n```json\n{\n  \"hooks\": {\n    \"PreToolUse\": [\n      {\n        \"matcher\": \"Bash\",\n        \"hooks\": [{\"type\": \"command\", \"command\": \"... grep -q ZZZTESTHOOKZZZ ... exit 2 ...\"}]\n      }\n    ]\n  }\n}\n```\n\nRunning `echo ZZZTESTHOOKZZZ` with this in pl"
+      },
+      {
+        "user": "bcherny",
+        "created": "2026-08-17T02:09:01Z",
+        "head": "Confirmed \u2014 reproduced on 2.1.233 (Linux).\n\nI built a minimal plugin with a `hooks/hooks.json` declaring SessionStart + PreToolUse hooks, installed it from a local marketplace (both directly and as an auto-installed dependency of another plugin, matching your `auto: true` setup) \u2014 and the hooks fired fine. The trigger is the `PreSkill` entry: `PreSkill` isn't a supported hook event, and one unrecognized event name currently causes the **entire** hooks.json to be rejected, so all the valid hooks "
+      }
+    ]
+  },
+  {
+    "number": 86809,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/86809",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/86809",
+      "http_status": 200,
+      "sha256": "aa4c138181ec20aee137119d2ae0f6c9cf535ddfc98be605dbd0b927f853be5c",
+      "bytes": 9093,
+      "ratelimit_remaining": "39"
+    },
+    "title": "Plugin hooks never run when the plugin is installed from a directory-source marketplace",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/86809",
+    "body_len": 4483,
+    "body_head": "## Summary\n\nA plugin installed from a **directory-source marketplace** reports `Status: \u2714 enabled`,\nships its `hooks/hooks.json`, and populates its versioned cache dir \u2014 but its hooks never\nrun. The **same plugin at the same version** installed from a **github-source marketplace**\nruns them normally.\n\nNothing on screen indicates the difference, so the standard local plugin-development loop\n(add your repo as a directory marketplace \u2192 install \u2192 test) silently exercises a build with\nno hooks.\n\n## Environment\n\n- Claude Code 2.1.233\n- Container: `node:22-bookworm-slim`, linux/arm64 (Docker Desktop 29.1.3 on macOS)\n- Node 22.23.2\n- Plugin under test: `cli-dispatch` v4.18.0 (https://github.com/rbinar/cli-dispatch)\n- Auth: API-key style (`ANTHROPIC_BASE_URL` + `ANTHROPIC_AUTH_TOKEN`)\n\n## Reproduct",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:linux",
+      "area:hooks",
+      "area:plugins"
+    ],
+    "closed_at": "2026-08-15T00:44:43Z",
+    "created_at": "2026-08-15T00:38:08Z",
+    "updated_at": "2026-08-15T00:44:43Z",
+    "comments": 1,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/86809",
+      "final_url": "https://github.com/anthropics/claude-code/issues/86809",
+      "http_status": 200,
+      "sha256": "32324718803668d6f4c8e1a9a9782b4e68919fa792fff4876c8e9574d18a3d3a",
+      "bytes": 293880,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/86809/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/86809/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "be79fcd6df8d1aee83f32fda88f95b170796a02b5c9bdf284ea705ae92f0a672",
+      "bytes": 3455
+    },
+    "comment_count_fetched": 1,
+    "comment_heads": [
+      {
+        "user": "rbinar",
+        "created": "2026-08-15T00:44:42Z",
+        "head": "Closing this \u2014 **the report is wrong, and there is no bug here.** My instrumentation was\nmeasuring a file that never executes.\n\n## What actually happens\n\nFor a **directory-source** marketplace, `${CLAUDE_PLUGIN_ROOT}` resolves to the plugin\ndirectory **inside the source working tree**, not to the versioned dir under\n`~/.claude/plugins/cache/`. The cache dir is populated on install, but the hook command runs\nagainst the live source tree.\n\nI had put the canary shim in the cache dir. Under a github"
+      }
+    ]
+  },
+  {
+    "number": 44120,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+      "http_status": 200,
+      "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+      "bytes": 7024,
+      "ratelimit_remaining": "37"
+    },
+    "title": "Plugin skills not discovered when .claude/ directory exists in plugin",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/44120",
+    "body_len": 2239,
+    "body_head": "## Bug Description\n\nWhen a Claude Code plugin contains a `.claude/` directory (for settings, hooks, etc.), the plugin's `skills/` root directory is **completely ignored** during skill discovery. Skills are not loaded with the `pluginName:skillName` prefix.\n\n## Steps to Reproduce\n\n1. Create a plugin with:\n   - `.claude-plugin/plugin.json` (standard plugin manifest)\n   - `skills/my-skill/SKILL.md` (plugin skills at root)\n   - `.claude/settings.json` (project-level settings/hooks)\n\n2. Install the plugin: `claude plugin install <plugin>`\n\n3. Run `/reload-plugins` \u2014 skills from `skills/` are **not** loaded\n\n4. Remove `.claude/` directory from the plugin cache\n\n5. Run `/reload-plugins` \u2014 skills from `skills/` are now loaded with `pluginName:` prefix\n\n## Expected Behavior\n\nPlugin skills in `skill",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:macos",
+      "area:skills",
+      "area:plugins"
+    ],
+    "closed_at": "2026-05-16T22:25:24Z",
+    "created_at": "2026-04-06T08:21:12Z",
+    "updated_at": "2026-07-07T15:03:41Z",
+    "comments": 3,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/44120",
+      "final_url": "https://github.com/anthropics/claude-code/issues/44120",
+      "http_status": 200,
+      "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+      "bytes": 278160,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/44120/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/44120/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "aaa9dd8a1c8e65a68626c0a8dda9fdcd62d9a24ff2f03462f304ba3dc77395fb",
+      "bytes": 10109
+    },
+    "comment_count_fetched": 3,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-05-16T22:25:23Z",
+        "head": "Closing for now \u2014 inactive for too long. Please [open a new issue](https://github.com/anthropics/claude-code/issues/new/choose) if this is still relevant."
+      },
+      {
+        "user": "johnzfitch",
+        "created": "2026-05-17T18:26:09Z",
+        "head": "@claude reopen"
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-07-07T15:03:41Z",
+        "head": "This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant."
+      }
+    ]
+  },
+  {
+    "number": 46594,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/46594",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/46594",
+      "http_status": 200,
+      "sha256": "114c6b5277d32998efe3b71a64255497eb97fd561adc604602c0ad78453b991b",
+      "bytes": 6449,
+      "ratelimit_remaining": "35"
+    },
+    "title": "[BUG] /plugin marketplace update silently fails to upgrade installed plugin \u2014 no error when skills don't load",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/46594",
+    "body_len": 2455,
+    "body_head": "### Preflight Checklist\n\n- [x] I have searched [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) and this hasn't been reported yet\n- [x] This is a single bug report (please file separate reports for different bugs)\n- [x] I am using the latest version of Claude Code\n\n### What's Wrong?\n\nRunning /plugin marketplace update <name> refreshes the marketplace source but does not upgrade the installed plugin. The plugin appears in /reload-plugins as one of the loaded plugins, but none of its skills, agents, or hooks are actually registered. There is no error or warning \u2014 the failure is completely silent.\n\n### What Should Happen?\n\n/plugin marketplace update should either upgrade installed plugins from that marketplace, or clearly indicate a",
+    "labels": [
+      "duplicate"
+    ],
+    "closed_at": "2026-04-14T09:34:49Z",
+    "created_at": "2026-04-11T09:17:23Z",
+    "updated_at": "2026-04-21T14:54:21Z",
+    "comments": 3,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/46594",
+      "final_url": "https://github.com/anthropics/claude-code/issues/46594",
+      "http_status": 200,
+      "sha256": "cc521f0796b5908ce52d99b56db3bd9161e2f62b054a3531ef9fd1ab2ed59103",
+      "bytes": 273452,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/46594/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/46594/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "e0bbcc08467f972d16574fae27781184274233b0696ede7f15cadc9f7b22efdc",
+      "bytes": 12998
+    },
+    "comment_count_fetched": 3,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-04-11T09:20:41Z",
+        "head": "Found 3 possible duplicate issues:\n\n1. https://github.com/anthropics/claude-code/issues/14061\n2. https://github.com/anthropics/claude-code/issues/45542\n3. https://github.com/anthropics/claude-code/issues/45834\n\nThis issue will be automatically closed as a duplicate in 3 days.\n\n- If your issue is a duplicate, please close it and \ud83d\udc4d the existing issue instead\n- To prevent auto-closure, add a comment or \ud83d\udc4e this comment\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.ai/code)"
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-04-14T09:34:51Z",
+        "head": "This issue has been automatically closed as a duplicate of #14061.\n\nIf this is incorrect, please re-open this issue or create a new one.\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.ai/code)"
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-04-21T14:54:21Z",
+        "head": "This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant."
+      }
+    ]
+  },
+  {
+    "number": 54280,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+      "http_status": 200,
+      "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+      "bytes": 5737,
+      "ratelimit_remaining": "33"
+    },
+    "title": "plugin.json silently overrides marketplace.json version with no warning",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/54280",
+    "body_len": 1265,
+    "body_head": "## Summary\n\nThe version-resolution waterfall states `plugin.json`'s `version` field wins over the marketplace entry's `version` field. The docs note this in a \"Warning\" callout but the platform does not surface any warning when both files declare a version. Plugin authors can set `marketplace.json`'s version, expect it to take effect, and have it silently ignored.\n\n## Reproduction\n\n1. Set `plugin.json` `version: \"0.1.0-beta.28\"`\n2. Set `marketplace.json` plugin entry `version: \"1.0.0\"`\n3. Install the plugin\n4. Customize panel shows `Version: 0.1.0-beta.28` (plugin.json wins)\n\nNo warning anywhere \u2014 not at marketplace add, not at install, not in `claude plugin validate` output.\n\n## Real-world incident\n\nThe author of `nfrith/als` had `plugin.json` declaring `0.1.0-beta.28` and `marketplace.js",
+    "labels": [
+      "enhancement",
+      "platform:macos",
+      "area:plugins",
+      "stale"
+    ],
+    "closed_at": "2026-05-30T10:41:33Z",
+    "created_at": "2026-04-28T11:17:37Z",
+    "updated_at": "2026-07-30T14:53:24Z",
+    "comments": 2,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/54280",
+      "final_url": "https://github.com/anthropics/claude-code/issues/54280",
+      "http_status": 200,
+      "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+      "bytes": 261333,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/54280/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/54280/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "2db59c0ba8c1ad6aaee52fe76bca157326c1a2a4850cf3bf34001b42af27b91f",
+      "bytes": 8441
+    },
+    "comment_count_fetched": 2,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-05-30T10:41:33Z",
+        "head": "Closing for now \u2014 inactive for too long. Please [open a new issue](https://github.com/anthropics/claude-code/issues/new/choose) if this is still relevant."
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-07-30T14:53:24Z",
+        "head": "This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant."
+      }
+    ]
+  },
+  {
+    "number": 81551,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/81551",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/81551",
+      "http_status": 200,
+      "sha256": "abad891cb40cf5e7d6971bb0c782e0eacf6694b09887905e8417fbd3ad92115f",
+      "bytes": 6709,
+      "ratelimit_remaining": "31"
+    },
+    "title": "/reload-plugins reports 0 skills for plugins using skills/*/SKILL.md (count only, invocation works) \u2014 2.1.220",
+    "state": "open",
+    "html_url": "https://github.com/anthropics/claude-code/issues/81551",
+    "body_len": 3833,
+    "body_head": "## Summary\n\n`/reload-plugins` reports `0 skills` for a plugin whose skills load and invoke correctly. The count appears to include only `commands/*.md` and not `skills/*/SKILL.md`.\n\n**This is a display-count bug only. Nothing is broken.** The skills work in the same session that reports `0`.\n\n## Why this is not a duplicate of #41842\n\n[#41842](https://github.com/anthropics/claude-code/issues/41842) described this counter behaviour in passing and was **closed as a duplicate of #42471, fixed in 2.1.98**.\n\nBut #41842's primary complaint was that `skills/` plugins are **not invocable as slash commands at all** (`/plugin:skill` \u2192 `Unknown skill`). **That does not reproduce here** \u2014 the skills invoke fine on 2.1.220. What #42471 fixed was invocation, not the count.\n\nSo the counter has never been ",
+    "labels": [
+      "stale"
+    ],
+    "closed_at": null,
+    "created_at": "2026-07-27T05:54:04Z",
+    "updated_at": "2026-08-22T10:07:25Z",
+    "comments": 0,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/81551",
+      "final_url": "https://github.com/anthropics/claude-code/issues/81551",
+      "http_status": 200,
+      "sha256": "b5a80e9f2136a95c8909cfa22dcc0e079f151820e74056a25c3ae6bbdb61d7d6",
+      "bytes": 272006,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/81551/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/81551/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "4f53cda18c2baa0c0354bb5f9a3ecbe5ed12ab4d8e11ba873c2f11161202b945",
+      "bytes": 2
+    },
+    "comment_count_fetched": 0
+  },
+  {
+    "number": 83422,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/83422",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/83422",
+      "http_status": 200,
+      "sha256": "8d6eb631fd07557984c712b5b81e2377fbd3e3368b4a3052fa71fd810243c475",
+      "bytes": 7033,
+      "ratelimit_remaining": "29"
+    },
+    "title": "Plugins: enabled-in-settings but never installed loads nothing silently; marketplace autoUpdate never updates existing installs",
+    "state": "open",
+    "html_url": "https://github.com/anthropics/claude-code/issues/83422",
+    "body_len": 4490,
+    "body_head": "## Summary\n\nCommitting `enabledPlugins` + `extraKnownMarketplaces` to a project's `.claude/settings.json` does not make the plugin load in that project: if `installed_plugins.json` has no install record for that project path, the plugin's skills and hooks are silently absent \u2014 no warning, no auto-install. Relatedly, marketplace `autoUpdate: true` refreshes the marketplace clone but never updates existing installs, so per-project installs stay pinned to their install-time version indefinitely with no lag signal.\n\n## Environment\n\n- Claude Code 2.1.212, macOS (darwin 25.6.0)\n- Private GitHub marketplace (`extraKnownMarketplaces` \u2192 `github` source), plugin installed per-project scope\n\n## Bug 1 \u2014 plugin enabled in project settings but never provisioned: silently absent\n\nWe share a process plugi",
+    "labels": [],
+    "closed_at": null,
+    "created_at": "2026-08-02T23:19:37Z",
+    "updated_at": "2026-08-11T21:19:36Z",
+    "comments": 1,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/83422",
+      "final_url": "https://github.com/anthropics/claude-code/issues/83422",
+      "http_status": 200,
+      "sha256": "c6f6ff3aa06f893f99a5a4378de48af0da46269d48d0b0932f2602a695f4d1fd",
+      "bytes": 279354,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/83422/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/83422/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "16b3f8f0215fa6e801bf9799dae52171ab4040dcd4f130f26b37d2efa4e39945",
+      "bytes": 5799
+    },
+    "comment_count_fetched": 1,
+    "comment_heads": [
+      {
+        "user": "alisettar",
+        "created": "2026-08-11T21:19:36Z",
+        "head": "Independent reproduction of **Bug 2**, plus five controls that narrow down what it is *not*. Setup matches yours closely: private GitHub marketplace declared via project `extraKnownMarketplaces`, plugin installed at **project scope** in five repositories, `\"autoUpdate\": true` on the marketplace entry.\n\nClaude Code 2.1.228, Windows (win32 10.0.26100).\n\n### Observed\n\nThe marketplace registry entry's `lastUpdated` advances during a session, but `installed_plugins.json` records never move. Publishin"
+      }
+    ]
+  },
+  {
+    "number": 26254,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/26254",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/26254",
+      "http_status": 200,
+      "sha256": "b32c6b381b237414263f392a1c4d3fab924f7137cd6751315121ca3a3bc6384a",
+      "bytes": 9824,
+      "ratelimit_remaining": "27"
+    },
+    "title": "[BUG] User and Organization Skills \u2014 Metadata Registered in System Prompt but SKILL.md Files Not Mounted in Container",
+    "state": "open",
+    "html_url": "https://github.com/anthropics/claude-code/issues/26254",
+    "body_len": 6703,
+    "body_head": "### Preflight Checklist\n\n- [x] I have searched [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) and this hasn't been reported yet\n- [x] This is a single bug report (please file separate reports for different bugs)\n- [x] I am using the latest version of Claude Code\n\n### What's Wrong?\n\n\n## Environment\n\n- **Surface**: Claude.ai (web chat interface, Claude Code and Cowork, Opus 4.6)\n- **Plan**: Team/Enterprise\n- **Date**: February 16, 2026\n- **Platform**: macOS (Mac Studio M4) \u2014 though this is a server-side container issue\n\n## Summary\n\nUser-uploaded skills and organization-provisioned skills are correctly registered in the system prompt's `<available_skills>` block (with names, descriptions, and file paths), but the corresponding `SK",
+    "labels": [
+      "bug",
+      "area:skills"
+    ],
+    "closed_at": null,
+    "created_at": "2026-02-17T07:40:31Z",
+    "updated_at": "2026-08-19T19:57:58Z",
+    "comments": 11,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/26254",
+      "final_url": "https://github.com/anthropics/claude-code/issues/26254",
+      "http_status": 200,
+      "sha256": "2e4c515341891e39115dff4e792edfd528145a1e77b3a5517af293130eb04d4b",
+      "bytes": 353704,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/26254/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/26254/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "acab6d7ba733d15cd67c77280fe411ade2d15727b968520a0f81739bb53a7cd3",
+      "bytes": 31086
+    },
+    "comment_count_fetched": 11,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-02-17T07:43:56Z",
+        "head": "Found 3 possible duplicate issues:\n\n1. https://github.com/anthropics/claude-code/issues/26131\n2. https://github.com/anthropics/claude-code/issues/24453\n3. https://github.com/anthropics/claude-code/issues/26172\n\nThis issue will be automatically closed as a duplicate in 3 days.\n\n- If your issue is a duplicate, please close it and \ud83d\udc4d the existing issue instead\n- To prevent auto-closure, add a comment or \ud83d\udc4e this comment\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.ai/code)"
+      },
+      {
+        "user": "hdjebar",
+        "created": "2026-02-17T10:11:02Z",
+        "head": "Hi Anthropic Support,\nI'm unable to upload custom skills in Claude.ai Settings. Every upload attempt returns an \"Internal server error\" \u2014 including a minimal test file.\nEnvironment:\n- Product: Claude.ai (web interface)\n- Feature: Custom skill upload (Settings)\n- Date: February 17, 2026\n- Location: Luxembourg\nSteps to reproduce:\n1. Go to Claude.ai \u2192 Settings \u2192 Skills\n2. Upload any .zip file containing a valid SKILL.md\n3. Click upload/save\n4. Result: \"Internal server error\"\nTroubleshooting already"
+      },
+      {
+        "user": "jespey",
+        "created": "2026-02-18T14:39:01Z",
+        "head": "We are seeing very similar behavior that appears to have been introduced a day or two earlier and has gotten worse with upgrades.  In our case we first saw problems deleting skills (but could still add net new sills, even if all we did was change the name of the skill).   Now we can't delete or add new skills.  They show up in the UI still but can't be accessed and are not on the local file system."
+      },
+      {
+        "user": "mi6l10r3",
+        "created": "2026-03-02T16:26:39Z",
+        "head": "# Cowork ignores updated SKILL.md content, searches for files instead of using hardcoded values\n\n## Environment\n- Windows 11 Pro, Claude Desktop App (Max plan)\n- Cowork enabled\n- Docker Desktop with WSL2 backend\n- User-level skill at `~/.claude/skills/order-to-queue/SKILL.md`\n\n## Description\n\nCowork recognizes that a user skill exists (it appears in available skills and triggers correctly), but the **actual SKILL.md content is never read from disk**. Instead, Cowork appears to use a cached or in"
+      },
+      {
+        "user": "rohanlad",
+        "created": "2026-03-17T18:01:08Z",
+        "head": "Hitting this same issue with custom skills uploaded via the API (`client.beta.skills.create`). The skill metadata loads correctly (name, description appear in the system prompt and the skill activates as expected), but bundled binary files (in our case a 1.4MB `.pptx` template) fail to upload \u2014 the API returns a 502 Bad Gateway from Cloudflare.\n\nAs a workaround, we're injecting the template via `container_upload` on the user message. This works but has a significant side effect: the model interp"
+      }
+    ]
+  },
+  {
+    "number": 39468,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/39468",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/39468",
+      "http_status": 200,
+      "sha256": "71fd80e76fc8e915cca7e5d8946a8e77fb0e02071bada31329692600aeacd289",
+      "bytes": 11709,
+      "ratelimit_remaining": "25"
+    },
+    "title": "[BUG] Skill and agent frontmatter hooks silently not firing (CLI, Windows)",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/39468",
+    "body_len": 6568,
+    "body_head": "### Preflight Checklist\n\n- [x] I have searched [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) and this hasn't been reported yet\n- [x] This is a single bug report (please file separate reports for different bugs)\n- [x] I am using the latest version of Claude Code\n\n### What's Wrong?\n\nHooks defined in YAML frontmatter of skills and agents (as documented in [Hooks in skills and agents](https://code.claude.com/docs/en/hooks#hooks-in-skills-and-agents)) are silently ignored. The same hook command works correctly when placed in the plugin's `hooks/hooks.json`.\n\n### What Should Happen?\n\nHooks defined in skill/agent frontmatter should be scoped to the component's lifecycle and fire when the component is active.\n\n### Error Messages/Logs\n",
+    "labels": [
+      "bug",
+      "duplicate",
+      "platform:windows",
+      "api:vertex",
+      "area:hooks",
+      "area:skills"
+    ],
+    "closed_at": "2026-04-06T20:09:09Z",
+    "created_at": "2026-03-26T17:38:58Z",
+    "updated_at": "2026-04-14T14:52:54Z",
+    "comments": 3,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/39468",
+      "final_url": "https://github.com/anthropics/claude-code/issues/39468",
+      "http_status": 200,
+      "sha256": "3f9c261cd7fd46b56c441805089b4db880d5854e52ddaa2a2cd5cbfd4e3d3d4b",
+      "bytes": 336557,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/39468/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/39468/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "17d3cf89dde37551343aea46cd4956d284e4e4e5b5c382e7cf3761089fd71c6b",
+      "bytes": 11945
+    },
+    "comment_count_fetched": 3,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-03-26T17:42:49Z",
+        "head": "Found 3 possible duplicate issues:\n\n1. https://github.com/anthropics/claude-code/issues/30260\n2. https://github.com/anthropics/claude-code/issues/17688\n3. https://github.com/anthropics/claude-code/issues/27655\n\nThis issue will be automatically closed as a duplicate in 3 days.\n\n- If your issue is a duplicate, please close it and \ud83d\udc4d the existing issue instead\n- To prevent auto-closure, add a comment or \ud83d\udc4e this comment\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.ai/code)"
+      },
+      {
+        "user": "yurukusa",
+        "created": "2026-03-26T22:56:28Z",
+        "head": "Your debug log analysis nails it \u2014 the matcher pool count staying constant at 6 confirms that frontmatter-defined hooks are never registered into the active hook resolver.\n**Current workaround**: As you've already found, `hooks/hooks.json` is the reliable path. For scoping the hook to only fire when a specific skill is active, you can add a condition in your script that checks the conversation context:\n```json\n// hooks/hooks.json\n{\n  \"hooks\": {\n    \"PostToolUse\": [\n      {\n        \"matcher\": \"Ed"
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-04-14T14:52:53Z",
+        "head": "This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant."
+      }
+    ]
+  },
+  {
+    "number": 16288,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/16288",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/16288",
+      "http_status": 200,
+      "sha256": "eb72cb5d970e06afc48d444cff8db145e2f380ed3fdb7a86cf2321b90c8b51c0",
+      "bytes": 6772,
+      "ratelimit_remaining": "23"
+    },
+    "title": "Plugin hooks not loaded from external hooks.json file",
+    "state": "open",
+    "html_url": "https://github.com/anthropics/claude-code/issues/16288",
+    "body_len": 1368,
+    "body_head": "## Description\n\nHooks defined in an external `hooks.json` file referenced from a plugin's `plugin.json` are not being loaded or executed.\n\n## Steps to Reproduce\n\n1. Create a plugin with this structure:\n```\nmy-plugin/\n\u251c\u2500\u2500 .claude-plugin/\n\u2502   \u2514\u2500\u2500 plugin.json\n\u2514\u2500\u2500 hooks/\n    \u2514\u2500\u2500 hooks.json\n```\n\n2. In `plugin.json`, reference the hooks file:\n```json\n{\n  \"name\": \"my-plugin\",\n  \"version\": \"1.0.0\",\n  \"hooks\": \"./hooks/hooks.json\"\n}\n```\n\n3. In `hooks/hooks.json`, define a hook:\n```json\n{\n  \"hooks\": {\n    \"SubagentStop\": [\n      {\n        \"matcher\": \"*\",\n        \"hooks\": [\n          {\n            \"type\": \"command\",\n            \"command\": \"echo 'Hook fired' >> /tmp/hook-test.log\"\n          }\n        ]\n      }\n    ]\n  }\n}\n```\n\n4. Install and enable the plugin\n5. Trigger a subagent (Task tool)\n6. Check",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:linux",
+      "area:core"
+    ],
+    "closed_at": null,
+    "created_at": "2026-01-04T21:24:57Z",
+    "updated_at": "2026-07-30T17:19:07Z",
+    "comments": 24,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/16288",
+      "final_url": "https://github.com/anthropics/claude-code/issues/16288",
+      "http_status": 200,
+      "sha256": "23388ea2375cb6fe627f34fe62e1ca6b05d0fa0af4bb3b733f96b43cb668e0e8",
+      "bytes": 288499,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/16288/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/16288/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "8afee3962300bbe0460a5e0000c45f10a8136687d322153ba4611c98a5435c49",
+      "bytes": 52250
+    },
+    "comment_count_fetched": 20,
+    "comment_heads": [
+      {
+        "user": "Summonair",
+        "created": "2026-01-17T14:11:44Z",
+        "head": "Having exactly same bug, its destroying our productivity potential at our company, pleaseeee investigate this bug \ud83d\ude4f\ud83c\udffc @dicksontsai "
+      },
+      {
+        "user": "MariusWilsch",
+        "created": "2026-01-25T10:25:40Z",
+        "head": "## Confirming this issue\n\nWe hit the exact same bug with our team plugin.\n\n**Plugin:** [claude-code-team-plugin](https://github.com/MariusWilsch/claude-code-team-plugin)  \n**Version:** 2026-01-25-11-09\n\n**Setup:**\n```\nplugins/claude-code-team-plugin/\n\u251c\u2500\u2500 .claude-plugin/\n\u2502   \u2514\u2500\u2500 plugin.json    # has \"hooks\": \"./hooks/hooks.json\"\n\u2514\u2500\u2500 hooks/\n    \u2514\u2500\u2500 hooks.json     # SessionStart, PreToolUse, PostToolUse hooks\n```\n\n**Symptoms:**\n- `CLAUDE_PLUGIN_ROOT` env var is empty\n- `CLAUDE_CONVERSATION_PATH` ne"
+      },
+      {
+        "user": "Talbalash-legit",
+        "created": "2026-01-25T11:35:09Z",
+        "head": "This issue blocks our internal plugin distribution. External hooks.json files are not loaded, making our plugins' hooks unusable.\nManually copying the hooks to settings.json is not a viable workaround for us"
+      },
+      {
+        "user": "ro0sterjam",
+        "created": "2026-02-07T04:50:36Z",
+        "head": "+1 Docs clearly state that hooks are to be registered this way, but they don't get invoked at all."
+      },
+      {
+        "user": "DataDrivenAngel",
+        "created": "2026-02-12T22:32:28Z",
+        "head": "Confirmed that this is an active issue on mac as well"
+      }
+    ]
+  },
+  {
+    "number": 38670,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/38670",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/38670",
+      "http_status": 200,
+      "sha256": "65f7464b6473e9d3c620a7c01b2cc6de4d0b04855a32997bd919fe99e10f8ac0",
+      "bytes": 8227,
+      "ratelimit_remaining": "20"
+    },
+    "title": "Third-party marketplace plugins cannot register skills/commands/agents",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/38670",
+    "body_len": 2958,
+    "body_head": "## Bug Description\n\nPlugins installed from third-party marketplaces (any marketplace other than `claude-plugins-official`) show as installed and enabled in the Manage Plugins UI (green dot, toggle on) but **fail to register any skills, commands, or agents**. The `/` command autocomplete shows \"No matching commands\" for the plugin prefix.\n\nHooks and CLAUDE.md from the same plugin DO load correctly \u2014 only skill/command/agent discovery is broken.\n\n## Steps to Reproduce\n\n1. Create a third-party marketplace (GitHub repo with `.claude-plugin/marketplace.json`)\n2. Add a plugin with valid `skills/` directory containing properly formatted `SKILL.md` files\n3. Install: Add marketplace via Manage Plugins \u2192 Marketplaces tab \u2192 Add\n4. Enable the plugin (toggle on, green dot appears)\n5. Restart VS Code / ",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:macos",
+      "platform:vscode",
+      "area:skills",
+      "area:plugins",
+      "stale"
+    ],
+    "closed_at": "2026-04-24T22:21:01Z",
+    "created_at": "2026-03-25T10:05:45Z",
+    "updated_at": "2026-05-02T14:37:19Z",
+    "comments": 4,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/38670",
+      "final_url": "https://github.com/anthropics/claude-code/issues/38670",
+      "http_status": 200,
+      "sha256": "c6afb0afee09f3505f8cb9e67bcbace9728119168fcfc2059b73c25086ac79de",
+      "bytes": 304289,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/38670/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/38670/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "3b1faf9aaa2a3e142ce13204b987ee97752be996cdf49953762cbfab4c79a7ff",
+      "bytes": 17416
+    },
+    "comment_count_fetched": 4,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-03-25T10:11:03Z",
+        "head": "Found 3 possible duplicate issues:\n\n1. https://github.com/anthropics/claude-code/issues/35507\n2. https://github.com/anthropics/claude-code/issues/37689\n3. https://github.com/anthropics/claude-code/issues/38501\n\nThis issue will be automatically closed as a duplicate in 3 days.\n\n- If your issue is a duplicate, please close it and \ud83d\udc4d the existing issue instead\n- To prevent auto-closure, add a comment or \ud83d\udc4e this comment\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.ai/code)"
+      },
+      {
+        "user": "rkarim08",
+        "created": "2026-03-25T10:30:37Z",
+        "head": "@bcherny \n## Update: Root cause found + partial fix\n\n### Root Cause: `plugin.json` manifest validation\n\nThe actual reason skills weren't registering was a **manifest validation failure** on `plugin.json`. The `repository` and `bugs` fields were npm-style objects instead of plain strings:\n\n```json\n// BROKEN (object \u2014 copied from package.json format):\n\"repository\": { \"type\": \"git\", \"url\": \"https://github.com/rkarim08/sia\" }\n\"bugs\": { \"url\": \"https://github.com/rkarim08/sia/issues\" }\n\n// FIXED (str"
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-04-24T22:21:00Z",
+        "head": "Closing for now \u2014 inactive for too long. Please [open a new issue](https://github.com/anthropics/claude-code/issues/new/choose) if this is still relevant."
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-05-02T14:37:19Z",
+        "head": "This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant."
+      }
+    ]
+  },
+  {
+    "number": 14815,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/14815",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/14815",
+      "http_status": 200,
+      "sha256": "dcacd406cdb9fe2a66833811c333121cdaefd1a5ce4b6a765716d2d758214f65",
+      "bytes": 6422,
+      "ratelimit_remaining": "18"
+    },
+    "title": "[BUG] Plugins show as \"(installed)\" in marketplace but don't appear in Installed tab",
+    "state": "open",
+    "html_url": "https://github.com/anthropics/claude-code/issues/14815",
+    "body_len": 3006,
+    "body_head": "### Preflight Checklist\n\n- [x] I have searched [existing issues](https://github.com/anthropics/claude-code/issues?q=is%3Aissue%20state%3Aopen%20label%3Abug) and this hasn't been reported yet\n- [x] This is a single bug report (please file separate reports for different bugs)\n- [x] I am using the latest version of Claude Code\n\n### What's Wrong?\n\nPlugins from a custom marketplace appear as installed in the marketplace view but do not appear in the Installed tab. The plugin commands and hooks are not available despite state files indicating successful installation.\n\nThe marketplace UI shows contradictory information: `\u2714 my-plugin (installed) \u00b7 0 installs`\n\nState files (`~/.claude/plugins/installed_plugins.json`) correctly contain the plugin entries, and the cache directories exist with valid `",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:macos",
+      "area:core"
+    ],
+    "closed_at": null,
+    "created_at": "2025-12-20T03:05:46Z",
+    "updated_at": "2026-03-05T20:05:12Z",
+    "comments": 18,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/14815",
+      "final_url": "https://github.com/anthropics/claude-code/issues/14815",
+      "http_status": 200,
+      "sha256": "7c3e60a70fb46be0ec0ed73612f75034afdf35c3e8dc584d903b68ec004ee076",
+      "bytes": 297589,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/14815/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/14815/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "be74c2b7bc3dd6869f098f99a28f7f0c94a196458fbfb824968d93ea6df876a9",
+      "bytes": 41537
+    },
+    "comment_count_fetched": 18,
+    "comment_heads": [
+      {
+        "user": "github-actions[bot]",
+        "created": "2025-12-20T03:09:38Z",
+        "head": "Found 3 possible duplicate issues:\n\n1. https://github.com/anthropics/claude-code/issues/14202\n2. https://github.com/anthropics/claude-code/issues/13509  \n3. https://github.com/anthropics/claude-code/issues/14689\n\nThis issue will be automatically closed as a duplicate in 3 days.\n\n- If your issue is a duplicate, please close it and \ud83d\udc4d the existing issue instead\n- To prevent auto-closure, add a comment or \ud83d\udc4e this comment\n\n\ud83e\udd16 Generated with [Claude Code](https://claude.ai/code)"
+      },
+      {
+        "user": "zazu-22",
+        "created": "2025-12-20T03:12:55Z",
+        "head": "> Found 3 possible duplicate issues:\n> \n> 1. [Bug: Project-scoped plugins incorrectly detected as installed globally\u00a0#14202](https://github.com/anthropics/claude-code/issues/14202)\n> 2. [[BUG]\u00a0#13509](https://github.com/anthropics/claude-code/issues/13509)\n> 3. [[Bug] Plugin not visible to Claude despite being visible with /plugins command with --plugin-dir flag\u00a0#14689](https://github.com/anthropics/claude-code/issues/14689)\n> \n> This issue will be automatically closed as a duplicate in 3 days.\n"
+      },
+      {
+        "user": "kevduong1",
+        "created": "2025-12-28T14:16:53Z",
+        "head": "I'm running into the same issue as well, have you figured out any work arounds?"
+      },
+      {
+        "user": "kaldown",
+        "created": "2026-01-02T17:08:57Z",
+        "head": "As side solution I have a project that will allow you to enable installed plugins in other local directories and also track plugins from one place: https://github.com/kaldown/ccpm"
+      },
+      {
+        "user": "dkarmon",
+        "created": "2026-01-07T16:46:59Z",
+        "head": "Running to the same issue with superpowers@superpowers-marketplace and dev-browser@sawyerhood/dev-browser (they suddenly disappeared from the plugin installed view - although cc says they are installed). In some cases plugin appear in the marketplace view but installation is not working."
+      }
+    ]
+  },
+  {
+    "number": 60725,
+    "fetched_at": "2026-08-24T18:43:59Z",
+    "api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/60725",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/60725",
+      "http_status": 200,
+      "sha256": "2d00f82b7bea459c5607634e408d3f4139d91f3975bed4ca4c8c7c9650bf95a9",
+      "bytes": 9259,
+      "ratelimit_remaining": "15"
+    },
+    "title": "`claude plugin validate` does not validate per-plugin `plugin.json` \u2014 invalid plugins pass validation, fail at install with opaque temp-cache error",
+    "state": "closed",
+    "html_url": "https://github.com/anthropics/claude-code/issues/60725",
+    "body_len": 4560,
+    "body_head": "## Bug Description\n\n`claude plugin validate <path>` only validates the `marketplace.json` schema at that path. It does **not** descend into the per-plugin `plugin.json` files referenced by the marketplace. Plugins whose manifests are invalid against the documented `plugin.json` schema pass validation cleanly, then fail at install with an opaque temp-cache path in the error.\n\nThe command name (`claude plugin validate`) implies plugin-manifest validation. The behavior is marketplace-manifest validation only. This is a false-confidence bug: a green check from `validate` does not mean the plugin will install.\n\n## Steps to Reproduce\n\n1. Create a single-plugin marketplace:\n\n   `.claude-plugin/marketplace.json`:\n   ```json\n   {\n     \"name\": \"demo-marketplace\",\n     \"owner\": { \"name\": \"Demo\", \"ema",
+    "labels": [
+      "bug",
+      "has repro",
+      "platform:macos",
+      "area:plugins"
+    ],
+    "closed_at": "2026-06-03T07:35:21Z",
+    "created_at": "2026-05-20T01:11:32Z",
+    "updated_at": "2026-08-05T14:55:50Z",
+    "comments": 2,
+    "html": {
+      "url": "https://github.com/anthropics/claude-code/issues/60725",
+      "final_url": "https://github.com/anthropics/claude-code/issues/60725",
+      "http_status": 200,
+      "sha256": "08abf9dd0c305cf365e110d5e2089239d3578e2202f334ebd86741a85dd826dc",
+      "bytes": 318062,
+      "content_type": "text/html; charset=utf-8"
+    },
+    "html_has_title": true,
+    "comments_api": {
+      "url": "https://api.github.com/repos/anthropics/claude-code/issues/60725/comments",
+      "final_url": "https://api.github.com/repos/anthropics/claude-code/issues/60725/comments?per_page=20",
+      "http_status": 200,
+      "sha256": "7a96145dd702038a16a85b7c091615053a3e2c61d30e1b7351330a10f9dc533c",
+      "bytes": 9271
+    },
+    "comment_count_fetched": 2,
+    "comment_heads": [
+      {
+        "user": "harry-harish",
+        "created": "2026-05-26T07:10:31Z",
+        "head": "I hit this twice during my first plugin's launch and filed #62400 before noticing yours. Closing #62400 as a duplicate and migrating the two reproducers here, because they suggest the validator's blind spot extends beyond `plugin.json` to other plugin asset files referenced by the manifest.\n\n## Repro 1 \u2014 `userConfig.<field>.enum` in `plugin.json`\n\nA `userConfig` entry with an `enum` array (the obvious shape if you're coming from JSON-Schema convention) is accepted by `claude plugin validate` and"
+      },
+      {
+        "user": "github-actions[bot]",
+        "created": "2026-08-05T14:55:49Z",
+        "head": "This issue has been automatically locked since it was closed and has not had any activity for 7 days. If you're experiencing a similar issue, please file a new issue and reference this one if it's relevant."
+      }
+    ]
+  }
+]

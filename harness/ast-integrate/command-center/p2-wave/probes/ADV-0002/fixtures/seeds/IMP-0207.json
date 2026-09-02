@@ -1,0 +1,199 @@
+{
+ "artifacts": [
+  {
+   "bytes": 11565,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/packs.py",
+   "role": "implementation",
+   "sha256": "2b9b51fd6698ede7caf7501712ad18f73e952f4344b07c8a4fb6d66d34e5f943"
+  },
+  {
+   "bytes": 2549,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/semver.py",
+   "role": "supporting",
+   "sha256": "682d118612c1697fe1b62181b3fc394a91adb64a975bbb869b9119d2dc3ddf45"
+  },
+  {
+   "bytes": 1417,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0207/scenario.py",
+   "role": "supporting",
+   "sha256": "a90472a8f88f9da4fe02e0c3a67dc17e454090a13bef36655d00693dfe6e8a5d"
+  },
+  {
+   "bytes": 5115,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0207/probe1_both_states.py",
+   "role": "supporting",
+   "sha256": "647bc3edf3ebd8ff6ef50236017a3aa4be0653538b2a5dab185dca45754fe772"
+  },
+  {
+   "bytes": 5762,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0207/probe2_intersection.py",
+   "role": "supporting",
+   "sha256": "c43c075f7a5ad2e25bae17c9a1620f64940abe1ad1a1de766b2e47f04dd3416f"
+  },
+  {
+   "bytes": 671,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0207/fixtures/pack_narrow.json",
+   "role": "supporting",
+   "sha256": "95002ab1d40981d3bbd21bb9526f74ec1d4730509ce8c52c501159118467254f"
+  },
+  {
+   "bytes": 707,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0207/fixtures/pack_widen_tools.json",
+   "role": "supporting",
+   "sha256": "a0abb62a7bb0e92e3f6fd8bab6efe48b4435363c4f0550a85146c6e09f55fc1a"
+  },
+  {
+   "bytes": 704,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0207/fixtures/pack_widen_source.json",
+   "role": "supporting",
+   "sha256": "3f1b7e1d9304641041b02ca3752c92ecba29af41646b82f0c74453d51b42d834"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0207.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0207",
+    "exit_code": 0,
+    "fingerprint": "ff2af13804da5022cbfb9db3ec5741c9",
+    "method": "command",
+    "raw_output": "pending live measure after this write",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/agentspec/agentspec/packs.py:load_pack",
+   "claim": "A privilege-widening preset is rejected at load with closed id pack-preset-tool-permission-widening (extra Write) or pack-preset-source-policy-widening (extra public-tor). The same pack with a narrowing preset (Read,Grep / official-docs,code) loads. Silent intersection-clip of a widening preset is not a success path; an edited narrowing preset that adds Write is rejected on reload. Invalid semver '1.2' is pack-semver-invalid.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0207/probe1_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "90edba977c93ce2d8ffa540e43c6c25c",
+     "method": "command",
+     "raw_output": "narrow_ok=True tools=['Grep', 'Read'] sources=['code', 'official-docs'] widen_tools=pack-preset-tool-permission-widening:['Write'] widen_source=pack-preset-source-policy-widening:['public-tor']\nSUCCESS:IMP-0207-probe1 privilege-widening rejected; narrowing accepted",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0207/probe2_intersection.py",
+     "exit_code": 0,
+     "fingerprint": "1d8afb0462af246ab9e006bd4f1dcb78",
+     "method": "command",
+     "raw_output": "tools_declared=['Bash', 'Glob', 'Grep', 'Read'] tools_requested=['Grep', 'Read'] tools_intersection=['Grep', 'Read'] tools_effective=['Grep', 'Read'] sources_intersection=['code', 'official-docs'] sources_effective=['code', 'official-docs']\nSUCCESS:IMP-0207-probe2 effective permissions are the computed intersection",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/packs.py:privilege_intersection",
+   "claim": "Effective tool_permissions and source_policy equal the independently computed set intersection of workflow-declared and preset-requested sets: {Read, Grep} and {official-docs, code}. Union of the same sets is strictly larger, so the check is non-vacuous. Pack version 1.2.0 is strict semver and compares older than 1.3.0. Workflow params carry the IMP-0133 topic field.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0207/probe2_intersection.py",
+     "exit_code": 0,
+     "fingerprint": "1d8afb0462af246ab9e006bd4f1dcb78",
+     "method": "command",
+     "raw_output": "tools_declared=['Bash', 'Glob', 'Grep', 'Read'] tools_requested=['Grep', 'Read'] tools_intersection=['Grep', 'Read'] tools_effective=['Grep', 'Read'] sources_intersection=['code', 'official-docs'] sources_effective=['code', 'official-docs']\nSUCCESS:IMP-0207-probe2 effective permissions are the computed intersection",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0207/probe1_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "90edba977c93ce2d8ffa540e43c6c25c",
+     "method": "command",
+     "raw_output": "narrow_ok=True tools=['Grep', 'Read'] sources=['code', 'official-docs'] widen_tools=pack-preset-tool-permission-widening:['Write'] widen_source=pack-preset-source-policy-widening:['public-tor']\nSUCCESS:IMP-0207-probe1 privilege-widening rejected; narrowing accepted",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0207/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "pack-preset-tool-permission-widening",
+   "description": "Preset requesting Write beyond workflow declaration is rejected",
+   "fired_on_bad_state": true,
+   "good_state_output": "narrowing pack loaded",
+   "id": "tool-permission-widening",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "pack-preset-source-policy-widening",
+   "description": "Preset requesting public-tor beyond workflow declaration is rejected",
+   "fired_on_bad_state": true,
+   "good_state_output": "narrowing pack loaded",
+   "id": "source-policy-widening",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0207: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0133 Param types and IMP-0136 WorkUnit.tool_permissions fields are not yet on spec.Workflow in this worktree. Packs consume the declared JSON surface those units serialize (params, tool_permissions, source_policy) rather than inventing rival spec.py types.",
+   "settling_experiment": "Re-run load_pack against Workflow.to_dict() once IMP-0133 and IMP-0136 land those fields on spec.Workflow.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0207-probe2-intersection",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0207",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0207",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0207/probe1_both_states.py",
+   "id": "probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0207/probe2_intersection.py",
+   "id": "probe2",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:50:45Z",
+  "started_at": "2026-08-24T18:50:45Z"
+ },
+ "unit_id": "IMP-0207"
+}

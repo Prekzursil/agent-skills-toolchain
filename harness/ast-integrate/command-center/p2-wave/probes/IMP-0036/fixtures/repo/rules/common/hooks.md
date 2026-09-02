@@ -1,0 +1,27 @@
+# rules/common/hooks.md
+shared:rules/common/hooks.md
+repo-unique:rules/common/hooks.md
+repo-pad:rules/common/hooks.md:0
+repo-pad:rules/common/hooks.md:1
+repo-pad:rules/common/hooks.md:2
+repo-pad:rules/common/hooks.md:3
+repo-pad:rules/common/hooks.md:4
+repo-pad:rules/common/hooks.md:5
+repo-pad:rules/common/hooks.md:6
+repo-pad:rules/common/hooks.md:7
+repo-pad:rules/common/hooks.md:8
+repo-pad:rules/common/hooks.md:9
+repo-pad:rules/common/hooks.md:10
+repo-pad:rules/common/hooks.md:11
+repo-pad:rules/common/hooks.md:12
+repo-pad:rules/common/hooks.md:13
+repo-pad:rules/common/hooks.md:14
+repo-pad:rules/common/hooks.md:15
+repo-pad:rules/common/hooks.md:16
+repo-pad:rules/common/hooks.md:17
+repo-pad:rules/common/hooks.md:18
+repo-pad:rules/common/hooks.md:19
+repo-pad:rules/common/hooks.md:20
+repo-pad:rules/common/hooks.md:21
+repo-pad:rules/common/hooks.md:22
+repo-pad:rules/common/hooks.md:23

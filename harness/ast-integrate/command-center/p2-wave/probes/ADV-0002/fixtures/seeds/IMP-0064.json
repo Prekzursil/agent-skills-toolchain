@@ -1,0 +1,210 @@
+{
+ "unit_id": "IMP-0064",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0064",
+ "schema_version": 1,
+ "evidence": [
+  {
+   "claim": "IMP-0064 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0064.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0064.json",
+     "raw_output": "bytes=4803 sha256=e453ec943f01f8b0e29b6ad1c7bf8eb50077e41ffce2facc8401ee3d8cc6d0f0",
+     "fingerprint": "3bbcd53ba7acc3e2eceacb6d3d67bb25",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0064",
+     "raw_output": "schema-check",
+     "fingerprint": "265f6ab8a7bf85e9f7a10147ae4f9d93",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0064 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0064",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0064",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "d6032f6b59c15a670392bb365c6f6e3b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0064",
+     "raw_output": "schema-valid",
+     "fingerprint": "0083c395e445a1a3e4f1719cc2aeda43",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0064.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0064.json",
+   "bytes": 4803,
+   "sha256": "e453ec943f01f8b0e29b6ad1c7bf8eb50077e41ffce2facc8401ee3d8cc6d0f0",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "extensions": {
+  "legacy_root": {
+   "title": "Execution policy for plugin-shipped scripts",
+   "output_schema": [
+    "command-center/schema/receipt.schema.json",
+    "tools/plugin/schema/exec-policy.schema.json"
+   ],
+   "question_or_target": "Define and enforce what a shipped plugin script may do: which executables it may spawn, whether it may reach the network, which directories it may write, and what happens when it exceeds the policy.",
+   "windows_limitation": "Windows has no native OS-level process sandbox for plugin-shipped scripts. This policy is a userspace intercept of spawn, write, and network calls in the same interpreter; it is not an AppContainer, Job Object, or kernel sandbox, and it does not contain ctypes/native syscalls or already-allowlisted native children.",
+   "containment": {
+    "mechanism": "userspace-intercept",
+    "os_process_sandbox": false,
+    "windows_kernel_sandbox": false
+   },
+   "on_violation": "refuse-and-record",
+   "enforcement": {
+    "launcher": "tools/plugin/boot.py",
+    "intercept": "tools/plugin/intercept.py",
+    "fail_closed": true,
+    "deny_exit_code": 77,
+    "covers": [
+     "subprocess.Popen / run",
+     "os.system / exec / spawn",
+     "builtins.open / io.open / os.open",
+     "pathlib.Path write/open",
+     "socket.connect / create_connection"
+    ],
+    "does_not_cover": [
+     "ctypes/native syscalls in the same interpreter",
+     "operations performed by an already-allowlisted native child",
+     "Windows kernel sandbox / AppContainer / Job-Object isolation"
+    ]
+   },
+   "owner_approval_required": true,
+   "owner_signoff": {
+    "status": "implementation-complete-default-deny",
+    "note": "This unit ships fail-closed refuse-and-record machinery and a deny-by-default policy shape. Widening allowed_executables, write roots, or network endpoints is an owner action; this delivery does not grant extra rights."
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "refuse-and-record",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0064/probe1_refuse_record.py"
+    },
+    {
+     "id": "probe2",
+     "role": "oob-honesty",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0064/probe2_oob_honesty.py"
+    }
+   ],
+   "cloud_ok": false,
+   "notes": "G-1 for IMP-0064: userspace intercept enforces spawn/write/network allowlists, records violations, and states the Windows OS-sandbox limitation inline. Did not run global unit_manifest.py --write."
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0064",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0064/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0064"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0064.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0064.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "ebe3368aaf146372e9f0db56e801c394",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "exec-policy",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 4803,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0064.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

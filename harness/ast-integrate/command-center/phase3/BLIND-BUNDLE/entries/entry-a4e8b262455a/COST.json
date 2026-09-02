@@ -1,0 +1,467 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1136,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/architecture-cost-model.schema.json",
+      "role": "supporting",
+      "sha256": "5c5f99a9988d29bec142f8e99ca7c6b004322104814a00a9322c56a15557a3b9"
+    },
+    {
+      "bytes": 1558,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/replay.json",
+      "role": "supporting",
+      "sha256": "6b40f992ed89aeba36bb6dfeb5f3cfb52117ab5456fe74a77918840de2cb557e"
+    },
+    {
+      "bytes": 824,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/replay-events.tsv",
+      "role": "supporting",
+      "sha256": "b20a686dbc22199bf6290ced892c5c6183533e3f3585b4c50e3df3cced83f231"
+    },
+    {
+      "bytes": 110,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/fixtures/last-add/grants/skill.local-scan.json",
+      "role": "fixture",
+      "sha256": "5582750bc99030b536f15ab5015abd3b61afc6678e8cb576e1267e26b9dafd33"
+    },
+    {
+      "bytes": 9477,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/[REDACTED]/a7_model.py",
+      "role": "supporting",
+      "sha256": "fea0f99d24dec21323dcb2b6099dfe6adfc9e82317f1166abeb359de90938579"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/[REDACTED]/replay.json",
+      "consumer": "python3 -B command-center/p2-wave/probes/[REDACTED]/replay.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -B command-center/p2-wave/probes/[REDACTED]/replay.py",
+        "exit_code": 0,
+        "fingerprint": "9a434a7912b09cd0ba3eb2b2",
+        "method": "command",
+        "raw_output": "{\"bash\": {\"T-ADD-SKILL\": 1, \"T-EXEC-DELETE\": 2}, \"disagree\": [], \"python\": {\"T-ADD-SKILL\": 1, \"T-EXEC-DELETE\": 2}}",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]/replay.json",
+      "claim": "Prompt counts come from a live replay of two task shapes; python prompt_count_after agrees with bash event_kind OWNER_* counts.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 -B command-center/p2-wave/probes/[REDACTED]/replay.py",
+          "exit_code": 0,
+          "fingerprint": "9a434a7912b09cd0ba3eb2b2",
+          "method": "command",
+          "raw_output": "{\"bash\": {\"T-ADD-SKILL\": 1, \"T-EXEC-DELETE\": 2}, \"disagree\": [], \"python\": {\"T-ADD-SKILL\": 1, \"T-EXEC-DELETE\": 2}}",
+          "role": "source"
+        },
+        {
+          "command": "awk -F '\\t' 'NR>1 && ($3==\"OWNER_TASK\" || $3==\"OWNER_PROMPT\") { c[$1]++ } END { for (k in c) print k, c[k] }' command-center/p2-wave/probes/[REDACTED]/replay-events.tsv",
+          "exit_code": 0,
+          "fingerprint": "f975a1f2ca6e769f5d3761e4",
+          "method": "command",
+          "raw_output": "T-ADD-SKILL=1 T-EXEC-DELETE=2",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]/a7_model.py:112",
+      "claim": "A control with no seeded FC-11301..11347 class is UNJUSTIFIED, not low-value. sign.artifact_provenance and approve.every_read are UNJUSTIFIED.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "command-center/p2-wave/probes/[REDACTED]/a7_model.py:67",
+          "exit_code": 0,
+          "fingerprint": "8a5609b06b4bdde78d09251d",
+          "method": "file-read",
+          "raw_output": "sign.artifact_provenance failure_class=None",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/[REDACTED]/a7_model.py:112",
+          "exit_code": 0,
+          "fingerprint": "2b2653095da4392a1c768b46",
+          "method": "static-analysis",
+          "raw_output": "approve.every_read failure_class=None in_proposed_a7=False",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/[REDACTED]/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "description": "Workflow with an instructions key must be caught.",
+      "fired_on_bad_state": true,
+      "id": "planted-injection-key",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Empty and blob documents must fail the cost-model schema.",
+      "fired_on_bad_state": true,
+      "id": "schema-garbage",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "headless-linux",
+    "model": "[REDACTED]",
+    "role": "cost-analyst",
+    "vendor": "[REDACTED]"
+  },
+  "report": {
+    "architecture_class": "[REDACTED]",
+    "architecture_id": "[REDACTED]",
+    "b03_input": {
+      "consumed": false,
+      "id": "B03",
+      "reason": "B03 is a research-claim bucket, not a friction-measurement input."
+    },
+    "cloud_ok": false,
+    "completion_sentinel": "SUCCESS:[REDACTED]",
+    "control_ids": [
+      "perm.choke_point",
+      "grant.least_privilege",
+      "sign.artifact_provenance",
+      "scan.secret_free_bundle",
+      "bound.injection_wf_council",
+      "approve.irreversible",
+      "approve.every_read"
+    ],
+    "controls": [
+      {
+        "attribution": "JUSTIFIED",
+        "attribution_note": null,
+        "cadence": "recurring",
+        "failure_class": "FC-11320",
+        "failure_class_name": "permission-boundary / colliding catalog merge",
+        "friction_kind": "eval-latency",
+        "id": "perm.choke_point",
+        "in_proposed_a7": true,
+        "owner_interactive": false,
+        "title": "Single permission evaluator on every capability invocation"
+      },
+      {
+        "attribution": "JUSTIFIED",
+        "attribution_note": null,
+        "cadence": "one-time",
+        "failure_class": "FC-11346",
+        "failure_class_name": "marketplace package has malicious or excessive permissions",
+        "friction_kind": "authoring-declarations",
+        "id": "grant.least_privilege",
+        "in_proposed_a7": true,
+        "owner_interactive": false,
+        "title": "Explicit permission declarations per capability added"
+      },
+      {
+        "attribution": "UNJUSTIFIED",
+        "attribution_note": "No FC-11301..11347 names unsigned or tampered provenance. Closing a class outside the seeded 47 does not satisfy the benefit-attribution rule.",
+        "cadence": "recurring",
+        "failure_class": null,
+        "failure_class_name": null,
+        "friction_kind": "signing-step",
+        "id": "sign.artifact_provenance",
+        "in_proposed_a7": true,
+        "owner_interactive": false,
+        "title": "HMAC provenance on every emitted artifact bundle"
+      },
+      {
+        "attribution": "JUSTIFIED",
+        "attribution_note": null,
+        "cadence": "recurring",
+        "failure_class": "FC-11345",
+        "failure_class_name": "credentials or decrypted secrets enter an artifact bundle",
+        "friction_kind": "scan-latency",
+        "id": "scan.secret_free_bundle",
+        "in_proposed_a7": true,
+        "owner_interactive": false,
+        "title": "Secret-free scan of every artifact bundle at emit"
+      },
+      {
+        "attribution": "JUSTIFIED",
+        "attribution_note": null,
+        "cadence": "recurring",
+        "failure_class": "FC-11344",
+        "failure_class_name": "transcript injects instructions into later stages",
+        "friction_kind": "parse-latency",
+        "id": "bound.injection_wf_council",
+        "in_proposed_a7": true,
+        "owner_interactive": false,
+        "title": "Reject instruction-bearing keys in workflow and council JSON"
+      },
+      {
+        "attribution": "JUSTIFIED",
+        "attribution_note": null,
+        "cadence": "recurring",
+        "failure_class": "FC-11347",
+        "failure_class_name": "rollback destroys user-owned files/commands/settings",
+        "friction_kind": "owner-prompt",
+        "id": "approve.irreversible",
+        "in_proposed_a7": true,
+        "owner_interactive": true,
+        "title": "Owner prompt before delete/publish/credential/cloud-spend"
+      },
+      {
+        "attribution": "UNJUSTIFIED",
+        "attribution_note": "Planted benefit-attribution control: Read confirmation closes no seeded class.",
+        "cadence": "recurring",
+        "failure_class": null,
+        "failure_class_name": null,
+        "friction_kind": "owner-prompt",
+        "id": "approve.every_read",
+        "in_proposed_a7": false,
+        "owner_interactive": true,
+        "title": "Owner prompt on every Read (permission theater)"
+      }
+    ],
+    "design_input": {
+      "path": "command-center/phase3/[REDACTED]/DESIGN.json",
+      "present": false,
+      "substitution": "[REDACTED] control set reconstructed from WORK-UNIT-CATALOG.json [REDACTED] question_or_target (least-privilege grants, signed provenance, single choke point, secret-free bundles, injection-resistant workflow/council boundaries). [REDACTED] DESIGN.json is absent on this worktree."
+    },
+    "headline": {
+      "numbers": [
+        {
+          "error_band": "0",
+          "id": "permission_declarations_per_capability",
+          "method": "len(grant.tools) after actually writing the grant",
+          "unit": "declarations",
+          "value": 3
+        },
+        {
+          "error_band": "0",
+          "id": "signing_steps_per_capability",
+          "method": "HMAC-SHA256 over skill+grant+workflow bytes",
+          "unit": "steps",
+          "value": 1
+        },
+        {
+          "error_band": "0",
+          "id": "approval_gates_per_capability",
+          "method": "irreversible-tool count on the add trace",
+          "unit": "gates",
+          "value": 0
+        },
+        {
+          "error_band": "0",
+          "id": "t_add_prompt_overhead",
+          "method": "prompt_count_after minus prompt_count_before",
+          "unit": "owner-prompts",
+          "value": 0
+        },
+        {
+          "error_band": "0",
+          "id": "t_exec_prompt_overhead",
+          "method": "prompt_count_after minus prompt_count_before",
+          "unit": "owner-prompts",
+          "value": 1
+        },
+        {
+          "error_band": "0",
+          "id": "worst_recurring_ratio",
+          "method": "JUSTIFIED=1 else 0, divided by counted friction units",
+          "unit": "benefit-per-friction",
+          "value": 0.0
+        }
+      ],
+      "summary": "Adding skill.local-scan costs 0 approval gates, 1 signing step, 3 permission declarations. T-ADD owner-prompt overhead is 0. T-EXEC-DELETE adds 1 owner prompt (irreversible Delete). Worst recurring ratio is sign.artifact_provenance at 0 because it is UNJUSTIFIED against FC-11301..11347."
+    },
+    "kind": "architecture-cost-model",
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_python_prompt_count.py",
+        "data_field": "prompt_count_after",
+        "id": "probe1",
+        "shell": "python3"
+      },
+      {
+        "command": "bash command-center/p2-wave/probes/[REDACTED]/probe2_bash_event_kind.sh",
+        "data_field": "event_kind",
+        "id": "probe2",
+        "shell": "bash"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/fixtures/last-add/grants/skill.local-scan.json",
+        "measured": 3,
+        "method": "len(grant.tools) after actually writing the grant",
+        "name": "permission_declarations_per_capability"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/replay.json",
+        "measured": 1,
+        "method": "python field prompt_count_after on replay.json",
+        "name": "t_add_prompt_count_after"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/replay-events.tsv",
+        "measured": 2,
+        "method": "bash field event_kind OWNER_TASK|OWNER_PROMPT",
+        "name": "t_exec_owner_turns"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/[REDACTED]/a7_model.py:67",
+        "measured": 0.0,
+        "method": "JUSTIFIED=1 else 0, divided by counted friction units",
+        "name": "worst_recurring_ratio"
+      }
+    ],
+    "per_capability": {
+      "approval_gates": 0,
+      "capability_id": "skill.local-scan",
+      "one_time": [
+        "grant.least_privilege"
+      ],
+      "permission_declarations": 3,
+      "recurring_on_emit": [
+        "sign.artifact_provenance",
+        "scan.secret_free_bundle",
+        "bound.injection_wf_council"
+      ],
+      "signing_steps": 1,
+      "tools": [
+        "Read",
+        "Grep",
+        "Glob"
+      ]
+    },
+    "question": "What does [REDACTED] cost in OWNER FRICTION? Count the added approval gates, signing steps and permission declarations per capability added; estimate the per-task latency and prompt-count overhead; then separate controls that are free (static, one-time) from those that are recurring, and identify the recurring control with the worst benefit-to-friction ratio.",
+    "reviewer_rederived": {
+      "artifact_value": 3,
+      "command": "python3 -c \"import json; print(len(json.load(open('command-center/p2-wave/probes/[REDACTED]/fixtures/last-add/grants/skill.local-scan.json'))['tools']))\"",
+      "error_band": "0",
+      "quantity": "permission_declarations_per_capability",
+      "raw_field": "tools",
+      "raw_input": "command-center/p2-wave/probes/[REDACTED]/fixtures/last-add/grants/skill.local-scan.json",
+      "value": 3,
+      "within_band": true
+    },
+    "task_shapes": [
+      {
+        "approval_gates": 0,
+        "id": "T-ADD-SKILL",
+        "overhead_prompts": 0,
+        "owner_turns": 1,
+        "permission_declarations": 3,
+        "prompt_count_after": 1,
+        "prompt_count_before": 1,
+        "shape": "capability-add",
+        "signing_steps": 1,
+        "title": "Add one estate-local discovery skill with least-privilege grant"
+      },
+      {
+        "approval_gates": 1,
+        "id": "T-EXEC-DELETE",
+        "overhead_prompts": 1,
+        "owner_turns": 2,
+        "permission_declarations": 0,
+        "prompt_count_after": 2,
+        "prompt_count_before": 1,
+        "shape": "estate-local-execute-with-scratch-delete",
+        "signing_steps": 0,
+        "title": "Estate-local scan then delete a unit-owned scratch file"
+      }
+    ],
+    "two_signal": {
+      "agree": true,
+      "bash": {
+        "data_field": "event_kind",
+        "shell": "bash",
+        "values": {
+          "T-ADD-SKILL": 1,
+          "T-EXEC-DELETE": 2
+        }
+      },
+      "disagreement": [],
+      "python": {
+        "data_field": "prompt_count_after",
+        "shell": "python3",
+        "values": {
+          "T-ADD-SKILL": 1,
+          "T-EXEC-DELETE": 2
+        }
+      },
+      "required_fix_if_blocked": "Align replay.json prompt_count_after with OWNER_* rows in replay-events.tsv; do not pick a winner."
+    },
+    "worst_recurring": {
+      "benefit": 0.0,
+      "benefit_to_friction": 0.0,
+      "control_id": "sign.artifact_provenance",
+      "excluded_not_in_a7": [
+        "approve.every_read"
+      ],
+      "friction_units": 1.0,
+      "rationale": "Among proposed [REDACTED] recurring controls, unsigned-provenance HMAC cannot be tied to any FC-11301..11347 class so attribution is UNJUSTIFIED (benefit 0) while still costing one signing step per emit. That is a worse ratio than approve.irreversible, which spends 1 owner prompt to close FC-11347."
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "[REDACTED] DESIGN.json was the on-disk cost-model input.",
+      "settling_experiment": "Place command-center/phase3/[REDACTED]/DESIGN.json from [REDACTED] and re-run emit_cost.py; do not rebuild [REDACTED] in this unit.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 1,
+    "policy": "re-measure once with a MECHANICALLY DIFFERENT probe (different shell, different data field); if the two readings disagree report BLOCKED with both numbers rather than picking one"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Re-counted grant.tools=3 from command-center/p2-wave/probes/[REDACTED]/fixtures/last-add/grants/skill.local-scan.json, not from COST.json headline. Bash probe2 re-counts owner_turns from event_kind independently of prompt_count_after.",
+    "reviewer_id": "[REDACTED]-grant-rederive",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:[REDACTED]",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:13004",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_python_prompt_count.py",
+      "id": "friction-two-shapes",
+      "name": "Friction measurement on two real task shapes",
+      "output_tail": "T-ADD-SKILL 1->1; T-EXEC-DELETE 1->2",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_python_prompt_count.py",
+      "id": "benefit-attribution-unjustified",
+      "name": "Untied control classified UNJUSTIFIED, not low-value",
+      "output_tail": "approve.every_read and sign.artifact_provenance classified UNJUSTIFIED; not 'low-value'.",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:56:36Z",
+    "started_at": "2026-08-25T00:56:36Z"
+  },
+  "unit_id": "[REDACTED]"
+}

@@ -1,0 +1,585 @@
+{
+ "answers": {
+  "absolute_overhead_ms": 0.47586549999323324,
+  "fraction_of_p50_real": 0.10464095040708078,
+  "pipeline_stages_that_dominate": {
+   "p50_ms": 0.38142850007716333,
+   "share_of_p50_total": 0.8015468658320202,
+   "stage": "ledger_write"
+  }
+ },
+ "artifact_paths": [
+  "command-center/receipts/TST-0305.json",
+  "tools/bench/overhead.py",
+  "command-center/p2-wave/probes/TST-0305/scenario.py",
+  "command-center/p2-wave/probes/TST-0305/probe1_noop_distribution.py",
+  "command-center/p2-wave/probes/TST-0305/probe2_ceiling_alarm.py",
+  "command-center/bench/results/TST-0305.jsonl"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0305.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "tools/bench/overhead.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0305/scenario.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0305/probe1_noop_distribution.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0305/probe2_ceiling_alarm.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/bench/results/TST-0305.jsonl",
+   "role": "supporting"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:TST-0305",
+ "evidence": [
+  {
+   "anchor": "tools/bench/overhead.py:measure_overhead",
+   "claim": "No-op full-pipeline p50 total is 0.475865 ms over n=100 (warmup=5). Distribution includes min/mean/stdev/p50/p95/p99.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.run_campaign",
+     "exit_code": 0,
+     "method": "in-process",
+     "raw_output": "{\"max_ms\": 0.7671170001231076, \"mean_ms\": 0.485159670001849, \"min_ms\": 0.45694699974774267, \"n\": 100, \"p50_ms\": 0.47586549999323324, \"p95_ms\": 0.5248529999562379, \"p99_ms\": 0.6418562598673822, \"stdev_ms\": 0.0391577922559226}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0305/probe1_noop_distribution.py",
+     "exit_code": 0,
+     "method": "named-probe",
+     "raw_output": "re-run 100 no-op iterations; require n=100 and four stages",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/bench/overhead.py:STAGES+_stage_table",
+   "claim": "Overhead is attributed per stage (setup, oracle, teardown, ledger_write). Dominating no-op stage is ledger_write at p50=0.38142850007716333 ms (share=0.8015468658320202).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "noop.stages",
+     "exit_code": 0,
+     "method": "in-process",
+     "raw_output": "{\"ledger_write\": 0.38142850007716333, \"oracle\": 0.00040000008993956726, \"setup\": 0.07038799981273769, \"teardown\": 0.01887450002868718}",
+     "role": "source"
+    },
+    {
+     "command": "dominating_stage",
+     "exit_code": 0,
+     "method": "in-process",
+     "raw_output": "{\"p50_ms\": 0.38142850007716333, \"share_of_p50_total\": 0.8015468658320202, \"stage\": \"ledger_write\"}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/bench/overhead.py:ceiling_alarm",
+   "claim": "Ceiling alarm fires when oracle_ms < harness_ms (setup+teardown+ledger_write). Tiny/no-op p50 fires; calibrated real p50 is silent. An inverted detector does not satisfy both-states.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0305/probe2_ceiling_alarm.py",
+     "exit_code": 0,
+     "method": "named-probe",
+     "raw_output": "{\"fast_p50_fired\": true, \"inverted_both_states\": false, \"inverted_fast_fired\": false, \"inverted_slow_fired\": true, \"rule\": \"oracle_ms < harness_ms (setup+teardown+ledger_write)\", \"slow_p50_fired\": false}",
+     "role": "source"
+    },
+    {
+     "command": "inverted_ceiling_alarm",
+     "exit_code": 0,
+     "method": "both-states-control",
+     "raw_output": "inverted_both_states=False inv_fast=False inv_slow=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "kind": "harness-overhead-bound",
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/TST-0305/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_ids": [
+  "TST-0305-C1-tiny-faster-than-harness",
+  "TST-0305-C2-inverted-ceiling-detector"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "tiny_p50_oracle=0.0004200001058052294 tiny_p50_harness=0.4825249998248182 fired=True",
+   "description": "A case whose oracle is empty must fire the ceiling. A calibrated real case whose oracle is 6x the no-op harness p50 must be silent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "real_p50_oracle=4.00072899992665 real_p50_harness=0.5466430002343259 fired=False payload_s=0.004",
+   "id": "TST-0305-C1-tiny-faster-than-harness",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "inverted_fast=False inverted_slow=True inverted_both_states=False",
+   "description": "inverted_ceiling_alarm (oracle >= harness) must not pass the both-states control that the production detector passes.",
+   "fired_on_bad_state": true,
+   "good_state_output": "prod_fast=True prod_slow=False both_states=True",
+   "id": "TST-0305-C2-inverted-ceiling-detector",
+   "kind": "detector-mutant",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0305: live named probes, honest SUCCESS receipt, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. tools/bench overhead layer authored here; full TST-0295 corpus was not rebuilt. SUCCESS:TST-0305",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "overhead": {
+  "absolute_ms": 0.47586549999323324,
+  "ceiling": {
+   "fast_p50_fired": true,
+   "inverted_both_states": false,
+   "inverted_fast_fired": false,
+   "inverted_slow_fired": true,
+   "rule": "oracle_ms < harness_ms (setup+teardown+ledger_write)",
+   "slow_p50_fired": false
+  },
+  "dominating_stage": {
+   "p50_ms": 0.38142850007716333,
+   "share_of_p50_total": 0.8015468658320202,
+   "stage": "ledger_write"
+  },
+  "fraction_of_p50_real": 0.10464095040708078,
+  "measurement": "No-op case through the full four-stage pipeline. Absolute overhead is the p50 total wall of 100 no-op runs. Fraction is that p50 divided by the p50 total of the smallest calibrated real case (oracle payload = max(4ms, 6 * no-op harness p50)).",
+  "noop": {
+   "case_id": "noop",
+   "ceiling_p50": true,
+   "harness": {
+    "max_ms": 0.766737000503781,
+    "mean_ms": 0.4847470800132214,
+    "min_ms": 0.4565869999169081,
+    "n": 100,
+    "p50_ms": 0.47547549979753967,
+    "p95_ms": 0.5243794999159945,
+    "p99_ms": 0.6415158598292697,
+    "stdev_ms": 0.0391481093817414
+   },
+   "n": 100,
+   "oracle": {
+    "max_ms": 0.0005899996722291689,
+    "mean_ms": 0.00041258998862758745,
+    "min_ms": 0.0003299996933492366,
+    "n": 100,
+    "p50_ms": 0.00040000008993956726,
+    "p95_ms": 0.0005204999524721643,
+    "p99_ms": 0.000580100227125513,
+    "stdev_ms": 5.306278562914737e-05
+   },
+   "p50_harness_ms": 0.47547549979753967,
+   "p50_oracle_ms": 0.00040000008993956726,
+   "stages": {
+    "ledger_write": {
+     "max_ms": 0.6781900001442409,
+     "mean_ms": 0.3913283200154183,
+     "min_ms": 0.37084900031914003,
+     "n": 100,
+     "p50_ms": 0.38142850007716333,
+     "p95_ms": 0.4215404999740713,
+     "p99_ms": 0.5563932701716118,
+     "stdev_ms": 0.03791957857671468
+    },
+    "oracle": {
+     "max_ms": 0.0005899996722291689,
+     "mean_ms": 0.00041258998862758745,
+     "min_ms": 0.0003299996933492366,
+     "n": 100,
+     "p50_ms": 0.00040000008993956726,
+     "p95_ms": 0.0005204999524721643,
+     "p99_ms": 0.000580100227125513,
+     "stdev_ms": 5.306278562914737e-05
+    },
+    "setup": {
+     "max_ms": 0.09753700032888446,
+     "mean_ms": 0.0735026499887681,
+     "min_ms": 0.06478899967987672,
+     "n": 100,
+     "p50_ms": 0.07038799981273769,
+     "p95_ms": 0.08895599996776582,
+     "p99_ms": 0.09470560010868213,
+     "stdev_ms": 0.007884204539371867
+    },
+    "teardown": {
+     "max_ms": 0.03575899972929619,
+     "mean_ms": 0.019916110009035037,
+     "min_ms": 0.01821000023483066,
+     "n": 100,
+     "p50_ms": 0.01887450002868718,
+     "p95_ms": 0.024005000045690394,
+     "p99_ms": 0.03214550012671681,
+     "stdev_ms": 0.002993664383999711
+    }
+   },
+   "total": {
+    "max_ms": 0.7671170001231076,
+    "mean_ms": 0.485159670001849,
+    "min_ms": 0.45694699974774267,
+    "n": 100,
+    "p50_ms": 0.47586549999323324,
+    "p95_ms": 0.5248529999562379,
+    "p99_ms": 0.6418562598673822,
+    "stdev_ms": 0.0391577922559226
+   }
+  },
+  "noop_totals_ms": [
+   0.46749600005568936,
+   0.4868959999839717,
+   0.48304600022675004,
+   0.4863260001002345,
+   0.5311039999469358,
+   0.5203749997235718,
+   0.474145999760367,
+   0.48098500019477797,
+   0.46474600003421074,
+   0.4890350001005572,
+   0.4909849999421567,
+   0.4812950000996352,
+   0.5197649998081033,
+   0.4862959999627492,
+   0.463605999811989,
+   0.48408600014226977,
+   0.462405999769544,
+   0.46779599961155327,
+   0.4725160001726181,
+   0.4781260004165233,
+   0.5091039997751068,
+   0.4695060001722595,
+   0.46616600002380437,
+   0.47309599995060125,
+   0.47591600014129654,
+   0.4700560002675047,
+   0.4629559998647892,
+   0.4722059998130135,
+   0.49377499999536667,
+   0.4851260000577895,
+   0.4658060001929698,
+   0.4809759998352092,
+   0.462395999875298,
+   0.46099599967419636,
+   0.48526499995205086,
+   0.48266600015267613,
+   0.4799260000254435,
+   0.49665500000628526,
+   0.4655960001400672,
+   0.47614599998269114,
+   0.470236000182922,
+   0.4630960002032225,
+   0.4798259997187415,
+   0.45694699974774267,
+   0.47517600023638806,
+   0.5126940000081959,
+   0.492595000196161,
+   0.4757760002576106,
+   0.5168840002625075,
+   0.47737499971844954,
+   0.496354999995674,
+   0.47653599995101104,
+   0.5103049998069764,
+   0.5245239999567275,
+   0.4922849998365564,
+   0.4681659997913812,
+   0.4776060000040161,
+   0.4580560002978018,
+   0.47581499984516995,
+   0.4644860000553308,
+   0.7671170001231076,
+   0.49273600006927154,
+   0.4689759998655063,
+   0.46875600037310505,
+   0.4712549998657778,
+   0.4905549999421055,
+   0.47208600017256686,
+   0.46885599977031234,
+   0.49711499968907447,
+   0.5200740001782833,
+   0.47922600015226635,
+   0.4579269998430391,
+   0.46302700002343045,
+   0.4664959997171536,
+   0.4666459999498329,
+   0.6405909998647985,
+   0.5945719999544963,
+   0.4790360003426031,
+   0.46710500009794487,
+   0.46977600004538544,
+   0.4617360000338522,
+   0.459745999705774,
+   0.46058599991738447,
+   0.4579559999910998,
+   0.5159150000508816,
+   0.5191340001147182,
+   0.46380599997064564,
+   0.4766450001625344,
+   0.4681460000028892,
+   0.4612160000760923,
+   0.4644760001610848,
+   0.46556600000258186,
+   0.4858350002905354,
+   0.5429640000329528,
+   0.47386599999299506,
+   0.46190600005502347,
+   0.476665999940451,
+   0.459846000012476,
+   0.4801360000783461,
+   0.4677859997173073
+  ],
+  "payload_s": 0.004,
+  "real": {
+   "case_id": "real-calibrated",
+   "ceiling_p50": false,
+   "harness": {
+    "max_ms": 0.7369380005002313,
+    "mean_ms": 0.569415904724987,
+    "min_ms": 0.5174839998289826,
+    "n": 21,
+    "p50_ms": 0.5466430002343259,
+    "p95_ms": 0.7274079998751404,
+    "p99_ms": 0.7350320003752131,
+    "stdev_ms": 0.0630035625858029
+   },
+   "n": 21,
+   "oracle": {
+    "max_ms": 4.000989999894955,
+    "mean_ms": 4.000757190472844,
+    "min_ms": 4.000580000138143,
+    "n": 21,
+    "p50_ms": 4.00072899992665,
+    "p95_ms": 4.00095999975747,
+    "p99_ms": 4.000983999867458,
+    "stdev_ms": 0.00012418188052124872
+   },
+   "p50_harness_ms": 0.5466430002343259,
+   "p50_oracle_ms": 4.00072899992665,
+   "stages": {
+    "ledger_write": {
+     "max_ms": 0.6371610002133821,
+     "mean_ms": 0.4641174762019502,
+     "min_ms": 0.4146380001657235,
+     "n": 21,
+     "p50_ms": 0.4390369999782706,
+     "p95_ms": 0.6234009997569956,
+     "p99_ms": 0.6344090001221048,
+     "stdev_ms": 0.06357696454319378
+    },
+    "oracle": {
+     "max_ms": 4.000989999894955,
+     "mean_ms": 4.000757190472844,
+     "min_ms": 4.000580000138143,
+     "n": 21,
+     "p50_ms": 4.00072899992665,
+     "p95_ms": 4.00095999975747,
+     "p99_ms": 4.000983999867458,
+     "stdev_ms": 0.00012418188052124872
+    },
+    "setup": {
+     "max_ms": 0.08650799964016187,
+     "mean_ms": 0.07783776187525723,
+     "min_ms": 0.07388700032606721,
+     "n": 21,
+     "p50_ms": 0.07691800010434235,
+     "p95_ms": 0.08522799998900155,
+     "p99_ms": 0.0862519997099298,
+     "stdev_ms": 0.0034224903974205854
+    },
+    "teardown": {
+     "max_ms": 0.03223899966542376,
+     "mean_ms": 0.027460666647779623,
+     "min_ms": 0.02414900018266053,
+     "n": 21,
+     "p50_ms": 0.027158999728271738,
+     "p95_ms": 0.030728999718121486,
+     "p99_ms": 0.03193699967596331,
+     "stdev_ms": 0.0019235285792197708
+    }
+   },
+   "total": {
+    "max_ms": 4.737718000342284,
+    "mean_ms": 4.570173095197831,
+    "min_ms": 4.518283999914274,
+    "n": 21,
+    "p50_ms": 4.5476029999917955,
+    "p95_ms": 4.728077999970992,
+    "p99_ms": 4.735790000268025,
+    "stdev_ms": 0.06297940376073144
+   }
+  },
+  "stages": [
+   "setup",
+   "oracle",
+   "teardown",
+   "ledger_write"
+  ],
+  "tiny": {
+   "case_id": "tiny-faster-than-harness",
+   "ceiling_p50": true,
+   "harness": {
+    "max_ms": 0.7737570003882865,
+    "mean_ms": 0.5083099524762518,
+    "min_ms": 0.4587459998219856,
+    "n": 21,
+    "p50_ms": 0.4825249998248182,
+    "p95_ms": 0.6189020000419987,
+    "p99_ms": 0.7427860003190291,
+    "stdev_ms": 0.07298597489954788
+   },
+   "n": 21,
+   "oracle": {
+    "max_ms": 0.0006200002644618507,
+    "mean_ms": 0.00043666657456058254,
+    "min_ms": 0.00033999958759522997,
+    "n": 21,
+    "p50_ms": 0.0004200001058052294,
+    "p95_ms": 0.0005599999894911889,
+    "p99_ms": 0.0006080002094677184,
+    "stdev_ms": 6.66584385624609e-05
+   },
+   "p50_harness_ms": 0.4825249998248182,
+   "p50_oracle_ms": 0.0004200001058052294,
+   "stages": {
+    "ledger_write": {
+     "max_ms": 0.6777200001124584,
+     "mean_ms": 0.41059338097208337,
+     "min_ms": 0.3731490000973281,
+     "n": 21,
+     "p50_ms": 0.38291800001388765,
+     "p95_ms": 0.4992250001123466,
+     "p99_ms": 0.6420210001124361,
+     "stdev_ms": 0.06881383801122824
+    },
+    "oracle": {
+     "max_ms": 0.0006200002644618507,
+     "mean_ms": 0.00043666657456058254,
+     "min_ms": 0.00033999958759522997,
+     "n": 21,
+     "p50_ms": 0.0004200001058052294,
+     "p95_ms": 0.0005599999894911889,
+     "p99_ms": 0.0006080002094677184,
+     "stdev_ms": 6.66584385624609e-05
+    },
+    "setup": {
+     "max_ms": 0.09935699972629664,
+     "mean_ms": 0.07722342860731823,
+     "min_ms": 0.06570799996552523,
+     "n": 21,
+     "p50_ms": 0.07292800000868738,
+     "p95_ms": 0.0986270001703815,
+     "p99_ms": 0.09921099981511361,
+     "stdev_ms": 0.01165381085914647
+    },
+    "teardown": {
+     "max_ms": 0.03538900000421563,
+     "mean_ms": 0.020493142896850173,
+     "min_ms": 0.01816000030885334,
+     "n": 21,
+     "p50_ms": 0.018978999833052512,
+     "p95_ms": 0.024138999833667185,
+     "p99_ms": 0.03313899997010595,
+     "stdev_ms": 0.003820070844992705
+    }
+   },
+   "total": {
+    "max_ms": 0.7742070001768298,
+    "mean_ms": 0.5087466190508123,
+    "min_ms": 0.45921599985376815,
+    "n": 21,
+    "p50_ms": 0.4829149997931381,
+    "p95_ms": 0.6194219999997586,
+    "p99_ms": 0.7432500001414156,
+    "stdev_ms": 0.07300538192704457
+   }
+  },
+  "warmup": 5
+ },
+ "question": "Question: how much of the measured latency is the thing being measured, and how much is the instrumentation around it? Measure the harness overhead directly (run a no-op case through the full pipeline), express it as a fraction of the smallest real case, and set a ceiling above which the platform must warn that its own overhead dominates.",
+ "residual_unknowns": [
+  {
+   "claim": "_USER-PROMPTS.md:11022 (product latency tests) is not on this worktree. This unit measures the ruler, not the product.",
+   "settling_experiment": "Place _USER-PROMPTS.md and re-run product latency tests separately from tools/bench/overhead.py.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "TST-0297 variance floor is not on disk. Overhead bounds are reported without that floor as a citation.",
+   "settling_experiment": "Deliver TST-0297 and cite its null-delta stdev next to these overhead numbers.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Reviewer dual-shell (pwsh7 vs Git Bash) was not run. Both named probes ran under this Linux Python.",
+   "settling_experiment": "Re-run probe1 and probe2 under pwsh7 and Git Bash on Windows and report any divergence as a finding.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "results_ledger": "command-center/bench/results/TST-0305.jsonl",
+ "retry": {
+  "count": 0,
+  "policy": "Up to 3 attempts with full-jitter backoff. A flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry."
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Probe 2 re-runs the campaign and the inverted-detector control from the live pipeline, not from this receipt's numbers. Catalog asked for a second Windows shell (pwsh7 and Git Bash); this worktree is Linux and that dual-shell divergence is NOT-CHECKED.",
+  "reviewer_id": "TST-0305-probe2-ceiling-alarm",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0305",
+ "spec_anchor": "catalog TST-0305; inputs tools/bench/, command-center/bench/results/, profiling of the harness pipeline; product latency tests at _USER-PROMPTS.md:11022 are the product-side layer and are distinct",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "test_ids": [
+  "TST-0305-T1-noop-100",
+  "TST-0305-T2-stage-attribution",
+  "TST-0305-T3-ceiling-alarm"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0305/probe1_noop_distribution.py",
+   "id": "TST-0305-T1-noop-100",
+   "name": "No-op case timing over 100 iterations, distribution reported",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0305/probe1_noop_distribution.py",
+   "id": "TST-0305-T2-stage-attribution",
+   "name": "Overhead attribution per stage (setup, oracle, teardown, ledger write)",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0305/probe2_ceiling_alarm.py",
+   "id": "TST-0305-T3-ceiling-alarm",
+   "name": "Ceiling alarm fires when a case is faster than the harness overhead around it",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:03:55Z",
+  "started_at": "2026-08-25T01:03:55Z"
+ },
+ "title": "Bound the measurement overhead of the harness itself",
+ "unit_id": "TST-0305"
+}

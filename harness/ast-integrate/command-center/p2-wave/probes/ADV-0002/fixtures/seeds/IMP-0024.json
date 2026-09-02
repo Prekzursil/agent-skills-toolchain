@@ -1,0 +1,285 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0024",
+  "id": "IMP-0024",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0024",
+  "completion_sentinel": "SUCCESS:IMP-0024",
+  "title": "`update` command preserving user overrides across versions",
+  "question_or_target": "Implement `update` so that a user-modified deployed file is never silently overwritten: classify each target as unchanged-by-user (replace), changed-by-user (three-way merge via IMP-0031), or conflicted (stop and report), and preserve user data and settings across the version boundary.",
+  "min_bytes_threshold": 2048,
+  "output_path": "command-center/receipts/IMP-0024.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "implementation": {
+    "module": "tools/plugin/update.py",
+    "merge": "tools/plugin/three_way_merge.py",
+    "independent_differ": "tools/plugin/unique_line_differ.py",
+    "tests": "tools/plugin/tests/test_update_preserves_overrides.py",
+    "classifier": "unchanged-by-user (LF-byte equal to shipped vN) -> replace; changed-by-user -> three-way merge; conflicted -> stop, write nothing",
+    "permission_gate": "permission_diff.gate_update (IMP-0060) before apply",
+    "foreign_files": "live paths not in the payload are skipped, never deleted"
+  },
+  "rehearsal": {
+    "v1_to_v2": {
+      "proceeded": true,
+      "reason": "applied",
+      "classifications": {
+        "notes.md": "changed-by-user",
+        "settings.json": "changed-by-user"
+      }
+    },
+    "v2_to_v3": {
+      "proceeded": true,
+      "reason": "applied"
+    },
+    "settings_after_chain": {
+      "theme": "dark",
+      "font": "ibm-plex-mono",
+      "accent": "teal",
+      "telemetry": false,
+      "keymap": "vim"
+    },
+    "accent_survived": true,
+    "census_v2": {
+      "all_unique_present": true,
+      "missing_count": 0,
+      "missing_utf8": [],
+      "present_count": 1,
+      "present_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+      "truncated": false,
+      "unique_count": 1,
+      "unique_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+      "unique_utf8": [
+        "user-keeps-this-override"
+      ]
+    },
+    "census_v3": {
+      "all_unique_present": true,
+      "missing_count": 0,
+      "missing_utf8": [],
+      "present_count": 1,
+      "present_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+      "truncated": false,
+      "unique_count": 1,
+      "unique_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+      "unique_utf8": [
+        "user-keeps-this-override"
+      ]
+    },
+    "negative_control": {
+      "classifier_enabled": false,
+      "proceeded": true,
+      "unique_lines_dropped": true,
+      "census": {
+        "all_unique_present": false,
+        "missing_count": 1,
+        "missing_utf8": [
+          "user-keeps-this-override"
+        ],
+        "present_count": 0,
+        "present_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "truncated": true,
+        "unique_count": 1,
+        "unique_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+        "unique_utf8": [
+          "user-keeps-this-override"
+        ]
+      }
+    },
+    "conflicted": {
+      "proceeded": false,
+      "wrote": false,
+      "tree_unchanged": true,
+      "paths": [
+        "settings.json"
+      ]
+    },
+    "reviewer": {
+      "key_order": [
+        "font",
+        "theme",
+        "telemetry"
+      ],
+      "jsonc_comment": true,
+      "notes_comment": true,
+      "census": {
+        "all_unique_present": true,
+        "missing_count": 0,
+        "missing_utf8": [],
+        "present_count": 1,
+        "present_sha256": "1e13dde59328403af6674f4bbca1320dd5537cd82bb0b16f517e07c6238dc27c",
+        "truncated": false,
+        "unique_count": 1,
+        "unique_sha256": "1e13dde59328403af6674f4bbca1320dd5537cd82bb0b16f517e07c6238dc27c",
+        "unique_utf8": [
+          "<!-- reviewer: unanticipated comment -->"
+        ]
+      },
+      "proceeded": true
+    },
+    "differ_isolated_from_merge": true
+  },
+  "evidence": [
+    {
+      "claim": "A scripted upgrade from vN to vN+1 in a throwaway HOME with a user-edited file present keeps the user's accent setting and unique notes.md line; v1->v2->v3 preserves the same edit.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/update.py:update",
+      "confidence": "almost-certain",
+      "settings_after_chain": {
+        "theme": "dark",
+        "font": "ibm-plex-mono",
+        "accent": "teal",
+        "telemetry": false,
+        "keymap": "vim"
+      }
+    },
+    {
+      "claim": "An independent unique-line differ (not the merge module) shows the user's unique notes.md lines present after the upgrade; a truncated twin is missing those lines and the census hashes diverge.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/unique_line_differ.py:census",
+      "confidence": "almost-certain",
+      "census_v3": {
+        "all_unique_present": true,
+        "missing_count": 0,
+        "missing_utf8": [],
+        "present_count": 1,
+        "present_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+        "truncated": false,
+        "unique_count": 1,
+        "unique_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+        "unique_utf8": [
+          "user-keeps-this-override"
+        ]
+      },
+      "differ_isolated_from_merge": true
+    },
+    {
+      "claim": "Disabling the classifier overwrites the user-edited file; the unique-line test goes red on that path and stays green with the classifier on.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/update.py:classifier_enabled",
+      "confidence": "almost-certain",
+      "negative_control": {
+        "classifier_enabled": false,
+        "proceeded": true,
+        "unique_lines_dropped": true,
+        "census": {
+          "all_unique_present": false,
+          "missing_count": 1,
+          "missing_utf8": [
+            "user-keeps-this-override"
+          ],
+          "present_count": 0,
+          "present_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "truncated": true,
+          "unique_count": 1,
+          "unique_sha256": "937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9",
+          "unique_utf8": [
+            "user-keeps-this-override"
+          ]
+        }
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-test_update_preserves_overrides",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_update_preserves_overrides.py",
+      "result": "PASS",
+      "assertions": [
+        "unchanged / user-changed / conflicted",
+        "NEGATIVE CONTROL: classifier off, user-edit test goes red",
+        "upgrade chain v1->v2->v3 preserves the same edit"
+      ],
+      "output_tail": "PASS unchanged / replace\nPASS user-changed / merge\nPASS conflicted / stop\nPASS NEGATIVE CONTROL classifier off\nPASS upgrade chain v1->v2->v3\nPASS 5/5 test_update_preserves_overrides"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0024-C1-classifier-disabled",
+      "kind": "known-broken-fixture",
+      "description": "Disable the unchanged/changed/conflicted classifier and assert the user-edit unique-line test goes red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"census\": {\"all_unique_present\": false, \"missing_count\": 1, \"missing_utf8\": [\"user-keeps-this-override\"], \"present_count\": 0, \"present_sha256\": \"e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855\", \"truncated\": true, \"unique_count\": 1, \"unique_sha256\": \"937d38d6bc993b8575cee24bf6c080d9bc0dcdea7f23516a0964dd51431f11e9\", \"unique_utf8\": [\"user-keeps-this-override\"]}, \"classifier_enabled\": false, \"proceeded\": true, \"unique_lines_dropped\": true}",
+      "good_state_output": "{\"all_unique_present\": true}"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0024-probe2-reviewer-reorder-comment",
+    "verdict": "PASS",
+    "independent": true,
+    "constructed_edit": "Reordered JSON keys (font before theme) plus a JSONC comment and a notes.md comment the default user-override helper does not plant.",
+    "key_order": [
+      "font",
+      "theme",
+      "telemetry"
+    ],
+    "jsonc_comment_survived": true,
+    "notes_comment_survived": true
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "upgrade-edit-survives",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0024/probe1_upgrade_edit_survives.py"
+    },
+    {
+      "id": "probe2",
+      "role": "unique-line-differ",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0024/probe2_unique_line_differ.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0024.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "tools/plugin/update.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/three_way_merge.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/unique_line_differ.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:01:01+00:00",
+    "ended_at": "2026-08-25T01:01:01+00:00"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0024/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "notes": "G-1 for IMP-0024: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0024",
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "IMP-0023 transactional install is implemented here",
+      "IMP-0031 is separately receipted; this unit calls the merge mechanism"
+    ]
+  }
+}

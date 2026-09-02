@@ -1,0 +1,22 @@
+
+===== launch 2026-08-20T09:06:33Z attempt=1 =====
+I'll start from the existing IMP-0141 probe tree and unit contract, then implement whatever is missing so the live named probes and per-unit measure can go green.The IMP-0141 probe tree may be missing; I’ll look up the unit contract, a nearby delivered IMP, and the measure script next.IMP-0141 has no probe tree yet, so I’ll read the catalog contract and a delivered IMP as the implementation template.The catalog points at a missing `tools/agentspec` tree. I’ll recover that package if history still has it, then implement the cache-key contract on top.Canonical dumps and the determinism scanner both work. Next I’ll add the production cache-key module and the live named probes.The oracle’s both-states check sampled the producer counter after the corrupt refetch; I’ll capture the good-state count first.IMP-0141 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0141` printed:
+
+`SUCCESS:delivered IMP-0141 predicate=delivered state=SUCCESS probes=3 raws=6 notes=probe_imp0141.py:0,refute_oracle.py:0,test_artifact_cache.py:0`
+
+The unit had never been started (`probes/IMP-0141/` was missing). Delivery is the production cache key plus live named probes, not a cloud-ok flag.
+
+**Production.** `tools/agentspec/agentspec/artifact_cache.py` derives a sha256 key from exactly the seven catalog inputs (`workflow_id`, `spec_version`, `unit_id`, `resolved_prompt`, `param_values`, `tool_policy`, `input_artifact_hashes`) using `agentspec.canonical.dumps`. A stored envelope whose bytes do not hash is quarantined and refetched; truncated bytes are never served.
+
+**Live probes.**
+- 7/7 one-at-a-time mutations change the key (8 distinct keys, no collisions)
+- `FixedClock` + 6 hours yields the same key; a mutant that inserts `now_ms` goes red on that step
+- Valid envelope is HIT with zero producer calls; truncated envelope is CORRUPT, producer called once, truncated payload not returned
+- Independent hashlib oracle matched production keys 7/7
+- `determinism.scan_package` reports 0 findings on the live agentspec modules
+
+**Artifacts.** Receipt `command-center/receipts/IMP-0141.json` is `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `e132060567d4db6e90178ec1f01e336061b5cc5176249928714fd869b46a1988`.
+
+This worktree had `tools/agentspec` deleted (`git status D`). Five HEAD modules were written back from `git show` (not `git checkout`) so the encoder and scanner could import. The rest of the package is still absent. No git add/commit/push/stash/checkout/rebase, and `unit_manifest.py --write` was not run.

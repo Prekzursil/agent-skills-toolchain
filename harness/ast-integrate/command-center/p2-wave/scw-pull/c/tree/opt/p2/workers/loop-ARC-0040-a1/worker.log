@@ -1,0 +1,38 @@
+
+===== launch 2026-08-20T07:42:45Z attempt=1 =====
+I'll start from the existing ARC-0040 probe tree and resume whatever is already built, then implement until the unit measure prints SUCCESS:delivered.The ARC-0040 probe tree may already exist. I'll inspect it next, along with the measure contract and a delivered ARC unit to copy the expected shape.The ARC-0040 probe tree is missing, so I'll create it from the catalog contract and a delivered ARC unit's shape.I have the contract and the four named dispatch failures. Next I’ll implement the adapter guards, both-states probes, and the architecture-review receipt.I'll add the adapter guard library, both-states probes, and a packer that emits the architecture-review receipt.All four probes passed. Next I’ll pack the receipt and run the delivery measure.**SUCCESS:delivered ARC-0040.** This unit had never been started (`probes/ARC-0040/` and `command-center/phase3/A6/` were both missing). It is now G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0040` printed:
+
+```text
+SUCCESS:delivered ARC-0040 predicate=delivered state=SUCCESS probes=4 raws=4 notes=adapter_guards.py:0,probe_both_states.py:0,probe_estate_citations.py:0,probe_return_points.py:0
+```
+
+That line held on a second and third remasure after packing.
+
+What was built:
+
+- **Receipt:** `command-center/phase3/A6/FAILURE-MODES.json` (architecture-review, `state=SUCCESS`, 20522 bytes, LF sha256 `bdc92fd0d8d1e1278e131a22a616f7532b3f037486211e000ef7b6c2fa980512`)
+- **Per-unit manifest:** `command-center/p2-wave/probes/ARC-0040/UNIT-ARTIFACT-MANIFEST.json` (live hash matches)
+- **Return:** `command-center/p2-wave/probes/ARC-0040/SUBAGENT-RETURN.json`
+
+Guards (each with a both-states control: failure fires, healthy twin is silent):
+
+| Mode | Reproduction | Terminal marker |
+|---|---|---|
+| FM-BG | `--background` | `FAILED:ARC-0040 background-dispatch` |
+| FM-ARG | command length 32769 | `FAILED:ARC-0040 win-arg-limit` |
+| FM-PROG | `[codex]` progress-only result | `FAILED:ARC-0040 progress-mistaken-for-result` |
+| FM-SCHEMA | invalid last-message with MCP active | `FAILED:ARC-0040 schema-invalid` |
+| FM-IUC (reviewer-added) | missing `--ignore-user-config` | `FAILED:ARC-0040 missing-ignore-user-config` |
+| FM-SEV | exit 0, empty last-message | `FAILED:ARC-0040 severed-stream` |
+
+`guard_dispatch` has **9/9** return points going through `_terminal`. A mutant silent `return None` is detected. Estate citations for the four catalog-named failures passed **12/12**.
+
+Honest limits, recorded as `NOT-CHECKED` rather than folded into a pass:
+
+- Live Windows `CreateProcess` overflow was not re-issued on this Linux worker (the length guard was validated against a 32769-character command string).
+- Live Codex CLI plus an active MCP inventory (issue #15451) was not re-invoked.
+- The 47 seeded-class source file is not mounted; completeness against that list is not certified. The reviewer added **FM-IUC** instead.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no global catalog manifest edit, no key rotation, no finish-everything-close / p2-cloud-ok-deliver relaunch.

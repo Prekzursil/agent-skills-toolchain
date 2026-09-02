@@ -1,0 +1,226 @@
+{
+  "schema": "probe-control/v1",
+  "harness": "both-states",
+  "same_run": true,
+  "results": [
+    {
+      "probe_id": "always-ok",
+      "trust": "UNTRUSTWORTHY",
+      "reason": "same-verdict-both-states",
+      "skipped": false,
+      "broken_fixture_present": true,
+      "good_fixture_present": true,
+      "broken_verdict": "OK",
+      "good_verdict": "OK",
+      "broken_class": "SILENT",
+      "good_class": "SILENT",
+      "schema_verdict": "INVALID",
+      "healthy_status": "PASS",
+      "broken_status": "PASS",
+      "description": "deliberately useless always-OK probe"
+    },
+    {
+      "probe_id": "content-marker",
+      "trust": "TRUSTED",
+      "reason": "discriminates",
+      "skipped": false,
+      "broken_fixture_present": true,
+      "good_fixture_present": true,
+      "broken_verdict": "FIRED",
+      "good_verdict": "SILENT",
+      "broken_class": "FIRED",
+      "good_class": "SILENT",
+      "schema_verdict": "VALID",
+      "healthy_status": "PASS",
+      "broken_status": "FAIL",
+      "description": "genuine detector: fires only when FIRE_MARKER is present"
+    }
+  ],
+  "trusted_count": 1,
+  "untrustworthy_count": 1,
+  "schema_version": 1,
+  "unit_id": "IMP-0044",
+  "id": "IMP-0044",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0044",
+  "completion_sentinel": "SUCCESS:IMP-0044",
+  "title": "Both-states control harness for every health and validation probe",
+  "question": "Build the substrate that lets each probe declare a KNOWN-BROKEN fixture and a KNOWN-GOOD fixture, then runs both automatically and marks the probe UNTRUSTWORTHY if it returns the same verdict in both states. This is infrastructure for the probes, not the Phase-10 test corpus, which bucket B08 owns.",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/probe-control.schema.json",
+  "min_bytes_threshold": 128,
+  "spec_anchor": "rules/common/single-signal-verification.md#3b",
+  "probe_control": {
+    "artifact": "probe-control",
+    "probe_count": 2,
+    "valid": 1,
+    "invalid": 1,
+    "not_checked": 0,
+    "rows": [
+      {
+        "probe": "always-ok",
+        "healthy_status": "PASS",
+        "verdict": "INVALID",
+        "discriminates": false,
+        "reason": "same-verdict-both-states",
+        "broken_status": "PASS",
+        "restored_status": "PASS"
+      },
+      {
+        "probe": "content-marker",
+        "healthy_status": "PASS",
+        "verdict": "VALID",
+        "discriminates": true,
+        "reason": "discriminates",
+        "broken_status": "FAIL",
+        "restored_status": "PASS"
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "claim": "A deliberately useless probe that always returns OK is marked UNTRUSTWORTHY by the harness.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/both_states_harness.py:always_ok_probe",
+      "probe_id": "always-ok",
+      "trust": "UNTRUSTWORTHY",
+      "reason": "same-verdict-both-states",
+      "broken_verdict": "OK",
+      "good_verdict": "OK"
+    },
+    {
+      "claim": "A genuine probe that fires on BROKEN and is silent on the healthy payload is marked TRUSTED in the same run.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/both_states_harness.py:content_marker_probe",
+      "probe_id": "content-marker",
+      "trust": "TRUSTED",
+      "reason": "discriminates",
+      "broken_verdict": "FIRED",
+      "good_verdict": "SILENT"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "missing-broken-fixture",
+      "kind": "known-broken-fixture",
+      "description": "A probe whose known-broken fixture path is absent is UNTRUSTWORTHY with skipped=false, not omitted.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "trust": "UNTRUSTWORTHY",
+      "skipped": false,
+      "reason": "missing-broken-fixture"
+    },
+    {
+      "id": "reviewer-always-pass",
+      "kind": "always-ok-probe",
+      "description": "Reviewer-designed always-OK probe returns PASS and ignores fixtures; harness still marks it UNTRUSTWORTHY.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "trust": "UNTRUSTWORTHY",
+      "skipped": false,
+      "reason": "same-verdict-both-states"
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_always_ok_probe_is_flagged",
+      "command": "python3 -B tools/plugin/tests/test_both_states_harness.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_discriminating_probe_is_trusted",
+      "command": "python3 -B tools/plugin/tests/test_both_states_harness.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_missing_broken_fixture_is_untrustworthy",
+      "command": "python3 -B tools/plugin/tests/test_both_states_harness.py",
+      "result": "PASS"
+    }
+  ],
+  "catalog_tests_output": "SUCCESS:IMP-0044-tests\ntest_always_ok_probe_is_flagged (__main__.BothStatesHarnessTests.test_always_ok_probe_is_flagged) ... ok\ntest_discriminating_probe_is_trusted (__main__.BothStatesHarnessTests.test_discriminating_probe_is_trusted) ... ok\ntest_missing_broken_fixture_is_untrustworthy (__main__.BothStatesHarnessTests.test_missing_broken_fixture_is_untrustworthy) ... ok\ntest_probe_control_schema_roundtrip_and_garbage (__main__.BothStatesHarnessTests.test_probe_control_schema_roundtrip_and_garbage) ... ok\ntest_reviewer_always_pass_is_caught (__main__.BothStatesHarnessTests.test_reviewer_always_pass_is_caught) ... ok\ntest_same_run_flags_useless_and_trusts_genuine (__main__.BothStatesHarnessTests.test_same_run_flags_useless_and_trusts_genuine) ... ok\ntest_undeclared_break_is_not_checked (__main__.BothStatesHarnessTests.test_undeclared_break_is_not_checked) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.054s\n\nOK",
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "same-run-trust-marks",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0044/probe1_same_run.py"
+    },
+    {
+      "id": "probe2",
+      "role": "missing-fixture-negative-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0044/probe2_missing_fixture.py"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0044-probe2-reviewer-always-pass",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 2 adds an always-OK probe of a different design (returns PASS, ignores fixture bytes) and confirms the harness flags it UNTRUSTWORTHY. Catalog scoring by a second human is independent of G-1 probe-green."
+  },
+  "artifacts": [
+    {
+      "path": "tools/plugin/both_states_harness.py",
+      "bytes": 13254,
+      "sha256": "b213c6026466256ab105a34411f7f5f0f3c92ef1a526f6291e1383782fab3408",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/schema/probe-control.schema.json",
+      "bytes": 2009,
+      "sha256": "0c7edb36e8519f73155b67e8f26d5e5947095002a5ca33aea59b014e7f110399",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/tests/test_both_states_harness.py",
+      "bytes": 5601,
+      "sha256": "5ec90cfd86524abb51a755a1002d4a41f1140d1c95088df1038a61cf5d6e69ab",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/fixtures/both-states/known-broken/payload.txt",
+      "bytes": 43,
+      "sha256": "5ad5869a0141f0393087c25b433c3425c8ff3ea5f530f2081bdc254f07ac0a0f",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/fixtures/both-states/known-good/payload.txt",
+      "bytes": 36,
+      "sha256": "ce0cdefca18bc67930e2f29eef373a2b2dc2177aed957b48e2887595845404bb",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0044/probe1_same_run.py",
+      "bytes": 2256,
+      "sha256": "f68a9d56c3411c575bb42195737c5b7d8f682a344d80caa5d6e56327c0dbaedf",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0044/probe2_missing_fixture.py",
+      "bytes": 3129,
+      "sha256": "45cf4247623abbc1083c22adcfd8e2dbdfad4a796cfb9a8733c3cbd4b67c1856",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Nested probe_control validates against tools/plugin/schema/probe-control.schema.json. The catalog also names command-center/schema/receipt.schema.json, which is a shim $ref to platform/schema/receipt.schema.json with additionalProperties false; this G-1 receipt carries live harness fields at the top level and is not claimed as a reducer-complete 12-condition receipt.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-shape this receipt to receipt_core (report=probe_control) and re-validate with a local $ref resolver."
+    }
+  ],
+  "cloud_ok": false,
+  "notes": "IMP-0044 ships tools/plugin/both_states_harness.py: each probe declares known-broken and known-good fixtures; same verdict in both states, or a missing broken fixture, is UNTRUSTWORTHY. SUCCESS:IMP-0044"
+}

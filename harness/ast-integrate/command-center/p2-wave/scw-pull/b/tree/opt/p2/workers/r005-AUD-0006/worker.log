@@ -1,0 +1,21 @@
+I'll start from the existing AUD-0006 probe tree, read any prior return artifact, and measure against the G-1 contract for this unit only.Existing probe tree is present. Next I’ll read the prior return, catalog row, and the measure script so we resume rather than rebuild.Prior return claims SUCCESS; I’ll re-run the live measure and inspect the catalog plus current probes instead of trusting that claim.I'll locate the catalog unit, check remaining probe scripts, and run the live measure so we know the actual gate.Measure already printed SUCCESS, but I’ll re-check git, probe hashes, and the 1005 vs 1025 lose-count so the artifact stays honest.The 1025 vs 1005 gap is the original lose definition (REAL-WORK with path-only not REAL-WORK) versus scratch-only. I’ll align the packer, re-run live probes, and re-measure.Hashes match. I’ll write `SUBAGENT-RETURN.json` from this live pack, then run the measure one last time.**SUCCESS:delivered** `AUD-0006`
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0006` printed:
+
+`SUCCESS:delivered AUD-0006 predicate=delivered state=SUCCESS probes=4 raws=2 notes=classify.py:0,diag_discover.py:0,handoff_stat.py:0,print_handoff.py:0`
+
+Resumed the existing probe tree. Live named probes exited 0:
+
+| Probe | Script | Result |
+|---|---|---|
+| 1 | `diag_discover.py` | `git status --porcelain=v2 -uall` on this tree: no `.git`, exit 128, `live_porcelain_paths=0`. Independent reparse of the 2026-08-16 Windows capture: **3754 = 3754** |
+| 2 | `classify.py` | Planted-mutant **PASS**: C1 REAL-WORK under scratch, C2 inverse blob-under-source, C3 same-body silent, C4 planted=2/empty=0 |
+
+Catalog artifact is honest and non-BLOCKED:
+
+- `command-center/audit/AUD-0006-uncommitted-work-census.json` — 21784 B, `state=SUCCESS`
+- LF sha256 `b0589c9854418a022bedc9f88d53464e388c337df64a1300c2a62e1baee2ed31` matches the per-unit `UNIT-ARTIFACT-MANIFEST.json` row
+- Historical would-lose is **1025** (1005 scratch-path + 20 vendored-path), same definition as `run_census.py` `rescued[]`. The prior pack had silently dropped this to 1005; that is corrected
+- Those 3754/3408/1025 figures are the Windows snapshot, not this host’s live index (`AUD-0006-D1`)
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver. Cloud-ok is not this delivery.

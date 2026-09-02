@@ -1,0 +1,165 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0031.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0031/blob_gate.py",
+   "role": "gate"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0031/archive_lint.py",
+   "role": "lint"
+  },
+  {
+   "exists": true,
+   "path": "command-center/RELEASE-CHECKLIST.md",
+   "role": "checklist"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/test-receipt.schema.json",
+   "role": "schema"
+  }
+ ],
+ "claims": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0031/blob_gate.py",
+   "claim": "On this Linux box, a fixture with `text eol=crlf` makes `git archive | tar -x` return CRLF while `git cat-file -p` and `git show` return the LF blob; after LF normalisation the three payloads are identical.",
+   "id": "C1",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0031/probe1_blob_not_worktree.py",
+   "claim": "The hash/format gate reads cat-file blob bytes. A dirty CRLF worktree does not change the hash or format verdict; a CRLF blob fails format.",
+   "id": "C2",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/RELEASE-CHECKLIST.md",
+   "claim": "The lint flags git archive used as a blob source (fenced or shell pipeline) and stays silent on mentions and on whole-tree packaging. RELEASE-CHECKLIST.md now prescribes cat-file/show, matching the gate.",
+   "id": "C3",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0031",
+ "dependency_note": "TST-0013 harness is consumed via command-center/harness/both_states.py. This worktree is not a git repository; three-route numbers are from a throwaway fixture repo on this box, not from HEAD of ast-integrate.",
+ "evidence": [
+  {
+   "kind": "three-route-live-fixture",
+   "note": "archive 650B/100CRLF vs cat-file 550B/0CRLF",
+   "path": "command-center/p2-wave/probes/TST-0031/blob_gate.py"
+  },
+  {
+   "kind": "recipe-alignment",
+   "note": "TST-0031 section prescribes git cat-file -p / git show; packaging archive is fenced with --format=tar.gz",
+   "path": "command-center/RELEASE-CHECKLIST.md"
+  },
+  {
+   "kind": "both-states-harness",
+   "note": "TST-0013 harness loaded by file path (package __init__ is stale)",
+   "path": "command-center/harness/both_states.py"
+  }
+ ],
+ "gate": {
+  "banned_recipe": "git archive | tar -x",
+  "blob_bytes": 550,
+  "blob_crlf": 0,
+  "blob_sha256": "fd7b0b73fdf32819b1967e090536ef48ed6912c457442a862a4d63e49c50bb66",
+  "format_applied_to": "blob",
+  "format_ok": true,
+  "hash_matches_worktree": false,
+  "path": "sample.txt",
+  "recipe": "git cat-file -p <rev>:<path>",
+  "rev": "HEAD",
+  "verdict": "PASS",
+  "worktree_bytes": 650,
+  "worktree_crlf": 100,
+  "worktree_sha256": "046b248777b17feaf2152b51e8a21e78a7b25b8c0c478504b42b512bb6a85e41"
+ },
+ "headline": "archive=650B/100CRLF cat-file=550B/0CRLF show=550B/0CRLF identical_after_lf=True archive_differs=True",
+ "host": {
+  "git": "fixture-repo (worktree is not a git checkout)",
+  "os": "linux"
+ },
+ "id": "TST-0031",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0031/probe1_blob_not_worktree.py",
+   "id": "probe1",
+   "role": "blob-not-worktree"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0031/probe2_lint_and_checklist.py",
+   "id": "probe2",
+   "role": "lint-and-checklist"
+  }
+ ],
+ "phase": "10",
+ "question": "Measured on this box: git archive | tar -x returns CRLF worktree-form bytes while git cat-file -p returns the true LF blob for the same path. A local formatter green measured against the wrong bytes verifies nothing. Target: a gate that verifies formatting and hashing against the BLOB, plus a lint banning git archive for this purpose. RELEASE-CHECKLIST.md must match the gate.",
+ "recipe": {
+  "authoritative": "git cat-file -p <rev>:<path>",
+  "banned_as_blob_source": "git archive | tar -x",
+  "equivalent": "git show <rev>:<path>"
+ },
+ "registered": true,
+ "report_kind": "test-receipt",
+ "reviewer": {
+  "independent": true,
+  "method": "Probe 2 plants mention/prescription/packaging fixtures and re-reads RELEASE-CHECKLIST.md without sharing probe 1's git fixture.",
+  "reviewer_id": "TST-0031-probe2-independent-lint-and-checklist",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:TST-0031",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0031/probe1_blob_not_worktree.py",
+   "id": "test_gate_reads_blob_bytes_not_worktree_bytes",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0031/probe2_lint_and_checklist.py",
+   "id": "test_lint_flags_git_archive_used_as_a_blob_source",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0031/probe2_lint_and_checklist.py",
+   "id": "test_release_checklist_recipe_matches_the_gate",
+   "result": "PASS"
+  }
+ ],
+ "three_route": {
+  "archive_differs_from_blob": true,
+  "cat_file_equals_show": true,
+  "identical_after_lf_normalisation": true,
+  "recipe_used_by_gate": "git cat-file -p <rev>:<path>",
+  "rev": "HEAD",
+  "routes": {
+   "git archive | tar -x": {
+    "bytes": 650,
+    "crlf": 100,
+    "sha256": "046b248777b17feaf2152b51e8a21e78a7b25b8c0c478504b42b512bb6a85e41"
+   },
+   "git cat-file -p": {
+    "bytes": 550,
+    "crlf": 0,
+    "sha256": "fd7b0b73fdf32819b1967e090536ef48ed6912c457442a862a4d63e49c50bb66"
+   },
+   "git show <rev>:<path>": {
+    "bytes": 550,
+    "crlf": 0,
+    "sha256": "fd7b0b73fdf32819b1967e090536ef48ed6912c457442a862a4d63e49c50bb66"
+   }
+  },
+  "target": "sample.txt"
+ },
+ "title": "Blob-versus-worktree EOL parity gate (git cat-file, never git archive)",
+ "ts": "2026-08-26T02:07:02Z",
+ "unit_id": "TST-0031"
+}

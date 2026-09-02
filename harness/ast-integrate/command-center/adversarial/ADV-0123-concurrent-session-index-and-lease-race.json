@@ -1,0 +1,333 @@
+{
+  "unit_id": "ADV-0123",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0123 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0123 <reason>.",
+  "completion_sentinel": "SUCCESS:ADV-0123 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0123 <reason>.",
+  "schema_version": 1,
+  "report_kind": "fault-injection-run",
+  "overall_verdict": "CONFIRMED",
+  "question": "When two sessions or agents operate on the same working tree, does a broad staging operation sweep another agent's files, and do the advisory file leases actually prevent the overlap?",
+  "question_or_target": "When two sessions or agents operate on the same working tree, does a broad staging operation sweep another agent's files, and do the advisory file leases actually prevent the overlap?",
+  "title": "Concurrent-session races on the shared git index and file leases",
+  "spec_anchor": "_USER-PROMPTS.md:10973-10975, 11321",
+  "measured_at": "2026-08-28T03:22:12Z",
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "platform-fault-injector",
+    "execution_substrate": "linux-local-scratch"
+  },
+  "injected_fault": {
+    "kind": "shared-git-index-broad-add",
+    "surface": "scratch-worktree-git-index-and-file-lease",
+    "pair": "advisory-lease-unconsulted-write"
+  },
+  "failure_class": "irreversible-action,uncontrolled-silence",
+  "reviewer": {
+    "reviewer_id": "ADV-0123-probe2-lease-enforcement",
+    "verdict": "PASS",
+    "independent": true,
+    "scope_not_agreement": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Probe 2 re-derives the overlap from lease acquire + a conflicting write, not from probe 1's git diff --cached table."
+  },
+  "method": {
+    "probe1": "Probe 1: run two agents against one scratch tree with overlapping file sets and inspect what each staging operation captured, using git diff --cached as the oracle.",
+    "probe2": "Probe 2 (mechanically different): lease-level test - acquire a lease from one identity and attempt the conflicting write from another, recording whether the write is blocked, warned, or silently allowed; an advisory lease that nothing consults is documentation, not a control.",
+    "oracle": "git diff --cached --name-only",
+    "scratch": "tempfile.TemporaryDirectory; never the live worktree"
+  },
+  "controls_ok": {
+    "disjoint_ok": true,
+    "planted_ok": true,
+    "scratch_ok": true,
+    "lease_both_states_ok": true,
+    "both_ok": true
+  },
+  "controls": [
+    {
+      "id": "CTRL-DISJOINT-SCOPED-ADD",
+      "result": "PASS",
+      "note": "harness isolation: scoped add of disjoint-a excludes disjoint-b"
+    },
+    {
+      "id": "CTRL-PLANTED-CONTAMINATION",
+      "result": "PASS",
+      "note": "detector liveness: git add -A places agent-b/beta.txt in the index"
+    },
+    {
+      "id": "CTRL-SCRATCH-CLONE-ONLY",
+      "result": "PASS",
+      "note": "tempfile scratch; live worktree is not GIT_DIR"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-LEASE-CONSULT-BOTH-STATES",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-NAMED-PROBE-1",
+      "name": "Overlapping agents with git diff --cached oracle",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T2-NAMED-PROBE-2",
+      "name": "Lease acquire then conflicting write",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T3-DISJOINT-SCOPED-ADD-CONTROL",
+      "name": "Disjoint file sets with scoped add must not interfere",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T4-PLANTED-CONTAMINATION-VISIBLE",
+      "name": "Broad add must show a planted sibling in the cached set",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T5-SCRATCH-NOT-LIVE-TREE",
+      "name": "All writes target a scratch tree, never the live worktree",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "result": "PASS"
+    },
+    {
+      "id": "T6-LEASE-CONSULT-BOTH-STATES",
+      "name": "Consult-fixture blocks non-holder and allows holder",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py",
+      "result": "PASS"
+    }
+  ],
+  "targets": [
+    {
+      "target_id": "TARGET-BROAD-STAGE-SWEEPS-SIBLING",
+      "claim": "A broad git add -A on one shared index stages another agent's files.",
+      "verdict": "CONFIRMED",
+      "oracle": "git diff --cached --name-only",
+      "sibling_in_cached": [
+        "agent-b/beta.txt",
+        "overlap/from-b.txt"
+      ]
+    },
+    {
+      "target_id": "TARGET-DISJOINT-SCOPED-ADD-ISOLATION",
+      "claim": "Two agents with disjoint file sets and a scoped add do not contaminate each other's index.",
+      "verdict": "CONFIRMED",
+      "oracle": "git diff --cached --name-only",
+      "sibling_in_cached": []
+    },
+    {
+      "target_id": "TARGET-LEASE-PREVENTS-CONFLICTING-WRITE",
+      "claim": "A file lease acquired by identity A prevents identity B from writing the leased path.",
+      "verdict": "REFUTED",
+      "disposition": "silently-allowed"
+    },
+    {
+      "target_id": "TARGET-LEASE-IS-CONSULTED-CONTROL",
+      "claim": "The shipped file-lease mechanism is consulted on write and is therefore a control, not documentation.",
+      "verdict": "REFUTED",
+      "shipped_file_lease_api": false
+    }
+  ],
+  "probe1": {
+    "instrument": "git-diff-cached-oracle",
+    "disjoint": {
+      "id": "disjoint-scoped-add",
+      "agent_a_files": [
+        "disjoint-a/alpha.txt"
+      ],
+      "agent_b_files": [
+        "disjoint-b/beta.txt"
+      ],
+      "staging": "git add -- disjoint-a",
+      "cached": [
+        "disjoint-a/alpha.txt"
+      ],
+      "sibling_in_cached": [],
+      "isolated": true,
+      "raw_cached": [
+        "disjoint-a/alpha.txt"
+      ]
+    },
+    "overlap": {
+      "id": "overlap-broad-add",
+      "agent_a_files": [
+        "agent-a/alpha.txt",
+        "overlap/from-a.txt"
+      ],
+      "agent_b_files": [
+        "agent-b/beta.txt",
+        "overlap/from-b.txt"
+      ],
+      "staging": "git add -A",
+      "cached": [
+        "agent-a/alpha.txt",
+        "agent-b/beta.txt",
+        "overlap/from-a.txt",
+        "overlap/from-b.txt"
+      ],
+      "sibling_in_cached": [
+        "agent-b/beta.txt",
+        "overlap/from-b.txt"
+      ],
+      "swept_sibling": true,
+      "planted_contamination_visible": true,
+      "raw_cached": [
+        "agent-a/alpha.txt",
+        "agent-b/beta.txt",
+        "overlap/from-a.txt",
+        "overlap/from-b.txt"
+      ]
+    },
+    "scratch_outside_live_tree": true
+  },
+  "probe2": {
+    "instrument": "lease-acquire-then-conflicting-write",
+    "lease": {
+      "inventory": {
+        "present": {
+          "file_lease_py": false,
+          "file_lease_schema": true,
+          "leases_dir": true,
+          "work_claim_py": true
+        },
+        "import_file_lease": false,
+        "file_lease_module_loadable": false,
+        "shipped_file_lease_api": false,
+        "work_claim_is_unit_id_not_path": true
+      },
+      "paper_lease": {
+        "path": "leased/path.txt",
+        "holder": "identity-A",
+        "advisory": true
+      },
+      "conflicting_write": {
+        "holder": "identity-A",
+        "writer": "identity-B",
+        "path": "leased/path.txt",
+        "disposition": "silently-allowed",
+        "blocked": false,
+        "warned": false,
+        "wrote": true,
+        "consulted_shipped_api": false,
+        "reason": "no shipped file-lease API; paper lease was not consulted; write succeeded"
+      },
+      "consult_fixture": {
+        "fired_on_bad_state": true,
+        "silent_on_good_state": true,
+        "silent_on_unleased": true,
+        "bad": {
+          "identity": "identity-B",
+          "path": "leased/path.txt",
+          "disposition": "blocked",
+          "wrote": false
+        },
+        "good": {
+          "identity": "identity-A",
+          "path": "leased/path.txt",
+          "disposition": "allowed",
+          "wrote": true
+        },
+        "unleased": {
+          "identity": "identity-B",
+          "path": "other/unleased.txt",
+          "disposition": "allowed",
+          "wrote": true
+        }
+      },
+      "lease_prevented_overlap": false,
+      "lease_is_documentation": true
+    }
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "raw_output": "Probe 1: run two agents against one scratch tree with overlapping file sets and inspect what each staging operation captured, using git diff --cached as the oracle.\n{\n  \"controls\": {\n    \"disjoint_ok\": true,\n    \"planted_ok\": true,\n    \"scratch_ok\": true\n  },\n  \"disjoint\": {\n    \"cached\": [\n      \"disjoint-a/alpha.txt\"\n    ],\n    \"isolated\": true,\n    \"sibling_in_cached\": []\n  },\n  \"instrument\": \"git-diff-cached-oracle\",\n  \"overall_verdict\": \"CONFIRMED\",\n  \"overlap\": {\n    \"cached\": [\n      \"agent-a/alpha.txt\",\n      \"agent-b/beta.txt\",\n      \"overlap/from-a.txt\",\n      \"overlap/from-b.txt\"\n    ],\n    \"planted_contamination_visible\": true,\n    \"sibling_in_cached\": [\n      \"agent-b/beta.txt\",\n      \"overlap/from-b.txt\"\n    ],\n    \"swept_sibling\": true\n  },\n  \"targets\": [\n    {\n      \"claim\": \"A broad git add -A on one shared index stages another agent's files.\",\n      \"oracle\": \"git diff --cached --name-only\",\n      \"sibling_in_cached\": [\n        \"agent-b/beta.txt\",\n        \"overlap/from-b.txt\"\n      ],\n      \"target_id\": \"TARGET-BROAD-STAGE-SWEEPS-SIBLING\",\n      \"verdict\": \"CONFIRMED\"\n    },\n    {\n      \"claim\": \"Two agents with disjoint file sets and a scoped add do not contaminate each other's index.\",\n      \"oracle\": \"git diff --cached --name-only\",\n      \"sibling_in_cached\": [],\n      \"target_id\": \"TARGET-DISJOINT-SCOPED-ADD-ISOLATION\",\n      \"verdict\": \"CONFIRMED\"\n    }\n  ]\n}\ndisjoint isolated=True cached=['disjoint-a/alpha.txt'] leaked=[]\noverlap swept=True cached=['agent-a/alpha.txt', 'agent-b/beta.txt', 'overlap/from-a.txt', 'overlap/from-b.txt'] sibling=['agent-b/beta.txt', 'overlap/from-b.txt'] planted=True\ncontrols disjoint_ok=True planted_ok=True scratch_ok=True\noverall_verdict=CONFIRMED\n",
+      "role": "source"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py",
+      "raw_output": "Probe 2 (mechanically different): lease-level test - acquire a lease from one identity and attempt the conflicting write from another, recording whether the write is blocked, warned, or silently allowed; an advisory lease that nothing consults is documentation, not a control.\n{\n  \"conflicting_write\": {\n    \"blocked\": false,\n    \"consulted_shipped_api\": false,\n    \"disposition\": \"silently-allowed\",\n    \"holder\": \"identity-A\",\n    \"path\": \"leased/path.txt\",\n    \"reason\": \"no shipped file-lease API; paper lease was not consulted; write succeeded\",\n    \"warned\": false,\n    \"writer\": \"identity-B\",\n    \"wrote\": true\n  },\n  \"consult_fixture\": {\n    \"fired_on_bad_state\": true,\n    \"silent_on_good_state\": true,\n    \"silent_on_unleased\": true\n  },\n  \"instrument\": \"lease-acquire-then-conflicting-write\",\n  \"inventory\": {\n    \"file_lease_module_loadable\": false,\n    \"import_file_lease\": false,\n    \"present\": {\n      \"file_lease_py\": false,\n      \"file_lease_schema\": true,\n      \"leases_dir\": true,\n      \"work_claim_py\": true\n    },\n    \"shipped_file_lease_api\": false,\n    \"work_claim_is_unit_id_not_path\": true\n  },\n  \"lease_is_documentation\": true,\n  \"lease_prevented_overlap\": false,\n  \"overall_verdict\": \"CONFIRMED\",\n  \"targets\": [\n    {\n      \"claim\": \"A file lease acquired by identity A prevents identity B from writing the leased path.\",\n      \"disposition\": \"silently-allowed\",\n      \"target_id\": \"TARGET-LEASE-PREVENTS-CONFLICTING-WRITE\",\n      \"verdict\": \"REFUTED\"\n    },\n    {\n      \"claim\": \"The shipped file-lease mechanism is consulted on write and is therefore a control, not documentation.\",\n      \"shipped_file_lease_api\": false,\n      \"target_id\": \"TARGET-LEASE-IS-CONSULTED-CONTROL\",\n      \"verdict\": \"REFUTED\"\n    }\n  ]\n}\nconflicting_write disposition=silently-allowed blocked=False wrote=True\nshipped_api=False documentation=True prevented=False\nconsult_fixture bad=True holder=True unleased=True\noverall_verdict=CONFIRMED\n",
+      "role": "verifier"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Broad git add -A on a shared scratch index stages the second agent's files.",
+      "verdict": "CONFIRMED",
+      "anchor": "overlap-broad-add",
+      "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "verifier_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py"
+    },
+    {
+      "claim": "Scoped add of a disjoint file set does not stage the sibling, so the harness is not the contamination source.",
+      "verdict": "CONFIRMED",
+      "anchor": "disjoint-scoped-add",
+      "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py",
+      "verifier_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py"
+    },
+    {
+      "claim": "A file lease held by identity A prevents identity B from writing the leased path.",
+      "verdict": "REFUTED",
+      "anchor": "lease-conflicting-write",
+      "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py",
+      "verifier_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py"
+    },
+    {
+      "claim": "The shipped file-lease mechanism is a consulted control.",
+      "verdict": "REFUTED",
+      "anchor": "lease-inventory",
+      "source_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe2_lease_enforcement.py",
+      "verifier_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0123/probe1_index_overlap.py"
+    }
+  ],
+  "findings": [
+    {
+      "id": "ADV-0123-F1",
+      "severity": "P0",
+      "status": "recorded-in-audit",
+      "summary": "Shared git index: git add -A sweeps a sibling agent's files. git diff --cached is the oracle."
+    },
+    {
+      "id": "ADV-0123-F2",
+      "severity": "P1",
+      "status": "recorded-in-audit",
+      "summary": "No shipped file-lease API (IMP-0410 absent). A paper lease is documentation; the conflicting write is silently allowed."
+    }
+  ],
+  "residual_unknowns": [
+    "Catalog reviewer_requirement asks for two different-vendor human reproductions; G-1 uses probe 2 as the independent instrument.",
+    "IMP-0410 specifies leases as advisory (log, never block); even a faithful implementation would not prevent overlap."
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0123/UNIT-ARTIFACT-MANIFEST.json",
+    "note": "per-unit only; global unit_manifest.py --write was not invoked"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0123-concurrent-session-index-and-lease-race.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/fault-injection-run.schema.json",
+      "exists": true,
+      "role": "schema"
+    }
+  ],
+  "min_bytes_threshold": 4096,
+  "output_schema": "command-center/schema/fault-injection-run.schema.json",
+  "answer": "CONFIRMED on the shared-index axis: a broad add on one scratch index stages the sibling agent's files (git diff --cached). REFUTED that file leases prevent the overlap: no shipped file-lease API exists, so a conflicting write is silently allowed; a consult-fixture both-states control shows what a real control would look like. Disjoint scoped-add isolation holds, so the harness is not the source of contamination. All writes were in tempfile scratch, never the live worktree."
+}

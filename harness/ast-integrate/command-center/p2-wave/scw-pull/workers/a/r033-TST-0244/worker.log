@@ -1,0 +1,26 @@
+I'll start from the existing TST-0244 probe tree, read the return artifact if it's there, and only resume what's already built.The probe tree only has `CLOUD-OK-REFUTE.json` so far. Next I’ll read the unit contract, the measure script, and a delivered neighbor so I know what “contract-green” actually requires.The cloud-ok refute already logged two strikes. I’ll pull the catalog row, receipt, taxonomy, and a delivered neighbor so we can resume from that instead of starting over.Catalog PASS needs every taxonomy class to emit a copy-pasteable next command. I’ll inspect how errors are formatted and how a delivered neighbor packaged probes and manifests.I’ll land a real product fix so rendered next-commands are copy-pasteable, then rebuild the two named probes from the existing evidence instead of starting over.Both named probes passed 19/19. Next I’ll pack a schema-valid SUCCESS receipt and the per-unit manifest from those live outputs.**SUCCESS:delivered TST-0244** `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe_message_rubric.py:0,probe_taxonomy_coverage.py:0`
+
+The existing probe tree only had `CLOUD-OK-REFUTE.json`. That harvest was UNIT-COMPLETE text, not delivery: named probe scripts were missing, 13 of 16 taxonomy `next_command` fields still had `<zip>`/`<path>`/`<prefix>` slots, and the receipt was `state=BLOCKED`.
+
+This pass implemented Alternative A from that refute, then re-measured.
+
+**Product fix.** `platform/plugin/errors.py` now runs `materialize_next_command` inside `PluginError.render`. Taxonomy templates may still name slots; emitted messages do not. Missing invocation values fall back to `.` (cwd), which the live `astplugin` parser accepts. All 19 current classes render without unresolved placeholders even with empty context. `cli.main` / `emit_failure` inherit that path.
+
+**Named probes (restored and re-run, exit 0).**
+
+| Probe | Result |
+|---|---|
+| `probe_taxonomy_coverage.py` | 19/19 classes triggered, not sampled |
+| `probe_message_rubric.py` | 19/19 messages score 3/3; bare traceback scores 0; good E_USAGE control scores 3 |
+
+**Receipt and per-unit manifest.**
+
+- `command-center/receipts/TST-0244.json` — `state=SUCCESS`, `report.kind=ux_report`, 62286 bytes, LF sha256 `bf08d7842a1cf07372ded3d0e34a5bcc4c835175bb9f22ab453e52c841760b71`
+- `command-center/p2-wave/probes/TST-0244/UNIT-ARTIFACT-MANIFEST.json` — same path + sha256
+- `command-center/p2-wave/probes/TST-0244/SUBAGENT-RETURN.json` — `survived=true`, `status=DELIVERED`
+
+`ready_units.artifact_delivered` is True (`why=delivered`). Measure was run twice after the pack; both printed `SUCCESS:delivered`.
+
+**Constraints kept:** no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver.
+
+**Still residual (honest, not a G-1 fail):** live global `--check` remains red on sibling `CC-0010` missing `REFUTATION-REPORT.txt`; the catalog-named anthropic opus fresh-context reviewer was not dispatched.

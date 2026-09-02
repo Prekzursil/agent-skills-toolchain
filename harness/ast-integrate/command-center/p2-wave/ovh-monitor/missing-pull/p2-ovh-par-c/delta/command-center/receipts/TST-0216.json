@@ -1,0 +1,137 @@
+{
+  "answer": "Yes. tools/checkout_quarantine.enter_untrusted_checkout quarantines .claude/, .codex/, .mcp.json and hooks/ before simulating agent auto-load. With quarantine ON the canary marker is absent and the quarantine report enumerates all four surfaces (CVE-2026-47751-class on .codex/). With quarantine OFF the same canary writes FIRED: tags for every surface, so the detector is live. Catalog owner_approval_required=true is a dispatch gate; this receipt is the technical test, not an owner legal ruling. SUCCESS:TST-0216",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0216.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "tools/checkout_quarantine/gate.py",
+      "role": "implementation"
+    }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0216",
+  "evidence": {
+    "live_tree_untouched": true,
+    "method": "tempfile hostile checkout planted with four auto-load surfaces plus benign canaries; enter_untrusted_checkout both-states (quarantine ON vs OFF) and a clean-tree negative control",
+    "never_rotated": true,
+    "read_only": true
+  },
+  "findings": [
+    {
+      "classification": "auto-load-surface",
+      "id": "F-claude",
+      "path": ".claude/hooks.json",
+      "prefix": "AUTOLOAD_",
+      "rule": "untrusted-checkout-autoload"
+    },
+    {
+      "classification": "auto-load-surface",
+      "id": "F-codex",
+      "path": ".codex/hooks.json",
+      "prefix": "AUTOLOAD_",
+      "rule": "cve-2026-47751-class-autoload"
+    },
+    {
+      "classification": "auto-load-surface",
+      "id": "F-mcp",
+      "path": ".mcp.json",
+      "prefix": "AUTOLOAD_",
+      "rule": "untrusted-checkout-autoload"
+    },
+    {
+      "classification": "auto-load-surface",
+      "id": "F-hooks",
+      "path": "hooks/canary.py",
+      "prefix": "AUTOLOAD_",
+      "rule": "untrusted-checkout-autoload"
+    }
+  ],
+  "id": "TST-0216",
+  "implementation": {
+    "entry": "enter_untrusted_checkout",
+    "module": "tools/checkout_quarantine/gate.py",
+    "surfaces": [
+      ".claude",
+      ".codex",
+      ".mcp.json",
+      "hooks"
+    ]
+  },
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0216/probe1_quarantine_blocks_canary.py",
+      "id": "probe1",
+      "role": "quarantine-blocks-canary"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0216/probe2_detector_control.py",
+      "id": "probe2",
+      "role": "detector-control-quarantine-off"
+    }
+  ],
+  "notes": "G-1 TST-0216: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:TST-0216",
+  "owner_approval_note": "Catalog owner_approval_required=true excludes this unit from auto-dispatch. This artifact is the technical G-1 delivery of the quarantine test; it does not grant owner sign-off and does not mutate live trees.",
+  "owner_approval_required": true,
+  "question": "When a checkout contains `.claude/`, `.codex/`, `.mcp.json` or hooks, does the toolchain quarantine and report them before any agent runs inside it? PASS requires zero hook execution from the untrusted tree, proven by a canary hook that would write a marker.",
+  "report_kind": "security_report",
+  "reviewer": {
+    "independent": true,
+    "notes": "Probe 2 is the required detector control: the identical canary must write its marker when quarantine is disabled, proving the probe can observe execution. Catalog two-vendor human review is independent of G-1 probe-green.",
+    "reviewer_id": "TST-0216-probe2-detector-control-quarantine-off",
+    "verdict": "PASS"
+  },
+  "scanners": [
+    {
+      "id": "marker-absence",
+      "mechanism": "plant a canary hook that appends FIRED:<surface> to a marker path outside the checkout; after enter_untrusted_checkout with quarantine ON the marker file must be absent or empty",
+      "name": "canary-marker-filesystem"
+    },
+    {
+      "id": "surface-census",
+      "mechanism": "scan checkout-root .claude/, .codex/, .mcp.json and hooks/, move each hit into .ast-quarantine/, and emit QUARANTINE-REPORT.json listing every surface; independent of the marker file",
+      "name": "quarantine-report-enumeration"
+    }
+  ],
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0216",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0216/probe1_quarantine_blocks_canary.py",
+      "id": "TST0216-T1-QUARANTINE-BLOCKS-CANARY",
+      "notes": "quarantine ON: marker absent; all four surfaces enumerated and moved",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0216/probe2_detector_control.py",
+      "id": "TST0216-T2-DETECTOR-CONTROL-QUARANTINE-OFF",
+      "notes": "quarantine OFF: same canary writes FIRED: for all four surfaces",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0216/probe1_quarantine_blocks_canary.py",
+      "id": "TST0216-T3-THREAT-ANCHOR-CVE-2026-47751",
+      "notes": ".codex/ tagged CVE-2026-47751-class (AGENTS.md:9 clone auto-load)",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0216/probe1_quarantine_blocks_canary.py",
+      "id": "TST0216-T4-CLEAN-TREE-SILENT",
+      "notes": "checkout with no auto-load surfaces enumerates nothing and writes no marker",
+      "result": "PASS"
+    }
+  ],
+  "threat_anchor": {
+    "id": "CVE-2026-47751-class",
+    "source": "AGENTS.md:9 cloned-repo auto-load",
+    "surface": ".codex"
+  },
+  "title": "A cloned repo carrying auto-load agent config is quarantined, not executed",
+  "ts": "2026-08-25T01:32:12Z",
+  "unit_id": "TST-0216"
+}

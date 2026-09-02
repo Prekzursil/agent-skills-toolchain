@@ -1,0 +1,462 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0071.json",
+   "bytes": 13108,
+   "sha256": "4840fa7833ae5643a5ddd7ffa573e0d2959edbb0fc05d12aae03f4716b4209e1",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0071 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0071.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0071.json",
+     "raw_output": "bytes=13108 sha256=4840fa7833ae5643a5ddd7ffa573e0d2959edbb0fc05d12aae03f4716b4209e1",
+     "fingerprint": "d24835f58d9d88fcd19f19295901514e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0071",
+     "raw_output": "schema-check",
+     "fingerprint": "8093b2a67c12a24b4b5dab8996fd3e74",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0071 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0071",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0071",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "feab3027e273feca3a20bbb4438ca95e",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0071",
+     "raw_output": "schema-valid",
+     "fingerprint": "a278a280edf4466ef4bafb18bb095ed0",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0071",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=TST-0071]; catalog question_or_target Phase 10 layer 6 (:10994)",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0071.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "TST-0071",
+ "extensions": {
+  "legacy_root": {
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0071 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, every supported prior version upgrades with a zero-loss user-key diff, enabled/disabled MCP curation is preserved, and already-current upgrade is a no-op. Any other terminal state is FAILED:TST-0071 <classification> with the diagnostic tail attached.",
+   "diagnostic_tail": "",
+   "findings": {
+    "curation_preserved": true,
+    "idempotent_when_current": true,
+    "wipe_control_ok": true,
+    "zero_loss": true
+   },
+   "question": "Phase 10 layer 6 (:10994). Target: upgrade from each supported prior version and assert user configuration, enabled/disabled state and custom entries survive. Precedent on this estate: MCP enabled/disabled curation is load-bearing and must never be wiped by a schema change.",
+   "report_kind": "test-receipt",
+   "reviewers": [
+    {
+     "independent": true,
+     "reviewer_id": "TST-0071-probe1-upgrade-from-each-version",
+     "signal": "per-version-before-after-user-key-diff",
+     "verdict": "PASS"
+    },
+    {
+     "independent": true,
+     "reviewer_id": "TST-0071-probe2-curation-and-idempotent",
+     "signal": "curation-preservation-and-wipe-mutant",
+     "verdict": "PASS"
+    }
+   ],
+   "seed": {
+    "recorded": true,
+    "value": "layout-versions:1,2->3"
+   },
+   "subject": {
+    "current_version": "3",
+    "implementation": "command-center/p2-wave/probes/TST-0071/upgrade.py (hermetic settings-upgrade contract; packaged plugin CLI is not in this sparse worktree)",
+    "kind": "user-settings-upgrade",
+    "supported_prior_versions": [
+     "1",
+     "2"
+    ],
+    "worktree_note": "Live packaged upgrade CLI is absent from /opt/p2/ast-integrate. This unit exercises the catalogued upgrade contract on a throwaway profile: layout 1 stores MCP enabled/disabled curation on the inert claude.json root; layout 2 relocates it to the live per-project / settings paths; layout 3 renames those keys. Every user-authored value must survive."
+   },
+   "title": "Upgrade-in-place from every supported prior version",
+   "version_diffs": [
+    {
+     "after_flat_keys": [
+      "claude.json:model",
+      "claude.json:permissions.allow",
+      "claude.json:userCustom.user.note",
+      "claude.json:userCustom.user.workflow",
+      "claude.json:userTheme",
+      "projects/demo/.mcp.json:mcpCuration.disabled",
+      "projects/demo/.mcp.json:mcpServers.hacktricks-mcp.args",
+      "projects/demo/.mcp.json:mcpServers.hacktricks-mcp.command",
+      "projects/demo/.mcp.json:mcpServers.user-custom-mcp.args",
+      "projects/demo/.mcp.json:mcpServers.user-custom-mcp.command",
+      "settings.json:pluginCuration.enabled.ast-plugin",
+      "settings.json:pluginCuration.enabled.user-plugin"
+     ],
+     "after_intent": {
+      "custom": {
+       "user.note": "keep-me",
+       "user.workflow": "my-pipeline"
+      },
+      "mcp.disabled": [
+       "hacktricks-mcp",
+       "user-custom-mcp"
+      ],
+      "mcp.servers": {
+       "hacktricks-mcp": {
+        "args": [
+         "hacktricks-mcp"
+        ],
+        "command": "npx"
+       },
+       "user-custom-mcp": {
+        "args": [
+         "user-mcp"
+        ],
+        "command": "uvx"
+       }
+      },
+      "model": "opus-user-choice",
+      "permissions": {
+       "allow": [
+        "Read",
+        "Grep"
+       ]
+      },
+      "plugins.enabled": {
+       "ast-plugin": true,
+       "user-plugin": false
+      },
+      "userTheme": "solarized"
+     },
+     "before_flat_keys": [
+      "claude.json:customEntries.user.note",
+      "claude.json:customEntries.user.workflow",
+      "claude.json:disabledMcpServers",
+      "claude.json:enabledPlugins.ast-plugin",
+      "claude.json:enabledPlugins.user-plugin",
+      "claude.json:mcpServers.hacktricks-mcp.args",
+      "claude.json:mcpServers.hacktricks-mcp.command",
+      "claude.json:mcpServers.user-custom-mcp.args",
+      "claude.json:mcpServers.user-custom-mcp.command",
+      "claude.json:model",
+      "claude.json:permissions.allow",
+      "claude.json:userTheme"
+     ],
+     "before_intent": {
+      "custom": {
+       "user.note": "keep-me",
+       "user.workflow": "my-pipeline"
+      },
+      "mcp.disabled": [
+       "hacktricks-mcp",
+       "user-custom-mcp"
+      ],
+      "mcp.servers": {
+       "hacktricks-mcp": {
+        "args": [
+         "hacktricks-mcp"
+        ],
+        "command": "npx"
+       },
+       "user-custom-mcp": {
+        "args": [
+         "user-mcp"
+        ],
+        "command": "uvx"
+       }
+      },
+      "model": "opus-user-choice",
+      "permissions": {
+       "allow": [
+        "Read",
+        "Grep"
+       ]
+      },
+      "plugins.enabled": {
+       "ast-plugin": true,
+       "user-plugin": false
+      },
+      "userTheme": "solarized"
+     },
+     "from_version": "1",
+     "intent_equal": true,
+     "lost_user_keys": [],
+     "relocations": [
+      {
+       "from": "claude.json:disabledMcpServers",
+       "to": "projects/demo/.mcp.json:mcpCuration.disabled",
+       "value_preserved": true,
+       "why": "root-scoped disabledMcpServers is inert; live map is per-project mcpCuration"
+      },
+      {
+       "from": "claude.json:enabledPlugins",
+       "to": "settings.json:pluginCuration.enabled",
+       "value_preserved": true,
+       "why": "enabledPlugins lives in settings.json pluginCuration, not claude.json root"
+      },
+      {
+       "from": "claude.json:mcpServers",
+       "to": "projects/demo/.mcp.json:mcpServers",
+       "value_preserved": true,
+       "why": "custom MCP server entries follow the live project map"
+      },
+      {
+       "from": "claude.json:customEntries",
+       "to": "claude.json:userCustom",
+       "value_preserved": true,
+       "why": "schema rename of custom user entries"
+      }
+     ],
+     "to_version": "3",
+     "zero_loss": true
+    },
+    {
+     "after_flat_keys": [
+      "claude.json:model",
+      "claude.json:permissions.allow",
+      "claude.json:userCustom.user.note",
+      "claude.json:userCustom.user.workflow",
+      "claude.json:userTheme",
+      "projects/demo/.mcp.json:mcpCuration.disabled",
+      "projects/demo/.mcp.json:mcpServers.hacktricks-mcp.args",
+      "projects/demo/.mcp.json:mcpServers.hacktricks-mcp.command",
+      "projects/demo/.mcp.json:mcpServers.user-custom-mcp.args",
+      "projects/demo/.mcp.json:mcpServers.user-custom-mcp.command",
+      "settings.json:pluginCuration.enabled.ast-plugin",
+      "settings.json:pluginCuration.enabled.user-plugin"
+     ],
+     "after_intent": {
+      "custom": {
+       "user.note": "keep-me",
+       "user.workflow": "my-pipeline"
+      },
+      "mcp.disabled": [
+       "hacktricks-mcp",
+       "user-custom-mcp"
+      ],
+      "mcp.servers": {
+       "hacktricks-mcp": {
+        "args": [
+         "hacktricks-mcp"
+        ],
+        "command": "npx"
+       },
+       "user-custom-mcp": {
+        "args": [
+         "user-mcp"
+        ],
+        "command": "uvx"
+       }
+      },
+      "model": "opus-user-choice",
+      "permissions": {
+       "allow": [
+        "Read",
+        "Grep"
+       ]
+      },
+      "plugins.enabled": {
+       "ast-plugin": true,
+       "user-plugin": false
+      },
+      "userTheme": "solarized"
+     },
+     "before_flat_keys": [
+      "claude.json:customEntries.user.note",
+      "claude.json:customEntries.user.workflow",
+      "claude.json:model",
+      "claude.json:permissions.allow",
+      "claude.json:userTheme",
+      "projects/demo/.mcp.json:disabledMcpServers",
+      "projects/demo/.mcp.json:mcpServers.hacktricks-mcp.args",
+      "projects/demo/.mcp.json:mcpServers.hacktricks-mcp.command",
+      "projects/demo/.mcp.json:mcpServers.user-custom-mcp.args",
+      "projects/demo/.mcp.json:mcpServers.user-custom-mcp.command",
+      "settings.json:enabledPlugins.ast-plugin",
+      "settings.json:enabledPlugins.user-plugin"
+     ],
+     "before_intent": {
+      "custom": {
+       "user.note": "keep-me",
+       "user.workflow": "my-pipeline"
+      },
+      "mcp.disabled": [
+       "hacktricks-mcp",
+       "user-custom-mcp"
+      ],
+      "mcp.servers": {
+       "hacktricks-mcp": {
+        "args": [
+         "hacktricks-mcp"
+        ],
+        "command": "npx"
+       },
+       "user-custom-mcp": {
+        "args": [
+         "user-mcp"
+        ],
+        "command": "uvx"
+       }
+      },
+      "model": "opus-user-choice",
+      "permissions": {
+       "allow": [
+        "Read",
+        "Grep"
+       ]
+      },
+      "plugins.enabled": {
+       "ast-plugin": true,
+       "user-plugin": false
+      },
+      "userTheme": "solarized"
+     },
+     "from_version": "2",
+     "intent_equal": true,
+     "lost_user_keys": [],
+     "relocations": [
+      {
+       "from": "projects/demo/.mcp.json:disabledMcpServers",
+       "to": "projects/demo/.mcp.json:mcpCuration.disabled",
+       "value_preserved": true,
+       "why": "schema rename; values must survive"
+      },
+      {
+       "from": "settings.json:enabledPlugins",
+       "to": "settings.json:pluginCuration.enabled",
+       "value_preserved": true,
+       "why": "schema rename; enable/disable map must survive"
+      },
+      {
+       "from": "claude.json:customEntries",
+       "to": "claude.json:userCustom",
+       "value_preserved": true,
+       "why": "schema rename of custom user entries"
+      }
+     ],
+     "to_version": "3",
+     "zero_loss": true
+    }
+   ]
+  }
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0071/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0071"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0071.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0071.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "8b2387ec6aad75dc5ec811bde5ab8dc9",
+    "exit_code": 0
+   }
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "test-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 13108,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0071.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

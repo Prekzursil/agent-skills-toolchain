@@ -1,0 +1,20 @@
+
+===== launch 2026-08-20T07:43:11Z attempt=1 =====
+I'll start from the existing ARC-0086 probe tree and the unit contract, then implement anything missing and measure until the unit is actually delivered.ARC-0086 has no probe tree yet. Next I’ll inspect sibling ARC contract units and the delivery predicate so we can implement it to the same bar.The unit is absent, not parked: I’ll implement the event-schema contract, live named probes, and per-unit manifest, then measure until it reports delivered.Naive timestamps slipped through because `format: date-time` is not enforced here. I’ll add a timezone pattern so those records fail closed.**SUCCESS:delivered ARC-0086.** The unit had never been started (`probes/ARC-0086/` absent). It is implemented and the live measure is green.
+
+```
+SUCCESS:delivered ARC-0086 predicate=delivered state=SUCCESS probes=4 raws=4
+notes=probe_append_only.py:0,probe_events_jsonl.py:0,probe_redaction.py:0,refute_review.py:0
+```
+
+**Contract:** `command-center/phase4/contracts/ARC-0086.json` (9156 B, `state=SUCCESS`, sha256 `0df1bfa48ab40d563bc331f67624558a3d9ac9ac15d321a798843fd1d222f90d`). Non-vacuous JSON Schema: monotonic `seq`, timezone-gated `ts`, actor, unit, phase, state transition, correlation/causality ids, payload, hash chain, and write-time redaction. `seq` is durability order, not happens-before across substrates.
+
+**Named probes (all exit 0):**
+- **Probe 1** parsed both live `EVENTS.jsonl` lines: 2/2 JSON-ok, 0 schema-valid, **2 schema-gap** (pre-contract `id`/`note`/`ts`/`verb`), 0 bad-record. The historical log was not rewritten.
+- **Probe 2** append-only control: editing one historical line fires Layer-A sealed byte hashes; tampering a schema-valid chain also fires Layer-B `record_hash` mismatch.
+- **Probe 3** redaction control: planted canary `f3918ef6f119cc92` is rejected at write time and never lands; personal paths are redacted.
+- **Review:** mechanical catalog-field walk plus consumer call site `_pack_event_lib.append_event` → `review_verdict=PASS`.
+
+**Manifest:** `command-center/p2-wave/probes/ARC-0086/UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with a matching live LF sha256.
+
+Phase-3 `WINNING-ARCHITECTURE.json` and `ARCHITECTURE-RATIFICATION.json` are absent on this worktree and were recorded as missing inputs, not invented. No git writes, no global `unit_manifest.py --write`.

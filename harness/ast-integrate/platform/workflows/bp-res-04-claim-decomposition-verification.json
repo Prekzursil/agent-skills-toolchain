@@ -1,0 +1,913 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-res-04-claim-decomposition-verification",
+  "name": "Claim-Decomposition Verification Pass",
+  "description": "Take a FINISHED document - a report, an audit finding set, any agent's completion claim - decompose it into atomic claims, re-probe each with a MECHANICALLY DIFFERENT instrument, and emit a per-claim CONFIRMED / REFUTED / UNRESOLVED ledger. The verdict is computed by a deterministic SCRIPT, not by a model, and the script's signature rule closes the measured hole in the source implementation: a CONFIRMED or REFUTED claim whose `source_probe` is empty is a VIOLATION, never 'independent'. SHADOW and BLOCKING are both wired: `mode` selects which gate stage runs, so promoting the gate is a parameter change, not a rewrite.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "research-and-evidence",
+    "collective-intelligence-and-meta"
+  ],
+  "tags": [
+    "claim-gate",
+    "deterministic-verdict",
+    "shadow-then-promote"
+  ],
+  "flagship": true,
+  "params": {
+    "document": {
+      "type": "path",
+      "required": true,
+      "description": "The finished document under verification"
+    },
+    "instrument_registry": {
+      "type": "path",
+      "required": true,
+      "description": "Allowlist of verifier instruments. A required-but-missing registry makes every claim UNRESOLVED - it never degrades to CONFIRMED."
+    },
+    "mode": {
+      "type": "enum",
+      "enum": [
+        "shadow",
+        "blocking"
+      ],
+      "default": "shadow",
+      "description": "shadow = log and continue; blocking = a violation stops the caller"
+    },
+    "cross_vendor_top_n": {
+      "type": "integer",
+      "default": 3,
+      "minimum": 0,
+      "maximum": 20,
+      "description": "How many load-bearing claims also get a cross-vendor verifier; 0 disables the pass"
+    },
+    "max_claims": {
+      "type": "integer",
+      "default": 120,
+      "minimum": 1,
+      "maximum": 2000,
+      "description": "Cap on atomic claims decomposed from one document"
+    },
+    "artifact_root": {
+      "type": "path",
+      "default": "command-center/verification/bp-res-04",
+      "description": "Every write is confined here"
+    }
+  },
+  "roles": {
+    "decomposer": {
+      "description": "Splits the document into atomic, independently checkable claims; adds no claim the document does not make",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/verification/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "instrument-assigner": {
+      "description": "Assigns each claim a verifier whose MECHANISM differs from the claim's own source probe; may not assign the source probe back",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/verification/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "claim-verifier": {
+      "description": "Re-probes ONE claim with its assigned instrument and never sees another verifier's verdict",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/verification/**)"
+      ],
+      "min_participants": 1,
+      "max_participants": 32,
+      "speaking_rights": "always"
+    },
+    "cross-vendor-verifier": {
+      "description": "Second verifier from a different vendor for the load-bearing claims, because a same-vendor verifier shares the author's blind spots",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 2,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "mcp__codex__codex"
+      ],
+      "speaking_rights": "rebuttal-only"
+    },
+    "gate-runner": {
+      "description": "Runs the deterministic gate script; has judge authority precisely because it exercises no judgement",
+      "vendor": "any",
+      "effort": "low",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/verification/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Bash:python",
+      "Write(command-center/verification/**)",
+      "mcp__codex__codex"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Write(command-center/research/**)",
+      "Write(platform/schema/**)"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/verification/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "record-as-not-checked"
+    }
+  },
+  "model_routing": {
+    "strategy": "escalating",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "routes": [
+      {
+        "when": "stage_role == 'gate-runner'",
+        "target": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "effort": "low"
+        },
+        "reason": "the verdict must be computed, not judged - routing the gate to a model would reintroduce the failure it exists to catch"
+      }
+    ],
+    "escalation": {
+      "on": [
+        "low-confidence",
+        "reviewer-refuted"
+      ],
+      "target": {
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "effort": "high"
+      },
+      "max_escalations": 1
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "source-probe-required": {
+      "predicate": "custom-expression",
+      "expression": "confirmed_claims_without_source_probe == 0 AND refuted_claims_without_source_probe == 0 AND same_probe_rerun_claims == 0 AND unresolved_claims_promoted_to_confirmed == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "source-probe-required-shadow": {
+      "predicate": "custom-expression",
+      "expression": "confirmed_claims_without_source_probe == 0 AND refuted_claims_without_source_probe == 0 AND same_probe_rerun_claims == 0 AND unresolved_claims_promoted_to_confirmed == 0",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "decompose-claims",
+      "title": "Decompose the finished document into atomic claims",
+      "kind": "task",
+      "role": "decomposer",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0401",
+        "title": "Split the document into atomic claims, each with the source probe the document itself cites",
+        "phase": "2B",
+        "question_or_target": "Decompose the document into atomic claims. For each claim record the SOURCE PROBE the document offers for it - the measurement that produced it - or record that the document offers none. Add no claim the document does not make.",
+        "inputs": [
+          "params.document",
+          "params.max_claims"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "decomposer",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/verification/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/verification/bp-res-04/claims.json",
+        "output_schema": "command-center/schema/claim-record.schema.json",
+        "evidence_requirement": "each claim carries the document offset or heading it came from, plus the source_probe text or an explicit null",
+        "tests_required": [
+          "a document sentence carrying two independent assertions must yield two claims, not one compound claim",
+          "both-states: a claim whose document offers NO probe must record source_probe null, and an adjacent claim with a probe must record it"
+        ],
+        "reviewer_requirement": "the instrument assigner rejects any claim that is not independently checkable and returns it for re-splitting",
+        "completion_sentinel": "SUCCESS:BPR-0401 emitted only when the claim file exists, parses, and every claim has an anchor into the document plus a source_probe field that is present or explicitly null; otherwise FAILED:BPR-0401 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two rejected decompositions, enumerate at least two alternative splitting strategies",
+        "failure_classification": [
+          "decomposition-ambiguous",
+          "document-unreadable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "safe-atomic-claim-decomposition"
+      },
+      "produces": [
+        {
+          "path": "command-center/verification/bp-res-04/claims.json",
+          "schema_ref": "command-center/schema/claim-record.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0401",
+          "consumers": [
+            "assign-instruments"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "assign-instruments",
+      "title": "Assign a mechanically different instrument per claim",
+      "kind": "task",
+      "depends_on": [
+        "decompose-claims"
+      ],
+      "role": "instrument-assigner",
+      "timeout_seconds": 1200,
+      "work_unit": {
+        "id": "BPR-0402",
+        "title": "Map each claim to a verifier instrument whose mechanism differs from its source probe",
+        "phase": "2B",
+        "question_or_target": "For each claim pick a verifier from the instrument registry whose mechanism differs from the claim's source probe - a different shell, a different data field, a different measurement. Record WHY it differs. If no different instrument exists, mark the claim NO-INDEPENDENT-INSTRUMENT.",
+        "inputs": [
+          "command-center/verification/bp-res-04/claims.json",
+          "params.instrument_registry"
+        ],
+        "dependencies": [
+          "BPR-0401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "instrument-assigner",
+          "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/verification/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/verification/bp-res-04/assignment-matrix.json",
+        "output_schema": "command-center/schema/assignment-matrix.schema.json",
+        "evidence_requirement": "each row carries source_probe fingerprint, verifier fingerprint, and the one-line reason the two mechanisms differ",
+        "tests_required": [
+          "a claim whose only available instrument equals its source probe must be marked NO-INDEPENDENT-INSTRUMENT, never assigned that instrument",
+          "a missing instrument registry must make the stage FAIL rather than assign a default instrument"
+        ],
+        "reviewer_requirement": "the gate script independently recomputes both fingerprints and flags same-probe-rerun regardless of what this stage claimed",
+        "completion_sentinel": "SUCCESS:BPR-0402 emitted only when every claim has an assignment row with two distinct mechanism fingerprints, or an explicit NO-INDEPENDENT-INSTRUMENT marker; otherwise FAILED:BPR-0402 <failure-class> <reason>",
+        "retry_policy": "fixed backoff, at most 2 attempts; a second failure marks the affected claims NO-INDEPENDENT-INSTRUMENT",
+        "failure_classification": [
+          "instrument-unavailable",
+          "same-probe-rerun"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "mechanism-difference-assignment"
+      },
+      "produces": [
+        {
+          "path": "command-center/verification/bp-res-04/assignment-matrix.json",
+          "schema_ref": "command-center/schema/assignment-matrix.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0402",
+          "consumers": [
+            "reprobe-fanout",
+            "deterministic-gate",
+            "shadow-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "reprobe-fanout",
+      "title": "Re-probe every claim in parallel, each with its own instrument",
+      "kind": "fanout",
+      "depends_on": [
+        "assign-instruments"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/verification/bp-res-04/assignment-matrix.json",
+        "item_var": "claim",
+        "key_field": "claim_id"
+      },
+      "max_concurrency": 8,
+      "arrival_stagger_ms": 200,
+      "max_items": 2000,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "reprobe-claim",
+          "title": "Re-probe one claim with its assigned instrument",
+          "kind": "task",
+          "role": "claim-verifier",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "BPR-0403",
+            "title": "Run the assigned instrument and emit one verdict with its verifier probe recorded",
+            "phase": "2B",
+            "question_or_target": "Run the assigned instrument against the claim and emit exactly one verdict: CONFIRMED, REFUTED or UNRESOLVED. Record the verifier probe verbatim. An unavailable instrument yields UNRESOLVED naming the missing instrument - never CONFIRMED.",
+            "inputs": [
+              "command-center/verification/bp-res-04/assignment-matrix.json",
+              "params.instrument_registry"
+            ],
+            "dependencies": [
+              "BPR-0402"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "claim-verifier",
+              "basis": "substantive subagents default to Opus (performance rule: quality over cost)"
+            },
+            "tool_permissions": [
+              "Read",
+              "Grep",
+              "Glob",
+              "Bash:python",
+              "Write(command-center/verification/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/verification/bp-res-04/reprobes/claim-verdict.json",
+            "output_schema": "command-center/schema/reprobe-record.schema.json",
+            "evidence_requirement": "the verdict row carries the verifier probe verbatim, its raw output, and an anchor (file:line, command output, or URL)",
+            "tests_required": [
+              "an unavailable instrument must yield UNRESOLVED naming the instrument (both-states: the same claim with the instrument present must yield a real verdict)"
+            ],
+            "reviewer_requirement": "no verifier sees another verifier's verdict; the reconciliation is the gate script's job",
+            "completion_sentinel": "SUCCESS:BPR-0403 emitted only when exactly one verdict row exists for the claim, carrying a verifier probe and an anchor; otherwise FAILED:BPR-0403 <failure-class> <reason>",
+            "retry_policy": "two strikes then pivot: after two instrument failures return UNRESOLVED with the failure recorded",
+            "failure_classification": [
+              "instrument-unavailable",
+              "detector-failure",
+              "timeout"
+            ],
+            "owner_approval_required": false,
+            "mechanism": "independent-per-claim-reprobe"
+          },
+          "produces": [
+            {
+              "path": "command-center/verification/bp-res-04/reprobes/claim-verdict.json",
+              "schema_ref": "command-center/schema/reprobe-record.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "sentinel": "SUCCESS:BPR-0403",
+              "consumers": [
+                "deterministic-gate",
+                "shadow-gate",
+                "emit-ledger"
+              ]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "require_stages": [
+          "reprobe-claim"
+        ],
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "cross-vendor-reprobe",
+      "title": "Cross-vendor second verifier on the load-bearing claims",
+      "kind": "task",
+      "depends_on": [
+        "reprobe-fanout"
+      ],
+      "when": "cross_vendor_top_n > 0",
+      "role": "cross-vendor-verifier",
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPR-0404",
+        "title": "Independently re-probe the top-N load-bearing claims from a different vendor",
+        "phase": "2B",
+        "question_or_target": "For the N most load-bearing claims, re-probe from a different vendor with no sight of the in-vendor verdict, and record agreement or disagreement as an independence measurement.",
+        "inputs": [
+          "command-center/verification/bp-res-04/reprobes/claim-verdict.json",
+          "params.cross_vendor_top_n"
+        ],
+        "dependencies": [
+          "BPR-0403"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "gpt-5-codex",
+          "vendor": "openai",
+          "role": "cross-vendor-verifier",
+          "basis": "cross-vendor independence: a same-vendor verifier shares the author's blind spots"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "mcp__codex__codex"
+        ],
+        "execution_substrate": "cross-vendor-codex",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/verification/bp-res-04/cross-vendor-audit.json",
+        "output_schema": "command-center/schema/independence-audit.schema.json",
+        "evidence_requirement": "per claim: the second-vendor probe, its output, and whether it agrees; a severed dispatch is recorded as NOT-CHECKED, never as agreement",
+        "tests_required": [
+          "a killed dispatch must produce NOT-CHECKED, never silence and never an inferred agreement",
+          "a result string containing a background receipt must be rejected outright rather than parsed as a verdict"
+        ],
+        "reviewer_requirement": "the gate script treats a NOT-CHECKED cross-vendor row as absent evidence, not as corroboration",
+        "completion_sentinel": "SUCCESS:BPR-0404 emitted only when each selected claim has a second-vendor row carrying a probe, an output and an agreement flag or NOT-CHECKED; otherwise FAILED:BPR-0404 <failure-class> <reason>",
+        "retry_policy": "two strikes then pivot: after two severed dispatches record NOT-CHECKED and stop retrying",
+        "failure_classification": [
+          "severed-stream",
+          "codex-exit-nonzero",
+          "win-arg-limit"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "cross-vendor-independence-audit"
+      },
+      "produces": [
+        {
+          "path": "command-center/verification/bp-res-04/cross-vendor-audit.json",
+          "schema_ref": "command-center/schema/independence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0404",
+          "consumers": [
+            "deterministic-gate",
+            "shadow-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "shadow-gate",
+      "title": "SHADOW mode: run the deterministic gate, log the violations, do not block",
+      "kind": "gate",
+      "depends_on": [
+        "cross-vendor-reprobe"
+      ],
+      "when": "mode == 'shadow'",
+      "gate_ref": "source-probe-required-shadow"
+    },
+    {
+      "id": "blocking-gate",
+      "title": "BLOCKING mode: a violation stops the caller",
+      "kind": "gate",
+      "depends_on": [
+        "cross-vendor-reprobe"
+      ],
+      "when": "mode == 'blocking'",
+      "gate_ref": "source-probe-required"
+    },
+    {
+      "id": "emit-ledger",
+      "title": "Emit the per-claim ledger and the violation list",
+      "kind": "task",
+      "depends_on": [
+        "shadow-gate",
+        "blocking-gate"
+      ],
+      "role": "gate-runner",
+      "timeout_seconds": 900,
+      "tool_permissions": [
+        "Read",
+        "Bash:python",
+        "Write(command-center/verification/**)"
+      ],
+      "work_unit": {
+        "id": "BPR-0405",
+        "title": "Compute the ledger deterministically: verdicts, violations, ok flag",
+        "phase": "2B",
+        "question_or_target": "Reduce the verdicts to one ledger: per claim the verdict, source_probe, verifier_probe, independence flag and anchor; plus the violation list and an ok flag. A CONFIRMED or REFUTED verdict with an empty source_probe is a violation - the exact case the source implementation's own 30-test regression did not cover.",
+        "inputs": [
+          "command-center/verification/bp-res-04/reprobes/claim-verdict.json",
+          "command-center/verification/bp-res-04/cross-vendor-audit.json",
+          "command-center/verification/bp-res-04/assignment-matrix.json"
+        ],
+        "dependencies": [
+          "BPR-0403",
+          "BPR-0404"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "none-deterministic-script",
+          "vendor": "mixed",
+          "role": "gate-runner",
+          "basis": "a deterministic reducer: model judgement here is what produced the defect being fixed"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/verification/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/verification/bp-res-04/claim-ledger.json",
+        "output_schema": "command-center/schema/attestation-ledger.schema.json",
+        "evidence_requirement": "the ledger is produced by a script whose exit code and stdout are recorded; ok is computed from the violation list, never asserted",
+        "tests_required": [
+          "MANDATORY both-states: a ledger input with a CONFIRMED claim carrying an EMPTY source_probe must produce a violation and ok=false; filling that one field must flip ok to true with everything else unchanged",
+          "identical source and verifier fingerprints must produce a same-probe-rerun violation",
+          "a clean input must produce violations == [] - the gate must be able to pass, or it is a permanent red light"
+        ],
+        "reviewer_requirement": "the gate is deterministic, so review targets the SCRIPT and its both-states battery rather than the verdict",
+        "completion_sentinel": "SUCCESS:BPR-0405 emitted only when the ledger exists, parses, every claim has exactly one verdict, and ok equals (violations == []); otherwise FAILED:BPR-0405 <failure-class> <reason>",
+        "retry_policy": "none: a deterministic reducer over unchanged inputs cannot produce a different result",
+        "failure_classification": [
+          "schema-invalid",
+          "gate-input-incomplete"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "deterministic-verdict-reduction"
+      },
+      "produces": [
+        {
+          "path": "command-center/verification/bp-res-04/claim-ledger.json",
+          "schema_ref": "command-center/schema/attestation-ledger.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPR-0405",
+          "consumers": [
+            "command-center/CLAIM-REGISTRY.json"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "every-claim-has-a-verdict",
+      "expression": "claims_without_verdict == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "claims_decomposed >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "no-independent-instrument-left",
+      "expression": "unassigned_claims == 0 AND instruments_available >= 1",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "instrument-unavailable",
+      "same-probe-rerun",
+      "gate-input-incomplete",
+      "severed-stream"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "emit-ledger",
+    "quarantine_path": "command-center/verification/bp-res-04/quarantine"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/verification/bp-res-04/checkpoints",
+    "granularity": "work-unit",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/verification/bp-res-04/replay/journal.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/verification/bp-res-04/cache",
+    "ttl_seconds": 604800,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "schema-version-change",
+      "tool-version-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report",
+      "graph",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/verification/bp-res-04/dry-run-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/verification/**)",
+      "mcp__codex__codex"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.5,
+      "expected": 2.0,
+      "max": 7.0
+    },
+    "wallclock_seconds": {
+      "min": 300,
+      "expected": 1500,
+      "max": 5400
+    },
+    "tokens": {
+      "min": 80000,
+      "expected": 400000,
+      "max": 1400000
+    },
+    "tool_calls": {
+      "expected": 90,
+      "max": 600
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the document; writes only under command-center/verification/bp-res-04/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "tests",
+        "examples",
+        "lineage",
+        "replay-journal"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-res-04.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "07f465f3:.agents/skills/claim-verify-gate",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner (undeployed skill)"
+      },
+      {
+        "source": "rules/common/single-signal-verification.md",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "measured defect: _validate() at :132-156 does not require source_probe"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-RES-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "07f465f3:.agents/skills/claim-verify-gate"
+    ]
+  },
+  "outputs": {
+    "ledger": {
+      "path": "command-center/verification/bp-res-04/claim-ledger.json",
+      "schema_ref": "command-center/schema/attestation-ledger.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": [
+        "command-center/CLAIM-REGISTRY.json"
+      ]
+    },
+    "assignment": {
+      "path": "command-center/verification/bp-res-04/assignment-matrix.json",
+      "schema_ref": "command-center/schema/assignment-matrix.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "emit-ledger"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_source": {
+      "card": "BP-RES-04",
+      "library": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md",
+      "card_heading_line": 334
+    },
+    "acquisition_route_from_card": "REPAIR",
+    "mechanism_signature": [
+      "safe-atomic-claim-decomposition",
+      "mechanism-difference-instrument-assignment",
+      "independent-per-claim-reprobe",
+      "deterministic-script-verdict-reduction",
+      "empty-source-probe-is-a-violation",
+      "shadow-or-blocking-gate-by-parameter"
+    ],
+    "contraindications": [
+      "NOT a substitute for running the code - that is a test blueprint",
+      "NOT for creative or subjective output where `claim` is undefined",
+      "do NOT run it on its own output: a gate verifying itself is a single signal"
+    ],
+    "the_repaired_defect": "The source implementation's _validate() requires an id, text and a recognised verdict but NOT source_probe, so an absent source normalises to empty strings that any non-empty verifier trivially differs from - and the same-probe-rerun check cannot fire. Its shipped 30-test regression passes because its missing-probe case omits the VERIFIER, not the SOURCE. The mandatory both-states test on BPR-0405 is that missing case.",
+    "owner_decision": "Ship the claim gate SHADOW-only, or let it block once its both-states battery is green? Both paths are wired; `mode` selects.",
+    "unverified": [
+      "UNVERIFIED that closing the hole changes a real verdict within a month; settling experiment = run the gate in shadow over the next 20 completion claims and count how many carry a CONFIRMED verdict with no source probe."
+    ],
+    "worked_example": {
+      "name": "gate a finished audit report in shadow mode",
+      "params": {
+        "document": "command-center/research/bp-res-01/report.json",
+        "instrument_registry": "command-center/verification/instrument-registry.json",
+        "mode": "shadow",
+        "cross_vendor_top_n": 3,
+        "max_claims": 60
+      },
+      "expected_stage_order": [
+        "decompose-claims",
+        "assign-instruments",
+        "reprobe-fanout",
+        "cross-vendor-reprobe",
+        "shadow-gate",
+        "blocking-gate",
+        "emit-ledger"
+      ],
+      "expected_skipped": [
+        "blocking-gate"
+      ],
+      "expected_max_parallel": 8,
+      "expected_gate_ids": [
+        "shadow-gate",
+        "blocking-gate"
+      ],
+      "mode_variants": [
+        {
+          "mode": "shadow",
+          "expected_skipped": [
+            "blocking-gate"
+          ]
+        },
+        {
+          "mode": "blocking",
+          "expected_skipped": [
+            "shadow-gate"
+          ]
+        }
+      ],
+      "acceptance": [
+        "a CONFIRMED claim with an empty source_probe appears in violations[] and ok is false",
+        "a claim whose verifier fingerprint equals its source fingerprint is flagged same-probe-rerun",
+        "a clean document yields violations == []"
+      ],
+      "stopping_rule_controls": [
+        {
+          "rule": "every-claim-has-a-verdict",
+          "why": "the floor stops the rule firing vacuously on a document that decomposed into nothing",
+          "fires_on": {
+            "claims_without_verdict": 0,
+            "claims_decomposed": 42,
+            "unassigned_claims": 0,
+            "instruments_available": 6
+          },
+          "does_not_fire_on": {
+            "claims_without_verdict": 0,
+            "claims_decomposed": 0,
+            "unassigned_claims": 0,
+            "instruments_available": 6
+          }
+        },
+        {
+          "rule": "no-independent-instrument-left",
+          "why": "an empty instrument registry must escalate rather than pass",
+          "fires_on": {
+            "claims_without_verdict": 2,
+            "claims_decomposed": 42,
+            "unassigned_claims": 0,
+            "instruments_available": 6
+          },
+          "does_not_fire_on": {
+            "claims_without_verdict": 2,
+            "claims_decomposed": 42,
+            "unassigned_claims": 0,
+            "instruments_available": 0
+          }
+        }
+      ]
+    }
+  }
+}

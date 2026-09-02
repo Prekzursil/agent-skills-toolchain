@@ -1,0 +1,958 @@
+        <!DOCTYPE html>
+        <html lang="en">
+        <head><title>event-stream, npm, and trust [LWN.net]</title>
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta property="og:title" content="event-stream, npm, and trust">
+<meta property="og:site_name" content="LWN.net">
+<meta property="og:type" content="article">
+<meta property="og:description" content=" Malware inserted into a popular npm package has put some users at risk of losing Bitcoin, whic [...]">
+<meta HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=utf-8">
+<META NAME="robots" CONTENT="noai, noimageai">
+        <link rel="icon" href="https://static.lwn.net/images/favicon.png"
+              type="image/png">
+        <link rel="alternate" type="application/rss+xml" title="LWN.net headlines" href="https://lwn.net/headlines/rss">
+        <link rel="stylesheet" href="/CSS/lwn-v1">
+<style>div.MakeALink { display: none }</style>
+
+        
+        </head>
+        <body>
+        <a name="t"></a>
+<div id="menu"><a href="/" aria-label="Return to the front page">
+            <img src="https://static.lwn.net/images/logo/barepenguin-70.webp" class="logo"
+                 border="0" alt="LWN.net Logo">
+            <span class="logo">LWN<br>.net</span>
+            <span class="logobl">News from the source</span></a>
+            <a href="/" aria-label="Return to the front page">
+            <img src="https://static.lwn.net/images/lcorner-ss.png" class="sslogo"
+                 border="0" alt="LWN"></a><div class="navmenu-container">
+           <ul class="navmenu">
+        <li><a class="navmenu" href="#t"><b>Content</b></a><ul><li><a href="/current/">Weekly Edition</a></li><li><a href="/Archives/">Archives</a></li><li><a href="/Search/">Search</a></li><li><a href="/Kernel/">Kernel</a></li><li><a href="/Security/">Security</a></li><li><a href="/Calendar/">Events calendar</a></li><li><a href="/Comments/unread">Unread comments</a></li><li><hr></li><li><a href="/op/FAQ.lwn">LWN FAQ</a></li><li><a href="/op/AuthorGuide.lwn">Write for us</a></li></ul></li>
+<li><a class="navmenu" href="#t"><b>Edition</b></a><ul><li><a href="/Articles/772149/">Return to the Front page</a></li></ul></li>
+</ul></div>
+</div> <!-- menu -->
+<div class="topnav-spacer"></div>
+<div class="top-banner not-print"><!-- no top ad served --></div>
+<div class="topnav-container">
+<div class="not-handset"><form action="https://lwn.net/Login/" method="post" name="loginform"
+                 class="loginform">
+        <label><b>User:</b> <input type="text" name="uname" value="" size="8" id="uc" /></label> 
+		<label><b>Password:</b> <input type="password" name="pword" size="8" id="pc" /></label> <input type="hidden" name="target" value="/Articles/773121/" /> <input type="submit" name="submit" value="Log in" /></form> |
+           <form action="https://lwn.net/subscribe/" method="post" class="loginform">
+           <input type="submit" name="submit" value="Subscribe" />
+           </form> |
+           <form action="https://lwn.net/Login/newaccount" method="post" class="loginform">
+           <input type="submit" name="submit" value="Register" />
+           </form>
+        </div>
+               <div class="handset-only">
+               <a href="/Login/"><b>Log in</b></a> /
+               <a href="/subscribe/"><b>Subscribe</b></a> /
+               <a href="/Login/newaccount"><b>Register</b></a>
+               </div>
+               </div><div class="maincolumn flexcol">
+<div class="middlecolumn">
+<div class="PageHeadline">
+<h1>event-stream, npm, and trust</h1>
+</div>
+<div class="ArticleText"><main>
+<blockquote class="ad">
+<b>This article brought to you by LWN subscribers</b>
+<p>
+Subscribers to LWN.net made this article &mdash; and everything that
+       surrounds it &mdash; possible.  If you appreciate our content, please
+       <a href="/Promo/nst-nag3/subscribe">buy a subscription</a> and make the next
+       set of articles possible.
+</blockquote>
+<div class="FeatureByline">
+           By <b>Jake Edge</b><br>November 28, 2018</br>
+           </div>
+<p>
+Malware inserted into a popular <a href="https://www.npmjs.com/">npm</a>
+package has put some users at risk of losing Bitcoin, which is certainly
+worrisome.  More concerning, though, is the implications of how the malware
+got into the package—and how the package got distributed.  This is not the
+first time we have seen package-distribution channels exploited, nor will
+it be the last, but the underlying problem requires more than a technical
+solution.  It is, fundamentally, a social problem: trust.
+</p>
+
+<p>
+Npm is a registry of JavaScript packages, most of which target the <a
+href="https://nodejs.org/en/">Node.js</a> event-driven JavaScript
+framework.  As with many package repositories, npm helps manage
+dependencies so that picking up a new version of a package will also pick
+up new versions of its dependencies.  Unlike, say, distribution package
+repositories, however, npm is not curated—anyone can put a module into
+npm.  Normally, a module that wasn't useful would not become popular and
+would not get included as a dependency of other npm modules.  But once a
+module <i>is</i> popular, it provides a ready path to deliver malware if
+the maintainer, or someone they delegate to, wants to go that route.
+</p>
+
+<p>
+That is just what happened with the <a
+href="https://github.com/dominictarr/event-stream">event-stream</a>
+package, as was recently discovered.  The package allows creating streams
+that can be used both for I/O and for event handling.  Its maintainer, Dominic
+Tarr, had stopped using the package some time ago, so his interest in
+maintaining it was low.  As he noted in a <a
+href="https://github.com/dominictarr/event-stream/issues/116#issuecomment-440927400">comment</a>
+on the <a href="https://github.com/dominictarr/event-stream/issues/116">bug
+report</a> filed in the event-stream GitHub repository, someone volunteered
+to take it over:
+<div class="BigQuote">
+He emailed me and said he wanted to maintain the module, so I gave it to
+him. I don't get any thing from maintaining this module, and I don't even
+use it anymore, and [haven't] for years.
+</div>
+</p>
+
+<p>
+As detailed in a <a
+href="https://schneid.io/blog/event-stream-vulnerability-explained/">blog
+post</a> by Zach Schneider, who plucked various pieces out of the
+voluminous GitHub bug report thread, the attack that was inserted by the
+new maintainer, "right9ctrl", was clever.  The <a
+href="https://github.com/dominictarr/event-stream/commits/master">commit
+log</a> of changes right9ctrl made to 
+event-stream was 
+fairly innocuous; even the <a
+href="https://github.com/dominictarr/event-stream/commit/e3163361fed01384c986b9b4c18feb1fc42b8285">commit</a>
+that added the malware was simply adding a new dependency on another npm
+module: flatmap-stream.
+</p>
+
+<p>
+  Had anyone
+looked, flatmap-stream might have seemed a bit of an odd dependency: it had
+one contributor and no downloads prior to its inclusion.  Its contents
+might seem reasonable at first glance, but there is a tangled chain of
+malware contained there.
+</p>
+
+<p>
+The flatmap-stream npm package had an extra file added into it that was not
+in the GitHub repository.  It also had "minified" code that read the
+AES256-encrypted 
+data stored in the file using the parent package's
+<tt>npm_package_description</tt> as the key.  For all except one npm
+package, that decryption would fail (and be ignored) but, for the victim
+package, it 
+resulted in JavaScript code that would be executed.  That code does a
+decryption of a different chunk of the "extra" file that results in the
+payload code, which, naturally, gets 
+executed.    
+</p>
+
+<p>
+As determined by brute-forcing the key from a list of all the npm package
+descriptions, the victim package was <a
+href="https://www.npmjs.com/package/copay-dash">copay-dash</a>, which is a
+"<q>secure bitcoin wallet platform</q>" from a company called <a
+href="https://copay.io/">Copay</a>.  Given the presence of the word
+"bitcoin", one can probably guess what the malware ultimately targeted.  It
+would send account information to the attacker, who would, presumably, use
+it to abscond with the Bitcoin.
+
+<p>
+The dependency on flatmap-stream only lasted a little over ten days before
+it was <a 
+href="https://github.com/dominictarr/event-stream/commit/908fee5c65d4eb02809a84a1ebc3e5df1f935cd1">replaced</a>
+with a non-malware implementation of a "flat map" in event-stream itself.
+The <a 
+href="https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident">npm
+blog post</a> about the incident says that it was the Copay build process
+that was being subverted:
+<div class="BigQuote">
+The injected code targets the Copay application. When a developer at Copay
+runs one of their release build scripts, the resulting code is modified
+before being bundled into the application. The code was designed to harvest
+account details and private keys from accounts having a balance of more
+than 100 Bitcoin or 1000 Bitcoin Cash. 
+<p>
+Copay's initial response was that that no builds containing this malicious
+code were released to the public, but we now have confirmation from Copay
+that "the malicious code was deployed on versions 5.0.2 through 5.1.0."
+</div>
+</p>
+
+<p>
+As Schneider noted, the JavaScript-development community is particularly
+vulnerable to this kind of problem:
+<div class="BigQuote">
+JavaScript also has relatively few standard-library convenience features
+compared to other languages, which encourages developers to import them
+from npm packages instead — this, along with other cultural factors, means
+that JavaScript projects tend to have massive dependency trees.
+</div>
+</p>
+
+<p>
+He goes on to note JavaScript applications tend to be fast moving:
+"<q>its users install a lot of packages and updates, and are thus
+vulnerable to malicious updates</q>". On the other hand,
+problems can also occur from <i>not</i> updating frequently enough, he said,
+pointing to the Equifax breach.  He suggested two ways to avoid this kind of
+thing in the future: locking the version number of dependencies to "known
+good" versions and paying attention to the dependencies a project is
+adding.  
+</p>
+
+<p>
+We have seen other related mayhem in the npm world before.  Back in 2016, a
+developer <a href="/Articles/681410/">deleting a simple left-pad npm
+module</a> "broke the internet" because so much of the rest of the npm
+ecosystem relied on it to pad strings.
+
+<p>
+But the problem is not at all restricted to
+npm or JavaScript.  Other languages have similar problems with their
+non-curated package repositories.  <a
+href="/Articles/694830/">Typosquatting</a> is a related problem that has
+occurred with some frequency as well.
+Beyond that, it is not even just a
+problem for languages; as Dirk Hohndel <a href="/Articles/752982/">pointed
+out</a> in a talk back in May, today's containers are built up from many
+constituent parts gathered from all over the internet.  Most of the
+container creators have no idea what is actually in them, what versions of
+code are being used, and so on.  Docker and similar technologies are also part
+of the "move fast" school of development.
+</p>
+
+<p>
+Certainly there have been some failures even in curated repositories—humans
+are not infallible.  But curation and "move fast" tend not to play all that
+well together, which is why there is always such tension between the
+language-specific installation methods (e.g. npm, pip) and a distribution's
+package-management system.  Users often just want the latest and greatest;
+they are not willing to wait for a distribution to get around to packaging
+it.  That may be reasonable for a personal desktop or laptop—there are
+obvious risks (e.g. Bitcoin wallets) but 
+they may be considered manageable—but the public release or deployment of a web
+application or component seems like it warrants a higher level of scrutiny.
+</p>
+
+<p>
+Beyond more scrutiny, which is surely something that development teams
+should be doing no matter whether it slows things down, package
+maintenance is an area that clearly needs to be addressed.  Tarr created
+a package that was useful to some, but apparently got no help in
+maintaining it.  Once he had shared it, the left-pad fiasco shows there is
+no real way to "unshare" it, but he lost interest in maintaining it.  In
+his <a
+href="https://gist.github.com/dominictarr/9fd9c1024c94592bc7268d36b8d83b3a">statement</a>
+about the event-stream malware, Tarr noted that the problem is widespread:
+<div class="BigQuote">
+Hey everyone - this is not just a one off thing, there are likely to be
+<i>many</i> other modules in your dependency trees that are now a burden to
+their 
+authors. I didn't create this code for altruistic motivations, I created it
+for <i>fun</i>. I was learning, and learning is fun. I gave it away because
+it was 
+easy to do so, and because sharing helps learning too. I think most of the
+small modules on npm were created for reasons like this.
+</div>
+</p>
+
+<p>
+He continued by noting that sharing commit and publish rights was a
+longstanding npm-community practice. "<q>Open source is driven by
+sharing! It's great! it worked really well before bitcoin got
+popular.</q>"  He suggested that people should either be paying maintainers
+of the packages they use or step up to help maintain packages they depend on.
+</p>
+
+<p>
+Once again, this is not in any way an "npm problem".  The explosion of
+availability of open-source software has not really been met with a
+concomitant increase in the number of maintainers.  There are, it seems, a
+lot of companies and others that are <i>using</i> open source without truly
+considering what that means.  Even large projects like the Linux kernel
+suffer from a dearth of maintainers in some areas and events like <a
+href="/Articles/593809/">Heartbleed</a> exposed the maintenance problem for
+critical internet infrastructure like OpenSSL.  Heartbleed led to the
+founding of the <a href="https://www.coreinfrastructure.org/">Core
+Infrastructure Initiative</a>, but it is hard to see that kind of effort
+being extended down to the "leaves"—fixing it really requires users to step up.
+</p><br clear="all"><table class="IndexEntries">
+           <tr><th colspan=2>Index entries for this article</th></tr>
+           <tr><td><a href="/Security/Index/">Security</a></td><td><a href="/Security/Index/#Backdoors">Backdoors</a></td></tr>
+            <tr><td><a href="/Security/Index/">Security</a></td><td><a href="/Security/Index/#Package_repositories">Package repositories</a></td></tr>
+            </table><br clear="all">
+<hr width="60%%" align="left">
+            <form action="/Login/" method="post">
+            <input type="hidden" name="target" value="/Articles/773121/" />
+            <input type="submit" name="login" value="Log in" /> to post comments
+            <p>
+        <p><a name="Comments"></a>
+<a name="CommAnchor773230"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 1:50 UTC (Thu)
+                               by <b>Cyberax</b> (<b>&#x272D; supporter &#x272D;</b>, #52523)
+                              [<a href="/Articles/773230/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Ah, I'm glad to see that people are starting to left-pad their wallets: <a href="https://hackernoon.com/im-harvesting-credit-card-numbers-and-passwords-from-your-site-here-s-how-9a8cb347c5b5">https://hackernoon.com/im-harvesting-credit-card-numbers-...</a><br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773230/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+<a name="CommAnchor773250"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 9:57 UTC (Thu)
+                               by <b>mjthayer</b> (guest, #39183)
+                              [<a href="/Articles/773250/">Link</a>] (12 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Somehow this problem feels like Robin to the Batman of statically bundling dependencies.  In the end though I think it boils down to more or less the same thing: once you add a dependency, you are responsible for that dependency.  Including if you are a user depending on someone else's software.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773250/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773261"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 11:47 UTC (Thu)
+                               by <b>mjthayer</b> (guest, #39183)
+                              [<a href="/Articles/773261/">Link</a>] (1 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+I wonder whether there would be a market for people doing basic security audits for this sort (NPM) of open source software, one-time or running, for individuals.  Particularly if they had enough customers for there to be some overlap.  Perhaps security will end up being what is needed to give private users to pay for free software.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773261/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773383"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 10:35 UTC (Fri)
+                               by <b>Lennie</b> (subscriber, #49641)
+                              [<a href="/Articles/773383/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Well, there are big companies using NPM, like Wallmart on their own online website and webshop.<br>
+<p>
+My guess is they would also use penetration testers, so why not someone who checks dependent packages.<br>
+<p>
+Now I do think it would be better to pool the effort. By having big companies pay for a package version to be checked and then have that registered somewhere on the NPM website which version was checked by whom.<br>
+<p>
+Also think maybe minified code should somehow be blocked in NPM packages ? Or at least discouraged, possibly flagged.<br>
+<p>
+Or maybe packages should have a grade after it has been checked with code analysis tools. Maybe that could be a start.<br>
+<p>
+So there are at least some things that can be done.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773383/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+</details>
+<a name="CommAnchor773269"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 12:39 UTC (Thu)
+                               by <b>excors</b> (subscriber, #95769)
+                              [<a href="/Articles/773269/">Link</a>] (9 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+It's not really feasible for a small developer to take responsibility for the code in all their dependencies. Especially if you count Node.js, V8, GCC, Linux, etc, as part of the dependency tree for your application - but even the pure JS dependencies are likely to be too much.<br>
+<p>
+Unless you only make tiny projects where you can read and understand every line of code that runs on the CPU, you inevitably have to put trust in other groups to provide safe software that you can build on.<br>
+<p>
+I suspect the cost of trusting a group is fairly constant, regardless of the size of the group - it's a similar risk whether it's one guy writing a 350-line event-stream module or a large team of dozens of developers from Google or Apache or wherever providing a million-line framework. A large team has more people who could turn out to be malicious; but it also has internal code review and maybe external security audits, and its members may be paid a salary so they don't need to resort to crime, and the members are probably not anonymous so they can't easily escape punishment for their actions. The risk is not zero, but it's not hundreds of times higher than for the small single-developer module.<br>
+<p>
+If the cost per dependency is roughly constant, you ought to prefer a small number of large dependencies over a large number of small dependencies. But the JS community (and some others) seem to take completely the opposite approach. If a module developer wants a basic feature, they could write it themselves or at least copy a code fragment from Stack Overflow into their module - but the culture is that they should depend on a tiny third-party module that provides that feature. And that tiny module probably depends on another tiny module from another developer. They see the value of code reuse, but appear to completely ignore that it comes with the cost of trusting more groups of developers, and small modules don't provide enough value to justify that cost.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773269/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773275"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 13:57 UTC (Thu)
+                               by <b>chris.sykes</b> (guest, #54374)
+                              [<a href="/Articles/773275/">Link</a>] (1 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; If the cost per dependency is roughly constant, you ought to prefer a small number of large dependencies over a large number of small dependencies.</font><br>
+<p>
+This hits the nail squarely on the head IMO.  A hardware analogy would be the selection of components and vetting of suppliers/manufacturers for a PCB design.  Every unique component and supplier has both an up-front development, and on-going maintenance cost.<br>
+<p>
+I was recently shocked to find over 450 dependencies in 'node_modules' after running 'npm install' while following a tutorial for a popular web framework!<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773275/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773368"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 1:23 UTC (Fri)
+                               by <b>excors</b> (subscriber, #95769)
+                              [<a href="/Articles/773368/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      450 sounded impressive until I found <a href="http://npm.broofa.com/?q=copay-dash">this tool</a> which says copay-dash has 1277 dependencies from 378 maintainers. And I think that's only the runtime dependencies, not the 'dev dependencies' that are needed for building and testing.
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773368/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+</details>
+<a name="CommAnchor773300"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 14:51 UTC (Thu)
+                               by <b>martin.langhoff</b> (subscriber, #61417)
+                              [<a href="/Articles/773300/">Link</a>] (5 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; If the cost per dependency is roughly constant, you ought to prefer a small number of large dependencies over a large number of small dependencies.</font><br>
+<p>
+Yes, a thousand times. A large standard library that is consistent in its API and is well-maintained is the established pattern for most languages. Trusting hundreds of mini-libraries and their maintainers is fraught with risk.<br>
+<p>
+I can't wait for the NPM world to move towards a small number of "batteries included" libraries. <br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773300/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773372"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 3:26 UTC (Fri)
+                               by <b>roc</b> (subscriber, #30627)
+                              [<a href="/Articles/773372/">Link</a>] (4 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Large standard libraries are an established pattern partly because in many languages, including C, C++ and Python, external dependencies are extremely painful to manage even if you ignore the trust issues. I don't know of any language which said "we've got great library package management, but what we really need is a large standard library". Large standard libraries bring problems: unnecessary coupling of release cycles, unnecessary coupling of governance, fat distributions, maintenance burden of legacy features.<br>
+<p>
+We can have small standard libraries and tackle the package management, trust and consistency issues directly. It would be no more difficult to attach machine readable trust labels to packages than to combine them into a standard library.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773372/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773386"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 10:49 UTC (Fri)
+                               by <b>smcv</b> (subscriber, #53363)
+                              [<a href="/Articles/773386/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; I don't know of any language which said "we've got great library package management, but what we really need is a large standard library".</font><br>
+<p>
+Perl?<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773386/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+<a name="CommAnchor773394"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 11:31 UTC (Fri)
+                               by <b>niner</b> (guest, #26151)
+                              [<a href="/Articles/773394/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Well Perl 6 includes many, many basic features in the language itself. From parsing with grammars to trivial handling of command line arguments to mathematical functions to date handling to set theory to OS independent path handling all balanced to complement each other. At the same time it has excellent package management for libraries including being able to not just install multiple versions of a library on the same system but even loading them into the same program (if really absolutely necessary).<br>
+<p>
+It has learned from Perl 5 where all of the functionality mentioned is available in some module on CPAN but due to the lack of standard types, there are incompatibilities because module Foo handles DateTime objects while module Bar deals with Date::Manip::Date.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773394/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+<a name="CommAnchor773395"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 12:31 UTC (Fri)
+                               by <b>excors</b> (subscriber, #95769)
+                              [<a href="/Articles/773395/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; We can have small standard libraries and tackle the package management, trust and consistency issues directly. It would be no more difficult to attach machine readable trust labels to packages than to combine them into a standard library.</font><br>
+<p>
+How would trust labels help? It seems to me like the important issue is a social problem, not a technical problem. And arguably the technical problems actually help solve the social problem.<br>
+<p>
+With C++, there are groups who take responsibility for large swathes of code - I could write a reasonable-sized application using libc, libstdc++, Qt, Boost, and not much else. For each of those groups, I can look at what processes they have for ensuring code quality, I can look at their track record and reputation, I know where to report serious problems and can expect a timely response, I can read the news to find out if they become dysfunctional or change ownership, etc. That's feasible since there's only a few. I can't do that if I've got dependencies from hundreds of independent sources.<br>
+<p>
+I agree those large projects exist partly because of C++'s technical deficiencies - I've used libraries from Boost not because they're the best but just because I don't want the hassle of adding a new dependency into the build system and packaging scripts. Library authors try to get into Boost because they know lazy people like me will be more likely to use their library - the incentive is exposure and popularity. But the side effects are that they go through Boost's design review process with a bunch of smart people, they are held to Boost's standards for documentation and testing, other Boost members will take over maintenance if they're abandoned, etc. Similar incentives and side effects apply to the C++ standard library.<br>
+<p>
+Without C++'s technical limitations forcing that kind of conglomeration, how else can we get those positive side effects? If you solve the packaging problem so that it's just as easy to use a random untrustworthy GitHub user's smart pointer library as it is to use Boost.SmartPtr, what incentive is there for anyone to use or contribute to a project like Boost, and how could such a project ever get off the ground? And without projects like Boost that maintain certain standards across a large amount of code, how we can trust the code we rely on?<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773395/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+<a name="CommAnchor773412"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 17:26 UTC (Fri)
+                               by <b>jezuch</b> (subscriber, #52988)
+                              [<a href="/Articles/773412/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; I don't know of any language which said "we've got great library package management, but what we really need is a large standard library"</font><br>
+<p>
+Case in point: it took I think close to a decade to untangle the large monolithic standard library of Java (which was ostensibly already split into different packages) into separate modules which can be independently included or excluded.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773412/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+</details>
+</details>
+<a name="CommAnchor773316"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 16:18 UTC (Thu)
+                               by <b>hkario</b> (subscriber, #94864)
+                              [<a href="/Articles/773316/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; It's not really feasible for a small developer to take responsibility for the code in all their dependencies. Especially if you count Node.js, V8, GCC, Linux, etc, as part of the dependency tree for your application - but even the pure JS dependencies are likely to be too much.</font><br>
+<p>
+you don't have to verify every piece of the puzzle, you can delegate that to other people (distribution providers), but they need to be different people that wrote and released the software in the first place<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773316/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+</details>
+</details>
+<a name="CommAnchor773254"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 10:53 UTC (Thu)
+                               by <b>federico3</b> (guest, #101963)
+                              [<a href="/Articles/773254/">Link</a>] (2 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+<font class="QuotedText">&gt; Once again, this is not in any way an "npm problem".</font><br>
+<p>
+This is clearly a problem in the javascript community. It's well known for encouraging cowboy deployments into production, using npm.<br>
+<p>
+Many other languages, including Python, can be deployed from Linux distribution. Distribution review, rebuild, test, bake-in and vet libraries and applications.<br>
+<p>
+javascript, and also languages that encourage static linking and dependency vendorization, are hostile to packaging.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773254/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773274"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 12:49 UTC (Thu)
+                               by <b>hkario</b> (subscriber, #94864)
+                              [<a href="/Articles/773274/">Link</a>] (1 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+it's a problem in most of the interpreted and "web" languages, where the dependencies have specific versions info baked in them (Python, Ruby) or straight up inclusion of the whole tree (Go)<br>
+<p>
+but then it's necessary because the concept of backwards compatibility is foreign to many of the same people<br>
+<p>
+they've ignored lessons learned over half a century of software development so they are still having the same problems all over again<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773274/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773295"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">Go...</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 29, 2018 14:14 UTC (Thu)
+                               by <b>Herve5</b> (guest, #115399)
+                              [<a href="/Articles/773295/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+What you just say about Go strikes the average end-user I am.<br>
+I have been following the development of an outbound-request-filtering utility named OpenSnitch (<a href="https://www.opensnitch.io/">https://www.opensnitch.io/</a>) which indeed imposes so much tree cloning that even me, the ignorant, was worried.<br>
+Knowing that Opensnitch is something about safety turned things even worse. Now I really don't know if this really is the thing to do ;-)<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773295/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+</details>
+</details>
+<a name="CommAnchor773454"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Nov 30, 2018 20:39 UTC (Fri)
+                               by <b>gnu_lorien</b> (subscriber, #44036)
+                              [<a href="/Articles/773454/">Link</a>] (3 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+This seems a lot like the Ken Thompson hack brought into the modern era. right9ctrl essentially subverted the compiler for this application. This hack is just made easier by such a dynamic injection method. Presumably, for sufficiently security conscious systems, they should have been thinking about this threat model since 1974.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773454/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773518"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Dec 2, 2018 10:26 UTC (Sun)
+                               by <b>paulj</b> (subscriber, #341)
+                              [<a href="/Articles/773518/">Link</a>] (2 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Thompson noted in his paper that his attack applied to any program-handling program: <br>
+<p>
+"I could have picked on any program-handling program such as an assembler, a loader, or even hardware microcode".<br>
+<p>
+To conclude: <br>
+<p>
+"You can't trust code that you did not totally create yourself. … No amount of source-level verification or scrutiny will protect you from using untrusted code."<br>
+<p>
+That point seems fundamental, and no one has managed to disprove it.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773518/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773889"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Dec 5, 2018 0:49 UTC (Wed)
+                               by <b>david.a.wheeler</b> (subscriber, #72896)
+                              [<a href="/Articles/773889/">Link</a>] (1 responses)
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+The trusting trust attack does indeed have a countermeasure, namely diverse double compiling. Here is my dissertation which explains DDC:<br>
+<a href="https://dwheeler.com/trusting-trust/">https://dwheeler.com/trusting-trust/</a><br>
+<p>
+This means that you really can review the source code.<br>
+<p>
+<p>
+The problem, in this case, is that control of the source code was handed to someone who was not trustworthy, and there is no meaningful review of its source code before it is included in other systems. That is an important but different problem.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773889/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    <a name="CommAnchor773926"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Dec 5, 2018 10:00 UTC (Wed)
+                               by <b>paulj</b> (subscriber, #341)
+                              [<a href="/Articles/773926/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+You can try shift your trust, and diversify what you trust, yes. However, unless you really have built everything yourself from scratch, you will still be placing trust in other people and that they have not subverted your system, exactly as per Thompson's point.<br>
+<p>
+The DDC technique raises the bar for another Thompson to carry out Thompson's specific attack, but Thompson was making a more general and fundamental point: Trust is unavoidable, even with DDC.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773926/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+</details>
+</details>
+</details>
+<a name="CommAnchor773586"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Dec 3, 2018 8:28 UTC (Mon)
+                               by <b>Yui</b> (guest, #118557)
+                              [<a href="/Articles/773586/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Who could have guessed that user managed repositories are insecure?<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773586/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+<a name="CommAnchor773596"></a>
+    <details class="CommentBox" open>
+      <summary><h3 class="CommentTitle">event-stream, npm, and trust</h3>
+      <div class="AnnLine">
+      <p class="CommentPoster"> Posted Dec 3, 2018 11:00 UTC (Mon)
+                               by <b>LtWorf</b> (subscriber, #124958)
+                              [<a href="/Articles/773596/">Link</a>] 
+      </p>
+      
+      </div>
+      </summary>
+      <div class="FormattedComment">
+Lurking in js forums, they seem to think that using external dependencies is always good, because it saves you from reinventing the wheel.<br>
+<p>
+However, when the "wheel" is a 1 liner and when you first need to find said library, figure out its API, make sure that it actually works, check that the license is compatible with your project, and so on… Isn't it quicker to just write the one line you need?<br>
+<p>
+Moreover, I've seen npm modules ship example websites with huge images, include openssl header files, binary files, and generic various crap that should not be there.<br>
+</div>
+
+      
+          <div class="CommentReplyButton">
+            <form action="/Articles/773596/comment" method="post">
+            <input type="submit" value="Reply to this comment">
+            </form>
+          </div>
+        
+     <p>
+     
+    </details>
+
+</main></div> <!-- ArticleText -->
+</div> <!-- middlecolumn -->
+<div class="rightcol not-print">
+<ins data-revive-zoneid="12085" 
+data-revive-id="fa8c6c9da7f33852f7097c4a94da1070"></ins>
+<script async src="//servedby.aqua-adserver.com/asyncjs.php"></script>
+</div>
+</div> <!-- maincolumn -->
+
+            <br clear="all">
+            <center>
+            <P>
+            <span class="ReallySmall">
+            Copyright &copy; 2018, Eklektix, Inc.<BR>
+            This article may be redistributed under the terms of the
+              <a href="http://creativecommons.org/licenses/by-sa/4.0/">Creative
+              Commons CC BY-SA 4.0</a> license<br>
+            Comments and public postings are copyrighted by their creators.<br>
+            Linux  is a registered trademark of Linus Torvalds<br>
+            </span>
+            </center>
+            
+            </body></html>

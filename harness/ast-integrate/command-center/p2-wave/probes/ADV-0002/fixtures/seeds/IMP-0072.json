@@ -1,0 +1,174 @@
+{
+ "answer": "A JSONL registry event log records publish, yank, deprecate, revoke, and moderate actions. Each record stores prev_hash (predecessor digest, 64 zeros at seq=1) and record_hash (SHA-256 of the record with record_hash omitted, canonical JSON). The writer opens O_APPEND and refuses replace/overwrite/truncate. A single-field edit of seq=3 is detected and named. A full re-chain verifies clean \u2014 an unanchored chain cannot prove original authorship. SUCCESS:IMP-0072",
+ "artifacts": [
+  {
+   "bytes": 15613,
+   "exists": true,
+   "path": "tools/marketplace/event_chain.py",
+   "role": "implementation",
+   "sha256": "120371f194a563d0e52538969ab27e4728201f4b5300d82fd80f2a93492739c3"
+  },
+  {
+   "bytes": 1707,
+   "exists": true,
+   "path": "tools/marketplace/schema/registry-event.schema.json",
+   "role": "implementation",
+   "sha256": "5b14c48595d37542250b887561c4309a6bf07e666887fdc016339f3edb2eaf85"
+  },
+  {
+   "bytes": 5045,
+   "exists": true,
+   "path": "tools/marketplace/tests/test_event_chain.py",
+   "role": "implementation",
+   "sha256": "7a9f43b98878ea43b38ed0e41eea9674cb853aeec53216aae319af59fea64fc2"
+  },
+  {
+   "bytes": 3985,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0072/probe1_untampered_and_append_only.py",
+   "role": "implementation",
+   "sha256": "8f2b73c69e3bb1e0ac9730134bbbc65821502665fb55450f2b11717961fe7f0f"
+  },
+  {
+   "bytes": 4380,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0072/probe2_tamper_localise.py",
+   "role": "implementation",
+   "sha256": "f8278f6d8438082ad35c18b922091ae7ad2148aeb9a57c0625153f17188cb728"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0072",
+ "event_schema": "tools/marketplace/schema/registry-event.schema.json",
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/tests/test_event_chain.py::test_tamper_is_detected_and_localised",
+   "claim": "Chain verification PASSES over a genuine five-action log in the same run that a single-field middle-record edit FAILS verification and names seq=3 (deprecate).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0072/probe1_untampered_and_append_only.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"actions\": [\"deprecate\", \"moderate\", \"publish\", \"revoke\", \"yank\"], \"append_preserved_prefix\": true, \"genuine_verified\": true, \"pass\": true, \"probe\": \"probe1-untampered-and-append-only\", \"record_count\": 5, \"rewrite_refused\": [\"replace\", \"overwrite\", \"truncate\", \"rewrite_prefix\"], \"unit_id\": \"IMP-0072\"}\nrewrite_refused=replace,overwrite,truncate,rewrite_prefix genuine_ok=True\nSUCCESS:IMP-0072-probe1 genuine chain verifies; writer rejects rewrite",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0072/probe2_tamper_localise.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"control_genuine_ok\": true, \"honest_limit\": \"An unanchored hash chain cannot distinguish a fully re-chained rewrite from original history. Detection of silent retroactive edits holds only when hashes are left stale, or when an external anchor (signed head, independent replica, WORM media) commits the head digest.\", \"named_action\": \"deprecate\", \"named_package_id\": \"demo-pkg\", \"named_seq\": 3, \"pass\": true, \"probe\": \"probe2-tamper-localise-and-rechain-honesty\", \"rechain_detected\": false, \"rechain_verifies_clean\": true, \"tamper_detected\": true, \"unit_id\": \"IMP-0072\"}\ntamper_named_seq=3 action=deprecate rechain_detected=False control_ok=True\nSUCCESS:IMP-0072-probe2 tamper named at seq=3; re-chain residual disclosed",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/event_chain.py::EventLog.replace",
+   "claim": "A rewrite attempt (replace/overwrite/truncate/rewrite_prefix) is rejected by the writer and existing prefix bytes do not move.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0072/probe1_untampered_and_append_only.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"actions\": [\"deprecate\", \"moderate\", \"publish\", \"revoke\", \"yank\"], \"append_preserved_prefix\": true, \"genuine_verified\": true, \"pass\": true, \"probe\": \"probe1-untampered-and-append-only\", \"record_count\": 5, \"rewrite_refused\": [\"replace\", \"overwrite\", \"truncate\", \"rewrite_prefix\"], \"unit_id\": \"IMP-0072\"}\nrewrite_refused=replace,overwrite,truncate,rewrite_prefix genuine_ok=True\nSUCCESS:IMP-0072-probe1 genuine chain verifies; writer rejects rewrite",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0072",
+ "implementation": {
+  "event_chain": "tools/marketplace/event_chain.py",
+  "notes": "command-center/events/EVENTS.jsonl is CC-0007's work-unit log and is absent on this tree; IMP-0072 ships a dedicated registry event log rather than overloading that file.",
+  "schema": "tools/marketplace/schema/registry-event.schema.json"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0072/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0072/probe1_untampered_and_append_only.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"actions\": [\"deprecate\", \"moderate\", \"publish\", \"revoke\", \"yank\"], \"append_preserved_prefix\": true, \"genuine_verified\": true, \"pass\": true, \"probe\": \"probe1-untampered-and-append-only\", \"record_count\": 5, \"rewrite_refused\": [\"replace\", \"overwrite\", \"truncate\", \"rewrite_prefix\"], \"unit_id\": \"IMP-0072\"}\nrewrite_refused=replace,overwrite,truncate,rewrite_prefix genuine_ok=True\nSUCCESS:IMP-0072-probe1 genuine chain verifies; writer rejects rewrite"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0072/probe2_tamper_localise.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"control_genuine_ok\": true, \"honest_limit\": \"An unanchored hash chain cannot distinguish a fully re-chained rewrite from original history. Detection of silent retroactive edits holds only when hashes are left stale, or when an external anchor (signed head, independent replica, WORM media) commits the head digest.\", \"named_action\": \"deprecate\", \"named_package_id\": \"demo-pkg\", \"named_seq\": 3, \"pass\": true, \"probe\": \"probe2-tamper-localise-and-rechain-honesty\", \"rechain_detected\": false, \"rechain_verifies_clean\": true, \"tamper_detected\": true, \"unit_id\": \"IMP-0072\"}\ntamper_named_seq=3 action=deprecate rechain_detected=False control_ok=True\nSUCCESS:IMP-0072-probe2 tamper named at seq=3; re-chain residual disclosed"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "Untampered five-action log verifies clean in the same run as the middle-record edit (catalog negative control).",
+   "fired_on_bad_state": true,
+   "id": "untampered-verifies-clean",
+   "kind": "known-good-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Writer replace/overwrite/truncate/rewrite_prefix raise AppendOnlyViolation; prefix bytes unchanged.",
+   "fired_on_bad_state": true,
+   "id": "rewrite-rejected",
+   "kind": "writer-api-refusal",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_path": "command-center/receipts/IMP-0072.json",
+ "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/registry-event.schema.json",
+ "question_or_target": "Record every publish, yank, deprecate, revoke and moderation action as an append-only event whose hash chains to its predecessor, so a silent retroactive edit of registry history is detectable by recomputing the chain.",
+ "residual_unknowns": [
+  {
+   "claim": "An unanchored hash chain cannot distinguish a fully re-chained rewrite (edit plus recompute of every downstream hash) from original history.",
+   "settling_experiment": "Bind the head digest to an external anchor (signed checkpoint, independent replica, or WORM media) and re-run the re-chain forgery; detection requires the anchor, not the chain verifier alone.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 edited seq=3 payload.message then recomputed every downstream prev_hash and record_hash. verify_log returned ok=True. Nothing in this verifier detects that forgery. Stated honestly: an unanchored chain cannot prove original authorship or detect a complete rewrite of history.",
+  "requirement": "Reviewer must attempt a re-chained forgery (edit plus recompute all downstream hashes) and record whether anything detects it, stating honestly what an unanchored chain cannot prove.",
+  "reviewer_id": "IMP-0072-probe2-rechain-forgery",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0072",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0072",
+ "state": "SUCCESS",
+ "status": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_event_chain.py::test_tamper_is_detected_and_localised",
+   "id": "test_tamper_is_detected_and_localised",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_event_chain.py::test_rewrite_attempt_is_rejected_by_writer",
+   "id": "test_rewrite_attempt_is_rejected_by_writer",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_event_chain.py::test_rechain_forgery_verifies_clean_unanchored",
+   "id": "test_rechain_forgery_verifies_clean_unanchored",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_event_chain.py",
+   "exit_code": 0,
+   "id": "event-chain-suite",
+   "raw_output": "PASS test_tamper_is_detected_and_localised\nPASS test_rewrite_attempt_is_rejected_by_writer\nPASS test_rechain_forgery_verifies_clean_unanchored\nSUCCESS:event-chain 3/3",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:53:28+00:00"
+ },
+ "title": "Append-only hash-chained registry event log",
+ "unit_id": "IMP-0072"
+}

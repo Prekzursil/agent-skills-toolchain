@@ -1,0 +1,653 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "dual-tree-plumbing-mirror",
+  "name": "Dual-tree plumbing mirror - byte-exact, never merges",
+  "description": "Blueprint 91 of 96 (design BP-REL-05). Mirror blobs between two trees that must stay in sync using git PLUMBING only, so smudge/clean filters, EOL conversion and working-tree state cannot change the bytes. Mechanism: blob-hash identity. It writes ONLY where the target blob is unchanged relative to the last mirrored state; any path where BOTH sides changed is REPORTED for a real merge and never written. This is deliberately a subworkflow - it is the reusable deterministic primitive that live-to-repo-drift-reconcile calls, and it contains no agent judgement at all.",
+  "version": "1.0.0",
+  "kind": "subworkflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "git-plumbing",
+    "deterministic",
+    "mirror",
+    "eol"
+  ],
+  "flagship": false,
+  "params": {
+    "source_tree": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to the tree that is authoritative for the mirrored paths"
+    },
+    "target_tree": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE path to the tree receiving the mirror"
+    },
+    "path_map": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "source": {
+            "type": "string"
+          },
+          "target": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Explicit source->target path pairs. There is no glob expansion: an implicit path set is how a mirror acquires a path nobody agreed to."
+    },
+    "normalize_eol_before_compare": {
+      "type": "boolean",
+      "default": true,
+      "description": "Compare LF-normalised content so a CRLF-only difference is classified EOL-ONLY instead of drift. The WRITE is still byte-exact from the source blob."
+    },
+    "baseline_ref": {
+      "type": "string",
+      "default": "MIRROR_BASELINE",
+      "min_length": 1,
+      "description": "The ref (or note) recording the last mirrored blob per path. Without it, 'target unchanged' is unknowable and every one-sided change looks safe to overwrite."
+    }
+  },
+  "roles": {
+    "mirror-executor": {
+      "description": "Executes plumbing commands and compares hashes. It has no discretion: every decision is a hash comparison.",
+      "vendor": "any",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Bash:git",
+        "Write(command-center/mirror/**)"
+      ],
+      "write_paths": [
+        "command-center/mirror/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "merge-owner": {
+      "description": "Receives the divergent-path report. This workflow never merges; it hands the two-sided changes to whoever owns them.",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:git",
+      "Read",
+      "Write(command-center/mirror/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/mirror/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "gates": {
+    "plumbing-only": {
+      "predicate": "custom-expression",
+      "expression": "transport == PLUMBING AND working_tree_copy_used == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-two-sided-write": {
+      "predicate": "custom-expression",
+      "expression": "two_sided_changes_written == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "rehash-postcondition": {
+      "predicate": "custom-expression",
+      "expression": "mirrored_paths_rehash_match == mirrored_paths_written AND rehash_mismatches == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "classify-by-blob-hash",
+      "title": "Compare blob hashes, separating EOL-only from real drift",
+      "kind": "task",
+      "role": "mirror-executor",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-9101",
+        "title": "Hash both sides of every mapped path and classify identical / eol-only / source-ahead / target-ahead / two-sided",
+        "phase": "7",
+        "question_or_target": "For every pair in path_map read the SOURCE blob with `git cat-file -p <rev>:<path>` and the TARGET blob the same way, plus the baseline blob from baseline_ref. Classify into IDENTICAL, EOL-ONLY, SOURCE-AHEAD (target == baseline), TARGET-AHEAD (source == baseline), TWO-SIDED (neither equals baseline). Never use `git archive` - on this box it applies export-time EOL conversion and returns CRLF where cat-file returns LF.",
+        "inputs": [
+          "params.path_map",
+          "params.source_tree",
+          "params.target_tree",
+          "params.baseline_ref"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "none-mechanical",
+          "vendor": "any",
+          "role": "mirror-executor",
+          "basis": "byte comparison is answerable by an exact algorithm; handing it to agents measured 86% accurate with 100% of the errors pointing at data loss (fan-out-contract C4)"
+        },
+        "tool_permissions": [
+          "Bash:git",
+          "Write(command-center/mirror/**)"
+        ],
+        "execution_substrate": "local-parallel",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/mirror/blob-classification.json",
+        "output_schema": "command-center/schema/byte-parity-report.schema.json",
+        "evidence_requirement": "per path the three blob hashes (source, target, baseline) and the derived class; a class with no hashes behind it cannot be re-derived and is not evidence",
+        "tests_required": [
+          "a pair differing only in line endings must be classed EOL-ONLY, not drift",
+          "a pair where both sides differ from baseline must be classed TWO-SIDED",
+          "both-states control: a control fixture using `git archive` instead of `git cat-file` must produce a DIFFERENT byte count for the same path, proving the transport choice is load-bearing rather than stylistic"
+        ],
+        "reviewer_requirement": "none - the classification is a hash comparison and any reader can re-run it; the reviewer requirement attaches to the TWO-SIDED report, which a human merges",
+        "completion_sentinel": "SUCCESS:BPW-9101 emitted only when every mapped path carries three hashes and exactly one class; otherwise FAILED:BPW-9101 <reason>",
+        "retry_policy": "no retry on a classification mismatch - a hash that changes between two reads means the tree is being written concurrently, which is a FAILED terminal state, not a flake",
+        "failure_classification": [
+          "concurrent-write",
+          "missing-baseline",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/mirror/blob-classification.json",
+          "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9101",
+          "consumers": [
+            "mirror-source-ahead",
+            "report-divergent"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-plumbing",
+      "title": "A working-tree copy applies filters and changes bytes",
+      "kind": "gate",
+      "depends_on": [
+        "classify-by-blob-hash"
+      ],
+      "gate_ref": "plumbing-only"
+    },
+    {
+      "id": "mirror-source-ahead",
+      "title": "Write ONLY the paths where the target is still at baseline",
+      "kind": "fanout",
+      "depends_on": [
+        "gate-plumbing"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/mirror/blob-classification.json#/source_ahead",
+        "item_var": "path_pair",
+        "key_field": "target"
+      },
+      "max_concurrency": 16,
+      "arrival_stagger_ms": 0,
+      "max_items": 4096,
+      "on_item_failure": "quarantine",
+      "timeout_seconds": 3600,
+      "body": [
+        {
+          "id": "write-one-blob",
+          "kind": "task",
+          "role": "mirror-executor",
+          "timeout_seconds": 300,
+          "work_unit": {
+            "id": "BPW-9102",
+            "title": "Write one source blob into the target index by hash and re-read it",
+            "phase": "7",
+            "question_or_target": "For one SOURCE-AHEAD path: `git hash-object -w` the source blob into the target object store, `git update-index --cacheinfo` it at the target path, then read it back with `git cat-file -p` and assert the hash is identical to the source hash.",
+            "inputs": [
+              "command-center/mirror/blob-classification.json"
+            ],
+            "dependencies": [
+              "BPW-9101"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "none-mechanical",
+              "vendor": "any",
+              "role": "mirror-executor",
+              "basis": "a plumbing write plus a hash assertion"
+            },
+            "tool_permissions": [
+              "Bash:git",
+              "Write(command-center/mirror/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 300,
+            "output_path": "command-center/mirror/write-receipts.json",
+            "output_schema": "command-center/schema/matrix-cell-receipt.schema.json",
+            "evidence_requirement": "the pre-write source hash and the post-write re-read hash for this path, plus the literal plumbing command lines used",
+            "tests_required": [
+              "a write whose re-read hash differs must FAIL rather than report success",
+              "no working-tree checkout command may appear in the recorded command lines"
+            ],
+            "reviewer_requirement": "none - the re-read hash is the reviewer; a mismatch is a hard failure",
+            "completion_sentinel": "SUCCESS:BPW-9102 emitted only when the post-write re-read hash equals the source hash; otherwise FAILED:BPW-9102 <reason>",
+            "retry_policy": "one retry only if the failure class is object-store-lock; never retry a hash mismatch, which means the bytes changed in transit",
+            "failure_classification": [
+              "hash-mismatch",
+              "object-store-lock",
+              "concurrent-write"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "fail",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "gate-rehash",
+      "title": "A mirror that did not re-hash did not verify anything",
+      "kind": "gate",
+      "depends_on": [
+        "mirror-source-ahead"
+      ],
+      "gate_ref": "rehash-postcondition"
+    },
+    {
+      "id": "report-divergent",
+      "title": "Two-sided changes are reported, never written",
+      "kind": "task",
+      "role": "mirror-executor",
+      "depends_on": [
+        "gate-rehash"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPW-9103",
+        "title": "Emit the divergent-path report for the paths this workflow refuses to touch",
+        "phase": "7",
+        "question_or_target": "List every TWO-SIDED and TARGET-AHEAD path with both sides' hashes and a one-line description of what each side uniquely holds, and state explicitly that none of them were written. Name the owner who must merge them.",
+        "inputs": [
+          "command-center/mirror/blob-classification.json",
+          "command-center/mirror/write-receipts.json"
+        ],
+        "dependencies": [
+          "BPW-9101",
+          "BPW-9102"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "mirror-executor",
+          "basis": "the CLASSIFICATION is mechanical, but describing what each side uniquely holds is exactly the judgement a differ cannot do - so only that description is modelled"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:git",
+          "Write(command-center/mirror/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/mirror/divergent-paths.json",
+        "output_schema": "command-center/schema/divergence-report.schema.json",
+        "evidence_requirement": "per divergent path both hashes plus the specific lines each side holds uniquely; a bare 'both changed' verdict does not tell the merger what is at stake",
+        "tests_required": [
+          "a TWO-SIDED path must appear in this report AND be absent from the write receipts - the two artifacts together are the proof that nothing was overwritten",
+          "both-states control: a one-directional check that only asks 'does the source have extra content' must be shown to MISS a two-sided case that the bidirectional check catches"
+        ],
+        "reviewer_requirement": "the named merge owner reads it; this workflow does not resolve divergence and must not claim to",
+        "completion_sentinel": "SUCCESS:BPW-9103 emitted only when every non-mirrored path is enumerated with both hashes and the write receipts contain none of them; otherwise FAILED:BPW-9103 <reason>",
+        "retry_policy": "no retry - the report is derived from artifacts already on disk, so a failure means an artifact is missing",
+        "failure_classification": [
+          "missing-input",
+          "overclaim",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/mirror/divergent-paths.json",
+          "schema_ref": "command-center/schema/divergence-report.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9103",
+          "consumers": [
+            "merge-owner",
+            "live-to-repo-drift-reconcile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-no-two-sided-write",
+      "title": "Prove nothing two-sided was written",
+      "kind": "gate",
+      "depends_on": [
+        "report-divergent"
+      ],
+      "gate_ref": "no-two-sided-write"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-mapped-paths-resolved",
+      "expression": "unclassified_paths == 0 AND rehash_mismatches == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "baseline_present == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "baseline-missing",
+      "expression": "baseline_present == false",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": [
+      "object-store-lock"
+    ],
+    "no_retry_on": [
+      "hash-mismatch",
+      "concurrent-write",
+      "missing-baseline"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "hash-mismatch",
+      "concurrent-write",
+      "missing-baseline"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "merge-owner",
+    "quarantine_path": "command-center/quarantine/dual-tree-mirror"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/dual-tree-mirror",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 3600,
+    "on_stale": "restart"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 0,
+    "journal_path": "command-center/replay/dual-tree-mirror.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "store": "command-center/cache/dual-tree-mirror",
+    "ttl_seconds": 3600,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "baseline-ref-moved",
+      "path-map-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "artifact-diff",
+      "estimate"
+    ],
+    "plan_artifact": "command-center/dry-run/dual-tree-mirror-plan.json",
+    "forbid_tools": [
+      "Bash:git",
+      "Write(command-center/mirror/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-05 - a prior measurement over the skill vault found 19+ files whose only difference was line endings, i.e. a large false-drift category that EOL normalisation removes",
+    "cost": {
+      "currency": "USD",
+      "min": 0,
+      "expected": 0.05,
+      "max": 0.4
+    },
+    "wallclock_seconds": {
+      "min": 5,
+      "expected": 90,
+      "max": 900
+    },
+    "tokens": {
+      "min": 0,
+      "expected": 8000,
+      "max": 60000
+    },
+    "tool_calls": {
+      "min": 4,
+      "expected": 60,
+      "max": 800
+    },
+    "impact": {
+      "risk": "medium",
+      "reversibility": "reversible",
+      "blast_radius": "writes blobs into the target object store and index for SOURCE-AHEAD paths only; every write records the pre-write hash, so each is individually revertible",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/dual-tree-mirror.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-REL-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "tools/d001-dual-write",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "owner - the filter-safe plumbing-only applier"
+      },
+      {
+        "source": "rules/common/windows-shell.md#8b",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - `git archive` returns CRLF here while `git cat-file` returns the blob"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/d001-dual-write@current"
+    ]
+  },
+  "outputs": {
+    "parity": {
+      "path": "command-center/mirror/blob-classification.json",
+      "schema_ref": "command-center/schema/byte-parity-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "live-to-repo-drift-reconcile",
+        "merge-owner"
+      ]
+    },
+    "divergent": {
+      "path": "command-center/mirror/divergent-paths.json",
+      "schema_ref": "command-center/schema/divergence-report.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": [
+        "merge-owner"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 91,
+      "of": 96,
+      "design_card": "BP-REL-05",
+      "design_family": "D17-release",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "ADOPT-WITH-WRAPPER",
+      "flagship": false
+    },
+    "mechanism": "blob-hash identity against a recorded baseline. Five classes, one write rule: write ONLY where target == baseline. It has no merge capability by construction, which is what makes it safe to call from another workflow.",
+    "not_a_duplicate_because": {
+      "vs_live-to-repo-drift-reconcile": "that workflow DISTRUSTS a specific sync tool and gates on a both-states control before it will run at all, then routes CHANGED files to a human two-directional merge. This one has no tool to distrust and no merge path: it CALLS OUT rather than merges. The reconcile workflow declares this document in its subworkflows block and delegates the deterministic half to it, so the classification logic exists once, not twice.",
+      "vs_anchor-checked-per-file-deploy": "that writes into a target that is KNOWN to be divergent, using a content anchor as the precondition and a symbol assertion as the postcondition. This refuses to write a divergent target at all."
+    },
+    "contraindications": [
+      "NOT when the two trees SHOULD diverge",
+      "NOT as a substitute for a merge when both sides changed - that is precisely the case it refuses"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "eol-only-is-not-drift",
+        "given": "the same content stored CRLF on one side and LF on the other",
+        "expect": "class EOL-ONLY, and the write is still byte-exact from the source blob"
+      },
+      {
+        "id": "two-sided-never-written",
+        "given": "a path where source and target both differ from baseline",
+        "expect": "present in divergent-paths.json, absent from write-receipts.json"
+      },
+      {
+        "id": "archive-vs-catfile-control",
+        "given": "one file read via `git archive` and via `git cat-file` on this box",
+        "expect": "a byte-count DIFFERENCE, proving the transport is load-bearing (measured: 3,837 vs 3,737 bytes, 100 CRLF vs 0)"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "mirror-a-skill-vault-projection",
+        "params": {
+          "source_tree": "C:/Users/Prekzursil/source/agent-skills-toolchain",
+          "target_tree": "C:/Users/Prekzursil/source/agent-skills-toolchain/ci/harness",
+          "path_map": [
+            {
+              "source": "hooks/_shared/completion.py",
+              "target": "ci/harness/hooks/_shared/completion.py"
+            },
+            {
+              "source": "rules/common/windows-shell.md",
+              "target": "ci/harness/rules/common/windows-shell.md"
+            },
+            {
+              "source": "hooks/git-hygiene/check.py",
+              "target": "ci/harness/hooks/git-hygiene/check.py"
+            }
+          ],
+          "normalize_eol_before_compare": true,
+          "baseline_ref": "MIRROR_BASELINE"
+        },
+        "classification": {
+          "IDENTICAL": [
+            "ci/harness/rules/common/windows-shell.md"
+          ],
+          "EOL_ONLY": [
+            "ci/harness/hooks/_shared/completion.py"
+          ],
+          "SOURCE_AHEAD": [],
+          "TARGET_AHEAD": [],
+          "TWO_SIDED": [
+            "ci/harness/hooks/git-hygiene/check.py"
+          ]
+        },
+        "written": [],
+        "reported_for_merge": [
+          "ci/harness/hooks/git-hygiene/check.py"
+        ],
+        "terminal_state": "SUCCESS:BPW-9103 - 0 writes, 1 path reported for merge, 1 EOL-only reclassified out of drift",
+        "note": "Zero writes is a SUCCESS here. The value delivered is that one file was correctly withheld from an overwrite and one false-drift entry was removed - which is the outcome the design predicts, not a no-op."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "The EOL-only category size on this estate is UNVERIFIED at 19+ files - that figure comes from a prior measurement quoted in the design card, not from a run of this workflow. Settling experiment = run stage classify-by-blob-hash over the full skill-vault path map and count EOL-ONLY against real drift."
+    ]
+  }
+}

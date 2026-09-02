@@ -1,0 +1,35 @@
+{
+  "fusion_id": "fx-singular",
+  "kind": "fused_workflow_ir",
+  "sources": [
+    {"id": "wf-src-a", "capabilities": ["ingest", "transform"]},
+    {"id": "wf-src-b", "capabilities": ["emit"]}
+  ],
+  "capabilities": ["ingest", "transform", "emit"],
+  "declared": {
+    "schedulers": [{"id": "sched-primary"}],
+    "state_stores": [{"id": "store-primary", "snapshot": "snap-ok"}],
+    "execution_order_owners": [{"id": "sched-primary"}]
+  },
+  "components": [
+    {
+      "id": "sched-primary",
+      "role": "scheduler",
+      "owns_execution_order": true
+    },
+    {"id": "store-primary", "role": "state_store"},
+    {
+      "id": "helper-map",
+      "role": "parallel_helper",
+      "owns_execution_order": false
+    }
+  ],
+  "runtime_script": [
+    {"process": "sched-primary", "op": "run_loop"},
+    {"process": "sched-primary", "op": "schedule_step", "target": "step-ingest"},
+    {"process": "helper-map", "op": "compute", "target": "shard-0"},
+    {"process": "helper-map", "op": "compute", "target": "shard-1"},
+    {"process": "helper-map", "op": "map_item", "target": "shard-2"},
+    {"process": "store-primary", "op": "commit_state", "target": "store-primary"}
+  ]
+}

@@ -1,0 +1,3 @@
+- HexStrike AI repo: https://github.com/0x4m4/hexstrike-ai
+- HexStrike MCP config example: https://github.com/0x4m4/hexstrike-ai/blob/main/hexstrike-ai-mcp.json
+- metaswarm repo: https://github.com/dsifry/metaswarm

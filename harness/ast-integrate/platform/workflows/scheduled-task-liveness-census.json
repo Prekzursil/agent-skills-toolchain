@@ -1,0 +1,741 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "scheduled-task-liveness-census",
+  "name": "Scheduled-task liveness census - pair every task to an output oracle",
+  "description": "Blueprint 95 of 96 (design BP-MNT-04). Pair every scheduled task with an OUTPUT-FRESHNESS oracle, so a task that reads GREEN while producing nothing for weeks becomes visible. Mechanism: task state and output freshness are two INDEPENDENT signals and only their PAIRING is informative - neither alone is a verdict. Two decoding rules keep it from generating false alarms: a non-zero last-result code is not automatically a failure (a single-instance refusal is a designed steady state), and machine power-off windows are subtracted before an output is called stale. A task with NO oracle is a gap to fix, not a pass.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "scheduled-tasks",
+    "oracle-pairing",
+    "liveness",
+    "green-but-dead"
+  ],
+  "flagship": true,
+  "params": {
+    "task_source": {
+      "type": "enum",
+      "enum": [
+        "windows-scheduled-tasks",
+        "cron",
+        "systemd-timers",
+        "explicit-list"
+      ],
+      "default": "windows-scheduled-tasks",
+      "description": "Where the task list comes from. Named explicitly because a census over the wrong scheduler silently returns a healthy empty set."
+    },
+    "output_oracles": {
+      "type": "array",
+      "min_items": 1,
+      "items": {
+        "type": "object",
+        "properties": {
+          "task": {
+            "type": "string"
+          },
+          "path": {
+            "type": "string"
+          },
+          "expected_cadence_seconds": {
+            "type": "integer",
+            "minimum": 60
+          },
+          "freshness_signal": {
+            "type": "string"
+          }
+        }
+      },
+      "description": "Per task: the artifact it should be producing, how often, and what counts as fresh (mtime, a growing byte count, a new row). A task absent from this list is reported NO-ORACLE."
+    },
+    "designed_nonzero_results": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 0,
+      "default": [],
+      "description": "Task names whose non-zero last-result code is their DESIGNED steady state - e.g. a single-instance supervisor refusing a second launch. These must be classified EXPECTED-REFUSAL, never FAILING."
+    },
+    "power_off_windows": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "from": {
+            "type": "string"
+          },
+          "to": {
+            "type": "string"
+          }
+        }
+      },
+      "min_items": 0,
+      "default": [],
+      "description": "Intervals the machine was off. Subtracted from output age before staleness is judged; without this the census raises a false alarm after every weekend."
+    },
+    "max_concurrency": {
+      "type": "integer",
+      "default": 10,
+      "minimum": 1,
+      "maximum": 64,
+      "description": "Tasks paired in parallel; the work is I/O-bound metadata reads"
+    }
+  },
+  "roles": {
+    "task-enumerator": {
+      "description": "Enumerates tasks from the declared scheduler and decodes each last-result code without assuming non-zero means failure",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Bash:pwsh",
+        "Write(command-center/census/**)"
+      ],
+      "write_paths": [
+        "command-center/census/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "freshness-oracle": {
+      "description": "Measures output freshness against the expected cadence, with power-off windows subtracted. Never reads task state - that is the other signal.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Bash:python",
+        "Write(command-center/census/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "pairing-adjudicator": {
+      "description": "Joins the two independent signals into one verdict, and is required to report NO-ORACLE rather than infer health from task state alone",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/census/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Glob",
+      "Bash:pwsh",
+      "Bash:python",
+      "Write(command-center/census/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "require_owner_approval": [
+      "Bash:pwsh"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/census/**"
+    ],
+    "forbid_write_paths": [
+      "C:/Windows/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == pairing-adjudicator",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "the pairing is the whole idea; the two measurements feeding it are mechanical"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "signals-are-independent": {
+      "predicate": "custom-expression",
+      "expression": "state_read_by_enumerator == true AND freshness_read_by_oracle == true AND oracle_read_task_state == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "result-codes-decoded": {
+      "predicate": "custom-expression",
+      "expression": "nonzero_results_classified == nonzero_results_found AND expected_refusals_not_counted_as_failing == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-oracle-is-a-gap": {
+      "predicate": "custom-expression",
+      "expression": "tasks_without_oracle_reported == true AND tasks_without_oracle_counted_as_healthy == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "enumerate-and-decode",
+      "title": "Enumerate tasks and DECODE each last-result code",
+      "kind": "task",
+      "role": "task-enumerator",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-9501",
+        "title": "Enumerate every scheduled task and decode its state and last-result code",
+        "phase": "10",
+        "question_or_target": "Enumerate tasks from the declared scheduler and record, per task: enabled state, last run time, and the last-result code with its DECODED meaning. Do not assume non-zero means failure - check the code against designed_nonzero_results first and record which rule applied.",
+        "inputs": [
+          "params.task_source",
+          "params.designed_nonzero_results"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "task-enumerator",
+          "basis": "decoding a result code against a designed-refusal list is the step that stops this census generating false failures"
+        },
+        "tool_permissions": [
+          "Bash:pwsh",
+          "Read",
+          "Write(command-center/census/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/census/task-states.json",
+        "output_schema": "command-center/schema/scheduler-report.schema.json",
+        "evidence_requirement": "per task the raw state fields as the scheduler reported them plus the decoded meaning and the rule that produced it; a decoded verdict with no raw code cannot be re-checked",
+        "tests_required": [
+          "a task listed in designed_nonzero_results with a non-zero code must decode to EXPECTED-REFUSAL, not FAILING",
+          "a task with a non-zero code NOT on that list must decode to FAILING",
+          "both-states control: the same decoder must produce different verdicts for those two inputs - a decoder that returns one answer for both is not decoding"
+        ],
+        "reviewer_requirement": "the pairing adjudicator reads only the raw plus decoded fields, never the enumerator's summary of task health",
+        "completion_sentinel": "SUCCESS:BPW-9501 emitted only when every task carries its raw state and a decoded result with the rule named; otherwise FAILED:BPW-9501 <reason>",
+        "retry_policy": "one retry if the scheduler API is unavailable; a second failure means the census is INCOMPLETE and must say so explicitly rather than reporting the tasks it managed to read as the whole set",
+        "failure_classification": [
+          "scheduler-api-unavailable",
+          "result-code-undecoded",
+          "census-incomplete"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/census/task-states.json",
+          "schema_ref": "command-center/schema/scheduler-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9501",
+          "consumers": [
+            "pair-and-classify",
+            "gate-result-codes"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-result-codes",
+      "title": "A designed refusal is not a failure",
+      "kind": "gate",
+      "depends_on": [
+        "enumerate-and-decode"
+      ],
+      "gate_ref": "result-codes-decoded"
+    },
+    {
+      "id": "measure-freshness",
+      "title": "Output freshness, with power-off windows subtracted",
+      "kind": "fanout",
+      "depends_on": [
+        "gate-result-codes"
+      ],
+      "over": {
+        "source": "param",
+        "ref": "output_oracles",
+        "item_var": "oracle",
+        "key_field": "task"
+      },
+      "max_concurrency": 10,
+      "arrival_stagger_ms": 50,
+      "max_items": 500,
+      "on_item_failure": "continue",
+      "timeout_seconds": 3600,
+      "body": [
+        {
+          "id": "measure-one-oracle",
+          "kind": "task",
+          "role": "freshness-oracle",
+          "timeout_seconds": 300,
+          "work_unit": {
+            "id": "BPW-9502",
+            "title": "Measure one task's output freshness against its expected cadence",
+            "phase": "10",
+            "question_or_target": "Measure the declared freshness signal for one task's output and compute its age with the declared power_off_windows subtracted. Compare against expected_cadence_seconds. Do NOT read the task's state - that is the other signal and reading it here would collapse two signals into one.",
+            "inputs": [
+              "params.output_oracles",
+              "params.power_off_windows"
+            ],
+            "dependencies": [
+              "BPW-9501"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "freshness-oracle",
+              "basis": "mechanical measurement; the judgement is in the pairing stage"
+            },
+            "tool_permissions": [
+              "Read",
+              "Glob",
+              "Bash:python",
+              "Write(command-center/census/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 300,
+            "output_path": "command-center/census/output-freshness.json",
+            "output_schema": "command-center/schema/health-report.schema.json",
+            "evidence_requirement": "the freshness signal read, its raw value, the raw age, the subtracted power-off seconds, and the adjusted age against the cadence",
+            "tests_required": [
+              "a stale output whose staleness is entirely explained by a power-off window must NOT be reported stale",
+              "an output that does not exist at all must be reported ABSENT, distinct from stale - an absent artifact and an old one are different findings",
+              "no task-state field may appear in this artifact - the signals must stay separable"
+            ],
+            "reviewer_requirement": "none for the measurement; the pairing adjudicator is the reviewer of its meaning",
+            "completion_sentinel": "SUCCESS:BPW-9502 emitted only when raw age, subtracted window and adjusted age are all recorded for this task; otherwise FAILED:BPW-9502 <reason>",
+            "retry_policy": "no retry - a filesystem metadata read that fails twice is an access problem, and the honest output is ABSENT with the reason",
+            "failure_classification": [
+              "oracle-path-absent",
+              "cadence-undeclared",
+              "detector-failure"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "deadline",
+        "deadline_seconds": 3600,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "gate-independence",
+      "title": "Two signals, measured separately",
+      "kind": "gate",
+      "depends_on": [
+        "measure-freshness"
+      ],
+      "gate_ref": "signals-are-independent"
+    },
+    {
+      "id": "pair-and-classify",
+      "title": "The pairing is the verdict - neither signal alone is one",
+      "kind": "task",
+      "role": "pairing-adjudicator",
+      "depends_on": [
+        "gate-independence"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPW-9503",
+        "title": "Join task state with output freshness and classify every task",
+        "phase": "10",
+        "question_or_target": "Join the two artifacts and classify each task: HEALTHY (state fine AND output fresh), GREEN-BUT-DEAD (state fine AND output stale or absent), EXPECTED-REFUSAL (designed non-zero result), FAILING (undesigned non-zero result), NO-ORACLE (no output declared - unmonitorable by construction). Flag NO-ORACLE tasks as a gap to fix, never as a pass.",
+        "inputs": [
+          "command-center/census/task-states.json",
+          "command-center/census/output-freshness.json"
+        ],
+        "dependencies": [
+          "BPW-9501",
+          "BPW-9502"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "pairing-adjudicator",
+          "basis": "cross-examining: it exists to refuse the single-signal verdict either measurement would license on its own"
+        },
+        "tool_permissions": [
+          "Read",
+          "Write(command-center/census/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/census/liveness-census.json",
+        "output_schema": "command-center/schema/oracle-strength-census.schema.json",
+        "evidence_requirement": "per task both signals with their sources and the joined verdict; plus the NO-ORACLE count as a standalone field, because that number is the real finding of a first run",
+        "tests_required": [
+          "a task whose state reads fine and whose output is 19 days stale must be GREEN-BUT-DEAD, not HEALTHY",
+          "a task with no declared oracle must be NO-ORACLE and must not be counted in the healthy total",
+          "both-states control: a task that is genuinely healthy must be classified HEALTHY - a classifier that never returns HEALTHY is alarming, not measuring"
+        ],
+        "reviewer_requirement": "one independent reader who re-derives two verdicts from the two source artifacts without reading this one",
+        "completion_sentinel": "SUCCESS:BPW-9503 emitted only when every enumerated task carries one of the five verdicts and the NO-ORACLE count is a standalone field; otherwise FAILED:BPW-9503 <reason>",
+        "retry_policy": "no retry - the join is deterministic over two artifacts on disk",
+        "failure_classification": [
+          "single-signal-verdict",
+          "no-oracle-counted-healthy",
+          "missing-input"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/census/liveness-census.json",
+          "schema_ref": "command-center/schema/oracle-strength-census.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-9503",
+          "consumers": [
+            "owner",
+            "gate-no-oracle"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-no-oracle",
+      "title": "A task with no oracle is a gap, not a pass",
+      "kind": "gate",
+      "depends_on": [
+        "pair-and-classify"
+      ],
+      "gate_ref": "no-oracle-is-a-gap"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "every-task-classified",
+      "expression": "tasks_classified == tasks_enumerated",
+      "applies_to": "workflow",
+      "minimum_conditions": "census_complete == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "green-but-dead-found",
+      "expression": "green_but_dead > 0",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "census-incomplete",
+      "expression": "census_complete == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 15,
+    "jitter": true,
+    "retry_on": [
+      "scheduler-api-unavailable"
+    ],
+    "no_retry_on": [
+      "single-signal-verdict",
+      "no-oracle-counted-healthy",
+      "result-code-undecoded"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "scheduler-api-unavailable",
+      "census-incomplete",
+      "single-signal-verdict",
+      "oracle-path-absent"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/liveness-census"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/liveness-census",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "item_key"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "restart"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/liveness-census.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "timings"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "estimate"
+    ],
+    "plan_artifact": "command-center/dry-run/liveness-census-plan.json",
+    "forbid_tools": [
+      "Bash:pwsh",
+      "Bash:python",
+      "Write(command-center/census/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-04 failure class 6 - a scheduled task read GREEN while its feed was dead for weeks (the recall-index case), and a supervisor task whose non-zero result code is its designed single-instance refusal",
+    "cost": {
+      "currency": "USD",
+      "min": 0.05,
+      "expected": 0.6,
+      "max": 3.0
+    },
+    "wallclock_seconds": {
+      "min": 60,
+      "expected": 600,
+      "max": 3600
+    },
+    "tokens": {
+      "min": 8000,
+      "expected": 70000,
+      "max": 350000
+    },
+    "tool_calls": {
+      "min": 6,
+      "expected": 45,
+      "max": 250
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over scheduler metadata and output mtimes; writes only under command-center/census/**. It never enables, disables or triggers a task.",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/liveness-census.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-MNT-04",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/bash-hud-and-terminal-emit.md#3",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner - stall detection from mtimes alone is impossible; the only honest mtime signal is 'wrote recently', so a verdict needs a second signal"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "reading the scheduler's own task list with no oracle pairing"
+    ]
+  },
+  "outputs": {
+    "census": {
+      "path": "command-center/census/liveness-census.json",
+      "schema_ref": "command-center/schema/oracle-strength-census.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-9503",
+      "consumers": [
+        "owner",
+        "firing-path-revalidation"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 95,
+      "of": 96,
+      "design_card": "BP-MNT-04",
+      "design_family": "D18-maintenance",
+      "spec_category": "engineering-and-reliability",
+      "acquisition_route": "BUILD-NEW",
+      "flagship": true
+    },
+    "mechanism": "two INDEPENDENT signals per task - declarative scheduler state and output freshness - measured by different roles that are forbidden from reading each other's field, then joined into a five-way verdict. Two false-alarm suppressors are first-class: designed non-zero results and power-off window subtraction. NO-ORACLE is its own verdict because an unmonitorable task is a gap, not a pass.",
+    "not_a_duplicate_because": {
+      "vs_firing-path-revalidation": "that TRIGGERS a path and looks for a side effect, then compares against its own previous scorecard. This one cannot trigger anything - a scheduled task's cadence IS the subject - so it pairs a declarative state with an artifact's age instead. Trigger-and-observe vs state-times-freshness.",
+      "vs_detector-truncation-audit": "that compares two counts of one population; this pairs two different KINDS of signal about one task. Both are two-signal designs and neither is a rename of the other.",
+      "vs_the_dead-feed-recovery_workflow": "a recovery workflow REPAIRS one dead feed reactively; this is a periodic census whose most valuable output on a first run is the count of tasks that have no oracle at all."
+    },
+    "contraindications": [
+      "NOT for one-shot tasks - they have no cadence to be stale against",
+      "NOT for tasks with no observable output - fix that first, and this census names them so it can be fixed"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "designed-refusal",
+        "given": "the supervisor task whose non-zero code is a single-instance refusal",
+        "expect": "EXPECTED-REFUSAL, not FAILING"
+      },
+      {
+        "id": "green-but-dead",
+        "given": "a task whose state reads fine and whose output is 19 days old with no power-off window to explain it",
+        "expect": "GREEN-BUT-DEAD"
+      },
+      {
+        "id": "weekend-not-an-alarm",
+        "given": "a daily task whose output is 60 hours old across a 48-hour power-off window",
+        "expect": "HEALTHY - the adjusted age is 12 hours"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "weekly-estate-census",
+        "params": {
+          "task_source": "windows-scheduled-tasks",
+          "output_oracles": [
+            {
+              "task": "MCPAgentMailSupervisor",
+              "path": "command-center/census/observed/agent-mail-health.json",
+              "expected_cadence_seconds": 600,
+              "freshness_signal": "mtime"
+            },
+            {
+              "task": "RecallIndexRebuild",
+              "path": "command-center/census/observed/recall-index.sqlite",
+              "expected_cadence_seconds": 86400,
+              "freshness_signal": "mtime"
+            },
+            {
+              "task": "MCP-Orphan-Reaper",
+              "path": "command-center/census/observed/reaper.log",
+              "expected_cadence_seconds": 1800,
+              "freshness_signal": "growing-byte-count"
+            }
+          ],
+          "designed_nonzero_results": [
+            "MCPAgentMailSupervisor"
+          ],
+          "power_off_windows": [
+            {
+              "from": "2026-08-08T22:00:00Z",
+              "to": "2026-08-09T08:00:00Z"
+            }
+          ],
+          "max_concurrency": 10
+        },
+        "census": [
+          {
+            "task": "MCPAgentMailSupervisor",
+            "state": "Ready",
+            "last_result_raw": "0x800710E0",
+            "decoded": "single-instance refusal - designed",
+            "output_adjusted_age_seconds": 240,
+            "verdict": "EXPECTED-REFUSAL"
+          },
+          {
+            "task": "RecallIndexRebuild",
+            "state": "Ready",
+            "last_result_raw": "0x0",
+            "decoded": "success",
+            "output_adjusted_age_seconds": 1601000,
+            "verdict": "GREEN-BUT-DEAD"
+          },
+          {
+            "task": "MCP-Orphan-Reaper",
+            "state": "Running",
+            "last_result_raw": "0x41301",
+            "decoded": "currently running",
+            "output_adjusted_age_seconds": 900,
+            "verdict": "HEALTHY"
+          },
+          {
+            "task": "WeeklyDriftAudit",
+            "state": "Ready",
+            "last_result_raw": "0x0",
+            "decoded": "success",
+            "output_adjusted_age_seconds": null,
+            "verdict": "NO-ORACLE"
+          }
+        ],
+        "no_oracle_count": 1,
+        "terminal_state": "SUCCESS:BPW-9503 with escalation - 1 GREEN-BUT-DEAD, 1 NO-ORACLE, 1 EXPECTED-REFUSAL correctly not counted as failing",
+        "note": "Three of the four rows would be misread by a single-signal reading. State alone calls all four Ready-and-successful tasks healthy; freshness alone calls the supervisor's frequent writes healthy while flagging the reaper mid-run. Only the pairing separates them - and the fourth row exists only because the census refuses to omit a task it cannot monitor."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "The NO-ORACLE count on this estate is UNVERIFIED and is the real finding of a first run - no number here is measured. Settling experiment = run the census and count tasks with no declared oracle.",
+      "Power-off windows are supplied as a PARAM rather than measured from the system event log. That keeps the workflow replayable (no clock, no event-log dependency) but means a wrong window silently changes a staleness verdict. Settling experiment = cross-check one declared window against System event IDs 6005/6006 and confirm the adjusted age matches."
+    ]
+  }
+}

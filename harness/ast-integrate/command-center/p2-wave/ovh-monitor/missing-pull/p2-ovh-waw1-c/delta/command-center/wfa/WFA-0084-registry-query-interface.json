@@ -1,0 +1,191 @@
+{
+  "unit_id": "WFA-0084",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:WFA-0084",
+  "completion_sentinel": "SUCCESS:WFA-0084",
+  "schema_version": 1,
+  "record_type": "HandoffContract",
+  "title": "Registry query interface for disposition, family, mechanism, licence, task and fusibility",
+  "question": "Implementation target: a typed query interface - by disposition, family, mechanism, licence class, task class and fusibility - so downstream phases consume the registry through a stable contract instead of re-parsing four JSON files each with its own conventions.",
+  "catalog_output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/HandoffContract",
+  "schema_pack_present": true,
+  "captured_at": "2026-08-25T00:44:27Z",
+  "cloud_ok": false,
+  "interface": {
+    "version": "1.0.0",
+    "schema_fingerprint": "11fde232c377042a8f3d4a2f71dc8ea2160601cebee77038b4b527debd6b1665",
+    "module": "command-center/p2-wave/probes/WFA-0084/query.py",
+    "query_method": "RegistryQueryInterface.query(query_type, selector)",
+    "empty_result_status": "EMPTY",
+    "error_ids_are_null": true
+  },
+  "query_types": [
+    "disposition",
+    "family",
+    "mechanism",
+    "licence_class",
+    "task_class",
+    "fusibility"
+  ],
+  "producers": [
+    {
+      "id": "registry",
+      "path": "command-center/wfa/WFA-0078-candidate-registry-v2.json",
+      "present": false,
+      "role": "four-emitted-graphs"
+    },
+    {
+      "id": "provenance",
+      "path": "command-center/wfa/WFA-0079-provenance-license-graph-v2.json",
+      "present": false,
+      "role": "four-emitted-graphs"
+    },
+    {
+      "id": "components",
+      "path": "command-center/wfa/WFA-0080-semantic-component-graph.json",
+      "present": false,
+      "role": "four-emitted-graphs"
+    },
+    {
+      "id": "compat",
+      "path": "command-center/wfa/WFA-0081-merge-compatibility-map-v2.json",
+      "present": false,
+      "role": "four-emitted-graphs"
+    },
+    {
+      "id": "fixture-corpus",
+      "path": "command-center/p2-wave/probes/WFA-0084/fixtures/",
+      "present": true,
+      "role": "contract-proof-corpus"
+    }
+  ],
+  "consumers": [
+    {
+      "id": "fusion-precondition-checker",
+      "driven_through": "RegistryQueryInterface.query",
+      "module": "command-center/p2-wave/probes/WFA-0084/fusion_precondition.py"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "id": "live-four-graphs-absent",
+      "statement": "WFA-0078/0079/0080/0081 live artifacts are absent on this worktree, so the contract is proven on a fixture corpus that reproduces the four file conventions. The interface is not yet bound to production v2 graphs.",
+      "settling_experiment": "Re-run probe1 and probe2 against the live v2 paths named in producers[] once those units exist on disk."
+    }
+  ],
+  "evidence": {
+    "signal_a": {
+      "name": "query-types-match-independent-expected-set",
+      "cases_matched": 31,
+      "empty_selectors": 6,
+      "independent_module": "command-center/p2-wave/probes/WFA-0084/expected.py",
+      "corpus_sha256": "58d0ac253c13a55f50df8c18e077e3fb1de72acf87505c849471f915afda29a7",
+      "corpus_id": "wfa-0084-fixture-v1"
+    },
+    "signal_b": {
+      "name": "fusion-precondition-via-interface-vs-direct-file-access",
+      "via_interface": [
+        "BP-A::BP-C",
+        "BP-A::BP-F",
+        "BP-B::BP-D",
+        "BP-C::BP-F",
+        "BP-D::BP-E"
+      ],
+      "via_direct": [
+        "BP-A::BP-C",
+        "BP-A::BP-F",
+        "BP-B::BP-D",
+        "BP-C::BP-F",
+        "BP-D::BP-E"
+      ],
+      "naive_compat": [
+        "BP-A::BP-B",
+        "BP-A::BP-C",
+        "BP-A::BP-F",
+        "BP-B::BP-D",
+        "BP-C::BP-F",
+        "BP-D::BP-E"
+      ],
+      "mutant_no_subtract": [
+        "BP-A::BP-B",
+        "BP-A::BP-C",
+        "BP-A::BP-F",
+        "BP-B::BP-D",
+        "BP-C::BP-F",
+        "BP-D::BP-E"
+      ],
+      "mutant_disagreed": true,
+      "conflict_subtracted": [
+        "BP-A::BP-B"
+      ]
+    }
+  },
+  "tests": [
+    {
+      "id": "empty-is-empty-not-error-zero",
+      "result": "PASS",
+      "detail": "6 selectors returned status=EMPTY ids=[] ok=True; unknown query type returned status=ERROR ids=null"
+    },
+    {
+      "id": "schema-change-without-version-bump",
+      "result": "PASS",
+      "detail": "schema-changed-without-version-bump"
+    },
+    {
+      "id": "results-carry-artifact-version",
+      "result": "PASS",
+      "detail": "58d0ac253c13a55f50df8c18e077e3fb1de72acf87505c849471f915afda29a7"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "WFA-0084-probe2-fusion-direct-vs-interface",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe2 re-runs the fusion precondition checker through the interface and compares it to expected.py's direct file walk. A skip-conflict mutant is required to disagree. Probe2 also re-runs the version lock both-states control."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "query-expected-sets",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0084/probe1_query_expected_sets.py"
+    },
+    {
+      "id": "probe2",
+      "role": "fusion-consumer-and-version",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0084/probe2_fusion_consumer_and_version.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/wfa/WFA-0084-registry-query-interface.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/WFA-0084/handoff-contract.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/WFA-0084/query.py",
+      "exists": true,
+      "role": "stable-interface"
+    }
+  ],
+  "scope": {
+    "proof_surface": "Fixture corpus of six blueprints across four deliberately divergent JSON conventions. Each query type matched an independent expected set. Fusion precondition checker driven only through the interface reproduced the direct-access fusible-pair set. Live v2 graphs were not present.",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "WFA-0078/0079/0080/0081 live graphs exist on this worktree",
+      "WFA-0001 schema pack was authored here",
+      "global unit_manifest.py --write was run",
+      "any merge has been executed"
+    ]
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "graph-engineer",
+    "execution_substrate": "linux-local"
+  }
+}

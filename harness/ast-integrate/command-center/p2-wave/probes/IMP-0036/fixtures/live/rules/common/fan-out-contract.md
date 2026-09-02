@@ -1,0 +1,27 @@
+# rules/common/fan-out-contract.md
+shared:rules/common/fan-out-contract.md
+live-unique:rules/common/fan-out-contract.md
+live-pad:rules/common/fan-out-contract.md:0
+live-pad:rules/common/fan-out-contract.md:1
+live-pad:rules/common/fan-out-contract.md:2
+live-pad:rules/common/fan-out-contract.md:3
+live-pad:rules/common/fan-out-contract.md:4
+live-pad:rules/common/fan-out-contract.md:5
+live-pad:rules/common/fan-out-contract.md:6
+live-pad:rules/common/fan-out-contract.md:7
+live-pad:rules/common/fan-out-contract.md:8
+live-pad:rules/common/fan-out-contract.md:9
+live-pad:rules/common/fan-out-contract.md:10
+live-pad:rules/common/fan-out-contract.md:11
+live-pad:rules/common/fan-out-contract.md:12
+live-pad:rules/common/fan-out-contract.md:13
+live-pad:rules/common/fan-out-contract.md:14
+live-pad:rules/common/fan-out-contract.md:15
+live-pad:rules/common/fan-out-contract.md:16
+live-pad:rules/common/fan-out-contract.md:17
+live-pad:rules/common/fan-out-contract.md:18
+live-pad:rules/common/fan-out-contract.md:19
+live-pad:rules/common/fan-out-contract.md:20
+live-pad:rules/common/fan-out-contract.md:21
+live-pad:rules/common/fan-out-contract.md:22
+live-pad:rules/common/fan-out-contract.md:23

@@ -1,0 +1,28 @@
+
+===== launch 2026-08-20T07:41:23Z attempt=1 =====
+I'll start from the existing ARC-0027 probe tree and the unit contract, then implement whatever is missing until the measure script reports delivered.The probe tree listing is huge; I’ll zoom in on ARC-0027 itself, a nearby delivered ARC unit, and the measure script.ARC-0027 has no probe tree yet. Next I’ll pull the catalog row and a delivered ARC unit so the new probes match the contract.The catalog row is a TOCTOU security review for A4. I’ll read the schema, existing A4 artifacts, and a delivered sibling so the receipt is honest.I’ll pull the receipt schema, the A4 roster notes, and any existing gateway/permission code so the review is grounded in this tree.I have the receipt shape. Next I’ll enumerate live activation entry points and copy a working pack/schema helper from a delivered unit.I have the contract and the live activation surface. Next I’ll add the scratch TOCTOU gateway, named probes, and the A4 security receipt.Path enum is matching parser-setup `if verb ==` branches as well as the real `_run` dispatch. I’ll restrict it to `_run` and require an exact count.ARC-0027 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0027` printed:
+
+`SUCCESS:delivered ARC-0027 predicate=delivered state=SUCCESS probes=4 raws=5 notes=gateway_toctou.py:0,probe_path_enum.py:0,probe_toctou_sequence.py:0,refute_activation_bypass.py:0`
+
+The probe tree did not exist, so it was created and implemented. First-run `predicate:absent` was not treated as a park.
+
+**Finding.** Lazy activation does open a permission TOCTOU gap if the decision is cached at index or selection. Declared permissions can change on disk between those points. The authoritative check has to re-read the live declaration and call `permissions.evaluate` immediately before materializing (activation time). Selection-time is not enough: an edit between select and activate still slips.
+
+**Evidence (scratch copy, live evaluator).** Sequence: index `fs:read:packages/**` → edit in a tempfile catalog to add `secrets:read:**` → activate.
+
+| Check epoch | After the edit |
+|---|---|
+| INDEX | slips — widened grant is materialized |
+| ACTIVATION | caught — refuse, effective grant empty |
+| SELECTION | catches a pre-select edit, slips a post-select edit |
+
+**Live surface.** 12 activation entry points listed with `file:line`. Plugin `_activate` (`lifecycle.py:446`) has zero `evaluate` calls. Marketplace gate 5 (`install.py:343`) evaluates at **install** time only. The proposed A4 gateway has 7 entry points; all go through `Gateway.activate`.
+
+**Artifacts.**
+- `command-center/phase3/A4/SECURITY.json` — `state=SUCCESS`, `report.kind=architecture-review`, 37418 bytes, schema 0 errors
+- `command-center/p2-wave/probes/ARC-0027/UNIT-ARTIFACT-MANIFEST.json` — live LF sha256 `bd2584a020f6c5df454dc0b3b44c3eab62d641eed3f5ead47433c350abd0287c`
+- `command-center/p2-wave/probes/ARC-0027/SUBAGENT-RETURN.json`
+
+Constraints kept: no git write, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok is not this delivery.

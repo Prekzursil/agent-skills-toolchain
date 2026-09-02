@@ -1,0 +1,685 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "tst.smallest-check-ladder",
+  "name": "Smallest-check ladder with deterministic test selection",
+  "description": "Run the smallest check that could still catch THIS change - L0 lint the edited file, L1 the impacted tests, L2 the full suite, L3 e2e - instead of everything or nothing, so a 'tests pass' claim is proportionate to the diff. Two constraints are load-bearing: selection is DETERMINISTIC (dependency graph or coverage map; never ML predictive selection), and any level expected to exceed the threshold runs under longrun with a heartbeat rather than as a blocking foreground call. A missing selector ESCALATES a level; it never skips one.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "testing",
+    "test-selection",
+    "ladder",
+    "proportionate-verification"
+  ],
+  "flagship": true,
+  "params": {
+    "diff_path": {
+      "type": "path",
+      "required": true,
+      "description": "The change whose blast radius decides the level"
+    },
+    "test_layout": {
+      "type": "enum",
+      "enum": [
+        "pytest",
+        "vitest",
+        "jest",
+        "mixed"
+      ],
+      "required": true,
+      "description": "Which runner and which deterministic selector are available"
+    },
+    "max_level": {
+      "type": "enum",
+      "enum": [
+        "L0",
+        "L1",
+        "L2",
+        "L3"
+      ],
+      "default": "L3",
+      "description": "Ceiling for escalation; below L3 the ceiling itself is a disclosed limitation"
+    },
+    "selector": {
+      "type": "enum",
+      "enum": [
+        "testmon",
+        "coverage-map",
+        "related",
+        "none"
+      ],
+      "default": "testmon",
+      "description": "Deterministic selectors only. 'none' forces escalation, it does not permit a skip"
+    },
+    "longrun_threshold_seconds": {
+      "type": "integer",
+      "default": 60,
+      "minimum": 10,
+      "maximum": 3600,
+      "description": "Above this a level must be wrapped in longrun with a heartbeat"
+    }
+  },
+  "roles": {
+    "blast-radius-classifier": {
+      "description": "Decides the lowest level that could still catch a break in this diff",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "level-runner": {
+      "description": "Executes one ladder level and records the selector it actually used",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "low",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:ruff",
+        "Bash:pytest",
+        "Bash:npx",
+        "Bash:longrun",
+        "Write(command-center/test/**)"
+      ],
+      "write_paths": [
+        "command-center/test/**"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:longrun",
+      "Bash:npx",
+      "Bash:pytest",
+      "Bash:ruff",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/test/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "Edit",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "write_paths": [
+      "command-center/test/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == BLAST_RADIUS_CLASSIFIER",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "under-classifying the blast radius is the failure mode that makes L1 a false green"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "deterministic-selection-only": {
+      "predicate": "custom-expression",
+      "expression": "selector_family == DETERMINISTIC AND ml_predictive_selection_used == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "longrun-wrapped": {
+      "predicate": "custom-expression",
+      "expression": "runs_over_threshold_wrapped_in_longrun == true AND blocking_foreground_call_used == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "escalate-not-skip": {
+      "predicate": "custom-expression",
+      "expression": "levels_skipped_due_to_missing_selector == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "level-is-sufficient": {
+      "predicate": "custom-expression",
+      "expression": "cross_cutting_change == false OR level_index >= 2",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "classify-blast-radius",
+      "title": "How far can this change break something?",
+      "kind": "task",
+      "role": "blast-radius-classifier",
+      "checkpoint": true,
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "QLT-5401",
+        "title": "Classify the diff's blast radius and name the lowest ladder level that could still catch a break",
+        "phase": "2B",
+        "question_or_target": "Decide the lowest sufficient level. A comment-only change is L0. A change to a widely-imported helper is CROSS-CUTTING and must start at L2 - staying at L1 there is the measured false-confidence case. Config-driven code counts as cross-cutting because a deterministic selector cannot see its dynamic dependencies.",
+        "inputs": [
+          "params.diff_path",
+          "params.test_layout",
+          "params.selector"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "blast-radius-classifier",
+          "basis": "the classification decides whether the whole run means anything"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 900,
+        "output_path": "command-center/test/qlt-54-blast-radius.json",
+        "output_schema": "command-center/schema/test-plan.schema.json",
+        "evidence_requirement": "the importer count for each changed symbol, cited by file:line, and an explicit cross-cutting boolean with the reason it was set",
+        "tests_required": [
+          "a change to a widely-imported helper must classify CROSS-CUTTING and force at least L2",
+          "both-states control: a comment-only change must classify L0, so the classifier is not simply always escalating"
+        ],
+        "reviewer_requirement": "the level-is-sufficient gate re-checks the cross-cutting flag against the level actually run",
+        "completion_sentinel": "SUCCESS:QLT-5401 emitted only when the plan names a level, a selector, a cross-cutting boolean and the importer evidence behind it; otherwise FAILED:QLT-5401 <reason>",
+        "retry_policy": "two strikes then pivot to classifying CROSS-CUTTING (fail safe upward, never downward)",
+        "failure_classification": [
+          "detector-failure",
+          "selector-unavailable"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "importer-graph reachability from the changed symbols to a ladder level"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-54-blast-radius.json",
+          "schema_ref": "command-center/schema/test-plan.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:QLT-5401",
+          "consumers": [
+            "deterministic-selection-only",
+            "run-ladder"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "deterministic-selection-only",
+      "title": "Deterministic selectors only - never ML predictive selection",
+      "kind": "gate",
+      "depends_on": [
+        "classify-blast-radius"
+      ],
+      "gate_ref": "deterministic-selection-only"
+    },
+    {
+      "id": "run-ladder",
+      "title": "Run the lowest sufficient level, escalating only on failure",
+      "kind": "loop",
+      "depends_on": [
+        "deterministic-selection-only"
+      ],
+      "loop_var": "ladder_step",
+      "body": [
+        {
+          "id": "run-one-level",
+          "kind": "task",
+          "role": "level-runner",
+          "tool_permissions": [
+            "Read",
+            "Grep",
+            "Glob",
+            "Bash:ruff",
+            "Bash:pytest",
+            "Bash:npx",
+            "Bash:longrun",
+            "Write(command-center/test/**)"
+          ],
+          "work_unit_ref": "CNF-0051",
+          "timeout_seconds": 5400,
+          "cache": {
+            "enabled": true,
+            "scope": "stage",
+            "key_from": [
+              "stage_id",
+              "inputs_hash",
+              "tool_versions"
+            ],
+            "store": "command-center/cache/qlt-54-levels",
+            "ttl_seconds": 3600,
+            "verify_integrity": true
+          }
+        }
+      ],
+      "convergence": {
+        "max_iterations": 4,
+        "min_iterations": 1,
+        "converged_when": "level_passed == true OR level_index >= 3",
+        "no_progress_rounds": 1,
+        "metrics": [
+          {
+            "name": "level_passed",
+            "direction": "stabilize"
+          },
+          {
+            "name": "level_index",
+            "direction": "increase",
+            "target": 3
+          }
+        ],
+        "on_no_convergence": "fail"
+      }
+    },
+    {
+      "id": "longrun-wrapped",
+      "title": "Anything over the threshold ran under longrun, not in the foreground",
+      "kind": "gate",
+      "depends_on": [
+        "run-ladder"
+      ],
+      "gate_ref": "longrun-wrapped"
+    },
+    {
+      "id": "escalate-not-skip",
+      "title": "A missing selector escalates a level; it never skips one",
+      "kind": "gate",
+      "depends_on": [
+        "longrun-wrapped"
+      ],
+      "gate_ref": "escalate-not-skip"
+    },
+    {
+      "id": "level-is-sufficient",
+      "title": "A cross-cutting change may not be certified by L1",
+      "kind": "gate",
+      "depends_on": [
+        "escalate-not-skip"
+      ],
+      "gate_ref": "level-is-sufficient"
+    },
+    {
+      "id": "emit-level-receipt",
+      "title": "Record WHICH level ran, with which selector, and what that does not cover",
+      "kind": "task",
+      "depends_on": [
+        "level-is-sufficient"
+      ],
+      "role": "level-runner",
+      "work_unit": {
+        "id": "QLT-5402",
+        "title": "Emit the ladder receipt naming the level run, the selector used and the residual coverage gap",
+        "phase": "2B",
+        "question_or_target": "Emit a receipt that makes the 'tests pass' claim readable: which level ran, which deterministic selector chose the set, how many tests it chose, and - INLINE - what that level does NOT cover, so a caller cannot read L1 green as a full-suite green.",
+        "inputs": [
+          "command-center/test/qlt-54-blast-radius.json",
+          "command-center/test/qlt-54-level-output.json"
+        ],
+        "dependencies": [
+          "QLT-5401"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "level-runner",
+          "basis": "the receipt is the anti-overclaim surface of this blueprint"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/test/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/test/qlt-54-level-receipt.json",
+        "output_schema": "command-center/schema/test-receipt.schema.json",
+        "evidence_requirement": "the runner's real exit code and selected-test count, plus the exact selector command line",
+        "tests_required": [
+          "an L1 receipt must carry a non-empty not-covered statement",
+          "both-states control: a receipt claiming full-suite coverage while level_index is 1 must be REJECTED"
+        ],
+        "reviewer_requirement": "the caller reads the receipt; no separate reviewer is required for a mechanical record",
+        "completion_sentinel": "SUCCESS:QLT-5402 emitted only when the receipt names the level, the selector, the selected-test count, the real exit code and an inline not-covered statement; otherwise FAILED:QLT-5402 <reason>",
+        "retry_policy": "two strikes then pivot to emitting the receipt as UNCERTIFIED with the runner output attached",
+        "failure_classification": [
+          "partial-artifact",
+          "overclaim"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "receipt assembly with an inline coverage-residual statement"
+      },
+      "produces": [
+        {
+          "path": "command-center/test/qlt-54-level-receipt.json",
+          "schema_ref": "command-center/schema/test-receipt.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "tst.diff-scoped-mutation-gate",
+            "tst.fail-first-red-proof-certification"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "level-passes-or-ceiling-fails",
+      "expression": "level_passed == true OR (level_index >= 3 AND level_result == FAIL)",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "levels_skipped_due_to_missing_selector == 0"
+    },
+    {
+      "id": "ceiling-below-l3-disclosed",
+      "expression": "max_level_below_l3 == true AND ceiling_disclosed_inline == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "emit-level-receipt"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "fail-fast",
+    "classify_as": [
+      "selector-unavailable",
+      "runner-flake",
+      "detector-failure"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "emit-level-receipt",
+    "quarantine_path": "command-center/quarantine/qlt-54"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/qlt-54",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260815,
+    "journal_path": "command-center/replay/qlt-54-ladder.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/qlt-54",
+    "ttl_seconds": 3600,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/qlt-54-plan.json",
+    "forbid_tools": [
+      "Bash:pytest",
+      "Bash:npx",
+      "Bash:longrun",
+      "Write(command-center/test/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.1,
+      "max": 0.8
+    },
+    "wallclock_seconds": {
+      "expected": 400,
+      "max": 5400
+    },
+    "tokens": {
+      "expected": 30000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "runs the project's own tests; writes a plan and a receipt under command-center/test/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/qlt-54-ladder.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-TST-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/smallest-check-ladder",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/verification-before-completion",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "AGENTS.md#4a-longrun",
+        "relation": "COMPOSE",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/smallest-check-ladder"
+    ]
+  },
+  "outputs": {
+    "level-receipt": {
+      "path": "command-center/test/qlt-54-level-receipt.json",
+      "schema_ref": "command-center/schema/test-receipt.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": [
+        "tst.fail-first-red-proof-certification"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-TST-01",
+    "card_index": 54,
+    "family": "D11-testing",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "test-selection",
+      "oracle": "deterministic-selector-plus-runner",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "level-escalation",
+      "output_type": "level-receipt",
+      "information_barrier": false
+    },
+    "mechanism": "Classify blast radius, then choose WHICH tests to run at the lowest sufficient level, escalating on failure. It decides test SELECTION; it never asks whether the selected tests are any good.",
+    "contraindications": [
+      "NOT a coverage-threshold gate - that stays with the project's .coverage-thresholds.json",
+      "NOT for authoring new tests",
+      "NOT for a cross-cutting change at L1: go straight to L2",
+      "NOT usable with an ML predictive selector - deterministic-selection-only is a hard gate"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "widely-imported-helper",
+        "setup": "a one-line change to a helper imported in 40 modules",
+        "expected": "classifier escalates to at least L2; staying at L1 fails the benchmark"
+      },
+      {
+        "name": "comment-only-change",
+        "setup": "a docstring edit",
+        "expected": "L0 suffices; escalating here means the classifier is not discriminating"
+      }
+    ],
+    "why_not_a_duplicate": "BP-TST-02 asks whether the tests would NOTICE a break; this asks which tests to RUN. Neither answers the other's question, and the mutation gate consumes this blueprint's impacted-test set as its input.",
+    "unverified": "UNVERIFIED (roughly-even) selector recall on this codebase; settling experiment = for ten diffs, compare L1's selected set against the set of tests that actually change status at L2. A selector that misses a status-changing test is a false green generator, and dynamic or config-driven dependencies are its known blind spot.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "a two-line change to wfdsl/expr.py, pytest layout, testmon available",
+      "params": {
+        "diff_path": "command-center/test/inbox/expr-tokenizer.diff",
+        "test_layout": "pytest",
+        "max_level": "L3",
+        "selector": "testmon",
+        "longrun_threshold_seconds": 60
+      },
+      "narrative": "expr.py is imported by semantics.py, validate.py and mutations.py, so the classifier set cross_cutting=true and forced L2. L2 took 111s, so it ran under longrun with a 15s heartbeat rather than a blocking foreground call. The receipt records level_index=2, selector=testmon, and states inline that e2e was not run.",
+      "context": {
+        "selector_family": "DETERMINISTIC",
+        "ml_predictive_selection_used": false,
+        "runs_over_threshold_wrapped_in_longrun": true,
+        "blocking_foreground_call_used": false,
+        "levels_skipped_due_to_missing_selector": 0,
+        "cross_cutting_change": true,
+        "level_index": 2,
+        "level_passed": true,
+        "level_result": "PASS",
+        "max_level_below_l3": false,
+        "ceiling_disclosed_inline": false,
+        "stage_role": "LEVEL_RUNNER"
+      },
+      "expected_gate_pass": [
+        "deterministic-selection-only",
+        "longrun-wrapped",
+        "escalate-not-skip",
+        "level-is-sufficient"
+      ],
+      "expected_stop": [
+        "level-passes-or-ceiling-fails"
+      ],
+      "negative_control": {
+        "gate": "level-is-sufficient",
+        "overrides": {
+          "cross_cutting_change": true,
+          "level_index": 1
+        },
+        "expected": false,
+        "why": "the measured false-confidence case: a cross-cutting change certified by an L1 run must not pass the gate"
+      }
+    }
+  }
+}

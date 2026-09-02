@@ -1,0 +1,92 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/ARC-0031/ledger.schema.json",
+  "title": "A5 append-only resumable work-unit ledger record",
+  "description": "Every record is an append. In-place edit is detected by recomputing sha256 over (prev_sha256 + canonical payload). Delivery is at-least-once plus idempotent units; the exclusive-execution mechanism is the CLAIM record's (dedupe_key, fencing_token, lease_until_ns) triple under fcntl.LOCK_EX compare-and-append, not an asserted exactly-once property.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "seq",
+    "type",
+    "prev_sha256",
+    "sha256",
+    "ts_ns"
+  ],
+  "properties": {
+    "seq": { "type": "integer", "minimum": 1 },
+    "type": {
+      "type": "string",
+      "enum": [
+        "ENQUEUE",
+        "ENQUEUE_DUP",
+        "CLAIM",
+        "CLAIM_DENIED",
+        "START",
+        "HEARTBEAT",
+        "COMPLETE",
+        "FAIL",
+        "TIMEOUT",
+        "SEVERED",
+        "BARRIER_WAIT",
+        "BARRIER_RELEASE",
+        "FANOUT",
+        "REDUCE"
+      ]
+    },
+    "prev_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+    "ts_ns": { "type": "integer", "minimum": 0 },
+    "unit_id": { "type": "string", "minLength": 1 },
+    "unit_type": { "type": "string" },
+    "substrate": {
+      "type": "string",
+      "enum": ["local", "worktree", "cloud"]
+    },
+    "idempotence_key": {
+      "type": "string",
+      "description": "Stable key for at-least-once replay. Same key must not produce a second side-effecting execution after SUCCEEDED."
+    },
+    "deps": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "claim_id": {
+      "type": "string",
+      "description": "Opaque id of one CLAIM attempt. Named exclusive-execution mechanism together with fencing_token and lease_until_ns."
+    },
+    "fencing_token": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "Monotonic per dedupe_key. A COMPLETE/FAIL whose fencing_token does not match the active CLAIM is ignored."
+    },
+    "lease_until_ns": {
+      "type": "integer",
+      "minimum": 0,
+      "description": "CLAIM is active until this monotonic-ish epoch ns. Expiry returns the unit to QUEUED."
+    },
+    "dispatcher_id": { "type": "string" },
+    "dedupe_key": {
+      "type": "string",
+      "description": "Exactly one live CLAIM per dedupe_key. Default equals unit_id. Named in this schema; not a prose guarantee."
+    },
+    "winner_seq": { "type": "integer" },
+    "reason": { "type": "string" },
+    "reducer": {
+      "type": "string",
+      "const": "command-center/p2-wave/probes/TST-0003/reducer.py:evaluate"
+    },
+    "reducer_verdict": { "type": "string" },
+    "failing_condition_id": { "type": ["integer", "null"] },
+    "artifact_sha256": { "type": "string" },
+    "barrier_id": { "type": "string" },
+    "fanout_id": { "type": "string" },
+    "child_unit_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "result": {
+      "type": "string",
+      "enum": ["WON", "LOST", "SKIP"]
+    }
+  }
+}

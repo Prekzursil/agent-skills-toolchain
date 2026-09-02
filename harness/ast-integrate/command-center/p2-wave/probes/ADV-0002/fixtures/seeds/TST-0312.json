@@ -1,0 +1,354 @@
+{
+ "answer": "A revert restores the measured baseline only when both signals agree: the re-run bench delta sits inside the fixture null-delta floor, and git diff vs the pre-change SHA is empty with no untracked residue. One signal alone is SINGLE_SIGNAL_REJECTED. Live B03/B08 records are ABSENT; those floors/records are fixture stand-ins, not claimed product-tree facts.",
+ "artifacts": [
+  {
+   "bytes": 14208,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0312/revert_restore.py",
+   "role": "implementation",
+   "sha256": "06467e38dcf70d0850c7ecffb6be34410fb74a1097abce493838cdc69e6cdcd6"
+  },
+  {
+   "bytes": 4403,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0312/probe1_both_signals.py",
+   "role": "named-probe",
+   "sha256": "df4c1af09832bce9fc063240c097375e87f0be325b0325c66dddc29600509ec9"
+  },
+  {
+   "bytes": 4164,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0312/probe2_residue_and_invert.py",
+   "role": "named-probe",
+   "sha256": "0c08c9c8761bfd8db178d92d1b11c697febdd6ee2a125ca522a0976f0689934a"
+  },
+  {
+   "bytes": 90,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0312/fixtures/kernel_baseline.py",
+   "role": "fixture",
+   "sha256": "b997aca4a7bf17e9c6576962d04a7b9d9f16f6a31c388f15e65cc9c3fc9c6dbf"
+  },
+  {
+   "bytes": 90,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0312/fixtures/kernel_changed.py",
+   "role": "fixture",
+   "sha256": "089be266333bb12e34db566e0305f8ffa8ab50125d69d10cfa7106b923ef46e7"
+  },
+  {
+   "bytes": 139,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0312/fixtures/cache_residue.json",
+   "role": "fixture",
+   "sha256": "c88ca602ff5844a171e9c9d67abff4fd3061db8303b7c30880a4816321ce015c"
+  },
+  {
+   "bytes": 2324,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/schema/test-receipt.schema.json",
+   "role": "supporting",
+   "sha256": "6098efc378d33d106c77dfeb798facf97883eb11d632513814527ccab2a1e74f"
+  }
+ ],
+ "both_signals": {
+  "benchmark_delta": 0.0,
+  "path_git_diff": [],
+  "pre_change_sha": "e078e0ab90639ab9b2c8176d49c97a3d7ca048b4",
+  "residue": [],
+  "variance_floor": 0.0,
+  "variance_floor_source": "fixture-null-delta n=10 (live B03 ABSENT)",
+  "verdict": "RESTORED"
+ },
+ "catalog_output_schema": "command-center/schema/receipt.schema.json",
+ "catalog_output_schema_present": false,
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0312",
+ "controls": {
+  "invertibility": {
+   "bad_state_output": "lossy=true would fail",
+   "description": "Materializing the recorded changed tree after a baseline revert returns WEIGHT=25 and the changed bytes.",
+   "fired_on_bad_state": true,
+   "good_state_output": "metric=25.0",
+   "id": "revert-of-revert",
+   "kind": "round-trip",
+   "silent_on_good_state": true
+  },
+  "residue_vs_bench_only": {
+   "bad_state_output": "[\".cache/score.json\"]",
+   "description": "Tracked checkout restores WEIGHT so the bench signal passes; untracked .cache/score.json keeps the path signal red. A bench-only gate would absorb the residue.",
+   "fired_on_bad_state": true,
+   "good_state_output": "clean restore residue=[]",
+   "id": "residue-not-absorbed",
+   "kind": "both-states-same-run",
+   "silent_on_good_state": true
+  },
+  "single_signal_conjunction": {
+   "bad_state_output": "bench_ok XOR path_ok -> SINGLE_SIGNAL_REJECTED",
+   "description": "Restore requires benchmark AND path. True/False and False/True are SINGLE_SIGNAL_REJECTED, not RESTORED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "both ok -> RESTORED",
+   "id": "single-signal-or-rejected",
+   "kind": "both-states-gate",
+   "silent_on_good_state": true
+  }
+ },
+ "evidence": [
+  {
+   "kind": "benchmark-delta",
+   "note": "After reverting WEIGHT 25->10 in an isolated git repo, delta=0.0 floor=0.0 verdict=RESTORED.",
+   "path": "command-center/p2-wave/probes/TST-0312/revert_restore.py",
+   "probe": {
+    "command": "python3 -B command-center/p2-wave/probes/TST-0312/revert_restore.py",
+    "exit_code": 0,
+    "fingerprint": "c25fa43d30be39fc25c8528afa388d8f",
+    "method": "command",
+    "raw_output": "{\"after\": \"RESTORED\", \"baseline_sha\": \"e078e0ab90639ab9b2c8176d49c97a3d7ca048b4\", \"delta\": 0.0, \"during\": \"NOT_RESTORED\", \"floor\": 0.0}",
+    "role": "source"
+   }
+  },
+  {
+   "kind": "path-diff",
+   "note": "pre_change_sha=e078e0ab90639ab9b2c8176d49c97a3d7ca048b4 git_diff=[] (isolated fixture repo, not the host worktree).",
+   "path": "command-center/p2-wave/probes/TST-0312/revert_restore.py"
+  },
+  {
+   "kind": "residue",
+   "note": "Tracked-only checkout leaves .cache/score.json; verdict=SINGLE_SIGNAL_REJECTED paths=['.cache/score.json'].",
+   "path": "command-center/p2-wave/probes/TST-0312/fixtures/cache_residue.json",
+   "probe": {
+    "command": "isolated git checkout tracked-only; inventory untracked .cache/",
+    "exit_code": 0,
+    "fingerprint": "becbc940632149ce89447efdfae999f3",
+    "method": "command",
+    "raw_output": "{\"detected_not_absorbed\": true, \"residue\": [\".cache/score.json\"], \"verdict\": \"SINGLE_SIGNAL_REJECTED\"}",
+    "role": "verifier"
+   }
+  },
+  {
+   "kind": "live-input-gap",
+   "note": "tools/bench/ exists as TST-0303 expiry, not a restore platform. B08 immutable baselines and the B03 floor record are ABSENT. Fixture floor and isolated git SHAs are the measured stand-in, not a claim those records exist.",
+   "path": "tools/bench/"
+  }
+ ],
+ "invertibility": {
+  "after_first_revert_restored": true,
+  "changed_metric": 25.0,
+  "first_revert_sha": "57c6ec267385dc280f2df993b2b2dfb7daca60f6",
+  "id": "revert-of-revert",
+  "lossy": false,
+  "metric_after_revert_of_revert": 25.0,
+  "pass": true,
+  "second_revert_sha": "824d709b469808d6ea1c4909f08d6a0c41da9cbe",
+  "tree_matches_changed_state": true
+ },
+ "live_inputs": {
+  "b03_variance_floor_record": {
+   "exists": false,
+   "note": "Live B03/TST-0297 floor ABSENT. This unit measures a fixture null-delta floor (deterministic kernel, floor=0).",
+   "path": "command-center/receipts/TST-0297.json"
+  },
+  "b08_immutable_baselines": {
+   "exists": false,
+   "note": "TST-0302 / B08 immutable baseline records ABSENT."
+  },
+  "tools_bench": {
+   "exists": true,
+   "files": [
+    "__init__.py",
+    "classify.py",
+    "expire.py",
+    "ledger.py",
+    "observe.py",
+    "oracles.py",
+    "ttl.py",
+    "ttl_table.json"
+   ],
+   "has_revert_or_baseline": false,
+   "note": "Directory present (TST-0303 live-result expiry). No baseline, revert, or variance symbols. Not B08 records and not a restore checker.",
+   "path": "tools/bench/"
+  },
+  "user_prompts": {
+   "exists": false,
+   "note": "Catalog cites :11135-11150. File ABSENT on this worktree; the unit question is taken from WORK-UNIT-CATALOG.json.",
+   "path": "_USER-PROMPTS.md"
+  }
+ },
+ "min_bytes_threshold": 2048,
+ "notes": "G-1 TST-0312: two-signal revert restore proven on an isolated git fixture. Host worktree was not mutated. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+ "output_path": "command-center/receipts/TST-0312.json",
+ "output_schema": "command-center/schema/test-receipt.schema.json",
+ "question": "Question: the loop at :11146 reverts when a change is neutral or harmful, but a revert that leaves residue is worse than no revert because the baseline silently drifts. After every revert, re-run the baseline benchmark and require the result to fall within the B03 variance floor of the pre-change baseline, and separately require the working tree to match the pre-change SHA on the affected paths.",
+ "report_kind": "test-receipt",
+ "residual_unknowns": [
+  {
+   "claim": "Live B08 immutable baseline records from TST-0302.",
+   "settling_experiment": "Re-run evaluate() against a real B08 record once TST-0302 writes one.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Live B03/TST-0297 variance floor on the product bench.",
+   "settling_experiment": "Replace fixture floor=0 with the published TST-0297 null-delta distribution when that receipt exists.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "_USER-PROMPTS.md:11135-11150 Phase 16 loop text.",
+   "settling_experiment": "Re-read those line numbers when _USER-PROMPTS.md is present; catalog question_or_target was used instead.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "residue_control": {
+  "after_tracked_checkout": {
+   "benchmark": {
+    "baseline": 10.0,
+    "current": 10.0,
+    "delta": 0.0,
+    "floor": 0.0,
+    "ok": true
+   },
+   "path": {
+    "content_changed": [],
+    "extra": [
+     ".cache/score.json"
+    ],
+    "git_diff_paths": [],
+    "missing": [],
+    "ok": false,
+    "pre_change_sha": "e078e0ab90639ab9b2c8176d49c97a3d7ca048b4",
+    "residue": [
+     ".cache/score.json"
+    ]
+   },
+   "restored": false,
+   "single_signal": true,
+   "verdict": "SINGLE_SIGNAL_REJECTED"
+  },
+  "bench_only_would_claim": "SINGLE_SIGNAL_REJECTED",
+  "cache_still_present": true,
+  "detected_not_absorbed": true,
+  "id": "residue-control",
+  "pass": true,
+  "residue_paths": [
+   ".cache/score.json"
+  ]
+ },
+ "restore_real_change": {
+  "after_revert": {
+   "benchmark": {
+    "baseline": 10.0,
+    "current": 10.0,
+    "delta": 0.0,
+    "floor": 0.0,
+    "ok": true
+   },
+   "path": {
+    "content_changed": [],
+    "extra": [],
+    "git_diff_paths": [],
+    "missing": [],
+    "ok": true,
+    "pre_change_sha": "e078e0ab90639ab9b2c8176d49c97a3d7ca048b4",
+    "residue": []
+   },
+   "restored": true,
+   "single_signal": false,
+   "verdict": "RESTORED"
+  },
+  "baseline_sha": "e078e0ab90639ab9b2c8176d49c97a3d7ca048b4",
+  "both_signals_agree_restored": true,
+  "changed_sha": "a964d7d600e69c383f8605015d2379519e038080",
+  "during_change": {
+   "benchmark_delta": 15.0,
+   "path_content_changed": [
+    "src/kernel.py"
+   ],
+   "path_extra": [],
+   "verdict": "NOT_RESTORED"
+  },
+  "id": "restore-real-change",
+  "pass": true,
+  "pre_change_tree_files": [
+   "src/kernel.py"
+  ]
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 re-runs residue inventory and revert-of-revert byte compare independently of probe 1's benchmark-delta and git-diff field.",
+  "reviewer_id": "TST-0312-probe2-residue-inventory",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0312",
+ "single_signal_gate": {
+  "id": "single-signal-gate",
+  "or_is_rejected": true,
+  "pass": true,
+  "rows": [
+   {
+    "bench_ok": true,
+    "got": "RESTORED",
+    "pass": true,
+    "path_ok": true,
+    "want": "RESTORED"
+   },
+   {
+    "bench_ok": true,
+    "got": "SINGLE_SIGNAL_REJECTED",
+    "pass": true,
+    "path_ok": false,
+    "want": "SINGLE_SIGNAL_REJECTED"
+   },
+   {
+    "bench_ok": false,
+    "got": "SINGLE_SIGNAL_REJECTED",
+    "pass": true,
+    "path_ok": true,
+    "want": "SINGLE_SIGNAL_REJECTED"
+   },
+   {
+    "bench_ok": false,
+    "got": "NOT_RESTORED",
+    "pass": true,
+    "path_ok": false,
+    "want": "NOT_RESTORED"
+   }
+  ]
+ },
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "evidence": "during=NOT_RESTORED after=RESTORED delta=0.0 floor=0.0 git_diff=[] baseline_sha=e078e0ab90639ab9b2c8176d49c97a3d7ca048b4",
+   "id": "revert-real-change-both-signals",
+   "requirement": "Revert a real change; both signals agree that the baseline is restored.",
+   "result": "PASS",
+   "verdict": "PASS"
+  },
+  {
+   "evidence": "residue=['.cache/score.json'] verdict=SINGLE_SIGNAL_REJECTED detected_not_absorbed=True bench_only_would_claim=SINGLE_SIGNAL_REJECTED",
+   "id": "residue-detected-not-absorbed",
+   "requirement": "Residue control: revert a change that also wrote a cache or a generated file, and confirm the residue is detected rather than absorbed.",
+   "result": "PASS",
+   "verdict": "PASS"
+  },
+  {
+   "evidence": "lossy=False tree_matches_changed_state=True metric=25.0 first_revert_restored=True",
+   "id": "revert-of-revert-not-lossy",
+   "requirement": "Revert of a revert returns to the changed state, proving the operation is not lossy.",
+   "result": "PASS",
+   "verdict": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T19:01:05Z",
+  "started_at": "2026-08-24T19:01:05Z"
+ },
+ "title": "Prove the automatic revert actually restores the measured baseline",
+ "unit_id": "TST-0312"
+}

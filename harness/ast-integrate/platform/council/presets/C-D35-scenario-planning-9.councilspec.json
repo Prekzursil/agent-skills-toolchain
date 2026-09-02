@@ -1,0 +1,136 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d35-scenario-planning-9",
+  "preset": "product_strategy_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Choose the strategy that is most robust across four independently-constructed futures, without assigning probabilities to any of them.",
+    "charter": "Two driver analysts isolate the forces that actually move the outcome and must show them ORTHOGONAL; four future seats each inhabit one future and stress the candidate strategies inside it; a cost analyst prices each option; a dissent guardian keeps the losing future's case verbatim. Probability weighting is FORBIDDEN - the output is a robustness ranking, not an expected value. A strategy that wins in the most likely future and collapses in one of the others is not the winner here.",
+    "risk_tier": "high",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "four futures each stress-tested against every candidate strategy",
+      "the drivers are shown pairwise-independent, not merely listed",
+      "each option scored 0-4 for robustness in every future",
+      "no probability, likelihood, or expected-value weighting appears anywhere in the record"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 2, "evidence_outranks_votes": true }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "stratified", "expertise_ranked"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 9 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 6 },
+    "roster": [
+      { "participant_id": "chair", "display_name": "Chair", "model": "opus-5", "vendor": "anthropic", "expertise": ["facilitation", "strategy"], "role": "chair", "authority": "chair", "effort": "high", "context": { "briefing": "Enforce the no-probability rule. Any seat that says 'most likely' is out of order; ask them to name the future instead." } },
+      { "participant_id": "driver-1", "display_name": "Driver analyst A", "model": "opus-5", "vendor": "anthropic", "expertise": ["driver analysis", "causal structure"], "role": "domain_expert", "authority": "voter", "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "driver-2", "display_name": "Driver analyst B", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["driver analysis", "correlation testing"], "role": "statistician", "authority": "voter", "independence": { "fresh_context": true, "sees_peers_before_first_position": false }, "context": { "briefing": "Your job is to try to COLLAPSE the driver set. If two drivers move together, the four futures are really two." } },
+      { "participant_id": "future-1", "display_name": "Future seat 1 (both drivers low)", "model": "opus-5", "vendor": "anthropic", "expertise": ["scenario inhabitation"], "role": "custom:future_seat", "authority": "voter", "context": { "briefing": "You live in this future. Argue from inside it; do not hedge toward the others." } },
+      { "participant_id": "future-2", "display_name": "Future seat 2 (driver 1 high)", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["scenario inhabitation"], "role": "custom:future_seat", "authority": "voter" },
+      { "participant_id": "future-3", "display_name": "Future seat 3 (driver 2 high)", "model": "gemini-3-pro", "vendor": "google", "expertise": ["scenario inhabitation"], "role": "custom:future_seat", "authority": "voter" },
+      { "participant_id": "future-4", "display_name": "Future seat 4 (both drivers high)", "model": "opus-5", "vendor": "anthropic", "expertise": ["scenario inhabitation", "counterfactual reasoning"], "role": "custom:future_seat", "authority": "voter" },
+      { "participant_id": "cost-analyst", "display_name": "Cost analyst", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["cost modelling", "token and wall-clock budgets"], "role": "custom:cost_analyst", "authority": "voter" },
+      { "participant_id": "dissent-guardian", "display_name": "Dissent guardian", "model": "opus-5", "vendor": "anthropic", "expertise": ["minority report"], "role": "custom:dissent_guardian", "authority": "contributor", "rights": { "may_speak": true, "may_vote": false } }
+    ],
+    "recruitment": { "dynamic": true, "triggers": ["missing_expertise", "low_novelty"], "max_recruits": 2 },
+    "replacement": { "enabled": true, "triggers": ["role_collapse", "dominance"], "preserve_prior_positions": true }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 3, "prep_time_minutes": 25, "required_artifacts": ["prior_art_scan", "risk_list", "position_memo"] },
+  "topology": { "kind": "chair_led", "chair": "chair" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "name-the-drivers", "rounds": 1, "independent": true, "participants": ["driver-1", "driver-2"] },
+      { "kind": "scenario", "stage_id": "build-four-futures", "rounds": 1 },
+      { "kind": "war_game", "stage_id": "stress-each-strategy", "rounds": 1, "quotas": { "counterexamples_per_round": 2 } },
+      { "kind": "custom", "stage_id": "counterfactual", "custom_name": "P32 counterfactual council: replay the decision as if each driver had gone the other way", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "robustness-ranking" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 4, "max": 4, "divergence_before_convergence": true },
+    "obligations": { "must_respond_to_prior": true, "must_cite_evidence": true, "steelman_before_rebuttal": true, "forced_dissent": true, "declare_confidence": false },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 4, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 120, "turns": 40, "sources": 12, "speaking_quota_per_participant": 6, "max_inactivity_rounds": 2 },
+  "targets": { "categories": 4, "counterexamples": 8, "coverage_score": 1.0, "evidence_items": 12 },
+  "voting": {
+    "method": "score",
+    "score_scale": { "min": 0, "max": 4 },
+    "belief_aggregation": { "method": "none", "require_confidence_per_vote": false },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "abstention": { "allowed": false, "must_justify": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:futures_stress_tested",
+          "op": ">=",
+          "value": 4,
+          "value_type": "number",
+          "producer": "scenario matrix: one recorded stress run per (future x candidate strategy) cell",
+          "note": "DIAL 1 of 3 - the number of futures. 4 is the 2x2 driver cross; drop to 3 for a cheaper run, raise only if the drivers really are three-dimensional."
+        },
+        {
+          "metric": "custom:drivers_shown_independent",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "pairwise driver-correlation check run by driver-2 (adversarially, trying to collapse the set)",
+          "note": "DIAL 2 of 3 - 'drivers shown independent'. Listing two drivers is not showing them orthogonal; if they co-move, the four futures are two and the whole matrix is theatre."
+        },
+        {
+          "metric": "no_new_objection_rounds",
+          "op": ">=",
+          "value": 1,
+          "note": "DIAL 3 of 3 - convergence floor. Raise to 2 for the brief's 'no new counterexample for two rounds' rule."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 4, "min_independent_positions": 4, "min_minutes": 30, "every_participant_spoke": true, "min_evidence_items": 12 },
+    "hard_caps": { "max_rounds": 4, "max_minutes": 120, "on_cap": "synthesize_best_effort" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "irreducible_disagreement", "proof_of_impossibility", "minority_report", "dissent"],
+    "conditional_decision_requires": ["the chosen strategy names its own early-warning indicator per future", "the losing future's minority report is attached verbatim"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.88 },
+    "resolution": ["strongest_counterexample", "rotate_roles", "narrow_scope", "split_question", "chair_ruling"],
+    "escalation": { "after_attempts": 2, "to": "chair" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["premature_convergence", "echo_chamber", "role_collapse", "participant_dominance", "instant_unanimity", "lost_dissent", "weak_synthesis", "hallucinated_expertise"],
+    "fast_unanimity_response": ["strongest_counterexample"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "option_cards", "argument_ledger", "evidence_map", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage", "action_plan"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "persistence": { "store": "filesystem", "path": "platform/council/runs/c-d35/", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "Scenario-planning strategy council (9 seats, 4 futures, no probabilities)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: a strategy or roadmap call whose payoff depends on forces you do not control. WHEN NOT TO USE: any question with a resolvable ground truth - use a forecasting council (C-D36) or an evidence jury (C-D42) instead; scenario planning deliberately refuses to say which future is likely, so it cannot answer 'what will happen'. The design's named dials are drivers and futures. EDITABLE DIALS: /stopping/expression/all_of/0/value (how many futures), /participants/roster (the future seats are the futures - rename them when you change the driver cross), /voting/score_scale, /stopping/expression/all_of/2/value (raise to 2 for the two-quiet-rounds rule), /budgets/time_minutes. STOPPING (human form): custom:futures_stress_tested >= 4 AND custom:drivers_shown_independent == true AND no_new_objection_rounds >= 1. source_expression absent per the SEM-001/SEM-012 collision proven by _probe_sem_rule_collision.py. voting.belief_aggregation.method is pinned to 'none' precisely BECAUSE the design forbids probability weighting - that field is the machine-checkable form of that ban.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1649", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:653", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:618", "_USER-PROMPTS.md:11172"],
+    "lineage": ["C-D35 deep-scenario-planning-9", "P34 scenario-planning", "P32 counterfactual-council"]
+  }
+}

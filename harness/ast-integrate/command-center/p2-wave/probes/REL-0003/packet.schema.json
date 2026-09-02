@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "REL-0003 owner-decision packet (local non-vacuous control)",
+  "$comment": "Local schema for the four catalog tests_required. No $id: jsonschema 4.10 RefResolver treats a path $id plus $ref as a fetch. Catalog output_schema command-center/schema/owner-decision-packet.schema.json is a generated $ref shim with no constraints of its own; do not rebuild it.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "question",
+    "recommendation",
+    "strongest_tradeoff",
+    "default_if_unanswered",
+    "durable_record_location",
+    "spec_quote_11390",
+    "phase_graph_citation"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "REL-0003" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:REL-0003" },
+    "question": {
+      "type": "string",
+      "minLength": 40,
+      "pattern": "^[^?]*\\?[^?]*$",
+      "$comment": "Exactly one ASCII question mark (spec 11366). A second question fails this pattern."
+    },
+    "recommendation": {
+      "type": "object",
+      "required": ["summary", "named_receipts"],
+      "properties": {
+        "summary": { "type": "string", "minLength": 20 },
+        "named_receipts": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["unit_id", "path"],
+            "properties": {
+              "unit_id": { "type": "string", "minLength": 3 },
+              "path": { "type": "string", "minLength": 8 },
+              "role": { "type": "string" }
+            }
+          }
+        }
+      }
+    },
+    "strongest_tradeoff": { "type": "string", "minLength": 40 },
+    "default_if_unanswered": { "type": "string", "minLength": 20 },
+    "durable_record_location": {
+      "type": "object",
+      "required": ["path", "line"],
+      "properties": {
+        "path": { "type": "string", "const": "command-center/OWNER-DECISIONS.md" },
+        "line": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "spec_quote_11390": {
+      "type": "object",
+      "required": ["line", "verbatim"],
+      "properties": {
+        "line": { "type": "integer", "const": 11390 },
+        "verbatim": { "type": "string", "const": "release/canary succeeds" }
+      }
+    },
+    "phase_graph_citation": {
+      "type": "object",
+      "required": ["path", "field"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": "command-center/PHASE-GRAPH.json"
+        },
+        "field": {
+          "type": "string",
+          "const": "constrained_by_release_mode.owner_decision_needed"
+        }
+      }
+    }
+  }
+}

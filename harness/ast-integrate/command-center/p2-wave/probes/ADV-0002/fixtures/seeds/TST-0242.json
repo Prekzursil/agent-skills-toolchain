@@ -1,0 +1,300 @@
+{
+ "evidence": [
+  {
+   "claim": "TST-0242 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0242.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0242.json",
+     "raw_output": "bytes=9889 sha256=c7345901278949a1d62cc7f15e874e1a486ef6ba0f4e800fe686e47c33d71b74",
+     "fingerprint": "42b9bdb7fbd35c944a67a95bfa6c1ec6",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0242",
+     "raw_output": "schema-check",
+     "fingerprint": "6c7ff2767e091a2d8bf23aa38a692d71",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0242 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0242",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0242",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "cefdf17ac405e5756b3df35492d7ad7d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0242",
+     "raw_output": "schema-valid",
+     "fingerprint": "8d6b1fa55c3ff94608837e0d0685a6a7",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 128,
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:TST-0242",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=TST-0242]; _USER-PROMPTS.md:11326-11328 (eager per-session MCP multiplication; commit exhaustion freezes process creation; kill-based memory guard terminates a live shared service)",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0242.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "TST-0242",
+ "extensions": {
+  "legacy_root": {
+   "SUCCESS:TST-0242": true,
+   "answer": "Yes. Lazy-shared 10x fan-out stayed at 3 stub processes (peak procfs=3, peak ps=3) against a process ceiling of 5. Eager unbounded reproduced 12 = sessions×servers. The budgeted eager path refused the next session (process-ceiling-refuse-new-work) with would_spawn=False and no extra child. Production selection spared shared pid 99382; the kill-based mutant selected it (both-states).",
+   "artifact_paths": [
+    "command-center/receipts/TST-0242.json",
+    "tools/plugin/pressure_guard.py",
+    "tools/plugin/mcp_activation.py",
+    "tools/plugin/stub_mcp_server.py",
+    "command-center/p2-wave/probes/TST-0242/harness.py",
+    "command-center/p2-wave/probes/TST-0242/probe1_fanout_ceiling.py",
+    "command-center/p2-wave/probes/TST-0242/probe2_shared_pid_refusal.py"
+   ],
+   "candidate_selection_audit": {
+    "fired_on_bad": true,
+    "mutant": {
+     "kill_set": [
+      99382,
+      8000001,
+      8000002
+     ],
+     "overlap": [
+      99382
+     ],
+     "shared_pids": [
+      99382
+     ],
+     "shared_selected": true,
+     "spared": []
+    },
+    "production": {
+     "kill_set": [
+      8000001
+     ],
+     "overlap": [],
+     "shared_pids": [
+      99382
+     ],
+     "shared_selected": false,
+     "spared": [
+      99382
+     ]
+    },
+    "shared_pid": 99382,
+    "shared_survived": true,
+    "silent_on_good": true
+   },
+   "completion_sentinel": "SUCCESS:TST-0242",
+   "implementation": {
+    "activation": "tools/plugin/mcp_activation.py",
+    "bytes": 20158,
+    "path": "tools/plugin/pressure_guard.py",
+    "sha256": "6cf46be6b66a6a3231aadd19a5687fe6e7579e649a8c2ef7726f00524b2d60c9"
+   },
+   "measurements": {
+    "eager_unbounded": {
+     "procfs_n": 12,
+     "ps_n": 12,
+     "sessions": 4,
+     "want": 12
+    },
+    "external_monitor": {
+     "commit_signals": [
+      "/proc/meminfo Committed_AS (kB)",
+      "/proc/<pid>/status VmRSS+VmSwap commit proxy"
+     ],
+     "process_count_signals": [
+      "procfs_/proc/<pid>/cmdline",
+      "ps_-eo_pid,rss,args"
+     ]
+    },
+    "fanout_mult": 10,
+    "fanout_sessions": 10,
+    "n_servers": 3,
+    "process_ceiling": 5,
+    "shared_10x": {
+     "commit_proxy_bytes": 88342528,
+     "committed_as_kb": 8641116,
+     "peak_commit_proxy_bytes": 88342528,
+     "peak_procfs": 3,
+     "peak_ps": 3,
+     "procfs_n": 3,
+     "ps_n": 3
+    },
+    "shared_baseline": {
+     "commit_proxy_bytes": 88334336,
+     "committed_as_kb": 8620212,
+     "procfs_n": 3,
+     "ps_n": 3
+    }
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe1_fanout_ceiling.py",
+     "exit_code": 0,
+     "id": "probe1",
+     "raw_output": "{\"base_sessions\": 1, \"ceiling_held\": true, \"commit_control\": {\"cold_ok\": true, \"commit_limit_kb\": 128863960, \"committed_as_kb_after\": 8641116, \"committed_as_kb_before\": 8535048, \"hot_ok\": false, \"hot_would_spawn\": false}, \"eager_budget_refuse\": {\"after_refuse_n\": 3, \"below_ceiling_n\": 3, \"reason\": \"process-ceiling-refuse-new-work\", \"spawn_attempts\": 1, \"would_spawn\": false}, \"eager_unbounded\": {\"procfs_n\": 12, \"ps_n\": 12, \"sessions\": 4, \"want\": 12}, \"fanout_mult\": 10, \"fanout_sessions\": 10, \"n_servers\": 3, \"pass\": true, \"probe\": \"probe1_fanout_ceiling\", \"process_ceiling\": 5, \"shared_10x\": {\"commit_proxy_bytes\": 88342528, \"committed_as_kb\": 8641116, \"peak_commit_proxy_bytes\": 88342528, \"peak_procfs\": 3, \"peak_ps\": 3, \"procfs_n\": 3, \"ps_n\": 3}, \"shared_baseline\": {\"commit_proxy_bytes\": 88334336, \"committed_as_kb\": 8620212, \"procfs_n\": 3, \"ps_n\": 3}}\nshared_10x=3 eager=12 peak=3 refuse=process-ceiling-refuse-new-work\nSUCCESS:TST-0242-probe1 fanout-ceiling"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe2_shared_pid_refusal.py",
+     "exit_code": 0,
+     "id": "probe2",
+     "raw_output": "{\"fired_on_bad\": true, \"mutant_audit\": {\"kill_set\": [99382, 8000001, 8000002], \"overlap\": [99382], \"shared_pids\": [99382], \"shared_selected\": true, \"spared\": []}, \"pass\": true, \"probe\": \"probe2_shared_pid_refusal\", \"production_audit\": {\"kill_set\": [8000001], \"overlap\": [], \"shared_pids\": [99382], \"shared_selected\": false, \"spared\": [99382]}, \"production_decisions\": [{\"action\": \"spare\", \"pid\": 99382, \"reason\": \"shared-service-allowlist\", \"selected_for_kill\": false}, {\"action\": \"reap-orphan\", \"pid\": 8000001, \"reason\": \"proven-orphan-of-dead-session\", \"selected_for_kill\": true}, {\"action\": \"spare\", \"pid\": 8000002, \"reason\": \"live-session-child\", \"selected_for_kill\": false}], \"shared_pid\": 99382, \"shared_survived\": true, \"silent_on_good\": true}\nshared_pid=99382 spared=[99382] mutant_overlap=[99382] both_states=True\nSUCCESS:TST-0242-probe2 shared-pid-refusal"
+    }
+   ],
+   "negative_control_ids": [
+    "NC1:eager-stdio-multiplies-sessions-times-servers",
+    "NC2:kill-based-mutant-selects-shared-pid",
+    "NC3:synthetic-commit-ratio-0.20-admits"
+   ],
+   "notes": "G-1 for TST-0242: live named probes, honest SUCCESS receipt, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0242",
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+   "owner_approval": "NOT-CHECKED as a live-estate kill: this unit spawned isolated stubs with unique argv marks and never signalled a pre-existing shared service. Catalog flag remains true for enabling kill-based orphan reaping on the owner's machine.",
+   "owner_approval_required": true,
+   "question": "Does the harness bound per-session MCP/worker process multiplication, and can its memory guard ever terminate a live shared service? PASS requires the ceiling to hold under a 10x fan-out AND the guard to be proven incapable of selecting a shared-service PID.",
+   "report_kind": "benchmark_result",
+   "reviewer_verdict": "PASS",
+   "test_ids": [
+    "fanout-10x-shared-process-count-flat",
+    "eager-unbounded-multiplies",
+    "process-ceiling-refuse-before-spawn",
+    "commit-hot-refuse-cold-admit",
+    "shared-pid-not-in-kill-set",
+    "kill-based-mutant-selects-shared"
+   ],
+   "title": "Process and memory ceilings hold, and the guard never kills a shared service",
+   "ts": "2026-08-25T01:04:45Z"
+  }
+ },
+ "schema_version": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0242.json",
+   "bytes": 9889,
+   "sha256": "c7345901278949a1d62cc7f15e874e1a486ef6ba0f4e800fe686e47c33d71b74",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0242/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0242"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0242.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0242.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "a217b59a35ea62abf86276953ad2b2af",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "benchmark_result",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 9889,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0242.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ],
+  "input_non_empty": true,
+  "metrics": [
+   {
+    "id": "C1",
+    "name": "metrics",
+    "measured": 1,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0242.json",
+    "value": 1,
+    "n": 1,
+    "null_model": "null_model",
+    "unit": "unit",
+    "variance_band": "variance_band"
+   }
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

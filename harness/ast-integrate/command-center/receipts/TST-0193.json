@@ -1,0 +1,151 @@
+{
+ "artifacts": [
+  {
+   "bytes": 6683,
+   "exists": true,
+   "path": "tools/shell/param_pipeline.py",
+   "role": "implementation",
+   "sha256": "6044c0110883bb70dbbf22170b05c541f165a48021c09634e6a470a837ade3a2"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:TST-0193",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0193/probe1_detector_control.py",
+   "claim": "Signal (a): after dispatching substitution payloads through every sink, the canary marker file is absent. The detector control splice-eval of $(touch PATH) and backticks creates the same marker, so absence is not a dead detector.",
+   "computed": {
+    "backtick_splice_created_canary": true,
+    "dollar_paren_splice_created_canary": true,
+    "pipeline_backtick_canary_present": false,
+    "pipeline_dollar_canary_present": false,
+    "property_canary_hits": 0,
+    "sample_splice_eval_fired": true
+   },
+   "id": "E1-canary-absent",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0193/probe2_property.py",
+   "claim": "Signal (b): every sink records the original parameter bytes. 300 injection payloads (241 with $(, backtick, or % tokens) round-trip through argv, env, file, and stdin. A cmd.exe %PATH% expander changes the value; the pipeline does not.",
+   "computed": {
+    "family_ok": {
+     "backtick": 44,
+     "benign_token": 43,
+     "dollar_paren": 42,
+     "mixed": 56,
+     "percent": 62,
+     "powershell": 53
+    },
+    "literal_pass_count": 300,
+    "payload_count": 300,
+    "percent_expand_changes_value": true,
+    "percent_literal_all_sinks": true,
+    "source_enables_shell": false,
+    "substitution_token_count": 241
+   },
+   "id": "E2-literal-at-each-sink",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "TST-0193",
+ "implementation": {
+  "library": "tools/shell/param_pipeline.py",
+  "library_bytes": 6683,
+  "library_sha256": "6044c0110883bb70dbbf22170b05c541f165a48021c09634e6a470a837ade3a2",
+  "mechanism": "Parameters are passed as argv elements, environment values, file bytes, or stdin. dispatch never interpolates a parameter into a shell script string and refuses subprocess shell mode. tools/lib/codex-invocation.mjs exists and keeps the prompt on stdin rather than argv; named probes exercise tools/shell/param_pipeline.py as the live substitution gate.",
+  "missing_catalog_inputs": [
+   "rules/common/windows-shell.md",
+   "rules/common/cross-vendor-dispatch.md",
+   "_USER-PROMPTS.md"
+  ],
+  "sinks": [
+   "argv",
+   "env",
+   "file",
+   "stdin"
+  ]
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0193/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "description": "bash -c interpolating $(touch CANARY) must create the marker.",
+   "fired_on_bad_state": true,
+   "id": "NC1-splice-eval-dollar-paren",
+   "kind": "detector-control",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "bash -c interpolating backtick-touch must create the marker.",
+   "fired_on_bad_state": true,
+   "id": "NC2-splice-eval-backticks",
+   "kind": "detector-control",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "cmd.exe-model %PATH% expansion must change the value; the pipeline must record %PATH% literally.",
+   "fired_on_bad_state": true,
+   "id": "NC3-cmd-percent-expand",
+   "kind": "detector-control",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 TST-0193: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:TST-0193",
+ "output_path": "command-center/receipts/TST-0193.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/shell_report",
+ "produced_by": {
+  "execution_substrate": "linux-worktree",
+  "model": "gpt-5-codex",
+  "role": "shell-portability-tester",
+  "vendor": "openai"
+ },
+ "question_or_target": "Can a workflow parameter containing $(...), backticks or %VAR% cause command substitution anywhere in the pipeline? PASS requires zero substitution across every parameter sink, proven by a canary that would create a marker file if evaluated.",
+ "residual_unknowns": [
+  {
+   "claim": "pwsh7 and Git Bash were not re-run on this Linux worktree. %VAR% expansion is proven with a cmd.exe-model expander, not live cmd.exe.",
+   "settling_experiment": "Re-run probe1 and probe2 under pwsh7 and Git Bash on Windows; confirm the canary still appears only on splice-eval.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "tools/lib/codex-invocation.mjs is in the tree. It writes the prompt to a file and streams it on stdin; argv ends with '-'. A Windows .cmd shim may set shell:true. Named probes do not spawn that module; they gate tools/shell/param_pipeline.py.",
+   "settling_experiment": "Point named probes at createCodexExecPlan spawn and confirm $(...) / backticks / %VAR% still stay literal.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Catalog asks an independent reviewer to re-run on a second Windows shell (pwsh7 and Git Bash). This G-1 delivery uses probe2 as the independent mechanical re-run on Linux bash. pwsh=absent; git-bash=absent. A human Windows-shell pass is not claimed.",
+  "reviewer_id": "TST-0193-probe2-property-300",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0193",
+ "spec_anchor": "WORK-UNIT-CATALOG.json#TST-0193 _USER-PROMPTS.md:11015 (Phase 10 layer 27, shell-quoting tests)",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe1_detector_control.py",
+   "exit_code": 0,
+   "id": "detector-control-splice-eval-creates-canary",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0193/probe2_property.py",
+   "exit_code": 0,
+   "id": "property-300-injection-payloads",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:03:23Z",
+  "started_at": "2026-08-25T01:03:23Z"
+ },
+ "title": "Workflow parameters are never re-parsed by a shell",
+ "unit_id": "TST-0193"
+}

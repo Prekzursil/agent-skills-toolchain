@@ -1,0 +1,25 @@
+
+===== launch 2026-08-20T09:01:35Z attempt=1 =====
+I'll start from the existing IMP-0101 probe tree and related measurement docs so we can resume rather than rebuild.Next I’ll pull the IMP-0101 catalog row, the measure script, and a delivered IMP unit so we can match the contract.IMP-0101 is absent, so I’ll inspect the marketplace code, related IMP units, and a delivered probe pattern before implementing.Deprecation already exists in the marketplace; I’ll inspect install/publish, related receipts, and a delivered IMP probe so we can complete the contract rather than duplicate it.Implementing deprecation as signed metadata with successor checks, a durable warning sink, and the catalog tests/probes.I'll run the same-run probe first to catch fixture, signature, or schema issues before packing the receipt.Existing deprecation test passed. Next I’ll refresh probe raws and pack the receipt.**IMP-0101 is G-1 contract-green on this worktree.**
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0101` printed:
+
+`SUCCESS:delivered IMP-0101 predicate=delivered state=SUCCESS probes=4 raws=4 notes=health_surface.py:0,negative_control.py:0,probe_deprecation.py:0,run_required_tests.py:0`
+
+The unit had never been started (`probes/IMP-0101/` was absent). This pass implemented it rather than parking on that first-run absence.
+
+### Behavior
+Deprecation is signed package-manifest metadata (`reason`, optional `superseded_by`). Installing a deprecated version **succeeds** and writes a durable warning that names the successor. Revocation still **refuses** (`MKT-I04`). A successor pointer to a package that is not in the registry is **rejected at deprecation time** (`MKT-D02`).
+
+The warning is not only a log line: it is on the install receipt, in `site/state/warnings.jsonl` (bounded degrade-loudly sink), on CLI stderr, and in a later `health-check` process.
+
+### Artifacts
+| Path | Role |
+|---|---|
+| `command-center/receipts/IMP-0101.json` | `state=SUCCESS` |
+| `command-center/p2-wave/probes/IMP-0101/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, live LF sha256 `aa94273b56f5051ea57c0ca64909f95eb214d639d68e9d92a3c7b06f246824eb` |
+| `command-center/p2-wave/probes/IMP-0101/SUBAGENT-RETURN.json` | handoff |
+| `tools/marketplace/tests/test_deprecation.py` | catalog tests |
+| `platform/marketplace/mkt/deprecation.py` | implementation |
+
+Catalog dependencies IMP-0054 and IMP-0079 are not P2-delivered here; this unit uses the marketplace’s existing revocation gate and a marketplace-local bounded warning sink. `cloud ok=true` was not treated as delivery. No git writes, no global `unit_manifest.py --write`.

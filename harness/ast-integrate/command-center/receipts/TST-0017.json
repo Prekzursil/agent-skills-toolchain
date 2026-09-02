@@ -1,0 +1,742 @@
+{
+ "unit_id": "TST-0017",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0017",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0017.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0017 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0017.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0017.json",
+     "raw_output": "bytes=10607 sha256=89d7f259359def9da6efa7e5f9dc21e622870c52281e14c8a1c444e0abbebbd4",
+     "fingerprint": "52894354b4e4e3ed2f5381a222a2f7f8",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0017",
+     "raw_output": "schema-check",
+     "fingerprint": "1735d92b187558081cc51e3b6ea70a07",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0017 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0017",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0017",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "0a7ca96e0e4e3d9a6d7814ad2bce8982",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0017",
+     "raw_output": "schema-valid",
+     "fingerprint": "b3a015e4af13261e2aaf4e4aa226ea58",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "report": {
+  "kind": "detector-control",
+  "observations": [
+   {
+    "name": "precision_use",
+    "measured": 1.0,
+    "method": "labelled-fixture-roles vs expected USE/MENTION",
+    "anchor": "command-center/p2-wave/probes/TST-0017/fixtures/labelled.json"
+   },
+   {
+    "name": "recall_use",
+    "measured": 1.0,
+    "method": "labelled-fixture-roles vs expected USE/MENTION",
+    "anchor": "command-center/p2-wave/probes/TST-0017/eval_kit.py"
+   },
+   {
+    "name": "exact_match_cases",
+    "measured": 17,
+    "method": "kit.roles == labelled expected per case",
+    "anchor": "command-center/p2-wave/probes/TST-0017/tests.py"
+   },
+   {
+    "name": "silent_on_known_good",
+    "measured": true,
+    "method": "kit.roles on fenced.md + KIT.md + typed_status.json",
+    "anchor": "command-center/p2-wave/probes/TST-0017/probe2_detector_control.py"
+   },
+   {
+    "name": "fires_on_known_broken",
+    "measured": true,
+    "method": "ignore_wrappers mutant + naive_substring_as_use",
+    "anchor": "command-center/p2-wave/probes/TST-0017/kit.py"
+   }
+  ],
+  "control_ids": [
+   "fenced-mention-vs-ignore-wrappers",
+   "docs-mention-vs-ignore-wrappers",
+   "typed-status-stays-use"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0017.json",
+   "bytes": 10607,
+   "sha256": "89d7f259359def9da6efa7e5f9dc21e622870c52281e14c8a1c444e0abbebbd4",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:TST-0017 emitted only when the artifact at output_path exists, is non-empty, parses as JSON, labelled precision and recall are both 1.0 including this unit's own description as a MENTION case, and detector control is silent on the kit and fires on the ignore-wrappers mutant. Catalog output_schema is a $ref shim; the remote ast-integrate.invalid URL is not fetched. Any other terminal state is FAILED:TST-0017 <classification> with the diagnostic tail attached.",
+   "kind": "detector-control",
+   "title": "Use-vs-mention discriminator kit",
+   "question": "Target: a reusable helper that answers 'is this token USED (a semantic role in a typed field) or MENTIONED (text inside a payload, a fenced block, a doc body)?' and a labelled fixture kit of adversarial cases. A file documenting a defect necessarily contains that defect's text — measured ~8 hits in one session, mostly inside the verification probes themselves.",
+   "output_path": "command-center/receipts/TST-0017.json",
+   "output_schema": "command-center/schema/detector-control.schema.json",
+   "emitted_at": "2026-08-25T01:01:33Z",
+   "helper": {
+    "module": "command-center/p2-wave/probes/TST-0017/kit.py",
+    "api": [
+     "classify_token",
+     "classify_span",
+     "roles"
+    ],
+    "use_means": "semantic value of a typed field (status/state/verdict/role/…)",
+    "mention_means": "payload, fence, inline code, comment, or prose"
+   },
+   "labelled_eval": {
+    "fixture": "command-center/p2-wave/probes/TST-0017/fixtures/labelled.json",
+    "n_cases": 17,
+    "exact_match_cases": 17,
+    "tp_use": 6,
+    "fp_use": 0,
+    "fn_use": 0,
+    "tn_use": 13,
+    "precision_use": 1.0,
+    "recall_use": 1.0,
+    "includes_unit_description_as_mention": true,
+    "rows": [
+     {
+      "id": "fenced-json-status",
+      "token": "FAILED",
+      "expected": [
+       "MENTION",
+       "MENTION"
+      ],
+      "got": [
+       "MENTION",
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "typed-status-json",
+      "token": "FAILED",
+      "expected": [
+       "USE"
+      ],
+      "got": [
+       "USE"
+      ],
+      "ok": true
+     },
+     {
+      "id": "payload-body",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "mixed-status-and-notes",
+      "token": "FAILED",
+      "expected": [
+       "USE",
+       "MENTION"
+      ],
+      "got": [
+       "USE",
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "yaml-typed-status",
+      "token": "FAILED",
+      "expected": [
+       "USE"
+      ],
+      "got": [
+       "USE"
+      ],
+      "ok": true
+     },
+     {
+      "id": "yaml-payload-note",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "xml-typed-status",
+      "token": "FAILED",
+      "expected": [
+       "USE"
+      ],
+      "got": [
+       "USE"
+      ],
+      "ok": true
+     },
+     {
+      "id": "inline-code",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "hash-comment",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "blockquote",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "prose",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "typed-state-field",
+      "token": "BLOCKED",
+      "expected": [
+       "USE"
+      ],
+      "got": [
+       "USE"
+      ],
+      "ok": true
+     },
+     {
+      "id": "typed-verdict-field",
+      "token": "PASS",
+      "expected": [
+       "USE"
+      ],
+      "got": [
+       "USE"
+      ],
+      "ok": true
+     },
+     {
+      "id": "substring-in-status-sentence",
+      "token": "FAILED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "json-key-is-not-use",
+      "token": "status",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "unit-self-description-USED",
+      "token": "USED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     },
+     {
+      "id": "unit-self-description-MENTIONED",
+      "token": "MENTIONED",
+      "expected": [
+       "MENTION"
+      ],
+      "got": [
+       "MENTION"
+      ],
+      "ok": true
+     }
+    ]
+   },
+   "required_tests": [
+    {
+     "id": "test_token_in_fenced_code_block_is_mention",
+     "result": "PASS"
+    },
+    {
+     "id": "test_token_in_typed_status_field_is_use",
+     "result": "PASS"
+    },
+    {
+     "id": "test_the_kit_does_not_flag_its_own_documentation",
+     "result": "PASS"
+    }
+   ],
+   "detector_control": {
+    "kind": "use-vs-mention-wrapper-mutant",
+    "silent_on_known_good": true,
+    "fires_on_known_broken": true,
+    "good_fenced_roles": [
+     "MENTION",
+     "MENTION"
+    ],
+    "broken_fenced_roles": [
+     "USE",
+     "USE"
+    ],
+    "naive_fenced_roles": [
+     "USE",
+     "USE"
+    ],
+    "good_typed_roles": [
+     "USE"
+    ],
+    "both_states_differ": true
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "labelled-kit",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0017/probe1_labelled_kit.py"
+    },
+    {
+     "id": "probe2",
+     "role": "detector-control",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0017/probe2_detector_control.py"
+    }
+   ],
+   "cloud_ok": false,
+   "schema_validation": {
+    "declared": "command-center/schema/detector-control.schema.json",
+    "shim_parses": true,
+    "shim_is_ref": true,
+    "remote_ref_not_fetched": true,
+    "unit_structure_checked": true,
+    "physical_receipt_core_not_fetched": true
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0017",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0017/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0017"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0017.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0017.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "ca69da789f0ab275a80b16a94458f3a0",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:TST-0017 emitted only when the artifact at output_path exists, is non-empty, parses as JSON, labelled precision and recall are both 1.0 including this unit's own description as a MENTION case, and detector control is silent on the kit and fires on the ignore-wrappers mutant. Catalog output_schema is a $ref shim; the remote ast-integrate.invalid URL is not fetched. Any other terminal state is FAILED:TST-0017 <classification> with the diagnostic tail attached.",
+ "kind": "detector-control",
+ "title": "Use-vs-mention discriminator kit",
+ "question": "Target: a reusable helper that answers 'is this token USED (a semantic role in a typed field) or MENTIONED (text inside a payload, a fenced block, a doc body)?' and a labelled fixture kit of adversarial cases. A file documenting a defect necessarily contains that defect's text — measured ~8 hits in one session, mostly inside the verification probes themselves.",
+ "output_path": "command-center/receipts/TST-0017.json",
+ "output_schema": "command-center/schema/detector-control.schema.json",
+ "emitted_at": "2026-08-25T01:01:33Z",
+ "helper": {
+  "module": "command-center/p2-wave/probes/TST-0017/kit.py",
+  "api": [
+   "classify_token",
+   "classify_span",
+   "roles"
+  ],
+  "use_means": "semantic value of a typed field (status/state/verdict/role/…)",
+  "mention_means": "payload, fence, inline code, comment, or prose"
+ },
+ "labelled_eval": {
+  "fixture": "command-center/p2-wave/probes/TST-0017/fixtures/labelled.json",
+  "n_cases": 17,
+  "exact_match_cases": 17,
+  "tp_use": 6,
+  "fp_use": 0,
+  "fn_use": 0,
+  "tn_use": 13,
+  "precision_use": 1.0,
+  "recall_use": 1.0,
+  "includes_unit_description_as_mention": true,
+  "rows": [
+   {
+    "id": "fenced-json-status",
+    "token": "FAILED",
+    "expected": [
+     "MENTION",
+     "MENTION"
+    ],
+    "got": [
+     "MENTION",
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "typed-status-json",
+    "token": "FAILED",
+    "expected": [
+     "USE"
+    ],
+    "got": [
+     "USE"
+    ],
+    "ok": true
+   },
+   {
+    "id": "payload-body",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "mixed-status-and-notes",
+    "token": "FAILED",
+    "expected": [
+     "USE",
+     "MENTION"
+    ],
+    "got": [
+     "USE",
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "yaml-typed-status",
+    "token": "FAILED",
+    "expected": [
+     "USE"
+    ],
+    "got": [
+     "USE"
+    ],
+    "ok": true
+   },
+   {
+    "id": "yaml-payload-note",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "xml-typed-status",
+    "token": "FAILED",
+    "expected": [
+     "USE"
+    ],
+    "got": [
+     "USE"
+    ],
+    "ok": true
+   },
+   {
+    "id": "inline-code",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "hash-comment",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "blockquote",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "prose",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "typed-state-field",
+    "token": "BLOCKED",
+    "expected": [
+     "USE"
+    ],
+    "got": [
+     "USE"
+    ],
+    "ok": true
+   },
+   {
+    "id": "typed-verdict-field",
+    "token": "PASS",
+    "expected": [
+     "USE"
+    ],
+    "got": [
+     "USE"
+    ],
+    "ok": true
+   },
+   {
+    "id": "substring-in-status-sentence",
+    "token": "FAILED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "json-key-is-not-use",
+    "token": "status",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "unit-self-description-USED",
+    "token": "USED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   },
+   {
+    "id": "unit-self-description-MENTIONED",
+    "token": "MENTIONED",
+    "expected": [
+     "MENTION"
+    ],
+    "got": [
+     "MENTION"
+    ],
+    "ok": true
+   }
+  ]
+ },
+ "required_tests": [
+  {
+   "id": "test_token_in_fenced_code_block_is_mention",
+   "result": "PASS"
+  },
+  {
+   "id": "test_token_in_typed_status_field_is_use",
+   "result": "PASS"
+  },
+  {
+   "id": "test_the_kit_does_not_flag_its_own_documentation",
+   "result": "PASS"
+  }
+ ],
+ "detector_control": {
+  "kind": "use-vs-mention-wrapper-mutant",
+  "silent_on_known_good": true,
+  "fires_on_known_broken": true,
+  "good_fenced_roles": [
+   "MENTION",
+   "MENTION"
+  ],
+  "broken_fenced_roles": [
+   "USE",
+   "USE"
+  ],
+  "naive_fenced_roles": [
+   "USE",
+   "USE"
+  ],
+  "good_typed_roles": [
+   "USE"
+  ],
+  "both_states_differ": true
+ },
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "labelled-kit",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0017/probe1_labelled_kit.py"
+  },
+  {
+   "id": "probe2",
+   "role": "detector-control",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0017/probe2_detector_control.py"
+  }
+ ],
+ "cloud_ok": false,
+ "schema_validation": {
+  "declared": "command-center/schema/detector-control.schema.json",
+  "shim_parses": true,
+  "shim_is_ref": true,
+  "remote_ref_not_fetched": true,
+  "unit_structure_checked": true,
+  "physical_receipt_core_not_fetched": true
+ }
+}

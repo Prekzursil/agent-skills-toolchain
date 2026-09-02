@@ -1,0 +1,183 @@
+{
+ "schema_version": 1,
+ "unit_id": "IMP-0011",
+ "id": "IMP-0011",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "sentinel": "SUCCESS:IMP-0011",
+ "completion_sentinel": "SUCCESS:IMP-0011",
+ "title": "Build reproducibility check wired as a release gate",
+ "min_bytes_threshold": 128,
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0011",
+ "question": "Make double-build byte-equality a required gate in the release path rather than a developer habit: run the packer twice in one CI job on a Linux runner and once locally on Windows, and require all three digests to match after the documented normalisation.",
+ "answer": "Job plugin-repro (ci/plugin-repro.yml and .github/workflows/plugin-repro.yml) has two named pack log sections (LINUX-PACK-1, LINUX-PACK-2) writing distinct tar.gz outputs, then a compare step with no retry-on-mismatch. A third digest is packed from a git clone with core.autocrlf=true (CRLF worktree) using git cat-file blob bytes (IMP-0002 packer). Live three-way sha256 match. Timestamp injection in one build goes red and is not retried. git archive is forbidden.",
+ "implementation": {
+  "packer": "tools/plugin/pack.py",
+  "gate": "tools/plugin/repro_gate.py",
+  "ci_job": "plugin-repro",
+  "workflows": [
+   "ci/plugin-repro.yml",
+   ".github/workflows/plugin-repro.yml"
+  ],
+  "tests": "tools/plugin/tests/test_plugin_repro.py",
+  "payload": "tools/plugin/fixtures/payload",
+  "byte_source": "git cat-file -p (never git archive)",
+  "retry_policy": "bounded retry x2 for OSError flake only; DigestMismatch never retries"
+ },
+ "normalisation": {
+  "path_sort": "NFC",
+  "mtime": 0,
+  "uid": 0,
+  "gid": 0,
+  "uname": "",
+  "gname": "",
+  "mode": "git ls-tree (0o644/0o755)",
+  "gzip_mtime": 0,
+  "gzip_os_byte": 255,
+  "gzip_compresslevel": 9,
+  "byte_source": "git cat-file -p <rev>:<path>",
+  "forbidden": "git archive subcommand",
+  "gate": "plugin-repro three-way (linux-1, linux-2, windows-autocrlf)",
+  "mismatch_retry": "never"
+ },
+ "measured": {
+  "three_way_sha256": "ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36",
+  "linux_1_bytes": 410,
+  "linux_2_bytes": 410,
+  "windows_bytes": 410,
+  "linux_1_invocation_id": "dd94d113-d30c-4d90-8a59-d8f81786f3fd",
+  "linux_2_invocation_id": "d7261f17-8da3-49dd-b56a-717e47518e2b",
+  "windows_invocation_id": "9e6be8ff-7df9-438d-bb5b-de3d5e095e30",
+  "independent_linux_packs": true,
+  "windows_worktree_crlf": 10,
+  "windows_blob_crlf": 0,
+  "windows_byte_source": "git-cat-file-blob",
+  "os_kernel": "Linux",
+  "windows_host": false,
+  "windows_regime": "git-core.autocrlf=true-then-cat-file (this worktree is Linux; CI also declares windows-latest)",
+  "negative_control_went_red": true,
+  "negative_control_compare_calls": 1,
+  "negative_control_never_retried": true,
+  "cheat_copy_rejected": true
+ },
+ "artifacts": [
+  {
+   "path": "tools/plugin/pack.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 12400,
+   "sha256": "2fa3f4309944c3ddd6c0fa082fd38436d5fb30757a33ddca3c76f30c64f46496"
+  },
+  {
+   "path": "tools/plugin/repro_gate.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 14527,
+   "sha256": "0a37520fe815bd585cd76da439de7f55e7263035ce81a2e3212e237966f7ecc1"
+  },
+  {
+   "path": "tools/plugin/tests/test_plugin_repro.py",
+   "role": "tests",
+   "exists": true,
+   "bytes": 3461,
+   "sha256": "92219e5ff7f54deb9f157eee12c0cf4c3b0e76c8917fe51181c767e6094d9228"
+  },
+  {
+   "path": "ci/plugin-repro.yml",
+   "role": "ci-job",
+   "exists": true,
+   "bytes": 2340,
+   "sha256": "1b933663ce806d9944acfe48ddccd5df6580310a3d1066b8bf941f26975f282a"
+  },
+  {
+   "path": ".github/workflows/plugin-repro.yml",
+   "role": "ci-job",
+   "exists": true,
+   "bytes": 2340,
+   "sha256": "1b933663ce806d9944acfe48ddccd5df6580310a3d1066b8bf941f26975f282a"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CI job plugin-repro runs two independent Linux packs (two log sections, distinct --out paths, distinct invocation_id) whose sha256 match, and a windows-regime pack from a CRLF worktree via git cat-file matches the same digest.",
+   "verdict": "CONFIRMED",
+   "anchor": "ci/plugin-repro.yml jobs.plugin-repro + tools/plugin/repro_gate.py::three_way",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -B tools/plugin/repro_gate.py three-way",
+     "raw_output": "{\"independent\": true, \"linux_1\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"linux_2\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"sha256\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"windows\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\"}",
+     "exit_code": 0,
+     "fingerprint": "72a7afcb51ebd82c51636916c075f6f5"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "inspect ci/plugin-repro.yml and .github/workflows/plugin-repro.yml",
+     "raw_output": "{\"job\": \"plugin-repro\", \"ok\": true, \"out_paths\": [\"dist/plugin-linux-1.tar.gz\", \"dist/plugin-linux-2.tar.gz\", \"dist/plugin-windows.tar.gz\"], \"two_log_sections\": true, \"workflows\": [{\"bytes\": 2403, \"rel\": \"ci/plugin-repro.yml\", \"sha256\": \"1b933663ce806d9944acfe48ddccd5df6580310a3d1066b8bf941f26975f282a\"}, {\"bytes\": 2403, \"rel\": \".github/workflows/plugin-repro.yml\", \"sha256\": \"1b933663ce806d9944acfe48ddccd5df6580310a3d1066b8bf941f26975f282a\"}]}",
+     "exit_code": 0,
+     "fingerprint": "6f2e8ffb60875a4601775d7c22e164ca"
+    }
+   ]
+  },
+  {
+   "claim": "NEGATIVE CONTROL: injecting a timestamp into one build makes the gate go red; the mismatch is not retried. A workflow that cp's pack-1 onto pack-2 is rejected.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/plugin/tests/test_plugin_repro.py::test_inject_timestamp_goes_red",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -B tools/plugin/repro_gate.py negative-control",
+     "raw_output": "{\"clean_sha256\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"compare_calls\": 1, \"dirty_sha256\": \"1befa20c7ab197f3695ee079e17f965fdc5c277c361383679873fe709df500dd\", \"mismatch\": {\"a\": \"ccbbbd53e05926ae175a1c3822e8e35b6ed002de4b7ab3ae5bf11efba8ea6e36\", \"b\": \"1befa20c7ab197f3695ee079e17f965fdc5c277c361383679873fe709df500dd\"}, \"never_retried\": true, \"went_red\": true}",
+     "exit_code": 0,
+     "fingerprint": "628a646ce3567438776397a49978fc96"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "inspect_cheat_copy_is_rejected + DigestMismatch.never_retry",
+     "raw_output": "{\"cheat\": {\"reason\": \"cheat-copy: cheat-copy of pack-1 onto pack-2\", \"rejected\": true}, \"never_retry\": true}",
+     "exit_code": 0,
+     "fingerprint": "ccc8ee07c51be6f949787457973ddace"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "test_plugin_repro_job_asserts_digest_equality",
+   "command": "python3 -B tools/plugin/tests/test_plugin_repro.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_inject_timestamp_goes_red",
+   "command": "python3 -B tools/plugin/tests/test_plugin_repro.py",
+   "result": "PASS"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "IMP-0011-two-log-sections-not-cached-first",
+  "requirement": "Confirm the CI job actually ran both builds (two log sections) rather than caching the first.",
+  "verdict": "PASS",
+  "independent": true,
+  "notes": "Workflow inspection requires LINUX-PACK-1 and LINUX-PACK-2 markers, distinct --out paths, no cp of zip 1 onto zip 2. Live packs have distinct invocation_id. Cheat copy fixture is rejected."
+ },
+ "dependencies": {
+  "IMP-0002": "packer surface tools/plugin/pack.py is provided here so the gate is callable; IMP-0002 remains a separate unit for the fuller allowlist-driven packer."
+ },
+ "honesty": {
+  "windows_kernel_on_this_worktree": false,
+  "windows_line_ending_regime_measured": true,
+  "github_actions_job_executed_on_github": false,
+  "github_actions_job_yaml_present_and_inspected": true,
+  "linux_double_build_live": true,
+  "cloud_ok_is_not_delivery": true
+ },
+ "ts": "2026-08-25T00:38:01Z",
+ "produced_by": "command-center/p2-wave/probes/IMP-0011/emit_receipt.py"
+}

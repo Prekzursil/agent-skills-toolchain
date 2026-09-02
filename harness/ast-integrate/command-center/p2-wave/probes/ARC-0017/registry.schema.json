@@ -1,0 +1,141 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "A3 marketplace-first registry index (v1) — the control plane",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "architecture_id", "release_mode", "channels", "packages"],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "architecture_id": { "const": "A3" },
+    "release_mode": { "const": "PR-ONLY" },
+    "channels": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/channel" }
+    },
+    "packages": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/package_release" }
+    }
+  },
+  "definitions": {
+    "digest": {
+      "type": "string",
+      "pattern": "^[a-f0-9]{64}$"
+    },
+    "semver": {
+      "type": "string",
+      "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$"
+    },
+    "package_id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z][a-z0-9._-]*$"
+    },
+    "kind": {
+      "type": "string",
+      "enum": ["skill", "hook", "rule", "workflow_blueprint", "council_preset", "mcp_mount"]
+    },
+    "channel_id": {
+      "type": "string",
+      "enum": ["pr", "beta", "stable", "canary-rehearsal"]
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "write_path", "deploy_target"],
+      "properties": {
+        "id": { "$ref": "#/definitions/channel_id" },
+        "write_path": {
+          "type": "string",
+          "enum": ["pull-request-against-index", "forbidden", "throwaway-prefix-rehearsal"]
+        },
+        "deploy_target": {
+          "type": "string",
+          "enum": ["none", "index-pointer", "throwaway-prefix"]
+        }
+      }
+    },
+    "package_release": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "package_id",
+        "kind",
+        "version",
+        "digest",
+        "channel",
+        "claimed_paths",
+        "immutable"
+      ],
+      "properties": {
+        "package_id": { "$ref": "#/definitions/package_id" },
+        "kind": { "$ref": "#/definitions/kind" },
+        "version": { "$ref": "#/definitions/semver" },
+        "digest": { "$ref": "#/definitions/digest" },
+        "channel": { "$ref": "#/definitions/channel_id" },
+        "claimed_paths": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "immutable": { "type": "boolean", "const": true },
+        "deps": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["package_id", "version", "digest"],
+            "properties": {
+              "package_id": { "$ref": "#/definitions/package_id" },
+              "version": { "$ref": "#/definitions/semver" },
+              "digest": { "$ref": "#/definitions/digest" }
+            }
+          }
+        }
+      }
+    },
+    "lockfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["schema_version", "pins"],
+      "properties": {
+        "schema_version": { "const": 1 },
+        "pins": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["package_id", "version", "digest"],
+            "properties": {
+              "package_id": { "$ref": "#/definitions/package_id" },
+              "version": { "$ref": "#/definitions/semver" },
+              "digest": { "$ref": "#/definitions/digest" },
+              "previous": {
+                "type": ["object", "null"],
+                "properties": {
+                  "version": { "$ref": "#/definitions/semver" },
+                  "digest": { "$ref": "#/definitions/digest" }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "cache_entry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["digest", "bytes_sha256"],
+      "properties": {
+        "digest": { "$ref": "#/definitions/digest" },
+        "bytes_sha256": { "$ref": "#/definitions/digest" },
+        "package_id": { "$ref": "#/definitions/package_id" },
+        "version": { "$ref": "#/definitions/semver" }
+      },
+      "description": "Cache is content-addressed by digest. package_id/version are advisory labels and MUST NOT be the lookup key for activation."
+    }
+  }
+}

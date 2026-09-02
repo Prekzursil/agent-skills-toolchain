@@ -1,0 +1,374 @@
+{
+ "unit_id": "REL-0021",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:REL-0021",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/REL-0021.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/REL-0021.json",
+   "bytes": 13534,
+   "sha256": "2c08e45ee04a6a5f20a83097e3351faa12c45cc7d7544ad68750f19bafa078fd",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "produced_by": {
+  "role": "release-gate",
+  "execution_substrate": "linux-headless-local",
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6"
+ },
+ "extensions": {
+  "legacy_root": {
+   "id": "REL-0021",
+   "status": "DELIVERED",
+   "completion_sentinel": "SUCCESS:REL-0021",
+   "title": "Three-way byte parity between git blob, packaged copy and deployed copy",
+   "phase": "15",
+   "question": "Before promoting, do the three copies of every shipped file agree: the git blob obtained with git cat-file (never git archive), the bytes inside the built package, and the bytes in the deployed tree, after normalising line endings? Does a two-directional divergence BLOCK instead of proposing a one-directional sync?",
+   "answer": "YES on the isolated three-copy fixture: retrieval is git cat-file -p HEAD:shipped/known.txt (rejected git archive -o <tmp.tar> HEAD -- shipped/known.txt; CRLF cat-file=0 archive=4 difference=4). Control four-way counts: identical=3, package-only=1, deployed-only=1, divergent-both-ways=1. Control verdict=BLOCK. Healthy verdict=PROMOTE. Owner-authored deployed-only file survived a reviewer overwrite attempt (caught_before_signoff=True). This worktree has no .git and no live deployed tree; live promotion is NOT-CHECKED. SUCCESS:REL-0021",
+   "ts": "2026-08-25T00:55:49Z",
+   "output_schema": "command-center/schema/release-gate-receipt.schema.json",
+   "blob_recipe": {
+    "retrieval_command": "git cat-file -p HEAD:shipped/known.txt",
+    "rejected_alternative": "git archive -o <tmp.tar> HEAD -- shipped/known.txt",
+    "cat_file_crlf": 0,
+    "archive_crlf": 4,
+    "crlf_count_difference": 4,
+    "cat_file_bytes": 23,
+    "archive_bytes": 27,
+    "control_path": "shipped/known.txt",
+    "chosen_recipe": "git cat-file -p",
+    "justification": "Measured on this host: git cat-file -p returned 0 CRLF pair(s) (23 bytes); git archive returned 4 CRLF pair(s) (27 bytes); difference 4. Archive applies export/working-tree filters (eol=crlf in .gitattributes) and is not the blob. The gate therefore reads blobs with git cat-file -p, never git archive."
+   },
+   "four_way": {
+    "identical": 3,
+    "package-only": 1,
+    "deployed-only": 1,
+    "divergent-both-ways": 1
+   },
+   "healthy_four_way": {
+    "identical": 3,
+    "package-only": 0,
+    "deployed-only": 0,
+    "divergent-both-ways": 0
+   },
+   "healthy_verdict": "PROMOTE",
+   "control_verdict": "BLOCK",
+   "control_files": [
+    {
+     "path": "shipped/eol.txt",
+     "class": "identical",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "package_sha256": "f759dbb0dc09b0b35066424bc8770407657aa923ed8707b7bf1015e7c1985d12",
+     "deployed_sha256": "f759dbb0dc09b0b35066424bc8770407657aa923ed8707b7bf1015e7c1985d12",
+     "git_lf_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "package_lf_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "deployed_lf_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "eol_only_difference": true,
+     "raw_equal": false
+    },
+    {
+     "path": "shipped/known.txt",
+     "class": "identical",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "package_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "deployed_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "git_lf_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "package_lf_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "deployed_lf_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "eol_only_difference": false,
+     "raw_equal": true
+    },
+    {
+     "path": "shipped/ok.txt",
+     "class": "identical",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "package_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "deployed_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "git_lf_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "package_lf_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "deployed_lf_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "eol_only_difference": false,
+     "raw_equal": true
+    },
+    {
+     "path": "shipped/owner-note.txt",
+     "class": "deployed-only",
+     "sync_proposal": null,
+     "present": {
+      "git": false,
+      "package": false,
+      "deployed": true
+     },
+     "git_sha256": null,
+     "package_sha256": null,
+     "deployed_sha256": "1c8c19d5c495b0c69aaa7e6d50ff7cba44909f2a253dcc852d966095f137d8bb",
+     "git_lf_sha256": null,
+     "package_lf_sha256": null,
+     "deployed_lf_sha256": "1c8c19d5c495b0c69aaa7e6d50ff7cba44909f2a253dcc852d966095f137d8bb",
+     "note": "deployed-only, not missing"
+    },
+    {
+     "path": "shipped/pkg-only.txt",
+     "class": "package-only",
+     "sync_proposal": null,
+     "present": {
+      "git": false,
+      "package": true,
+      "deployed": false
+     },
+     "git_sha256": null,
+     "package_sha256": "1fd78eb180facca76569b0dd0d3e1d97633a8b9181d874606ef2e8af8ae4d4e0",
+     "deployed_sha256": null,
+     "git_lf_sha256": null,
+     "package_lf_sha256": "1fd78eb180facca76569b0dd0d3e1d97633a8b9181d874606ef2e8af8ae4d4e0",
+     "deployed_lf_sha256": null
+    },
+    {
+     "path": "shipped/twoway.txt",
+     "class": "divergent-both-ways",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "a933911f8060da31427a67a5bbeb4b392e7e029aeb6db58c67f49d8b6a900ebf",
+     "package_sha256": "a933911f8060da31427a67a5bbeb4b392e7e029aeb6db58c67f49d8b6a900ebf",
+     "deployed_sha256": "8919c58bdaa04d95646d7c398add57b42c9b5ca4a6bd712183774cbb6c0b921c",
+     "git_lf_sha256": "a933911f8060da31427a67a5bbeb4b392e7e029aeb6db58c67f49d8b6a900ebf",
+     "package_lf_sha256": "a933911f8060da31427a67a5bbeb4b392e7e029aeb6db58c67f49d8b6a900ebf",
+     "deployed_lf_sha256": "8919c58bdaa04d95646d7c398add57b42c9b5ca4a6bd712183774cbb6c0b921c",
+     "verdict": "BLOCK",
+     "note": "two-directional unique content; reconciling in either direction destroys work; no one-directional sync proposal",
+     "repo_only_line_count": 1,
+     "deployed_only_line_count": 1
+    }
+   ],
+   "healthy_files": [
+    {
+     "path": "shipped/eol.txt",
+     "class": "identical",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "package_sha256": "f759dbb0dc09b0b35066424bc8770407657aa923ed8707b7bf1015e7c1985d12",
+     "deployed_sha256": "f759dbb0dc09b0b35066424bc8770407657aa923ed8707b7bf1015e7c1985d12",
+     "git_lf_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "package_lf_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "deployed_lf_sha256": "9bae751f4445c72a54ee61ce1f2742e3b42c0f664e82837743e5b8d0e2163187",
+     "eol_only_difference": true,
+     "raw_equal": false
+    },
+    {
+     "path": "shipped/known.txt",
+     "class": "identical",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "package_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "deployed_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "git_lf_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "package_lf_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "deployed_lf_sha256": "927c9bb49935d22cfef1df0fd954eb8011420a9b1ec2350d65647accf201bbe9",
+     "eol_only_difference": false,
+     "raw_equal": true
+    },
+    {
+     "path": "shipped/ok.txt",
+     "class": "identical",
+     "sync_proposal": null,
+     "present": {
+      "git": true,
+      "package": true,
+      "deployed": true
+     },
+     "git_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "package_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "deployed_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "git_lf_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "package_lf_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "deployed_lf_sha256": "753cf0fa5e02f39daab1938aec68942c2afedc2af55cefd0f042015a46f85b43",
+     "eol_only_difference": false,
+     "raw_equal": true
+    }
+   ],
+   "sync_proposals": [],
+   "inputs_resolved": {
+    "git_object_store": "ABSENT on this worktree; gate proven on isolated fixture repos",
+    "built_package": "fixture zip command-center/p2-wave/probes/REL-0021 (runtime, not source tree)",
+    "deployed_tree": "fixture directory (no live deploy tree on this Linux worktree)",
+    "B02_baseline": "present:command-center/audit/AUD-0012-skills-three-way-drift.json"
+   },
+   "evidence_requirement": "Report the four-way classification counts: identical, package-only, deployed-only, and divergent-both-ways. Name the retrieval command used for the blob and show the measured CRLF count difference against the rejected alternative, so the recipe choice is evidenced rather than asserted.",
+   "failure_classification": [
+    "repo-live-drift",
+    "wrong-blob-recipe",
+    "eol-false-positive"
+   ],
+   "notes": "G-1 delivery for REL-0021: three-way byte parity gate with measured cat-file vs archive CRLF delta, four-way classification, BLOCK on two-directional divergence, and reviewer destroy catch. Did not run unit_manifest.py --write. No ADV rebuild."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#REL-0021",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "REL-0021 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/REL-0021.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/REL-0021.json",
+     "raw_output": "bytes=13534 sha256=2c08e45ee04a6a5f20a83097e3351faa12c45cc7d7544ad68750f19bafa078fd",
+     "fingerprint": "07d7b81eaced51298c415613feae53b8",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact REL-0021",
+     "raw_output": "schema-check",
+     "fingerprint": "06a07576e8e7eb9c50d7616e4ba46590",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REL-0021 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0021",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py REL-0021",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "917c4a8c4852f4183591256f897e2342",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered REL-0021",
+     "raw_output": "schema-valid",
+     "fingerprint": "b0e66540f4fe5d38a77bf5b591daedb0",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0021/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "REL-0021"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/REL-0021.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/REL-0021.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "0aab4477e5b3f394ffa928c103551edd",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "release-gate-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 13534,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/REL-0021.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ }
+}

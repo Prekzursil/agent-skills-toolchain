@@ -1,0 +1,143 @@
+{
+  "note": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json is absent on this Linux worktree (Windows harness path does not exist). This slice instantiates exactly the six DELIBERATIVE members named in WORK-UNIT-CATALOG.json item CNL-0038 so no member can fall through a family mis-assignment. It is not a byte copy of the missing library. P07 is an ADVERSARIAL decoy to prove the family filter.",
+  "source_claimed": "C:/Users/Prekzursil/.claude/harness-restore-20260806/12-COUNCIL-PROTOCOLS-AND-PRESETS.json",
+  "family": "DELIBERATIVE",
+  "expected_n": 6,
+  "protocols": [
+    {
+      "id": "P01",
+      "slug": "free-form-moderated-panel",
+      "family": "DELIBERATIVE",
+      "title": "Free-form moderated panel",
+      "roles": [
+        {"id": "moderator", "kind": "chair"},
+        {"id": "panelist", "kind": "speaker"}
+      ],
+      "seats": ["moderator", "A", "B", "C"],
+      "turn_policy": "The moderator recognizes speakers at discretion; no seat is guaranteed a turn.",
+      "stopping": "when the moderator judges the discussion has run its course and remaining comments are repetitive"
+    },
+    {
+      "id": "P02",
+      "slug": "round-robin",
+      "family": "DELIBERATIVE",
+      "title": "Round-robin",
+      "roles": [
+        {"id": "speaker", "kind": "speaker"}
+      ],
+      "seats": ["A", "B", "C"],
+      "turn_policy": {
+        "kind": "round-robin",
+        "max_rounds": 2
+      },
+      "stopping": {
+        "op": "AND",
+        "args": [
+          {"var": "rounds", "cmp": ">=", "value": 2},
+          {"op": "ALL", "over": "seats", "pred": {"var": "spoke_this_round", "cmp": "==", "value": true}}
+        ]
+      }
+    },
+    {
+      "id": "P03",
+      "slug": "fishbowl",
+      "family": "DELIBERATIVE",
+      "title": "Fishbowl",
+      "roles": [
+        {"id": "inner", "kind": "speaker"},
+        {"id": "outer", "kind": "observer"}
+      ],
+      "inner": ["A", "B"],
+      "outer": ["C", "D"],
+      "turn_policy": {
+        "kind": "fishbowl",
+        "max_rounds": 2
+      },
+      "stopping": {
+        "op": "AND",
+        "args": [
+          {"var": "rounds", "cmp": ">=", "value": 2},
+          {"var": "promotions", "cmp": ">=", "value": 2}
+        ]
+      }
+    },
+    {
+      "id": "P04",
+      "slug": "consensus-conference",
+      "family": "DELIBERATIVE",
+      "title": "Consensus conference",
+      "roles": [
+        {"id": "proposer", "kind": "speaker"},
+        {"id": "objector", "kind": "critic"}
+      ],
+      "seats": ["A", "B", "C"],
+      "turn_policy": {
+        "kind": "consensus-conference",
+        "min_rounds": 2
+      },
+      "stopping": {
+        "op": "AND",
+        "args": [
+          {"var": "unresolved_objections", "cmp": "==", "value": 0},
+          {"var": "rounds", "cmp": ">=", "value": 2}
+        ]
+      }
+    },
+    {
+      "id": "P05",
+      "slug": "rotating-chair",
+      "family": "DELIBERATIVE",
+      "title": "Rotating chair",
+      "roles": [
+        {"id": "chair", "kind": "chair"},
+        {"id": "member", "kind": "speaker"}
+      ],
+      "seats": ["A", "B", "C"],
+      "turn_policy": {
+        "kind": "rotating-chair"
+      },
+      "stopping": {
+        "op": "ALL",
+        "over": "seats",
+        "pred": {"var": "has_chaired", "cmp": "==", "value": true}
+      }
+    },
+    {
+      "id": "P06",
+      "slug": "nominal-group-technique",
+      "family": "DELIBERATIVE",
+      "title": "Nominal group technique",
+      "roles": [
+        {"id": "generator", "kind": "speaker"},
+        {"id": "recorder", "kind": "recorder"}
+      ],
+      "seats": ["A", "B", "C"],
+      "turn_policy": {
+        "kind": "nominal-group-technique",
+        "phases": ["silent_generate", "round_robin_share", "clarify", "rank"]
+      },
+      "stopping": {
+        "op": "AND",
+        "args": [
+          {"var": "phase", "cmp": "==", "value": "rank"},
+          {"var": "ballots_cast", "cmp": "==", "value": 3}
+        ]
+      }
+    },
+    {
+      "id": "P07",
+      "slug": "oxford-debate",
+      "family": "ADVERSARIAL",
+      "title": "Oxford debate (decoy; must not count as DELIBERATIVE)",
+      "seats": ["prop", "opp"],
+      "turn_policy": {"kind": "oxford-debate", "max_rounds": 2},
+      "stopping": {
+        "op": "AND",
+        "args": [
+          {"var": "rebuttal_rounds", "cmp": ">=", "value": 2},
+          {"var": "closing_complete", "cmp": "==", "value": true}
+        ]
+      }
+    }
+  ]
+}

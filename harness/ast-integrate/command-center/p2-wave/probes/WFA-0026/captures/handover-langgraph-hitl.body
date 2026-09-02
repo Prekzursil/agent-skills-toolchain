@@ -1,0 +1,767 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>LangGraph Human in the Loop: A Complete Tutorial (With Production Considerations) — The Handover Blog</title>
+  <meta name="description" content="Learn how LangGraph's interrupt() function works for human-in-the-loop agents, with working Python code and a guide to production limitations.">
+  <link rel="canonical" href="https://thehandover.xyz/blog/langgraph-human-in-the-loop-tutorial">
+  <meta property="og:title" content="LangGraph Human in the Loop: A Complete Tutorial (With Production Considerations) — The Handover Blog">
+  <meta property="og:description" content="Learn how LangGraph's interrupt() function works for human-in-the-loop agents, with working Python code and a guide to production limitations.">
+  <meta property="og:type" content="article">
+  <meta property="og:url" content="https://thehandover.xyz/blog/langgraph-human-in-the-loop-tutorial">
+  <meta property="og:image" content="https://thehandover.xyz/og-image.png?v=2">
+  <meta property="og:site_name" content="The Handover">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="LangGraph Human in the Loop: A Complete Tutorial (With Production Considerations) — The Handover Blog">
+  <meta name="twitter:description" content="Learn how LangGraph's interrupt() function works for human-in-the-loop agents, with working Python code and a guide to production limitations.">
+  <meta name="twitter:image" content="https://thehandover.xyz/og-image.png?v=2">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
+  <script>(function(){try{var t=localStorage.getItem('theme');if(t==='dark')document.documentElement.setAttribute('data-theme','dark');}catch(e){}})()</script>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"LangGraph Human in the Loop: A Complete Tutorial (With Production Considerations)","description":"Learn how LangGraph's interrupt() function works for human-in-the-loop agents, with working Python code and a guide to production limitations.","url":"https://thehandover.xyz/blog/langgraph-human-in-the-loop-tutorial","datePublished":"2026-04-12","author":{"@type":"Organization","name":"The Handover","url":"https://thehandover.xyz"},"publisher":{"@type":"Organization","name":"The Handover","url":"https://thehandover.xyz"}}</script>
+  
+  
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist:wght@300;400;500;600;700&family=Instrument+Serif:ital@0;1&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+
+  <style>
+    
+    :root {
+      /* Brand palette — sage on warm paper. See design/colors_and_type.css. */
+      --sage-950:#1A2716; --sage-900:#2A3A24; --sage-800:#3B4E34; --sage-700:#4A6141;
+      --sage-600:#5A7350; --sage-500:#6D8563; --sage-400:#8AA07F; --sage-300:#A9BC9F;
+      --sage-200:#C9D6C1; --sage-100:#E3ECDD; --sage-50:#F1F5ED;  --sage-25:#F8FAF5;
+
+      --ink-950:#10140E; --ink-900:#1C211A; --ink-800:#2B312A; --ink-700:#3E453C;
+      --ink-600:#545B52; --ink-500:#6E756B; --ink-400:#8E9489; --ink-300:#B4B9B0;
+      --ink-200:#D4D8D0; --ink-100:#E8EAE4; --ink-50:#F3F4EE;
+
+      --paper:#FAFAF5; --paper-pure:#FFFFFF;
+      --amber-600:#B4812A; --amber-100:#F5E8C8;
+      --red-600:#A83A2A;   --red-100:#F2D7D1;
+      --blue-600:#3A5A7A;  --blue-100:#D5E0EA;
+
+      /* Legacy aliases — keep component styles working after the repaint. */
+      --surface-0:#FAFAF5;
+      --surface-1:#FFFFFF;
+      --surface-2:#F8FAF5;
+      --surface-3:#E8EAE4;
+
+      --border:        #D4D8D0;
+      --border-subtle: #E8EAE4;
+      --border-brand:  #C9D6C1;
+
+      --text-primary:   #10140E;
+      --text-secondary: #545B52;
+      --text-muted:     #8E9489;
+
+      /* Marketing kit aliases (match design/colors_and_type.css naming). */
+      --fg:        #10140E;
+      --fg-muted:  #545B52;
+      --fg-subtle: #8E9489;
+      --fg-brand:  #4A6141;
+      --bg:         #FAFAF5;
+      --surface:    #FFFFFF;
+
+      --accent:      #5A7350;
+      --accent-soft: #E3ECDD;
+      --accent-hover:#4A6141;
+
+      --success: #4A6141;
+      --danger:  #A83A2A;
+      --warning: #B4812A;
+      --info:    #3A5A7A;
+
+      /* Status pill backgrounds — used by dashboard tables on light. */
+      --status-pending-bg: #F5E8C8;
+      --status-approved-bg:#E3ECDD;
+      --status-denied-bg:  #F2D7D1;
+      --key-reveal-bg:     #E3ECDD;
+      --row-divider:       #E8EAE4;
+
+      /* Nav bg used by sticky scroll state. */
+      --nav-scroll-bg: rgba(250,250,245,.82);
+
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --radius-xl: 20px;
+
+      /* Typography stacks */
+      --font-sans:  'Geist', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', sans-serif;
+      --font-serif: 'Instrument Serif', ui-serif, Georgia, serif;
+      --font-mono:  'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace;
+
+      /* Motion */
+      --ease-out:    cubic-bezier(0.22, 1, 0.36, 1);
+      --ease-spring: cubic-bezier(0.34, 1.56, 0.64, 1);
+      --dur-fast:    160ms;
+      --dur-base:    240ms;
+      --dur-slow:    420ms;
+
+      /* Shadows — soft, slightly greenish ambient */
+      --shadow-xs: 0 1px 2px rgba(26,39,22,.04);
+      --shadow-sm: 0 1px 3px rgba(26,39,22,.06), 0 1px 2px rgba(26,39,22,.04);
+      --shadow-md: 0 4px 12px rgba(26,39,22,.07), 0 2px 4px rgba(26,39,22,.04);
+      --shadow-lg: 0 12px 32px rgba(26,39,22,.10), 0 4px 8px rgba(26,39,22,.05);
+      --shadow-xl: 0 24px 60px rgba(26,39,22,.14), 0 8px 16px rgba(26,39,22,.06);
+    }
+    ::selection { background: var(--sage-200); color: var(--sage-900); }
+
+    /* ---------- DARK theme ---------- */
+    html[data-theme="dark"] {
+      /* Marketing background pair (paper -> deep ink). */
+      --paper:#10140E;
+      --paper-pure:#1C211A;
+      --bg:    #10140E;
+      --surface:#1C211A;
+
+      /* Inverted ink ramp — 50 was lightest, 950 was darkest; flip on dark
+         so the same vars still mean "near the page color" vs. "deep contrast". */
+      --ink-50:#10140E;  --ink-100:#1C211A; --ink-200:#2B312A; --ink-300:#3E453C;
+      --ink-400:#545B52; --ink-500:#6E756B; --ink-600:#8E9489; --ink-700:#B4B9B0;
+      --ink-800:#D4D8D0; --ink-900:#E8EAE4; --ink-950:#F3F4EE;
+
+      /* Sage ramp — leave 600 as the brand mark; selection still readable. */
+      --sage-25: #1A2716; --sage-50: #2A3A24; --sage-100:#3B4E34;
+      --sage-200:#4A6141; --sage-300:#6D8563;
+
+      /* Marketing semantic aliases on dark. */
+      --fg:        #E8EAE4;
+      --fg-muted:  #B4B9B0;
+      --fg-subtle: #8E9489;
+      --fg-brand:  #A9BC9F;
+
+      --accent:      #8AA07F;
+      --accent-soft: #2A3A24;
+      --accent-hover:#A9BC9F;
+
+      --success: #A9BC9F;
+      --danger:  #D89D8F;
+      --warning: #E3CCA1;
+      --info:    #98B0C4;
+
+      /* Legacy aliases — dashboard surfaces match the kit's oklch values. */
+      --surface-0: #15191A;
+      --surface-1: #1B2122;
+      --surface-2: #232A2B;
+      --surface-3: #2C3334;
+      --border:        #38404F;
+      --border-subtle: #2C3334;
+      --border-brand:  #4A6141;
+      --text-primary:   #E8E9EA;
+      --text-secondary: #A2A8AE;
+      --text-muted:     #7A8087;
+
+      /* Status pill backgrounds — darker tinted bg + semantic text color. */
+      --status-pending-bg: #3D331A;
+      --status-approved-bg:#1F3326;
+      --status-denied-bg:  #3A201C;
+      --key-reveal-bg:     #1F3326;
+      --row-divider:       #1F2425;
+
+      --nav-scroll-bg: rgba(16, 20, 14, .82);
+
+      --shadow-xs: 0 1px 2px rgba(0,0,0,.40);
+      --shadow-sm: 0 1px 3px rgba(0,0,0,.45), 0 1px 2px rgba(0,0,0,.30);
+      --shadow-md: 0 4px 12px rgba(0,0,0,.50), 0 2px 4px rgba(0,0,0,.30);
+      --shadow-lg: 0 12px 32px rgba(0,0,0,.55), 0 4px 8px rgba(0,0,0,.35);
+      --shadow-xl: 0 24px 60px rgba(0,0,0,.65), 0 8px 16px rgba(0,0,0,.40);
+    }
+    html, body { transition: background-color .25s var(--ease-out), color .25s var(--ease-out); }
+
+    
+    html, body {
+      font-family: var(--font-sans);
+      background: var(--paper);
+      color: var(--fg);
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    a { color: var(--sage-700); text-decoration-color: var(--sage-300); text-underline-offset: 2px; }
+    a:hover { color: var(--sage-800); text-decoration-color: var(--sage-600); }
+    html[data-theme="dark"] a { color: var(--sage-300); text-decoration-color: var(--sage-200); }
+    html[data-theme="dark"] a:hover { color: var(--accent-hover); }
+    code, pre, kbd, samp { font-family: var(--font-mono); font-feature-settings: 'zero' 1, 'ss01' 1; }
+    button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible {
+      outline: none;
+      box-shadow: 0 0 0 2px var(--paper), 0 0 0 4px var(--sage-600);
+    }
+
+    
+    /* ---------- display type ---------- */
+    .display-serif { font-family: var(--font-sans); font-weight: 500; font-size: 76px; line-height: 1.02; letter-spacing: -.03em; margin: 24px auto 24px; max-width: 920px; text-wrap: balance }
+    .display-serif em { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--sage-700) }
+    html[data-theme="dark"] .display-serif em { color: var(--sage-300) }
+    .lede { font-size: 18px; line-height: 1.55; color: var(--fg-muted); margin: 0 auto; text-wrap: pretty }
+    .eyebrow { font-size: 12px; text-transform: uppercase; letter-spacing: .12em; font-weight: 500; color: var(--sage-700); margin-bottom: 14px }
+    html[data-theme="dark"] .eyebrow { color: var(--sage-300) }
+    .eyebrow-row { display: inline-flex; align-items: center; gap: 10px; padding: 6px 14px; border: 1px solid var(--border); background: var(--surface); border-radius: 999px; color: var(--sage-700); font-size: 12px; font-weight: 500; letter-spacing: .08em; text-transform: uppercase }
+    html[data-theme="dark"] .eyebrow-row { color: var(--sage-300) }
+    .section-title { font-size: 52px; font-weight: 500; letter-spacing: -.025em; line-height: 1.04; margin: 0 0 40px; text-wrap: balance; max-width: 760px }
+    .section-title em { font-family: var(--font-serif); font-style: italic; font-weight: 400; color: var(--sage-700) }
+    html[data-theme="dark"] .section-title em { color: var(--sage-300) }
+    .section-inner { max-width: 1200px; margin: 0 auto; padding: 0 32px }
+    .body-sm { font-size: 13px; color: var(--fg-muted); line-height: 1.6 }
+
+    /* ---------- nav ---------- */
+    .mkt-nav { position: sticky; top: 0; z-index: 40; transition: all .3s var(--ease-out); background: transparent }
+    .mkt-nav.nav-scrolled { background: var(--nav-scroll-bg); backdrop-filter: blur(12px); border-bottom: 1px solid var(--border) }
+    .mkt-nav-inner { max-width: 1200px; margin: 0 auto; padding: 18px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px }
+    .brand { display: inline-flex; align-items: center; gap: 10px; text-decoration: none; color: var(--fg) }
+    .brand-mark { width: 28px; height: 28px; display: inline-flex; align-items: center; justify-content: center; background: var(--sage-600); border-radius: 8px; padding: 3px }
+    .brand-mark img { width: 100%; height: 100%; object-fit: contain; filter: brightness(0) invert(1) }
+    .brand-name { font-family: var(--font-sans); font-weight: 500; font-size: 15px; letter-spacing: -.01em }
+    .nav-links { display: flex; gap: 28px }
+    .nav-links a { color: var(--fg-muted); font-size: 14px; text-decoration: none; transition: color .2s }
+    .nav-links a:hover { color: var(--fg) }
+    .nav-cta { display: inline-flex; align-items: center; gap: 10px }
+    .brand-mark-spin img { animation: swirl 8s linear infinite }
+    @keyframes swirl { to { transform: rotate(360deg) } }
+
+    
+    .theme-toggle {
+      background: transparent; border: 1px solid var(--border); border-radius: 8px;
+      cursor: pointer; color: var(--fg-muted); padding: 7px 8px;
+      display: inline-flex; align-items: center; line-height: 1;
+      transition: color .15s, border-color .15s, background .15s;
+    }
+    .theme-toggle:hover { color: var(--fg); border-color: var(--ink-300); background: var(--paper); }
+    .theme-toggle .icon-moon { display: none; }
+    html[data-theme="dark"] .theme-toggle .icon-sun { display: none; }
+    html[data-theme="dark"] .theme-toggle .icon-moon { display: inline-flex; }
+
+
+    /* ---------- buttons ---------- */
+    .btn-mkt { font-family: var(--font-sans); font-size: 14px; font-weight: 500; padding: 11px 18px; border-radius: 10px; border: 1px solid transparent; cursor: pointer; display: inline-flex; align-items: center; gap: 8px; text-decoration: none; transition: all .24s var(--ease-out); line-height: 1 }
+    .btn-mkt.btn-primary { background: var(--sage-600); color: #fff }
+    .btn-mkt.btn-primary:hover { background: var(--sage-700); transform: translateY(-1px); box-shadow: 0 6px 16px rgba(90,115,80,.25) }
+    .btn-mkt.btn-secondary { background: var(--surface); color: var(--fg); border-color: var(--ink-200) }
+    .btn-mkt.btn-secondary:hover { background: var(--paper); border-color: var(--ink-300) }
+    .btn-mkt.btn-ghost { background: transparent; color: var(--fg-muted) }
+    .btn-mkt.btn-ghost:hover { background: var(--ink-50); color: var(--fg) }
+    .btn-mkt.btn-sm { padding: 8px 13px; font-size: 13px; border-radius: 8px }
+    .btn-mkt.btn-lg { padding: 14px 22px; font-size: 15px }
+
+    /* ---------- chips ---------- */
+    .chip { display: inline-flex; align-items: center; gap: 6px; padding: 4px 10px; border-radius: 999px; font: 500 11px var(--font-sans) }
+    .chip .dot { width: 6px; height: 6px; border-radius: 50% }
+    .chip-approved { background: var(--sage-100); color: var(--sage-900) }
+    .chip-approved .dot { background: var(--sage-600) }
+    .chip-pending { background: var(--amber-100); color: #7E5A18 }
+    .chip-pending .dot { background: var(--amber-600); animation: chip-pulse 1.6s ease-in-out infinite }
+    @keyframes chip-pulse { 0%,100% { box-shadow: 0 0 0 0 rgba(180,129,42,.5) } 50% { box-shadow: 0 0 0 5px rgba(180,129,42,0) } }
+    .chip-denied { background: var(--red-100); color: #6B231A }
+    .chip-denied .dot { background: var(--red-600) }
+    .chip-neutral { background: var(--ink-100); color: var(--ink-800) }
+    .chip-sq { border-radius: 6px }
+    html[data-theme="dark"] .chip-pending { background: #3D331A; color: #E3CCA1 }
+    html[data-theme="dark"] .chip-denied { background: #3A201C; color: #D89D8F }
+    html[data-theme="dark"] .chip-approved { background: #1F3326; color: #A9BC9F }
+
+    /* ---------- footer ---------- */
+    .mkt-footer { background: var(--sage-950); color: var(--sage-200); padding: 80px 0 40px; margin-top: 80px }
+    .mkt-footer-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr 1fr; gap: 40px; padding-bottom: 56px; border-bottom: 1px solid rgba(233,236,221,.1) }
+    .mkt-footer h5 { font-size: 12px; font-weight: 500; color: var(--sage-300); text-transform: uppercase; letter-spacing: .12em; margin: 0 0 16px }
+    .mkt-footer ul { list-style: none; padding: 0; margin: 0; display: flex; flex-direction: column; gap: 10px }
+    .mkt-footer a { color: var(--sage-100); font-size: 14px; text-decoration: none; transition: color .2s }
+    .mkt-footer a:hover { color: #fff }
+    .mkt-footer .brand-name { color: #fff }
+    .mkt-footer .brand-mark { background: var(--sage-800) }
+    .mkt-footer .body-sm { color: var(--sage-300) }
+    .mkt-footer-bottom { padding-top: 24px; display: flex; justify-content: space-between; font-size: 12px; color: var(--sage-400) }
+    .mkt-footer-bottom .mono { font-family: var(--font-mono) }
+
+    /* ---------- reveal ---------- */
+    .rise { opacity: 0; transform: translateY(14px); transition: opacity .7s var(--ease-out), transform .7s var(--ease-out) }
+    .rise.on { opacity: 1; transform: translateY(0) }
+    .reveal { opacity: 0; transform: translateY(16px); transition: opacity .7s var(--ease-out), transform .7s var(--ease-out) }
+    .reveal.in { opacity: 1; transform: translateY(0) }
+
+    @media (max-width: 900px) {
+      .display-serif { font-size: 54px }
+      .section-title { font-size: 38px }
+      .nav-links { display: none }
+      .mkt-footer-grid { grid-template-columns: 1fr 1fr }
+    }
+
+    .container { max-width: 760px; margin: 0 auto; padding: 0 24px }
+    .container-wide { max-width: 1080px; margin: 0 auto; padding: 0 24px }
+    code {
+      font-family: var(--font-mono);
+      font-size: 13px;
+      background: var(--sage-50);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--sage-800);
+    }
+    html[data-theme="dark"] code {
+      background: rgba(201, 214, 193, .12);
+      color: var(--sage-200);
+    }
+    pre {
+      background: var(--sage-950);
+      border: 1px solid var(--sage-900);
+      border-radius: 12px;
+      padding: 22px;
+      overflow-x: auto;
+      margin: 20px 0;
+    }
+    html[data-theme="dark"] pre {
+      background: #0F1610;
+      border-color: #1F2A1B;
+    }
+    pre code {
+      background: none;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.7;
+      color: #E3ECDD;
+    }
+    .kw { color: #C9D6C1 }
+    .str { color: #E3CCA1 }
+    .cmt { color: #6D8563; font-style: italic }
+    .num { color: #D9B38C }
+  </style>
+
+  <style>
+    .post-hero { padding: 64px 0 44px; border-bottom: 1px solid var(--ink-100) }
+    .post-category {
+      font-family: var(--font-mono); font-size: 12px; font-weight: 500;
+      text-transform: uppercase; letter-spacing: .08em; color: var(--sage-700);
+      margin-bottom: 18px; display: inline-block;
+    }
+    .post-hero h1 {
+      font-family: var(--font-sans); font-size: clamp(30px, 4.3vw, 44px);
+      font-weight: 500; letter-spacing: -.025em; line-height: 1.1;
+      margin-bottom: 18px; color: var(--ink-900);
+    }
+    .post-hero h1 em {
+      font-family: var(--font-serif); font-style: italic; font-weight: 400;
+      color: var(--sage-700);
+    }
+    .post-hero-meta {
+      font-family: var(--font-mono); font-size: 12px;
+      color: var(--ink-500); text-transform: uppercase; letter-spacing: .06em;
+    }
+    .post-body { padding: 56px 0 }
+    .post-body p { font-size: 16px; line-height: 1.78; color: var(--ink-700); margin-bottom: 20px }
+    .post-body h2 {
+      font-family: var(--font-sans); font-size: 26px; font-weight: 500;
+      color: var(--ink-900); margin: 48px 0 16px; letter-spacing: -.02em; line-height: 1.3;
+    }
+    .post-body h3 {
+      font-size: 18px; font-weight: 500; color: var(--ink-900);
+      margin: 30px 0 10px; letter-spacing: -.01em;
+    }
+    .post-body ul, .post-body ol { margin: 0 0 22px 22px }
+    .post-body li { font-size: 16px; line-height: 1.78; color: var(--ink-700); margin-bottom: 7px }
+    .post-body strong { color: var(--ink-900); font-weight: 500 }
+    .post-body a { color: var(--sage-700); text-decoration: underline; text-underline-offset: 3px }
+    .post-body a:hover { color: var(--sage-800) }
+    .post-body blockquote {
+      border-left: 3px solid var(--sage-200); padding-left: 20px;
+      margin: 24px 0; font-family: var(--font-serif); font-style: italic;
+      font-size: 19px; color: var(--ink-700); line-height: 1.6;
+    }
+    .callout {
+      background: var(--sage-25);
+      border: 1px solid var(--sage-100);
+      border-left: 3px solid var(--sage-600);
+      border-radius: 0 10px 10px 0;
+      padding: 16px 20px;
+      margin: 22px 0;
+    }
+    .callout p { margin: 0; font-size: 15px; color: var(--ink-700); line-height: 1.7 }
+    .callout li { color: var(--ink-700); }
+    html[data-theme="dark"] .callout {
+      background: rgba(201, 214, 193, .06);
+      border-color: rgba(201, 214, 193, .14);
+      border-left-color: var(--sage-300);
+    }
+    html[data-theme="dark"] .callout p,
+    html[data-theme="dark"] .callout li { color: var(--ink-800); }
+    html[data-theme="dark"] .callout strong { color: var(--ink-900); }
+    .post-cta {
+      background: var(--sage-25);
+      border: 1px solid var(--sage-100);
+      border-radius: 14px;
+      padding: 36px;
+      margin-top: 64px;
+      text-align: center;
+    }
+    html[data-theme="dark"] .post-cta {
+      background: rgba(201, 214, 193, .05);
+      border-color: rgba(201, 214, 193, .14);
+    }
+    .post-cta h3 {
+      font-size: 22px; font-weight: 500; letter-spacing: -.02em;
+      margin-bottom: 8px; color: var(--ink-900);
+    }
+    .post-cta p { font-size: 15px; color: var(--ink-600); margin-bottom: 22px; line-height: 1.65 }
+    .post-cta a {
+      display: inline-block;
+      background: var(--sage-600);
+      color: #fff;
+      padding: 12px 26px;
+      border-radius: 10px;
+      font-size: 14.5px;
+      font-weight: 500;
+      text-decoration: none;
+      letter-spacing: -.005em;
+      transition: background .18s, transform .18s;
+      box-shadow: 0 1px 0 rgba(0,0,0,.04), 0 8px 22px -12px rgba(90,115,80,.38);
+    }
+    .post-cta a:hover { background: var(--sage-700); transform: translateY(-1px) }
+  </style>
+</head>
+<body>
+  <nav class="mkt-nav" id="mkt-nav">
+    <div class="mkt-nav-inner">
+      <a href="/" class="brand">
+        <span class="brand-mark"><img src="/assets/logo/logo-mark-dark.png" alt=""></span>
+        <span class="brand-name">The Handover</span>
+      </a>
+      <div class="nav-links">
+        <a href="/docs">Docs</a>
+        <a href="/blog" style="color:var(--fg);font-weight:500">Blog</a>
+        <a href="/integrations">Integrations</a>
+        <a href="/dashboard">Dashboard</a>
+        <a href="/#pricing">Pricing</a>
+      </div>
+      <div class="nav-cta">
+        <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle theme" type="button">
+  <svg class="icon-sun" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/></svg>
+  <svg class="icon-moon" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
+</button>
+        <a href="/dashboard" class="btn-mkt btn-primary btn-sm">Get started
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M7 17L17 7M17 7H9M17 7v8"/></svg>
+        </a>
+      </div>
+    </div>
+  </nav>
+  <main>
+    <div class="container">
+      <article>
+        <header class="post-hero">
+          <p class="post-category">Tutorial</p>
+          <h1>LangGraph Human in the Loop: A Complete Tutorial (With Production Considerations)</h1>
+          <p class="post-hero-meta">April 12, 2026 &nbsp;·&nbsp; 9 min read</p>
+        </header>
+        <div class="post-body">
+          
+<p>LangGraph human in the loop support is built around <code>interrupt()</code> &mdash; call it inside a node, execution pauses, state is saved to the checkpointer, and the graph waits. Resume with <code>Command(resume=...)</code> and it picks up exactly where it left off.</p>
+
+<p>That covers a lot of scenarios. What it doesn&rsquo;t cover is what happens when the approver isn&rsquo;t you, when they need an email, might not respond for two hours, and the decision needs to end up in an audit log. This tutorial covers both: how to implement LangGraph human-in-the-loop correctly, and where it hits its ceiling for production deployments.</p>
+
+<h2>What LangGraph&rsquo;s interrupt pattern does</h2>
+
+<p>LangGraph human-in-the-loop (HITL) is built on two primitives: checkpointers and interrupts.</p>
+
+<div class="callout">
+  <p><strong>What is LangGraph human-in-the-loop?</strong> LangGraph HITL is a pattern where graph execution pauses at a designated node, saves its state to a checkpointer, and waits for a human response before continuing. You trigger the pause by calling <code>interrupt()</code> inside a node; you resume it by invoking the graph again with <code>Command(resume=value)</code> and the same <code>thread_id</code>.</p>
+</div>
+
+<p>A <strong>checkpointer</strong> persists the graph&rsquo;s state after each node execution. This is what makes pause-and-resume possible &mdash; the graph state survives the interruption, so execution can continue from exactly where it stopped rather than starting over.</p>
+
+<p>The <strong><code>interrupt()</code> function</strong>, introduced in LangGraph v0.4, is the current recommended way to pause execution. When your node calls <code>interrupt(value)</code>, the value you pass becomes the payload surfaced to the external caller &mdash; typically a question, a summary of the proposed action, or anything the human reviewer needs to make a decision. The old pattern (<code>raise NodeInterrupt()</code>) is deprecated; use <code>interrupt()</code> instead.</p>
+
+<p><strong>Static breakpoints</strong> offer a compile-time alternative. Set <code>interrupt_before=["node_name"]</code> or <code>interrupt_after=["node_name"]</code> when you call <code>graph.compile()</code>, and LangGraph will automatically pause before or after that node on every execution. LangGraph breakpoints for human approval work well in inspect-then-approve workflows where you always want oversight at a fixed point in the graph.</p>
+
+<p><strong>Dynamic interrupts</strong> are more flexible. You call <code>interrupt()</code> inside the node logic itself, which means you can conditionally pause based on the agent&rsquo;s state &mdash; only interrupting when the proposed action meets a certain risk threshold, for example.</p>
+
+<p>Both approaches share the same resume mechanism: you call <code>graph.invoke(Command(resume=response), config=config)</code> with the same <code>thread_id</code>, and the graph continues.</p>
+
+<h2>LangGraph interrupt tutorial: a working Python example</h2>
+
+<p>Here is a minimal LangGraph interrupt example in Python. The agent proposes an action, pauses for human approval, then either executes or skips based on the response.</p>
+
+<pre><code><span class="kw">from</span> langgraph.types <span class="kw">import</span> interrupt, Command
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> langgraph.checkpoint.memory <span class="kw">import</span> InMemorySaver
+<span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+
+<span class="kw">class</span> State(TypedDict):
+    action: str
+    approved: bool
+
+<span class="kw">def</span> approval_node(state: State):
+    <span class="cmt"># Pause and surface the proposed action to the caller</span>
+    decision = interrupt(
+        <span class="str">f"Agent wants to: {state['action']}. Approve? (True/False)"</span>
+    )
+    <span class="kw">return</span> {<span class="str">"approved"</span>: decision}
+
+<span class="kw">def</span> execute_node(state: State):
+    <span class="kw">if</span> state[<span class="str">"approved"</span>]:
+        print(<span class="str">f"Executing: {state['action']}"</span>)
+    <span class="kw">else</span>:
+        print(<span class="str">"Action denied."</span>)
+    <span class="kw">return</span> state
+
+builder = StateGraph(State)
+builder.add_node(<span class="str">"approval"</span>, approval_node)
+builder.add_node(<span class="str">"execute"</span>, execute_node)
+builder.add_edge(START, <span class="str">"approval"</span>)
+builder.add_edge(<span class="str">"approval"</span>, <span class="str">"execute"</span>)
+builder.add_edge(<span class="str">"execute"</span>, END)
+
+checkpointer = InMemorySaver()
+graph = builder.compile(checkpointer=checkpointer)
+
+config = {<span class="str">"configurable"</span>: {<span class="str">"thread_id"</span>: <span class="str">"thread-1"</span>}}
+
+<span class="cmt"># First invocation — pauses at interrupt()</span>
+result = graph.invoke(
+    {<span class="str">"action"</span>: <span class="str">"send refund of $340 to customer 8821"</span>, <span class="str">"approved"</span>: False},
+    config=config
+)
+print(result)  <span class="cmt"># {'__interrupt__': (...)}</span>
+
+<span class="cmt"># Human reviews, then resumes</span>
+graph.invoke(Command(resume=True), config=config)</code></pre>
+
+<p>A few things to note here. The <code>InMemorySaver</code> checkpointer works for local development and short-lived scripts. In production, you need a durable checkpointer backed by PostgreSQL, Redis, or a cloud equivalent &mdash; <code>InMemorySaver</code> loses state when the process restarts. LangGraph provides <code>PostgresSaver</code> and <code>RedisSaver</code> for this purpose.</p>
+
+<p>Also: each run needs a <code>thread_id</code> in the config. This is how LangGraph knows which checkpointed state to resume from. If you&rsquo;re running multiple agents concurrently, each needs its own unique thread ID.</p>
+
+<h3>The double execution problem</h3>
+
+<p>There is a known gotcha that bites developers when they first move to production. When you call <code>graph.invoke(Command(resume=...), config)</code>, LangGraph restarts the interrupted node from the beginning, not from the line where <code>interrupt()</code> was called.</p>
+
+<p>This means any code that ran before <code>interrupt()</code> will execute again on resume. If that code made an API call, sent a notification, or logged something, it will do so twice.</p>
+
+<p>The fix is straightforward: keep each approval node focused on a single responsibility. An approval node that does nothing except call <code>interrupt()</code> and return the result will re-execute cleanly. An approval node that also prepares data, calls external services, or logs pre-interrupt actions will double-fire those side effects.</p>
+
+<p>The pattern to follow: if a node mixes tool execution and approval gating, split it into two nodes. Let the preparation node do its work, then pass to a dedicated approval node that only calls <code>interrupt()</code>.</p>
+
+<h2>LangGraph HITL limitations: what interrupt() can&rsquo;t do in production</h2>
+
+<p>LangGraph&rsquo;s HITL interrupt mechanism was designed for interactive, synchronous UIs &mdash; a chatbot where the user types back immediately, or a Streamlit app where you click Approve in the same session. For those use cases it works perfectly as a lightweight approval gate.</p>
+
+<p>Where it shows friction is when the LangGraph human in the loop workflow extends beyond the developer&rsquo;s own environment.</p>
+
+<h3>No notification system</h3>
+
+<p>When a thread is interrupted, nobody gets notified. The graph state is persisted in the checkpointer and the thread is marked as interrupted, but that&rsquo;s it. There&rsquo;s no email sent, no Slack message, no ping of any kind.</p>
+
+<p>If the approver is you and you&rsquo;re watching the terminal, that&rsquo;s fine. If the approver is Priya in finance who needs to know that the agent is waiting on her sign-off before it processes a batch of refunds, you need to build that notification layer yourself. Email integration, Slack bots, webhook handlers &mdash; none of it is included.</p>
+
+<h3>No timeout or escalation</h3>
+
+<p>Interrupted threads sit in the checkpointer indefinitely. LangGraph has no built-in mechanism to say &ldquo;if nobody responds within 30 minutes, escalate to the backup approver&rdquo; or &ldquo;expire the decision after two hours and fail gracefully.&rdquo;</p>
+
+<p>You can build this with cron jobs that poll for stale interrupted threads, but that&rsquo;s non-trivial infrastructure. You need reliable scheduling, retry logic, fallback routing, and a way to resume the graph programmatically with a timeout response. Teams consistently underestimate how much work this is to build correctly.</p>
+
+<h3>No structured audit trail</h3>
+
+<p>LangGraph&rsquo;s persistence layer records graph state, which is valuable for debugging and resumability, but it is not an audit log. It doesn&rsquo;t produce a structured record of who was asked, when they responded, what they decided, and what reasoning they provided.</p>
+
+<p>For most production deployments, and certainly for any <a href="/blog/eu-ai-act-human-in-the-loop">EU AI Act Article 14 compliance</a>, you need a human-readable, exportable log of every decision your agent made or requested. LangGraph doesn&rsquo;t provide that out of the box. You have to instrument it yourself.</p>
+
+<h2>Adding production-grade approval to a LangGraph agent</h2>
+
+<p>The cleanest way to add notifications, timeout handling, and audit trails to a LangGraph agent is to replace the <code>interrupt()</code> call with a dedicated approval API call. The graph structure stays identical &mdash; you&rsquo;re just swapping the implementation of the approval node.</p>
+
+<p>Here&rsquo;s the same workflow from earlier, with the approval node calling The Handover&rsquo;s <a href="https://thehandover.xyz/docs#create-decision"><code>POST /decisions</code> endpoint</a> instead. The approver gets an email with one-click Approve/Deny buttons. Your agent polls for the result. The decision is logged automatically.</p>
+
+<pre><code><span class="kw">import</span> requests
+<span class="kw">import</span> time
+<span class="kw">from</span> langgraph.graph <span class="kw">import</span> StateGraph, START, END
+<span class="kw">from</span> typing <span class="kw">import</span> TypedDict
+
+<span class="kw">class</span> State(TypedDict):
+    action: str
+    approved: bool
+
+<span class="kw">def</span> approval_node(state: State):
+    <span class="cmt"># Create a decision — approver gets an email immediately</span>
+    resp = requests.post(
+        <span class="str">"https://thehandover.xyz/decisions"</span>,
+        headers={<span class="str">"Authorization"</span>: <span class="str">"Bearer ho_your_key_here"</span>},
+        json={
+            <span class="str">"action"</span>: state[<span class="str">"action"</span>],
+            <span class="str">"context"</span>: <span class="str">"LangGraph agent requesting human sign-off"</span>,
+            <span class="str">"approver"</span>: <span class="str">"approver@yourcompany.com"</span>,
+            <span class="str">"urgency"</span>: <span class="str">"high"</span>,
+            <span class="str">"timeout_minutes"</span>: 30,
+        }
+    )
+    decision_id = resp.json()[<span class="str">"id"</span>]
+
+    <span class="cmt"># Poll until the approver responds (or the decision expires)</span>
+    <span class="kw">for</span> _ <span class="kw">in</span> range(180):
+        time.sleep(10)
+        r = requests.get(
+            <span class="str">f"https://thehandover.xyz/decisions/{decision_id}"</span>,
+            headers={<span class="str">"Authorization"</span>: <span class="str">"Bearer ho_your_key_here"</span>},
+        ).json()
+        <span class="kw">if</span> r[<span class="str">"status"</span>] != <span class="str">"pending"</span>:
+            <span class="kw">return</span> {<span class="str">"approved"</span>: r[<span class="str">"status"</span>] == <span class="str">"approved"</span>}
+
+    <span class="kw">return</span> {<span class="str">"approved"</span>: False}  <span class="cmt"># timed out</span>
+
+<span class="kw">def</span> execute_node(state: State):
+    <span class="kw">if</span> state[<span class="str">"approved"</span>]:
+        print(<span class="str">f"Executing: {state['action']}"</span>)
+    <span class="kw">else</span>:
+        print(<span class="str">"Action denied or timed out."</span>)
+    <span class="kw">return</span> state
+
+builder = StateGraph(State)
+builder.add_node(<span class="str">"approval"</span>, approval_node)
+builder.add_node(<span class="str">"execute"</span>, execute_node)
+builder.add_edge(START, <span class="str">"approval"</span>)
+builder.add_edge(<span class="str">"approval"</span>, <span class="str">"execute"</span>)
+builder.add_edge(<span class="str">"execute"</span>, END)
+
+graph = builder.compile()
+graph.invoke({<span class="str">"action"</span>: <span class="str">"send refund of $340 to customer 8821"</span>, <span class="str">"approved"</span>: False})</code></pre>
+
+<p>Notice that this version doesn&rsquo;t need a checkpointer at all. The state doesn&rsquo;t need to be persisted across a process restart because the agent stays in the polling loop until the approver responds. The graph runs synchronously from start to finish.</p>
+
+<p>If you want async behaviour &mdash; where the agent fires the decision and moves on rather than polling &mdash; pass a <code>callback_url</code> with the request. The Handover will POST the result to your server the moment the approver decides, and your agent can resume from there. See the <a href="https://thehandover.xyz/docs#create-decision">POST /decisions endpoint</a> docs for the full callback pattern.</p>
+
+<p>The approver experience is the same regardless: they receive an email (or a Slack DM on Scale+ plans) with the action context and one-click Approve/Deny buttons. No login required, no new app to install. Every decision &mdash; who was asked, when, what they chose, any notes they added &mdash; lands in the audit log automatically.</p>
+
+<p>For LangChain&rsquo;s <code>create_react_agent</code> pattern rather than a custom state graph, see the <a href="/blog/human-approval-langchain-agent">LangChain approval tutorial</a> which walks through the full tool definition in Python and TypeScript. The <a href="https://thehandover.xyz/integrations/langchain">LangGraph integration guide</a> has copy-paste examples for both patterns.</p>
+
+<h2>Which approach to use</h2>
+
+<p>These two approaches solve different problems. Here&rsquo;s how to choose.</p>
+
+<table style="width:100%;border-collapse:collapse;margin:20px 0">
+  <thead>
+    <tr style="border-bottom:2px solid var(--border)">
+      <th style="text-align:left;padding:10px;font-size:14px;color:var(--text-primary)">Need</th>
+      <th style="text-align:left;padding:10px;font-size:14px;color:var(--text-primary)">LangGraph <code>interrupt()</code></th>
+      <th style="text-align:left;padding:10px;font-size:14px;color:var(--text-primary)">The Handover API</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid var(--border-subtle)"><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Local demo or chatbot UI</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Sufficient</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Overkill</td></tr>
+    <tr style="border-bottom:1px solid var(--border-subtle)"><td style="padding:10px;font-size:14px;color:var(--text-secondary)">External approver (email)</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Build yourself</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Built in</td></tr>
+    <tr style="border-bottom:1px solid var(--border-subtle)"><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Slack notifications</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Build yourself</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Scale+</td></tr>
+    <tr style="border-bottom:1px solid var(--border-subtle)"><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Audit trail for compliance</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Build yourself</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Built in</td></tr>
+    <tr style="border-bottom:1px solid var(--border-subtle)"><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Timeout + escalation</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Build yourself</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Built in</td></tr>
+    <tr style="border-bottom:1px solid var(--border-subtle)"><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Structured approve/deny/notes</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Raw value</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Typed response</td></tr>
+    <tr><td style="padding:10px;font-size:14px;color:var(--text-secondary)">No checkpointer required</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">No</td><td style="padding:10px;font-size:14px;color:var(--text-secondary)">Yes</td></tr>
+  </tbody>
+</table>
+
+<p>LangGraph&rsquo;s <code>interrupt()</code> is the right tool when the approver is interactive and in the same session &mdash; a chatbot where the user responds, a developer-facing tool where you&rsquo;re the reviewer, a Streamlit prototype where the approval UI is part of your app.</p>
+
+<p>The Handover fills the gap when the approver is someone else, somewhere else. The agent creates a decision, the approver gets notified through their existing channels, and the result comes back structured and logged.</p>
+
+<p>The two approaches can also be combined. Use LangGraph&rsquo;s interrupt mechanism for in-session checkpoints &mdash; validating agent plans before execution, for example &mdash; and use The Handover for out-of-band approvals that need to reach people who aren&rsquo;t watching the terminal.</p>
+
+<p>Understanding the <a href="/blog/agentic-ai-patterns">five core agentic AI patterns</a> will help you identify which approval strategy fits where in your agent&rsquo;s architecture. The orchestrator-worker pattern in particular benefits from having both kinds of checkpoints.</p>
+
+<h2>What this looks like in a real agent</h2>
+
+<p>Consider a billing agent that processes refund requests. It retrieves a customer record, assesses the claim, and proposes a refund amount. Before it executes the refund:</p>
+
+<ul>
+  <li>For small amounts (under $50), you&rsquo;ve configured auto-approval rules &mdash; the agent proceeds without interruption.</li>
+  <li>For amounts between $50 and $500, the agent calls <code>POST /decisions</code>. The customer success lead gets an email, reviews the case, and clicks Approve or Deny within the 30-minute timeout.</li>
+  <li>For amounts above $500, the same call goes out but with a higher urgency flag. If the first approver doesn&rsquo;t respond within 15 minutes, escalation routes the decision to the team lead automatically.</li>
+</ul>
+
+<p>None of this required building notification infrastructure, a custom approval UI, a scheduling system for escalations, or an audit log schema. The agent&rsquo;s code stayed focused on the billing logic. The approval layer is handled by the API.</p>
+
+<p>That&rsquo;s the pattern. <a href="https://thehandover.xyz/dashboard">Start free at the dashboard</a> &mdash; no credit card required, 10 decisions per month on the free plan &mdash; and the <a href="https://thehandover.xyz/docs">full API reference</a> shows the integration in detail.</p>
+
+<h2>Frequently asked questions</h2>
+
+<h3>What is the LangGraph interrupt() function?</h3>
+
+<p><code>interrupt()</code> is a function you call inside a LangGraph node to pause graph execution and surface a value to the caller. The graph saves its state to the checkpointer, the thread is marked as interrupted, and execution resumes when you call <code>graph.invoke(Command(resume=value), config)</code> with the same thread ID.</p>
+
+<h3>What&rsquo;s the difference between static breakpoints and dynamic interrupts in LangGraph?</h3>
+
+<p>Static breakpoints are set at compile time using <code>interrupt_before</code> or <code>interrupt_after</code> on specific node names &mdash; the graph always pauses at that node. Dynamic interrupts are set inside node logic by calling <code>interrupt()</code> &mdash; you can conditionally pause based on the current state, which is useful for risk-based approval workflows.</p>
+
+<h3>Why does my code run twice when I resume a LangGraph interrupt?</h3>
+
+<p>This is the double execution problem. When you resume, LangGraph restarts the interrupted node from the beginning, not from the <code>interrupt()</code> call. Any code before <code>interrupt()</code> re-executes. The fix: move <code>interrupt()</code> into a dedicated node that does nothing else, so re-execution has no side effects.</p>
+
+<h3>Does LangGraph send notifications when a graph is interrupted?</h3>
+
+<p>No. LangGraph persists the interrupted state but does not notify anyone. If you need an approver to receive an email or Slack message when the agent is waiting, you need to build that notification layer yourself or use a dedicated approval API like The Handover.</p>
+
+<h3>What happens to an interrupted LangGraph thread if nobody responds?</h3>
+
+<p>Nothing &mdash; the thread sits in the checkpointer indefinitely. LangGraph has no built-in timeout or escalation. For production systems where decision latency matters, you need external scheduling logic or an API that handles expiry and escalation automatically.</p>
+
+          <div class="post-cta">
+            <h3>Ready to add human oversight to your agent?</h3>
+            <p>Free to start. No credit card required. Takes five minutes.</p>
+            <a href="/dashboard">Get Started Free</a>
+          </div>
+        </div>
+      </article>
+    </div>
+  </main>
+  <footer class="mkt-footer">
+  <div class="section-inner mkt-footer-grid">
+    <div class="footer-brand">
+      <a href="/" class="brand">
+        <span class="brand-mark"><img src="/assets/logo/logo-mark-dark.png" alt=""></span>
+        <span class="brand-name">The Handover</span>
+      </a>
+      <p class="body-sm" style="margin-top:10px;max-width:260px">Human-in-the-loop for AI agents.</p>
+    </div>
+    <div>
+      <h5>Product</h5>
+      <ul>
+        <li><a href="/docs">Docs</a></li>
+        <li><a href="/blog">Blog</a></li>
+        <li><a href="/integrations">Integrations</a></li>
+        <li><a href="/dashboard">Dashboard</a></li>
+        <li><a href="/#pricing">Pricing</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Legal</h5>
+      <ul>
+        <li><a href="/trust">Trust &amp; security</a></li>
+        <li><a href="/terms">Terms of service</a></li>
+        <li><a href="/privacy">Privacy policy</a></li>
+      </ul>
+    </div>
+    <div>
+      <h5>Support</h5>
+      <ul>
+        <li><a href="mailto:support@thehandover.xyz">support@thehandover.xyz</a></li>
+      </ul>
+    </div>
+  </div>
+  <div class="mkt-footer-bottom section-inner">
+    <span>© 2026 The Handover. All rights reserved.</span>
+    <span class="mono">Made in the EU</span>
+  </div>
+</footer>
+  <script>
+  
+  function toggleTheme(){
+    var h=document.documentElement;
+    var isDark=h.getAttribute('data-theme')==='dark';
+    if(isDark){ h.removeAttribute('data-theme'); try{localStorage.setItem('theme','light')}catch(e){} }
+    else{ h.setAttribute('data-theme','dark'); try{localStorage.setItem('theme','dark')}catch(e){} }
+  }
+
+  (function(){
+    var nav = document.getElementById('mkt-nav');
+    if (!nav) return;
+    var on = function(){ nav.classList.toggle('nav-scrolled', window.scrollY > 20); };
+    window.addEventListener('scroll', on, { passive: true });
+    on();
+  })();
+</script>
+</body>
+</html>

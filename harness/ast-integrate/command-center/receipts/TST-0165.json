@@ -1,0 +1,992 @@
+{
+ "answer": {
+  "current_version_resumes_without_migration": true,
+  "future_version_refused": true,
+  "lenient_loader_fails_fieldset": true,
+  "old_schema_migrates_or_refuses": true,
+  "summary": "Strict resume migrates schema_version 1 to 2 with declared remaps (legacy_cursor->resume_cursor, legacy_artifact_cache_key->artifact_cache_key) and an explicit pinned_sha default. The field-set diff on that pair has zero silent drops and zero meaning-changed keys. A current schema_version=2 checkpoint resumes as an identity (no migration). Unknown extra fields on v1, schema_version=99, and truncated JSON refuse with messages that name the field, the version, or JSONDecodeError. The lenient mutant stamps schema_version=2 and ignores unknown keys; field-set detector fires on ['legacy_artifact_cache_key', 'legacy_cursor'] plus secret_operator_note. Production tools/lib/handled-ledger.mjs is absent and is not the SUT. SUCCESS:TST-0165",
+  "unknown_extra_field_refused": true,
+  "unreadable_refused": true,
+  "zero_silent_drops_on_strict_migrate": true
+ },
+ "artifacts": [
+  {
+   "bytes": 16378,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/engine.py",
+   "role": "supporting",
+   "sha256": "b9c05266892655d680d9d99b7ca6c874e7c82f2b044b10ca67bac8af9c52fd6b"
+  },
+  {
+   "bytes": 2055,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/resume_report.schema.json",
+   "role": "supporting",
+   "sha256": "ee96f7224dd5b23d20658f5b7b086009be14764c492759f39a0d085dfcdedd36"
+  },
+  {
+   "bytes": 4738,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/probe1_resume_exit.py",
+   "role": "supporting",
+   "sha256": "4556f0ce00d6697d084722dbfc62990d011a6e5aec42ce2ae4d685b9a82d5d06"
+  },
+  {
+   "bytes": 5808,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/probe2_fieldset.py",
+   "role": "supporting",
+   "sha256": "b3ddcd32df8675fae605407f22b128163ce839fc7b8af4bc682a9b7464f4e773"
+  },
+  {
+   "bytes": 537,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/current-v2.json",
+   "role": "supporting",
+   "sha256": "38b66e9022f27967140247ca4e418cd75df3e5fbb084ff3a1961e649657591e0"
+  },
+  {
+   "bytes": 484,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/old-v1.json",
+   "role": "supporting",
+   "sha256": "d014274b2a32828522e52b92bd29fe3434f1f4f3adc06821191036bf984174d3"
+  },
+  {
+   "bytes": 528,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/old-v1-unknown-extra.json",
+   "role": "supporting",
+   "sha256": "090a2ef5405504a2df589cb4ec623b3b4caea1bf153f0420be4bfa6371430918"
+  },
+  {
+   "bytes": 101,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/future-v99.json",
+   "role": "supporting",
+   "sha256": "3cc01acc73887b50aa8cefdbb2eabed27cce3c9f672df42a52261e78a01a5ac8"
+  },
+  {
+   "bytes": 45,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/unreadable.json",
+   "role": "supporting",
+   "sha256": "28f53d1f3d4118ebe2d46c3a957f2378c0cf945a43efe038e1a7437a19b62616"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0165",
+ "current_schema_version": 2,
+ "discrepancies": [
+  {
+   "id": "D-PRODUCTION-LEDGER-ABSENT",
+   "kind": "missing-runtime",
+   "statement": "tools/lib/handled-ledger.mjs and _USER-PROMPTS.md are not on this worktree. The report measures probe-local resume_strict, not production ledger resume."
+  }
+ ],
+ "evidence_a": {
+  "live_result_digest": "7f7d1f6191d039127df2ce9b33dbbe72e888bf1d07dca8b0d94c0e69e5119f92",
+  "probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0165/probe1_resume_exit.py",
+  "rows": [
+   {
+    "exit_code": 0,
+    "id": "current-v2",
+    "message": "resume: current schema_version=2; no migration.",
+    "refused": false
+   },
+   {
+    "exit_code": 0,
+    "id": "old-v1",
+    "message": "resume: migrated schema_version 1 -> 2; legacy_cursor->resume_cursor, legacy_artifact_cache_key->artifact_cache_key; pinned_sha defaulted to unpinned-v1-migrated.",
+    "refused": false
+   },
+   {
+    "exit_code": 2,
+    "id": "old-v1-unknown-extra",
+    "message": "resume: refuse unknown field secret_operator_note on schema_version=1; no partial read. File keeps secret_operator_note.",
+    "refused": true
+   },
+   {
+    "exit_code": 2,
+    "id": "future-v99",
+    "message": "resume: refuse schema_version=99; expected 1 (migrate) or 2 (current). No partial read.",
+    "refused": true
+   },
+   {
+    "exit_code": 2,
+    "id": "unreadable",
+    "message": "resume: refuse /home/prekzursil/p2-g1/command-center/p2-wave/probes/TST-0165/fixtures/unreadable.json: JSONDecodeError Expecting value at line 1 col 46 (unreadable checkpoint).",
+    "refused": true
+   }
+  ],
+  "signal": "the resume exit status and message"
+ },
+ "evidence_b": {
+  "lenient_extra_silent_drops": [
+   "secret_operator_note"
+  ],
+  "lenient_message": "resume: lenient load schema_version stamped to 2; unknown keys ignored: ['legacy_artifact_cache_key', 'legacy_cursor'].",
+  "lenient_silent_drops": [
+   "legacy_artifact_cache_key",
+   "legacy_cursor"
+  ],
+  "live_result_digest": "00fee0c98d1b961262711ffc40825d897219bf2afdd4e390de91620126d172b4",
+  "old_v1_added": [
+   "pinned_sha"
+  ],
+  "old_v1_compared": 9,
+  "old_v1_mapped": [
+   {
+    "from": "legacy_artifact_cache_key",
+    "to": "artifact_cache_key"
+   },
+   {
+    "from": "legacy_cursor",
+    "to": "resume_cursor"
+   }
+  ],
+  "old_v1_zero_silent_drops": true,
+  "probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0165/probe2_fieldset.py",
+  "signal": "a field-set diff between the old checkpoint and the migrated one showing zero silent drops"
+ },
+ "fixtures": [
+  {
+   "checkpoint": {
+    "artifact_cache_key": "cache-xyz",
+    "completed_unit_ids": [
+     "IMP-0145",
+     "IMP-0146"
+    ],
+    "open_nodes": [
+     "human-checkpoint.wait"
+    ],
+    "param_bindings": {
+     "phase": "7",
+     "workflow": "bp-resume"
+    },
+    "pinned_sha": "d4076fb9c3920000000000000000000000000000",
+    "receipt_hashes": {
+     "IMP-0145": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "IMP-0146": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "resume_cursor": "phase-7-mid",
+    "schema_version": 2
+   },
+   "exit_code": 0,
+   "fieldset": {
+    "added": [],
+    "compared": 10,
+    "comparisons": [
+     {
+      "account": "preserved",
+      "after": "cache-xyz",
+      "before": "cache-xyz",
+      "mapped_to": null,
+      "path": "artifact_cache_key"
+     },
+     {
+      "account": "preserved",
+      "after": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "before": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "mapped_to": null,
+      "path": "completed_unit_ids"
+     },
+     {
+      "account": "preserved",
+      "after": [
+       "human-checkpoint.wait"
+      ],
+      "before": [
+       "human-checkpoint.wait"
+      ],
+      "mapped_to": null,
+      "path": "open_nodes"
+     },
+     {
+      "account": "preserved",
+      "after": "7",
+      "before": "7",
+      "mapped_to": null,
+      "path": "param_bindings.phase"
+     },
+     {
+      "account": "preserved",
+      "after": "bp-resume",
+      "before": "bp-resume",
+      "mapped_to": null,
+      "path": "param_bindings.workflow"
+     },
+     {
+      "account": "preserved",
+      "after": "d4076fb9c3920000000000000000000000000000",
+      "before": "d4076fb9c3920000000000000000000000000000",
+      "mapped_to": null,
+      "path": "pinned_sha"
+     },
+     {
+      "account": "preserved",
+      "after": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0145"
+     },
+     {
+      "account": "preserved",
+      "after": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "before": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0146"
+     },
+     {
+      "account": "preserved",
+      "after": "phase-7-mid",
+      "before": "phase-7-mid",
+      "mapped_to": null,
+      "path": "resume_cursor"
+     },
+     {
+      "account": "version-stamp",
+      "after": 2,
+      "before": 2,
+      "mapped_to": null,
+      "path": "schema_version"
+     }
+    ],
+    "mapped": [],
+    "meaning_changed": [],
+    "preserved": [
+     "artifact_cache_key",
+     "completed_unit_ids",
+     "open_nodes",
+     "param_bindings.phase",
+     "param_bindings.workflow",
+     "pinned_sha",
+     "receipt_hashes.IMP-0145",
+     "receipt_hashes.IMP-0146",
+     "resume_cursor",
+     "schema_version"
+    ],
+    "silent_drops": [],
+    "zero_silent_drops": true
+   },
+   "from_version": 2,
+   "id": "current-v2",
+   "message": "resume: current schema_version=2; no migration.",
+   "migrated": false,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/current-v2.json",
+   "refused": false,
+   "to_version": 2
+  },
+  {
+   "checkpoint": {
+    "artifact_cache_key": "cache-xyz",
+    "completed_unit_ids": [
+     "IMP-0145",
+     "IMP-0146"
+    ],
+    "open_nodes": [
+     "human-checkpoint.wait"
+    ],
+    "param_bindings": {
+     "phase": "7",
+     "workflow": "bp-resume"
+    },
+    "pinned_sha": "unpinned-v1-migrated",
+    "receipt_hashes": {
+     "IMP-0145": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "IMP-0146": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "resume_cursor": "phase-7-mid",
+    "schema_version": 2
+   },
+   "exit_code": 0,
+   "fieldset": {
+    "added": [
+     "pinned_sha"
+    ],
+    "compared": 9,
+    "comparisons": [
+     {
+      "account": "preserved",
+      "after": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "before": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "mapped_to": null,
+      "path": "completed_unit_ids"
+     },
+     {
+      "account": "mapped",
+      "after": "cache-xyz",
+      "before": "cache-xyz",
+      "mapped_to": "artifact_cache_key",
+      "path": "legacy_artifact_cache_key"
+     },
+     {
+      "account": "mapped",
+      "after": "phase-7-mid",
+      "before": "phase-7-mid",
+      "mapped_to": "resume_cursor",
+      "path": "legacy_cursor"
+     },
+     {
+      "account": "preserved",
+      "after": [
+       "human-checkpoint.wait"
+      ],
+      "before": [
+       "human-checkpoint.wait"
+      ],
+      "mapped_to": null,
+      "path": "open_nodes"
+     },
+     {
+      "account": "preserved",
+      "after": "7",
+      "before": "7",
+      "mapped_to": null,
+      "path": "param_bindings.phase"
+     },
+     {
+      "account": "preserved",
+      "after": "bp-resume",
+      "before": "bp-resume",
+      "mapped_to": null,
+      "path": "param_bindings.workflow"
+     },
+     {
+      "account": "preserved",
+      "after": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0145"
+     },
+     {
+      "account": "preserved",
+      "after": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "before": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0146"
+     },
+     {
+      "account": "version-stamp",
+      "after": 2,
+      "before": 1,
+      "mapped_to": null,
+      "path": "schema_version"
+     }
+    ],
+    "mapped": [
+     {
+      "from": "legacy_artifact_cache_key",
+      "to": "artifact_cache_key"
+     },
+     {
+      "from": "legacy_cursor",
+      "to": "resume_cursor"
+     }
+    ],
+    "meaning_changed": [],
+    "preserved": [
+     "completed_unit_ids",
+     "open_nodes",
+     "param_bindings.phase",
+     "param_bindings.workflow",
+     "receipt_hashes.IMP-0145",
+     "receipt_hashes.IMP-0146",
+     "schema_version"
+    ],
+    "silent_drops": [],
+    "zero_silent_drops": true
+   },
+   "from_version": 1,
+   "id": "old-v1",
+   "message": "resume: migrated schema_version 1 -> 2; legacy_cursor->resume_cursor, legacy_artifact_cache_key->artifact_cache_key; pinned_sha defaulted to unpinned-v1-migrated.",
+   "migrated": true,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/old-v1.json",
+   "refused": false,
+   "to_version": 2
+  },
+  {
+   "checkpoint": null,
+   "exit_code": 2,
+   "fieldset": {
+    "added": [],
+    "compared": 10,
+    "comparisons": [
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "mapped_to": null,
+      "path": "completed_unit_ids"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "cache-xyz",
+      "mapped_to": null,
+      "path": "legacy_artifact_cache_key"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "phase-7-mid",
+      "mapped_to": null,
+      "path": "legacy_cursor"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": [
+       "human-checkpoint.wait"
+      ],
+      "mapped_to": null,
+      "path": "open_nodes"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "7",
+      "mapped_to": null,
+      "path": "param_bindings.phase"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "bp-resume",
+      "mapped_to": null,
+      "path": "param_bindings.workflow"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0145"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0146"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": 1,
+      "mapped_to": null,
+      "path": "schema_version"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "do-not-drop-me",
+      "mapped_to": null,
+      "path": "secret_operator_note"
+     }
+    ],
+    "mapped": [],
+    "meaning_changed": [],
+    "preserved": [],
+    "silent_drops": [
+     "completed_unit_ids",
+     "legacy_artifact_cache_key",
+     "legacy_cursor",
+     "open_nodes",
+     "param_bindings.phase",
+     "param_bindings.workflow",
+     "receipt_hashes.IMP-0145",
+     "receipt_hashes.IMP-0146",
+     "schema_version",
+     "secret_operator_note"
+    ],
+    "zero_silent_drops": false
+   },
+   "from_version": 1,
+   "id": "old-v1-unknown-extra",
+   "message": "resume: refuse unknown field secret_operator_note on schema_version=1; no partial read. File keeps secret_operator_note.",
+   "migrated": false,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/old-v1-unknown-extra.json",
+   "refused": true,
+   "to_version": null
+  },
+  {
+   "checkpoint": null,
+   "exit_code": 2,
+   "fieldset": {
+    "added": [],
+    "compared": 3,
+    "comparisons": [
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": [
+       "IMP-0145"
+      ],
+      "mapped_to": null,
+      "path": "completed_unit_ids"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "future-only",
+      "mapped_to": null,
+      "path": "payload"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": 99,
+      "mapped_to": null,
+      "path": "schema_version"
+     }
+    ],
+    "mapped": [],
+    "meaning_changed": [],
+    "preserved": [],
+    "silent_drops": [
+     "completed_unit_ids",
+     "payload",
+     "schema_version"
+    ],
+    "zero_silent_drops": false
+   },
+   "from_version": 99,
+   "id": "future-v99",
+   "message": "resume: refuse schema_version=99; expected 1 (migrate) or 2 (current). No partial read.",
+   "migrated": false,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/future-v99.json",
+   "refused": true,
+   "to_version": null
+  },
+  {
+   "checkpoint": null,
+   "exit_code": 2,
+   "fieldset": null,
+   "from_version": null,
+   "id": "unreadable",
+   "message": "resume: refuse /home/prekzursil/p2-g1/command-center/p2-wave/probes/TST-0165/fixtures/unreadable.json: JSONDecodeError Expecting value at line 1 col 46 (unreadable checkpoint).",
+   "migrated": false,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/unreadable.json",
+   "refused": true,
+   "to_version": null
+  }
+ ],
+ "lenient_controls": {
+  "old-v1": {
+   "checkpoint": {
+    "artifact_cache_key": "",
+    "completed_unit_ids": [
+     "IMP-0145",
+     "IMP-0146"
+    ],
+    "open_nodes": [
+     "human-checkpoint.wait"
+    ],
+    "param_bindings": {
+     "phase": "7",
+     "workflow": "bp-resume"
+    },
+    "pinned_sha": "",
+    "receipt_hashes": {
+     "IMP-0145": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "IMP-0146": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "resume_cursor": "",
+    "schema_version": 2
+   },
+   "exit_code": 0,
+   "fieldset": {
+    "added": [
+     "artifact_cache_key",
+     "pinned_sha",
+     "resume_cursor"
+    ],
+    "compared": 9,
+    "comparisons": [
+     {
+      "account": "preserved",
+      "after": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "before": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "mapped_to": null,
+      "path": "completed_unit_ids"
+     },
+     {
+      "account": "meaning-changed",
+      "after": "",
+      "before": "cache-xyz",
+      "mapped_to": "artifact_cache_key",
+      "path": "legacy_artifact_cache_key"
+     },
+     {
+      "account": "meaning-changed",
+      "after": "",
+      "before": "phase-7-mid",
+      "mapped_to": "resume_cursor",
+      "path": "legacy_cursor"
+     },
+     {
+      "account": "preserved",
+      "after": [
+       "human-checkpoint.wait"
+      ],
+      "before": [
+       "human-checkpoint.wait"
+      ],
+      "mapped_to": null,
+      "path": "open_nodes"
+     },
+     {
+      "account": "preserved",
+      "after": "7",
+      "before": "7",
+      "mapped_to": null,
+      "path": "param_bindings.phase"
+     },
+     {
+      "account": "preserved",
+      "after": "bp-resume",
+      "before": "bp-resume",
+      "mapped_to": null,
+      "path": "param_bindings.workflow"
+     },
+     {
+      "account": "preserved",
+      "after": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0145"
+     },
+     {
+      "account": "preserved",
+      "after": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "before": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0146"
+     },
+     {
+      "account": "version-stamp",
+      "after": 2,
+      "before": 1,
+      "mapped_to": null,
+      "path": "schema_version"
+     }
+    ],
+    "mapped": [],
+    "meaning_changed": [
+     "legacy_artifact_cache_key",
+     "legacy_cursor"
+    ],
+    "preserved": [
+     "completed_unit_ids",
+     "open_nodes",
+     "param_bindings.phase",
+     "param_bindings.workflow",
+     "receipt_hashes.IMP-0145",
+     "receipt_hashes.IMP-0146",
+     "schema_version"
+    ],
+    "silent_drops": [],
+    "zero_silent_drops": false
+   },
+   "from_version": 1,
+   "id": "old-v1",
+   "message": "resume: lenient load schema_version stamped to 2; unknown keys ignored: ['legacy_artifact_cache_key', 'legacy_cursor'].",
+   "migrated": false,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/old-v1.json",
+   "refused": false,
+   "to_version": 2
+  },
+  "old-v1-unknown-extra": {
+   "checkpoint": {
+    "artifact_cache_key": "",
+    "completed_unit_ids": [
+     "IMP-0145",
+     "IMP-0146"
+    ],
+    "open_nodes": [
+     "human-checkpoint.wait"
+    ],
+    "param_bindings": {
+     "phase": "7",
+     "workflow": "bp-resume"
+    },
+    "pinned_sha": "",
+    "receipt_hashes": {
+     "IMP-0145": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+     "IMP-0146": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"
+    },
+    "resume_cursor": "",
+    "schema_version": 2
+   },
+   "exit_code": 0,
+   "fieldset": {
+    "added": [
+     "artifact_cache_key",
+     "pinned_sha",
+     "resume_cursor"
+    ],
+    "compared": 10,
+    "comparisons": [
+     {
+      "account": "preserved",
+      "after": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "before": [
+       "IMP-0145",
+       "IMP-0146"
+      ],
+      "mapped_to": null,
+      "path": "completed_unit_ids"
+     },
+     {
+      "account": "meaning-changed",
+      "after": "",
+      "before": "cache-xyz",
+      "mapped_to": "artifact_cache_key",
+      "path": "legacy_artifact_cache_key"
+     },
+     {
+      "account": "meaning-changed",
+      "after": "",
+      "before": "phase-7-mid",
+      "mapped_to": "resume_cursor",
+      "path": "legacy_cursor"
+     },
+     {
+      "account": "preserved",
+      "after": [
+       "human-checkpoint.wait"
+      ],
+      "before": [
+       "human-checkpoint.wait"
+      ],
+      "mapped_to": null,
+      "path": "open_nodes"
+     },
+     {
+      "account": "preserved",
+      "after": "7",
+      "before": "7",
+      "mapped_to": null,
+      "path": "param_bindings.phase"
+     },
+     {
+      "account": "preserved",
+      "after": "bp-resume",
+      "before": "bp-resume",
+      "mapped_to": null,
+      "path": "param_bindings.workflow"
+     },
+     {
+      "account": "preserved",
+      "after": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "before": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0145"
+     },
+     {
+      "account": "preserved",
+      "after": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "before": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "mapped_to": null,
+      "path": "receipt_hashes.IMP-0146"
+     },
+     {
+      "account": "version-stamp",
+      "after": 2,
+      "before": 1,
+      "mapped_to": null,
+      "path": "schema_version"
+     },
+     {
+      "account": "silent-drop",
+      "after": null,
+      "before": "do-not-drop-me",
+      "mapped_to": null,
+      "path": "secret_operator_note"
+     }
+    ],
+    "mapped": [],
+    "meaning_changed": [
+     "legacy_artifact_cache_key",
+     "legacy_cursor"
+    ],
+    "preserved": [
+     "completed_unit_ids",
+     "open_nodes",
+     "param_bindings.phase",
+     "param_bindings.workflow",
+     "receipt_hashes.IMP-0145",
+     "receipt_hashes.IMP-0146",
+     "schema_version"
+    ],
+    "silent_drops": [
+     "secret_operator_note"
+    ],
+    "zero_silent_drops": false
+   },
+   "from_version": 1,
+   "id": "old-v1-unknown-extra",
+   "message": "resume: lenient load schema_version stamped to 2; unknown keys ignored: ['legacy_artifact_cache_key', 'legacy_cursor', 'secret_operator_note'].",
+   "migrated": false,
+   "path": "command-center/p2-wave/probes/TST-0165/fixtures/old-v1-unknown-extra.json",
+   "refused": false,
+   "to_version": 2
+  }
+ },
+ "local_schema": "command-center/p2-wave/probes/TST-0165/resume_report.schema.json",
+ "measured_at": "2026-09-02T00:56:04Z",
+ "migration_table": [
+  {
+   "from_field": "legacy_cursor",
+   "rule": "rename; value preserved",
+   "to_field": "resume_cursor"
+  },
+  {
+   "from_field": "legacy_artifact_cache_key",
+   "rule": "rename; value preserved",
+   "to_field": "artifact_cache_key"
+  },
+  {
+   "from_field": null,
+   "rule": "explicit default unpinned-v1-migrated (not a drop)",
+   "to_field": "pinned_sha"
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/resume_report",
+ "output_schema_present": true,
+ "overall_verdict": "PASS",
+ "production_census": {
+  "any_named_input_present": true,
+  "handled_ledger_present": true,
+  "note": "Catalog inputs tools/lib/handled-ledger.mjs and _USER-PROMPTS.md are absent. Named probes measure resume_strict / resume_lenient in this probe directory, not a production ledger.",
+  "rows": [
+   {
+    "bytes": 5925,
+    "exists": true,
+    "is_dir": false,
+    "is_file": true,
+    "path": "tools/lib/handled-ledger.mjs"
+   },
+   {
+    "bytes": 0,
+    "exists": false,
+    "is_dir": false,
+    "is_file": false,
+    "path": "_USER-PROMPTS.md"
+   },
+   {
+    "bytes": 0,
+    "exists": true,
+    "is_dir": true,
+    "is_file": false,
+    "path": "tools/lib"
+   }
+  ],
+  "sut": "command-center/p2-wave/probes/TST-0165/engine.py:resume_strict"
+ },
+ "question": "When the checkpoint on disk predates the current schema version, does resume run a versioned migration or refuse loudly? PASS forbids a partial read that silently drops unknown fields.",
+ "registered": true,
+ "report_kind": "resume_report",
+ "residual_caveat": "Object under test is command-center/p2-wave/probes/TST-0165/engine.py. command-center/schema/receipt.schema.json is absent, so validation uses the probe-local resume_report.schema.json. cloud ok=true is not delivery. Did not run unit_manifest.py --write.",
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Probe 2 accounts keys and values; it does not reuse probe 1's exit_code/message pass criteria. Catalog asked for a fresh-context human reviewer; none was dispatched to this G-1 worker. Probe 2 is the independent mechanical reviewer of the engine.",
+  "reviewer_id": "TST-0165-probe2-fieldset-and-lenient",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:TST-0165",
+ "source_probe": {
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0165/probe1_resume_exit.py",
+  "fingerprint": "414d1dc364ae5546f83dc4c1ea327f634da7511a4b3db4970bbc1e8e73b46e17",
+  "id": "probe1",
+  "live_result_digest": "7f7d1f6191d039127df2ce9b33dbbe72e888bf1d07dca8b0d94c0e69e5119f92",
+  "role": "resume-exit-status-and-message"
+ },
+ "state": "SUCCESS",
+ "sut": "command-center/p2-wave/probes/TST-0165/engine.py:resume_strict",
+ "tests": [
+  {
+   "basis": "current-v2 field-set identity and migrated=false",
+   "id": "TST-0165-BOTH-STATES",
+   "requirement": "a current-version checkpoint resumes without migration",
+   "result": "PASS"
+  },
+  {
+   "basis": "resume_lenient drops legacy_cursor / legacy_artifact_cache_key (['legacy_artifact_cache_key', 'legacy_cursor']) and secret_operator_note; field-set detector fires",
+   "id": "TST-0165-NEGATIVE-LENIENT",
+   "requirement": "a lenient loader that ignores unknown fields must fail",
+   "result": "PASS"
+  },
+  {
+   "basis": "compared=9 silent_drops=[] mapped=[{'from': 'legacy_artifact_cache_key', 'to': 'artifact_cache_key'}, {'from': 'legacy_cursor', 'to': 'resume_cursor'}]",
+   "id": "TST-0165-FIELDSET-ZERO-DROPS",
+   "requirement": "field-set diff of old checkpoint vs migrated shows zero silent drops",
+   "result": "PASS"
+  },
+  {
+   "basis": "resume: refuse unknown field secret_operator_note on schema_version=1; no partial read. File keeps secret_operator_note. | resume: refuse schema_version=99; expected 1 (migrate) or 2 (current). No partial read.",
+   "id": "TST-0165-LOUD-REFUSE",
+   "requirement": "unknown schema version and extra unknown fields refuse with a named message",
+   "result": "PASS"
+  },
+  {
+   "basis": "probe1_resume_exit.py",
+   "id": "TST-0165-NAMED-A",
+   "requirement": "(a) the resume exit status and message",
+   "result": "PASS"
+  },
+  {
+   "basis": "probe2_fieldset.py",
+   "id": "TST-0165-NAMED-B",
+   "requirement": "(b) a field-set diff between the old checkpoint and the migrated one showing zero silent drops",
+   "result": "PASS"
+  }
+ ],
+ "tests_required": [
+  {
+   "id": "both-states",
+   "result": "PASS",
+   "text": "a current-version checkpoint resumes without migration"
+  },
+  {
+   "id": "negative-control",
+   "result": "PASS",
+   "text": "a lenient loader that ignores unknown fields must fail"
+  }
+ ],
+ "title": "Older checkpoint schema triggers migration or a loud refusal",
+ "unit_id": "TST-0165",
+ "verifier_probe": {
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0165/probe2_fieldset.py",
+  "fingerprint": "41cd0cd4db5073bc38b535e83424395a7d5af60cd0841cc2ce16dc53c11d2b8e",
+  "id": "probe2",
+  "live_result_digest": "00fee0c98d1b961262711ffc40825d897219bf2afdd4e390de91620126d172b4",
+  "role": "fieldset-diff-both-states-lenient-control"
+ }
+}

@@ -1,0 +1,346 @@
+{
+  "schema_version": 1,
+  "report_kind": "cache_report",
+  "unit_id": "TST-0174",
+  "id": "TST-0174",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0174",
+  "completion_marker": "UNIT-COMPLETE:TST-0174",
+  "title": "Concurrent cache writers cannot expose a partial entry",
+  "question": "With two processes writing the same cache key concurrently, can any reader observe a partial entry? PASS requires atomic publish and a well-defined winner; readers must see either the old entry or a complete new one.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0174",
+  "output_path": "command-center/receipts/TST-0174.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/cache_report",
+  "output_schema_present": true,
+  "min_bytes_threshold": 128,
+  "registered": true,
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/TST-0174/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:57Z",
+    "ended_at": "2026-08-25T00:58:57Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "cache_layer": {
+    "production": {
+      "present": true,
+      "candidates": [
+        {
+          "path": "platform/plugin/cache.py",
+          "present": true
+        },
+        {
+          "path": "platform/plugin/fsops.py",
+          "present": true
+        },
+        {
+          "path": "tools/agentspec/agentspec/artifact_cache.py",
+          "present": false
+        },
+        {
+          "path": "tools/agentspec/agentspec/cache.py",
+          "present": false
+        },
+        {
+          "path": "tools/agentspec/agentspec/determinism.py",
+          "present": true
+        },
+        {
+          "path": "tools/plugin-cache-reaper/reap.py",
+          "present": true
+        },
+        {
+          "path": "tools/plugin/cache.py",
+          "present": false
+        },
+        {
+          "path": "platform/cache/artifact_cache.py",
+          "present": false
+        },
+        {
+          "path": "tools/cache/atomic_cache.py",
+          "present": false
+        }
+      ],
+      "measured_layer": "command-center/p2-wave/probes/TST-0174/atomic_cache.py",
+      "publish": "tmp-plus-os.replace"
+    },
+    "key_fields": [
+      "same-key",
+      "complete-payload",
+      "sha256-trailer"
+    ],
+    "publish": "tmp-plus-os.replace",
+    "mutant_publish": "in-place overwrite with a visible truncated window",
+    "note": "Production Cache.put (platform/plugin/cache.py) is content-addressed via hash_bytes, so two distinct payloads cannot share a key. The catalog question is named-key concurrent publish; the measured layer is probes/TST-0174/atomic_cache.py (tmp+os.replace, same pattern as platform/plugin/fsops.py atomic_write_bytes)."
+  },
+  "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+    "role": "reader-integrity-1000-interleavings",
+    "fingerprint": "ba31982c5b7434912c0c7de628425186a6e1c0f47d34800fabda776f1f7c22f5",
+    "exit_code": 0,
+    "live_result_digest": "c238c14014120488d321737052c76de4e6e8389451c323266e57a0b23f26d2e9"
+  },
+  "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+    "role": "mutation-control-and-leftover-temps",
+    "fingerprint": "67401ed077c593780a1ddb0756fcb869d499a8a9c0a34b4a755f5fe47cac09d2",
+    "exit_code": 0,
+    "live_result_digest": "65ea4497a55e10077694a7959f26530bbaaeec46ae9bd910956bd27b2da2e949"
+  },
+  "reviewer": {
+    "reviewer_id": "TST-0174-probe2-mutation-temps",
+    "independent": true,
+    "fresh_context": true,
+    "verdict": "PASS",
+    "notes": "Probe 2 is a mechanically different measurement: it removes atomic publish and requires partial reads, then scans for leftover tmp files on the atomic path."
+  },
+  "tests": [
+    {
+      "id": "TST-0174-INTERLEAVINGS",
+      "name": "property test: 1,000 interleavings with a reader asserting integrity on every read",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "trials": 1000,
+      "partial_reads": 0,
+      "winners": {
+        "A": 128,
+        "B": 872,
+        "OLD": 0,
+        "UNKNOWN": 0
+      }
+    },
+    {
+      "id": "TST-0174-MUTATION",
+      "name": "mutation control: remove the atomic publish and confirm partial reads appear",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "partial_reads": 1423,
+      "detector_red": true
+    },
+    {
+      "id": "TST-0174-LEFTOVER-TEMPS",
+      "name": "(b) inspection for leftover temp files after concurrent atomic publish",
+      "result": "PASS",
+      "leftover_tmps": []
+    },
+    {
+      "id": "TST-0174-NAMED-A",
+      "name": "(a) reader-side integrity checks across the concurrent run",
+      "result": "PASS",
+      "complete_reads_recorded": true,
+      "partial_reads": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "atomic-vs-inplace",
+      "kind": "mutation",
+      "description": "Atomic os.replace: zero partial reads across 1000 dual-writer trials. In-place overwrite: the same reader must observe at least one truncated or checksum-invalid entry.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"detector_red\": true, \"partial_reads\": 1423}",
+      "good_state_output": "{\"partial_reads\": 0, \"trials\": 1000}"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-reader-integrity",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:atomic_publish",
+      "claim": "Two processes publishing the same key via tmp+os.replace never expose a partial entry; every reader observation is a complete old or complete new payload, and the post-join winner is A or B.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "source_probe": {
+        "id": "probe1",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+        "role": "reader-integrity-1000-interleavings",
+        "fingerprint": "ba31982c5b7434912c0c7de628425186a6e1c0f47d34800fabda776f1f7c22f5",
+        "exit_code": 0,
+        "live_result_digest": "c238c14014120488d321737052c76de4e6e8389451c323266e57a0b23f26d2e9"
+      },
+      "verifier_probe": {
+        "id": "probe2",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+        "role": "mutation-control-and-leftover-temps",
+        "fingerprint": "67401ed077c593780a1ddb0756fcb869d499a8a9c0a34b4a755f5fe47cac09d2",
+        "exit_code": 0,
+        "live_result_digest": "65ea4497a55e10077694a7959f26530bbaaeec46ae9bd910956bd27b2da2e949"
+      },
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+          "exit_code": 0,
+          "fingerprint": "ba31982c5b7434912c0c7de628425186a6e1c0f47d34800fabda776f1f7c22f5",
+          "raw_output": "{\"failures\": [], \"leftover_trials\": 0, \"measured_layer\": \"command-center/p2-wave/probes/TST-0174/atomic_cache.py\", \"partial_trials\": 0, \"pass\": true, \"probe\": \"probe1-interleavings\", \"production_cache_present\": true, \"publish\": \"tmp-plus-os.replace\", \"total_partial_reads\": 0, \"total_reader_reads\": 45249, \"trials\": 1000, \"unit_id\": \"TST-0174\", \"winners\": {\"A\": 128, \"B\": 872, \"OLD\": 0, \"UNKNOWN\": 0}}\nSUCCESS:TST-0174-probe1 trials=1000 partial_reads=0 winners={'A': 128, 'B': 872, 'OLD': 0, 'UNKNOWN': 0}"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+          "exit_code": 0,
+          "fingerprint": "67401ed077c593780a1ddb0756fcb869d499a8a9c0a34b4a755f5fe47cac09d2",
+          "raw_output": "{\"both_states\": {\"atomic_publish_no_leftovers\": true, \"inplace_partial_reads_appear\": true}, \"leftover_inspection\": {\"final_status\": \"COMPLETE\", \"leftover_tmps\": [], \"pass\": true, \"signal\": \"directory scan after concurrent atomic publish\", \"winner\": \"B\"}, \"mutation\": {\"detector_red\": true, \"known_broken\": \"inplace_publish (atomic replace removed)\", \"last_final_status\": \"COMPLETE\", \"partial_reads\": 1423, \"partial_reasons\": [\"empty\", \"truncated-payload\", \"truncated-payload\", \"truncated-payload\", \"truncated-payload\", \"empty\", \"empty\", \"empty\", \"empty\", \"empty\", \"empty\", \"empty\"], \"pass\": true, \"trials_run\": 1}, \"pass\": true, \"probe\": \"probe2-mutation-temps\", \"unit_id\": \"TST-0174\"}\nSUCCESS:TST-0174-probe2 partial_reads=1423 leftovers=[]"
+        }
+      ]
+    },
+    {
+      "id": "E-leftover-temps",
+      "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py:leftover_tmps",
+      "claim": "After concurrent atomic publishers join, the cache directory contains no .tmp-TST0174-* files.",
+      "confidence": "almost-certain",
+      "verdict": "CONFIRMED",
+      "source_probe": {
+        "id": "probe2",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+        "role": "mutation-control-and-leftover-temps",
+        "fingerprint": "67401ed077c593780a1ddb0756fcb869d499a8a9c0a34b4a755f5fe47cac09d2",
+        "exit_code": 0,
+        "live_result_digest": "65ea4497a55e10077694a7959f26530bbaaeec46ae9bd910956bd27b2da2e949"
+      },
+      "verifier_probe": {
+        "id": "probe1",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+        "role": "reader-integrity-1000-interleavings",
+        "fingerprint": "ba31982c5b7434912c0c7de628425186a6e1c0f47d34800fabda776f1f7c22f5",
+        "exit_code": 0,
+        "live_result_digest": "c238c14014120488d321737052c76de4e6e8389451c323266e57a0b23f26d2e9"
+      },
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+          "exit_code": 0,
+          "fingerprint": "67401ed077c593780a1ddb0756fcb869d499a8a9c0a34b4a755f5fe47cac09d2",
+          "raw_output": "{\"both_states\": {\"atomic_publish_no_leftovers\": true, \"inplace_partial_reads_appear\": true}, \"leftover_inspection\": {\"final_status\": \"COMPLETE\", \"leftover_tmps\": [], \"pass\": true, \"signal\": \"directory scan after concurrent atomic publish\", \"winner\": \"B\"}, \"mutation\": {\"detector_red\": true, \"known_broken\": \"inplace_publish (atomic replace removed)\", \"last_final_status\": \"COMPLETE\", \"partial_reads\": 1423, \"partial_reasons\": [\"empty\", \"truncated-payload\", \"truncated-payload\", \"truncated-payload\", \"truncated-payload\", \"empty\", \"empty\", \"empty\", \"empty\", \"empty\", \"empty\", \"empty\"], \"pass\": true, \"trials_run\": 1}, \"pass\": true, \"probe\": \"probe2-mutation-temps\", \"unit_id\": \"TST-0174\"}\nSUCCESS:TST-0174-probe2 partial_reads=1423 leftovers=[]"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+          "exit_code": 0,
+          "fingerprint": "ba31982c5b7434912c0c7de628425186a6e1c0f47d34800fabda776f1f7c22f5",
+          "raw_output": "{\"leftover_trials\": 0, \"trials\": 1000}"
+        }
+      ]
+    }
+  ],
+  "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0174/atomic_cache.py",
+    "publish": "tempfile.mkstemp + os.fsync + os.replace",
+    "entry_layout": "MAGIC T174\\0 + uint32be length + sha256(payload) + payload",
+    "same_key": "same-key",
+    "trials": 1000,
+    "winners": {
+      "A": 128,
+      "B": 872,
+      "OLD": 0,
+      "UNKNOWN": 0
+    },
+    "reader_reads": 45249,
+    "partial_reads_atomic": 0,
+    "partial_reads_inplace": 1423,
+    "leftover_tmps": [],
+    "production_cache_present": true
+  },
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/TST-0174.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "executed": false,
+      "read_ok": true,
+      "probe": {
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0174",
+        "method": "command",
+        "role": "verifier",
+        "note": "run after this receipt and the per-unit manifest are on disk"
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Cache.put cannot host two distinct payloads on one key, so this unit's A-vs-B winner race is measured on the named-key atomic publisher rather than Cache.put itself.",
+      "settling_experiment": "If a name-keyed production cache appears, re-bind the same two probes to its put path and keep inplace_publish as the detector control.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "defects": [],
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/TST-0174/atomic_cache.py",
+      "sha256": "d036b6260b622acd47b4694c800e2211694e0340f0237d9bb20f45359ea12455",
+      "bytes": 4154,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0174/harness.py",
+      "sha256": "bb292be7ad79d4e288fed3c5cde9a209486f696c550c8eb0684c73452be8e9e9",
+      "bytes": 10133,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0174/probe1_interleavings.py",
+      "sha256": "ba31982c5b7434912c0c7de628425186a6e1c0f47d34800fabda776f1f7c22f5",
+      "bytes": 1654,
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py",
+      "sha256": "67401ed077c593780a1ddb0756fcb869d499a8a9c0a34b4a755f5fe47cac09d2",
+      "bytes": 1439,
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "report": {
+    "kind": "cache_report",
+    "observations": [
+      {
+        "name": "partial reads across 1000 dual-writer atomic interleavings",
+        "measured": 0,
+        "method": "reader process classify_path on every read during concurrent tmp+os.replace",
+        "anchor": "command-center/p2-wave/probes/TST-0174/probe1_interleavings.py"
+      },
+      {
+        "name": "atomic trials with leftover .tmp-TST0174-* files",
+        "measured": 0,
+        "method": "directory scan of the cache parent after both writers join",
+        "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py"
+      },
+      {
+        "name": "inplace mutation partial reads",
+        "measured": 1423,
+        "method": "same reader against in-place overwrite (atomic replace removed)",
+        "anchor": "command-center/p2-wave/probes/TST-0174/probe2_mutation_temps.py"
+      },
+      {
+        "name": "leftover temps after concurrent atomic publish",
+        "measured": "[]",
+        "method": "independent leftover_tmps scan on a dedicated atomic trial",
+        "anchor": "command-center/p2-wave/probes/TST-0174/atomic_cache.py"
+      }
+    ],
+    "control_ids": [
+      "TST-0174-INTERLEAVINGS",
+      "TST-0174-MUTATION",
+      "TST-0174-LEFTOVER-TEMPS",
+      "atomic-vs-inplace"
+    ]
+  },
+  "notes": "G-1 for TST-0174: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. Production Cache.put is content-addressed (two distinct payloads cannot share a key); the named-key concurrent publish under test is atomic_cache.py tmp+os.replace."
+}

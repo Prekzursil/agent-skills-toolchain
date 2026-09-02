@@ -1,0 +1,546 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/research/RES-0052.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0052/lockfile.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/RES-0052/suite.py",
+   "role": "supporting"
+  }
+ ],
+ "canonical_mechanism": "content-addressed file lockfile: per-file sha256 of `git cat-file -p` blob bytes, source commit, NFC-sorted resolution order",
+ "captured_at": "2026-08-25T00:57:18Z",
+ "claims": [
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0052/lockfile.py:build_lockfile",
+   "canonical_mechanism": "content-addressed file lockfile hashed from git cat-file blobs",
+   "claim": "A lockfile for a file-package (prompts/scripts, not resolved library versions) must record per-file content hashes, the source commit, and a deterministic resolution order.",
+   "evidence_tier": "E1",
+   "id": "C1-lockfile-fields",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0052/suite.py:identity",
+   "claim": "Two installs from the same lockfile, writing `git cat-file -p` bytes in resolution order, produce trees whose per-file sha256 hashes match exactly.",
+   "evidence_tier": "E1",
+   "id": "C2-reinstall-identity",
+   "measured": {
+    "file_count": 4,
+    "hashes": {
+     ".gitattributes": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96",
+     "prompts/system.md": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606",
+     "prompts/user-template.md": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6",
+     "scripts/hello.sh": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+    },
+    "per_file_blob_hashes_match": true,
+    "trees_identical": true
+   },
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0052/lockfile.py:three_route",
+   "claim": "`git archive` is not a blob-byte source when `text eol=crlf` is set: it emits CRLF while `git cat-file -p` and `git show` emit the LF blob. A lockfile hashed from archive bytes would fail byte-identity against the blob (the Windows autocrlf trap, reproduced on this Linux box via .gitattributes).",
+   "evidence_tier": "E1",
+   "id": "C3-archive-is-not-the-blob",
+   "measured": {
+    "any_archive_has_crlf": true,
+    "any_blob_has_crlf": false,
+    "archive_differs_on_any_file": true,
+    "cat_file_equals_show_all": true,
+    "files_where_archive_differs": [
+     ".gitattributes",
+     "prompts/system.md",
+     "prompts/user-template.md",
+     "scripts/hello.sh"
+    ],
+    "routes": [
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": ".gitattributes",
+      "routes": {
+       "git archive": {
+        "bytes": 17,
+        "crlf": 1,
+        "sha256": "9985b04028f3fa699cb411e8bc6c24562806abdffa1eeed4c619dafb7eb541e6"
+       },
+       "git cat-file -p": {
+        "bytes": 16,
+        "crlf": 0,
+        "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 16,
+        "crlf": 0,
+        "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96"
+       },
+       "working-tree": {
+        "bytes": 16,
+        "crlf": 0,
+        "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96"
+       }
+      }
+     },
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": "prompts/system.md",
+      "routes": {
+       "git archive": {
+        "bytes": 130,
+        "crlf": 3,
+        "sha256": "14dcb11c51aa673ebc67fa8d2abe48c56a9414e91bc2a14d3f59938ef364b1c5"
+       },
+       "git cat-file -p": {
+        "bytes": 127,
+        "crlf": 0,
+        "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 127,
+        "crlf": 0,
+        "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606"
+       },
+       "working-tree": {
+        "bytes": 127,
+        "crlf": 0,
+        "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606"
+       }
+      }
+     },
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": "prompts/user-template.md",
+      "routes": {
+       "git archive": {
+        "bytes": 129,
+        "crlf": 3,
+        "sha256": "cc3fec54325a4439c32d781169b7b0b5dd34758f62f81b24d212f486fe6aa079"
+       },
+       "git cat-file -p": {
+        "bytes": 126,
+        "crlf": 0,
+        "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 126,
+        "crlf": 0,
+        "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6"
+       },
+       "working-tree": {
+        "bytes": 126,
+        "crlf": 0,
+        "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6"
+       }
+      }
+     },
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": "scripts/hello.sh",
+      "routes": {
+       "git archive": {
+        "bytes": 32,
+        "crlf": 2,
+        "sha256": "f010e27caf08b62b4ff88e65b00f692b9131e1262757739b39d7e91f5bf55ed4"
+       },
+       "git cat-file -p": {
+        "bytes": 30,
+        "crlf": 0,
+        "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 30,
+        "crlf": 0,
+        "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+       },
+       "working-tree": {
+        "bytes": 30,
+        "crlf": 0,
+        "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+       }
+      }
+     }
+    ]
+   },
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0052/suite.py:mutation",
+   "claim": "Mutating one installed file makes compare_install report a mismatch. A silent always-match detector stays green in both states and is therefore not a measurement.",
+   "evidence_tier": "E1",
+   "id": "C4-mutation-mismatch",
+   "measured": {
+    "after_match": false,
+    "after_mismatch_count": 1,
+    "before_match": true,
+    "demonstrated_mismatch_on_mutation": true,
+    "mutated_path": "scripts/hello.sh",
+    "real_detector_discriminates": true,
+    "silent_detector_cannot_discriminate": true
+   },
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/RES-0052/suite.py:crlf_control",
+   "caveat": "No Windows checkout and no PowerShell 7 reviewer. Tolerance on this box is exact (0) on counts, sizes, CRLF counts, and sha256 strings. A Windows worktree with core.autocrlf=true would still match if install writes cat-file bytes.",
+   "claim": "Re-install byte-identity under CRLF normalization holds when the installer copies blob bytes from git cat-file, not when it copies git-archive or working-tree bytes. This box is Linux; the archive CRLF conversion was forced with `text eol=crlf`, which is the same git attribute Windows uses. PowerShell 7 vs Git Bash was not executed here.",
+   "evidence_tier": "E1",
+   "id": "C5-windows-byte-identity",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:RES-0052 in the receipt AND two installs whose per-file blob hashes match exactly, plus a demonstrated mismatch on mutation",
+ "confidence_band": "high-on-this-box; Windows shell reviewer not run",
+ "demonstrated_mismatch_on_mutation": true,
+ "edges": {
+  "contradicts": [],
+  "partial": [
+   "C5-windows-byte-identity"
+  ],
+  "supports": [
+   "C1-lockfile-fields",
+   "C2-reinstall-identity",
+   "C4-mutation-mismatch"
+  ]
+ },
+ "evidence_tier": "E1",
+ "freshness": {
+  "captured_at": "2026-08-25T00:57:18Z",
+  "stamp": "2026-08-25T00:57:18Z"
+ },
+ "lockfile_design": {
+  "byte_source": "git cat-file -p <source_commit>:<path>",
+  "forbidden_byte_sources": [
+   "git archive",
+   "working-tree"
+  ],
+  "kind": "file-package",
+  "lockfile": {
+   "byte_source": "git cat-file -p <source_commit>:<path>",
+   "files": [
+    {
+     "crlf_in_blob": 0,
+     "git_blob_sha1": "92be83e26d2715c1f096e9e9d666ff9a67837a81",
+     "mode": "100644",
+     "path": ".gitattributes",
+     "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96",
+     "size": 16
+    },
+    {
+     "crlf_in_blob": 0,
+     "git_blob_sha1": "b30700c945d955d4e7cf1c6869545cc7058afe0d",
+     "mode": "100644",
+     "path": "prompts/system.md",
+     "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606",
+     "size": 127
+    },
+    {
+     "crlf_in_blob": 0,
+     "git_blob_sha1": "e7c0ca1aebf6b36147cee78e98fdda62471b7ab1",
+     "mode": "100644",
+     "path": "prompts/user-template.md",
+     "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6",
+     "size": 126
+    },
+    {
+     "crlf_in_blob": 0,
+     "git_blob_sha1": "1a19ef7f205eb2b1c41d0735587a47b015c66481",
+     "mode": "100644",
+     "path": "scripts/hello.sh",
+     "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59",
+     "size": 30
+    }
+   ],
+   "forbidden_byte_sources": [
+    "git archive",
+    "working-tree"
+   ],
+   "hash_algorithm": "sha256",
+   "kind": "file-package",
+   "lockfileVersion": 1,
+   "package": {
+    "name": "res0052-prompts-scripts",
+    "version": "1.0.0"
+   },
+   "resolution_order": [
+    ".gitattributes",
+    "prompts/system.md",
+    "prompts/user-template.md",
+    "scripts/hello.sh"
+   ],
+   "source_commit": "951fafd1410a0dbce35a9cf1321e31a1a1720199"
+  },
+  "must_not_record_as_identity": [
+   "resolved library versions (none exist)",
+   "git archive bytes",
+   "working-tree bytes under autocrlf/eol=crlf"
+  ],
+  "must_record": [
+   "per-file path (NFC POSIX)",
+   "per-file sha256 of git cat-file -p bytes",
+   "per-file git blob sha1 and mode",
+   "source_commit",
+   "resolution_order"
+  ]
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe1_reinstall_identity.py",
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe2_mutation_mismatch.py",
+   "id": "probe2"
+  }
+ ],
+ "named_settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe1_reinstall_identity.py",
+ "output_schema": "command-center/schema/research-claim-record.schema.json",
+ "output_schema_present": true,
+ "question": "What must a lockfile record for a package whose contents are files rather than resolved library versions (content hashes, source commit, resolution order), and does a re-install from the lockfile reproduce a byte-identical tree on Windows given CRLF normalization?",
+ "question_or_target": "What must a lockfile record for a package whose contents are files rather than resolved library versions (content hashes, source commit, resolution order), and does a re-install from the lockfile reproduce a byte-identical tree on Windows given CRLF normalization?",
+ "residual_unknowns": [
+  "PowerShell 7 vs Git Bash reviewer not executed on this box.",
+  "research-claim-record.schema.json not on disk (RES-0001)."
+ ],
+ "reviewer": {
+  "independent": true,
+  "powershell7_vs_git_bash": "NOT-CHECKED \u2014 PowerShell 7 is not on this Linux worktree",
+  "reviewer_id": "RES-0052-probe2-mutation-mismatch",
+  "scope_not_agreement": true,
+  "shell": "Linux bash + a second Python process (probe2)",
+  "tolerance": "exact match (0) on file counts, byte sizes, CRLF counts, sha256",
+  "verdict": "PASS"
+ },
+ "schema_residual": null,
+ "sentinel": "SUCCESS:RES-0052 in the receipt AND two installs whose per-file blob hashes match exactly, plus a demonstrated mismatch on mutation",
+ "settling_probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe1_reinstall_identity.py",
+ "snapshot_sha256": {
+  ".gitattributes": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96",
+  "prompts/system.md": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606",
+  "prompts/user-template.md": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6",
+  "scripts/hello.sh": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+ },
+ "source_lineage": [
+  {
+   "kind": "catalog-row",
+   "path": "command-center/WORK-UNIT-CATALOG.json",
+   "role": "question-and-tests-required",
+   "unit_id": "RES-0052"
+  },
+  {
+   "captured_at": "2026-08-25T00:57:18Z",
+   "kind": "live-measurement",
+   "path": "command-center/p2-wave/probes/RES-0052/suite.py",
+   "role": "both-states-install-and-crlf-control"
+  },
+  {
+   "kind": "mature-registry-lockfile-shape",
+   "note": "npm package-lock records tarball integrity (SRI) plus resolved URL, not per-file hashes. poetry.lock records distribution hashes plus a content-hash of the declaration. cargo.lock records crate checksums. Those are library-version locks. A prompts/scripts package has no resolved library version, so the lock must name each file, its blob digest, the source commit, and the order files are written. Hashing a git-archive tarball would bake in export-time CRLF and fail blob identity.",
+   "role": "contrast-not-copied"
+  }
+ ],
+ "state": "SUCCESS",
+ "strongest_surviving_counterargument": "This measurement ran on Linux. git archive emitted CRLF because the fixture set `text eol=crlf`, which is the conversion git archive applies on Windows as well, but a PowerShell 7 vs Git Bash re-run on a real Windows checkout was not performed. C5 is therefore PARTIAL, not a Windows-end-to-end confirmation.",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe1_reinstall_identity.py",
+   "id": "T1-two-installs",
+   "recorded_output": {
+    "file_count": 4,
+    "fixture": "known-good",
+    "hashes_a": {
+     ".gitattributes": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96",
+     "prompts/system.md": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606",
+     "prompts/user-template.md": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6",
+     "scripts/hello.sh": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+    },
+    "hashes_b": {
+     ".gitattributes": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96",
+     "prompts/system.md": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606",
+     "prompts/user-template.md": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6",
+     "scripts/hello.sh": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+    },
+    "per_file_blob_hashes_match": true,
+    "trees_identical": true
+   },
+   "required": "install twice from the same lockfile and compare trees hash by hash",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe1_reinstall_identity.py",
+   "id": "T2-crlf-archive-vs-catfile",
+   "recorded_output": {
+    "any_archive_has_crlf": true,
+    "any_blob_has_crlf": false,
+    "archive_differs_on_any_file": true,
+    "cat_file_equals_show_all": true,
+    "fixture": "known-good-blob / known-broken-archive-route",
+    "routes": [
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": ".gitattributes",
+      "routes": {
+       "git archive": {
+        "bytes": 17,
+        "crlf": 1,
+        "sha256": "9985b04028f3fa699cb411e8bc6c24562806abdffa1eeed4c619dafb7eb541e6"
+       },
+       "git cat-file -p": {
+        "bytes": 16,
+        "crlf": 0,
+        "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 16,
+        "crlf": 0,
+        "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96"
+       },
+       "working-tree": {
+        "bytes": 16,
+        "crlf": 0,
+        "sha256": "09f30948eaeb0fb1f7bf9a4db544ad665f645d2667541ba12252edd929c5ea96"
+       }
+      }
+     },
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": "prompts/system.md",
+      "routes": {
+       "git archive": {
+        "bytes": 130,
+        "crlf": 3,
+        "sha256": "14dcb11c51aa673ebc67fa8d2abe48c56a9414e91bc2a14d3f59938ef364b1c5"
+       },
+       "git cat-file -p": {
+        "bytes": 127,
+        "crlf": 0,
+        "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 127,
+        "crlf": 0,
+        "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606"
+       },
+       "working-tree": {
+        "bytes": 127,
+        "crlf": 0,
+        "sha256": "526a2971a40d82b28dbda5899629ea3721b0ac266050701684fa64187078b606"
+       }
+      }
+     },
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": "prompts/user-template.md",
+      "routes": {
+       "git archive": {
+        "bytes": 129,
+        "crlf": 3,
+        "sha256": "cc3fec54325a4439c32d781169b7b0b5dd34758f62f81b24d212f486fe6aa079"
+       },
+       "git cat-file -p": {
+        "bytes": 126,
+        "crlf": 0,
+        "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 126,
+        "crlf": 0,
+        "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6"
+       },
+       "working-tree": {
+        "bytes": 126,
+        "crlf": 0,
+        "sha256": "4abe5991c86ac2ca137bc34af26f05c6f2bf81cc1024ba5f4817ccfa4e1bd3c6"
+       }
+      }
+     },
+     {
+      "archive_differs_from_blob": true,
+      "archive_has_crlf": true,
+      "blob_has_crlf": false,
+      "cat_file_equals_show": true,
+      "path": "scripts/hello.sh",
+      "routes": {
+       "git archive": {
+        "bytes": 32,
+        "crlf": 2,
+        "sha256": "f010e27caf08b62b4ff88e65b00f692b9131e1262757739b39d7e91f5bf55ed4"
+       },
+       "git cat-file -p": {
+        "bytes": 30,
+        "crlf": 0,
+        "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+       },
+       "git show <rev>:<path>": {
+        "bytes": 30,
+        "crlf": 0,
+        "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+       },
+       "working-tree": {
+        "bytes": 30,
+        "crlf": 0,
+        "sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59"
+       }
+      }
+     }
+    ]
+   },
+   "required": "CRLF control: prove the comparison uses blob bytes by showing git archive and git cat-file differ",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0052/probe2_mutation_mismatch.py",
+   "id": "T3-mutation",
+   "recorded_output": {
+    "after_mismatch_count": 1,
+    "after_mismatches": [
+     {
+      "expected_sha256": "d03e9683ab4a59807b5a2b0be1c2e3b0fa927a136982b437ebc7dfe47b850a59",
+      "expected_size": 30,
+      "live_sha256": "3720dd0676dad93fe93d7e18d913810cc25fe6c9d0c67caaeb040a7e9d69f467",
+      "live_size": 39,
+      "path": "scripts/hello.sh",
+      "present": true
+     }
+    ],
+    "fixture": "known-broken-mutation",
+    "known_broken_after": true,
+    "known_good_before": true,
+    "mutated_path": "scripts/hello.sh",
+    "silent_detector_both_states_green": true
+   },
+   "required": "negative control: mutate one file and confirm the comparison reports a mismatch",
+   "result": "PASS"
+  }
+ ],
+ "title": "Design a lockfile that is reproducible for a non-code package of prompts and scripts",
+ "two_installs_per_file_blob_hashes_match_exactly": true,
+ "unit_id": "RES-0052"
+}

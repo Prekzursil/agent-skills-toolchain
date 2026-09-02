@@ -1,0 +1,80 @@
+{
+  "composite": "sum(weight_i * metric_i) over the four metrics",
+  "counter_control": {
+    "claimed_vs_heldout_cap_gap_max": 0.4,
+    "effort_surplus_min": 0.5,
+    "fire_rule": "FIRE if any clause trips; SILENT otherwise. Gated ACCEPT requires naive ACCEPT and SILENT.",
+    "held_out_gain_min": 0.05,
+    "held_out_gap_max": 0.25,
+    "id": "gaming-control-v1",
+    "usability_minus_heldout_correctness_max": 0.35
+  },
+  "frozen": true,
+  "id": "WFA-0130-surrogate-metric-set",
+  "kind": "metric-registry",
+  "max_single_metric_regression": 0.1,
+  "metrics": {
+    "correctness": {
+      "direction": "higher-is-better",
+      "estimator": "mean(case.correct) on the scored slice",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "slice_naive": "visible",
+      "weight": 0.25
+    },
+    "coverage": {
+      "direction": "higher-is-better",
+      "estimator": "count(unique declared_capabilities intersect required) / count(required_capabilities)",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "slice_naive": "visible",
+      "weight": 0.25
+    },
+    "recovery": {
+      "direction": "higher-is-better",
+      "estimator": "among cases whose first attempt failed, fraction that ended correct OR set claimed_recovered",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "slice_naive": "visible",
+      "weight": 0.25
+    },
+    "usability": {
+      "direction": "higher-is-better",
+      "estimator": "mean(fields_present / fields_required) on the scored slice",
+      "range": [
+        0.0,
+        1.0
+      ],
+      "slice_naive": "visible",
+      "weight": 0.25
+    }
+  },
+  "min_effect_size": 0.05,
+  "naive_accept_rule": "ACCEPT iff candidate.composite >= baseline.composite + min_effect_size AND no naive metric is worse than baseline by more than max_single_metric_regression",
+  "output_fields": [
+    "answer",
+    "status",
+    "capability",
+    "notes"
+  ],
+  "required_capabilities": [
+    "parse-input",
+    "branch-policy",
+    "recover-fault",
+    "emit-report"
+  ],
+  "source_status": "output-absent-on-disk",
+  "source_unit": "WFA-0130",
+  "tie_break": [
+    "correctness",
+    "coverage",
+    "recovery",
+    "usability"
+  ]
+}

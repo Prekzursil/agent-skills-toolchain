@@ -1,0 +1,169 @@
+{
+  "artifact": "platform/lib/foundry/FOUNDRY-STATUS.json",
+  "unit": "foundry/scout-forge",
+  "phase": "7 - SHIP workflow-scout AND workflow-forge AS EXECUTABLE META-WORKFLOWS",
+  "written_at_state": "FINAL - every claim below was measured by a command whose output is quoted in the unit report",
+  "spec_anchors": {
+    "scout_and_forge_must_be_executable": "_USER-PROMPTS.md:11025",
+    "acceptance_bar": "_USER-PROMPTS.md:11282",
+    "foundry_pipeline_steps_1_to_10": "_USER-PROMPTS.md:10843-10854",
+    "recommendation_logic_find_repair_merge_build": "_USER-PROMPTS.md:11280",
+    "tournament_benchmarking": "_USER-PROMPTS.md:11276"
+  },
+
+  "deliverables": {
+    "platform/lib/foundry/scout.py": "workflow-scout CLI: search | population | vocab",
+    "platform/lib/foundry/forge.py": "workflow-forge CLI: fuse | tournament | decompose | strategies",
+    "platform/lib/foundry/model.py": "capability + hazard + licence-tier + disposition vocabularies",
+    "platform/lib/foundry/registry.py": "ingest/normalize 5 heterogeneous registry shapes + the live DSL corpus",
+    "platform/lib/foundry/mechanisms.py": "mechanism decomposition, 24 capability probes, 16 hazard detectors, semantic diff, dedupe",
+    "platform/lib/foundry/bench.py": "the 4 spec axes, the cost vector, gratuitous-stage ablation, certify()",
+    "platform/lib/foundry/test_foundry.py": "147 tests",
+    "platform/lib/foundry/_probe_corpus_thinness.py": "where the corpus is thin, so a goal can be drawn from a measured gap",
+    "platform/lib/foundry/_probe_forge_pairsearch.py": "the forge gate's both-states control over real pairs",
+    "platform/lib/foundry/_probe_forge_selfdefects.py": "separates forge BUGS from legitimate refusals"
+  },
+
+  "measured": {
+    "tests_mine": 147,
+    "tests_baseline_without_foundry": 2620,
+    "tests_total": 2767,
+    "tests_skipped": 14,
+    "ruff_check": "All checks passed (0.15.17)",
+    "ruff_format": "12 files already formatted",
+    "candidate_population": 260,
+    "registry_rows": 163,
+    "executable_dsl_blueprints_at_read_time": 97,
+    "provenance_resolved_true": 178,
+    "provenance_resolved_FALSE": 27,
+    "provenance_NOT_CHECKED": 55,
+    "pairs_evaluated_by_the_gate": 276,
+    "verdict_CERTIFIED": 52,
+    "verdict_REJECTED": 224,
+    "crashes": 0,
+    "bigger_but_no_better_rejections": 18,
+    "forge_bugs_remaining_over_120_pairs": 0,
+    "expected_refusals_over_120_pairs": 16
+  },
+
+  "claims": [
+    {
+      "id": "C1",
+      "claim": "scout is executable and searches/verifies/decomposes/recommends over the real registry",
+      "verdict": "CONFIRMED",
+      "evidence": "python platform/lib/foundry/scout.py search ... -> SUCCESS:scout-search, 6 ranked hits with per-hit missing_capabilities, 12 MERGE proposals naming which capability each side contributes",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C2",
+      "claim": "forge is executable, emits a DSL-valid fused workflow, and preserves lineage",
+      "verdict": "CONFIRMED",
+      "evidence": "platform/workflows/forged/fused.cnc07-arc05.workflow.json validates: schema_valid=True semantic_violations=0 via wfdsl (a module the forge does not own)",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C3",
+      "claim": "a fused workflow decomposes back into its source mechanisms",
+      "verdict": "CONFIRMED",
+      "evidence": "forge decompose -> roundtrip CONFIRMED per source, undisclosed_edges [], stage_ids_recovered true, stage_kinds_recovered true; 0/120 failures in _probe_forge_selfdefects",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C4",
+      "claim": "forge can return REJECTED, so it is a gate and not a no-op",
+      "verdict": "CONFIRMED",
+      "evidence": "224 of 276 real pairs REJECTED; and on ONE pair with IDENTICAL axis gains the union strategy is REJECTED (+8 stages, 9 gratuitous) while best-of-breed is CERTIFIED (-1 stage, 0 gratuitous)",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C5",
+      "claim": "stage count can never certify a fusion",
+      "verdict": "CONFIRMED",
+      "evidence": "BENEFIT_AXES and COST_DIMENSIONS asserted disjoint inside certify() on every call; gratuitous_stages() ablates each grafted stage and rejects any that moves no axis; test_certify_rejects_a_bigger_workflow_that_improves_nothing",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C6",
+      "claim": "the brief's 161 classified candidates is the wrong count",
+      "verdict": "REFUTED",
+      "evidence": "164 rows on disk across 5 files; 1 carries a _manifest key and is a header, not a candidate; 163 real candidates, 0 duplicate ids",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C7",
+      "claim": "27 registry provenance anchors do not resolve on disk",
+      "verdict": "CONFIRMED",
+      "evidence": "scout.py population -> provenance_resolved_false: 27, with the failing os.path.exists probe string recorded per candidate; detector control in test_provenance_probe_both_states",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C8",
+      "claim": "the 7 fusion strategies are 7 genuinely distinct fusions",
+      "verdict": "REFUTED",
+      "evidence": "5 of 7 (best-of-breed, stage-splice, conditional-hybrid, ensemble, progressive) share ONE selection rule and produced identical output on bp-cnc-07 x bp-arc-05: 9 stages, 0 gratuitous, +0.1048/+0.0833. Only union and common-core differ. Disclosed inline at forge.py donated_stage_ids().",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "C9",
+      "claim": "capability presence discriminates candidates in this corpus",
+      "verdict": "PARTIAL",
+      "evidence": "13 of 24 capabilities are present in ALL 97 blueprints, so raw capability_fit saturates at 1.00 (first scout run: 8 hits all at 1.00). Mitigated by IDF-weighting capability coverage by population rarity and by scoring hazard coverage separately; both raw and weighted values are reported. Residual: presence is still coarser than quality.",
+      "confidence": "likely"
+    }
+  ],
+
+  "defects_i_found_in_my_own_code_and_fixed": [
+    {
+      "defect": "tool_policy was taken best-of-breed, so the donor's block REPLACED the base's and discarded the base allowlist; the BASE's own roles then violated DSL-SEM-011",
+      "found_by": "_probe_forge_selfdefects.py reading the actual validator errors instead of trusting the rejection count",
+      "scale": "22 of 120 pairs",
+      "fix": "allow/deny/write-path lists unioned; default and network taken at the STRICTER value; source_policy preserved; a deny-vs-allow collision is REPORTED and the deny kept rather than weakening the posture to make a fusion pass"
+    },
+    {
+      "defect": "donated stages were chained to their predecessor, INVENTING ordering edges the donor never had",
+      "found_by": "the decomposition round-trip (4 of 4 sampled pairs REFUTED with recovered_edges_are_a_subset_of_the_source=false)",
+      "scale": "every fusion with 2+ donated stages",
+      "fix": "only a donated ROOT gets a graft-point edge; every synthesized edge is recorded in x_extensions.foundry.decomposition.synthesized_edges and subtracted from the round-trip subset test as a disclosed addition"
+    },
+    {
+      "defect": "certify() accepted a fusion with +8 stages for the SAME axis gains as one with -1 stage, i.e. it was indifferent to gratuitous cost",
+      "found_by": "running the union strategy on the pair that best-of-breed had just certified",
+      "scale": "every union-shaped fusion",
+      "fix": "gratuitous_stages() ablates each grafted stage and recomputes the axes; any stage whose removal changes no axis makes the fusion REJECTED with reason gratuitous-cost"
+    },
+    {
+      "defect": "the _rich_workflow test fixture was not DSL-valid (missing cache.store, dry_run.forbid_tools, replay.journal_path/record/verify, human_checkpoint.timeout_seconds)",
+      "found_by": "my own test_the_dsl_gate_is_the_real_validator",
+      "scale": "6 failing tests",
+      "fix": "fixture completed; the schema's conditional requirements are now exercised rather than dodged"
+    },
+    {
+      "defect": "a stale forged artifact named fused.gem03-arc03.REPORT.json carried verdict REJECTED - the filename implied a certification it never had",
+      "found_by": "test_the_certified_and_rejected_artifacts_on_disk_match_their_verdicts",
+      "scale": "1 artifact",
+      "fix": "deleted; the naming convention (REJECTED.* prefix) is now asserted by that test on every run"
+    }
+  ],
+
+  "honest_gaps": [
+    "5 of the 7 fusion strategies are aliases today (claim C8). Differentiating them is real unstarted work: conditional-hybrid needs `when` guards on grafted stages, ensemble needs the donated stages in PARALLEL under a quorum barrier, progressive needs escalation gates.",
+    "The forge fuses exactly TWO sources. N-way fusion (spec :10849 'ensemble') is not implemented; chaining pairwise would work but is untested and the lineage record assumes one donor prefix (d1.).",
+    "The four axes are STRUCTURAL predicates over the document, not runtime outcomes. The spec says 'on representative cases' and this measures what the document guarantees, not what an execution produced. A workflow that declares every mitigation and then fails in practice would score identically. Settling experiment: execute both sources and the fusion on a real task and compare receipts - that requires the runtime, which is not this unit.",
+    "IMPROVEMENT_EPSILON=0.01 and REGRESSION_TOLERANCE=0.0 are chosen, not derived. A different epsilon changes the CERTIFIED/REJECTED split; measured sensitivity was not swept.",
+    "Scout ranks 163 registry rows on DECLARED (prose) capabilities and can never structurally verify them - by construction those rows have no DSL document. Every hit is tagged with its derivation and a DECLARED profile reports zero hazard coverage, so a prose row can never win a hazard-demanding goal.",
+    "The pair search covered 26 of 97 blueprints (325 pairs). The full 97x96/2 = 4,656 pairs were not swept; the reported CERTIFIED/REJECTED ratio is for that 26-candidate slice, alphabetically first by id, NOT for the whole corpus.",
+    "27 registry candidates have a provenance anchor that does not resolve. This unit REPORTS them and excludes them from ADOPT recommendations; it did not repair them (they belong to the archaeology lanes)."
+  ],
+
+  "detector_controls_run": {
+    "capability_probes": "24 of 24 parametrised both-states (fires on rich, silent on minimal); 2 (stages, work_unit_binding) asserted one-directionally because a document with no stages is not a workflow",
+    "hazard_detectors": "16 of 16 parametrised both-states, PLUS 14 single-field mutation tests that break exactly the field the detector claims to read and require it to flip",
+    "provenance_probe": "known-present path -> True, known-absent path -> False, undecidable kinds -> None with a NOT-CHECKED probe string",
+    "licence_classifier": "10-case table plus a reachability test proving all 6 tiers are attainable, plus a test that an explicit SPDX grant outranks co-located 'no LICENSE file' prose",
+    "the_gate_itself": "_probe_forge_pairsearch reports gate_can_accept=true AND gate_can_reject=true over real inputs; a gate that only ever returns one verdict measures nothing",
+    "gratuitous_stage_ablation": "both states on one document - a freeloader stage is detected, the load-bearing human checkpoint is spared",
+    "text_corpus_scope": "a hazard cannot become covered by a sentence in the workflow description (asserted)"
+  },
+
+  "determinism": "No wall clock anywhere. Scout reports carry an input_fingerprint derived from the goal and the candidate id list; test_scout_report_is_byte_stable_for_the_same_inputs and test_fusion_is_deterministic assert byte-identical repeat output."
+}

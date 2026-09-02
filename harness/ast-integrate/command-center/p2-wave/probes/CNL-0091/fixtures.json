@@ -1,0 +1,96 @@
+{
+  "unit_id": "CNL-0091",
+  "notes": "Planted briefs. Role: lines are present so a label-only detector would be fooled; the live detector strips them.",
+  "fixtures": [
+    {
+      "id": "collapsed-calibrate",
+      "kind": "planted-bad",
+      "expect_fire": true,
+      "seats": [
+        {
+          "role": "proposer",
+          "text": "Role: proposer\nI propose a frozen hashed roster as the seat list of record.\nThe solution is one roster file whose digest is checked before round two.\nRecommend that we treat that digest as the only membership source.\nShip this design behind a flag.\nImplementation plan: land the change on the control path.\nPrimary design: one file, one digest.\nRollout sequence: hash, freeze, then debate.\nconclusion: adopt the hashed roster"
+        },
+        {
+          "role": "critic",
+          "text": "Role: critic\nI propose a frozen hashed roster as the seat list of record.\nThe solution is a locked membership file hashed before the next round.\nRecommend that we treat that digest as the only membership source.\nShip this design on the same flag.\nImplementation plan: land the change on the control path.\nPrimary design: one file, one digest.\nRollout sequence: hash, freeze, then debate.\nconclusion: adopt the hashed roster"
+        }
+      ]
+    },
+    {
+      "id": "collapsed-paraphrase",
+      "kind": "planted-bad",
+      "expect_fire": true,
+      "seats": [
+        {
+          "role": "proposer",
+          "text": "Role: proposer\nI propose we bind council membership to a digest of the roster.\nThe solution is to refuse any seat whose name is not in that digest.\nRecommend that we ship this as the gate on round entry.\nShip this design with the rest of the protocol.\nImplementation plan: land the change after the schema lands.\nPrimary design: digest-or-absent.\nRollout sequence: write roster, hash, gate.\nconclusion: adopt the hashed roster"
+        },
+        {
+          "role": "critic",
+          "text": "Role: critic\nI propose we bind council membership to a digest of the roster.\nThe solution is to drop any seat missing from that digest.\nRecommend that we ship this as the gate on round entry.\nShip this design alongside the protocol notes.\nImplementation plan: land the change after the schema lands.\nPrimary design: digest-or-absent.\nRollout sequence: write roster, hash, gate.\nconclusion: adopt the hashed roster"
+        }
+      ]
+    },
+    {
+      "id": "diverse-calibrate",
+      "kind": "known-good",
+      "expect_fire": false,
+      "seats": [
+        {
+          "role": "proposer",
+          "text": "Role: proposer\nI propose a frozen hashed roster as the seat list of record.\nThe solution is one roster file whose digest is checked before round two.\nRecommend that we treat that digest as sufficient proof of distinct seats.\nShip this design this week.\nImplementation plan: land the change on the control path.\nPrimary design: labels in the roster are enough.\nRollout sequence: hash then proceed.\nconclusion: adopt the hashed roster"
+        },
+        {
+          "role": "critic",
+          "text": "Role: critic\nSteelman: at its strongest a hashed roster stops silent seat swaps.\nEven granting a collision-resistant hash, this fails when two seats share one brief.\nObjection: role labels in the roster are not discharged obligations.\nCounterexample: five identical briefs still hash as five names.\nThe claim that labels imply behaviour does not hold.\nFailure mode: a confident unanimous verdict from one voice.\nBurden of proof sits on divergence of acts, not of names.\nAttack surface: any check that reads Role: lines and stops.\nFalsify the roster-hash claim before shipping it as a collapse control.\nconclusion: reject the hashed roster as sufficient"
+        }
+      ]
+    },
+    {
+      "id": "genuine-agreement",
+      "kind": "negative-control",
+      "expect_fire": false,
+      "seats": [
+        {
+          "role": "proposer",
+          "text": "Role: proposer\nI propose a frozen hashed roster as the seat list of record.\nThe solution is one roster file whose digest is checked before round two.\nRecommend that we include mandate bytes in that digest.\nShip this design after the mandate field exists.\nImplementation plan: land the change with the mandate bytes.\nPrimary design: names plus mandate text in one hash.\nRollout sequence: write mandates, hash, freeze.\nconclusion: adopt the hashed roster"
+        },
+        {
+          "role": "critic",
+          "text": "Role: critic\nSteelman: at its strongest a hashed roster makes the seat list auditable.\nEven granting the hash, residual risk remains if mandates are omitted.\nI agree that the conclusion holds: the roster should be hashed.\nConditional on hashing mandate bytes, not only display names.\nAgree only if the digest covers obligations.\nFailure mode to watch: labels without obligations still hashing clean.\nBurden of proof: show the digest includes mandate text.\nAttack surface: a name-only digest.\nFalsify name-only hashing before calling the seats distinct.\nconclusion: adopt the hashed roster"
+        }
+      ]
+    },
+    {
+      "id": "diverse-alt",
+      "kind": "known-good",
+      "expect_fire": false,
+      "seats": [
+        {
+          "role": "proposer",
+          "text": "Role: proposer\nI propose we let the chair cast a tie-break vote after round two.\nThe solution is a recorded chair ballot that ends the loop.\nRecommend that we document that ballot as the close rule.\nShip this design with the close-rule note.\nImplementation plan: land the change on the close path.\nPrimary design: chair ballot is decisive.\nRollout sequence: debate, then chair ballot.\nconclusion: adopt chair tie-break"
+        },
+        {
+          "role": "critic",
+          "text": "Role: critic\nSteelman: at its strongest a chair ballot stops endless cycling.\nEven granting a recorded ballot, this fails when the chair is also a juror.\nObjection: the chair then becomes the single epistemic point of failure.\nCounterexample: corrupt the chair and the recorded close follows.\nA labelled chair vote does not hold as separation of judge and juror.\nFailure mode: one seat determining the outcome.\nBurden of proof: show a corrupted chair cannot close alone.\nAttack surface: combining chair and juror in one person.\nFalsify the separation claim on a corrupted-chair fixture.\nconclusion: reject chair tie-break"
+        }
+      ]
+    },
+    {
+      "id": "genuine-agreement-alt",
+      "kind": "negative-control",
+      "expect_fire": false,
+      "seats": [
+        {
+          "role": "proposer",
+          "text": "Role: proposer\nI propose we publish per-round information-gain on the transcript.\nThe solution is a listed delta of new claims each round.\nRecommend that we halt when the delta is below the recorded floor.\nShip this design with the floor constant.\nImplementation plan: land the change next to the transcript writer.\nPrimary design: halt on low information gain.\nRollout sequence: measure, compare, halt.\nconclusion: publish information-gain"
+        },
+        {
+          "role": "critic",
+          "text": "Role: critic\nSteelman: at its strongest a published gain number makes circling visible.\nEven granting a listed delta, residual risk is a gamed token-diff.\nI agree that the conclusion holds: publish the per-round gain.\nConditional on counting new claims, not token edits.\nAgree only if the floor is pre-registered.\nFailure mode: a paraphrase round that looks like gain.\nBurden of proof: show the metric is claim-level.\nAttack surface: token-edit inflation.\nFalsify a paraphrase round before trusting the halt.\nconclusion: publish information-gain"
+        }
+      ]
+    }
+  ]
+}

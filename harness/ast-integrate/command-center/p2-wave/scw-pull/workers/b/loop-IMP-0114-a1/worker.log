@@ -1,0 +1,22 @@
+
+===== launch 2026-08-20T09:02:49Z attempt=1 =====
+I'll start from the existing IMP-0114 probe tree and unit contract, then implement until the live measure prints `SUCCESS:delivered`.The IMP-0114 probe tree is missing, so I’ll read the catalog contract and a delivered IMP unit as the pattern to implement from.There's already a marketplace linter under `platform/marketplace`. I'll inspect that, a delivered unit's probe shape, and the receipt schema next.The unit was never started, so I’ll implement the index linter, required tests, named probes, and the doctor supersession path, then measure.Implementation is in place. Next I’ll run the required tests and named probes.**IMP-0114 is G-1 delivered.** `python command-center/p2-wave/_measure_one_delivered.py IMP-0114` printed:
+
+`SUCCESS:delivered IMP-0114 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe1_planted_defects.py:0,probe2_independent_graph.py:0,run_required_tests.py:0`
+
+The unit had never been started (`probes/IMP-0114/` was missing), so it was built rather than parked.
+
+**What landed**
+- `tools/marketplace/index_linter.py` — whole-index consistency linter that hashes stored blob bytes and walks `blobs/` (dangling-ref, orphan-blob, duplicate-id, digest-mismatch, unresolvable-dependency)
+- `tools/marketplace/reference_graph.py` — independent `os.walk` graph that does not import the linter
+- `tools/marketplace/tests/test_index_linter.py` — 9 tests, including the clean-index negative control and the blob-store-walk mutation
+- `scripts/plugin_registry_doctor.py` — explicit **SUPERSEDED** entry that **DELEGATES** to `lint_index` instead of duplicating it
+
+**Evidence**
+- Probe 1: one planted defect of each class → all five classes reported
+- Probe 2: independent dangling/orphan sets matched the linter
+- Negative control: clean index silent, planted index red, same run
+- Receipt `command-center/receipts/IMP-0114.json` is `state=SUCCESS`
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` sha256 `2ef2b289b17449bfebc2ac9509db4f2975965d8fb0db3201eb790c565ca36dd1` matches live LF bytes
+
+No git write, no global `unit_manifest.py --write`, no key rotation, no finish/p2-cloud-ok relaunch.

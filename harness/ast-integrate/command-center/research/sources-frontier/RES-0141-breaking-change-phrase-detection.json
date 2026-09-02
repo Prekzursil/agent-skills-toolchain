@@ -1,0 +1,449 @@
+{
+  "unit_id": "RES-0141",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0141",
+  "report_kind": "measurement-run",
+  "title": "Detect breaking changes from release-note prose across the dependency ecosystem",
+  "question": "Which lexical and structural signals in changelogs actually predict a breaking change - a semver-major bump, a BREAKING CHANGE footer, a removal verb, a deprecation-then-removal pair - and what precision/recall does the best combination achieve on a hand-labelled set of 100 real release notes?",
+  "answer": "SUCCESS:RES-0141. On a frozen hand-labelled set of 100 real GitHub release notes (gold-positive = parsed tag is X.0.0, n=29; control-negative = first 20 adjacent patch steps), the best combination that stays silent on every control is ['breaking_change_footer', 'removal_verb']: precision=0.95 recall=0.655172 f1=0.77551 tp=19 fp=1 fn=10. Control false-positive count=0 (rate=0.0) on the 20-note silence set. Labels are assigned from the version identifier, not from changelog wording; detector.py does not import labels.py. Precision and recall are computed by score.evaluate, not described.",
+  "measured_at": "2026-09-02T00:40:23Z",
+  "output_path": "command-center/research/sources-frontier/RES-0141-breaking-change-phrase-detection.json",
+  "output_schema": "command-center/schema/measurement-run.schema.json",
+  "labelled_set": {
+    "n_notes": 100,
+    "n_gold_positive": 29,
+    "n_control_negative": 20,
+    "label_rule": "gold_breaking := parsed tag is X.0.0 with X>=1. Independent of detector.py. Control negatives := first 20 adjacent patch steps by id sort (need 20).",
+    "labels_assigned_from": "semver-X.0.0-tag",
+    "labels_before_detector": true,
+    "control_ids": [
+      "Textualize-rich-v13.7.1",
+      "Textualize-rich-v13.8.1",
+      "Textualize-rich-v13.9.1",
+      "Textualize-rich-v13.9.2",
+      "Textualize-rich-v13.9.3",
+      "Textualize-rich-v13.9.4",
+      "Textualize-rich-v14.3.1",
+      "Textualize-rich-v14.3.2",
+      "Textualize-rich-v14.3.3",
+      "Textualize-rich-v14.3.4",
+      "aio-libs-aiohttp-v3.12.10",
+      "aio-libs-aiohttp-v3.12.11",
+      "aio-libs-aiohttp-v3.12.12",
+      "aio-libs-aiohttp-v3.12.13",
+      "aio-libs-aiohttp-v3.12.14",
+      "aio-libs-aiohttp-v3.12.15",
+      "aio-libs-aiohttp-v3.12.8",
+      "aio-libs-aiohttp-v3.12.9",
+      "aio-libs-aiohttp-v3.13.1",
+      "aio-libs-aiohttp-v3.13.2"
+    ],
+    "corpus_path": "command-center/p2-wave/probes/RES-0141/corpus.json",
+    "labels_path": "command-center/p2-wave/probes/RES-0141/labels.json"
+  },
+  "detector": {
+    "signal_ids": [
+      "semver_major_bump",
+      "breaking_change_footer",
+      "removal_verb",
+      "deprecation_then_removal"
+    ],
+    "best_combo_silent_on_controls": [
+      "breaking_change_footer",
+      "removal_verb"
+    ],
+    "best_metrics": {
+      "tp": 19,
+      "fp": 1,
+      "fn": 10,
+      "tn": 70,
+      "precision": 0.95,
+      "recall": 0.655172,
+      "f1": 0.77551,
+      "combo": [
+        "breaking_change_footer",
+        "removal_verb"
+      ],
+      "control_fp_ids": [],
+      "control_fp": 0,
+      "silent_on_controls": true
+    },
+    "any_combo_silent_on_controls": true,
+    "unconstrained_best": {
+      "tp": 23,
+      "fp": 4,
+      "fn": 6,
+      "tn": 67,
+      "precision": 0.851852,
+      "recall": 0.793103,
+      "f1": 0.821429,
+      "combo": [
+        "semver_major_bump",
+        "breaking_change_footer",
+        "removal_verb",
+        "deprecation_then_removal"
+      ],
+      "control_fp_ids": [
+        "aio-libs-aiohttp-v3.12.11"
+      ],
+      "control_fp": 1,
+      "silent_on_controls": false
+    }
+  },
+  "claims": [
+    {
+      "id": "C-BEST-COMBO-PR",
+      "claim": "Best control-silent combination ['breaking_change_footer', 'removal_verb'] achieves precision=0.95 and recall=0.655172 on the 100-note labelled set.",
+      "confidence_band": "almost-certain",
+      "sherman_kent": {
+        "precision": "almost-certain",
+        "recall": "likely"
+      },
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe1_labelled_set_precision_recall.py",
+      "signals": [
+        {
+          "id": "S1-score-evaluate",
+          "kind": "executable-confusion-matrix",
+          "locator": "command-center/p2-wave/probes/RES-0141/score.py:evaluate",
+          "value": {
+            "precision": 0.95,
+            "recall": 0.655172,
+            "f1": 0.77551,
+            "tp": 19,
+            "fp": 1,
+            "fn": 10
+          }
+        },
+        {
+          "id": "S2-per-note-fires",
+          "kind": "executable-per-note",
+          "locator": "command-center/p2-wave/probes/RES-0141/detector.py:fires",
+          "value": {
+            "combo": [
+              "breaking_change_footer",
+              "removal_verb"
+            ],
+            "n_notes": 100
+          }
+        }
+      ]
+    },
+    {
+      "id": "C-CONTROL-SILENCE",
+      "claim": "The selected detector stays silent on all 20 control negatives (adjacent patch steps; gold-breaking=false); false-positive rate=0.0.",
+      "confidence_band": "almost-certain",
+      "sherman_kent": {
+        "control_silence": "almost-certain"
+      },
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe2_negative_control_silence.py",
+      "signals": [
+        {
+          "id": "S1-evaluate-control-fp",
+          "kind": "executable-control-count",
+          "locator": "score.evaluate control_fp",
+          "value": 0
+        },
+        {
+          "id": "S2-per-control-fires",
+          "kind": "executable-loop",
+          "locator": "detector.fires on each control id",
+          "value": {
+            "n_fired": 0,
+            "ids": []
+          }
+        }
+      ]
+    },
+    {
+      "id": "C-LABEL-INDEPENDENCE",
+      "claim": "Gold labels are assigned from parsed X.0.0 tags before/without reading detector features; labels.py does not import detector.py.",
+      "confidence_band": "almost-certain",
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe1_labelled_set_precision_recall.py",
+      "signals": [
+        {
+          "id": "S1-ast-no-detector-import",
+          "kind": "ast-import-ban",
+          "locator": "command-center/p2-wave/probes/RES-0141/labels.py",
+          "value": true
+        },
+        {
+          "id": "S2-gold-equals-x000",
+          "kind": "recompute-from-tag",
+          "locator": "common.is_x_0_0(note.semver)",
+          "value": true
+        }
+      ]
+    }
+  ],
+  "source_lineage": [
+    {
+      "id": "semver-spec",
+      "resolved_url": "https://semver.org/",
+      "requested_url": "https://semver.org/",
+      "fetched_at": "2026-08-24T20:49:27Z",
+      "sha256": "1d282f7eb59a4e4d0199f30431e333d43181149cac41f77a0b46ab7229089c25",
+      "bytes": 31102,
+      "http_status": 200,
+      "kind": "http-fetch",
+      "role": "semver-major-definition",
+      "path": "command-center/p2-wave/probes/RES-0141/captures/semver-spec.body"
+    },
+    {
+      "id": "conventional-commits",
+      "resolved_url": "https://www.conventionalcommits.org/en/v1.0.0/",
+      "requested_url": "https://www.conventionalcommits.org/en/v1.0.0/",
+      "fetched_at": "2026-08-24T20:49:28Z",
+      "sha256": "1f02d0f99e4a830daafa4cc75d92e1fe4aef50984c6c398aabd50d7c1214091f",
+      "bytes": 21914,
+      "http_status": 200,
+      "kind": "http-fetch",
+      "role": "breaking-change-footer-definition",
+      "path": "command-center/p2-wave/probes/RES-0141/captures/conventional-commits.body"
+    },
+    {
+      "id": "keep-a-changelog",
+      "resolved_url": "https://keepachangelog.com/en/1.1.0/",
+      "requested_url": "https://keepachangelog.com/en/1.1.0/",
+      "fetched_at": "2026-08-24T20:49:28Z",
+      "sha256": "1fa308fcf1509b4729134faab498e126315138aa3c35939ad847c8390e4a058e",
+      "bytes": 26341,
+      "http_status": 200,
+      "kind": "http-fetch",
+      "role": "changelog-structure-definition",
+      "path": "command-center/p2-wave/probes/RES-0141/captures/keep-a-changelog.body"
+    },
+    {
+      "id": "Textualize-rich-v15.0.0",
+      "resolved_url": "https://github.com/Textualize/rich/releases/tag/v15.0.0",
+      "requested_url": "https://api.github.com/repos/Textualize/rich/releases/307979473",
+      "fetched_at": "2026-08-24T20:49:41Z",
+      "sha256": "fdc6430b5c1bdd2c838739d2597519c0080ee79503bc374d44ae629f38d46900",
+      "http_status": 200,
+      "path": "command-center/p2-wave/probes/RES-0141/captures/github-Textualize-rich-releases.body",
+      "kind": "github-release-capture"
+    },
+    {
+      "id": "Textualize-rich-v14.0.0",
+      "resolved_url": "https://github.com/Textualize/rich/releases/tag/v14.0.0",
+      "requested_url": "https://api.github.com/repos/Textualize/rich/releases/209210099",
+      "fetched_at": "2026-08-24T20:49:41Z",
+      "sha256": "fdc6430b5c1bdd2c838739d2597519c0080ee79503bc374d44ae629f38d46900",
+      "http_status": 200,
+      "path": "command-center/p2-wave/probes/RES-0141/captures/github-Textualize-rich-releases.body",
+      "kind": "github-release-capture"
+    },
+    {
+      "id": "catalog-RES-0141",
+      "resolved_url": "file://command-center/WORK-UNIT-CATALOG.json",
+      "requested_url": "file://command-center/WORK-UNIT-CATALOG.json",
+      "fetched_at": "2026-09-02T00:40:23Z",
+      "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+      "bytes": 5284323,
+      "http_status": 200,
+      "kind": "worktree-file",
+      "note": "Estate catalog names the labelled-set P/R question and the 20-note silence control.",
+      "path": "command-center/WORK-UNIT-CATALOG.json"
+    },
+    {
+      "id": "corpus-100-notes",
+      "resolved_url": "file://command-center/p2-wave/probes/RES-0141/corpus.json",
+      "requested_url": "file://command-center/p2-wave/probes/RES-0141/corpus.json",
+      "fetched_at": "2026-09-02T00:40:23Z",
+      "sha256": "1aa7402514c9497c82109eef4b4c77fcc7523659657b98eb0aa4f8b2fa053f05",
+      "bytes": 835410,
+      "http_status": 200,
+      "kind": "worktree-file",
+      "note": "Frozen 100 GitHub release notes with per-note fetch lineage.",
+      "path": "command-center/p2-wave/probes/RES-0141/corpus.json"
+    },
+    {
+      "id": "labels-semver-x000",
+      "resolved_url": "file://command-center/p2-wave/probes/RES-0141/labels.json",
+      "requested_url": "file://command-center/p2-wave/probes/RES-0141/labels.json",
+      "fetched_at": "2026-09-02T00:40:23Z",
+      "sha256": "8e713a24ae455ff53aa84cbeae57c03c4cb25887ca43080b201447bd8c3e9425",
+      "bytes": 38791,
+      "http_status": 200,
+      "kind": "worktree-file",
+      "note": "Gold labels from X.0.0 tags; labels.py does not import detector.",
+      "path": "command-center/p2-wave/probes/RES-0141/labels.json"
+    },
+    {
+      "id": "detector-source",
+      "resolved_url": "file://command-center/p2-wave/probes/RES-0141/detector.py",
+      "requested_url": "file://command-center/p2-wave/probes/RES-0141/detector.py",
+      "fetched_at": "2026-09-02T00:40:23Z",
+      "sha256": "14792f36617935c2e1535cb30068475df3fc9d430340dc3b67bb9a37b56ab8b4",
+      "bytes": 2951,
+      "http_status": 200,
+      "kind": "worktree-file",
+      "note": "Lexical/structural signals scored on note text only.",
+      "path": "command-center/p2-wave/probes/RES-0141/detector.py"
+    },
+    {
+      "id": "measurement-run-schema",
+      "resolved_url": "file://command-center/schema/measurement-run.schema.json",
+      "requested_url": "file://command-center/schema/measurement-run.schema.json",
+      "fetched_at": "2026-09-02T00:40:23Z",
+      "sha256": "0b8644a595388144a40a456480bbbfd67d59befb9ff03f8854210502cd84e740",
+      "bytes": 1136,
+      "http_status": 200,
+      "kind": "worktree-file",
+      "note": "Envelope schema; garbage objects must fail.",
+      "path": "command-center/schema/measurement-run.schema.json"
+    }
+  ],
+  "sherman_kent_bands": {
+    "almost-certain": {
+      "lo": 0.87,
+      "hi": 0.99
+    },
+    "likely": {
+      "lo": 0.55,
+      "hi": 0.8
+    },
+    "roughly-even": {
+      "lo": 0.4,
+      "hi": 0.6
+    },
+    "unlikely": {
+      "lo": 0.13,
+      "hi": 0.4
+    },
+    "remote": {
+      "lo": 0.01,
+      "hi": 0.13
+    }
+  },
+  "detector_control": {
+    "n_control_negative": 20,
+    "silent": true,
+    "false_positive_count": 0,
+    "false_positive_rate": 0.0,
+    "control_ids": [
+      "Textualize-rich-v13.7.1",
+      "Textualize-rich-v13.8.1",
+      "Textualize-rich-v13.9.1",
+      "Textualize-rich-v13.9.2",
+      "Textualize-rich-v13.9.3",
+      "Textualize-rich-v13.9.4",
+      "Textualize-rich-v14.3.1",
+      "Textualize-rich-v14.3.2",
+      "Textualize-rich-v14.3.3",
+      "Textualize-rich-v14.3.4",
+      "aio-libs-aiohttp-v3.12.10",
+      "aio-libs-aiohttp-v3.12.11",
+      "aio-libs-aiohttp-v3.12.12",
+      "aio-libs-aiohttp-v3.12.13",
+      "aio-libs-aiohttp-v3.12.14",
+      "aio-libs-aiohttp-v3.12.15",
+      "aio-libs-aiohttp-v3.12.8",
+      "aio-libs-aiohttp-v3.12.9",
+      "aio-libs-aiohttp-v3.13.1",
+      "aio-libs-aiohttp-v3.13.2"
+    ],
+    "both_states": true,
+    "fires_on_at_least_one_gold_positive": true
+  },
+  "caveat": "Gold-positive is the semver X.0.0 event, not a human judgement that every X.0.0 changelog names a breaking API. Recall below 1.0 is expected when a major tag's prose is quiet. One non-control gold-negative may still fire (recorded in fp). Control silence is exact on this 20-note set, not a claim of zero FPs on all patch notes.",
+  "measurements": [
+    {
+      "id": "labelled-set-size",
+      "value": 100,
+      "unit": "notes",
+      "method": "len(corpus.notes)"
+    },
+    {
+      "id": "gold-positive-count",
+      "value": 29,
+      "unit": "notes",
+      "method": "semver-X.0.0-from-tag"
+    },
+    {
+      "id": "control-negative-count",
+      "value": 20,
+      "unit": "notes",
+      "method": "adjacent-patch-step-first-20-by-id"
+    },
+    {
+      "id": "best-combo-precision",
+      "value": 0.95,
+      "unit": "ratio",
+      "method": "tp/(tp+fp) live score.evaluate"
+    },
+    {
+      "id": "best-combo-recall",
+      "value": 0.655172,
+      "unit": "ratio",
+      "method": "tp/(tp+fn) live score.evaluate"
+    },
+    {
+      "id": "best-combo-f1",
+      "value": 0.77551,
+      "unit": "ratio",
+      "method": "harmonic-mean precision recall"
+    },
+    {
+      "id": "best-combo-tp",
+      "value": 19,
+      "unit": "notes",
+      "method": "live confusion-matrix"
+    },
+    {
+      "id": "best-combo-fp",
+      "value": 1,
+      "unit": "notes",
+      "method": "live confusion-matrix"
+    },
+    {
+      "id": "best-combo-fn",
+      "value": 10,
+      "unit": "notes",
+      "method": "live confusion-matrix"
+    },
+    {
+      "id": "control-false-positive-count",
+      "value": 0,
+      "unit": "notes",
+      "method": "detector fire-count on 20 control negatives"
+    },
+    {
+      "id": "control-false-positive-rate",
+      "value": 0.0,
+      "unit": "ratio",
+      "method": "control_fp / n_control_negative"
+    }
+  ],
+  "tests": [
+    {
+      "id": "labelled-set-precision-recall",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe1_labelled_set_precision_recall.py",
+      "detail": "combo=['breaking_change_footer', 'removal_verb'] precision=0.95 recall=0.655172 n=100"
+    },
+    {
+      "id": "negative-control-silence",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe2_negative_control_silence.py",
+      "detail": "control_fp=0 n_ctrl=20 both_states tp=19"
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe1_labelled_set_precision_recall.py",
+      "role": "labelled-set-precision-recall"
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0141/probe2_negative_control_silence.py",
+      "role": "negative-control-silence"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0141-probe2-negative-control-silence",
+    "verdict": "PASS",
+    "independent": true,
+    "method": "Probe 2 re-runs detector.fires on the 20 control negatives and requires silence, and requires at least one gold-positive fire so the detector is not vacuously silent."
+  }
+}

@@ -1,0 +1,15 @@
+I'll start from the existing TST-0212 probe tree, resume any prior return, and drive this unit to a measured G-1 contract-green without touching git or the global catalog.The probe tree is thin: only cloud-ok files. I’ll read the catalog entry, the measure script, and a delivered unit so we can resume from the real contract rather than harvest text.The catalog and live redactor are the gate. I’ll pull TST-0212’s contract, `redact_text`, a delivered peer unit, and how `artifact_delivered` actually decides SUCCESS.The harvest packet is a BLOCKED refute: live `redact_text` still leaks length. I’ll apply that named product fix, restore the two probes, then pack a per-unit SUCCESS receipt only after they re-run exit 0.I’ll keep the entropy threshold on the 40-character fallback so long identifiers are not over-redacted, while the replacement itself stays fixed-width.Named probes are green. I’ll restore the richer negative-control raw, then pack the SUCCESS receipt and per-unit manifest.**SUCCESS:delivered TST-0212**
+
+`python command-center/p2-wave/_measure_one_delivered.py TST-0212` printed:
+
+`SUCCESS:delivered TST-0212 predicate=delivered state=SUCCESS probes=3 raws=4 notes=probe_byte_widths.py:0,probe_rendered_masks.py:0,validate_delivery.py:0`
+
+Harvest `ok=true` was not this delivery. The CLOUD-OK packet was an honest BLOCKED refute: named probes were missing, and live `redact_text` dropped `sk-`/`ghp_`/`hf_` while advertising exact length as `[26,26,26,27,28]`.
+
+**Product fix (CLOUD-OK Alternative A).** `platform/plugin/logs.py::redact_text` now keeps the diagnostic prefix and one constant-width slot (total UTF-8 width 12). It no longer writes `<redacted:{len}chars:{bits}bits>`. `tools/lib/security.mjs` is still not the redactor (absent on this tree).
+
+**Live named probes (exit 0).** Five synthetic secrets (23/40/64/128/1024 bytes) rendered as `sk-*********`, `ghp_********`, `hf_*********`, `sk-*********`, `ghp_********` — identical width 12, prefixes readable, no input length in the mask. Per-character negative control still fails (`exit 1`, widths `[23,40,64,128,1024]`). Fixed-reference good state still passes.
+
+**Artifacts.** Receipt `command-center/receipts/TST-0212.json` is `state=SUCCESS` (27298 B, LF sha256 `182e35a097a00f905cc8aef8b0449c145d4292772b1407b0a78b6806226de657`). Per-unit `command-center/p2-wave/probes/TST-0212/UNIT-ARTIFACT-MANIFEST.json` names that catalog `output_path` with the matching hash. Return file: `command-center/p2-wave/probes/TST-0212/SUBAGENT-RETURN.json`.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.

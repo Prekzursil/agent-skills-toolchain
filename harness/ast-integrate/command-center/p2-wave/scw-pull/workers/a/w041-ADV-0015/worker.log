@@ -1,0 +1,25 @@
+I'll start from the existing ADV-0015 probe tree and the delivery measurement contract, then resume whatever is already built rather than scrap it.The probe tree is present but `SUBAGENT-RETURN.json` is missing. I'll read the handoff, existing return, and the measurement script next.The old BLOCKED reasons were global-manifest and same-vendor review. I'll check the current delivery predicate and a unit that already passed it.I'll inspect existing probe scripts, the receipt SUCCESS contract, and a delivered unit's return/manifest shape.The routing-table sources the unit audits may be absent on this sparse Linux tree. I'll confirm what is actually on disk before deciding whether the probes can still run.Byte-identical `estimate-cost.sh` is on disk in an AUD-0010 clone, so I can re-run the named probes live. Next I’ll fetch today’s vendor surfaces and wire the Linux probe paths.Live vendor pages still match the 13 verdicts. I’ll pin byte-identical fixtures, make the named probes Linux-rerunnable, and pack a SUCCESS artifact with a per-unit manifest.Estimator and adapter health reproduce the recorded classifications on Linux. Next I’ll update the named probes and pack the SUCCESS artifact.The pack script walked one parent too far from the probe directory. I'll pin `ROOT` from the script file itself, then pack again.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` and confirm the per-unit manifest still matches.**SUCCESS:delivered ADV-0015** `predicate=delivered state=SUCCESS probes=4 raws=2 notes=detect.py:0,inventory.py:0,probe1_diff.py:0,probe2_runtime.py:0`
+
+ADV-0015 is G-1 delivered on this worktree. The 2026-08-16 tree was resumed, not scrapped. Named probes were made Linux-rerunnable, the catalog artifact is `SUCCESS` (not a hand-flip of an empty receipt), and the per-unit manifest matches the live LF digest.
+
+### What the unit measured
+The routing tables still do **not** match today's vendor surfaces. 13 targets, one verdict each:
+
+| Band | Count | Examples |
+|---|---|---|
+| REFUTED | 10 | Retired Claude ids in the capability matrix; `gemini-pro` priced; `gpt-5-codex` / `gpt-5.1-codex` shut down 2026-07-23; `gpt-5.x-codex` is not an id |
+| PARTIAL | 2 | `gpt-5.3-codex` id is ACTIVE but priced 1.50/6.00 vs vendor 1.75/14.00 (factor 2.10); catalog `opus` is a CLI alias |
+| CONFIRMED | 1 | Codex adapter id `gpt-5.3-codex` is still the specialized Codex row |
+
+Probe 2 (live bash): `gpt-5-codex` / `opus` / fabricated id **LOUD-FAIL**; `gemini-pro` and stale-priced `gpt-5.3-codex` **SILENT-PRICE**. Adapters ignore yaml and emit `DEFAULT_MODEL` — classified as a silent-substitution defect even though that is the adapter default.
+
+Live HTTP 2026-08-19: 6/6 vendor pages fetched; retirement / shutdown / specialized-price hits all corroborated.
+
+### Delivery contract
+- Artifact: `command-center/adversarial/ADV-0015-model-routing-table-staleness.json` (30765 B, `state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/ADV-0015/UNIT-ARTIFACT-MANIFEST.json` with sha256 `a09b2a12b9c88aa091c2f3d6155dba327998f26df54d4c29f75fee1bb0cc19de`
+- Return: `command-center/p2-wave/probes/ADV-0015/SUBAGENT-RETURN.json`
+
+This sparse tree has no `skills/claude-api/SKILL.md` at the program path. CAP needles come from the 2026-08-16 inventory plus today's vendor fetch. The estimator fixture is byte-identical to the recorded program file (`b40d1bc05c83b133...`). Adapter health here is `unavailable` (no Codex/Gemini binaries) but still emits `DEFAULT_MODEL`.
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no global catalog rewrite, no key rotation, no wave relaunch.

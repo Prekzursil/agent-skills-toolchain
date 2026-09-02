@@ -1,0 +1,24 @@
+
+===== launch 2026-08-20T07:42:04Z attempt=1 =====
+I'll start from the existing ARC-0033 probe tree and related unit docs so we can resume rather than rebuild.The ARC-0033 probe tree may already exist; I'll inspect it and the unit contract next.The probe tree is missing, so I'll read the catalog contract and a delivered ARC unit as the template.I'll inspect the receipt contract, the 47 seeded failure classes, and any existing A5 or ledger evidence next.I have the contract and prior-occurrence evidence. Next I’ll implement the ledger predicates, named probes, and the A5 failure-modes artifact.I'll add the predicate library and four named probes first, then pack the receipt from their live output.**SUCCESS:delivered ARC-0033.** `python command-center/p2-wave/_measure_one_delivered.py ARC-0033` printed:
+
+`SUCCESS:delivered ARC-0033 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_modes.py:0,probe_predicates.py:0,refute_mtime.py:0,verify_reviewer.py:0`
+
+The probe tree was missing, so this pass created it rather than parking on `predicate:absent`.
+
+**Catalog artifact:** `command-center/phase3/A5/FAILURE-MODES.json` (`state=SUCCESS`, 31005 bytes, LF sha256 `18afd0179ed570274695e41b899a1d8778db72ce350df1ff034326d42bc81833`). The per-unit manifest row matches that hash. `cloud ok=true` is not this delivery.
+
+**What the receipt specifies** — each previously silent failure is a ledger record plus an alert predicate with both-states replay (fires on the silent-failure trace, stays quiet on the healthy one). No predicate uses file mtime as a stall signal:
+
+| Mode | Ledger record | Alert |
+|---|---|---|
+| Monitor dies while remote work continues | `monitor.heartbeat` + `unit.claim` + `unit.progress` | `monitor_orphan_claims` |
+| Remote harvest silently does nothing | `harvest.cycle` | `harvest_noop` |
+| One hung unit blocks a batch | `barrier.join` + `unit.progress` | `hung_blocks_batch` |
+| Duplicate units from colliding catalogs | `catalog.bind` + `unit.claim` | `catalog_collision` |
+| Partial artifact without sentinel | `artifact.commit` | `partial_no_sentinel` |
+| **Reviewer-added:** scratch worktree exits unpushed / severed gitdir | `worktree.exit` | `stranded_worktree` |
+
+The 47 seeded-class source is not mounted here, so completeness against those 47 is **NOT-CHECKED**; the catalog-allowed alternative is the added mode.
+
+**Handoff:** `command-center/p2-wave/probes/ARC-0033/SUBAGENT-RETURN.json` and `UNIT-ARTIFACT-MANIFEST.json`. Did not git add/commit/push/stash/checkout/rebase, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close.

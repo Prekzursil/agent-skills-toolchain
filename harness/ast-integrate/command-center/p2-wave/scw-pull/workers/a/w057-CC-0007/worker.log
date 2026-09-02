@@ -1,0 +1,26 @@
+I'll start from the existing CC-0007 probe tree, read what's already there, and resume toward a contract-green delivery rather than rebuilding.The probe tree has a handoff and cloud-ok refute but no SUBAGENT-RETURN yet. Next I’ll read those artifacts and the measure contract so we resume from what’s already there.The cloud-ok pass already refuted this twice for missing probes and an unchained writer. I'll now read the catalog contract, a successful delivery example, and `ready_units` so we know whether to implement or park.The catalog wants a real hash-chained concurrent event log, not another receipt edit. I’ll recover any original probe sources and inspect `close.py` plus the receipt contract before implementing.Cloud-ok already showed receipt-only edits cannot close this unit. I’ll implement a hash-chained, lock-serialized event log, wire it into `close.py`, and restore live named probes.Adding a spawn-safe concurrency runner, then the four named probes.Spawned workers need `event_log` on `PYTHONPATH`. I’ll set that in the concurrency runner, then smoke-test the log and the close-path tests.Refute is green. The close tests fail because the lock file’s parent directory is never created — I’ll mkdir that path before taking the lock.Concurrency smoke and close tests passed. Next I’ll run the three 8x500 named probes to generate live raws.The exclusive-create lock was racy: an empty lock file could be stolen before the owner PID was written. Switching to a directory lock so two writers cannot append at once.Implement failed only because comments mention `fcntl` and multiprocessing loads that module. I’ll check our sources for an actual import instead.All four probes are green. Next I’ll pack a live SUCCESS receipt and the per-unit manifest from those raw logs.Schema wants two-signal evidence and a relocked byte count. I’ll fix the packer to match those SUCCESS rules.**SUCCESS:delivered CC-0007** `predicate=delivered state=SUCCESS probes=4 raws=5 notes=implement_probe.py:0,independent_review.py:0,production_concurrency_probe.py:0,refute_probe.py:0`
+
+That line is from `python command-center/p2-wave/_measure_one_delivered.py CC-0007` (re-run twice; both exit 0). Cloud-ok is not this delivery.
+
+Prior CLOUD-OK-REFUTE was right that harvest `unit_complete` was not P2 delivery: named probes were absent and `close.append_event` was a bare `json.dumps` newline append. This pass implemented the catalog target instead of editing the receipt again.
+
+**What landed**
+- `tools/command-center/event_log.py` — hash-chained records (`prev_digest` + `digest`), atomic `os.mkdir` sidecar lock (no `fcntl`), torn-tail report + repair with loss counted, fail-closed append on an interior break, stale-lock steal when the owner pid is dead
+- `tools/command-center/close.py` `append_event` now delegates to `EventLog`
+- Named probes that re-run to exit 0: `implement_probe.py`, `independent_review.py`, `production_concurrency_probe.py`, `refute_probe.py`
+
+**Live counts (Linux spawn, 8 writers × 500)**
+| Surface | parsed | chain links | interleaved |
+|---|---|---|---|
+| `EventLog` | 4000 | 4000 | 0 |
+| `close.append_event` | 4000 | 4000 | 0 |
+| Independent cold re-run | 4000 | 4000 | 0 |
+
+Torn-tail repair lost 1 record; middle tamper is named; replay two added 0 events; interior-broken append is refused; crash orphan lock is stealable.
+
+**Artifacts**
+- `command-center/receipts/CC-0007.json` — `state=SUCCESS`, schema 0 errors, `artifact_delivered=True`
+- `command-center/p2-wave/probes/CC-0007/UNIT-ARTIFACT-MANIFEST.json` — per-unit row, live LF sha256 `e7c926874ae465582f86c73b9f8c524da41cee963be3991acf3ee650bd845085`
+- `command-center/p2-wave/probes/CC-0007/SUBAGENT-RETURN.json`
+
+**Honest residual:** no cold Windows host ran the 8x500. That is an open **P2** (not P1) residual; the lock path is `os.mkdir`, which is Windows-portable. Existing `test_close.py` still passes (21). No git add/commit/push/stash/checkout/rebase; no global `unit_manifest.py --write`.

@@ -1,0 +1,123 @@
+{
+  "seed": "SYN-0038-seed-alpha",
+  "declared_nondeterministic_before_run": [
+    {
+      "id": "model-authored-narrative",
+      "source_class": "model",
+      "bound": "Model-authored prose is excluded from the identity gate. Numeric join/count/statistic/gate payloads remain in the identity gate. A fake clock bounds the harness narrative; a live-clock arm must still diverge."
+    },
+    {
+      "id": "receipt-wall-clock",
+      "source_class": "clock",
+      "bound": "ISO-8601 emit timestamps on the receipt envelope are not a deterministic stage and are not hashed into stage payloads."
+    },
+    {
+      "id": "host-pid",
+      "source_class": "host",
+      "bound": "Process id, hostname, and temp worktree paths are forbidden in stage payloads so isolation cannot itself create a diff."
+    }
+  ],
+  "registries": {
+    "work_units": [
+      {"id": "U-1", "title": "Join units to artifacts"},
+      {"id": "U-2", "title": "Count floors"},
+      {"id": "U-3", "title": "Agreement statistic"},
+      {"id": "U-4", "title": "Severity collapse"}
+    ],
+    "artifacts": [
+      {"id": "A-1", "unit_id": "U-1", "path": "out/join.json"},
+      {"id": "A-2", "unit_id": "U-2", "path": "out/floors.json"},
+      {"id": "A-3", "unit_id": "U-3", "path": "out/kappa.json"},
+      {"id": "A-4", "unit_id": "U-4", "path": "out/severity.json"}
+    ],
+    "tests": [
+      {"id": "T-1", "unit_id": "U-1", "claim_id": "C-1"},
+      {"id": "T-2", "unit_id": "U-2", "claim_id": "C-2"},
+      {"id": "T-3", "unit_id": "U-3", "claim_id": "C-3"},
+      {"id": "T-4", "unit_id": "U-4", "claim_id": "C-4"}
+    ],
+    "claims": [
+      {"id": "C-1", "unit_id": "U-1", "text": "join is id-keyed"},
+      {"id": "C-2", "unit_id": "U-2", "text": "floors are recounted"},
+      {"id": "C-3", "unit_id": "U-3", "text": "agreement has a null model"},
+      {"id": "C-4", "unit_id": "U-4", "text": "severity uses max not mean"}
+    ],
+    "planted_orphan_unit": {"id": "U-ORPHAN", "title": "no artifact on purpose"}
+  },
+  "hierarchy": {
+    "clean_nodes": [
+      {"id": "CAUSE-1", "type": "CAUSE", "severity": "P0"},
+      {"id": "MECH-1", "type": "MECHANISM", "severity": "P1", "parent": "CAUSE-1"},
+      {"id": "SYM-1", "type": "SYMPTOM", "severity": "P1", "parent": "MECH-1"},
+      {"id": "SYM-2", "type": "SYMPTOM", "severity": "P2", "parent": "MECH-1"}
+    ],
+    "clean_edges": [
+      {"from": "CAUSE-1", "to": "MECH-1"},
+      {"from": "MECH-1", "to": "SYM-1"},
+      {"from": "MECH-1", "to": "SYM-2"}
+    ],
+    "inversion_nodes": [
+      {"id": "CAUSE-WEAK", "type": "CAUSE", "severity": "P3"},
+      {"id": "CHILD-P0", "type": "SYMPTOM", "severity": "P0", "parent": "CAUSE-WEAK"}
+    ],
+    "inversion_edges": [
+      {"from": "CAUSE-WEAK", "to": "CHILD-P0"}
+    ],
+    "planted_cycle_edges": [
+      {"from": "CAUSE-1", "to": "MECH-1"},
+      {"from": "MECH-1", "to": "CAUSE-1"}
+    ],
+    "planted_dangling_edge": {"from": "CAUSE-1", "to": "NO-SUCH-NODE"}
+  },
+  "candidates": {
+    "universe": ["M1", "M2", "M3", "M4", "M5", "M6"],
+    "raters": {
+      "syn-a": ["M1", "M2", "M3"],
+      "syn-b": ["M1", "M2", "M4"],
+      "syn-c": ["M1", "M2", "M3"]
+    },
+    "identical_control": {
+      "syn-x": ["M1", "M2", "M3"],
+      "syn-y": ["M1", "M2", "M3"],
+      "syn-z": ["M1", "M2", "M3"]
+    },
+    "random_control": {
+      "syn-r1": ["M1"],
+      "syn-r2": ["M3", "M4"],
+      "syn-r3": ["M5", "M6"]
+    },
+    "null_model": "Fleiss kappa over binary inclusion of each universe mechanism id; chance agreement is the squared category base rates across raters."
+  },
+  "floors": {
+    "prior": {
+      "workflow_candidates": 8,
+      "blueprints": 6,
+      "council_protocols": 5,
+      "presets": 6,
+      "work_units": 9,
+      "platform_options": 7
+    },
+    "items": {
+      "workflow_candidates": ["WF-001", "WF-002", "WF-003", "WF-004", "WF-005", "WF-006", "WF-007", "WF-008"],
+      "blueprints": ["BP-001", "BP-002", "BP-003", "BP-004", "BP-005", "BP-006"],
+      "council_protocols": ["CP-001", "CP-002", "CP-003", "CP-004", "CP-005"],
+      "presets": ["PR-001", "PR-002", "PR-003", "PR-004", "PR-005", "PR-006"],
+      "work_units": ["WU-001", "WU-002", "WU-003", "WU-004", "WU-005", "WU-006", "WU-007", "WU-008", "WU-009", "WU-010"],
+      "platform_options": ["PO-001", "PO-002", "PO-003", "PO-004", "PO-005", "PO-006", "PO-007"]
+    }
+  },
+  "digest": {
+    "source": {
+      "unverified": ["UNVERIFIED: missing probe for M4", "UNVERIFIED: URL unfetched"],
+      "anchors": ["src/join.py:10", "src/floors.py:20", "src/kappa.py:30"],
+      "quoted_anchors": ["the docs say `src/mentioned-only.py:1` but that is mention not use"],
+      "urls": ["https://example.invalid/spec", "https://example.invalid/digest"]
+    },
+    "synthesis": {
+      "unverified": ["UNVERIFIED: missing probe for M4"],
+      "anchors": ["src/join.py:10"],
+      "quoted_anchors": ["quoted `src/floors.py:20` inside a candidate narrative"],
+      "urls": []
+    }
+  }
+}

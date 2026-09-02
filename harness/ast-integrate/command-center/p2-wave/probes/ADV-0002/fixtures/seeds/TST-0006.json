@@ -1,0 +1,108 @@
+{
+  "answer": "On 100 hand-labelled real probe payloads, token precision=0.9417 (94.17%) recall=1.0000 (100.00%) (tp=4202 fp=260 fn=0). Payload-level precision=0.8734 (87.34%) recall=1.0000 (100.00%). False-positive rate on gold-illustrative (fenced + documentary) paths is 0.1000 (10.00%) (n_mention=30, flagged=3). Planted fenced-code control: illustrative-only absent path is not flagged (status=VERIFIED-PATHS); disabling fence stripping downgrades it to UNVERIFIED-PATH (mutation fired). A cited absent path downgrades to UNVERIFIED-PATH.",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0006.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0006/labels.json",
+      "role": "labels"
+    },
+    {
+      "exists": true,
+      "path": "command-center/schema/test-receipt.schema.json",
+      "role": "schema"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "hand-labelled-100",
+      "n": 100,
+      "path": "command-center/p2-wave/probes/TST-0006/labels.json"
+    },
+    {
+      "kind": "linter-source",
+      "path": "command-center/p2-wave/probes/TST-0006/path_linter.py"
+    },
+    {
+      "kind": "absent-citation-fixture",
+      "path": "command-center/p2-wave/probes/TST-0006/fixtures/absent_citation.json"
+    },
+    {
+      "kind": "use-vs-mention-fixture",
+      "path": "command-center/p2-wave/probes/TST-0006/fixtures/fenced_mention.md"
+    }
+  ],
+  "id": "TST-0006",
+  "linter": {
+    "downgrade_status": "UNVERIFIED-PATH",
+    "module": "command-center/p2-wave/probes/TST-0006/path_linter.py",
+    "use_vs_mention": "fenced-code-blocks plus documentary JSON keys",
+    "verified_status": "VERIFIED-PATHS"
+  },
+  "metrics": {
+    "illustrative": {
+      "definition": "gold MENTION = path tokens inside fenced code or documentary JSON keys (catalog quotes, titles, examples). FP = linter flagged a gold-MENTION token as a missing citation.",
+      "false_positive_rate": 0.1,
+      "n_mention_flagged": 3,
+      "n_mention_paths": 30
+    },
+    "n_payloads": 100,
+    "payload": {
+      "fn": 0,
+      "fp": 10,
+      "precision": 0.8734177215189873,
+      "recall": 1.0,
+      "tn": 21,
+      "tp": 69
+    },
+    "planted_fenced_control": {
+      "false_positive": false,
+      "status_with_strip": "VERIFIED-PATHS",
+      "status_without_strip": "UNVERIFIED-PATH"
+    },
+    "token": {
+      "fn": 0,
+      "fp": 260,
+      "precision": 0.9417301658449126,
+      "recall": 1.0,
+      "tp": 4202
+    }
+  },
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "produced_by": {
+    "execution_substrate": "linux-headless-local",
+    "model": "grok",
+    "role": "conformance-engineer-delivery",
+    "vendor": "xai"
+  },
+  "question": "Spec: 'A file path in text is not proof the file exists'. Target: a linter over agent result payloads that extracts every path-shaped token, stats it, and downgrades the result to UNVERIFIED-PATH when a cited path is absent. What is the false-positive rate on paths that are legitimately illustrative (documentation examples)?",
+  "registered": true,
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial probe 2 recomputes precision/recall from labels.json and the live linter; a fence-strip mutant must go red.",
+    "reviewer_id": "TST-0006-probe2-corpus-overclaim",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:TST-0006",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0006/probe1_tests.py",
+      "id": "test_absent_path_downgrades_result",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0006/probe1_tests.py",
+      "id": "test_illustrative_path_in_fenced_code_is_not_flagged",
+      "result": "PASS"
+    }
+  ],
+  "title": "A file path appearing in agent text is not proof the file exists",
+  "ts": "2026-08-24T18:51:24Z",
+  "unit_id": "TST-0006"
+}

@@ -1,0 +1,30 @@
+I'll start from the existing ADV-0017 probe tree and measure what is already there before changing anything.The probe tree is already large. Next I’ll read the existing return/handoff files and the G-1 measure script so I know what “delivered” actually requires.The old return is BLOCKED from a Windows session. I’ll read the catalog unit, a successful G-1 example, and the existing probe runners next.The G-1 gate is now clear: probes must re-run to exit 0, the artifact must be honestly non-BLOCKED, and the per-unit manifest hash must match. I’ll inspect a successful return plus the existing probe helpers next.I’ll check live trees on this host and the SUCCESS schema constraints next — those decide whether we can honestly un-BLOCK this unit.This worktree is a sparse P2 subset: no `.git`, no `rules/`, and no live `~/.claude` trees. I’ll check how the seed inventory classed ADV-0017 and how other units on this box built fixtures.ADV-0033 delivered on this same sparse host, so I’ll follow that pattern: keep the Windows snapshot, point probes at the live seed/harness pairs, and pack an honest SUCCESS after they re-run.I’ll snapshot the Windows outputs, port the classifier to this host, and add fixtures so the named probes can re-run here.The fixture reproduces the 22/6 DIVERGED split. Next I’ll pack a SUCCESS artifact from live probe output and add the per-unit manifest.**SUCCESS:delivered ADV-0017** `predicate=delivered state=SUCCESS probes=4 raws=13 notes=controls.py:0,lib_classify.py:0,probe1_classify.py:0,probe2_provenance.py:0`
+
+ADV-0017 is G-1 contract-green on this Linux worktree. Existing probes were resumed, not scrapped.
+
+### What this host actually has
+This checkout is a sparse P2 subset: no `.git`, no `rules/`, no `~/.claude`. The live pairs that exist here are `command-center/p2-wave/seed-stage/` versus `/opt/p2/harness/`.
+
+The 2026-08-16 Windows outputs (shared=3905, DIVERGED=493) were copied to `command-center/p2-wave/probes/ADV-0017/snapshot-windows-2026-08-16/` before any re-run.
+
+### Live remasure
+| Edge | Result |
+|---|---|
+| seed-stage/rules-common vs `/opt/p2/harness/rules` | 20/20 **IDENTICAL** |
+| seed skills vs harness skills | shared SKILL.md **IDENTICAL** |
+| fixture `security.md` (Windows unique-line reconstruction) | **DIVERGED 22/6** |
+| fixture `stale-megapr-reconcile.md` | **IDENTICAL** (negative control) |
+| fixture `eol-only.md` | **EOL-ONLY** |
+| EOL battery / mutation / no-write | 10/10, 10/8/10 restore, both-states |
+| probe2 `git %cI` | **NOT-COMPUTABLE** (no `.git`) |
+
+Either-direction destroy is **REFUTED** for this host’s live harness pairs and **CONFIRMED** only on the reconstructed fixture. Overall scientific verdict is **PARTIAL**, which is honest. Receipt `state=SUCCESS` was set only after those probes exited 0.
+
+### Written
+- `command-center/p2-wave/probes/ADV-0017/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0017/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; LF sha256 `e3e4426d03af34281320ab3261ace159b3f0cd2ab132835ac59574e6c38f521a` matches the catalog output)
+
+Catalog output: `command-center/adversarial/ADV-0017-repo-live-two-directional-divergence.json` (34136 bytes, `state=SUCCESS`, `registered=true` at the per-unit manifest).
+
+### Constraints kept
+No git write, no `unit_manifest.py --write`, no global `UNIT-ARTIFACT-MANIFEST.json` edit, no key rotation, no wave relaunch. The earlier BLOCKED on global c11 / two-vendor review is not a G-1 park: STRUCTURAL-CONDITION-11 option 1 already allows a per-unit row, and measure-one does not gate on two vendors.

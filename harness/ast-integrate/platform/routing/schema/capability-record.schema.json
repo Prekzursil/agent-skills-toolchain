@@ -1,0 +1,100 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "capability-record.schema.json",
+  "title": "Capability record - one routable unit of the repertoire",
+  "$comment": "Phase 8 (_USER-PROMPTS.md:10948-10963). A capability record is the NORMALIZED projection of one routable unit (skill, plugin, workflow blueprint, council protocol, council preset, registry candidate, MCP tool family, agent, command) into the fields the router actually reads. The split between `routing_text` (matched against, never injected) and `card` (injected, byte-capped) is the anti-flooding contract: recall is paid for out of the matching corpus, context is paid for out of the card.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "cls",
+    "name",
+    "anchor",
+    "routing_text",
+    "card",
+    "card_bytes"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 3,
+      "pattern": "^[a-z]+:[A-Za-z0-9][A-Za-z0-9._-]*$",
+      "description": "Class-namespaced stable id, `<cls>:<name>`. Namespacing is load-bearing: a skill and a workflow blueprint may legitimately share a bare name."
+    },
+    "cls": {
+      "type": "string",
+      "enum": [
+        "skill",
+        "plugin",
+        "workflow",
+        "protocol",
+        "preset",
+        "candidate",
+        "mcp",
+        "agent",
+        "command"
+      ],
+      "description": "Capability class. Drives class precedence in conflict resolution and the per-class cap in top-k."
+    },
+    "name": {"type": "string", "minLength": 1},
+    "anchor": {
+      "type": "string",
+      "minLength": 3,
+      "description": "Absolute path (or path:line) the record was derived from. Every record must be traceable to a real file; a record with no resolvable anchor is a fabrication."
+    },
+    "routing_text": {
+      "type": "string",
+      "description": "The full text the matchers score against. NOT injected. May be arbitrarily long -- length here costs CPU, not context."
+    },
+    "card": {
+      "type": "string",
+      "description": "The ONLY text injected when this capability is selected. Byte-capped by budget.CARD_BYTE_CAP."
+    },
+    "card_bytes": {
+      "type": "integer",
+      "minimum": 1,
+      "description": "len(card.encode('utf-8')). Precomputed so budget accounting never has to re-encode."
+    },
+    "invoke": {
+      "type": "string",
+      "description": "How the agent actually calls it (e.g. `/skill-name`, a blueprint path, an mcp__server__tool token)."
+    },
+    "tags": {"type": "array", "items": {"type": "string"}},
+    "categories": {"type": "array", "items": {"type": "string"}},
+    "family": {"type": "string"},
+    "triggers": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Positive trigger phrases mined from the capability's own description (\"Use when X\", \"Triggers include X\"). Held out of routing_text when a query is derived from them, so the labelled set is not circular."
+    },
+    "anti_triggers": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Negative scope mined from \"Do NOT use for X\" / \"NOT for X\". A query matching an anti-trigger is DEMOTED, not merely un-boosted. This is a real routing signal that description text carries and no prior router on this estate read."
+    },
+    "supersedes": {
+      "type": "array",
+      "items": {"type": "string"},
+      "description": "Ids this capability replaces. Populated from tombstone prose (\"MOVED -- renamed to X\", \"SUPERSEDES y\")."
+    },
+    "superseded_by": {
+      "type": "string",
+      "description": "Set on a tombstone/retired record. A superseded record is never returned as a winner; the router follows the pointer."
+    },
+    "rarity": {
+      "type": "string",
+      "enum": ["common", "uncommon", "rare"],
+      "description": "Breadth bookkeeping ONLY. The spec forbids pruning by rarity, so this field must never reduce a score -- it exists so `metrics.py` can prove the tail is reachable."
+    },
+    "classification": {
+      "type": "string",
+      "description": "Registry verdict for candidate records (ADOPT/DISTILL/REJECT/...). Carried so a REJECTED candidate can be routed-with-a-warning rather than silently dropped."
+    },
+    "license": {"type": "string"},
+    "desc_quality": {
+      "type": "object",
+      "description": "Output of descriptions.score(). Drives the improvement report, never the score.",
+      "additionalProperties": true
+    }
+  }
+}

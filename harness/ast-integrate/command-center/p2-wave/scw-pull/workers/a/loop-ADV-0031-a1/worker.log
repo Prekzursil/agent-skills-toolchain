@@ -1,0 +1,672 @@
+
+===== launch 2026-08-19T18:04:24Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the claim-verify gate, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return files, handoff, and the measure script so I know what G-1 actually requires.Existing return already claims delivered; I’ll re-measure live and inspect the catalog plus named probes before trusting that.I’ll inspect matrix caching, the catalog unit, and `artifact_delivered` next so a live measure doesn’t waste a full rebuild.I’ll check the artifact, schema resolver, and probe cache first so the live remeasure starts from a known state.Schema resolver is present now, so I’ll validate the existing artifact against the real contract before paying for a full matrix re-run.Schema is already green. I’ll check prior refutes and then run the live measure so we know whether this unit is actually delivered.Artifact and schema already look green. I’ll re-run the live measure next; that will exercise both named probes with the cache stale.The measure is still running in the background. I’ll wait on it and check the live log rather than starting a second run.Measure printed `SUCCESS:delivered`. I’ll compare the live matrix to the packed artifact so the return file is honest, then write it.Live remesure matches the packed artifact. I’ll refresh `SUBAGENT-RETURN.json` with this run’s evidence and keep the per-unit manifest as-is.I’ll remesure once more while the cache is still warm to confirm the return file didn’t disturb the G-1 gate.**SUCCESS:delivered**
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed:
+
+`SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree. Did not scrap the named probes. Live remesure regenerated the 11×21 matrix at `2026-08-19T18:07:32Z` (231 runs, 93.06s, warmup `captured_decoy=true`). Per-adapter verdicts and canary/argvdiv counts matched the packed catalog artifact exactly.
+
+| Check | Result |
+|---|---|
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — 1,394,729 B, `state=SUCCESS`, schema errors=0 |
+| Live LF sha256 | `154780ed2f64714b18ff5a4a13410fcb9f501ef638a437172a5ecfbf9b2042cf` |
+| Per-unit manifest | same path + sha256 |
+| Named probes | `probe1_canary.py:0`, `probe2_ostable.py:0` |
+| Science | CONFIRMED on A3/A3B/A4/A7/A9B; REFUTED (safe) on argv-array A1/A2/A5/A8; PARTIAL A9; NOT-CHECKED A6 |
+
+Wrote `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`. Left the existing per-unit `UNIT-ARTIFACT-MANIFEST.json` row in place (hash already matches). Did not run `unit_manifest.py --write`, did not git-mutate, did not treat cloud `ok=true` as delivery.
+
+===== launch 2026-08-19T18:09:41Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit contract, then resume whatever is already built instead of rebuilding.The probe tree is already there. Next I’ll read the return files, handoff, and the measurement script so I know what “delivered” actually requires.The return file already claims delivered; I’ll re-run the live measure and inspect the catalog, artifact, and probes instead of trusting that.I’ll pull the catalog contract and artifact state next, then run the live measure so we know whether this is already green or still red.The packed artifact is already SUCCESS. I’ll check the matrix cache, schema resolver, and pwsh, then run the live measure.Schema resolver is on disk now, so I’ll validate the packed artifact against it before trusting the old SUCCESS claim.Probe 1 is still running the 11×21 matrix; I’ll wait for it rather than starting a second copy.Probe 1 is green (231 runs, 21 canaries). I’ll re-run probe 2 from the warm cache and compare those verdicts to the packed artifact.Live verdicts match the packed artifact. Running the official measure now while the matrix cache is still warm.The official measure printed `SUCCESS:delivered`. I’ll lock the per-unit manifest hash to the live artifact and write a fresh `SUBAGENT-RETURN.json` from this remesure.Hashes already match. I’ll rewrite the per-unit manifest row and a fresh `SUBAGENT-RETURN.json` from this remesure, then re-run the official measure.**SUCCESS:delivered** for ADV-0031.
+
+```
+SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0
+```
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed that line twice this handoff (after the live remesure, and again after writing the return files).
+
+**What I did.** Resumed the existing probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, or `lib/matrix.py`. Re-ran the live 11×21 matrix on this Linux worktree (generated_at `2026-08-19T18:13:22Z`, wall 92.73s, warmup captured_decoy=true at 0.024s, 501 watcher records). Both named probes exited 0 with the catalog sentences still verbatim in the raws.
+
+**Honesty check.** Live per-adapter verdicts matched the already-packed catalog artifact exactly (zero mismatches): 21 canary fires, 67 argv divergences. Artifact `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors=0, 1,394,729 bytes LF, sha256 `154780ed2f64714b18ff5a4a13410fcb9f501ef638a437172a5ecfbf9b2042cf`. I did not rebuild the corpus receipt.
+
+**Science (this remesure).** STRING-COMMAND / HERE-STRING / unquoted-IEX adapters CONFIRMED (A3, A3B, A4, A7, A9B). ARGV-ARRAY adapters REFUTED/SAFE (A1, A2, A5, A8). A9 quoted IEX PARTIAL. A6 NOT-CHECKED. Benign control passed on every adapter.
+
+**Wrote**
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; path+sha256 match the live LF digest)
+
+**Did not** git-mutate, run `unit_manifest.py --write`, rotate keys, or relaunch finish-everything-close / p2-cloud-ok-deliver. Catalog two-vendor review remains a residual; G-1 measure-one does not gate it. `cloud ok=true` is not this delivery.
+
+===== launch 2026-08-19T18:15:32Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read any prior return, and only then re-run the live named probes.Existing probe tree is present. Next I’ll read the return, manifest, measurement script, and unit contract so we resume from that state.Prior return claims delivery already; I’ll inspect the live probes and catalog contract, then re-run them rather than trust that claim.I’ll check schema validity, probe freshness, and `pwsh` before forcing a live named-probe rerun.Schema resolver is on this tree now, so I’ll validate the packed artifact before treating the prior SUCCESS as live.Cache is stale and no other probe is running, so I’ll re-run the named probes live, then pack and measure.Probe 1 is still running the 231-cell matrix; I’ll wait for it rather than interrupting.Probe 1 exited 0 on the live 231-run matrix. Running Probe 2 from that cache next.Both named probes exited 0. I’ll pack the catalog artifact from this live matrix, then run the delivery measure while the cache is still fresh.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this live run and confirm the per-unit manifest still matches.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap prior probes. The 240s matrix cache was stale, so this handoff re-ran the live 11×21 matrix on this Linux worktree.
+
+**Live named probes (exit 0)**
+- Probe 1 canary: `SUCCESS:ADV-0031-probe1` — 231 rows, 21 canary fires, benign control pass, NC1 live, warmup captured
+- Probe 2 `/proc` argv: `SUCCESS:ADV-0031-probe2` — 210 captured cells, 67 argv divergences, 501 watcher records, warmup captured
+
+**Honest non-BLOCKED artifact**
+- `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — `state=SUCCESS`, `report.kind=injection-corpus-result`, 1,394,729 bytes, LF sha256 `b7a2236599ca173db37f6a8338092ef310ca0ff11a5cd8227ecde064031d0b1e`
+- Packed from this matrix (`generated_at` 2026-08-19T18:19:09Z, wall 92.81s)
+
+**Per-unit manifest**
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` — one row, path + sha256 match the live digest
+- Return: `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+
+**Science (Linux host)**
+| Adapter | Shape | Verdict |
+|---|---|---|
+| A1 A2 A5 A8 | ARGV-ARRAY | REFUTED (SAFE) |
+| A3 A3B A4 A9B | STRING-COMMAND | CONFIRMED (canary) |
+| A7 | HERE-STRING | CONFIRMED (canary) |
+| A9 | quoted IEX | PARTIAL (argv only) |
+| A6 | ARITHMETIC-EVAL | NOT-CHECKED |
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. `cloud ok=true` is not this delivery.
+
+===== launch 2026-08-19T18:20:58Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read any prior return artifact, and only resume what's already built.Existing artifacts are in place; next I’ll read the return, manifest, handoff, and the measurement gate so I know what still fails.The prior return claims delivery; I’ll inspect the live probes, packer, and catalog unit, then re-measure instead of trusting that claim.I’ll check the catalog unit, current artifact state, and `ready_units.artifact_delivered` before re-running anything.ADV-0031 is the `CONTROL_BAD` fixture in `ready_units.py`. I’ll check whether that structurally blocks G-1 delivery before touching probes.Artifact is already `state=SUCCESS`. I’ll validate the schema, start a live matrix (cache is stale), and check a known-good G-1 return for the expected fields.`ready_units` still treats ADV-0031 as the BLOCKED control, but G-1 only needs live probes and `state=SUCCESS`. I’ll re-run the named probes from the existing tree.Probe 1 is green (231 rows, 21 canary fires). Probe 2 should hit the fresh cache; I’ll run it next, then pack.Both named probes exited 0. Next I’ll pack the catalog artifact from this live matrix and immediately measure.Measure printed `SUCCESS:delivered`. I’ll capture post-measure hashes and write the return plus per-unit manifest.Hashes still match after measure. I’ll write an honest `SUBAGENT-RETURN.json` from this live run.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap them.
+
+Live 11×21 matrix on this Linux worktree (`generated_at` 2026-08-19T18:28:29Z, wall 92.84s, warmup `captured_decoy=true` 0.012s, watcher_records=501):
+
+| Probe | Result |
+|---|---|
+| `probe1_canary.py` | `SUCCESS:ADV-0031-probe1` exit 0 (231 rows, 21 canary fires, benign_pass=True) |
+| `probe2_ostable.py` | `SUCCESS:ADV-0031-probe2` exit 0 (captured_cells=210, argv_div=67) |
+
+Packed catalog artifact `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` as `state=SUCCESS` (not BLOCKED): 1394729 bytes, LF sha256 `18ceeb2f3bdf2e664456d2622c5f494951b5cc791b5630036d55c239e66e3379`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match.
+
+Science on this host: CONFIRMED execution-injection on STRING-COMMAND / HERE-STRING / unquoted-IEX (A3/A3B/A4/A7/A9B). REFUTED on ARGV-ARRAY (A1/A2/A5/A8). A9 PARTIAL. A6 NOT-CHECKED.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver.
+
+Residual (not a G-1 gate): `ready_units.py` still names ADV-0031 as `CONTROL_BAD`, so `--self-test` is BROKEN while this artifact is SUCCESS. Catalog two-vendor reviewer_requirement is also ungated by measure-one.
+
+===== launch 2026-08-19T18:32:01Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the claim-verify-gate skill, then resume whatever is already built instead of starting over.The probe tree is already populated. Next I’ll read the existing return files, handoff, and the measure script so I can resume from that state.I’ll inspect the catalog row, live probes, and current measure result so we resume from what’s actually on disk.I’ll run the current G-1 measure and inspect the catalog/ready_units path so we know whether the existing SUCCESS claim still holds.I’ll check whether the packed artifact still validates against the live schema, then re-run the named probes.The existing SUCCESS pack is ~7 minutes old and the 240s matrix cache is stale, so I’ll re-run the named probes live, then pack and measure.Probe 1 is green on the live 231-run matrix. Next I’ll re-run probe 2 from that cache, then pack the artifact.Both named probes exited 0 on the live matrix. I’ll pack the catalog artifact and per-unit manifest from that run, then measure immediately.G-1 measure printed `SUCCESS:delivered`. I’ll collect the live hashes and probe stats, then write this session’s `SUBAGENT-RETURN.json`.**SUCCESS:delivered** ADV-0031 (`predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`).
+
+Resumed the existing probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the adapters under `command-center/_adv0031/`.
+
+Live 11×21 matrix on this Linux worktree (`generated_at` 2026-08-19T18:38:22Z, wall 92.66s, warmup `captured_decoy=true` 0.019s, 501 watcher records):
+
+- Probe 1 exit 0 — `SUCCESS:ADV-0031-probe1` (231 rows, 21 canary fires, benign control pass)
+- Probe 2 exit 0 — `SUCCESS:ADV-0031-probe2` (210 captured cells, 67 argv divergences)
+
+Packed an honest **non-BLOCKED** catalog artifact (`state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors 0). Per-unit `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match the live LF digest `3153ae6adf223ea298879141ca16e48255e9949b330bfa56b61d552066f7d08a` (1,394,729 bytes).
+
+Science on this host: execution injection **CONFIRMED** on A3/A3B/A4/A7/A9B; **REFUTED**/SAFE on argv-array A1/A2/A5/A8; A9 quoted IEX **PARTIAL**; A6 **NOT-CHECKED**.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` is not this delivery.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees `want=False got=True`. Not retargeted here (that would be a circle with units that consume the fixture).
+
+===== launch 2026-08-19T18:40:55Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the delivery contract, then resume rather than rebuild.Existing artifacts and the measure script are next — I'll read those so I resume from the current contract state.The prior return already claims delivered; I’ll inspect the live probes and re-run the measure instead of trusting that file.I'll inspect packing, catalog delivery, and the current artifact before re-running the live probes.I'll check artifact hash, cache age, and `CONTROL_BAD` so the re-run order stays consistent.Cache is about to expire. I'll re-run the named probes now, then pack from that live matrix so the measure sees a consistent artifact.Probe 1 is green. I'll run probe 2 from the same live cache, then pack.Both named probes passed. I'll pack the catalog artifact from this matrix, then run the delivery measure while the cache is still warm.Measure printed `SUCCESS:delivered`. I'll write `SUBAGENT-RETURN.json` from this handoff's live numbers.**SUCCESS:delivered** for ADV-0031.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed:
+
+```
+SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0
+```
+
+Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`). Did not scrap it. The 240s matrix cache was at the edge, so this handoff forced a live 11×21 run on this Linux worktree.
+
+| Check | Result |
+|---|---|
+| Probe 1 | `SUCCESS:ADV-0031-probe1` exit 0 — 231 rows, 21 canary fires, benign control pass, NC1 live |
+| Probe 2 | `SUCCESS:ADV-0031-probe2` exit 0 — 210 captured cells, 67 argv divergences, warmup decoy seen |
+| Artifact | `state=SUCCESS` (not BLOCKED), `report.kind=injection-corpus-result` |
+| Per-unit manifest | path + sha256 match live LF digest `b2e9dcbb2831f89441cf2c20413577477e4a6d5a2d0e5ab3d4e0a7d6ffce53f1` (1394729 bytes) |
+
+Live matrix `2026-08-19T18:44:16Z`, wall 92.81s, warmup 0.016s, 501 watcher records. STRING-COMMAND / HERE-STRING / unquoted-IEX adapters CONFIRMED (canary file created). ARGV-ARRAY adapters REFUTED (intact argv, no canary). A9 PARTIAL. A6 NOT-CHECKED.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` is not this delivery.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement; `ready_units.py CONTROL_BAD` still names ADV-0031, so `--self-test` now sees want=False got=True. Not retargeted here.
+
+===== launch 2026-08-19T18:45:45Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and SUBAGENT-RETURN, then measure what still blocks G-1 instead of rebuilding from scratch.The probe tree is already populated. Next I’ll read the return files, measure script, and a delivered unit so we resume from the current contract instead of rebuilding.The previous return already claims delivered. I’ll re-measure live and inspect the named probes before trusting that status.CONTROL_BAD still names ADV-0031. I’ll read how `artifact_delivered` treats that, then run the live measure.Schema resolver is present now, so I’ll validate the artifact against the catalog contract before the live-matrix cache expires.Predicate is green and the matrix cache is still valid. I’ll re-run the official measure now so this handoff has a live `SUCCESS:delivered` line.Measure printed `SUCCESS:delivered`. I’ll snapshot live hashes and probe outputs, then write this handoff’s return files from those facts.I’ll write this handoff’s return and keep the per-unit manifest row locked to the live artifact digest, then re-run the measure.Cache likely expired, so measure is re-running the live matrix. I’ll wait for that process to finish.This handoff’s live matrix matches the prior science. I’ll pack the catalog artifact from that run so the receipt, raws, and per-unit manifest stay in lockstep.**SUCCESS:delivered** for ADV-0031.
+
+```
+SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0
+```
+
+Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). After the 240s matrix cache expired, measure-one re-drove the live 11×21 corpus on this Linux worktree (`generated_at` 2026-08-19T18:50:41Z, wall 93.34s, warmup decoy captured). Both named probes exited 0. The catalog artifact is honest `state=SUCCESS` (not BLOCKED), schema-valid with 0 errors, and registered only in the per-unit manifest.
+
+| Item | Value |
+|---|---|
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` |
+| Bytes / hash | 1394729 / `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f` |
+| Manifest | `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (path+sha256 match) |
+| Return | `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json` |
+
+Science on this host: canary fires 21, argv divergences 67, benign control pass. STRING-COMMAND / HERE-STRING / unquoted-IEX **CONFIRMED**; ARGV-ARRAY **REFUTED**; A9 quoted IEX **PARTIAL**; A6 **NOT-CHECKED**.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close. `cloud ok=true` is not this delivery.
+
+Residual (not a G-1 gate): `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `ready_units --self-test` now sees want=False got=True. Not retargeted here.
+
+===== launch 2026-08-19T18:53:05Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the claim-verify gate, then resume whatever is already there instead of rebuilding.Existing return files and the measure script are next — I’ll resume from those instead of rebuilding probes.The existing return already claims SUCCESS; I’ll re-measure live and inspect the named probes so we don’t trust a stale cache.I’ll check cache age and artifact state, then start the live measure while I read the packer and delivery predicate.Cache is still live. I’ll inspect `artifact_delivered` next — CONTROL_BAD on ADV-0031 could make the measure fail even with a SUCCESS artifact.`CONTROL_BAD` is only a self-test fixture, so I’ll run the live measure now while the matrix cache is still valid.Measure already printed `SUCCESS:delivered`. I’ll re-hash the artifact, refresh the return files from this handoff, then re-run the measure so the written return matches the live gate.Named probes already exit 0 and the per-unit manifest matches the live digest. I’ll write this handoff’s return files, then re-run the measure so the written artifacts match the gate.The live measure is still running — likely a full matrix re-run after the 240s cache expired. I’ll wait for that to finish.Post-write measure also printed `SUCCESS:delivered`. I’ll refresh the return with the new live-matrix facts so the handoff stays honest.**SUCCESS:delivered** ADV-0031. G-1 is contract-green for this unit.
+
+Live remesure printed:
+
+`SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+That line came back twice this handoff: once on the still-valid 240s cache, then again after the return files were written (cache expired; probe1 re-drove the 11×21 matrix in 93.58s). Both named probes exited 0.
+
+### What was already built (resumed, not scrapped)
+- `probe1_canary.py` / `probe2_ostable.py` / `lib/matrix.py`
+- Honest catalog artifact at `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json`
+  - `state=SUCCESS` (not BLOCKED; not cloud `ok=true`)
+  - `report.kind=injection-corpus-result`
+  - 1,394,729 bytes, LF sha256 `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`
+
+### Written this handoff
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; path+sha256 match the live digest)
+
+### Science (live matrix `2026-08-19T18:56:44Z`)
+Same per-adapter verdicts as the packed `18:50:41Z` matrix: 231 runs, 21 canary fires, 67 argv divergences, benign control pass, warmup decoy captured, NC1–NC5 and NC7 both-states live. STRING-COMMAND / HERE-STRING / unquoted-IEX **CONFIRMED**; ARGV-ARRAY **REFUTED**; A9 **PARTIAL**; A6 **NOT-CHECKED**.
+
+### Not done (constraints held)
+No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write`. No key rotation. No finish-everything-close / p2-cloud-ok-deliver relaunch. No `ready_units.py` CONTROL_BAD retarget (that would be a circle).
+
+Residual, not a G-1 gate: catalog still wants two different vendors; this pass is xai on live named probes. `ready_units.py` still names ADV-0031 as CONTROL_BAD, so `--self-test` now sees `want=False got=True`.
+
+===== launch 2026-08-19T18:58:04Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read any return artifact already there, and only resume what's needed for a G-1 contract-green delivery.Existing return and measurement files are in place; next I’ll read them so I know what “delivered” actually requires for this unit.The return file already claims success; I’ll inspect the live probes and catalog artifact, then re-run the measure instead of trusting that claim.I’ll check the catalog predicate, prior session notes, and live file hashes so the remesure is against the real contract, not the old return claim.Cache is still inside the 240s window, so I’m remesuring now and checking the catalog unit at the same time.Measure already printed `SUCCESS:delivered` with matching hashes. I’ll refresh the two required artifacts, then remesure after the write.Artifacts are written. Next I’ll remesure after the write; the cache is expired, so this should be a full live probe re-run.Post-write remesure printed `SUCCESS:delivered` after a full 231-run matrix. I’ll update the return file with those live facts.**SUCCESS:delivered**
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed:
+
+`SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+That remesure ran **after** the two required writes. Cache had expired, so `probe1_canary.py` re-drove the live 11×21 matrix (`generated_at` 2026-08-19T19:03:30Z, wall 92.56s, warmup `captured_decoy=true` 0.019s, 501 watcher records). Both named probes exited 0.
+
+Resumed the existing probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or `command-center/_adv0031/` adapters.
+
+| Gate | Result |
+|---|---|
+| Catalog artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — 1,394,729 B, `state=SUCCESS`, `report.kind=injection-corpus-result` |
+| Live LF sha256 | `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f` |
+| Per-unit manifest | path + sha256 match |
+| Science | canary_fires=21, argv_div=67, benign_pass=True; NC1–NC5 and NC7 both-states fire |
+
+Per-adapter verdicts are unchanged from the packed matrix: CONFIRMED on A3/A3B/A4/A7/A9B, REFUTED (SAFE) on A1/A2/A5/A8, PARTIAL on A9, NOT-CHECKED on A6.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did **not** git-mutate, run `unit_manifest.py --write`, rotate keys, relaunch finish-everything-close / p2-cloud-ok-deliver, or re-pack the catalog artifact.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees want=False got=True.
+
+===== launch 2026-08-19T19:04:23Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read the return artifact, and resume from what's already built instead of scrapping it.Existing probe tree is in place. Next I’ll read the return artifact, the measurement contract, and the unit’s handoff so I resume the same work.I’ll inspect the live artifact, catalog row, and named probes, then re-run the delivery measure so we know whether this unit is actually green.The last return already claims delivered. I’ll check cache freshness, the catalog predicate, and then re-run the measure so we know if that’s still true.I’ll check pwsh, hash the live artifact against the per-unit manifest, then run the named-probe measure.Cache is still fresh and hashes match. I’ll re-run the official measure now while the probes can reuse that matrix.Measure printed `SUCCESS:delivered`. I’ll capture post-rerun hashes, probe raws, and matrix timestamps, then write this handoff’s return files.Hashes still match after the live remesure. I’ll write this handoff’s return files and confirm the measure still prints SUCCESS.The post-write remesure is still running — cache likely expired, so the full matrix is being re-driven. I’ll wait for that to finish.Post-write remesure is green. I’ll refresh the return file with the new live-matrix timestamp so the record matches this handoff.**SUCCESS:delivered** ADV-0031.
+
+Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap it.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed:
+
+```
+SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0
+```
+
+That is after writing the per-unit files. Post-write remesure cache had expired, so probe 1 re-drove the 11×21 matrix (2026-08-19T19:09:08Z, 93.08s, warmup decoy captured, 501 watcher records). Same per-adapter verdicts as the packed 18:50:41Z matrix.
+
+**G-1 facts**
+- Catalog artifact is honest `state=SUCCESS` (not BLOCKED, not cloud `ok=true`): `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` (1,394,729 B, LF).
+- Live named probes re-ran exit 0.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` path + sha256 match live LF digest `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`.
+
+**Wrote**
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+**Did not** git-mutate, run global `unit_manifest.py --write`, rotate keys, or relaunch wave closers.
+
+**Residuals (not G-1 gates):** catalog still wants two different vendors; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees `want=False got=True`. Not repaired here (that would be the circle).
+
+===== launch 2026-08-19T19:10:06Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit contract, then resume rather than rebuild.The probe tree is already there; next I’ll read the existing return, manifest, and the measure script so I know what “delivered” actually requires.I’ll re-run the live measure and inspect the named probes so we know whether the existing SUCCESS claim still holds.I’ll check the environment and current hashes, then re-run the live G-1 measure so we know whether this unit is still green.Cache is still fresh and hashes match; I’ll run the G-1 measure now and also check whether the artifact still validates against the live schema.Measure already printed `SUCCESS:delivered`. I’ll refresh the per-unit manifest (same path and sha256), remesure after that write, then emit an honest `SUBAGENT-RETURN.json`.Cache just expired, so I’ll remesure once more to get a full live matrix for this handoff, then write `SUBAGENT-RETURN.json` from that run.Live matrix matched the packed artifact. I’ll write `SUBAGENT-RETURN.json` from that remesure, then remesure once more after the write.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is green for this unit only. Resumed the existing probe tree; did not scrap `probe1_canary.py` / `probe2_ostable.py` / `lib/matrix.py`.
+
+| Gate | Result |
+|---|---|
+| Live named probes | `probe1_canary.py` exit 0, `probe2_ostable.py` exit 0 |
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` `state=SUCCESS`, schema-valid, not BLOCKED, not cloud `ok=true` |
+| Per-unit manifest | `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match live LF digest `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f` (1394729 bytes) |
+| Measure after write | `python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed `SUCCESS:delivered` |
+
+This handoff re-drove the 11×21 matrix after cache expiry (`generated_at` 2026-08-19T19:14:52Z, wall 92.6s, warmup `captured_decoy=true`, 501 watcher records). Per-adapter verdicts match the packed 18:50:41Z artifact (CONFIRMED on A3/A3B/A4/A7/A9B, REFUTED on argv-array A1/A2/A5/A8, PARTIAL A9, NOT-CHECKED A6), so the catalog artifact was not re-packed.
+
+Did not git-mutate, did not run `unit_manifest.py --write`, did not relaunch close/cloud-ok workflows.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031.
+
+===== launch 2026-08-19T19:16:33Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit contract, then resume from whatever is already there instead of rebuilding.The probe tree is already there. Next I’ll read the return files, the measure script, and the catalog row so we resume instead of starting over.The return file already claims SUCCESS, so I’ll treat that as unverified and remesure the live artifact, probes, and catalog row myself.I’ll inspect the catalog blocker class, a recently delivered unit’s return file, and the current live measure so we don’t treat the old SUCCESS claim as proof.Multiple prior sessions already ran on this unit. I’ll read the worker prompt and the latest session outcomes to see whether this is a park case, not another rebuild.Cache is still inside the 240s window. I’ll remesure now, then write the return files from this run instead of trusting the previous SUCCESS claim.Measure printed `SUCCESS:delivered` on this turn. I’ll refresh the two required artifacts from that remesure, then remesure once more after the write.I’ll write the per-unit manifest and return from this-turn measure, then remesure after the write so the gate still sees a live exit 0.Artifacts are on disk. Next I’ll remesure after the write so the gate still sees a live probe re-run.Post-write remesure is green. I’ll refresh the return file with the new live-matrix timestamp and confirm the hash still matches.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is contract-green for this unit. Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap it.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed that line twice this handoff: once on a still-valid 240s cache, then again after the required writes (cache expired; probe 1 re-drove the 11×21 matrix at `2026-08-19T19:21:32Z`, wall 92.31s, warmup decoy captured, 501 watcher records). Both named probes exited 0.
+
+| Gate | Result |
+|---|---|
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — 1,394,729 B, `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors 0 |
+| Live LF sha256 | `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f` |
+| Per-unit manifest | path + sha256 match |
+| Science | canary 21, argvdiv 67, benign pass; CONFIRMED A3/A3B/A4/A7/A9B; REFUTED A1/A2/A5/A8; PARTIAL A9; NOT-CHECKED A6 |
+
+**Wrote**
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` is not this delivery.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees `want=False got=True`. Not retargeted here.
+
+===== launch 2026-08-19T19:22:51Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the claim-verify-gate, then resume from whatever is already there rather than rebuilding.Existing probe files are in place. Next I’ll read the return artifact, the per-unit manifest, and the measure script so I can resume from the last honest state.The prior return already claims SUCCESS. I’ll inspect the catalog unit, named probes, and `artifact_delivered` so I can re-measure instead of trusting that write.I’ll check disk hashes, whether `pwsh` is present, and the live-matrix cache before re-running the delivery measure.The last return already claims delivered; I’ll re-run the live measure and check for concurrent probe races instead of trusting that file.Measure printed `SUCCESS:delivered`. I’ll snapshot this run’s hashes and matrix facts, then write the two required artifacts.Live remesure matches the packed artifact. I’ll write the per-unit manifest and return from this run, then remesure while the cache is still warm.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is contract-green for this unit. Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap it.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed that line twice this handoff: once after the 240s cache expired (full 11×21 re-drive at `2026-08-19T19:27:29Z`, wall 93.04s, warmup decoy captured, 501 watcher records), then again after writing the per-unit files. Both named probes exited 0.
+
+| Gate | Result |
+|---|---|
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — 1,394,729 B, `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors 0 |
+| Live LF sha256 | `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f` |
+| Per-unit manifest | path + sha256 match |
+| Science | canary 21, argvdiv 67, benign pass; CONFIRMED A3/A3B/A4/A7/A9B; REFUTED A1/A2/A5/A8; PARTIAL A9; NOT-CHECKED A6 |
+
+**Wrote**
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. `cloud ok=true` is not this delivery.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees `want=False got=True`. Not retargeted here.
+
+===== launch 2026-08-19T19:29:31Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the measurement contract, then resume rather than rebuild.Existing probe artifacts are in place; next I’ll read the return files and the G-1 measurement contract so I resume from that state.The previous return already claims delivered; I’ll re-run the live probes and measure instead of trusting that claim.I’ll inspect the catalog row, artifact state, and cache age, then re-run the live measure.Cache is still valid, so I’ll run the G-1 measure now before it expires.Measure already printed `SUCCESS:delivered` twice. I’ll refresh the per-unit manifest and this handoff’s return, then remesure after the write.Cache expired, so the remesure is driving the full live matrix. I’ll wait for that run to finish.Post-write remesure printed `SUCCESS:delivered`. I’ll refresh the return file with the new live-matrix facts.**SUCCESS:delivered** `ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the adapters under `command-center/_adv0031/`.
+
+G-1 is green for this unit:
+
+- Named probes re-ran to exit 0 (`probe1_canary.py`, `probe2_ostable.py`).
+- Catalog artifact is honest `state=SUCCESS` (not BLOCKED, not cloud `ok=true`): `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` (1,394,729 B, LF sha256 `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`).
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match that digest.
+
+This handoff remesured three times. The last run was after rewriting the per-unit files, after the 240s cache expired: a full 11×21 live matrix at `2026-08-19T19:33:55Z` (wall 91.99s, warmup decoy captured in 0.013s, 501 watcher records). Per-adapter verdicts match the packed 18:50:41Z matrix (STRING-COMMAND / HERE-STRING / unquoted-IEX CONFIRMED; ARGV-ARRAY REFUTED; A9 PARTIAL; A6 NOT-CHECKED).
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not re-pack.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement; `ready_units.py` still names ADV-0031 as `CONTROL_BAD`. Neither was changed.
+
+===== launch 2026-08-19T19:35:05Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and measurement contract, then resume rather than rebuild.Existing return files and the measure script are next — I'll resume from those instead of rebuilding.I'll inspect the named probes, catalog row, and any worker notes so we resume from the real current state.Next I’ll pull the catalog row, artifact state, matrix cache, and a recently delivered unit so this handoff matches the live contract.I’ll confirm hashes, environment, and G-1 extras, then re-run the named probes with a warm cache before measuring.Cache is still under the 240s TTL. I’ll re-run the live measure now and check whether a prior attempt already failed.I'll expire the matrix cache and re-run a live measure so this handoff's SUCCESS is from this session, not the prior 240s window.Cache is past 240s, so I’ll force a full live matrix re-drive, then write the two artifacts from those results.Live verdicts match the packed SUCCESS artifact. I’ll write the two per-unit files, then remesure after the write.**SUCCESS:delivered** `ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is green for this unit only. Named probes were resumed, not rebuilt.
+
+- `python command-center/p2-wave/_measure_one_delivered.py ADV-0031` printed `SUCCESS:delivered` before the write and again after it.
+- After the 240s cache expired, `probe1_canary.py` re-drove the full 11×21 matrix (`generated_at 2026-08-19T19:40:11Z`, wall 91.92s, warmup `captured_decoy=true` 0.018s, 501 watcher records) and exited 0. `probe2_ostable.py` then exited 0.
+- Catalog artifact stays honest `SUCCESS` (not BLOCKED, not cloud `ok=true`): `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` (1394729 B, LF sha256 `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`). Live per-adapter verdicts matched the packed 18:50:41Z matrix, so it was not re-packed.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match that digest.
+
+Written:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish/cloud-ok workflows.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now wants `False` and gets `True`. Retargeting that fixture would circle with units that consume it.
+
+===== launch 2026-08-19T19:42:25Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit contract, then resume from what's already built instead of starting over.Existing return files and the measure script are next — I'll read those so we resume from the current contract state.The existing return claims SUCCESS, so I’ll re-run the live measure and inspect the catalog artifact and probes before treating that as current.I'll inspect the delivery predicate and catalog row next, then run the live measure to see whether this unit is actually green.I'll check hashes, schema, and cache age, then re-run the live named probes through the measure script.Cache is about to expire; I’ll run the live measure next so we see whether probes still exit 0.Measure printed `SUCCESS:delivered`. I’ll confirm whether the probes actually re-ran, then write this handoff’s return files and remesure after the write.Measure already passed on the cached 19:40:11Z matrix. Cache is expired now, so I’ll re-drive the live named probes, then write the return files and remesure.Probe 1 is still running the full matrix; I’ll wait on it and compare the packed per-adapter verdicts in parallel.Probe 1 exited 0 on a fresh 231-run matrix. Next I’ll run probe 2 against that cache and check whether per-adapter verdicts still match the packed artifact.Verdicts match the packed SUCCESS artifact, so I will not re-pack. Next I’ll write the per-unit manifest and SUBAGENT-RETURN, then remesure.Post-write remesure printed `SUCCESS:delivered`. I’ll stamp that line into `SUBAGENT-RETURN.json` so the return file matches this handoff.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the adapters under `command-center/_adv0031/`. Did not git-mutate, did not run global `unit_manifest.py --write`, and did not relaunch finish/cloud-ok workflows.
+
+This handoff re-drove the full 11×21 live matrix after cache expiry (`generated_at 2026-08-19T19:46:22Z`, wall 92.7s, warmup `captured_decoy=true` 0.018s, 501 watcher records). Both named probes exited 0. Per-adapter verdicts matched the already-packed honest SUCCESS artifact, so it was not re-packed.
+
+| Adapter | Shape | Verdict |
+|---|---|---|
+| A1 A2 A5 A8 | ARGV-ARRAY | REFUTED / SAFE |
+| A3 A3B A4 A7 A9B | STRING-COMMAND / HERE-STRING | CONFIRMED (canary) |
+| A9 | STRING-COMMAND | PARTIAL (argv only) |
+| A6 | ARITHMETIC-EVAL | NOT-CHECKED |
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; path+sha256 match live LF digest `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`, 1394729 bytes)
+
+Post-write remesure printed the SUCCESS line above.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now wants `False` and gets `True`. Retargeting that fixture would be a circle with units that consume it; not done here.
+
+===== launch 2026-08-19T19:48:31Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit contract, then resume rather than rebuild.The probe tree is already populated; next I’ll read the return files, measurement contract, and unit definition so I resume from what’s there.The prior return already claims delivered; I’ll inspect the named probes, artifact state, and catalog contract, then remesure live.I’ll check the catalog unit, live artifact, packer, and current matrix cache so the remesure is against the real contract.I’ll check prior-loop outcomes and the live hash/schema environment so this remesure does not repeat a parked structural fail.Probe 1 is running the live matrix; I’ll watch that and keep checking the schema/artifact contract in parallel.Probe 1 exited 0 on a fresh 231-row matrix. I’ll run probe 2 from that cache next.Both named probes passed. I’ll compare live verdicts to the packed artifact, then refresh the per-unit manifest if needed.Live verdicts match the packed SUCCESS artifact. I’ll refresh the per-unit manifest, then run the official G-1 measure while the matrix cache is still valid.The official measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this live run, then remesure after the write.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is green for this unit. Resumed the existing probe tree; did not scrap it.
+
+Live named probes (cache expired, full 11×21 re-drive):
+- `probe1_canary.py` exit 0 — 231 rows, 21 canary fires, benign control pass, warmup captured
+- `probe2_ostable.py` exit 0 — 210 captured cells, 67 argv divergences, 501 watcher records
+
+Honest non-BLOCKED artifact (not cloud `ok=true`):
+- `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json`
+- `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors=0, 1,394,729 bytes
+- LF sha256 `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`
+- Live per-adapter verdicts matched the packed 2026-08-19T18:50:41Z matrix, so the catalog artifact was not re-packed
+
+Written:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; path+sha256 match)
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver.
+
+Residual (not a G-1 gate): `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees `want=False got=True`. Retargeting that fixture would be a circle with units that consume it; not done here. Catalog two-vendor reviewer requirement is also ungated by measure-one.
+
+===== launch 2026-08-19T19:54:35Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and measure what's already there before changing anything.The probe tree is already populated. Next I’ll read the return files, the measure script, and the unit contract so I know what “delivered” actually requires.Existing return files claim SUCCESS, but I still need a live remesure on this worktree. Checking the artifact, probes, and the delivery predicate next.Cache TTL is 240s and it’s likely expired. I’ll inspect the packed artifact, then remesure the named probes on this worktree.I'll remesure the named probes from the existing tree and keep reading the packer and schema while that run is in flight.Both named probes exited 0 and the predicate is green. Running the official measure now while the matrix cache is still warm.Measure already printed `SUCCESS:delivered`. I'll refresh the two required artifacts with this remesure, then run the measure again after the write.Cache is past 240s, so the post-write remesure will drive a full live matrix. Updating the per-unit manifest, then running that remesure.The remesure is running a full live matrix. I’ll wait for that process to finish before writing the return file.Post-write remesure is green after a full rematrix. I’ll pull the new matrix facts into `SUBAGENT-RETURN.json`, then remesure once more with the cache warm.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is contract-green for this unit only. I resumed the existing probe tree; I did not scrap the named probes.
+
+**What was remesured**
+- `probe1_canary.py` exit 0 — 231 rows, 21 canary fires, benign control pass, NC1 live, warmup captured
+- `probe2_ostable.py` exit 0 — 210 captured cells, 67 argv divergences, 501 watcher records
+- Full live 11×21 rematrix after cache expiry: `generated_at=2026-08-19T19:58:21Z`, wall 92.19s, warmup 0.017s
+- Per-adapter verdicts matched the packed artifact, so the catalog receipt was **not** re-packed
+
+**Honest non-BLOCKED artifact**
+- `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json`
+- `state=SUCCESS`, `report.kind=injection-corpus-result`
+- LF sha256 `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f` (1,394,729 bytes)
+
+**Written**
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; path+sha256 match)
+
+**Not done (as required)**
+- No git add/commit/push/stash/checkout/rebase
+- No `unit_manifest.py --write` on the global catalog
+- No finish-everything-close / p2-cloud-ok-deliver relaunch
+
+**Residuals (not G-1 gates)**
+- Catalog two-vendor reviewer requirement is still open
+- `ready_units.py` `CONTROL_BAD` still names ADV-0031; retargeting that fixture would circle with units that consume it, so it was left alone
+
+===== launch 2026-08-19T19:59:23Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read any return artifact, and resume rather than rebuild.Existing probe artifacts are present. Next I’ll read the return files, the measure script, and a successful unit for the G-1 shape.SUBAGENT-RETURN already claims delivery. I’ll re-run the live measure and inspect the probes and catalog unit before trusting that.I'll run the live measure next and inspect `artifact_delivered` plus the catalog row for ADV-0031.Cache is still valid (~139s old). I’ll run the G-1 measure now so the named probes re-run while that cache holds.Measure printed `SUCCESS:delivered`. I’ll capture this-handoff probe output and hashes, then write the return artifacts.Measure already passed. I’ll refresh the per-unit manifest and SUBAGENT-RETURN from this handoff, then re-run the measure after those writes.The remesure is still running — likely a full matrix after cache expiry. I’ll wait for it to finish.Post-write remesure passed after a live matrix re-drive. I’ll check the written artifacts and run the claim gate.**SUCCESS:delivered** ADV-0031. G-1 is green for this unit.
+
+Post-write remesure printed:
+
+`SUCCESS:delivered ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap it.
+
+**This handoff**
+- Named probes re-ran to exit 0. Cache was expired (285s), so they re-drove the live 11×21 matrix (`generated_at` 2026-08-19T20:04:40Z, wall 92.71s, warmup decoy captured, 501 watcher records).
+- Catalog artifact is honest `state=SUCCESS` (not BLOCKED, not cloud `ok=true`): `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` (1394729 B, LF sha256 `77575a209765d5ec434d25bb1dfb436c4eeb9dcea4fe42112b45951dab63899f`). Schema-valid; `ready_units.artifact_delivered=true`.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match that live digest.
+- Per-adapter verdicts matched the packed 18:50:41Z matrix, so the catalog artifact was not re-packed.
+
+**Wrote**
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+**Did not** git-mutate, run global `unit_manifest.py --write`, rotate keys, or relaunch finish-everything-close / p2-cloud-ok-deliver.
+
+**Science (Linux, this remesure)**  
+Injection CONFIRMED on STRING-COMMAND / HERE-STRING / unquoted-IEX (A3, A3B, A4, A7, A9B). REFUTED on ARGV-ARRAY (A1, A2, A5, A8). A9 quoted IEX PARTIAL. A6 NOT-CHECKED. Benign control pass. NC1–NC5 and NC7 both-states live.
+
+**Residuals (not G-1 gates)**  
+Catalog two-vendor reviewer_requirement is not gated by measure-one. `ready_units.py` `CONTROL_BAD` still names ADV-0031 as the self-declared-BLOCKED fixture; that self-test is now stale. Not retargeted here (that would be a circle with units that consume the fixture).
+
+===== launch 2026-08-19T20:05:31Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and measurement contract, then resume whatever is already built instead of scraping it.Existing artifacts and the measure script are next — I'll resume from those instead of rebuilding.The probe tree already claims delivery; I'll inspect the live artifact, catalog row, and named probes before re-running the measure.Catalog lookup missed ADV-0031; I'll locate the unit row and check whether the live artifact hash still matches the per-unit manifest.Verdicts already match; I'll force a fresh live matrix, then re-pack so the catalog artifact is from this handoff.Probe 1 passed on a fresh 231-run matrix. Next I’ll run probe 2 against that cache, then pack.Manifest is in place from this pack. I'll write `SUBAGENT-RETURN.json`, then run the G-1 measure while the matrix cache is still warm.Measure printed `SUCCESS:delivered`. I'll stamp that into `SUBAGENT-RETURN.json` and remesure once after the write.**SUCCESS:delivered** `ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree (did not scrap `probe1_canary.py` / `probe2_ostable.py` / `lib/matrix.py`). Deleted the stale matrix cache and re-drove the live 11×21 corpus on this Linux worktree (`generated_at 2026-08-19T20:10:09Z`, wall 92.21s). Both named probes exited 0. Packed the catalog artifact from **this** matrix (`state=SUCCESS`, `report.kind=injection-corpus-result`, not BLOCKED, not cloud `ok=true`).
+
+Per-unit `UNIT-ARTIFACT-MANIFEST.json` path+sha256 match live LF digest `06e513bed743048ec036032762f7abd2da14528486f420ee150ea43042040fb3` (bytes=1394729). Post-write remesure of `_measure_one_delivered.py ADV-0031` also printed `SUCCESS:delivered` (wall 0.31s, cache-warm probe reruns).
+
+Science on this host: CONFIRMED execution injection on A3/A3B/A4/A7/A9B; REFUTED (safe argv) on A1/A2/A5/A8; PARTIAL on A9; NOT-CHECKED on A6. Benign control passed. NC1–NC5 and NC7 fired-on-bad / silent-on-good.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver. Residual: catalog two-vendor reviewer_requirement is not a G-1 gate; `ready_units.py CONTROL_BAD` still names this unit (not retargeted — that would be a circle).
+
+===== launch 2026-08-19T20:12:15Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read the return artifact, and only resume what's already built.Existing probe tree is in place. Next I’ll read the return artifacts and the measurement gate so we resume instead of rebuilding.Return artifact already claims SUCCESS. I’ll read the G-1 measure script and re-run the live probes instead of trusting that claim.I’ll inspect the catalog unit, the packed artifact, and `artifact_delivered` so the live re-run is against the real G-1 gate.Previous delivery is on disk; I’ll validate the schema and force a live probe re-run this session instead of trusting the cache.Probe 1 is still driving the live matrix. I’ll wait for that run to finish before packing.Both named probes exited 0. Next I’ll pack the catalog artifact from this matrix and run the G-1 measure.Measure is green. I’ll write the return artifact, then remasure after that write so the hash and probe exits still match.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree. Deleted `live-matrix.json` and re-drove the live 11×21 matrix on this Linux worktree (`generated_at 2026-08-19T20:16:06Z`, wall 93.11s). Did not scrap `probe1_canary.py`, `probe2_ostable.py`, or `lib/matrix.py`.
+
+| Gate | Result |
+|---|---|
+| `probe1_canary.py` | exit 0, 231 rows, 21 canary fires, benign PASS, NC1 live |
+| `probe2_ostable.py` | exit 0, 210 captured cells, 67 argv divergences, 501 watcher records |
+| Catalog artifact | `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors=0, not BLOCKED, not cloud `ok=true` |
+| Per-unit manifest | path + LF sha256 match `8e2e6d3d73a657d606640924b040e68023e8e8ade84e217bac79bbe2eb080ec1` (1,394,350 bytes) |
+| Post-write remasure | `python command-center/p2-wave/_measure_one_delivered.py ADV-0031` → **SUCCESS:delivered** (0.32s) |
+
+Science this host: execution injection **CONFIRMED** on STRING-COMMAND / HERE-STRING / unquoted-IEX (A3, A3B, A4, A7, A9B). ARGV-ARRAY A1/A2/A5/A8 **REFUTED** (safe). A9 quoted IEX **PARTIAL**. A6 **NOT-CHECKED**.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031.
+
+===== launch 2026-08-19T20:18:35Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read the return artifact if it's there, and resume from what's already built rather than starting over.The probe tree is already there. Next I’ll read the return artifact, the unit contract, and the measurement script so I can resume instead of rebuilding.The tree already claims SUCCESS. I’ll re-check the catalog unit, probes, and live hashes before trusting that, then re-run the measure.I’ll inspect the live artifact, cache, and schema next so I know whether this is already green or still needs a real re-run.The previous claim looks complete on disk. I’ll validate the schema, check prior refute reasons, then re-run the live measure myself.Schema is green and the cache is still valid. I’ll check for a concurrent matrix run, then execute the official measure on this handoff.The named-probe run is still going—likely a full 11×21 matrix after the cache expired. I’ll wait on that instead of starting a second copy.Live probes and the official measure both passed. I’ll compare this matrix to the packed artifact, then write the return files from these numbers.Verdicts match the packed SUCCESS artifact. I’ll refresh the per-unit manifest, re-run the official measure, then write this handoff’s return file.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree. Did not scrap the named probes. The 240s matrix cache was stale, so this handoff re-drove the live 11×21 matrix (generated 2026-08-19T20:22:32Z, 92.73s, 231 runs).
+
+| Check | Result |
+|---|---|
+| Probe 1 canary | exit 0 — 231 rows, 21 canary fires, benign control pass, NC1 live, warmup captured |
+| Probe 2 `/proc` argv | exit 0 — 210 captured cells, 67 argv divergences, 501 watcher records |
+| Catalog artifact | `state=SUCCESS`, `report.kind=injection-corpus-result`, 1,394,350 B, schema errors=0 |
+| Per-unit manifest | path + sha256 match live LF digest `8e2e6d3d73a657d606640924b040e68023e8e8ade84e217bac79bbe2eb080ec1` |
+
+This matrix’s per-adapter verdicts matched the existing SUCCESS pack exactly, so the catalog artifact was not re-packed. Post-write remeasure after rewriting `UNIT-ARTIFACT-MANIFEST.json` printed the same `SUCCESS:delivered` line.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not run `unit_manifest.py --write`, did not git-mutate, did not treat cloud `ok=true` as delivery.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement; `ready_units.py CONTROL_BAD` still names ADV-0031, so `--self-test` now sees `want=False got=True`. Not retargeted here.
+
+===== launch 2026-08-19T20:24:33Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the G-1 contract so we resume rather than rebuild.The probe tree is already populated. Next I’ll read the return artifacts, handoff, and the measure script to see what G-1 still requires.Existing return claims SUCCESS, but I’ll re-run the named probes and inspect cache/artifact freshness instead of trusting that write.I’ll inspect the live artifact, catalog unit, and `artifact_delivered` so the measure isn’t run against a stale SUCCESS claim.Cache is about to expire. I’ll re-run the named probes now, then compare live verdicts to the packed artifact.Named probes both exited 0. Next I’ll check cache age, hash match, and schema, then run the official measure.Cache is stale, so I’m rebuilding the live matrix with probe1 before the official measure.Probe1 is still rebuilding the matrix; I’ll wait for it to finish rather than overlapping another run.Live verdicts match the packed SUCCESS artifact. I’ll refresh the per-unit manifest, then run the official measure while the cache is still valid.Measure is already green after the manifest rewrite. I’ll write `SUBAGENT-RETURN.json`, then re-run the official measure so the return matches a live post-write result.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is green for this unit only. Resumed the existing probe tree; did not scrap `probe1_canary.py` / `probe2_ostable.py` / `lib/matrix.py`.
+
+| Gate | Result |
+|---|---|
+| Named probes re-run | `probe1_canary.py` exit 0, `probe2_ostable.py` exit 0 |
+| Artifact | `state=SUCCESS`, `report.kind=injection-corpus-result`, not BLOCKED, not cloud `ok=true` |
+| Per-unit manifest | path + sha256 match |
+
+Live 11×21 matrix this handoff (`generated_at` 2026-08-19T20:28:37Z, wall 92.31s): 231 runs, 21 canary fires, 67 argv divergences, 501 watcher records, warmup captured. Per-adapter verdicts matched the packed SUCCESS artifact exactly, so the catalog file was not re-packed. Live LF digest remains `8e2e6d3d73a657d606640924b040e68023e8e8ade84e217bac79bbe2eb080ec1` (1,394,350 bytes).
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Post-write remeasure of `python command-center/p2-wave/_measure_one_delivered.py ADV-0031` still printed `SUCCESS:delivered`.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish/cloud-ok workflows.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031.
+
+===== launch 2026-08-19T20:34:14Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read any return artifact, and resume from there instead of rebuilding.Existing probe files are in place. Next I’ll read the return artifacts, handoff, and unit contract so I can resume from the last honest state.The last return claims delivered; I’ll inspect the live probes, catalog unit, and artifact to see whether that still holds.I’ll inspect the catalog contract, `artifact_delivered`, and the current packed artifact so the measure isn’t a guess.I'll check schema validation, environment (pwsh, adapters), and current hashes, then re-run the live probes.Cache is still hot from a prior run. I’ll expire it, force a fresh matrix, and inspect the receipt schema while that rebuilds.Probe 1 is still running the 11×21 matrix. I’ll wait for it and keep reading the reviewer/schema constraints.Probe 1 is green (231 rows, 21 canary fires). Running probe 2 against the fresh cache next.Both probes passed with the same per-adapter verdicts. I’ll pack the catalog artifact from this live matrix, then measure.Measure already printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this live run, then re-measure after the write.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree (did not scrap `probe1_canary.py` / `probe2_ostable.py` / `lib/matrix.py`). Forced a stale cache and re-ran the live 11×21 matrix on this Linux worktree.
+
+| Gate | Result |
+|---|---|
+| Named probe 1 | exit 0, `SUCCESS:ADV-0031-probe1`, 231 rows, 21 canary fires, benign PASS |
+| Named probe 2 | exit 0, `SUCCESS:ADV-0031-probe2`, 210 captured cells, 67 argv divergences, 501 watcher records |
+| Artifact | `state=SUCCESS`, `report.kind=injection-corpus-result`, 1,394,727 bytes, schema errors=0 |
+| Per-unit manifest | path + sha256 match `5eb8a47418fd6aa2fd636a8c05a2e7fa5578faa58ba6dd580633483c24a82142` |
+| Post-write remesure | `SUCCESS:delivered` again at 2026-08-19T20:40:32Z |
+
+Science on this host: **CONFIRMED** execution-injection on A3/A3B/A4/A7/A9B; **REFUTED** (safe) on argv-array A1/A2/A5/A8; **PARTIAL** on A9 quoted IEX; **NOT-CHECKED** on A6 arithmetic-eval.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement; `ready_units.py` `CONTROL_BAD` still names ADV-0031.
+
+===== launch 2026-08-19T20:41:57Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read any prior return artifact, and measure against the G-1 contract without touching git or the global catalog.Existing artifacts are in place. Next I’ll read the return files, handoff, and the measurement contract so I resume rather than rebuild.Prior return already claims delivery. I’ll inspect probe scripts, catalog unit, and current disk state before re-running the live measure.I’ll read the catalog unit, delivery predicate, and packer so the re-run matches G-1 rather than the old Windows BLOCKED path.Cache is stale relative to this handoff. I’ll expire it, re-run the named probes, then pack and measure.Probe 1 is running the live 11×21 matrix. I’ll wait for it and check the receipt schema while it finishes.Probe 1 exited 0 with 231 rows and 21 canary fires. Running probe 2 against the same live matrix next.Both named probes exited 0. I’ll pack the catalog artifact and per-unit manifest from this matrix, then schema-check before measuring.G-1 measure already printed SUCCESS. I’ll write the return artifacts, then remesure after the write.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing probe tree (did not scrap `probe1_canary.py` / `probe2_ostable.py` / `lib/matrix.py`). The 240s cache was already expired, so this handoff re-drove the live 11×21 matrix, packed the catalog artifact from that run, and rewrote the per-unit manifest.
+
+| Gate | Result |
+|---|---|
+| Probe 1 | exit 0, 231 rows, 21 canary fires, benign_pass=True |
+| Probe 2 | exit 0, 210 captured cells, 67 argv divergences, 501 watcher records |
+| Artifact | `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors=0 |
+| Manifest | path + sha256 match (`4683f65ba6c8ba2de27fb352de787d6189b091791181e4a871da359d9198167a`) |
+| Measure | `_measure_one_delivered.py ADV-0031` exit 0 after the write |
+
+This is G-1 local delivery, not `cloud ok=true`. No git mutation, no global `unit_manifest.py --write`.
+
+Residuals (not G-1 gates): catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` will now see `want=False got=True`.
+
+===== launch 2026-08-19T20:47:14Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree, read the return artifact, and resume toward a contract-green delivery without touching git or the global catalog.Existing artifacts are in place. Next I’ll read the return file, the per-unit manifest, and the delivery measurer so I know what still fails.The last return claims delivery, but I still need a live re-run of the named probes and the measurer on this worktree. Checking probe scripts, cache TTL, and current artifact state.I’ll inspect cache TTL, `artifact_delivered`, and the catalog row so we know whether this is still green or already stale.I’ll inspect schema validation, adapters, cache age, and a delivered unit’s return shape before re-running anything live.Cache is still inside the 240s window. I’ll re-run the live probes and measurer now, and check prior refutes so we don’t loop the same structural failure.Measure is still running—likely a full matrix after cache expiry. I’ll wait on that and inspect prior session outcomes in parallel.Measure already printed `SUCCESS:delivered`. I’ll pack the catalog artifact from this live matrix, refresh the per-unit manifest, then re-measure while the cache is still valid.The live matrix is fresh and still in cache. I’ll pack from it, refresh the per-unit manifest, then re-measure while that cache remains valid.Pack landed. Next I’ll validate schema, confirm the manifest hash, and re-run the G-1 measurer against the new artifact.Post-pack measure is green. I’ll write `SUBAGENT-RETURN.json` from this session’s evidence, then re-measure after the write.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 is green for this unit. Named probes were re-run live and both exited 0. The catalog artifact is `state=SUCCESS` (not BLOCKED, not a cloud-ok stub). The per-unit manifest row matches the live artifact hash.
+
+What this handoff did:
+- Resumed the existing probe tree (`probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, adapters under `command-center/_adv0031/`). Did not scrap them.
+- The 240s cache had expired, so the first measure-one run re-drove the 11×21 matrix: `generated_at 2026-08-19T20:50:51Z`, wall 92.62s, 231 runs, 21 canary fires, 67 argv divergences, 501 watcher records, warmup decoy captured.
+- Packed the catalog artifact from **that** matrix: `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` (1,394,729 bytes, LF sha256 `4caea3c5e1800824beb6c790ee14274ed9efafafa1d01c6b9b3529a0a3b386fe`). Schema errors = 0. `ready_units.artifact_delivered=true why=delivered`.
+- Wrote `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (path + sha256 match) and `SUBAGENT-RETURN.json`.
+- Re-measured after those writes: same `SUCCESS:delivered` line.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close.
+
+Residuals (not G-1 gates): catalog still wants two different vendors independently reproducing; this pass is xai/grok on live named probes. `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` will now see want=False got=True. That fixture was not retargeted here (that would be a circle with other units).
+
+===== launch 2026-08-19T20:53:46Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit contract, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return files, measure script, and handoff so I know what “delivered” actually requires.The return file already claims SUCCESS. I’ll re-run the measure and inspect the live probes so I can confirm that claim instead of trusting it.The prior return claims green. I’ll inspect `artifact_delivered` and the catalog unit, then remesure this worktree instead of trusting that file.Schema resolver is present on this worktree. I’ll validate the packed artifact against the real contract before remesuring.Artifact is schema-valid and the delivery predicate is already true. Next I’ll remesure this worktree so the success line is from this handoff, not the previous return file.The remesure is still running — likely a full 11×21 matrix because the cache aged out. I’ll wait for it.Remesure printed `SUCCESS:delivered`. I’ll pull this run’s matrix numbers and write an honest return plus a matching per-unit manifest.This remesure matches the packed science (21 canaries, 67 argv divergences). I’ll pack the catalog artifact from this matrix so the receipt is from this handoff, then remesure while the cache is still warm.Pack and remesure both passed. I’ll read the new manifest and write the return from this handoff’s live numbers.Manifest row already matches the packed artifact. I’ll write this handoff’s `SUBAGENT-RETURN.json`, then remesure once more after the write.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the adapters under `command-center/_adv0031/`.
+
+This handoff:
+- Re-ran the live 11×21 matrix (cache miss): `generated_at 2026-08-19T20:56:48Z`, wall **93.38s**, **231** runs, **21** canary fires, **67** argv divergences, **501** watcher records, warmup decoy captured in 0.018s, benign control pass.
+- Packed the catalog artifact from **this** matrix: `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — **1,394,729** bytes, `state=SUCCESS`, `report.kind=injection-corpus-result`, LF sha256 `2fa24eb56e8f1dea61bf8640afc2c0b52017b48baa839b9700eb3fb55a5101c2`. Schema errors **0**. `artifact_delivered=true`.
+- Wrote per-unit `UNIT-ARTIFACT-MANIFEST.json` (path + sha256 match) and `SUBAGENT-RETURN.json`.
+- Re-ran `python command-center/p2-wave/_measure_one_delivered.py ADV-0031` after those writes: **SUCCESS:delivered**.
+
+Science on this Linux host: **CONFIRMED** execution injection on STRING-COMMAND / HERE-STRING / unquoted-IEX (A3, A3B, A4, A7, A9B). **REFUTED** on ARGV-ARRAY (A1, A2, A5, A8). A9 quoted IEX is **PARTIAL**. A6 is **NOT-CHECKED**.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement is still unmet; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now sees this unit as delivered.
+
+===== launch 2026-08-19T20:59:03Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit's current artifacts, then resume from there instead of rebuilding.Existing probe files and the measurement contract are next — I'll read those before changing anything.A prior handoff already claims delivery. I'll remeasure now and inspect the live artifact, probes, and catalog unit against that claim.I'll inspect the matrix cache and the current catalog artifact, then re-run the live measure.I'll inspect `artifact_delivered` and the packed receipt, then start the live measure in parallel.Cache is still valid, so I’m running the live measure now before it expires.Measure-one printed `SUCCESS:delivered`. Next I’ll confirm hashes, schema, and raws, then write this handoff’s return files.Measure already passed. I’ll check the harvest return schema, then write this handoff’s artifacts.Writing the per-unit manifest and this handoff’s return, then remesuring after the write.Post-write remesure is next. The cache may have expired, so this can take a couple of minutes if the matrix rebuilds.Post-write remesure passed after a full matrix rebuild. I’ll compare the new matrix to the packed artifact and refresh the return if they still match.The rebuilt matrix matches the prior science. I'll pack the catalog artifact from this handoff's live run so the receipt is not stale.Post-pack remesure is green. Updating `SUBAGENT-RETURN.json` with this handoff’s live matrix, new hash, and remesure evidence.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the `_adv0031` adapters.
+
+This handoff re-drove the live 11×21 matrix (cache miss after the first remesure), packed the catalog artifact from that matrix, wrote the per-unit manifest, and remesured.
+
+| Check | Result |
+|---|---|
+| Named probes | `probe1_canary.py` exit 0, `probe2_ostable.py` exit 0 |
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` `state=SUCCESS` `report.kind=injection-corpus-result` 1,394,350 B |
+| Schema | `ready_units.artifact_delivered=true` why=`delivered` (not self-BLOCKED) |
+| Manifest | `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` sha256 match `549f7cae0f17867da15f2e497c1c8ed702db6873150b715108e0ccc90483c726` |
+| Science | 231 runs, 21 canary fires, 67 argv divergences, benign control PASS, NC1–NC5 and NC7 both-states live |
+
+**Science (this Linux host):** YES on STRING-COMMAND / HERE-STRING / unquoted-IEX (A3, A3B, A4, A7, A9B). NO on ARGV-ARRAY (A1, A2, A5, A8). A9 quoted IEX PARTIAL. A6 NOT-CHECKED.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery.
+
+Residuals (not G-1 gates): catalog two-vendor reviewer requirement; `ready_units.py` `CONTROL_BAD` still names this now-delivered unit.
+
+===== launch 2026-08-19T21:05:42Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and resume from whatever SUBAGENT-RETURN already records, without touching git or the global catalog.The probe tree is already populated. Next I’ll read the return files, handoff, and the measure script so I resume from the current contract rather than rebuilding.The last return already claims SUCCESS. I’ll re-run the named probes and `_measure_one_delivered.py` against the live files so we know whether that still holds.I’ll inspect the catalog unit, `ready_units` predicate, and matrix cache next, then re-run the live measure.The prior return already claims SUCCESS. I’ll check artifact state, matrix cache age, and catalog requirements, then re-run the live measure.Cache is stale, so I’ll re-run the named probes sequentially, then pack from this matrix and measure. Parallel matrix runs would collide in the shared work directory.Probe 1 is still running the 11×21 matrix. I’ll wait for it to finish before packing or measuring.Probe 1 passed (231 runs, canaries, NC1 live). Probe 2 should hit the fresh cache; I’ll run it next, then pack.Both named probes exited 0. Next I’ll pack the catalog artifact from this matrix, then run the G-1 measure while the cache is still warm.Pack wrote a new SUCCESS artifact and per-unit manifest. Measuring now while the matrix cache is still valid.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this run’s hashes and probe exits, and keep the per-unit manifest the packer already wrote.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree. Did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the adapters under `command-center/_adv0031/`.
+
+This handoff re-drove the live 11×21 matrix (cache TTL had expired):
+
+| Check | Result |
+|---|---|
+| `probe1_canary.py` | exit 0, 231 runs, 21 canary fires, NC1 live, benign control pass |
+| `probe2_ostable.py` | exit 0, 210 captured cells, 67 argv divergences, 501 watcher records, warmup decoy captured |
+| Catalog artifact | `state=SUCCESS`, `report.kind=injection-corpus-result`, schema errors=0 |
+| Per-unit manifest | path + sha256 + bytes match |
+
+Packed from this matrix:
+
+- Artifact: `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` (1,394,729 B, LF sha256 `672cd720629341c6841a6261e53ec5270953970fe011df58748609c348f99959`)
+- Manifest: `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+- Return: `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+
+Science on this Linux host: **YES** on STRING-COMMAND / HERE-STRING / unquoted-IEX (A3, A3B, A4, A7, A9B canaries). **NO** on ARGV-ARRAY (A1/A2/A5/A8). A9 quoted IEX is PARTIAL. A6 is NOT-CHECKED (no sleeper). That is a split by adapter shape, not two independent refutes of the same structural reason, so the unit was not parked.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery.
+
+Residual (not a G-1 gate): catalog two-vendor reviewer_requirement; `ready_units.py` `CONTROL_BAD` still names ADV-0031.
+
+===== launch 2026-08-19T21:12:34Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the unit's return/manifest files so I can resume rather than rebuild.Existing probe files are in place. Next I’ll read the return, manifest, handoff, and the measurement contract.The tree already claims success. I’ll inspect the measurement contract and current artifact so I can re-run the named probes instead of trusting the previous write.I’ll check the catalog unit, artifact state, matrix cache, and packer next so we know what still has to be live-green.The prior return already claims delivery. I’ll verify the live artifact, cache, and schema, then re-run the named probes on this handoff.Cache is past TTL, so I’ll re-run the named probes, pack from this matrix, then measure. The current artifact already validates as SUCCESS.Probe 1 is still running the 11×21 matrix. I’ll wait for it to finish.Probe 1 passed (231 rows, 21 canaries). Running probe 2 from the cache, then packing.Both probes exited 0. Packing the catalog artifact from this matrix, then measuring while the cache is still warm.Measure printed `SUCCESS:delivered`. I’ll write this handoff’s return file against the packed manifest, then remasure after the write.Writing the return file from this handoff’s live numbers, then remesuring so the write is covered.**SUCCESS:delivered** `ADV-0031 predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing ADV-0031 probe tree (did not scrap `probe1_canary.py`, `probe2_ostable.py`, `lib/matrix.py`, or the adapters). Cache TTL had expired, so this handoff re-drove the live 11×21 matrix and packed a new SUCCESS catalog artifact from that run.
+
+| Check | Result |
+|---|---|
+| `probe1_canary.py` | exit 0, 231 rows, 21 canary fires, benign PASS, NC1 live, warmup captured |
+| `probe2_ostable.py` | exit 0, 210 captured cells, 67 argv divergences, 501 watcher records |
+| Matrix | `2026-08-19T21:23:54Z`, wall 92.56s |
+| Artifact | `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — `state=SUCCESS`, `report.kind=injection-corpus-result`, 1,394,727 B, LF sha256 `06996a32c03aee662d7d8ed9211bce83a2dd6011602befadf062a2fcaf2963c2` |
+| Schema | `validate_artifact` errors=0; `ready_units.artifact_delivered=true why=delivered` |
+| Per-unit manifest | path + sha256 + bytes match (`generated_at` 2026-08-19T21:25:12Z) |
+| `_measure_one_delivered.py ADV-0031` | exit 0 after pack **and** after writing the return file |
+
+Written:
+- `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close / p2-cloud-ok-deliver. This is not cloud `ok=true`.
+
+**Science (this host):** execution injection CONFIRMED on A3/A3B/A4/A7/A9B. REFUTED (SAFE) on ARGV-ARRAY A1/A2/A5/A8. A9 quoted IEX PARTIAL. A6 NOT-CHECKED.
+
+**Residuals (not G-1 gates):** catalog two-vendor `reviewer_requirement`; `ready_units.py` `CONTROL_BAD` still names ADV-0031, so `--self-test` now wants `False` and gets `True`. Required fix for that detector is retarget `CONTROL_BAD` to a different permanently-BLOCKED unit — not done here.
+
+===== launch 2026-08-19T21:30:14Z attempt=1 =====
+I'll start from the existing ADV-0031 probe tree and the measurement contract, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return files, catalog row, and how a delivered unit is supposed to look.The return file already claims SUCCESS from earlier today. I’ll re-measure live and inspect the catalog/probes so we don’t trust a stale claim.Probes and packer are already in place. I’ll locate the catalog row and `artifact_delivered` predicate, then re-run the live measure.I’ll read the delivery predicate and catalog row, then run the live measure so we have this session’s result rather than a stale SUCCESS.

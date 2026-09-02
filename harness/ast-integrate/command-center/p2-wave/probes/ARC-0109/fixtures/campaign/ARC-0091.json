@@ -1,0 +1,537 @@
+{
+  "$comment": "SUCCESS:ARC-0091 \u2014 cross-vendor adapter: capability negotiation record (computed intersection), GUARANTEED / BEST-EFFORT / VENDOR-ONLY tiering, MANDATORY abstraction-leak declaration, prompt by file never inline (Windows CreateProcess 32,767), blocking-dispatch, terminal-state result marker.",
+  "$defs": {
+    "and_gate": {
+      "additionalProperties": false,
+      "properties": {
+        "exit_code": {
+          "type": "integer"
+        },
+        "output_file_nonempty": {
+          "type": "boolean"
+        },
+        "output_parsable": {
+          "type": "boolean"
+        },
+        "schema_valid": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "exit_code",
+        "output_file_nonempty",
+        "output_parsable",
+        "schema_valid"
+      ],
+      "type": "object"
+    },
+    "capability_row": {
+      "additionalProperties": false,
+      "properties": {
+        "axis": {
+          "maxLength": 64,
+          "minLength": 2,
+          "type": "string"
+        },
+        "computed_not_asserted": {
+          "const": true,
+          "type": "boolean"
+        },
+        "intersection": {
+          "items": {
+            "type": [
+              "string",
+              "integer",
+              "boolean"
+            ]
+          },
+          "type": [
+            "array",
+            "integer",
+            "string",
+            "boolean",
+            "null"
+          ]
+        },
+        "per_vendor": {
+          "additionalProperties": false,
+          "properties": {
+            "anthropic": true,
+            "openai": true
+          },
+          "required": [
+            "anthropic",
+            "openai"
+          ],
+          "type": "object"
+        },
+        "tier": {
+          "$ref": "#/$defs/tier"
+        }
+      },
+      "required": [
+        "axis",
+        "tier",
+        "per_vendor",
+        "intersection",
+        "computed_not_asserted"
+      ],
+      "type": "object"
+    },
+    "dispatch": {
+      "additionalProperties": false,
+      "properties": {
+        "abstraction_leaks": {
+          "$ref": "#/$defs/leak_list"
+        },
+        "and_gate": {
+          "$ref": "#/$defs/and_gate"
+        },
+        "argv": {
+          "items": {
+            "maxLength": 8192,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "background": {
+          "const": false,
+          "type": "boolean"
+        },
+        "command_contains_prompt_body": {
+          "const": false,
+          "type": "boolean"
+        },
+        "dispatch_mode": {
+          "const": "blocking_foreground",
+          "type": "string"
+        },
+        "output_last_message": {
+          "type": "object"
+        },
+        "output_path": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "type": "string"
+        },
+        "prompt_file_written": {
+          "type": "boolean"
+        },
+        "prompt_inline_chars": {
+          "maximum": 0,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "prompt_path": {
+          "maxLength": 8192,
+          "minLength": 1,
+          "type": "string"
+        },
+        "prompt_transport": {
+          "const": "file",
+          "type": "string"
+        },
+        "reason": {
+          "maxLength": 1024,
+          "type": "string"
+        },
+        "terminal_kind": {
+          "$ref": "#/$defs/terminal_kind"
+        },
+        "terminal_marker": {
+          "maxLength": 256,
+          "minLength": 8,
+          "pattern": "^(SUCCESS|FAILED|SEVERED|TIMEOUT):.+$",
+          "type": "string"
+        },
+        "unit_id": {
+          "pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+          "type": "string"
+        },
+        "vendor": {
+          "enum": [
+            "anthropic",
+            "openai"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "vendor",
+        "unit_id",
+        "terminal_kind",
+        "terminal_marker",
+        "prompt_transport",
+        "dispatch_mode",
+        "background",
+        "prompt_file_written",
+        "prompt_inline_chars",
+        "command_contains_prompt_body",
+        "abstraction_leaks",
+        "and_gate"
+      ],
+      "type": "object"
+    },
+    "leak": {
+      "additionalProperties": false,
+      "properties": {
+        "field": {
+          "maxLength": 256,
+          "minLength": 2,
+          "type": "string"
+        },
+        "honored": {
+          "type": "boolean"
+        },
+        "reason": {
+          "maxLength": 1024,
+          "minLength": 8,
+          "type": "string"
+        },
+        "tier": {
+          "enum": [
+            "GUARANTEED",
+            "BEST-EFFORT",
+            "VENDOR-ONLY"
+          ],
+          "type": "string"
+        },
+        "vendor": {
+          "enum": [
+            "anthropic",
+            "openai"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "field",
+        "vendor",
+        "reason",
+        "honored",
+        "tier"
+      ],
+      "type": "object"
+    },
+    "leak_list": {
+      "contains": {
+        "properties": {
+          "honored": {
+            "const": false
+          }
+        },
+        "required": [
+          "honored"
+        ],
+        "type": "object"
+      },
+      "description": "Never empty. Never all honored=true. Two vendors are never identical, so at least one leak must remain un-honored.",
+      "items": {
+        "$ref": "#/$defs/leak"
+      },
+      "maxItems": 64,
+      "minContains": 1,
+      "minItems": 1,
+      "type": "array"
+    },
+    "negotiation": {
+      "additionalProperties": false,
+      "properties": {
+        "capabilities": {
+          "items": {
+            "$ref": "#/$defs/capability_row"
+          },
+          "maxItems": 16,
+          "minItems": 7,
+          "type": "array"
+        },
+        "intersection_computed": {
+          "const": true,
+          "type": "boolean"
+        },
+        "silent_downgrade_attempted": {
+          "const": false,
+          "type": "boolean"
+        },
+        "tier_assignment": {
+          "additionalProperties": {
+            "$ref": "#/$defs/tier"
+          },
+          "minProperties": 8,
+          "type": "object"
+        },
+        "unit_id": {
+          "pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+          "type": "string"
+        },
+        "unit_minimum_tier": {
+          "$ref": "#/$defs/tier"
+        },
+        "unit_minimum_tier_declared": {
+          "type": "boolean"
+        },
+        "vendors": {
+          "items": {
+            "enum": [
+              "anthropic",
+              "openai"
+            ],
+            "type": "string"
+          },
+          "maxItems": 8,
+          "minItems": 2,
+          "type": "array"
+        }
+      },
+      "required": [
+        "unit_id",
+        "unit_minimum_tier",
+        "unit_minimum_tier_declared",
+        "vendors",
+        "capabilities",
+        "intersection_computed",
+        "silent_downgrade_attempted",
+        "tier_assignment"
+      ],
+      "type": "object"
+    },
+    "runtime": {
+      "additionalProperties": false,
+      "properties": {
+        "kind": {
+          "const": "blocking-subprocess",
+          "type": "string"
+        },
+        "live_vendor_api": {
+          "const": false,
+          "type": "boolean"
+        },
+        "note": {
+          "maxLength": 1024,
+          "minLength": 8,
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind",
+        "live_vendor_api",
+        "note"
+      ],
+      "type": "object"
+    },
+    "terminal_kind": {
+      "enum": [
+        "SUCCESS",
+        "FAILED",
+        "SEVERED",
+        "TIMEOUT"
+      ],
+      "type": "string"
+    },
+    "tier": {
+      "enum": [
+        "GUARANTEED",
+        "BEST-EFFORT",
+        "VENDOR-ONLY"
+      ],
+      "type": "string"
+    }
+  },
+  "$id": "https://ast-integrate.invalid/command-center/phase4/contracts/ARC-0091.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "abstraction_leak_declaration": {
+    "consumer_call_site": "command-center/p2-wave/probes/ARC-0091/adapter.py:declare_leaks",
+    "mandatory": true,
+    "shape": {
+      "field": "dotted capability path",
+      "honored": "false when the adapter does not pretend the other vendor can satisfy it",
+      "reason": "why the field is not portable",
+      "tier": "GUARANTEED | BEST-EFFORT | VENDOR-ONLY",
+      "vendor": "anthropic | openai"
+    },
+    "why": "No two vendors are identical. An empty leak list, or a list where every leak is honored=true, is schema-invalid."
+  },
+  "additionalProperties": false,
+  "blocking_dispatch": {
+    "and_gate": "SUCCESS only when exit_code==0 AND output_file_nonempty AND output_parsable. Empty or unparsable output is SEVERED.",
+    "background": false,
+    "dispatch_mode": "blocking_foreground",
+    "on_background_request": "FAILED reason=background-dispatch-refused",
+    "rule": "blocking foreground only"
+  },
+  "capability_negotiation_record": {
+    "axes": [
+      "tools",
+      "context_window",
+      "permission_model",
+      "streaming",
+      "schema_support",
+      "prompt_transport",
+      "blocking_dispatch"
+    ],
+    "computed_not_asserted": true,
+    "intersection_examples": {
+      "blocking_dispatch": true,
+      "context_window": "min(per_vendor)",
+      "permission_model": "null (VENDOR-ONLY; no portable intersection)",
+      "prompt_transport": "file",
+      "schema_support": "boolean AND",
+      "streaming": "boolean AND",
+      "tools": "set intersection"
+    },
+    "rule": "Negotiate by computing the intersection of declared vendor capabilities. Do not assert an intersection. silent_downgrade_attempted must stay false: a GUARANTEED-tier gap is FAILED with reason silent-downgrade-refused:<gap>, never a quieter SUCCESS."
+  },
+  "completion_sentinel": "SUCCESS:ARC-0091",
+  "consumer_call_site": {
+    "adapter": "command-center/p2-wave/probes/ARC-0091/adapter.py",
+    "note": "Probes are the consumer-side reviewer: one real catalog unit (ARC-0016) through two fixture vendors. live_vendor_api=false.",
+    "probe1": "command-center/p2-wave/probes/ARC-0091/probe1_two_vendor.py",
+    "probe2": "command-center/p2-wave/probes/ARC-0091/probe2_leaks_and_returns.py",
+    "vendor_cli": "command-center/p2-wave/probes/ARC-0091/vendor_cli.py"
+  },
+  "contract_unit": "ARC-0091",
+  "description": "Specify the cross-vendor adapter contract: the capability negotiation record, the guaranteed / best-effort / vendor-only tiering, the MANDATORY abstraction-leak declaration a vendor adapter must publish, the prompt transport rule (by file, never inline, because the Windows command line caps at 32,767 characters), the blocking-dispatch requirement, and the terminal-state result marker every dispatch must emit. SUCCESS:ARC-0091",
+  "missing_inputs": {
+    "_USER-PROMPTS.md": false,
+    "command-center/phase3/A6/DESIGN.json": false,
+    "command-center/phase3/ARCHITECTURE-RATIFICATION.json": false,
+    "command-center/phase3/WINNING-ARCHITECTURE.json": false,
+    "note": "Phase-3 architecture packets are absent on this worktree (phase3/.gitkeep only). This contract is specified from the catalog question, the live adapter call site, and TST-0045 dispatch rules. It does not claim owner ratification."
+  },
+  "owner_approval_required": false,
+  "phase": "4",
+  "prompt_transport": {
+    "argv_must_contain": "--prompt-file",
+    "argv_must_not_contain": [
+      "--background",
+      "the prompt body"
+    ],
+    "prompt_inline_chars": 0,
+    "rule": "by file, never inline",
+    "why": "Windows CreateProcess command line caps at 32,767 characters. Inlining a 33k+ prompt is os error 206. The adapter writes --prompt-file <path> and refuses prompt_inline.",
+    "windows_createprocess_char_ceiling": 32767
+  },
+  "properties": {
+    "abstraction_leaks": {
+      "$ref": "#/$defs/leak_list"
+    },
+    "blocking_dispatch_rule": {
+      "const": "blocking_foreground",
+      "type": "string"
+    },
+    "contract_id": {
+      "const": "ARC-0091",
+      "type": "string"
+    },
+    "dispatches": {
+      "items": {
+        "$ref": "#/$defs/dispatch"
+      },
+      "maxItems": 8,
+      "minItems": 2,
+      "type": "array"
+    },
+    "negotiation": {
+      "$ref": "#/$defs/negotiation"
+    },
+    "prompt_transport_rule": {
+      "const": "file",
+      "type": "string"
+    },
+    "runtime": {
+      "$ref": "#/$defs/runtime"
+    },
+    "unit_id": {
+      "maxLength": 12,
+      "minLength": 7,
+      "pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+      "type": "string"
+    },
+    "windows_createprocess_char_ceiling": {
+      "const": 32767,
+      "type": "integer"
+    }
+  },
+  "required": [
+    "contract_id",
+    "unit_id",
+    "negotiation",
+    "dispatches",
+    "windows_createprocess_char_ceiling",
+    "prompt_transport_rule",
+    "blocking_dispatch_rule",
+    "abstraction_leaks",
+    "runtime"
+  ],
+  "reviewer": {
+    "independent": true,
+    "notes": "probe1 runs ARC-0016 on anthropic and openai fixtures; probe2 is the leak-completeness and no-silent-return control. An independent human contract reviewer is residual (catalog owner_approval_required=false).",
+    "reviewer_id": "ARC-0091-probe2-consumer-call-site",
+    "role": "consumer-call-site",
+    "verdict": "PASS"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "live Anthropic or OpenAI HTTP was called",
+      "owner ratification (ARC-0077) exists on this worktree",
+      "secret values were read or printed"
+    ]
+  },
+  "sentinel": "SUCCESS:ARC-0091",
+  "state": "SUCCESS",
+  "terminal_state_result_marker": {
+    "form": "{SUCCESS|FAILED|SEVERED|TIMEOUT}:{unit_id}",
+    "kinds": [
+      "SUCCESS",
+      "FAILED",
+      "SEVERED",
+      "TIMEOUT"
+    ],
+    "no_silent_return": "_dispatch_impl returns only emit_terminal(...). dispatch() wraps a missing/blank marker as FAILED silent-return-caught.",
+    "rule": "every dispatch return emits a marker"
+  },
+  "tests": [
+    {
+      "id": "T1-two-vendor-terminal-negotiation",
+      "name": "One real unit through two vendors; both emit a terminal marker and a computed negotiation record"
+    },
+    {
+      "id": "T2-leaks-and-no-silent-return",
+      "name": "Empty leak declaration fails; every _dispatch_impl return emits a marker"
+    }
+  ],
+  "tiering": {
+    "BEST-EFFORT": "Intersection is recorded. A miss does not fail the dispatch.",
+    "GUARANTEED": "Must hold on every vendor in the negotiation set. A miss is loud FAILED, not a silent drop to BEST-EFFORT.",
+    "VENDOR-ONLY": "Native names, flags, and evaluators. Never required of the other vendor at GUARANTEED tier.",
+    "assignment": {
+      "abstraction_leak_declaration": "GUARANTEED",
+      "and_gate": "GUARANTEED",
+      "assigned_model_vendor_role.model": "VENDOR-ONLY",
+      "assigned_model_vendor_role.vendor": "VENDOR-ONLY",
+      "completion_sentinel": "GUARANTEED",
+      "context_window": "BEST-EFFORT",
+      "dispatch_mode": "GUARANTEED",
+      "id": "GUARANTEED",
+      "ignore_user_config": "VENDOR-ONLY",
+      "minimum_tier": "GUARANTEED",
+      "native_tool_names": "VENDOR-ONLY",
+      "output_path": "GUARANTEED",
+      "output_schema": "GUARANTEED",
+      "prompt_transport": "GUARANTEED",
+      "schema_validity": "GUARANTEED",
+      "session_resume": "BEST-EFFORT",
+      "streaming_progress": "BEST-EFFORT",
+      "terminal_state_marker": "GUARANTEED",
+      "timeout_precision": "BEST-EFFORT",
+      "vendor_thread_id": "VENDOR-ONLY"
+    }
+  },
+  "title": "Cross-vendor adapter contract: negotiation record and mandatory abstraction-leak declaration",
+  "type": "object",
+  "unit_id": "ARC-0091"
+}

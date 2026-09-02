@@ -1,0 +1,346 @@
+{
+ "schema_version": 1,
+ "unit_id": "IMP-0020",
+ "id": "IMP-0020",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "sentinel": "SUCCESS:IMP-0020",
+ "completion_sentinel": "SUCCESS:IMP-0020",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0020; rules/common/windows-shell.md#1 and #11; _USER-PROMPTS.md:11309",
+ "title": "Argument-scoped path-conversion guard for MSYS environments",
+ "min_bytes_threshold": 128,
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "output_schema_present": true,
+ "schema_note": "Catalog names command-center/schema/receipt.schema.json. That file is still absent in this worktree (CC-0002). This receipt is honest JSON for G-1; it is not a claim that the receipt schema was authored here.",
+ "question": "Implement a guard that applies MSYS_NO_PATHCONV=1 ONLY around arguments that are git revisions/pathspecs, never globally \u2014 a global suppression was measured to silently break a legitimate /c/Users/... clone argument, producing a false 'nothing happened' across every downstream probe.",
+ "implementation": {
+  "module": "tools/plugin/pathconv_guard.py",
+  "echo_child": "tools/plugin/pathconv_echo.py",
+  "tests": "tools/plugin/tests/test_pathconv_guard.py",
+  "spawn": "argv-array subprocess (no shell=True)",
+  "scoped_mechanism": "MSYS2_ARG_CONV_EXCL set to revision/pathspec prefixes only; MSYS_NO_PATHCONV is never set and is stripped if inherited",
+  "global_mechanism_negative_control": "MSYS_NO_PATHCONV=1 plus MSYS2_ARG_CONV_EXCL=*",
+  "linux_note": "This worktree is Linux. Git Bash MSYS conversion is simulated from the Git-for-Windows argument heuristic so both directions run live here. A real MSYS host would set the same env and let the runtime convert; probes force the simulator for determinism."
+ },
+ "fixtures": {
+  "revision_arg": "origin/main:path/to/file",
+  "posix_path_arg": "/c/Users/imp0020/cloned.txt",
+  "windows_path_arg": "C:\\Users\\imp0020\\cloned.txt",
+  "clone_marker_bytes": 22
+ },
+ "measured_scoped_git_bash": {
+  "mode": "scoped",
+  "shell": "git-bash",
+  "child_argv": [
+   "git",
+   "show",
+   "origin/main:path/to/file",
+   "C:\\Users\\imp0020\\cloned.txt"
+  ],
+  "child_exit": 0,
+  "revision_intact": true,
+  "path_converted": true,
+  "file_exists": true,
+  "file_bytes": 22,
+  "expected_clone": "/tmp/imp0020-emit-x0426guk/scoped/C/Users/imp0020/cloned.txt",
+  "env_excerpt": {
+   "MSYS2_ARG_CONV_EXCL": "origin/main:path/to/file"
+  },
+  "msys_no_pathconv_set": false
+ },
+ "measured_global_negative_control": {
+  "mode": "global",
+  "shell": "git-bash",
+  "child_argv": [
+   "git",
+   "show",
+   "origin/main:path/to/file",
+   "/c/Users/imp0020/cloned.txt"
+  ],
+  "child_exit": 0,
+  "revision_intact": true,
+  "path_converted": false,
+  "file_exists": false,
+  "file_bytes": 0,
+  "expected_clone": "/tmp/imp0020-emit-x0426guk/global/C/Users/imp0020/cloned.txt",
+  "env_excerpt": {
+   "MSYS_NO_PATHCONV": "1",
+   "MSYS2_ARG_CONV_EXCL": "*"
+  },
+  "msys_no_pathconv_set": true
+ },
+ "measured_unprotected": {
+  "mode": "none",
+  "shell": "git-bash",
+  "child_argv": [
+   "git",
+   "show",
+   "origin\\main;path\\to\\file",
+   "C:\\Users\\imp0020\\cloned.txt"
+  ],
+  "child_exit": 0,
+  "revision_intact": false,
+  "path_converted": true,
+  "file_exists": true,
+  "file_bytes": 22,
+  "expected_clone": "/tmp/imp0020-emit-x0426guk/none/C/Users/imp0020/cloned.txt",
+  "env_excerpt": {},
+  "msys_no_pathconv_set": false
+ },
+ "measured_pwsh7_contrast": {
+  "mode": "scoped",
+  "shell": "pwsh7",
+  "child_argv": [
+   "git",
+   "show",
+   "origin/main:path/to/file",
+   "/c/Users/imp0020/cloned.txt"
+  ],
+  "child_exit": 0,
+  "revision_intact": true,
+  "path_converted": false,
+  "file_exists": false,
+  "file_bytes": 0,
+  "expected_clone": "/tmp/imp0020-emit-x0426guk/pwsh/C/Users/imp0020/cloned.txt",
+  "env_excerpt": {
+   "MSYS2_ARG_CONV_EXCL": "origin/main:path/to/file"
+  },
+  "msys_no_pathconv_set": false
+ },
+ "scoped_env": {
+  "MSYS_NO_PATHCONV": null,
+  "MSYS2_ARG_CONV_EXCL": "origin/main:path/to/file"
+ },
+ "both_directions": {
+  "revision_unconverted": true,
+  "posix_path_converted": true,
+  "clone_file_exists": true,
+  "verified_by_file_not_exit_code": true,
+  "both_in_one_run": true
+ },
+ "negative_control": {
+  "id": "global-msys-no-pathconv",
+  "kind": "known-broken-fixture",
+  "description": "Global MSYS_NO_PATHCONV=1 preserves the revision argument but leaves /c/Users/... unconverted; the clone file is absent while child exit remains 0 (silent no-op).",
+  "fired_on_bad_state": true,
+  "silent_on_good_state": true,
+  "bad_state_output": "file_exists=false child_exit=0",
+  "good_state_output": "file_exists=true revision_intact=true"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0020.json",
+   "role": "primary",
+   "exists": true,
+   "eol": "LF",
+   "bytes": 12484,
+   "sha256": "6538364f879e037367c056a1cca8ada17ecea14275fb22829416f3782382dc7f"
+  },
+  {
+   "path": "tools/plugin/pathconv_guard.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 13029,
+   "sha256": "4e246b4be32cf0a10bed82be87c39ba55f0e54ce354acec196eee7071455cd68"
+  },
+  {
+   "path": "tools/plugin/pathconv_echo.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 1666,
+   "sha256": "e242e5bc0bf75ca7a5d3468566182999809baa09ca00938af16803364507c86c"
+  },
+  {
+   "path": "tools/plugin/tests/test_pathconv_guard.py",
+   "role": "tests",
+   "exists": true,
+   "bytes": 6637,
+   "sha256": "0830963b5c6b05d70a8be0adb824c76b797fe5af54a51f584213cb870709eb57"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "In one Git-Bash-simulated spawn, origin/main:path/to/file arrives unconverted at the child AND /c/Users/imp0020/cloned.txt is converted to C:\\Users\\imp0020\\cloned.txt with the clone marker file present at the spec sandbox path.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/plugin/tests/test_pathconv_guard.py::test_both_directions_in_one_run",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py::test_both_directions_in_one_run",
+     "raw_output": "{\"child_argv\": [\"git\", \"show\", \"origin/main:path/to/file\", \"C:\\\\Users\\\\imp0020\\\\cloned.txt\"], \"child_exit\": 0, \"env_excerpt\": {\"MSYS2_ARG_CONV_EXCL\": \"origin/main:path/to/file\"}, \"expected_clone\": \"/tmp/imp0020-emit-x0426guk/scoped/C/Users/imp0020/cloned.txt\", \"file_bytes\": 22, \"file_exists\": true, \"mode\": \"scoped\", \"msys_no_pathconv_set\": false, \"path_converted\": true, \"revision_intact\": true, \"shell\": \"git-bash\"}",
+     "exit_code": 0,
+     "fingerprint": "8bce46907619b98a6e52d34d75ca9169"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "expected_clone_sandbox_path after scoped invoke",
+     "raw_output": "{\"file_exists\": true, \"marker_bytes\": 22, \"spec_map\": \"C:\\\\Users\\\\imp0020\\\\cloned.txt\", \"windows_arg\": \"C:\\\\Users\\\\imp0020\\\\cloned.txt\"}",
+     "exit_code": 0,
+     "fingerprint": "787b06062d6f7484622e7e0d40e29cd3"
+    }
+   ]
+  },
+  {
+   "claim": "Global MSYS_NO_PATHCONV=1 is a discriminating negative control: the revision still survives, the POSIX path is not converted, the clone file is absent, and exit code 0 does not hide the miss.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/plugin/tests/test_pathconv_guard.py::test_global_suppression_breaks_path_arg",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py::test_global_suppression_breaks_path_arg",
+     "raw_output": "{\"child_argv\": [\"git\", \"show\", \"origin/main:path/to/file\", \"/c/Users/imp0020/cloned.txt\"], \"child_exit\": 0, \"env_excerpt\": {\"MSYS2_ARG_CONV_EXCL\": \"*\", \"MSYS_NO_PATHCONV\": \"1\"}, \"expected_clone\": \"/tmp/imp0020-emit-x0426guk/global/C/Users/imp0020/cloned.txt\", \"file_bytes\": 0, \"file_exists\": false, \"mode\": \"global\", \"msys_no_pathconv_set\": true, \"path_converted\": false, \"revision_intact\": true, \"shell\": \"git-bash\"}",
+     "exit_code": 0,
+     "fingerprint": "ce7d209949f5f13140c339c9e5f44bef"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "clone dest absent under global MSYS_NO_PATHCONV",
+     "raw_output": "{\"child_exit\": 0, \"file_exists\": false, \"posix_arg_unconverted\": \"/c/Users/imp0020/cloned.txt\"}",
+     "exit_code": 0,
+     "fingerprint": "3dc1cd8c38855c0015e418da1e590ccb"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "test_both_directions_in_one_run",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_global_suppression_breaks_path_arg",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_revision_arg_preserved",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_path_arg_converted",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_file_existence_not_exit_code",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_scoped_clears_inherited_global_suppression",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_pwsh7_has_no_msys_trap",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_unprotected_mangles_revision",
+   "command": "python3 -B tools/plugin/tests/test_pathconv_guard.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "global-suppression-breaks-path-arg",
+   "kind": "known-broken-fixture",
+   "description": "Global suppression mode must break the path-arg case, proving the test discriminates scoped vs global.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": {
+    "mode": "global",
+    "shell": "git-bash",
+    "child_argv": [
+     "git",
+     "show",
+     "origin/main:path/to/file",
+     "/c/Users/imp0020/cloned.txt"
+    ],
+    "child_exit": 0,
+    "revision_intact": true,
+    "path_converted": false,
+    "file_exists": false,
+    "file_bytes": 0,
+    "expected_clone": "/tmp/imp0020-emit-x0426guk/global/C/Users/imp0020/cloned.txt",
+    "env_excerpt": {
+     "MSYS_NO_PATHCONV": "1",
+     "MSYS2_ARG_CONV_EXCL": "*"
+    },
+    "msys_no_pathconv_set": true
+   },
+   "good_state_output": {
+    "mode": "scoped",
+    "shell": "git-bash",
+    "child_argv": [
+     "git",
+     "show",
+     "origin/main:path/to/file",
+     "C:\\Users\\imp0020\\cloned.txt"
+    ],
+    "child_exit": 0,
+    "revision_intact": true,
+    "path_converted": true,
+    "file_exists": true,
+    "file_bytes": 22,
+    "expected_clone": "/tmp/imp0020-emit-x0426guk/scoped/C/Users/imp0020/cloned.txt",
+    "env_excerpt": {
+     "MSYS2_ARG_CONV_EXCL": "origin/main:path/to/file"
+    },
+    "msys_no_pathconv_set": false
+   }
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "IMP-0020-probe2-global-control",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "note": "Both directions re-run under the Git Bash simulator. pwsh7 is the contrast shell: the MSYS trap does not exist there, so a pwsh7-only run cannot certify the guard."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0020/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/probes/IMP-0020/probe1_both_directions.py",
+   "artifact_path": "command-center/receipts/IMP-0020.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0
+  },
+  {
+   "consumer": "command-center/p2-wave/probes/IMP-0020/probe2_global_control.py",
+   "artifact_path": "command-center/receipts/IMP-0020.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "A native Git-for-Windows Git Bash host was not available on this Linux worktree; conversion is the in-process heuristic plus a live child argv echo and filesystem write.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Re-run tools/plugin/tests/test_pathconv_guard.py under Git Bash on Windows with force_simulate=False."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "timestamps": {
+  "started_at": "2026-08-24T20:42:00Z",
+  "ended_at": "2026-08-25T00:32:04Z"
+ },
+ "cloud_ok": false
+}

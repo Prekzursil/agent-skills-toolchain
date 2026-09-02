@@ -1,0 +1,708 @@
+{
+  "accepted": {
+    "capabilities": [
+      "blocking-fan-in",
+      "confidence-threshold",
+      "deterministic-replay",
+      "extract-text",
+      "fetch-url",
+      "independent-first-pass",
+      "publish-record",
+      "schema-validate",
+      "sequential-schedule",
+      "synthesise-draft",
+      "token-budget"
+    ],
+    "fused_id": "union(wf-alpha,wf-beta)",
+    "fused_workflow": {
+      "fusion": {
+        "collision_rule": "qualify-never-overwrite",
+        "conflict_policy": "refuse-HARD-mechanism-pairs",
+        "operator": "union",
+        "sources": [
+          "wf-alpha",
+          "wf-beta"
+        ]
+      },
+      "gates": [
+        {
+          "id": "confidence-floor",
+          "mechanisms": [
+            "confidence-threshold"
+          ],
+          "rule": "score >= 0.8",
+          "source_workflow": "wf-alpha"
+        },
+        {
+          "id": "budget-cap",
+          "mechanisms": [
+            "token-budget"
+          ],
+          "rule": "tokens <= 8000",
+          "source_workflow": "wf-beta"
+        }
+      ],
+      "id": "union(wf-alpha,wf-beta)",
+      "mechanisms": [
+        "blocking-fan-in",
+        "confidence-threshold",
+        "deterministic-replay",
+        "extract-text",
+        "fetch-url",
+        "independent-first-pass",
+        "publish-record",
+        "schema-validate",
+        "sequential-schedule",
+        "synthesise-draft",
+        "token-budget"
+      ],
+      "qualifications": {
+        "gates": [],
+        "roles": [
+          {
+            "original_id": "researcher",
+            "qualified_id": "wf-beta::researcher",
+            "rule": "qualification-not-overwrite",
+            "source_workflow": "wf-beta"
+          }
+        ],
+        "stages": [
+          {
+            "original_id": "ingest",
+            "qualified_id": "wf-beta::ingest",
+            "rule": "qualification-not-overwrite",
+            "source_workflow": "wf-beta"
+          },
+          {
+            "original_id": "emit",
+            "qualified_id": "wf-beta::emit",
+            "rule": "qualification-not-overwrite",
+            "source_workflow": "wf-beta"
+          }
+        ]
+      },
+      "roles": [
+        {
+          "id": "researcher",
+          "mechanisms": [
+            "sequential-schedule"
+          ],
+          "permissions": [
+            "read-corpus"
+          ],
+          "source_workflow": "wf-alpha"
+        },
+        {
+          "id": "reviewer",
+          "mechanisms": [],
+          "permissions": [
+            "approve-or-reject"
+          ],
+          "source_workflow": "wf-alpha"
+        },
+        {
+          "id": "wf-beta::researcher",
+          "mechanisms": [],
+          "permissions": [
+            "read-web"
+          ],
+          "source_workflow": "wf-beta"
+        },
+        {
+          "id": "composer",
+          "mechanisms": [],
+          "permissions": [
+            "write-draft"
+          ],
+          "source_workflow": "wf-beta"
+        }
+      ],
+      "soft_conflicts_observed": [],
+      "stages": [
+        {
+          "depends_on": [],
+          "gate_ids": [],
+          "id": "ingest",
+          "mechanisms": [
+            "extract-text",
+            "independent-first-pass"
+          ],
+          "role_id": "researcher",
+          "source_workflow": "wf-alpha"
+        },
+        {
+          "depends_on": [
+            "ingest"
+          ],
+          "gate_ids": [
+            "confidence-floor"
+          ],
+          "id": "review",
+          "mechanisms": [
+            "deterministic-replay",
+            "blocking-fan-in"
+          ],
+          "role_id": "reviewer",
+          "source_workflow": "wf-alpha"
+        },
+        {
+          "depends_on": [
+            "review"
+          ],
+          "gate_ids": [
+            "confidence-floor"
+          ],
+          "id": "emit",
+          "mechanisms": [
+            "publish-record"
+          ],
+          "role_id": "reviewer",
+          "source_workflow": "wf-alpha"
+        },
+        {
+          "depends_on": [],
+          "gate_ids": [
+            "budget-cap"
+          ],
+          "id": "wf-beta::ingest",
+          "mechanisms": [
+            "fetch-url",
+            "independent-first-pass"
+          ],
+          "role_id": "wf-beta::researcher",
+          "source_workflow": "wf-beta"
+        },
+        {
+          "depends_on": [
+            "wf-beta::ingest"
+          ],
+          "gate_ids": [
+            "budget-cap"
+          ],
+          "id": "compose",
+          "mechanisms": [
+            "synthesise-draft"
+          ],
+          "role_id": "composer",
+          "source_workflow": "wf-beta"
+        },
+        {
+          "depends_on": [
+            "compose"
+          ],
+          "gate_ids": [
+            "budget-cap"
+          ],
+          "id": "wf-beta::emit",
+          "mechanisms": [
+            "publish-record",
+            "schema-validate"
+          ],
+          "role_id": "composer",
+          "source_workflow": "wf-beta"
+        }
+      ]
+    },
+    "gate_ids": [
+      "confidence-floor",
+      "budget-cap"
+    ],
+    "n_stages": 6,
+    "pair": [
+      "wf-alpha",
+      "wf-beta"
+    ],
+    "qualifications": {
+      "gates": [],
+      "roles": [
+        {
+          "original_id": "researcher",
+          "qualified_id": "wf-beta::researcher",
+          "rule": "qualification-not-overwrite",
+          "source_workflow": "wf-beta"
+        }
+      ],
+      "stages": [
+        {
+          "original_id": "ingest",
+          "qualified_id": "wf-beta::ingest",
+          "rule": "qualification-not-overwrite",
+          "source_workflow": "wf-beta"
+        },
+        {
+          "original_id": "emit",
+          "qualified_id": "wf-beta::emit",
+          "rule": "qualification-not-overwrite",
+          "source_workflow": "wf-beta"
+        }
+      ]
+    },
+    "role_ids": [
+      "researcher",
+      "reviewer",
+      "wf-beta::researcher",
+      "composer"
+    ],
+    "soft_conflicts_observed": [],
+    "stage_ids": [
+      "ingest",
+      "review",
+      "emit",
+      "wf-beta::ingest",
+      "compose",
+      "wf-beta::emit"
+    ]
+  },
+  "benchmark": {
+    "alpha": {
+      "coverage": 0.3333333333333333,
+      "covered": [
+        "extract-text"
+      ],
+      "n_gates": 1,
+      "n_nodes": 6,
+      "n_roles": 2,
+      "n_stages": 3,
+      "stage_count_is_not_value": true,
+      "task_mechanisms": [
+        "extract-text",
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "value_metric": "task_coverage"
+    },
+    "beta": {
+      "coverage": 0.6666666666666666,
+      "covered": [
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "n_gates": 1,
+      "n_nodes": 6,
+      "n_roles": 2,
+      "n_stages": 3,
+      "stage_count_is_not_value": true,
+      "task_mechanisms": [
+        "extract-text",
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "value_metric": "task_coverage"
+    },
+    "coverage_decides_value": true,
+    "note": "A union larger than both sources is not evidence of value; its benchmark result decides. Padding stages raises size and does not raise task coverage.",
+    "padded_union": {
+      "coverage": 1.0,
+      "covered": [
+        "extract-text",
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "n_gates": 2,
+      "n_nodes": 16,
+      "n_roles": 4,
+      "n_stages": 10,
+      "stage_count_is_not_value": true,
+      "task_mechanisms": [
+        "extract-text",
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "value_metric": "task_coverage"
+    },
+    "task_mechanisms": [
+      "extract-text",
+      "fetch-url",
+      "synthesise-draft"
+    ],
+    "union": {
+      "coverage": 1.0,
+      "covered": [
+        "extract-text",
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "n_gates": 2,
+      "n_nodes": 12,
+      "n_roles": 4,
+      "n_stages": 6,
+      "stage_count_is_not_value": true,
+      "task_mechanisms": [
+        "extract-text",
+        "fetch-url",
+        "synthesise-draft"
+      ],
+      "value_metric": "task_coverage"
+    },
+    "union_larger_than_sources": true
+  },
+  "capability_check": {
+    "exact_equality": true,
+    "fused": [
+      "blocking-fan-in",
+      "confidence-threshold",
+      "deterministic-replay",
+      "extract-text",
+      "fetch-url",
+      "independent-first-pass",
+      "publish-record",
+      "schema-validate",
+      "sequential-schedule",
+      "synthesise-draft",
+      "token-budget"
+    ],
+    "method": "mechanism-incidence-column-support",
+    "overwrite_is_lossy": true,
+    "overwrite_missing": [
+      "extract-text",
+      "sequential-schedule"
+    ],
+    "overwrite_mutant_capabilities": [
+      "blocking-fan-in",
+      "confidence-threshold",
+      "deterministic-replay",
+      "fetch-url",
+      "independent-first-pass",
+      "publish-record",
+      "schema-validate",
+      "synthesise-draft",
+      "token-budget"
+    ],
+    "source_union": [
+      "blocking-fan-in",
+      "confidence-threshold",
+      "deterministic-replay",
+      "extract-text",
+      "fetch-url",
+      "independent-first-pass",
+      "publish-record",
+      "schema-validate",
+      "sequential-schedule",
+      "synthesise-draft",
+      "token-budget"
+    ]
+  },
+  "completion_sentinel": "SUCCESS:WFA-0102",
+  "honesty": [
+    "Live WFA-0062 / WFA-0081 / WFA-0094 artifacts are consumed when present; otherwise fixture stand-ins are labelled as such.",
+    "cloud_ok is not a delivery signal.",
+    "SUCCESS:WFA-0102"
+  ],
+  "id": "WFA-0102",
+  "incidence_matrix": {
+    "capability_sets": {
+      "overwrite(alpha,beta)": [
+        "blocking-fan-in",
+        "confidence-threshold",
+        "deterministic-replay",
+        "fetch-url",
+        "independent-first-pass",
+        "publish-record",
+        "schema-validate",
+        "synthesise-draft",
+        "token-budget"
+      ],
+      "union(alpha,beta)": [
+        "blocking-fan-in",
+        "confidence-threshold",
+        "deterministic-replay",
+        "extract-text",
+        "fetch-url",
+        "independent-first-pass",
+        "publish-record",
+        "schema-validate",
+        "sequential-schedule",
+        "synthesise-draft",
+        "token-budget"
+      ],
+      "wf-alpha": [
+        "blocking-fan-in",
+        "confidence-threshold",
+        "deterministic-replay",
+        "extract-text",
+        "independent-first-pass",
+        "publish-record",
+        "sequential-schedule"
+      ],
+      "wf-beta": [
+        "fetch-url",
+        "independent-first-pass",
+        "publish-record",
+        "schema-validate",
+        "synthesise-draft",
+        "token-budget"
+      ]
+    },
+    "columns": [
+      "wf-alpha",
+      "wf-beta",
+      "union(alpha,beta)",
+      "overwrite(alpha,beta)"
+    ],
+    "matrix": {
+      "blocking-fan-in": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 0
+      },
+      "confidence-threshold": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 0
+      },
+      "deterministic-replay": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 0
+      },
+      "extract-text": {
+        "overwrite(alpha,beta)": 0,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 0
+      },
+      "fetch-url": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 0,
+        "wf-beta": 1
+      },
+      "independent-first-pass": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 1
+      },
+      "publish-record": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 1
+      },
+      "schema-validate": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 0,
+        "wf-beta": 1
+      },
+      "sequential-schedule": {
+        "overwrite(alpha,beta)": 0,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 1,
+        "wf-beta": 0
+      },
+      "synthesise-draft": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 0,
+        "wf-beta": 1
+      },
+      "token-budget": {
+        "overwrite(alpha,beta)": 1,
+        "union(alpha,beta)": 1,
+        "wf-alpha": 0,
+        "wf-beta": 1
+      }
+    },
+    "vocabulary": [
+      "blocking-fan-in",
+      "confidence-threshold",
+      "deterministic-replay",
+      "extract-text",
+      "fetch-url",
+      "independent-first-pass",
+      "publish-record",
+      "schema-validate",
+      "sequential-schedule",
+      "synthesise-draft",
+      "token-budget"
+    ]
+  },
+  "inputs": {
+    "conflict_edges": [
+      {
+        "grade": "HARD",
+        "left": "independent-first-pass",
+        "right": "shared-context-deliberation"
+      },
+      {
+        "grade": "HARD",
+        "left": "deterministic-replay",
+        "right": "non-deterministic-sampling"
+      },
+      {
+        "grade": "HARD",
+        "left": "fire-and-forget-dispatch",
+        "right": "blocking-fan-in"
+      },
+      {
+        "grade": "SOFT",
+        "left": "sequential-schedule",
+        "right": "parallel-schedule"
+      }
+    ],
+    "mechanism_conflict_list": "fixture-stand-in:WFA-0062-absent",
+    "merge_compatibility_map_v2": {
+      "fusible_pairs": [
+        [
+          "wf-alpha",
+          "wf-beta"
+        ],
+        [
+          "wf-alpha",
+          "wf-delta"
+        ]
+      ],
+      "note": "v2 merge map is not on this tree. Pair legality for this unit is the mechanism-conflict check itself (HARD edges refuse).",
+      "origin": "fixture-stand-in:WFA-0081-absent",
+      "present": false,
+      "refused_pairs": [
+        [
+          "wf-alpha",
+          "wf-gamma"
+        ]
+      ]
+    },
+    "semantic_diff_engine": {
+      "collision_predicate": "structural-id-equality",
+      "note": "Semantic differ is not on this tree. Name collisions are detected by IR id equality (stage/role/gate), which is the overwrite failure mode the unit names. Semantic-but-distinct names are not collapsed.",
+      "origin": "fixture-stand-in:WFA-0094-absent",
+      "present": false
+    }
+  },
+  "name_collisions": {
+    "qualified_original_ids": [
+      "emit",
+      "ingest"
+    ],
+    "qualified_stages": [
+      {
+        "original_id": "ingest",
+        "qualified_id": "wf-beta::ingest",
+        "rule": "qualification-not-overwrite",
+        "source_workflow": "wf-beta"
+      },
+      {
+        "original_id": "emit",
+        "qualified_id": "wf-beta::emit",
+        "rule": "qualification-not-overwrite",
+        "source_workflow": "wf-beta"
+      }
+    ],
+    "rule": "qualification-not-overwrite"
+  },
+  "operator": {
+    "collision_rule": "qualify-never-overwrite",
+    "conflict_policy": "refuse-HARD-mechanism-pairs",
+    "id": "union",
+    "implementation": "command-center/p2-wave/probes/WFA-0102/fusion_union.py"
+  },
+  "produced_at": "2026-08-25T01:01:11Z",
+  "record_type": "FusionResult",
+  "refused": {
+    "always_succeed_mutant": {
+      "fused_id": "union(wf-alpha,wf-gamma)",
+      "n_stages": 6,
+      "produced_body": true,
+      "why_named_failure": "A union operator that always succeeds is the direct route to the more-stages-is-better fallacy the spec forbids."
+    },
+    "body_produced": false,
+    "conflicts": [
+      {
+        "grade": "HARD",
+        "left_mechanism": "deterministic-replay",
+        "refuses": true,
+        "right_mechanism": "non-deterministic-sampling"
+      },
+      {
+        "grade": "HARD",
+        "left_mechanism": "independent-first-pass",
+        "refuses": true,
+        "right_mechanism": "shared-context-deliberation"
+      }
+    ],
+    "pair": [
+      "wf-alpha",
+      "wf-gamma"
+    ],
+    "reason": "MECHANISM_CONFLICT"
+  },
+  "reviewer": {
+    "control_re_run": "named probe2 re-runs the both-states HARD-pair refusal",
+    "independent": true,
+    "reviewer_id": "WFA-0102-probe2-conflict-refusal",
+    "verdict": "PASS"
+  },
+  "schema": {
+    "declared": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/FusionResult",
+    "honesty": "The declared FusionResult $ref is a generated shim that delegates to platform/schema/artifact-class-profiles.schema.json. This record is a FusionResult by the unit's own required fields (operator, sources, accepted, refused, incidence, qualifications, benchmark). It does not claim jsonschema validation of the physical receipt envelope.",
+    "pack_present": true,
+    "validated_against_pack": false
+  },
+  "sentinel": "SUCCESS:WFA-0102",
+  "soft_pair": {
+    "fused_id": "union(wf-alpha,wf-delta)",
+    "n_stages": 6,
+    "note": "Awkward sequential vs parallel schedule is SOFT and must not refuse.",
+    "pair": [
+      "wf-alpha",
+      "wf-delta"
+    ],
+    "soft_conflicts_observed": [
+      {
+        "grade": "SOFT",
+        "left_mechanism": "sequential-schedule",
+        "refuses": false,
+        "right_mechanism": "parallel-schedule"
+      }
+    ]
+  },
+  "sources": [
+    {
+      "capabilities": [
+        "blocking-fan-in",
+        "confidence-threshold",
+        "deterministic-replay",
+        "extract-text",
+        "independent-first-pass",
+        "publish-record",
+        "sequential-schedule"
+      ],
+      "id": "wf-alpha",
+      "n_stages": 3
+    },
+    {
+      "capabilities": [
+        "fetch-url",
+        "independent-first-pass",
+        "publish-record",
+        "schema-validate",
+        "synthesise-draft",
+        "token-budget"
+      ],
+      "id": "wf-beta",
+      "n_stages": 3
+    }
+  ],
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "tests": [
+    {
+      "id": "conflicting-pair-refused-both-states",
+      "result": "PASS"
+    },
+    {
+      "id": "name-collisions-qualified-never-overwritten",
+      "result": "PASS"
+    },
+    {
+      "id": "size-is-not-value-benchmark-decides",
+      "result": "PASS"
+    }
+  ],
+  "title": "Fusion operator: union, combining all stages of two workflows with conflict resolution",
+  "unit_id": "WFA-0102"
+}

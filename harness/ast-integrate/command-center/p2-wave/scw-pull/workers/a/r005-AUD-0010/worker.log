@@ -1,0 +1,31 @@
+I'll start from the existing AUD-0010 probe tree, read any SUBAGENT-RETURN, and resume delivery without touching git or the global catalog.The probe tree is already large. Next I’ll read SUBAGENT-RETURN, the unit catalog row, and the measure contract so we resume instead of rebuilding.The unit is parked BLOCKED on a private origin. I'll check whether that origin is actually reachable here now, then resume the existing probes instead of circling.I'll hunt for a real packed clone of the private origin and inspect the SUCCESS receipt contract before deciding whether this stays parked.HTTP 404 still holds. I’ll try SSH clone with the existing key (without printing it) before treating the sixth origin as unreachable.SSH and HTTPS both fail on the private origin, and that matches the parked structural reason. I’ll record this session’s live access evidence, refresh the BLOCKED pack, and measure.Measure failed on schema, not the BLOCKED predicate. I’ll pull the exact validator error and fix the receipt without flipping state.The BLOCKED receipt is missing the required `failure` object. I’ll add that field and re-pack without changing the parked state.**FAILED:AUD-0010** — parked `BLOCKED`. The sixth owner origin is still not a packed git clone on this worker, so G-1 contract-green is not reachable.
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0010` printed:
+
+```
+FAILED:delivered AUD-0010 predicate:self-declared:BLOCKED
+```
+
+That is the honest gate result. `cloud ok=true` is not delivery, and flipping `state=SUCCESS` would be a lie.
+
+**Why it stays parked.** Two independent refutes share the same structural reason: `Prekzursil/databricks-fanout-harness` cannot be obtained as a packed git clone here.
+
+| Signal | Live this session |
+|---|---|
+| HTTPS HEAD | 200 on five public origins; **404** on databricks |
+| HTTPS clone | exit **128**, `could not read Username` |
+| SSH clone (`git@github.com`, BatchMode) | exit **128**, `Permission denied (publickey)` |
+| Public control | `git ls-remote` of `design-extract` exit **0** |
+| Windows checkout | `C:/Users/Prekzursil/source/databricks-fanout-harness` absent |
+| Imported `_work/clones` trees | files present, **no `.git`** |
+
+Probe 1 was resumed, not scrapped: **5/6** packed public origins, including `agent-skills-toolchain` `in-pack=22602`. Probe 2’s existing two `--no-hardlinks` clones per reachable origin still agree within 2 percent. The imported databricks working trees were **not** `git init`’d and called an owner-origin clone.
+
+**required_fix:** mount or clone `Prekzursil/databricks-fanout-harness` as a real git repository on this Linux worker, then re-run `probe1_count_objects.py` and `probe2_timed_clone.py` so 6/6 origins measure twice within 2 percent.
+
+Written:
+
+- `command-center/p2-wave/probes/AUD-0010/SUBAGENT-RETURN.json` (`status=BLOCKED`, `required_fix` named)
+- `command-center/p2-wave/probes/AUD-0010/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; LF sha256 `50b1d287577c0baae9d1387d90d77ba954ba3f69d22ba3d1a76df2216c020e43` matches the live receipt)
+
+No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write`. No key rotation. No wave relaunch. No ADV/AUD/PVP rebuild circle.

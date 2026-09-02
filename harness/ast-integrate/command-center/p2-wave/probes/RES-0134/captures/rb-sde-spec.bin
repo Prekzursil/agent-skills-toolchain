@@ -1,0 +1,173 @@
+<html><head><meta http-equiv="Content-Type" content="text/html; charset=utf-8"><title>SOURCE_DATE_EPOCH specification</title><meta name="generator" content="DocBook XSL Stylesheets V1.79.1"></head><body bgcolor="white" text="black" link="#0000FF" vlink="#840084" alink="#0000FF"><div class="article"><div class="titlepage"><div><div><h2 class="title"><a name="idm1"></a><code class="envar">SOURCE_DATE_EPOCH</code> specification</h2></div><div><div class="author"><h3 class="author"><span class="firstname">Chris</span> <span class="surname">Lamb</span></h3><div class="affiliation"><div class="address"><p><code class="email">&lt;<a class="email" href="mailto:lamby@debian.org">lamby@debian.org</a>&gt;</code></p></div></div></div></div><div><div class="author"><h3 class="author"><span class="firstname">Ximin</span> <span class="surname">Luo</span></h3><div class="affiliation"><div class="address"><p><code class="email">&lt;<a class="email" href="mailto:infinity0@debian.org">infinity0@debian.org</a>&gt;</code></p></div></div></div></div><div><div class="revhistory"><table style="border-style:solid; width:100%;" summary="Revision History"><tr><th align="left" valign="top" colspan="2"><b>Revision History</b></th></tr><tr><td align="left">Revision 1.1</td><td align="left">27 November 2017</td></tr><tr><td align="left" colspan="2">
+				Document timestamp clamping.
+				Drop prohibition of overwriting the variable, and instead
+				specify more tightly how to set it.
+			</td></tr><tr><td align="left">Revision 1.0</td><td align="left">01 September 2015</td></tr><tr><td align="left" colspan="2">Initial version.</td></tr></table></div></div></div><hr></div><div class="toc"><p><b>Table of Contents</b></p><dl class="toc"><dt><span class="sect1"><a href="#idm26">Introduction</a></span></dt><dt><span class="sect1"><a href="#idm32">Motivation</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm47">Build timestamps</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm53">Specification</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm55"><code class="envar">SOURCE_DATE_EPOCH</code></a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm69">Examples</a></span></dt><dd><dl><dt><span class="sect2"><a href="#idm71">Setting the variable</a></span></dt><dt><span class="sect2"><a href="#idm80">Timestamp clamping</a></span></dt><dt><span class="sect2"><a href="#idm86">Other examples</a></span></dt></dl></dd><dt><span class="sect1"><a href="#idm90">Copyright</a></span></dt><dt><span class="sect1"><a href="#idm96">Contributors</a></span></dt></dl></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm26"></a>Introduction</h2></div></div></div><p>
+		This specification defines a distribution-agnostic standard for
+		build systems to exchange a timestamp.
+	</p><p>
+		The key words "MUST", "MUST NOT", "REQUIRED", "SHALL", "SHALL
+		NOT", "SHOULD", "SHOULD NOT", "RECOMMENDED", "MAY", and
+		"OPTIONAL" in this document are to be interpreted as described
+		in RFC 2119.
+	</p><p>
+		The canonical URI for this document is: <a class="ulink" href="https://reproducible-builds.org/specs/source-date-epoch/" target="_top">https://reproducible-builds.org/specs/source-date-epoch/</a>.
+	</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm32"></a>Motivation</h2></div></div></div><p>
+		Whilst anyone can inspect the source code of free software for
+		malicious flaws, most distributions provide binary (or
+		"compiled") packages to end users. The motivation behind
+		"reproducible" builds is to allow verification that no flaws
+		have been introduced during this compilation process by
+		promising identical binary packages are always generated from a
+		given source.
+	</p><p>
+		This prevents against the installation of backdoor-introducing
+		malware on developers' machines as an attacker would need to
+		simultaneously infect all the developers attempting to
+		reproduce the build. In addition, a reproducible build has
+		other technical advantages:
+	</p><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+		Requires the removal of any non-deterministic and/or unsafe
+		behaviour, eg. connecting to the internet to download
+		build-dependencies or reading from uninitialised memory
+	</p></li><li class="listitem"><p>
+		Detects corrupted or outdated build environments
+	</p></li><li class="listitem"><p>
+		Provides validation of packages built on foreign
+		architectures
+	</p></li><li class="listitem"><p>
+		Reduces time-to-detection of a build host compromise
+	</p></li><li class="listitem"><p>
+		Can show that proposed changes have no impact on binaries
+	</p></li></ul></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm47"></a>Build timestamps</h3></div></div></div><p>
+			Software packages are often unreproducible because they
+			embed compile-time timestamps into generated files. As
+			the current time changes between builds, this results
+			in the binaries containing different contents.
+			Futhermore, these dates are unreliable indicators of
+			the software's age given that software can be
+			arbitrarily rebuilt.
+		</p><p>
+			An improvement is to use the last modification time of
+			the source; if the source is then modified, the
+			binaries will change by design. This timestamp is also
+			more informative as it reflects the actual age of the
+			software and not when it was last compiled.
+		</p><p>
+			However, in the context of a distribution, the last
+			modification time is not a property of the upstream
+			source, but rather of the packaging that encapsulates
+			it.
+		</p><p>
+			This specification therefore defines a
+			distribution-agnostic standard for upstream build
+			processes to consume this timestamp from packaging
+			systems. The intended result is a build where the
+			output looks as if the build had happened instantly
+			at the time specified in that timestamp.
+		</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm53"></a>Specification</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm55"></a><code class="envar">SOURCE_DATE_EPOCH</code></h3></div></div></div><p>
+			A UNIX timestamp, defined as the number of seconds,
+			excluding leap seconds, since <code class="computeroutput">01 Jan
+			1970 00:00:00 UTC</code>.
+		</p><p>
+			The value MUST be exported through the operating
+			system's usual environment mechanism.
+		</p><p>
+			The value MUST be an ASCII representation of an integer
+			with no fractional component, identical to the output
+			format of <span class="command"><strong>date +%s</strong></span>.
+		</p><p>
+			The value MUST be reproducible (deterministic) across
+			different executions of the build, depending only on the
+			source code. It SHOULD be set to the last modification
+			time of the source, incorporating any packaging-specific
+			modifications.
+		</p><p>
+			Build processes MUST use this variable for embedded
+			timestamps in place of the "current" date and time.
+		</p><p>
+			Where build processes embed timestamps that are not
+			"current", but are nevertheless still specific to one
+			execution of the build process, they MUST use a
+			timestamp no later than the value of this variable.
+			This is often called "timestamp clamping".
+		</p><p>
+			Build processes MUST NOT unset this variable for child
+			processes if it is already present.
+		</p><p>
+			Formatting MUST be deferred until runtime if an end
+			user should observe the value in their own locale or
+			timezone.
+		</p><p>
+			If the value is malformed, the build process SHOULD
+			exit with a non-zero error code.
+		</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm69"></a>Examples</h2></div></div></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm71"></a>Setting the variable</h3></div></div></div><p>
+			Distributions could set <code class="envar">SOURCE_DATE_EPOCH</code> by using
+			the value of a changelog file.  For instance, Debian packages can
+			set it to the value of the latest entry of
+			<code class="filename">debian/changelog</code>.
+		</p><p>
+			Developers could set <code class="envar">SOURCE_DATE_EPOCH</code> to the date
+			of the latest commit in their version control system. In this case,
+			it is recommended to also update all source file timestamps, which
+			git does not do by itself, otherwise old timestamps specific to the
+			developer's working tree may be embedded into the output.
+		</p><p>
+			Though it is not forbidden to set <code class="envar">SOURCE_DATE_EPOCH</code>
+			several times during a build, such as for different child modules,
+			build processes doing this should ensure that any differing values
+			do not interfere with each other in a nondeterministic way.
+		</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm80"></a>Timestamp clamping</h3></div></div></div><p>
+			One can reasonably assume that all source timestamps are
+			before <code class="envar">SOURCE_DATE_EPOCH</code> and all builds take
+			place after it. This means we can efficiently both preserve
+			source-based timestamps and omit build-specific timestamps,
+			by rewriting timestamps more recent than <code class="envar">SOURCE_DATE_EPOCH</code>
+			back to the latter. See for example the <code class="option">--clamp-mtime</code>
+			option to GNU tar.
+		</p></div><div class="sect2"><div class="titlepage"><div><div><h3 class="title"><a name="idm86"></a>Other examples</h3></div></div></div><p>
+			Other examples are available at <a class="ulink" href="https://reproducible-builds.org/docs/source-date-epoch/" target="_top">https://reproducible-builds.org/docs/source-date-epoch/</a>.
+		</p></div></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm90"></a>Copyright</h2></div></div></div><p>
+		Copyright © 2015-2017 See Contributors List
+	</p><p>
+		Permission is hereby granted, free of charge, to any person
+		obtaining a copy of this software and associated documentation
+		files (the "Software"), to deal in the Software without
+		restriction, including without limitation the rights to use,
+		copy, modify, merge, publish, distribute, sublicense, and/or
+		sell copies of the Software, and to permit persons to whom the
+		Software is furnished to do so, subject to the following
+		conditions:
+	</p><p>
+		The above copyright notice and this permission notice shall be
+		included in all copies or substantial portions of the Software.
+	</p><p>
+		THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+		EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES
+		OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+		NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS BE LIABLE FOR
+		ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
+		CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+		CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+		THE SOFTWARE.
+	</p></div><div class="sect1"><div class="titlepage"><div><div><h2 class="title" style="clear: both"><a name="idm96"></a>Contributors</h2></div></div></div><div class="itemizedlist"><ul class="itemizedlist" style="list-style-type: disc; "><li class="listitem"><p>
+		Axel Beckert
+	</p></li><li class="listitem"><p>
+		Chris Lamb (lamby)
+	</p></li><li class="listitem"><p>
+		Chris West (Faux)
+	</p></li><li class="listitem"><p>
+		Daniel Kahn Gillmor (dkg)
+	</p></li><li class="listitem"><p>
+		Dmitry Shachnev
+	</p></li><li class="listitem"><p>
+		Eduard Sanou
+	</p></li><li class="listitem"><p>
+		Holger Levsen
+	</p></li><li class="listitem"><p>
+		Jérémy Bobbio (Lunar)
+	</p></li><li class="listitem"><p>
+		Mattia Rizzolo
+	</p></li><li class="listitem"><p>
+		Ximin Luo
+	</p></li></ul></div></div></div></body></html>

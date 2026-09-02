@@ -1,0 +1,28 @@
+
+===== launch 2026-08-20T08:59:42Z attempt=1 =====
+I'll start from the existing IMP-0068 probe tree and the measure contract so we can resume what's already built instead of starting over.Next I’ll pull the IMP-0068 catalog row, the measure script, and a delivered IMP unit so the contract is concrete before I build.IMP-0068 is absent, so I’ll inspect IMP-0067, marketplace storage, and a delivered unit’s probe/receipt pattern before implementing.IMP-0067 left a candidate marketplace tree; I’ll inspect that plus the live registry writer and a SUCCESS receipt’s required fields.I have the contract: implement atomic index writes plus blob rebuild at `tools/marketplace/`, then named probes that re-run to exit 0. Writing the storage layer and probes next.The `tools/marketplace` package already has a different `__init__.py` than the one I wrote — I'll inspect the live tree before changing imports.The static audit missed `atomic_write_bytes` because `write_index` calls it through a variable. I’ll make that call explicit.**SUCCESS:delivered IMP-0068** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0068` printed:
+
+`SUCCESS:delivered IMP-0068 predicate=delivered state=SUCCESS probes=3 raws=6 notes=probe1_rebuild.py:0,probe2_kill_points.py:0,probe3_static_audit.py:0`
+
+The unit had never been started (`probes/IMP-0068/` and the receipt were absent). This pass implemented the storage layer and then measured it.
+
+**Implementation**
+- `tools/marketplace/storage.py` — every index mutation is a same-directory tmp file plus `os.replace` of `marketplace.json`. A lost or unparseable index is rebuilt from `packages/<name>/<version>/record.json` blobs.
+- `tools/marketplace/tests/test_registry_storage.py` — the two catalog tests, the in-place negative control, orphan-blob rebuild, heal-from-garbage, and an AST audit (6/6 pass).
+
+**Catalog evidence**
+| Signal | Result |
+|---|---|
+| Rebuild from blobs equals original (normalised package set) | 3 packages, semantically equal |
+| Orphan blob missing from the index | absent before rebuild, present after (`orphan-pkg` plus `kept-one`/`kept-two`) |
+| Kill-point sweep (22 offsets) | atomic writer: 22/22 pre-image or post-image |
+| Negative control | in-place truncate-and-write: 20/22 unparseable |
+
+Kill points are cooperative byte-offset injections in the writer, not racy `SIGKILL`, so every offset is classified.
+
+**Delivery artifacts**
+- Receipt: `command-center/receipts/IMP-0068.json` (`state=SUCCESS`, 22414 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0068/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 `5b1c6dcda10da0513435b61fc1186fc1e2becbd12a6f540ecb9a571826e6d507`)
+- Handoff: `command-center/p2-wave/probes/IMP-0068/SUBAGENT-RETURN.json`
+
+No git write, no `unit_manifest.py --write`, no global catalog manifest edit. IMP-0067 still has not landed `.claude-plugin/marketplace.schema.json`; that schema check is recorded as NOT-CHECKED, not as a park.

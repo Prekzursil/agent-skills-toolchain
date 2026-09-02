@@ -1,0 +1,44 @@
+{
+ "artifacts": [
+  {
+   "bytes": 34915,
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0045-append-only-vs-erasure-adjudication.json",
+   "role": "primary",
+   "sha256": "ea5c4a70599545282b175de3d516ac1d2bde4ec6952a4d30b42656d7fa64a77e"
+  }
+ ],
+ "cloud_ok": false,
+ "id": "ADV-0045",
+ "manifest_path": "command-center/p2-wave/probes/ADV-0045/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0045/probe1_conflict.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"canary_email\": \"adv0045-canary@example.test\", \"canary_is_synthetic\": true, \"conflict\": \"Erasure of the planted personal field requires rewriting the JSONL line (prefix hash changes) or leaving the field in place (append-only preserved, data remains).\", \"conflict_demonstrated\": true, \"control_token_findable\": true, \"leave_in_place\": {\"content_sha256\": \"33cce3564e6cec1c43bc4c60a728e6aa6bfe8eed5786fafc8fcb4e225c0b8b18\", \"erasure_achieved\": false, \"mutated\": false, \"pii_still_recoverable\": true, \"prefix_preserved\": true}, \"mutate_to_erase\": {\"erasure_achieved\": true, \"mutated\": true, \"original_bytes\": 388, \"original_sha256\": \"33cce3564e6cec1c43bc4c60a728e6aa6bfe8eed5786fafc8fcb4e225c0b8b18\", \"pii_still_recoverable\": false, \"prefix_preserved\": false, \"rewritten_bytes\": 377, \"rewritten_sha256\": \"a960e17b87468dfb50b97fef8753e39fe23995560bfd6c4e2c87da2c35342a83\"}, \"pass\": true, \"pii_written_recoverable\": true, \"probe\": \"probe1-conflict\", \"unit_id\": \"ADV-0045\", \"writer\": {\"erase_or_redact_api\": [], \"function_names\": [\"_now\", \"_record\", \"_stamp\", \"_violation_keys\", \"append_event\", \"apply_change\", \"build_parser\", \"list_items\", \"main\", \"next_id\"], \"hash_chain\": false, \"line\": 85, \"live_events_bytes\": 406, \"live_events_path\": \"command-center/events/EVENTS.jsonl\", \"live_events_present\": true, \"opens_append_mode\": true, \"serialization\": \"json.dumps(payload, ensure_ascii=False, sort_keys=True) + newline\", \"writer\": \"tools/command-center/close.py:append_event\", \"wrote_to_live_events\": false}, \"wrote_to_live_events\": false}\nconflict_ok=True pii_recoverable=True control_findable=True mutate_breaks_prefix=True\nSUCCESS:ADV-0045-probe1 conflict: erase requires mutate or leave-in-place",
+   "role": "live-writer-personal-field-conflict"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0045/probe2_reconciliations.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"crypto_shred\": {\"breaks_audit_of_plaintext\": true, \"chain_ok_before_and_after\": true, \"decrypt_works_after_shred\": false, \"decrypt_works_before_shred\": true, \"erasure_of_recoverable_payload\": true, \"id\": \"crypto-shred\", \"integrity_preserved\": true, \"note\": \"Deleting the per-record key leaves the hash chain intact and the ciphertext in place. Plaintext payload verification fails after shred. Audit of structure survives; audit of personal content does not.\", \"pii_in_log_plaintext\": false}, \"externalisation\": {\"chain_ok\": true, \"erasure_of_side_store\": true, \"fetch_after_erase\": false, \"fetch_before_erase\": true, \"id\": \"payload-externalisation\", \"integrity_preserved\": true, \"note\": \"The log stores a pointer and content hash. Erasing the side store makes the payload unrecoverable while the chain still verifies. Replay of personal content fails after erase.\", \"pii_in_log_plaintext\": false, \"pointer_remains\": true, \"replay_of_payload_after_erase\": false}, \"impossibility\": {\"A\": \"historical log bytes unmodified (chain verifies)\", \"B\": \"historical personal payload recoverable for content audit\", \"C\": \"historical personal payload unrecoverable\", \"attempts\": [{\"A_unmodified\": true, \"B_payload_recoverable\": true, \"C_unrecoverable\": false, \"strategy\": \"leave-bytes\"}, {\"A_unmodified\": false, \"B_payload_recoverable\": false, \"C_unrecoverable\": true, \"strategy\": \"mutate-in-place\"}, {\"A_unmodified\": true, \"B_payload_recoverable\": false, \"C_unrecoverable\": true, \"strategy\": \"crypto-shred\"}], \"id\": \"impossibility\", \"no_strategy_satisfies_A_and_B_and_C\": true, \"owner_visible_impact\": \"A subject-erasure request naming personal data already stored as plaintext in the event log cannot be honoured per record. Keeping append-only leaves the field on disk. Honouring erasure by rewrite breaks the audit prefix. The owner must either accept residual personal data in historical events, or destroy/seal the log as a whole and lose that history. New writes must minimise or crypto-shred.\", \"residual_risk\": \"Plaintext personal fields already written to an append-only log remain recoverable until the entire log file is destroyed as a unit. Per-subject erasure of those bytes is not possible without rewriting history.\"}, \"minimisation\": {\"chain_ok\": true, \"erases_history\": false, \"future_write_contains_pii\": false, \"historical_plaintext_still_present\": true, \"id\": \"write-time-minimisation\", \"integrity_preserved\": true, \"note\": \"Stripping personal fields at write time prevents new recoverable PII. It cannot unwrite historical plaintext already in the log.\"}, \"pass\": true, \"probe\": \"probe2-reconciliations\", \"tombstone\": {\"breaks_raw_replay_determinism\": false, \"chain_ok\": true, \"erasure_achieved\": false, \"id\": \"tombstone\", \"note\": \"A tombstone is another append. Raw replay of prior lines is unchanged and deterministic. Privacy-filtered replay is a different function; it does not remove the original bytes.\", \"pii_still_in_log_bytes\": true, \"privacy_replay_differs_from_raw\": true, \"privacy_replay_hides_pii\": true, \"raw_replay_keeps_pii\": true}, \"unit_id\": \"ADV-0045\"}\ntombstone_erasure=False shred_breaks_plaintext_audit=True externalise_side_store=True impossible=True\nSUCCESS:ADV-0045-probe2 reconciliations executed; A\u2227B\u2227C impossible",
+   "role": "prototype-reconciliation-replay-verify"
+  }
+ ],
+ "notes": "G-1 for ADV-0045: live named probes exit 0, ADV-0045-append-only-vs-erasure-adjudication.json state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not rotate or print API keys. Did not relaunch finish-everything-close or p2-cloud-ok-deliver.",
+ "output_path": "command-center/adversarial/ADV-0045-append-only-vs-erasure-adjudication.json",
+ "output_schema": "command-center/schema/privacy-dataflow.schema.json",
+ "registered": true,
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "ADV-0045-probe2-reconciliations",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:ADV-0045",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "ts": "2026-08-25T01:08:57Z",
+ "unit_id": "ADV-0045"
+}

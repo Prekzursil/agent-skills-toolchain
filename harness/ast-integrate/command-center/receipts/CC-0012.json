@@ -1,0 +1,70 @@
+{
+  "id": "CC-0012",
+  "unit_id": "CC-0012",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:CC-0012",
+  "completion_sentinel": "SUCCESS:CC-0012",
+  "title": "Freeze the schemas and launchers, and require a versioned migration for every later change",
+  "spec_anchor": "_USER-PROMPTS.md:10660",
+  "output_path": "command-center/receipts/CC-0012.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "freeze": {
+    "active": true,
+    "freeze_id": "CC-0012-freeze",
+    "activation_commit": null,
+    "activation_commit_kind": "git-unavailable",
+    "activation_timestamp": "2026-08-25T21:32:28Z",
+    "freeze_fingerprint_sha256": "fa703f33edc8a18a2bf9d387d6b611124962bd0c702185c42ee7e84478431312",
+    "catalog_schema_version_at_freeze": 2,
+    "frozen_count": 3,
+    "schema_count": 2,
+    "launcher_count": 1,
+    "ledger_path": "command-center/freeze/FREEZE.json",
+    "bump_rules_path": "command-center/freeze/bump_rules.json",
+    "git_unavailable_honest": true
+  },
+  "migration": {
+    "id": "m0001_catalog_v2_v3",
+    "from_version": 2,
+    "to_version": 3,
+    "pre_freeze_data": "command-center/freeze/fixtures/prefreeze_catalog_slice.json",
+    "executed_on_disk": true,
+    "after_path": "command-center/freeze/proof/after.json",
+    "restored_path": "command-center/freeze/proof/restored.json",
+    "byte_identical": true,
+    "after_sha256": "5ee8976263c7fdd3aaf23be98d2024fe211ba1d5edbb51a5c5a2be7638859287",
+    "restored_sha256": "96a6ed1419962012e45f2550e7fc5e792c67718bd001ca23ae8c35fe26dc66ba"
+  },
+  "tests": [
+    {
+      "id": "mutation-unversioned-schema",
+      "result": "PASS",
+      "evidence": "probe1: gate reason=no-version-bump"
+    },
+    {
+      "id": "positive-bump-plus-migration",
+      "result": "PASS",
+      "evidence": "probe1: admitted schema v1->v2 with m0002 up/down"
+    },
+    {
+      "id": "round-trip-real-catalog-slice",
+      "result": "PASS",
+      "evidence": "probe2: down(up(slice)) byte-identical on disk"
+    },
+    {
+      "id": "both-states-non-frozen-silent",
+      "result": "PASS",
+      "evidence": "probe1: gate silent on receipts control file"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CC-0012-probe2-independent-unversioned-edit",
+    "verdict": "PASS",
+    "independent": true,
+    "action": "unversioned frozen schema edit in a scratch tree",
+    "observed": "gate rejected with no-version-bump"
+  },
+  "notes": "CC-0002/CC-0003 receipts are absent on this worktree; CC-0012 still freezes the schemas and launchers that exist here. No git repository is present, so activation_commit is the freeze fingerprint prefixed with freeze:. Did not run global unit_manifest.py --write. Did not rotate credentials. No ADV rebuild.",
+  "recorded_at": "2026-08-25T21:32:28Z"
+}

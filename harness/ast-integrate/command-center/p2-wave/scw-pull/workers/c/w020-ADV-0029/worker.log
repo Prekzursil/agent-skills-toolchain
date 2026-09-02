@@ -1,0 +1,23 @@
+I'll start from the existing ADV-0029 probe tree, read SUBAGENT-RETURN.json if it's there, and resume rather than rebuild.There's a substantial probe tree already. Next I’ll read the measure contract, existing handoff/returns, and a successful sibling unit so we resume instead of starting over.G-1 is probe-rerun, a non-BLOCKED artifact, and a per-unit manifest — not the global catalog. I'll inspect a delivered sibling and the existing probe scripts next.G-1 needs `state=SUCCESS`, live probe reruns, and a per-unit manifest. Next I’ll check the SUCCESS schema and how a delivered sibling handled reviewer + registration.I'll run the existing live harness on this Linux tree first, then wire G-1 (SUCCESS + per-unit manifest) only if the probes actually pass.The live harness is green on this Linux tree (same digests as the existing probes). Next I’ll add named probe scripts, point the artifact at SUCCESS with a per-unit manifest, and make the first four re-runnable scripts exit 0.Measure printed `SUCCESS:delivered`. I’ll snapshot the live hashes and write `SUBAGENT-RETURN.json` from those facts, not from the pre-measure files.**SUCCESS:delivered ADV-0029**
+
+G-1 is green for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not rebuilt from scratch.
+
+```
+SUCCESS:delivered ADV-0029 predicate=delivered state=SUCCESS probes=4 raws=9 notes=_probe1_shadow.py:0,_probe2_tamper.py:0,build_outputs.py:0,remeasure_handoff.py:0
+```
+
+What landed:
+
+| Item | Result |
+|---|---|
+| Named Probe 1 | `resolve()` selects shadow `hello-skill@9.9.9` (`sha256:9d9610c0…`) over private `1.1.0` (`sha256:50ab1511…`) — **T1 CONFIRMED** |
+| Fetch-by-hash | Installer refuses **MKT-I02** (publisher-known); nothing fetched — **T2 REFUTED** |
+| Named Probe 2 | Unsigned `payload_digest` / `manifest_path` accepted at `load_index`/`resolve` — **T3 CONFIRMED** |
+| Tamper-to-disk | Installer refuses **MKT-I01** / **MKT-I03** — **T4 REFUTED** |
+| No-shadow control | Private `1.1.0` selected and installed — harness is the real resolver |
+| Artifact | `command-center/adversarial/ADV-0029-dependency-confusion-index-poisoning.json` — **state=SUCCESS**, 38336 B |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0029/UNIT-ARTIFACT-MANIFEST.json` sha256 `8793ac55…` matches live LF hash |
+
+T2 and T4 are **different** structural reasons (publisher trust vs index/manifest signature), so the unit was not parked.
+
+Constraints kept: no git mutate, no global `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close / p2-cloud-ok-deliver.

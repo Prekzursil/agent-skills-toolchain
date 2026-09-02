@@ -1,0 +1,18 @@
+
+===== launch 2026-08-19T18:03:59Z attempt=2 =====
+I'll start from the existing WFA-0009 probe tree and the unit's contract so we can resume rather than rebuild.Existing probe files are present. Next I’ll read the return artifact, the unit manifest, and the measure script.The last return parked on a missing registry. I’ll verify that claim and inspect the catalog, receipt, and live probes before deciding whether this can still go green.I’ll search the worktree and host for the 261589-byte registry and read the catalog contract plus the current receipt.The named 261589-byte registry still looks absent. I’ll widen the search for any real copy or provenance extract before treating that as a park.The AUD-0067 file is a stub. The larger `_wfa2_entries.json` may have provenance — I’ll inspect that and keep looking for a real registry copy.No 261589-byte file showed up in the repo. Next I’ll check worker trees, seed, and sibling WFA extracts for a real registry or provenance copy.WFA-0005 delivered with a partial registry signal. I’ll check whether an older receipt still holds the 284 declared provenance paths before I treat this as parked.The cloud-ok extract mentions 284 `declared_provenance` fields. I’ll open that next.The broad tree walk is still running. I’ll snapshot it and, if it’s only scanning git objects, switch to a tighter search.The registry is still unmounted. I’ll re-run the live named probes and both mutants, then refresh the return artifact from those results.Live remesure matches the parked fingerprint. I’ll write the return and per-unit manifest, then run the delivery measure.**FAILED:WFA-0009** — `python command-center/p2-wave/_measure_one_delivered.py WFA-0009` printed `FAILED:delivered WFA-0009 predicate:self-declared:BLOCKED`.
+
+G-1 is not green for this unit. The catalog receipt stays `state=BLOCKED` because the authoritative 261589-byte `08-WORKFLOW-CANDIDATE-REGISTRY.json` (`candidates[].provenance`, sha256 `4791c7a628e5bf1f5492c56a7b06bdb636f5a66829c0145ecb27d3f0b0f0885a`) is not mounted on this Linux worktree. That is the same structural reason as the 2026-08-17 Linux replay and the earlier 2026-08-19 remesure, so the unit is parked rather than rebuilt.
+
+This remesure searched again and still found no real registry: name search under `/opt`, `/root`, `/home`, `/mnt` only hit the 376-byte AUD-0067 stub; a size-261589 walk of `/opt/p2` found nothing; both `_wfa2_entries.json` copies are 284-row id/name/section indexes with `provenance=0`. Named probes were re-run, not replaced.
+
+| Probe | Exit | Result |
+|---|---|---|
+| `probe_a_provenance.py` | 0 | 284/284 `NOT-CHECKED`, `stale_provenance_count=NOT-COMPUTABLE` |
+| `probe_b_inverse.py` | 0 | registry 284, disk 2, intersection 1, registry−disk 283, disk−registry 1 |
+| empty-as-hit mutant | 1 | EXPECTED-RED |
+| one-direction mutant | 1 | EXPECTED-RED |
+
+`ready_units.artifact_delivered` is `(False, self-declared:BLOCKED)`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` still matches the live LF sha256 `7e6143570eda592d88fae46091da2320107f8336ca6af3d043deb232d81d8fff`. Return is in `command-center/p2-wave/probes/WFA-0009/SUBAGENT-RETURN.json`.
+
+**required_fix:** mount that 261589-byte registry (or a Linux bind of it), then rerun `probe_a_provenance.py` until `not_checked_count=0`. Do not invent provenance from the name/section index. Do not hand-flip `state=SUCCESS`. Cloud `ok=true` is not this delivery. Git was not mutated; global `unit_manifest.py --write` was not run.

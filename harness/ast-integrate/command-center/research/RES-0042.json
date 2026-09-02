@@ -1,0 +1,1052 @@
+{
+ "schema_version": 1,
+ "unit_id": "RES-0042",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:RES-0042 in the receipt AND a per-server row carrying final URL, HTTP status, last release date and a snapshot timestamp",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json RES-0042",
+ "min_bytes_threshold": 2048,
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "ecosystem-cartographer",
+  "execution_substrate": "local-parallel"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/research/RES-0042.json",
+   "bytes": 35655,
+   "sha256": "52fc22062b55cc02b7419742ae41e66341ca6cb1c82baa73b1dfbce7183151e9",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  },
+  {
+   "path": "command-center/schema/research-registry.schema.json",
+   "bytes": 1108,
+   "sha256": "a1929362c7b63a9dbe55f3a11b282137c9398df03a96667c69e3dcae63a180c5",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/schema_local.py",
+   "bytes": 2312,
+   "sha256": "bdf9d37ed20c0db1310f55000a68cc37924ff7628b87279337b9e5ec3a92d9c7",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/mappings.py",
+   "bytes": 5616,
+   "sha256": "8b6eadd5491c322d01c08828d66cf6a993b9bd065c299f3d41ed3f99868036e6",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/resolve.py",
+   "bytes": 11158,
+   "sha256": "b54a35a8280325574fb18df1b7063d36821babc9a0162543fa235b9b50021745",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/census.py",
+   "bytes": 25081,
+   "sha256": "a29d13bea3767151fb8155eb0e69264fe537c899043ab327914fda43639de9c4",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/emit.py",
+   "bytes": 8045,
+   "sha256": "afaed338db6399836e5ade2975be0c8cf75e066cdbc9346db648d0e184c7fe09",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/probe1_resolve_every_upstream.py",
+   "bytes": 4404,
+   "sha256": "e308db607dedbd826451d63a076d3743a75a59fc24292f7b5834835e555a3f1c",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/RES-0042/probe2_invalid_url_not_skipped.py",
+   "bytes": 3593,
+   "sha256": "340749f066546ea2bd7126201b54d9a7ff3f40d63b142515601ca0f7570ae67d",
+   "exists": true,
+   "eol": "LF",
+   "role": "supporting"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Every catalog mcp__ server has a census row carrying final URL, HTTP status, last-release date, snapshot timestamp, and a recorded redirect chain (never a silent follow).",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/research/RES-0042.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "http",
+     "command": "census.run_census()",
+     "raw_output": "servers=15 http=13 redirected=1 abandoned=[] unmapped=['cloud-hub', 'scholarly-access'] invalid_status=UNRESOLVABLE skipped=False",
+     "fingerprint": "1d3fff0766e37cbbe854d08c5ffa21e043504c0fddfd25140c487063e6ced981",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0042/probe1_resolve_every_upstream.py",
+     "raw_output": "named probe1 re-resolves every HTTP upstream",
+     "fingerprint": "ae30102a71749f7bdadcbadad2575c1d5a5c9cc1f1513ffa862e99a0c2e2d590",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "A deliberately invalid URL is reported UNRESOLVABLE and is not skipped; the naive skipper mutant drops it.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "https://res-0042-deliberately-unresolvable.invalid/upstream",
+   "probes": [
+    {
+     "role": "source",
+     "method": "http",
+     "command": "resolve_url(https://res-0042-deliberately-unresolvable.invalid/upstream)",
+     "raw_output": "status=UNRESOLVABLE skipped=False http_status=0 naive_dropped=True",
+     "fingerprint": "fe1c9cfe0b2b0f910c2a16331d30ef096fb59358dcd3b3018be119fa864fff19",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0042/probe2_invalid_url_not_skipped.py",
+     "raw_output": "named probe2 invalid-url not skipped",
+     "fingerprint": "ad08cb895f2fa1c16cf45de30c50ef4b8c13298e55e4030d06281a9c2e318eed",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "resolve-every-upstream",
+   "name": "Re-resolve every declared HTTP upstream; every catalog server has a row",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0042/probe1_resolve_every_upstream.py",
+   "result": "PASS"
+  },
+  {
+   "id": "invalid-url-not-skipped",
+   "name": "Planted .invalid URL is UNRESOLVABLE rather than skipped",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0042/probe2_invalid_url_not_skipped.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "CONTROL-INVALID-URL",
+   "kind": "malformed-input",
+   "description": "Planted https://res-0042-deliberately-unresolvable.invalid/upstream must be UNRESOLVABLE. The naive skipper drops it (bad state); the honest resolver reports it and does not skip (good state).",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "naive_skipper_dropped_it=True",
+   "good_state_output": "status=UNRESOLVABLE skipped=False"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "RES-0042-probe2-invalid-url-refuter",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": false,
+  "notes": "Mechanical refuter is probe2 plus live re-resolve in probe1. Default is REFUTED unless the planted invalid URL is UNRESOLVABLE and every catalog server has a row with final URL, HTTP status, last-release date, and snapshot timestamp. This Linux worktree has no live ~/.mcp.json; the fleet is the catalog mcp__* grant set. Last-release dates and GitHub default-branch SHAs decay on write. Hosted remotes (DeepWiki, Figma) have no public git SHA. search-hub is an aggregator, not Firecrawl itself. Unmapped in-estate wrappers are recorded as NO-PUBLIC-UPSTREAM, not skipped."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/RES-0042/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/probes/RES-0042/schema_local.py",
+   "artifact_path": "command-center/research/RES-0042.json",
+   "executed": true,
+   "read_ok": true,
+   "probe": {
+    "role": "source",
+    "method": "schema-validate",
+    "command": "command-center/p2-wave/probes/RES-0042/schema_local.py",
+    "raw_output": "offline Draft202012Validator + disk RefResolver",
+    "fingerprint": "c1fdc0966866139b664babef9d093492b5589cffa38875660ccd41c4faa30e62",
+    "exit_code": 0
+   },
+   "exit_code": 0
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T01:08:40Z",
+  "ended_at": "2026-08-25T01:08:52Z",
+  "duration_seconds": 12.0
+ },
+ "retry": {
+  "count": 0,
+  "policy": "on HTTP 429 or a quota rejection, back off exponentially; two same-fingerprint structural refutes park BLOCKED with required_fix named; no ADV rebuild circle"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Catalog reviewer_requirement asked for a fresh-context adversarial refuter. Probe2 is the mechanical substitute; a human independent re-review is not this G-1.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Run a fresh-context reviewer who is not the author and who re-resolves a sampled upstream plus the planted invalid URL."
+  }
+ ],
+ "report": {
+  "kind": "research-registry",
+  "observations": [
+   {
+    "name": "catalog_server_count",
+    "measured": 15,
+    "method": "unique mcp__<server> tokens in WORK-UNIT-CATALOG.json tool_permissions",
+    "anchor": "command-center/WORK-UNIT-CATALOG.json"
+   },
+   {
+    "name": "http_upstreams_resolved",
+    "measured": 13,
+    "method": "HEAD-then-GET hop recorder; redirects listed, never silent-followed",
+    "anchor": "command-center/research/RES-0042.json"
+   },
+   {
+    "name": "invalid_url_unresolvable",
+    "measured": true,
+    "method": "honest resolver vs naive skipper mutant",
+    "anchor": "https://res-0042-deliberately-unresolvable.invalid/upstream"
+   },
+   {
+    "name": "abandoned_or_dead_count",
+    "measured": 0,
+    "method": "archived or last-release/push older than 365 days",
+    "anchor": "command-center/research/RES-0042.json"
+   }
+  ],
+  "control_ids": [
+   "CONTROL-INVALID-URL"
+  ],
+  "registry_kind": "mcp-maintenance-census",
+  "title": "Census the maintenance state of every MCP server installed on this box",
+  "question": "For each installed MCP server, when was its upstream last released, is its repository archived or renamed, does it still resolve, and which installed servers are effectively abandoned dependencies?",
+  "answer": "Catalog-declared installed fleet=15 servers on this Linux worktree; ~/.mcp.json present=False. Abandoned/dead=none. Renamed=['context7']. No-public-upstream=['cloud-hub', 'scholarly-access']. Invalid-URL control=UNRESOLVABLE (not skipped). SUCCESS:RES-0042 in the receipt AND a per-server row carrying final URL, HTTP status, last release date and a snapshot timestamp",
+  "completion_sentinel": "SUCCESS:RES-0042 in the receipt AND a per-server row carrying final URL, HTTP status, last release date and a snapshot timestamp",
+  "inventory": {
+   "catalog_servers": [
+    "agent-mail",
+    "basic-memory",
+    "brightdata",
+    "cloud-hub",
+    "codex",
+    "context7",
+    "deepwiki",
+    "figma",
+    "github",
+    "paper-search",
+    "qlty",
+    "repomix",
+    "scholarly-access",
+    "search-hub",
+    "searxng"
+   ],
+   "mapping_table_missing": [],
+   "mapping_table_extra": [],
+   "config_surfaces": [
+    {
+     "surface": "~/.mcp.json",
+     "resolved_path": "/root/.mcp.json",
+     "present": false,
+     "bytes": 0
+    },
+    {
+     "surface": "~/.claude.json",
+     "resolved_path": "/root/.claude.json",
+     "present": false,
+     "bytes": 0
+    },
+    {
+     "surface": "~/.claude/settings.json",
+     "resolved_path": "/root/.claude/settings.json",
+     "present": false,
+     "bytes": 0
+    },
+    {
+     "surface": "~/.cursor/mcp.json",
+     "resolved_path": "/root/.cursor/mcp.json",
+     "present": false,
+     "bytes": 0
+    },
+    {
+     "surface": ".mcp.json",
+     "resolved_path": "/opt/p2/ast-integrate/.mcp.json",
+     "present": false,
+     "bytes": 0
+    },
+    {
+     "surface": ".cursor/mcp.json",
+     "resolved_path": "/opt/p2/ast-integrate/.cursor/mcp.json",
+     "present": false,
+     "bytes": 0
+    }
+   ],
+   "live_mcp_json_present": false,
+   "abandon_threshold_days": 365,
+   "worktree": "/opt/p2/ast-integrate"
+  },
+  "servers": [
+   {
+    "server_id": "agent-mail",
+    "declared_url": "https://github.com/Dicklesworthstone/mcp_agent_mail",
+    "final_url": "https://github.com/Dicklesworthstone/mcp_agent_mail",
+    "http_status": 200,
+    "last_release_date": "2026-04-16T19:09:19Z",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/Dicklesworthstone/mcp_agent_mail",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "mcp_agent_mail; identity is a mapping claim, snapshot-dated.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-22T19:01:28Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v0.3.2",
+     "fetched_at": "2026-08-25T01:08:41Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "Dicklesworthstone/mcp_agent_mail",
+     "html_url": "https://github.com/Dicklesworthstone/mcp_agent_mail",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v0.3.2",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "mcp_agent_mail; identity is a mapping claim, snapshot-dated."
+   },
+   {
+    "server_id": "basic-memory",
+    "declared_url": "https://github.com/basicmachines-co/basic-memory",
+    "final_url": "https://github.com/basicmachines-co/basic-memory",
+    "http_status": 200,
+    "last_release_date": "2026-08-24T02:33:46Z",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/basicmachines-co/basic-memory",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "basicmachines-co/basic-memory.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-24T16:50:10Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v0.23.0",
+     "fetched_at": "2026-08-25T01:08:41Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "basicmachines-co/basic-memory",
+     "html_url": "https://github.com/basicmachines-co/basic-memory",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v0.23.0",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "basicmachines-co/basic-memory."
+   },
+   {
+    "server_id": "brightdata",
+    "declared_url": "https://github.com/brightdata/brightdata-mcp",
+    "final_url": "https://github.com/brightdata/brightdata-mcp",
+    "http_status": 200,
+    "last_release_date": "2026-07-27T12:14:42Z",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/brightdata/brightdata-mcp",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "Bright Data official MCP server.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-12T07:39:54Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v2.11.1",
+     "fetched_at": "2026-08-25T01:08:41Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "brightdata/brightdata-mcp",
+     "html_url": "https://github.com/brightdata/brightdata-mcp",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v2.11.1",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "Bright Data official MCP server."
+   },
+   {
+    "server_id": "cloud-hub",
+    "declared_url": "UNMAPPED",
+    "final_url": "UNMAPPED",
+    "http_status": 0,
+    "last_release_date": "UNAVAILABLE",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [],
+    "redirected": false,
+    "resolvable": false,
+    "mapping_kind": "in-estate-no-public-upstream",
+    "mapping_note": "cloud-hub is an in-estate aggregator at tools/mcp/cloud-hub; no public MCP upstream URL is claimed.",
+    "archived": null,
+    "renamed": false,
+    "pushed_at": null,
+    "pin": {
+     "kind": "unmapped",
+     "value": "NO-PUBLIC-UPSTREAM",
+     "fetched_at": "2026-08-25T01:08:40Z",
+     "caveat": "Unversioned because no public surface exists to pin."
+    },
+    "github_meta": null,
+    "components": [],
+    "maintenance": "NO-PUBLIC-UPSTREAM",
+    "strongest_caveat": "cloud-hub is an in-estate aggregator at tools/mcp/cloud-hub; no public MCP upstream URL is claimed."
+   },
+   {
+    "server_id": "codex",
+    "declared_url": "https://github.com/openai/codex",
+    "final_url": "https://github.com/openai/codex",
+    "http_status": 200,
+    "last_release_date": "2026-08-24T00:28:28Z",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/openai/codex",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "openai/codex CLI ships experimental `codex mcp-server`; not a standalone MCP package.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-25T01:04:37Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "rust-v0.149.1",
+     "fetched_at": "2026-08-25T01:08:41Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "openai/codex",
+     "html_url": "https://github.com/openai/codex",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "rust-v0.149.1",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "openai/codex CLI ships experimental `codex mcp-server`; not a standalone MCP package."
+   },
+   {
+    "server_id": "context7",
+    "declared_url": "https://github.com/upstash/context7-mcp",
+    "final_url": "https://github.com/upstash/context7",
+    "http_status": 200,
+    "last_release_date": "2026-08-21T08:01:35Z",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/upstash/context7-mcp",
+      "status": 301,
+      "location": "https://github.com/upstash/context7",
+      "final": false,
+      "error": null
+     },
+     {
+      "url": "https://github.com/upstash/context7",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": true,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "Declared as context7-mcp; a rename/merge onto upstash/context7 is recorded as a redirect, never followed silently.",
+    "archived": false,
+    "renamed": true,
+    "pushed_at": "2026-08-24T12:32:53Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "@upstash/context7-mcp@4.0.3",
+     "fetched_at": "2026-08-25T01:08:41Z",
+     "target_commitish": "master",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "upstash/context7",
+     "html_url": "https://github.com/upstash/context7",
+     "default_branch": "master",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "@upstash/context7-mcp@4.0.3",
+     "commit_sha": "master"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "RENAMED",
+    "strongest_caveat": "Declared as context7-mcp; a rename/merge onto upstash/context7 is recorded as a redirect, never followed silently."
+   },
+   {
+    "server_id": "deepwiki",
+    "declared_url": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
+    "final_url": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
+    "http_status": 200,
+    "last_release_date": "HOSTED-NO-GITHUB-RELEASE",
+    "snapshot_timestamp": "2026-08-25T01:08:40Z",
+    "redirect_chain": [
+     {
+      "url": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "hosted-remote",
+    "mapping_note": "Cognition hosted DeepWiki MCP; no public git SHA for the service.",
+    "archived": null,
+    "renamed": false,
+    "pushed_at": null,
+    "pin": {
+     "kind": "http-snapshot",
+     "value": "https://docs.devin.ai/work-with-devin/deepwiki-mcp",
+     "fetched_at": "2026-08-25T01:08:40Z",
+     "caveat": "Hosted remote has no public git SHA."
+    },
+    "github_meta": null,
+    "live_endpoint": "https://mcp.deepwiki.com/mcp",
+    "live_endpoint_probe": {
+     "declared_url": "https://mcp.deepwiki.com/mcp",
+     "final_url": "https://mcp.deepwiki.com/mcp",
+     "http_status": 406,
+     "snapshot_timestamp": "2026-08-25T01:08:40Z",
+     "redirect_chain": [
+      {
+       "url": "https://mcp.deepwiki.com/mcp",
+       "status": 406,
+       "location": null,
+       "final": true,
+       "error": null
+      }
+     ]
+    },
+    "components": [],
+    "maintenance": "HOSTED-REMOTE",
+    "strongest_caveat": "Cognition hosted DeepWiki MCP; no public git SHA for the service."
+   },
+   {
+    "server_id": "figma",
+    "declared_url": "https://developers.figma.com/docs/figma-mcp-server/",
+    "final_url": "https://developers.figma.com/docs/figma-mcp-server/",
+    "http_status": 200,
+    "last_release_date": "HOSTED-NO-GITHUB-RELEASE",
+    "snapshot_timestamp": "2026-08-25T01:08:41Z",
+    "redirect_chain": [
+     {
+      "url": "https://developers.figma.com/docs/figma-mcp-server/",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "hosted-docs",
+    "mapping_note": "Official Figma MCP docs surface (hosted, not a git pin).",
+    "archived": null,
+    "renamed": false,
+    "pushed_at": null,
+    "pin": {
+     "kind": "http-snapshot",
+     "value": "https://developers.figma.com/docs/figma-mcp-server/",
+     "fetched_at": "2026-08-25T01:08:41Z",
+     "caveat": "Hosted remote has no public git SHA."
+    },
+    "github_meta": null,
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "HOSTED-REMOTE",
+    "strongest_caveat": "Official Figma MCP docs surface (hosted, not a git pin)."
+   },
+   {
+    "server_id": "github",
+    "declared_url": "https://github.com/github/github-mcp-server",
+    "final_url": "https://github.com/github/github-mcp-server",
+    "http_status": 200,
+    "last_release_date": "2026-08-20T09:13:17Z",
+    "snapshot_timestamp": "2026-08-25T01:08:42Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/github/github-mcp-server",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "Official GitHub MCP server (local + remote).",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-24T16:25:05Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v1.10.1",
+     "fetched_at": "2026-08-25T01:08:42Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "github/github-mcp-server",
+     "html_url": "https://github.com/github/github-mcp-server",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v1.10.1",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "Official GitHub MCP server (local + remote)."
+   },
+   {
+    "server_id": "paper-search",
+    "declared_url": "https://github.com/openags/paper-search-mcp",
+    "final_url": "https://github.com/openags/paper-search-mcp",
+    "http_status": 200,
+    "last_release_date": "NO-GITHUB-RELEASE",
+    "snapshot_timestamp": "2026-08-25T01:08:42Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/openags/paper-search-mcp",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "openags/paper-search-mcp.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-17T05:39:02Z",
+    "pin": {
+     "kind": "commit-sha",
+     "value": "234678ab231074a7977320978ee0496dcdaddd1f",
+     "fetched_at": "2026-08-25T01:08:43Z",
+     "release_tag": null
+    },
+    "github_meta": {
+     "full_name": "openags/paper-search-mcp",
+     "html_url": "https://github.com/openags/paper-search-mcp",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 404,
+     "api_commits_status": 200,
+     "release_tag": null,
+     "commit_sha": "234678ab231074a7977320978ee0496dcdaddd1f"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE-NO-RELEASES",
+    "strongest_caveat": "openags/paper-search-mcp."
+   },
+   {
+    "server_id": "qlty",
+    "declared_url": "https://github.com/qltysh/qlty",
+    "final_url": "https://github.com/qltysh/qlty",
+    "http_status": 200,
+    "last_release_date": "2026-08-22T00:41:59Z",
+    "snapshot_timestamp": "2026-08-25T01:08:43Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/qltysh/qlty",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "qltysh/qlty.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-22T00:41:54Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v0.643.0",
+     "fetched_at": "2026-08-25T01:08:43Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "qltysh/qlty",
+     "html_url": "https://github.com/qltysh/qlty",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v0.643.0",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "qltysh/qlty."
+   },
+   {
+    "server_id": "repomix",
+    "declared_url": "https://github.com/yamadashy/repomix",
+    "final_url": "https://github.com/yamadashy/repomix",
+    "http_status": 200,
+    "last_release_date": "2026-08-08T04:31:26Z",
+    "snapshot_timestamp": "2026-08-25T01:08:43Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/yamadashy/repomix",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "yamadashy/repomix (pack_remote_repository).",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-23T08:58:26Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v1.18.0",
+     "fetched_at": "2026-08-25T01:08:44Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "yamadashy/repomix",
+     "html_url": "https://github.com/yamadashy/repomix",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v1.18.0",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "yamadashy/repomix (pack_remote_repository)."
+   },
+   {
+    "server_id": "scholarly-access",
+    "declared_url": "UNMAPPED",
+    "final_url": "UNMAPPED",
+    "http_status": 0,
+    "last_release_date": "UNAVAILABLE",
+    "snapshot_timestamp": "2026-08-25T01:08:43Z",
+    "redirect_chain": [],
+    "redirected": false,
+    "resolvable": false,
+    "mapping_kind": "in-estate-no-public-upstream",
+    "mapping_note": "In-estate tools/scholarly-access-mcp on this worktree; README names no public git upstream. Recorded UNMAPPED, not skipped.",
+    "archived": null,
+    "renamed": false,
+    "pushed_at": null,
+    "pin": {
+     "kind": "unmapped",
+     "value": "NO-PUBLIC-UPSTREAM",
+     "fetched_at": "2026-08-25T01:08:43Z",
+     "caveat": "Unversioned because no public surface exists to pin."
+    },
+    "github_meta": null,
+    "components": [],
+    "maintenance": "NO-PUBLIC-UPSTREAM",
+    "strongest_caveat": "In-estate tools/scholarly-access-mcp on this worktree; README names no public git upstream. Recorded UNMAPPED, not skipped."
+   },
+   {
+    "server_id": "search-hub",
+    "declared_url": "https://github.com/firecrawl/firecrawl-mcp-server",
+    "final_url": "https://github.com/firecrawl/firecrawl-mcp-server",
+    "http_status": 200,
+    "last_release_date": "2025-09-26T07:31:17Z",
+    "snapshot_timestamp": "2026-08-25T01:08:43Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/firecrawl/firecrawl-mcp-server",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "in-estate-aggregator",
+    "mapping_note": "search-hub is an in-estate aggregator (firecrawl/tavily/exa). The public Firecrawl MCP repo is the primary remote of the aggregator, not a claim that search-hub IS firecrawl.",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-25T00:38:52Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v3.2.1",
+     "fetched_at": "2026-08-25T01:08:44Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "firecrawl/firecrawl-mcp-server",
+     "html_url": "https://github.com/firecrawl/firecrawl-mcp-server",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v3.2.1",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [
+     {
+      "declared_url": "https://github.com/firecrawl/firecrawl-mcp-server",
+      "final_url": "https://github.com/firecrawl/firecrawl-mcp-server",
+      "http_status": 200,
+      "last_release_date": "2025-09-26T07:31:17Z",
+      "snapshot_timestamp": "2026-08-25T01:08:43Z",
+      "redirect_chain": [
+       {
+        "url": "https://github.com/firecrawl/firecrawl-mcp-server",
+        "status": 200,
+        "location": null,
+        "final": false,
+        "error": null
+       }
+      ],
+      "commit_sha": "main",
+      "archived": false
+     },
+     {
+      "declared_url": "https://github.com/tavily-ai/tavily-mcp",
+      "final_url": "https://github.com/tavily-ai/tavily-mcp",
+      "http_status": 200,
+      "last_release_date": "NO-GITHUB-RELEASE",
+      "snapshot_timestamp": "2026-08-25T01:08:49Z",
+      "redirect_chain": [
+       {
+        "url": "https://github.com/tavily-ai/tavily-mcp",
+        "status": 200,
+        "location": null,
+        "final": false,
+        "error": null
+       }
+      ],
+      "commit_sha": "248dc9e3e385305ad3281120284ff662af4b5940",
+      "archived": false
+     },
+     {
+      "declared_url": "https://github.com/exa-labs/exa-mcp-server",
+      "final_url": "https://github.com/exa-labs/exa-mcp-server",
+      "http_status": 200,
+      "last_release_date": "NO-GITHUB-RELEASE",
+      "snapshot_timestamp": "2026-08-25T01:08:51Z",
+      "redirect_chain": [
+       {
+        "url": "https://github.com/exa-labs/exa-mcp-server",
+        "status": 200,
+        "location": null,
+        "final": false,
+        "error": null
+       }
+      ],
+      "commit_sha": "15ffb50519e719dc791cdc750ce5ed1934c0a1ed",
+      "archived": false
+     }
+    ],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "search-hub is an in-estate aggregator (firecrawl/tavily/exa). The public Firecrawl MCP repo is the primary remote of the aggregator, not a claim that search-hub IS firecrawl."
+   },
+   {
+    "server_id": "searxng",
+    "declared_url": "https://github.com/ihor-sokoliuk/mcp-searxng",
+    "final_url": "https://github.com/ihor-sokoliuk/mcp-searxng",
+    "http_status": 200,
+    "last_release_date": "2026-08-21T16:04:27Z",
+    "snapshot_timestamp": "2026-08-25T01:08:44Z",
+    "redirect_chain": [
+     {
+      "url": "https://github.com/ihor-sokoliuk/mcp-searxng",
+      "status": 200,
+      "location": null,
+      "final": false,
+      "error": null
+     }
+    ],
+    "redirected": false,
+    "resolvable": true,
+    "mapping_kind": "public-github",
+    "mapping_note": "Community SearXNG MCP (not SearXNG core).",
+    "archived": false,
+    "renamed": false,
+    "pushed_at": "2026-08-24T05:31:14Z",
+    "pin": {
+     "kind": "release-tag",
+     "value": "v2.0.0",
+     "fetched_at": "2026-08-25T01:08:44Z",
+     "target_commitish": "main",
+     "caveat": "Release tag pin; GitHub target_commitish was a branch name, not a SHA."
+    },
+    "github_meta": {
+     "full_name": "ihor-sokoliuk/mcp-searxng",
+     "html_url": "https://github.com/ihor-sokoliuk/mcp-searxng",
+     "default_branch": "main",
+     "api_repo_status": 200,
+     "api_release_status": 200,
+     "api_commits_status": null,
+     "release_tag": "v2.0.0",
+     "commit_sha": "main"
+    },
+    "live_endpoint": null,
+    "components": [],
+    "maintenance": "ACTIVE",
+    "strongest_caveat": "Community SearXNG MCP (not SearXNG core)."
+   }
+  ],
+  "control_invalid_url": {
+   "url": "https://res-0042-deliberately-unresolvable.invalid/upstream",
+   "skipped": false,
+   "resolvable": false,
+   "status": "UNRESOLVABLE",
+   "final_url": "https://res-0042-deliberately-unresolvable.invalid/upstream",
+   "http_status": 0,
+   "last_release_date": "UNAVAILABLE",
+   "snapshot_timestamp": "2026-08-25T01:08:52Z",
+   "redirect_chain": [
+    {
+     "url": "https://res-0042-deliberately-unresolvable.invalid/upstream",
+     "status": 0,
+     "location": null,
+     "final": true,
+     "error": "URLError:gaierror:[Errno -2] Name or service not known"
+    }
+   ],
+   "error": "URLError:gaierror:[Errno -2] Name or service not known",
+   "naive_skipper_dropped_it": true,
+   "naive_remaining": [
+    "https://github.com/github/github-mcp-server"
+   ],
+   "planted": true,
+   "server_id": "CONTROL-INVALID-URL"
+  },
+  "answers": {
+   "abandoned_or_dead": [],
+   "renamed": [
+    "context7"
+   ],
+   "no_public_upstream": [
+    "cloud-hub",
+    "scholarly-access"
+   ],
+   "redirect_recorded_not_silent": true,
+   "invalid_url_unresolvable": true,
+   "invalid_url_skipped": false
+  },
+  "named_probes": [
+   {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0042/probe1_resolve_every_upstream.py"
+   },
+   {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0042/probe2_invalid_url_not_skipped.py"
+   }
+  ],
+  "strongest_caveat": "This Linux worktree has no live ~/.mcp.json; the fleet is the catalog mcp__* grant set. Last-release dates and GitHub default-branch SHAs decay on write. Hosted remotes (DeepWiki, Figma) have no public git SHA. search-hub is an aggregator, not Firecrawl itself. Unmapped in-estate wrappers are recorded as NO-PUBLIC-UPSTREAM, not skipped.",
+  "notes": "G-1 for RES-0042: live named probes exit 0, research registry state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery."
+ }
+}

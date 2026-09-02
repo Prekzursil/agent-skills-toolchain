@@ -1,0 +1,266 @@
+{
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0427.json",
+      "role": "primary"
+    },
+    {
+      "path": "tools/command-center/arrival_scheduler.py",
+      "role": "implementation"
+    },
+    {
+      "path": "tools/command-center/tests/test_arrival_scheduler.py",
+      "role": "tests"
+    }
+  ],
+  "both_states": {
+    "burst": {
+      "arm": "burst",
+      "concurrency_cap_after": 8,
+      "concurrency_cap_before": 8,
+      "elapsed_fake_sec": 0.0,
+      "n_200": 8,
+      "n_429": 96,
+      "n_529": 0,
+      "n_terminal_fail": 32,
+      "n_terminal_ok": 8,
+      "n_units": 40
+    },
+    "burst_is_real_control": true,
+    "capacity": 8.0,
+    "identical_unit_count": true,
+    "load_escalations": 0,
+    "n_units": 40,
+    "ok": true,
+    "refill_per_sec": 8.0,
+    "scheduled": {
+      "arm": "scheduled",
+      "concurrency_cap_after": 8,
+      "concurrency_cap_before": 8,
+      "elapsed_fake_sec": 4.0,
+      "n_200": 40,
+      "n_429": 0,
+      "n_529": 0,
+      "n_terminal_fail": 0,
+      "n_terminal_ok": 40,
+      "n_units": 40
+    },
+    "scheduler_avoids_storm": true,
+    "vacuous": false
+  },
+  "cloud_ok": false,
+  "completion_line": "SENTINEL:IMP-0427:ARRIVAL-RATE-SCHEDULED",
+  "completion_sentinel": "SENTINEL:IMP-0427:ARRIVAL-RATE-SCHEDULED",
+  "does_not_claim": [
+    "cloud ok=true is delivery",
+    "global tools/command-center/unit_manifest.py --write was run",
+    "live Anthropic/OpenAI 429s were observed (fixture provider)",
+    "IMP-0420 / IMP-0421 adapters exist on this worktree"
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0427.json",
+      "consumer": "command-center/p2-wave/probes/IMP-0427/probe2_both_states.py",
+      "executed": true,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0427/probe2_both_states.py",
+        "method": "command",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/command-center/arrival_scheduler.py:run_both_states",
+      "claim": "At identical n=40, naive burst produced 96 HTTP 429s and the token-bucket scheduler produced 0.",
+      "confidence": "almost-certain",
+      "measured": {
+        "burst_429": 96,
+        "burst_is_real_control": true,
+        "capacity": 8.0,
+        "load_escalations": 0,
+        "n_units": 40,
+        "refill_per_sec": 8.0,
+        "scheduled_429": 0,
+        "vacuous": false
+      },
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/command-center/arrival_scheduler.py:token_bucket_checks",
+      "claim": "Token bucket never goes negative, never exceeds capacity, and refills at the configured rate on an injected clock.",
+      "confidence": "almost-certain",
+      "measured": {
+        "n_checks": 9,
+        "n_failed": 0
+      },
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/command-center/arrival_scheduler.py:run_529_concurrency_control",
+      "claim": "Injected 529s retry to completion and do not change concurrency_cap.",
+      "confidence": "almost-certain",
+      "measured": {
+        "all_succeeded": true,
+        "concurrency_cap_after": 8,
+        "concurrency_cap_before": 8,
+        "concurrency_unchanged": true,
+        "n_429_observed": 0,
+        "n_529_injected": 4,
+        "n_529_observed": 4,
+        "n_terminal_ok": 16,
+        "n_units": 16
+      },
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "IMP-0427",
+  "implementation": {
+    "adapters_IMP0420_IMP0421": "not present on this worktree; scheduler is the admission layer a typed provider (status, Retry-After) would sit behind",
+    "headroom_IMP0445": "optional SchedulerInputs.headroom_ok gate; default admits",
+    "max_transient_attempts": 3,
+    "module": "tools/command-center/arrival_scheduler.py",
+    "not": "inferred from 429 retry outcomes",
+    "provider_529_policy": "retry the unit; do not permanently reduce concurrency_cap",
+    "quota_and_arrival_rate_are": "SchedulerInputs constructor fields"
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0427/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0427/probe1_token_bucket.py",
+      "id": "probe1",
+      "role": "token-bucket-invariants"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0427/probe2_both_states.py",
+      "id": "probe2",
+      "role": "both-states-429-control"
+    }
+  ],
+  "negative_controls": [
+    {
+      "bad_state": "n <= provider capacity => burst_429 == 0 (escalated)",
+      "description": "Zero 429s on BOTH arms is vacuous and must escalate load. The burst arm must produce 429s.",
+      "fired_on_bad_state": true,
+      "good_state": "n=40 burst_429=96 scheduled_429=0",
+      "id": "burst-arm-is-real-control",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "headroom_ok=False refuses dispatch with 503 and no vendor call.",
+      "fired_on_bad_state": true,
+      "id": "headroom-gate-refuses",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "provider_529": {
+    "all_succeeded": true,
+    "concurrency_cap_after": 8,
+    "concurrency_cap_before": 8,
+    "concurrency_unchanged": true,
+    "n_429_observed": 0,
+    "n_529_injected": 4,
+    "n_529_observed": 4,
+    "n_terminal_ok": 16,
+    "n_units": 16
+  },
+  "question": "Implement staggered dispatch with a token-bucket arrival rate and provider-side backoff, so quota and arrival rate are scheduler inputs rather than retry outcomes. Exact target: reproduce a 429 storm under a naive burst and show it does not occur under the scheduler, at the same total unit count.",
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0420 Claude adapter and IMP-0421 Codex adapter are not delivered on this worktree. This unit schedules a typed provider boundary, not live vendor CLIs.",
+      "settling_experiment": "Deliver IMP-0420 / IMP-0421 and wire this scheduler in front of them.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "IMP-0445 commit-charge headroom guard is not delivered; the scheduler exposes headroom_ok as an input gate.",
+      "settling_experiment": "Deliver IMP-0445 and pass its predicate as headroom_ok.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "max 3 attempts for provider 429/529 transients only; never reduce concurrency permanently in response to a provider-side 529"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 independently re-runs burst vs scheduled at the same N and asserts burst_429>0 (real control) and scheduled_429==0. It also asserts 529 does not reduce concurrency_cap.",
+    "reviewer_id": "IMP-0427-probe2-both-states-live-rerun",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SENTINEL:IMP-0427:ARRIVAL-RATE-SCHEDULED",
+  "spec_anchor": "_USER-PROMPTS.md:10577-10578, :11318",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/tests/test_arrival_scheduler.py",
+      "exit_code": 0,
+      "id": "test_arrival_scheduler.py",
+      "raw_output": "test_burst_storm_scheduled_clean (__main__.BothStatesTests.test_burst_storm_scheduled_clean) ... ok\ntest_529_does_not_reduce_concurrency (__main__.RetryAndCapTests.test_529_does_not_reduce_concurrency) ... ok\ntest_headroom_gate_no_vendor_call (__main__.RetryAndCapTests.test_headroom_gate_no_vendor_call) ... ok\ntest_retry_after_delta_seconds (__main__.RetryAndCapTests.test_retry_after_delta_seconds) ... ok\ntest_named_checks_pass (__main__.TokenBucketTests.test_named_checks_pass) ... ok\ntest_never_negative_or_above_capacity (__main__.TokenBucketTests.test_never_negative_or_above_capacity) ... ok\ntest_oversize_is_atomic (__main__.TokenBucketTests.test_oversize_is_atomic) ... ok\n\n----------------------------------------------------------------------\nRan 7 tests in 0.001s\n\nOK",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:01:13Z",
+    "started_at": "2026-08-25T01:01:13Z"
+  },
+  "title": "Arrival-rate scheduler treating quota as a scheduler input",
+  "token_bucket_checks": [
+    {
+      "detail": "tokens=8.0",
+      "name": "starts_at_capacity",
+      "ok": true
+    },
+    {
+      "detail": "tokens=5.0",
+      "name": "consume_reduces",
+      "ok": true
+    },
+    {
+      "detail": "failed=False tokens=0.0",
+      "name": "empty_does_not_go_negative",
+      "ok": true
+    },
+    {
+      "detail": "tokens=2.0",
+      "name": "refuse_oversize_atomic",
+      "ok": true
+    },
+    {
+      "detail": "tokens_after_0.125s=1.0",
+      "name": "refill_rate_exact",
+      "ok": true
+    },
+    {
+      "detail": "got=True leftover=0.0",
+      "name": "refill_then_consume",
+      "ok": true
+    },
+    {
+      "detail": "tokens=4.0",
+      "name": "never_above_capacity",
+      "ok": true
+    },
+    {
+      "detail": "wait=0.125",
+      "name": "time_until_empty",
+      "ok": true
+    },
+    {
+      "detail": "ok",
+      "name": "tokens_never_negative_after_drain",
+      "ok": true
+    }
+  ],
+  "unit_id": "IMP-0427"
+}

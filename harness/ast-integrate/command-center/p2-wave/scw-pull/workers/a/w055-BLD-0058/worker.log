@@ -1,0 +1,20 @@
+I'll start from the existing BLD-0058 probe tree, resume whatever is already built, and drive this unit to contract-green without touching git or the global catalog.The probe tree is sparse: handoff plus a cloud-ok refute, no SUBAGENT-RETURN yet. Next I’ll read those plus the unit catalog and a successful sibling delivery.Cloud-ok left this unit honesty-blocked with missing probes. I’ll pull the catalog contract, receipt, schema, and a delivered sibling so we resume instead of starting over.I'll inspect a delivered sibling's receipt/schema, `ready_units`, and whether the original probe scripts still exist anywhere.There's a live quota probe log. I'll read that before wiring the classifier and scheduler hooks.I'll add a production 429/529 policy, restore the named probes, and wire them through `r2e_loop.py` so the catalog controls can actually re-run.The interactive-lane counter was counting future arrivals. I’ll restrict the rolling window to past events and re-run the probes.SUCCESS receipts need a source and a verifier probe on every evidence item. I’ll pull the exact schema errors and fix the packer.**SUCCESS:delivered BLD-0058** `predicate=delivered state=SUCCESS probes=3 raws=4 notes=arrival_quota_probe.py:0,refute_controls.py:0,validate_delivery.py:0`
+
+The cloud-ok harvest was honesty-blocked (missing probes, OpenAI 503 Slow Down collapsed into capacity, JSONL compact-prefilter, no production 429/529 path). That tree was resumed, not scrapped.
+
+What now holds:
+
+| Catalog control | Live result |
+|---|---|
+| 10x burst without stagger | 460 HTTP 429s |
+| 3s / 4s stagger | 0 HTTP 429s; 4s keeps 5 interactive RPM (160 interactive arrivals) |
+| Synthetic 529 through `r2e_loop.inject_synthetic_vendor_error` | concurrency 480 → 480 |
+| Unmeasurable quotas | `NOT-CHECKED` (numeric-default mutant goes red) |
+| OpenAI 503 Slow Down vs engine-overloaded | `OUR_ARRIVAL_RATE` vs `PROVIDER_CAPACITY` |
+| JSONL parse-before-filter | compact and spaced records both count; compact-prefilter mutant goes red |
+
+Live vendor RPM/TPM and both subscription snapshots remain **NOT-CHECKED** — that is the required emission, not a guessed number. Independent review (xAI vs original OpenAI producer) re-derived the packed 20 RPM cadence from the observed 3.0s stagger, not from vendor docs.
+
+Receipt `command-center/receipts/BLD-0058.json` is `state=SUCCESS`, schema 0 errors, `ready_units.artifact_delivered=True`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `b8294571d02df7e498c8d65ffdfee783c81516fb35ceed897f96ec7e36355b93`.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` was not treated as delivery.

@@ -1,0 +1,84 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNF-0161/program-gate-report.local.schema.json",
+  "title": "CNF-0161 program-gate-report (unit-local; catalog shim carries no constraints)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "schema_version",
+    "unit_id",
+    "state",
+    "sentinel",
+    "spec_anchor",
+    "min_bytes_threshold",
+    "artifacts",
+    "evidence",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "report",
+    "timestamps",
+    "retry"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "unit_id": { "type": "string", "const": "CNF-0161" },
+    "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNF-0161" },
+    "spec_anchor": { "type": "string", "minLength": 16 },
+    "min_bytes_threshold": { "type": "integer", "minimum": 400 },
+    "artifacts": { "type": "array", "minItems": 1 },
+    "evidence": { "type": "array", "minItems": 2 },
+    "tests": { "type": "array", "minItems": 4 },
+    "negative_controls": { "type": "array", "minItems": 1 },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 8 },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "report": {
+      "type": "object",
+      "required": ["kind", "observations", "control_ids", "packet_path"],
+      "properties": {
+        "kind": { "type": "string", "const": "program-gate-report" },
+        "observations": { "type": "array", "minItems": 1 },
+        "control_ids": { "type": "array", "minItems": 1 },
+        "packet_path": {
+          "type": "string",
+          "const": "command-center/receipts/CNF-0161-owner-packet.md"
+        }
+      }
+    },
+    "timestamps": {
+      "type": "object",
+      "required": ["started_at", "ended_at"]
+    },
+    "retry": {
+      "type": "object",
+      "required": ["count", "policy"]
+    }
+  },
+  "allOf": [
+    {
+      "if": { "properties": { "state": { "const": "SUCCESS" } }, "required": ["state"] },
+      "then": {
+        "properties": {
+          "tests": {
+            "type": "array",
+            "minItems": 4,
+            "not": {
+              "contains": {
+                "properties": { "result": { "enum": ["FAIL", "ERROR", "SKIP", "NOT-RUN"] } },
+                "required": ["result"]
+              }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

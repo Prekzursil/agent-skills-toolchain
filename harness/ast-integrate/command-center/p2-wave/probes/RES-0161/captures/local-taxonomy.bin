@@ -1,0 +1,70 @@
+"""Closed failure-taxonomy families for agentspec.
+
+IMP-0138 keys per-node ``on_failure`` by these families. Policy must
+branch on the FAMILY (exact membership or a closed full-string form),
+never on a substring of an error message.
+
+The eight names are the closed tool-result taxonomy named by IMP-0449:
+severed-stream, adapter-exit-n, win-arg-limit, timeout, schema-invalid,
+partial-artifact, degraded, blocked. ``adapter-exit-N`` (N a positive
+integer) classifies as family ``adapter-exit-n`` via ``re.fullmatch``,
+not via ``search``/``in``.
+"""
+
+from __future__ import annotations
+
+import re
+from typing import Final, FrozenSet, Tuple
+
+FAMILIES_TUPLE: Final[Tuple[str, ...]] = (
+    "severed-stream",
+    "adapter-exit-n",
+    "win-arg-limit",
+    "timeout",
+    "schema-invalid",
+    "partial-artifact",
+    "degraded",
+    "blocked",
+)
+
+FAMILIES: FrozenSet[str] = frozenset(FAMILIES_TUPLE)
+
+# Closed structural form for the adapter-exit family. fullmatch only.
+_ADAPTER_EXIT_N: Final[re.Pattern[str]] = re.compile(r"^adapter-exit-[1-9]\d*$")
+
+
+class OutOfTaxonomyError(ValueError):
+    """Raised when a reason string is not a closed-taxonomy family."""
+
+    def __init__(self, reason: object) -> None:
+        self.reason = reason
+        super().__init__(f"out-of-taxonomy-reason:{reason!r}")
+
+
+def family_of(reason: str) -> str:
+    """Return the taxonomy family for ``reason``.
+
+    Exact set membership of the whole string, plus one closed full-string
+    form (``adapter-exit-<positive-int>`` -> ``adapter-exit-n``). A
+    message that merely *contains* a family name is not a family.
+    """
+    if not isinstance(reason, str):
+        raise OutOfTaxonomyError(reason)
+    if reason in FAMILIES:
+        return reason
+    if _ADAPTER_EXIT_N.fullmatch(reason) is not None:
+        return "adapter-exit-n"
+    raise OutOfTaxonomyError(reason)
+
+
+def is_family(reason: str) -> bool:
+    try:
+        family_of(reason)
+    except OutOfTaxonomyError:
+        return False
+    return True
+
+
+# Names used by IMP-0138 tests/probes
+family_of = family_of
+OutOfTaxonomyError = OutOfTaxonomyError

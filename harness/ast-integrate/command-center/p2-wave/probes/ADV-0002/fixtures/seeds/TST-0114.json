@@ -1,0 +1,300 @@
+{
+  "unit_id": "TST-0114",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "test-receipt",
+  "title": "Accessibility tests for operator-facing surfaces",
+  "question": "Layer 35 (:11023). For the cockpit and any UI surface, do contrast ratios, focus visibility, keyboard reachability and screen-reader labels hold; and for terminal surfaces, is the line readable under NO_COLOR and monochrome with no double-width glyph?",
+  "answer": "PASS: cockpit status line and panes use width-1 ASCII glyphs; NO_COLOR keeps [FOCUS]/[OK] tokens; dark and light theme PPM pixels meet the 4.5:1 (text) and 3:1 (focus) floors; a yellow-on-white decoy and a planted U+26A0 fail the same detectors.",
+  "sentinel": "SUCCESS:TST-0114",
+  "completion_sentinel": "SUCCESS:TST-0114",
+  "min_bytes_threshold": 2048,
+  "cloud_ok": false,
+  "registered": true,
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "measured_at": "2026-08-24T19:04:25Z",
+  "surfaces": {
+    "status_plain": "> program [FOCUS] theme=dark events=0 receipts=64 status=[OK] keys:a=agents c=codex d=databricks h=health m=mcp p=program\n",
+    "status_color_sgr_present": true,
+    "screen_reader": "surface: operator status\nlabel: focused_pane value: program\nlabel: theme value: dark\nlabel: events value: 0\nlabel: receipts value: 64\nlabel: status value: OK\nlabel: keyboard_map value: a reaches agents, c reaches codex, d reaches databricks, h reaches health, m reaches mcp, p reaches program\nrole: status\nfocus_visible: token [FOCUS] and prefix >\n",
+    "panes": [
+      "agents",
+      "codex",
+      "databricks",
+      "health",
+      "mcp",
+      "program"
+    ]
+  },
+  "measurements": {
+    "contrast": {
+      "dark": {
+        "fg_on_bg": {
+          "fg": [
+            236,
+            236,
+            240
+          ],
+          "bg": [
+            18,
+            18,
+            20
+          ],
+          "ratio": 15.8802,
+          "threshold": 4.5,
+          "pass": true
+        },
+        "accent_on_bg": {
+          "fg": [
+            120,
+            190,
+            255
+          ],
+          "bg": [
+            18,
+            18,
+            20
+          ],
+          "ratio": 9.4516,
+          "threshold": 4.5,
+          "pass": true
+        },
+        "focus_on_bg": {
+          "fg": [
+            255,
+            214,
+            102
+          ],
+          "bg": [
+            18,
+            18,
+            20
+          ],
+          "ratio": 13.4206,
+          "threshold": 3.0,
+          "pass": true
+        }
+      },
+      "light": {
+        "fg_on_bg": {
+          "fg": [
+            22,
+            22,
+            24
+          ],
+          "bg": [
+            248,
+            248,
+            246
+          ],
+          "ratio": 16.9947,
+          "threshold": 4.5,
+          "pass": true
+        },
+        "accent_on_bg": {
+          "fg": [
+            0,
+            70,
+            160
+          ],
+          "bg": [
+            248,
+            248,
+            246
+          ],
+          "ratio": 8.2851,
+          "threshold": 4.5,
+          "pass": true
+        },
+        "focus_on_bg": {
+          "fg": [
+            120,
+            55,
+            0
+          ],
+          "bg": [
+            248,
+            248,
+            246
+          ],
+          "ratio": 8.4214,
+          "threshold": 3.0,
+          "pass": true
+        }
+      },
+      "decoy": {
+        "fg_on_bg": {
+          "fg": [
+            255,
+            255,
+            0
+          ],
+          "bg": [
+            255,
+            255,
+            255
+          ],
+          "ratio": 1.0738,
+          "threshold": 4.5,
+          "pass": false
+        }
+      }
+    },
+    "glyph_width": {
+      "live_double_width": [],
+      "planted_detected": true
+    },
+    "nocolor": {
+      "pass": true,
+      "color_only_collapsed": true,
+      "NO_COLOR_env_honoured": true
+    }
+  },
+  "captures": {
+    "dark": "command-center/p2-wave/probes/TST-0114/captures/theme-dark.ppm",
+    "light": "command-center/p2-wave/probes/TST-0114/captures/theme-light.ppm",
+    "decoy": "command-center/p2-wave/probes/TST-0114/captures/decoy-low-contrast.ppm"
+  },
+  "metrics": {
+    "dark_fg_contrast": 15.8802,
+    "light_fg_contrast": 16.9947,
+    "dark_focus_contrast": 13.4206,
+    "light_focus_contrast": 8.4214,
+    "decoy_contrast": 1.0738,
+    "text_threshold": 4.5,
+    "live_double_width": 0,
+    "planted_double_width_hits": 2
+  },
+  "controls": {
+    "planted_double_width": {
+      "pass": true,
+      "detected": true,
+      "glyph": "U+26A0"
+    },
+    "color_only_signal": {
+      "pass": true,
+      "collapsed_after_sgr_strip": true
+    },
+    "decoy_low_contrast": {
+      "pass": true,
+      "ratio": 1.0738,
+      "must_fail_threshold": true,
+      "failed_threshold": true
+    },
+    "unbound_pane_key": {
+      "pass": true,
+      "caught": true
+    }
+  },
+  "tests": [
+    {
+      "id": "test_no_double_width_glyph_in_the_status_surface",
+      "requirement": "Every glyph on the status surface and cockpit panes occupies exactly one terminal cell (East Asian Width / cell-width scan).",
+      "verdict": "PASS",
+      "result": "PASS",
+      "evidence": "live_double_width=0 planted_hits=2 status_glyphs=121 planted_line='status WARN \u26a0 \u4e2d align\\n'"
+    },
+    {
+      "id": "test_surface_is_readable_under_no_color",
+      "requirement": "NO_COLOR/monochrome rendering keeps the same tokens as the coloured line after SGR strip; status is not colour-only.",
+      "verdict": "PASS",
+      "result": "PASS",
+      "evidence": "stripped_equals_plain=True color_only_collapsed=True NO_COLOR_env=True plain='> program [FOCUS] theme=dark events=0 receipts=64 status=[OK] keys:a=agents c=codex d=databricks h=health m=mcp p=program'"
+    },
+    {
+      "id": "test_contrast_meets_the_declared_threshold_in_both_themes",
+      "requirement": "WCAG contrast from rendered PPM pixels meets the declared 4.5:1 text floor in dark and light themes; a yellow-on-white decoy fails.",
+      "verdict": "PASS",
+      "result": "PASS",
+      "evidence": "dark_fg=15.8802 light_fg=16.9947 dark_focus=13.4206 light_focus=8.4214 decoy=1.0738 captures={'dark': 'command-center/p2-wave/probes/TST-0114/captures/theme-dark.ppm', 'light': 'command-center/p2-wave/probes/TST-0114/captures/theme-light.ppm', 'decoy': 'command-center/p2-wave/probes/TST-0114/captures/decoy-low-contrast.ppm'}"
+    },
+    {
+      "id": "test_focus_keyboard_and_screen_reader_labels",
+      "requirement": "Focus is a token (not colour alone); every pane has a key; the screen-reader dump labels each status field.",
+      "verdict": "PASS",
+      "result": "PASS",
+      "evidence": "focus_visible=True keyboard={'agents': 'a', 'codex': 'c', 'databricks': 'd', 'health': 'h', 'mcp': 'm', 'program': 'p'} missing_labels=[] unbound_control=True"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "glyph-width",
+      "path": "tools/monitorcore/monitorcore/operator_surface.py",
+      "note": "Per-glyph East Asian Width scan of live cockpit panes and status lines; planted U+26A0 fired (2 hit(s))."
+    },
+    {
+      "kind": "no-color",
+      "path": "command-center/receipts/TST-0114.json",
+      "note": "Coloured status stripped of SGR equals the NO_COLOR render; tokens [FOCUS] and [OK] remain."
+    },
+    {
+      "kind": "contrast-capture",
+      "path": "command-center/p2-wave/probes/TST-0114/captures/theme-dark.ppm",
+      "note": "PPM pixels dark fg/bg ratio 15.8802"
+    },
+    {
+      "kind": "contrast-capture",
+      "path": "command-center/p2-wave/probes/TST-0114/captures/theme-light.ppm",
+      "note": "PPM pixels light fg/bg ratio 16.9947"
+    }
+  ],
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "a GUI screenshot of an external window",
+      "global unit_manifest.py --write was run"
+    ],
+    "proof_surface": "live Cockpit.render_status_line / render_pane; PPM captures per theme; independent luminance in probe2"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "docs-test-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "reviewer": {
+    "reviewer_id": "TST-0114-probe2-contrast-pixels",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 2 re-parses the PPM and recomputes WCAG luminance without calling operator_surface.contrast_ratio. Probe 1 re-scans live glyphs and NO_COLOR independently of this emit."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "glyph-width-and-no-color",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0114/probe1_width_and_nocolor.py"
+    },
+    {
+      "id": "probe2",
+      "role": "pixel-contrast-both-themes",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0114/probe2_contrast_pixels.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0114.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/test-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0114/captures/theme-dark.ppm",
+      "exists": true,
+      "role": "capture"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0114/captures/theme-light.ppm",
+      "exists": true,
+      "role": "capture"
+    },
+    {
+      "path": "tools/monitorcore/monitorcore/operator_surface.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ]
+}

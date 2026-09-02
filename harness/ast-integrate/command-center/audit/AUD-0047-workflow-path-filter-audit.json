@@ -1,0 +1,857 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/audit/AUD-0047-workflow-path-filter-audit.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/audit-finding.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0047/path_filter.py",
+   "role": "supporting"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:AUD-0047 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "defects": [
+  {
+   "id": "AUD0047-D3-control-paths-ignore-miss",
+   "severity": "P3",
+   "status": "resolved",
+   "summary": "Fixture control: paths-ignore excluding protected/secret.py is reported as a miss by the evaluator (required catalog control)."
+  }
+ ],
+ "downstream_consumers": [
+  "AUD-0048",
+  "AUD-0050",
+  "CI path-filter reviewers"
+ ],
+ "emitted_at": "2026-08-25T01:03:58Z",
+ "evidence": [
+  {
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe1_filter_eval.py",
+   "claim": "Evaluator reports a miss for protected/secret.py under paths-ignore",
+   "detail": "fixture-control-miss.yml paths-ignore lists protected/secret.py",
+   "kind": "control",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe1_filter_eval.py",
+     "exit_code": 0,
+     "fingerprint": "1be3a6f58dbf6613e5712bd6dffe30f34885083b05a6f3b23968e50ecfa088ea",
+     "method": "command",
+     "raw_output": "{\"aud41_live_yaml_present_count\": 7, \"aud41_workflow_count\": 7, \"control_paths_ignore_miss_reported\": true, \"fixture_miss_count\": 2, \"live_miss_count\": 0, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"misses\": [{\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml\", \"workflow_id\": \"fixture-control-miss\"}, {\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-narrow.yml\", \"workflow_id\": \"fixture-control-narrow\"}], \"pass\": true, \"probe\": \"probe1-filter-eval\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe1 path-filter evaluator reported the paths-ignore control miss",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c scan().control_paths_ignore_miss_reported",
+     "exit_code": 0,
+     "fingerprint": "165a5f2674ee820268a5e5fb9f806a624d31156d092101e5d51019f5abc61b85",
+     "method": "file-read",
+     "raw_output": "{\"control_paths_ignore_miss_reported\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": ".github/workflows",
+   "claim": "Live workflow dir exists=True count=12 with_path_filter=0 live_misses=0",
+   "detail": "glob .github/workflows plus extract_on/event_filters",
+   "kind": "live-estate",
+   "probes": [
+    {
+     "command": "python3 command-center/p2-wave/probes/AUD-0047/eval_audit.py",
+     "exit_code": 0,
+     "fingerprint": "75b61351ef03a71840df3d4374ea01d54d469578d8bfdd5c3dafb7695cdef60b",
+     "method": "static-analysis",
+     "raw_output": "{\"live_miss_count\": 0, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+     "exit_code": 0,
+     "fingerprint": "7d262a4ce7ff473fa2cbbdd05114e86516a488ea25b1ba1815c9a93556f8dbde",
+     "method": "command",
+     "raw_output": "{\"aud41_quality_run_id\": 31525279780, \"aud41_recorded_run_count\": 4, \"control_app_only_ran_miss_fixture\": true, \"control_secret_only_skipped_miss_fixture\": true, \"live_search\": {\"gh_present\": false, \"gh_run_list_attempted\": false, \"gh_run_list_rc\": null, \"gh_run_list_unavailable_reason\": \"gh-not-on-PATH\", \"git_present\": true, \"git_repo\": false}, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"matcher_agrees_with_ledger\": true, \"note\": \"Fixture ledger is the both-states receipt for the evaluator. AUD-0041 recorded Actions API runs are the live-estate receipt that quality.yml executed. Live .github/workflows present=True files=12 with_path_filter=0. This tree is not a git checkout; a fresh gh file-to-run join is unavailable rather than invented.\", \"pass\": true, \"probe\": \"probe2-run-history\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe2 run-history receipt: secret-only commit skipped the paths-ignore gate; matcher agreed with the ledger",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+   "claim": "AUD-0041 recorded quality.yml Actions run 31525279780",
+   "detail": "command-center/p2-wave/probes/AUD-0041/probe2-actions-api.json",
+   "kind": "receipt",
+   "probes": [
+    {
+     "command": "python3 -c read AUD-0041 probe2-actions-api.json",
+     "exit_code": 0,
+     "fingerprint": "4a479a7035f812e5aa7a67f819e01a6322d8d7af149816ab8ce148a54c77e1ca",
+     "method": "file-read",
+     "raw_output": "quality run_id=31525279780 api_job_count=8",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+     "exit_code": 0,
+     "fingerprint": "df89fde47de99ca2b43d856204990d9e4b3c592dc9134afd474c991e0f131023",
+     "method": "command",
+     "raw_output": "{\"aud41_quality_run_id\": 31525279780, \"aud41_recorded_run_count\": 4, \"control_app_only_ran_miss_fixture\": true, \"control_secret_only_skipped_miss_fixture\": true, \"live_search\": {\"gh_present\": false, \"gh_run_list_attempted\": false, \"gh_run_list_rc\": null, \"gh_run_list_unavailable_reason\": \"gh-not-on-PATH\", \"git_present\": true, \"git_repo\": false}, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"matcher_agrees_with_ledger\": true, \"note\": \"Fixture ledger is the both-states receipt for the evaluator. AUD-0041 recorded Actions API runs are the live-estate receipt that quality.yml executed. Live .github/workflows present=True files=12 with_path_filter=0. This tree is not a git checkout; a fresh gh file-to-run join is unavailable rather than invented.\", \"pass\": true, \"probe\": \"probe2-run-history\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe2 run-history receipt: secret-only commit skipped the paths-ignore gate; matcher agreed with the ledger",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "findings": {
+  "control_paths_ignore_miss_reported": true,
+  "fixture_misses": [
+   {
+    "kind": "fixture",
+    "miss_on_events": [
+     "push",
+     "pull_request"
+    ],
+    "never_seen_on_filtered_auto_events": true,
+    "protected_file": "protected/secret.py",
+    "reason": "a one-file commit of this protected path would not satisfy the event path filter",
+    "workflow": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml",
+    "workflow_id": "fixture-control-miss"
+   },
+   {
+    "kind": "fixture",
+    "miss_on_events": [
+     "push",
+     "pull_request"
+    ],
+    "never_seen_on_filtered_auto_events": true,
+    "protected_file": "protected/secret.py",
+    "reason": "a one-file commit of this protected path would not satisfy the event path filter",
+    "workflow": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-narrow.yml",
+    "workflow_id": "fixture-control-narrow"
+   }
+  ],
+  "fixture_rows": [
+   {
+    "claim": "Python lint/test gate covering protected/secret.py and src/app.py",
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": true,
+      "paths": [],
+      "paths-ignore": [
+       "docs/**",
+       "protected/secret.py"
+      ]
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": true,
+      "paths": [],
+      "paths-ignore": [
+       "docs/**",
+       "protected/secret.py"
+      ]
+     }
+    ],
+    "has_path_filter": true,
+    "id": "fixture-control-miss",
+    "kind": "fixture",
+    "misses": [
+     {
+      "miss_on_events": [
+       "push",
+       "pull_request"
+      ],
+      "never_seen_on_filtered_auto_events": true,
+      "protected_file": "protected/secret.py",
+      "reason": "a one-file commit of this protected path would not satisfy the event path filter"
+     }
+    ],
+    "protected_files": [
+     "protected/secret.py",
+     "src/app.py"
+    ],
+    "status": "ok",
+    "workflow": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml",
+    "workflow_exists": true,
+    "yaml_on_was_boolean_true": true
+   },
+   {
+    "claim": "Python lint/test gate covering protected/secret.py and src/app.py",
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": true,
+      "paths": [
+       "src/**",
+       "protected/**",
+       "tests/**"
+      ],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": true,
+      "paths": [
+       "src/**",
+       "protected/**",
+       "tests/**"
+      ],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": true,
+    "id": "fixture-control-hit",
+    "kind": "fixture",
+    "misses": [],
+    "protected_files": [
+     "protected/secret.py",
+     "src/app.py"
+    ],
+    "status": "ok",
+    "workflow": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-hit.yml",
+    "workflow_exists": true,
+    "yaml_on_was_boolean_true": true
+   },
+   {
+    "claim": "Gate claims to protect protected/secret.py but paths only list src/**",
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": true,
+      "paths": [
+       "src/**"
+      ],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": true,
+      "paths": [
+       "src/**"
+      ],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": true,
+    "id": "fixture-control-narrow",
+    "kind": "fixture",
+    "misses": [
+     {
+      "miss_on_events": [
+       "push",
+       "pull_request"
+      ],
+      "never_seen_on_filtered_auto_events": true,
+      "protected_file": "protected/secret.py",
+      "reason": "a one-file commit of this protected path would not satisfy the event path filter"
+     }
+    ],
+    "protected_files": [
+     "protected/secret.py",
+     "src/app.py"
+    ],
+    "status": "ok",
+    "workflow": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-narrow.yml",
+    "workflow_exists": true,
+    "yaml_on_was_boolean_true": true
+   },
+   {
+    "claim": "Unfiltered gate; every protected file is visible",
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "fixture-control-unfiltered",
+    "kind": "fixture",
+    "misses": [],
+    "protected_files": [
+     "src/app.py"
+    ],
+    "status": "ok",
+    "workflow": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-unfiltered.yml",
+    "workflow_exists": true,
+    "yaml_on_was_boolean_true": true
+   }
+  ],
+  "live_misses": []
+ },
+ "headline": "2 fixture path-filter miss(es) including the required paths-ignore control; live workflows=12 with_path_filter=0 live_misses=0 (dir_exists=True)",
+ "honesty": {
+  "claimed_zero_live_misses_without_looking": false,
+  "cloud_ok_is_not_delivery": true,
+  "control_required_and_fired": true,
+  "did_not_run_global_unit_manifest_write": true,
+  "live_miss_count": 0,
+  "live_path_filters_evaluated": true,
+  "live_with_path_filter": 0,
+  "live_workflows_dir_exists": true,
+  "zero_live_misses_reason": "no live workflow declares paths or paths-ignore"
+ },
+ "inventory": {
+  "aud41": {
+   "live_yaml_present_count": 7,
+   "present": true,
+   "source": "command-center/p2-wave/probes/AUD-0041/probe1-yaml-inventory.json",
+   "workflow_count": 7,
+   "workflows": [
+    {
+     "file": ".github/workflows/autofix-models.yml",
+     "live_yaml_present": true,
+     "name": "autofix-models",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "workflow_run"
+     ]
+    },
+    {
+     "file": ".github/workflows/codex-runner.yml",
+     "live_yaml_present": true,
+     "name": "Codex Runner",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "workflow_dispatch"
+     ]
+    },
+    {
+     "file": ".github/workflows/dependabot-auto-merge.yml",
+     "live_yaml_present": true,
+     "name": "dependabot-auto-merge",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "pull_request_target"
+     ]
+    },
+    {
+     "file": ".github/workflows/no-runtime-junk.yml",
+     "live_yaml_present": true,
+     "name": "no-runtime-junk",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "pull_request",
+      "push",
+      "workflow_dispatch"
+     ]
+    },
+    {
+     "file": ".github/workflows/quality.yml",
+     "live_yaml_present": true,
+     "name": "quality",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "pull_request",
+      "push",
+      "workflow_dispatch"
+     ]
+    },
+    {
+     "file": ".github/workflows/routing-benchmark.yml",
+     "live_yaml_present": true,
+     "name": "routing-benchmark",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "pull_request",
+      "push",
+      "schedule",
+      "workflow_dispatch"
+     ]
+    },
+    {
+     "file": ".github/workflows/skill-dual-write.yml",
+     "live_yaml_present": true,
+     "name": "skill-dual-write",
+     "note": "AUD-0041 stored trigger names only; paths / paths-ignore were not captured, so they cannot be evaluated from this inventory",
+     "path_filters_in_inventory": false,
+     "triggers": [
+      "pull_request"
+     ]
+    }
+   ]
+  },
+  "live_rows": [
+   {
+    "events": [
+     {
+      "event": "workflow_run",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:autofix-models.yml",
+    "miss_count": 0,
+    "protected_files": [
+     ".github/workflows/quality.yml"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/autofix-models.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:codex-runner.yml",
+    "miss_count": 0,
+    "protected_files": [
+     ".github/workflows/codex-runner.yml"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/codex-runner.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "pull_request_target",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:dependabot-auto-merge.yml",
+    "miss_count": 0,
+    "protected_files": [
+     ".github/workflows/dependabot-auto-merge.yml"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/dependabot-auto-merge.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:hook-audit.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "command-center/hook-audit/check_citations.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/hook-audit.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:interpreter-floor.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "command-center/ci/interpreter_floor_gate.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/interpreter-floor.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:mcp-audit.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "command-center/mcp-audit/ci_gate.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/mcp-audit.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:no-runtime-junk.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "command-center/slop-report/check_published_commands.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/no-runtime-junk.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:p2next-rail-count.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "command-center/p2-next/rail_count_gate.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/p2next-rail-count.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:quality.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "ruff.toml",
+     ".quality/charter.yml",
+     "tools/mcp-manager/app.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/quality.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "schedule",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:routing-benchmark.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "hooks/harness-bench/gate.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/routing-benchmark.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "push",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     },
+     {
+      "event": "workflow_dispatch",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:rule-audit.yml",
+    "miss_count": 0,
+    "protected_files": [
+     "docs/rule-audit/ci_gate.py"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/rule-audit.yml"
+   },
+   {
+    "events": [
+     {
+      "event": "pull_request",
+      "has_path_filter": false,
+      "paths": [],
+      "paths-ignore": []
+     }
+    ],
+    "has_path_filter": false,
+    "id": "live:skill-dual-write.yml",
+    "miss_count": 0,
+    "protected_files": [
+     ".agents/skills/codex-consult/SKILL.md",
+     "skills/codex-consult/SKILL.md"
+    ],
+    "status": "no-path-filter",
+    "workflow": ".github/workflows/skill-dual-write.yml"
+   }
+  ],
+  "live_with_path_filter": 0,
+  "live_workflow_count": 12,
+  "live_workflows_dir": ".github/workflows",
+  "live_workflows_dir_exists": true,
+  "yaml_on_boolean_true_handled": true
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/AUD-0047/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe1_filter_eval.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"aud41_live_yaml_present_count\": 7, \"aud41_workflow_count\": 7, \"control_paths_ignore_miss_reported\": true, \"fixture_miss_count\": 2, \"live_miss_count\": 0, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"misses\": [{\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml\", \"workflow_id\": \"fixture-control-miss\"}, {\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-narrow.yml\", \"workflow_id\": \"fixture-control-narrow\"}], \"pass\": true, \"probe\": \"probe1-filter-eval\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe1 path-filter evaluator reported the paths-ignore control miss"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"aud41_quality_run_id\": 31525279780, \"aud41_recorded_run_count\": 4, \"control_app_only_ran_miss_fixture\": true, \"control_secret_only_skipped_miss_fixture\": true, \"live_search\": {\"gh_present\": false, \"gh_run_list_attempted\": false, \"gh_run_list_rc\": null, \"gh_run_list_unavailable_reason\": \"gh-not-on-PATH\", \"git_present\": true, \"git_repo\": false}, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"matcher_agrees_with_ledger\": true, \"note\": \"Fixture ledger is the both-states receipt for the evaluator. AUD-0041 recorded Actions API runs are the live-estate receipt that quality.yml executed. Live .github/workflows present=True files=12 with_path_filter=0. This tree is not a git checkout; a fresh gh file-to-run join is unavailable rather than invented.\", \"pass\": true, \"probe\": \"probe2-run-history\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe2 run-history receipt: secret-only commit skipped the paths-ignore gate; matcher agreed with the ledger"
+  }
+ ],
+ "negative_controls": [
+  {
+   "description": "paths-ignore listing a protected file must produce a miss",
+   "fired_on_bad_state": true,
+   "id": "NC-paths-ignore-secret",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "A workflow with no path filter must not report a miss",
+   "fired_on_bad_state": true,
+   "id": "NC-unfiltered-no-false-miss",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "gpt-5-codex",
+  "role": "adversarial-refuter",
+  "vendor": "openai"
+ },
+ "report": {
+  "answer": "Live .github/workflows is present (12 yaml files). 0 of those declare on.push/on.pull_request paths or paths-ignore. No live workflow uses a path filter, so there is no live instance of a filter excluding a file the gate claims to protect. Live miss count is 0 because filters are absent, not because the evaluator skipped the directory. AUD-0041 inventoried 7 workflows with trigger names only; paths / paths-ignore were not captured there. The evaluator is not blind: the required control fires \u2014 fixture-control-miss paths-ignore excludes protected/secret.py and the matcher reports that miss. A second fixture (paths: src/**) also misses protected/secret.py. Probe 2's ledger agrees: a secret-only commit does not run the ignore-filter gate, an app-only commit still does, and a mixed commit still does. Recorded AUD-0041 Actions run 31525279780 is the live-estate receipt that quality.yml executed; a fresh gh file-to-run join is unavailable on this checkout.",
+  "control_ids": [
+   "NC-paths-ignore-secret",
+   "NC-unfiltered-no-false-miss"
+  ],
+  "kind": "audit-finding",
+  "observations": [
+   {
+    "anchor": ".github/workflows",
+    "measured": 12,
+    "method": "glob .github/workflows/*.{yml,yaml} plus YAML on: extract",
+    "name": "live-workflow-count"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0047/path_filter.py",
+    "measured": 0,
+    "method": "event_filters paths/paths-ignore",
+    "name": "live-with-path-filter"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml",
+    "measured": 2,
+    "method": "single_file_miss against fixture gates.json",
+    "name": "fixture-miss-count"
+   },
+   {
+    "anchor": "protected/secret.py vs fixture-control-miss paths-ignore",
+    "measured": true,
+    "method": "required catalog control",
+    "name": "control-paths-ignore-miss"
+   }
+  ],
+  "question": "For every workflow with a paths or paths-ignore filter, is there a file the gate claims to protect that the filter would prevent the gate from ever seeing?",
+  "title": "Path-filter audit: triggers that exclude the files the gate protects"
+ },
+ "residual_unknowns": [
+  {
+   "id": "aud41-inventory-lacks-path-filters",
+   "summary": "AUD-0041 probe1 stored trigger names only. paths and paths-ignore cannot be reconstructed from that inventory."
+  },
+  {
+   "id": "fresh-gh-file-to-run-join-unavailable",
+   "summary": "gh is not on PATH and this tree is not a git checkout. Probe 2 uses the fixture ledger plus recorded AUD-0041 Actions runs."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
+ },
+ "reviewer": {
+  "attempted_falsify": true,
+  "independent": true,
+  "notes": "Probe 2 independently recomputes would_run on the commit ledger and fails if the matcher and the recorded ran/skipped bits disagree. That is a falsify attempt on the headline control count, not a re-read. It also records live_workflow_count so a claim that .github/workflows is absent cannot survive while 12 yaml files sit on disk.",
+  "reviewer_id": "AUD-0047-probe2-run-history",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0047",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0047",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 12,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe1_filter_eval.py",
+   "id": "probe1-filter-eval",
+   "name": "Evaluate path filters against protected files; control miss fires",
+   "output_tail": "{\"aud41_live_yaml_present_count\": 7, \"aud41_workflow_count\": 7, \"control_paths_ignore_miss_reported\": true, \"fixture_miss_count\": 2, \"live_miss_count\": 0, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"misses\": [{\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-miss.yml\", \"workflow_id\": \"fixture-control-miss\"}, {\"kind\": \"fixture\", \"miss_on_events\": [\"push\", \"pull_request\"], \"never_seen_on_filtered_auto_events\": true, \"protected_file\": \"protected/secret.py\", \"reason\": \"a one-file commit of this protected path would not satisfy the event path filter\", \"workflow\": \"command-center/p2-wave/probes/AUD-0047/fixtures/workflows/control-narrow.yml\", \"workflow_id\": \"fixture-control-narrow\"}], \"pass\": true, \"probe\": \"probe1-filter-eval\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe1 path-filter evaluator reported the paths-ignore control miss",
+   "result": "PASS"
+  },
+  {
+   "assertions": 6,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0047/probe2_run_history.py",
+   "id": "probe2-run-history",
+   "name": "Run-history receipt: secret-only skip, app-only run, matcher=ledger",
+   "output_tail": "{\"aud41_quality_run_id\": 31525279780, \"aud41_recorded_run_count\": 4, \"control_app_only_ran_miss_fixture\": true, \"control_secret_only_skipped_miss_fixture\": true, \"live_search\": {\"gh_present\": false, \"gh_run_list_attempted\": false, \"gh_run_list_rc\": null, \"gh_run_list_unavailable_reason\": \"gh-not-on-PATH\", \"git_present\": true, \"git_repo\": false}, \"live_with_path_filter\": 0, \"live_workflow_count\": 12, \"live_workflows_dir_exists\": true, \"matcher_agrees_with_ledger\": true, \"note\": \"Fixture ledger is the both-states receipt for the evaluator. AUD-0041 recorded Actions API runs are the live-estate receipt that quality.yml executed. Live .github/workflows present=True files=12 with_path_filter=0. This tree is not a git checkout; a fresh gh file-to-run join is unavailable rather than invented.\", \"pass\": true, \"probe\": \"probe2-run-history\", \"unit_id\": \"AUD-0047\"}\nSUCCESS:AUD-0047-probe2 run-history receipt: secret-only commit skipped the paths-ignore gate; matcher agreed with the ledger",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:03:58Z",
+  "started_at": "2026-08-25T01:03:58Z"
+ },
+ "unit_id": "AUD-0047"
+}

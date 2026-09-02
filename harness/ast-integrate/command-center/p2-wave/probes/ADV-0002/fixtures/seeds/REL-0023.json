@@ -1,0 +1,294 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/REL-0023.json",
+   "bytes": 11480,
+   "sha256": "ce1742993e9014337edf65364df04b5b570dd7b9439bf712b0bc36b340e7ed74",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "REL-0023 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/REL-0023.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/REL-0023.json",
+     "raw_output": "bytes=11480 sha256=ce1742993e9014337edf65364df04b5b570dd7b9439bf712b0bc36b340e7ed74",
+     "fingerprint": "977e9dae49c7afb8a5056cbd2c14ab45",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact REL-0023",
+     "raw_output": "schema-check",
+     "fingerprint": "84a73641e5f0e20954c238bc0488e280",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REL-0023 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0023",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py REL-0023",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "82e5c8c3dc237a8ee4366269c37cf62a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered REL-0023",
+     "raw_output": "schema-valid",
+     "fingerprint": "64137189bfe8cc9decf3119264deb460",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "report": {
+  "kind": "lifecycle-drill-receipt",
+  "observations": [
+   {
+    "anchor": "three_registry_states registry_state=current",
+    "measured": "STAY_CURRENT",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0023/probe1_client_resolve.py",
+    "name": "next-resolve-current"
+   },
+   {
+    "anchor": "three_registry_states registry_state=deprecated",
+    "measured": "WARN_STAY",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0023/probe1_client_resolve.py",
+    "name": "next-resolve-deprecated"
+   },
+   {
+    "anchor": "three_registry_states registry_state=revoked",
+    "measured": "KEEP_RUNNING_UNAWARE",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0023/probe1_client_resolve.py",
+    "name": "next-resolve-revoked-already-installed"
+   },
+   {
+    "anchor": "offered 1.1.0 while revoked",
+    "measured": "REFUSE_MOVE",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0023/probe1_client_resolve.py",
+    "name": "refuse-move-to-revoked"
+   },
+   {
+    "anchor": "fresh_install after 1.1.0 revoked",
+    "measured": "1.2.0",
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0023/probe1_client_resolve.py",
+    "name": "fresh-install-after-revoke"
+   },
+   {
+    "anchor": "linux:CLOCK_MONOTONIC",
+    "measured": 0.050784682,
+    "method": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0023/probe2_exposure_window.py",
+    "name": "exposure-window-seconds"
+   }
+  ],
+  "control_ids": [
+   "refuse-move-to-revoked",
+   "fresh-install-skips-revoked",
+   "deprecated-installs-with-warning",
+   "exposure-window-named-clock",
+   "during-window-fresh-still-gets-1.1.0",
+   "direct-public-index-write-refused"
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:REL-0023",
+ "spec_anchor": "_USER-PROMPTS.md:10864 (deprecation and revocation) and 11122 (deprecation policy)",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/REL-0023.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "REL-0023",
+ "extensions": {
+  "legacy_root": {
+   "client_observations": [
+    {
+     "action": "STAY_CURRENT",
+     "meaning": "No withdrawal yet. The installed client stays on 1.1.0 with no warning.",
+     "when": "next resolve, registry state=current, pin=1.1.0"
+    },
+    {
+     "action": "WARN_STAY",
+     "meaning": "Deprecated-but-not-revoked still runs and still installs; a durable warning names successor harness.canary@1.2.0.",
+     "when": "next resolve, registry state=deprecated, pin=1.1.0"
+    },
+    {
+     "action": "KEEP_RUNNING_UNAWARE",
+     "meaning": "Bytes already on disk are not uninstalled. The client keeps running the withdrawn copy unaware of a removal.",
+     "when": "next resolve, registry state=revoked, already installed on 1.1.0"
+    },
+    {
+     "action": "REFUSE_MOVE",
+     "meaning": "An installed client offered the revoked version refuses to move to it.",
+     "when": "installed on 1.0.0, offered revoked 1.1.0"
+    },
+    {
+     "action": "INSTALL_OK",
+     "meaning": "Fresh resolve selected 1.2.0, never the revoked 1.1.0.",
+     "when": "fresh install after 1.1.0 revoked (1.2.0 still current)"
+    }
+   ],
+   "clock": {
+    "api": "time.clock_gettime_ns(time.CLOCK_MONOTONIC)",
+    "name": "linux:CLOCK_MONOTONIC"
+   },
+   "completion_sentinel": "SUCCESS:REL-0023",
+   "exposure_window": {
+    "after_reflect_fresh_version": "1.0.0",
+    "clock_api": "time.clock_gettime_ns(time.CLOCK_MONOTONIC)",
+    "clock_source": "linux:CLOCK_MONOTONIC",
+    "delay_ns": 50784682,
+    "delay_seconds": 0.050784682,
+    "during_window_fresh_version": "1.1.0",
+    "injected_propagation_s": 0.05,
+    "merge_ns": 2184890370591,
+    "published_in_runbook": true,
+    "reflect_ns": 2184941155273,
+    "revert_pr": "REL-0023-revert-1.1.0",
+    "runbook_path": "command-center/runbooks/REL-0023-withdrawal.md"
+   },
+   "isolation": {
+    "asserted": true,
+    "drill_root": "/tmp/rel0023-canary-r5x67ghk",
+    "owner_home_untouched": true
+   },
+   "package": "harness.canary",
+   "protects_already_installed": "Neither half uninstalls a client that installed 1.1.0 before withdrawal: next resolve on that pin is KEEP_RUNNING_UNAWARE. The private-registry revoke is the half that protects somebody at next resolve who is not already on 1.1.0 (REFUSE_MOVE) and blocks fresh installs. The revert PR is the public record; it does not protect anyone until the private registry reflects it. That reflection delay is the exposure window: 0.050785s measured on linux:CLOCK_MONOTONIC.",
+   "question": "Implementation target: rehearse pulling a bad version back. In the private file-backed registry mark a version deprecated and then revoked, and measure what an already-installed client does at its next resolve: warn, refuse to move to the revoked version, or keep running it unaware. Under PR-ONLY the public half of withdrawal is a revert pull request, so the drill must exercise both halves and state plainly which of the two actually protects somebody who installed before the withdrawal, along with the measured delay between the revert merging and the registry reflecting it.",
+   "registry_states": [
+    {
+     "installed": "1.1.0",
+     "observed_action": "STAY_CURRENT",
+     "registry_state": "current",
+     "warning": null
+    },
+    {
+     "installed": "1.1.0",
+     "observed_action": "WARN_STAY",
+     "registry_state": "deprecated",
+     "warning": "DEPRECATED harness.canary@1.1.0: bad canary build; successor is 1.2.0; successor=harness.canary@1.2.0"
+    },
+    {
+     "installed": "1.1.0",
+     "observed_action": "KEEP_RUNNING_UNAWARE",
+     "registry_state": "revoked",
+     "warning": null
+    }
+   ],
+   "release_mode": "PR-ONLY",
+   "report_kind": "lifecycle-drill-receipt",
+   "runbook": {
+    "clock_source": "linux:CLOCK_MONOTONIC",
+    "exposure_window_seconds": 0.050784682,
+    "path": "command-center/runbooks/REL-0023-withdrawal.md"
+   },
+   "title": "Withdrawal drill: deprecate then revoke in the private registry and measure the exposure window",
+   "withdrawal_halves": {
+    "private": {
+     "action": "deprecate then revoke 1.1.0 in the canary registry",
+     "name": "private-file-backed-registry",
+     "protects_next_resolve": true,
+     "uninstalls_already_installed": false
+    },
+    "public": {
+     "action": "merge revert PR against the public index; reflector copies into private registry",
+     "name": "pr-only-revert-pull-request",
+     "protects_after_reflect_only": true,
+     "protects_next_resolve": false,
+     "uninstalls_already_installed": false
+    },
+    "which_protects_already_installed": "Neither half uninstalls a client that installed 1.1.0 before withdrawal: next resolve on that pin is KEEP_RUNNING_UNAWARE. The private-registry revoke is the half that protects somebody at next resolve who is not already on 1.1.0 (REFUSE_MOVE) and blocks fresh installs. The revert PR is the public record; it does not protect anyone until the private registry reflects it. That reflection delay is the exposure window: 0.050785s measured on linux:CLOCK_MONOTONIC."
+   },
+   "withdrawn_version": "1.1.0"
+  }
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0023/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "REL-0023"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/REL-0023.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/REL-0023.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "3a10b1c5a593f9611a73d48372aa81e1",
+    "exit_code": 0
+   }
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

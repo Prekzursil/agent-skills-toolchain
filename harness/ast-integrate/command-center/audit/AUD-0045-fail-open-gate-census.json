@@ -1,0 +1,1028 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/audit/AUD-0045-fail-open-gate-census.json",
+   "bytes": 28775,
+   "sha256": "f5b9a305c5d281aa433a3bf16a289cbb4e973b0efe792f2f73ba19ebe4e31f41",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "AUD-0045 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/audit/AUD-0045-fail-open-gate-census.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/audit/AUD-0045-fail-open-gate-census.json",
+     "raw_output": "bytes=28775 sha256=f5b9a305c5d281aa433a3bf16a289cbb4e973b0efe792f2f73ba19ebe4e31f41",
+     "fingerprint": "41193bc627dcafde4e8e4153c7d814cc",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact AUD-0045",
+     "raw_output": "schema-check",
+     "fingerprint": "56d017ed79c42ea2f782497c032b5a59",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "AUD-0045 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/AUD-0045",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py AUD-0045",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "b91f9e9d256c9393c1389915f3435b33",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered AUD-0045",
+     "raw_output": "schema-valid",
+     "fingerprint": "0f0fe7c3a3d1fa19e1c62f3d4458100c",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 1024,
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:AUD-0045",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/audit/AUD-0045-fail-open-gate-census.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "AUD-0045",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Local execution of 10 gate surfaces found 4 fail-open-on-empty (including measures-nothing) and 2 gates that also stay green on known-bad input. Named case validate.py --no-require-complete exits 0 with work-unit fields counted but not failed (class=empty-exits-0-with-count); the armed default exits 1. Named case CLEAN+checks:NONE is freeze_active=true with frozen_paths=[] (exit 0, printed count 0) plus the CHECKS=NONE fixture; a sha-mismatched frozen path exits 1. freeze_active=false measures nothing (class=measures-nothing). AUD-0041 YAML names 4 fail-open CI steps including continue_on_error=true on the routing regression probe; .github/workflows is absent here so CI execution is NOT-CHECKED. Empty-catalog validate, unit-manifest empty walk, claim_gate without a payload, and _measure_one_delivered without an id fail closed.",
+   "ci_static": {
+    "fail_open_step_count": 4,
+    "fail_open_steps": [
+     {
+      "command_head": "printf '%s\\n' \"$AI_RESPONSE\" > fix.patch if [ ! -s fix.patch ]; then echo \"Model returned no patch; nothing to do.\" exit 0 fi if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then echo \"Model patch did not apply cleanly; skipping P",
+      "continue_on_error": null,
+      "job": "draft-fix",
+      "reasons": [
+       "pipe-true-swallows-failure",
+       "empty-file-exits-0",
+       "empty-result-exits-0"
+      ],
+      "step": "Apply patch and open PR",
+      "workflow": ".github/workflows/autofix-models.yml"
+     },
+     {
+      "command_head": "git config --global user.name \"codex-runner[bot]\" git config --global user.email \"codex-runner@users.noreply.github.com\" git clone --depth 1 ${BASE_BRANCH:+--branch \"$BASE_BRANCH\"} \\ \"https://x-access-token:${RUNNER_PAT}@github.com/${TARGET",
+      "continue_on_error": null,
+      "job": "run",
+      "reasons": [
+       "pipe-true-swallows-failure"
+      ],
+      "step": "Checkout target repo (via PAT) + scrub token + strip repo-local agent config",
+      "workflow": ".github/workflows/codex-runner.yml"
+     },
+     {
+      "command_head": "git add -A CHANGED=\"$(git diff --cached --name-only)\" # git-tracked, unquoted paths if [ -z \"$CHANGED\" ]; then echo \"no_changes=1\" >> \"$GITHUB_OUTPUT\" echo \"Codex made no changes — nothing to PR.\"; exit 0 fi N=\"$(printf '%s\\n' \"$CHANGED\" | ",
+      "continue_on_error": null,
+      "job": "run",
+      "reasons": [
+       "empty-result-exits-0"
+      ],
+      "step": "Guardrails — diff-cap + forbidden-paths (abort without a PR if tripped)",
+      "workflow": ".github/workflows/codex-runner.yml"
+     },
+     {
+      "command_head": "python hooks/harness-bench/gate.py --runs 5",
+      "continue_on_error": true,
+      "job": "routing-benchmark",
+      "reasons": [
+       "continue_on_error=true-on-named-probe"
+      ],
+      "step": "routing regression probe (5-run; shadow)",
+      "workflow": ".github/workflows/routing-benchmark.yml"
+     }
+    ],
+    "note": ".github/workflows is absent on this worktree; CI execution is NOT-CHECKED. Fail-open labels are from AUD-0041's YAML parse.",
+    "status": "STATIC-FROM-AUD-0041",
+    "workflow_files_on_this_tree": true
+   },
+   "class_counts": {
+    "empty-exits-0-with-count": 1,
+    "fail-closed": 5,
+    "fail-open-empty": 2,
+    "measures-nothing": 2
+   },
+   "completion_sentinel": "SUCCESS:AUD-0045 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+   "executed_gates": [
+    {
+     "class": "fail-closed",
+     "empty": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1",
+      "printed_count": 1
+     },
+     "gate": "tools/command-center/validate.py",
+     "id": "cc-validate-empty-catalog",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": true,
+      "output_tail": "FAILED:cc-validate cannot read /tmp/aud0045-k5rej8ro/does-not-exist.json: [Errno 2] No such file or directory: '/tmp/aud0045-k5rej8ro/does-not-exist.json'",
+      "printed_count": null
+     },
+     "named_case": null
+    },
+    {
+     "class": "empty-exits-0-with-count",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": false,
+      "output_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+      "printed_count": 1
+     },
+     "gate": "tools/command-center/validate.py --no-require-complete",
+     "id": "cc-validate-m16-disarmed-surface",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "n_sentinel' unresolved\n  V-FIELDS R-M01: work-unit field 'retry_policy' unresolved\n  V-FIELDS R-M01: work-unit field 'failure_classification' unresolved\n  V-FIELDS R-M01: work-unit field 'owner_approval_required' unresolved\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=15",
+      "printed_count": 15
+     },
+     "named_case": "validate.py require_complete defaulting to False",
+     "note": "Historical CI invoked validate.py bare while require_complete defaulted to False. Live default is True; --no-require-complete is the surviving disarmed surface. empty=disarmed unresolved fields, known_bad=armed same catalog."
+    },
+    {
+     "class": "measures-nothing",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "ok=True reason=not-frozen silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"ok\": true, \"reason\": \"not-frozen\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+      "printed_count": 0
+     },
+     "gate": "command-center/freeze/gate.py",
+     "id": "freeze-gate-not-frozen",
+     "known_bad": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "ok=True reason=not-frozen silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"ok\": true, \"reason\": \"not-frozen\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+      "printed_count": 0
+     },
+     "named_case": null,
+     "note": "freeze_active=false short-circuits to ok=True. A planted sha mismatch is not examined."
+    },
+    {
+     "class": "fail-open-empty",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "ok=True reason=clean silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"frozen_checked\": 0, \"ok\": true, \"reason\": \"clean\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+      "printed_count": 0
+     },
+     "gate": "command-center/freeze/gate.py",
+     "id": "freeze-gate-clean-plus-checks-none",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "ok=False reason=no-version-bump silent=0 rejections=1 admitted=0\n{\"admitted\": [], \"frozen_checked\": 1, \"ok\": false, \"reason\": \"no-version-bump\", \"rejection_count\": 1, \"rejections\": [{\"path\": \"command-center/schema/artifact.schema.json\", \"reason\": \"no-version-bump\"}], \"silent_count\": 0}",
+      "printed_count": 1
+     },
+     "named_case": "CLEAN plus checks:NONE gate",
+     "note": "freeze_active=true with frozen_paths=[] exits 0 with reason=clean and silent=0. A sha-mismatched frozen path is the known-bad control."
+    },
+    {
+     "class": "fail-closed",
+     "empty": {
+      "exit_code": 1,
+      "no_measured_count": true,
+      "output_tail": "FAILED:unit-manifest discovered ZERO receipts (empty walk)",
+      "printed_count": null
+     },
+     "gate": "tools/command-center/unit_manifest.py --check",
+     "id": "unit-manifest-empty-walk",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": true,
+      "output_tail": "FAILED:unit-manifest receipt command-center/receipts/TST-MISS.json names absent artifact nope.bin",
+      "printed_count": null
+     },
+     "named_case": null
+    },
+    {
+     "class": "fail-closed",
+     "empty": {
+      "exit_code": 2,
+      "no_measured_count": true,
+      "output_tail": "usage: claim_gate.py [-h] [--claims CLAIMS] [--doc DOC] [--format {md,json}]\n                     [--self-test]\nclaim_gate.py: error: --claims is required unless --self-test is given",
+      "printed_count": null
+     },
+     "gate": ".agents/skills/claim-verify-gate/scripts/claim_gate.py",
+     "id": "claim-gate-empty-and-no-source-probe",
+     "known_bad": {
+      "exit_code": 2,
+      "no_measured_count": true,
+      "output_tail": "usage: claim_gate.py [-h] [--claims CLAIMS] [--doc DOC] [--format {md,json}]\n                     [--self-test]\nclaim_gate.py: error: unrecognized arguments: /tmp/aud0045-k5rej8ro/bad-claim.json",
+      "printed_count": null
+     },
+     "named_case": null
+    },
+    {
+     "class": "fail-closed",
+     "empty": {
+      "exit_code": 2,
+      "no_measured_count": true,
+      "output_tail": "FAILED:delivered usage _measure_one_delivered.py <UNIT-ID>",
+      "printed_count": null
+     },
+     "gate": "command-center/p2-wave/_measure_one_delivered.py",
+     "id": "measure-one-delivered-empty-argv",
+     "known_bad": {
+      "exit_code": 2,
+      "no_measured_count": true,
+      "output_tail": "FAILED:delivered ZZZ-9999 catalog-missing",
+      "printed_count": null
+     },
+     "named_case": null
+    },
+    {
+     "class": "measures-nothing",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "CLEAN",
+      "printed_count": null
+     },
+     "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/silent_always.py",
+     "id": "control-silent-always",
+     "known_bad": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "CLEAN",
+      "printed_count": null
+     },
+     "named_case": null,
+     "role": "negative-control-must-be-classified-measures-nothing"
+    },
+    {
+     "class": "fail-closed",
+     "empty": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "FAILED:closed-control mode=empty count=1",
+      "printed_count": 1
+     },
+     "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/closed_always.py",
+     "id": "control-closed-always",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "FAILED:closed-control mode=known-bad count=1",
+      "printed_count": 1
+     },
+     "named_case": null,
+     "role": "positive-control-must-be-classified-fail-closed"
+    },
+    {
+     "class": "fail-open-empty",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "CLEAN",
+      "printed_count": null
+     },
+     "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/clean_none_checks.py",
+     "id": "control-clean-none-checks",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "FAILED:clean-none-checks checks=fail count=1",
+      "printed_count": 1
+     },
+     "named_case": "CLEAN plus checks:NONE gate",
+     "role": "named-case-model"
+    }
+   ],
+   "fail_open_ids": [
+    "freeze-gate-not-frozen",
+    "freeze-gate-clean-plus-checks-none",
+    "control-silent-always",
+    "control-clean-none-checks"
+   ],
+   "headline_counts": {
+    "ci_execution": "NOT-CHECKED",
+    "ci_fail_open_steps_static": 4,
+    "fail_closed": 5,
+    "fail_open_on_empty": 4,
+    "gates_executed": 10,
+    "gates_static": 8,
+    "measures_nothing": 2
+   },
+   "measures_nothing_ids": [
+    "freeze-gate-not-frozen",
+    "control-silent-always"
+   ],
+   "named_measured_cases": [
+    {
+     "class": "empty-exits-0-with-count",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": false,
+      "output_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+      "printed_count": 1
+     },
+     "gate": "tools/command-center/validate.py --no-require-complete",
+     "id": "cc-validate-m16-disarmed-surface",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "n_sentinel' unresolved\n  V-FIELDS R-M01: work-unit field 'retry_policy' unresolved\n  V-FIELDS R-M01: work-unit field 'failure_classification' unresolved\n  V-FIELDS R-M01: work-unit field 'owner_approval_required' unresolved\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=15",
+      "printed_count": 15
+     },
+     "named_case": "validate.py require_complete defaulting to False",
+     "note": "Historical CI invoked validate.py bare while require_complete defaulted to False. Live default is True; --no-require-complete is the surviving disarmed surface. empty=disarmed unresolved fields, known_bad=armed same catalog."
+    },
+    {
+     "class": "fail-open-empty",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "ok=True reason=clean silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"frozen_checked\": 0, \"ok\": true, \"reason\": \"clean\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+      "printed_count": 0
+     },
+     "gate": "command-center/freeze/gate.py",
+     "id": "freeze-gate-clean-plus-checks-none",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "ok=False reason=no-version-bump silent=0 rejections=1 admitted=0\n{\"admitted\": [], \"frozen_checked\": 1, \"ok\": false, \"reason\": \"no-version-bump\", \"rejection_count\": 1, \"rejections\": [{\"path\": \"command-center/schema/artifact.schema.json\", \"reason\": \"no-version-bump\"}], \"silent_count\": 0}",
+      "printed_count": 1
+     },
+     "named_case": "CLEAN plus checks:NONE gate",
+     "note": "freeze_active=true with frozen_paths=[] exits 0 with reason=clean and silent=0. A sha-mismatched frozen path is the known-bad control."
+    },
+    {
+     "class": "fail-open-empty",
+     "empty": {
+      "exit_code": 0,
+      "no_measured_count": true,
+      "output_tail": "CLEAN",
+      "printed_count": null
+     },
+     "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/clean_none_checks.py",
+     "id": "control-clean-none-checks",
+     "known_bad": {
+      "exit_code": 1,
+      "no_measured_count": false,
+      "output_tail": "FAILED:clean-none-checks checks=fail count=1",
+      "printed_count": 1
+     },
+     "named_case": "CLEAN plus checks:NONE gate",
+     "role": "named-case-model"
+    }
+   ],
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0045/probe1_static_paths.py",
+     "exit_code": 0,
+     "id": "probe1-static-paths",
+     "raw_output": "{\n  \"ci_fail_open_step_count\": 4,\n  \"ci_fail_open_steps\": [\n    {\n      \"command_head\": \"printf '%s\\\\n' \\\"$AI_RESPONSE\\\" > fix.patch if [ ! -s fix.patch ]; then echo \\\"Model returned no patch; nothing to do.\\\" exit 0 fi if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then echo \\\"Model patch did not apply cleanly; skipping P\",\n      \"continue_on_error\": null,\n      \"job\": \"draft-fix\",\n      \"reasons\": [\n        \"pipe-true-swallows-failure\",\n        \"empty-file-exits-0\",\n        \"empty-result-exits-0\"\n      ],\n      \"step\": \"Apply patch and open PR\",\n      \"workflow\": \".github/workflows/autofix-models.yml\"\n    },\n    {\n      \"command_head\": \"git config --global user.name \\\"codex-runner[bot]\\\" git config --global user.email \\\"codex-runner@users.noreply.github.com\\\" git clone --depth 1 ${BASE_BRANCH:+--branch \\\"$BASE_BRANCH\\\"} \\\\ \\\"https://x-access-token:${RUNNER_PAT}@github.com/${TARGET\",\n      \"continue_on_error\": null,\n      \"job\": \"run\",\n      \"reasons\": [\n        \"pipe-true-swallows-failure\"\n      ],\n      \"step\": \"Checkout target repo (via PAT) + scrub token + strip repo-local agent config\",\n      \"workflow\": \".github/workflows/codex-runner.yml\"\n    },\n    {\n      \"command_head\": \"git add -A CHANGED=\\\"$(git diff --cached --name-only)\\\" # git-tracked, unquoted paths if [ -z \\\"$CHANGED\\\" ]; then echo \\\"no_changes=1\\\" >> \\\"$GITHUB_OUTPUT\\\" echo \\\"Codex made no changes \\u2014 nothing to PR.\\\"; exit 0 fi N=\\\"$(printf '%s\\\\n' \\\"$CHANGED\\\" | \",\n      \"continue_on_error\": null,\n      \"job\": \"run\",\n      \"reasons\": [\n        \"empty-result-exits-0\"\n      ],\n      \"step\": \"Guardrails \\u2014 diff-cap + forbidden-paths (abort without a PR if tripped)\",\n      \"workflow\": \".github/workflows/codex-runner.yml\"\n    },\n    {\n      \"command_head\": \"python hooks/harness-bench/gate.py --runs 5\",\n      \"continue_on_error\": true,\n      \"job\": \"routing-benchmark\",\n      \"reasons\": [\n        \"continue_on_error=true-on-named-probe\"\n      ],\n      \"step\": \"routing regression probe (5-run; shadow)\",\n      \"workflow\": \".github/workflows/routing-benchmark.yml\"\n    }\n  ],\n  \"ci_status\": \"STATIC-FROM-AUD-0041\",\n  \"default_off_flags\": [],\n  \"early_return_files\": [\n    \"tools/command-center/validate.py\",\n    \"command-center/freeze/lib.py\",\n    \"tools/command-center/unit_manifest.py\",\n    \"command-center/ready_units.py\",\n    \"tools/command-center/render.py\",\n    \".agents/skills/claim-verify-gate/scripts/claim_gate.py\",\n    \"command-center/p2-wave/_measure_one_delivered.py\"\n  ],\n  \"gate_count_static\": 8,\n  \"probe\": \"probe1-static-paths\"\n}",
+     "role": "code-read-early-return-and-default-off"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0045/probe2_empty_and_control.py",
+     "exit_code": 0,
+     "id": "probe2-empty-and-control",
+     "raw_output": "{\n  \"class_counts\": {\n    \"empty-exits-0-with-count\": 1,\n    \"fail-closed\": 5,\n    \"fail-open-empty\": 2,\n    \"measures-nothing\": 2\n  },\n  \"control_closed_class\": \"fail-closed\",\n  \"control_silent_class\": \"measures-nothing\",\n  \"fail_open_ids\": [\n    \"freeze-gate-not-frozen\",\n    \"freeze-gate-clean-plus-checks-none\",\n    \"control-silent-always\",\n    \"control-clean-none-checks\"\n  ],\n  \"measures_nothing_ids\": [\n    \"freeze-gate-not-frozen\",\n    \"control-silent-always\"\n  ],\n  \"named_cases\": [\n    {\n      \"class\": \"empty-exits-0-with-count\",\n      \"empty\": {\n        \"exit_code\": 0,\n        \"no_measured_count\": false,\n        \"output_tail\": \"cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\\nSUCCESS:cc-validate items=1 open=1 reachable=all\",\n        \"printed_count\": 1\n      },\n      \"gate\": \"tools/command-center/validate.py --no-require-complete\",\n      \"id\": \"cc-validate-m16-disarmed-surface\",\n      \"known_bad\": {\n        \"exit_code\": 1,\n        \"no_measured_count\": false,\n        \"output_tail\": \"n_sentinel' unresolved\\n  V-FIELDS R-M01: work-unit field 'retry_policy' unresolved\\n  V-FIELDS R-M01: work-unit field 'failure_classification' unresolved\\n  V-FIELDS R-M01: work-unit field 'owner_approval_required' unresolved\\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\\nFAILED:cc-validate violations=15\",\n        \"printed_count\": 15\n      },\n      \"named_case\": \"validate.py require_complete defaulting to False\",\n      \"note\": \"Historical CI invoked validate.py bare while require_complete defaulted to False. Live default is True; --no-require-complete is the surviving disarmed surface. empty=disarmed unresolved fields, known_bad=armed same catalog.\"\n    },\n    {\n      \"class\": \"fail-open-empty\",\n      \"empty\": {\n        \"exit_code\": 0,\n        \"no_measured_count\": true,\n        \"output_tail\": \"ok=True reason=clean silent=0 rejections=0 admitted=0\\n{\\\"admitted\\\": [], \\\"frozen_checked\\\": 0, \\\"ok\\\": true, \\\"reason\\\": \\\"clean\\\", \\\"rejection_count\\\": 0, \\\"rejections\\\": [], \\\"silent_count\\\": 0}\",\n        \"printed_count\": 0\n      },\n      \"gate\": \"command-center/freeze/gate.py\",\n      \"id\": \"freeze-gate-clean-plus-checks-none\",\n      \"known_bad\": {\n        \"exit_code\": 1,\n        \"no_measured_count\": false,\n        \"output_tail\": \"ok=False reason=no-version-bump silent=0 rejections=1 admitted=0\\n{\\\"admitted\\\": [], \\\"frozen_checked\\\": 1, \\\"ok\\\": false, \\\"reason\\\": \\\"no-version-bump\\\", \\\"rejection_count\\\": 1, \\\"rejections\\\": [{\\\"path\\\": \\\"command-center/schema/artifact.schema.json\\\", \\\"reason\\\": \\\"no-version-bump\\\"}], \\\"silent_count\\\": 0}\",\n        \"printed_count\": 1\n      },\n      \"named_case\": \"CLEAN plus checks:NONE gate\",\n      \"note\": \"freeze_active=true with frozen_paths=[] exits 0 with reason=clean and silent=0. A sha-mismatched frozen path is the known-bad control.\"\n    },\n    {\n      \"class\": \"fail-open-empty\",\n      \"empty\": {\n        \"exit_code\": 0,\n        \"no_measured_count\": true,\n        \"output_tail\": \"CLEAN\",\n        \"printed_count\": null\n      },\n      \"gate\": \"command-center/p2-wave/probes/AUD-0045/fixtures/clean_none_checks.py\",\n      \"id\": \"control-clean-none-checks\",\n      \"known_bad\": {\n        \"exit_code\": 1,\n        \"no_measured_count\": false,\n        \"output_tail\": \"FAILED:clean-none-checks checks=fail count=1\",\n        \"printed_count\": 1\n      },\n      \"named_case\": \"CLEAN plus checks:NONE gate\",\n      \"role\": \"named-case-model\"\n    }\n  ],\n  \"probe\": \"probe2-empty-and-control\"\n}",
+     "role": "empty-input-execution-plus-known-bad-control"
+    }
+   ],
+   "output_schema": "command-center/schema/audit-finding.schema.json",
+   "question": "For every CI gate and local validator, is there an input under which it exits 0 without having examined anything — an empty input set, a missing optional flag, a swallowed exception, or a skipped tool?",
+   "report_kind": "audit-finding",
+   "residual_caveat": ".github/workflows is not present on this worktree; CI fail-open labels are static reads of AUD-0041's YAML inventory, not live job executions. validate.py's live require_complete default is True; the named historical default-False case is measured via --no-require-complete.",
+   "static_scan": [
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      409
+     ],
+     "exists": true,
+     "path": "tools/command-center/validate.py",
+     "swallowed_exception": []
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [],
+     "exists": true,
+     "path": "command-center/freeze/gate.py",
+     "swallowed_exception": []
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      250,
+      254
+     ],
+     "exists": true,
+     "path": "command-center/freeze/lib.py",
+     "swallowed_exception": []
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      136,
+      150,
+      299
+     ],
+     "exists": true,
+     "path": "tools/command-center/unit_manifest.py",
+     "swallowed_exception": []
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      108,
+      388,
+      394,
+      399,
+      405,
+      415,
+      421,
+      625,
+      753
+     ],
+     "exists": true,
+     "path": "command-center/ready_units.py",
+     "swallowed_exception": [
+      304,
+      393,
+      400,
+      420
+     ]
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      371,
+      374
+     ],
+     "exists": true,
+     "path": "tools/command-center/render.py",
+     "swallowed_exception": []
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      596
+     ],
+     "exists": true,
+     "path": ".agents/skills/claim-verify-gate/scripts/claim_gate.py",
+     "swallowed_exception": []
+    },
+    {
+     "default_off_flags": [],
+     "early_return_zero": [
+      181
+     ],
+     "exists": true,
+     "path": "command-center/p2-wave/_measure_one_delivered.py",
+     "swallowed_exception": []
+    }
+   ],
+   "title": "Fail-open gate census: which gates can pass while measuring nothing"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0045",
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/AUD-0045/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "AUD-0045"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/audit/AUD-0045-fail-open-gate-census.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/audit/AUD-0045-fail-open-gate-census.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "cc308a99f4f642245b5fbb7924e467a4",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "audit-finding",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 28775,
+    "method": "filesystem-stat",
+    "anchor": "command-center/audit/AUD-0045-fail-open-gate-census.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "Local execution of 10 gate surfaces found 4 fail-open-on-empty (including measures-nothing) and 2 gates that also stay green on known-bad input. Named case validate.py --no-require-complete exits 0 with work-unit fields counted but not failed (class=empty-exits-0-with-count); the armed default exits 1. Named case CLEAN+checks:NONE is freeze_active=true with frozen_paths=[] (exit 0, printed count 0) plus the CHECKS=NONE fixture; a sha-mismatched frozen path exits 1. freeze_active=false measures nothing (class=measures-nothing). AUD-0041 YAML names 4 fail-open CI steps including continue_on_error=true on the routing regression probe; .github/workflows is absent here so CI execution is NOT-CHECKED. Empty-catalog validate, unit-manifest empty walk, claim_gate without a payload, and _measure_one_delivered without an id fail closed.",
+ "ci_static": {
+  "fail_open_step_count": 4,
+  "fail_open_steps": [
+   {
+    "command_head": "printf '%s\\n' \"$AI_RESPONSE\" > fix.patch if [ ! -s fix.patch ]; then echo \"Model returned no patch; nothing to do.\" exit 0 fi if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then echo \"Model patch did not apply cleanly; skipping P",
+    "continue_on_error": null,
+    "job": "draft-fix",
+    "reasons": [
+     "pipe-true-swallows-failure",
+     "empty-file-exits-0",
+     "empty-result-exits-0"
+    ],
+    "step": "Apply patch and open PR",
+    "workflow": ".github/workflows/autofix-models.yml"
+   },
+   {
+    "command_head": "git config --global user.name \"codex-runner[bot]\" git config --global user.email \"codex-runner@users.noreply.github.com\" git clone --depth 1 ${BASE_BRANCH:+--branch \"$BASE_BRANCH\"} \\ \"https://x-access-token:${RUNNER_PAT}@github.com/${TARGET",
+    "continue_on_error": null,
+    "job": "run",
+    "reasons": [
+     "pipe-true-swallows-failure"
+    ],
+    "step": "Checkout target repo (via PAT) + scrub token + strip repo-local agent config",
+    "workflow": ".github/workflows/codex-runner.yml"
+   },
+   {
+    "command_head": "git add -A CHANGED=\"$(git diff --cached --name-only)\" # git-tracked, unquoted paths if [ -z \"$CHANGED\" ]; then echo \"no_changes=1\" >> \"$GITHUB_OUTPUT\" echo \"Codex made no changes — nothing to PR.\"; exit 0 fi N=\"$(printf '%s\\n' \"$CHANGED\" | ",
+    "continue_on_error": null,
+    "job": "run",
+    "reasons": [
+     "empty-result-exits-0"
+    ],
+    "step": "Guardrails — diff-cap + forbidden-paths (abort without a PR if tripped)",
+    "workflow": ".github/workflows/codex-runner.yml"
+   },
+   {
+    "command_head": "python hooks/harness-bench/gate.py --runs 5",
+    "continue_on_error": true,
+    "job": "routing-benchmark",
+    "reasons": [
+     "continue_on_error=true-on-named-probe"
+    ],
+    "step": "routing regression probe (5-run; shadow)",
+    "workflow": ".github/workflows/routing-benchmark.yml"
+   }
+  ],
+  "note": ".github/workflows is absent on this worktree; CI execution is NOT-CHECKED. Fail-open labels are from AUD-0041's YAML parse.",
+  "status": "STATIC-FROM-AUD-0041",
+  "workflow_files_on_this_tree": true
+ },
+ "class_counts": {
+  "empty-exits-0-with-count": 1,
+  "fail-closed": 5,
+  "fail-open-empty": 2,
+  "measures-nothing": 2
+ },
+ "completion_sentinel": "SUCCESS:AUD-0045 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "executed_gates": [
+  {
+   "class": "fail-closed",
+   "empty": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1",
+    "printed_count": 1
+   },
+   "gate": "tools/command-center/validate.py",
+   "id": "cc-validate-empty-catalog",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": true,
+    "output_tail": "FAILED:cc-validate cannot read /tmp/aud0045-k5rej8ro/does-not-exist.json: [Errno 2] No such file or directory: '/tmp/aud0045-k5rej8ro/does-not-exist.json'",
+    "printed_count": null
+   },
+   "named_case": null
+  },
+  {
+   "class": "empty-exits-0-with-count",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": false,
+    "output_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "printed_count": 1
+   },
+   "gate": "tools/command-center/validate.py --no-require-complete",
+   "id": "cc-validate-m16-disarmed-surface",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "n_sentinel' unresolved\n  V-FIELDS R-M01: work-unit field 'retry_policy' unresolved\n  V-FIELDS R-M01: work-unit field 'failure_classification' unresolved\n  V-FIELDS R-M01: work-unit field 'owner_approval_required' unresolved\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=15",
+    "printed_count": 15
+   },
+   "named_case": "validate.py require_complete defaulting to False",
+   "note": "Historical CI invoked validate.py bare while require_complete defaulted to False. Live default is True; --no-require-complete is the surviving disarmed surface. empty=disarmed unresolved fields, known_bad=armed same catalog."
+  },
+  {
+   "class": "measures-nothing",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "ok=True reason=not-frozen silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"ok\": true, \"reason\": \"not-frozen\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+    "printed_count": 0
+   },
+   "gate": "command-center/freeze/gate.py",
+   "id": "freeze-gate-not-frozen",
+   "known_bad": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "ok=True reason=not-frozen silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"ok\": true, \"reason\": \"not-frozen\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+    "printed_count": 0
+   },
+   "named_case": null,
+   "note": "freeze_active=false short-circuits to ok=True. A planted sha mismatch is not examined."
+  },
+  {
+   "class": "fail-open-empty",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "ok=True reason=clean silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"frozen_checked\": 0, \"ok\": true, \"reason\": \"clean\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+    "printed_count": 0
+   },
+   "gate": "command-center/freeze/gate.py",
+   "id": "freeze-gate-clean-plus-checks-none",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "ok=False reason=no-version-bump silent=0 rejections=1 admitted=0\n{\"admitted\": [], \"frozen_checked\": 1, \"ok\": false, \"reason\": \"no-version-bump\", \"rejection_count\": 1, \"rejections\": [{\"path\": \"command-center/schema/artifact.schema.json\", \"reason\": \"no-version-bump\"}], \"silent_count\": 0}",
+    "printed_count": 1
+   },
+   "named_case": "CLEAN plus checks:NONE gate",
+   "note": "freeze_active=true with frozen_paths=[] exits 0 with reason=clean and silent=0. A sha-mismatched frozen path is the known-bad control."
+  },
+  {
+   "class": "fail-closed",
+   "empty": {
+    "exit_code": 1,
+    "no_measured_count": true,
+    "output_tail": "FAILED:unit-manifest discovered ZERO receipts (empty walk)",
+    "printed_count": null
+   },
+   "gate": "tools/command-center/unit_manifest.py --check",
+   "id": "unit-manifest-empty-walk",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": true,
+    "output_tail": "FAILED:unit-manifest receipt command-center/receipts/TST-MISS.json names absent artifact nope.bin",
+    "printed_count": null
+   },
+   "named_case": null
+  },
+  {
+   "class": "fail-closed",
+   "empty": {
+    "exit_code": 2,
+    "no_measured_count": true,
+    "output_tail": "usage: claim_gate.py [-h] [--claims CLAIMS] [--doc DOC] [--format {md,json}]\n                     [--self-test]\nclaim_gate.py: error: --claims is required unless --self-test is given",
+    "printed_count": null
+   },
+   "gate": ".agents/skills/claim-verify-gate/scripts/claim_gate.py",
+   "id": "claim-gate-empty-and-no-source-probe",
+   "known_bad": {
+    "exit_code": 2,
+    "no_measured_count": true,
+    "output_tail": "usage: claim_gate.py [-h] [--claims CLAIMS] [--doc DOC] [--format {md,json}]\n                     [--self-test]\nclaim_gate.py: error: unrecognized arguments: /tmp/aud0045-k5rej8ro/bad-claim.json",
+    "printed_count": null
+   },
+   "named_case": null
+  },
+  {
+   "class": "fail-closed",
+   "empty": {
+    "exit_code": 2,
+    "no_measured_count": true,
+    "output_tail": "FAILED:delivered usage _measure_one_delivered.py <UNIT-ID>",
+    "printed_count": null
+   },
+   "gate": "command-center/p2-wave/_measure_one_delivered.py",
+   "id": "measure-one-delivered-empty-argv",
+   "known_bad": {
+    "exit_code": 2,
+    "no_measured_count": true,
+    "output_tail": "FAILED:delivered ZZZ-9999 catalog-missing",
+    "printed_count": null
+   },
+   "named_case": null
+  },
+  {
+   "class": "measures-nothing",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "CLEAN",
+    "printed_count": null
+   },
+   "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/silent_always.py",
+   "id": "control-silent-always",
+   "known_bad": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "CLEAN",
+    "printed_count": null
+   },
+   "named_case": null,
+   "role": "negative-control-must-be-classified-measures-nothing"
+  },
+  {
+   "class": "fail-closed",
+   "empty": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "FAILED:closed-control mode=empty count=1",
+    "printed_count": 1
+   },
+   "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/closed_always.py",
+   "id": "control-closed-always",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "FAILED:closed-control mode=known-bad count=1",
+    "printed_count": 1
+   },
+   "named_case": null,
+   "role": "positive-control-must-be-classified-fail-closed"
+  },
+  {
+   "class": "fail-open-empty",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "CLEAN",
+    "printed_count": null
+   },
+   "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/clean_none_checks.py",
+   "id": "control-clean-none-checks",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "FAILED:clean-none-checks checks=fail count=1",
+    "printed_count": 1
+   },
+   "named_case": "CLEAN plus checks:NONE gate",
+   "role": "named-case-model"
+  }
+ ],
+ "fail_open_ids": [
+  "freeze-gate-not-frozen",
+  "freeze-gate-clean-plus-checks-none",
+  "control-silent-always",
+  "control-clean-none-checks"
+ ],
+ "headline_counts": {
+  "ci_execution": "NOT-CHECKED",
+  "ci_fail_open_steps_static": 4,
+  "fail_closed": 5,
+  "fail_open_on_empty": 4,
+  "gates_executed": 10,
+  "gates_static": 8,
+  "measures_nothing": 2
+ },
+ "measures_nothing_ids": [
+  "freeze-gate-not-frozen",
+  "control-silent-always"
+ ],
+ "named_measured_cases": [
+  {
+   "class": "empty-exits-0-with-count",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": false,
+    "output_tail": "cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=1 open=1 reachable=all",
+    "printed_count": 1
+   },
+   "gate": "tools/command-center/validate.py --no-require-complete",
+   "id": "cc-validate-m16-disarmed-surface",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "n_sentinel' unresolved\n  V-FIELDS R-M01: work-unit field 'retry_policy' unresolved\n  V-FIELDS R-M01: work-unit field 'failure_classification' unresolved\n  V-FIELDS R-M01: work-unit field 'owner_approval_required' unresolved\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=15",
+    "printed_count": 15
+   },
+   "named_case": "validate.py require_complete defaulting to False",
+   "note": "Historical CI invoked validate.py bare while require_complete defaulted to False. Live default is True; --no-require-complete is the surviving disarmed surface. empty=disarmed unresolved fields, known_bad=armed same catalog."
+  },
+  {
+   "class": "fail-open-empty",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "ok=True reason=clean silent=0 rejections=0 admitted=0\n{\"admitted\": [], \"frozen_checked\": 0, \"ok\": true, \"reason\": \"clean\", \"rejection_count\": 0, \"rejections\": [], \"silent_count\": 0}",
+    "printed_count": 0
+   },
+   "gate": "command-center/freeze/gate.py",
+   "id": "freeze-gate-clean-plus-checks-none",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "ok=False reason=no-version-bump silent=0 rejections=1 admitted=0\n{\"admitted\": [], \"frozen_checked\": 1, \"ok\": false, \"reason\": \"no-version-bump\", \"rejection_count\": 1, \"rejections\": [{\"path\": \"command-center/schema/artifact.schema.json\", \"reason\": \"no-version-bump\"}], \"silent_count\": 0}",
+    "printed_count": 1
+   },
+   "named_case": "CLEAN plus checks:NONE gate",
+   "note": "freeze_active=true with frozen_paths=[] exits 0 with reason=clean and silent=0. A sha-mismatched frozen path is the known-bad control."
+  },
+  {
+   "class": "fail-open-empty",
+   "empty": {
+    "exit_code": 0,
+    "no_measured_count": true,
+    "output_tail": "CLEAN",
+    "printed_count": null
+   },
+   "gate": "command-center/p2-wave/probes/AUD-0045/fixtures/clean_none_checks.py",
+   "id": "control-clean-none-checks",
+   "known_bad": {
+    "exit_code": 1,
+    "no_measured_count": false,
+    "output_tail": "FAILED:clean-none-checks checks=fail count=1",
+    "printed_count": 1
+   },
+   "named_case": "CLEAN plus checks:NONE gate",
+   "role": "named-case-model"
+  }
+ ],
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0045/probe1_static_paths.py",
+   "exit_code": 0,
+   "id": "probe1-static-paths",
+   "raw_output": "{\n  \"ci_fail_open_step_count\": 4,\n  \"ci_fail_open_steps\": [\n    {\n      \"command_head\": \"printf '%s\\\\n' \\\"$AI_RESPONSE\\\" > fix.patch if [ ! -s fix.patch ]; then echo \\\"Model returned no patch; nothing to do.\\\" exit 0 fi if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then echo \\\"Model patch did not apply cleanly; skipping P\",\n      \"continue_on_error\": null,\n      \"job\": \"draft-fix\",\n      \"reasons\": [\n        \"pipe-true-swallows-failure\",\n        \"empty-file-exits-0\",\n        \"empty-result-exits-0\"\n      ],\n      \"step\": \"Apply patch and open PR\",\n      \"workflow\": \".github/workflows/autofix-models.yml\"\n    },\n    {\n      \"command_head\": \"git config --global user.name \\\"codex-runner[bot]\\\" git config --global user.email \\\"codex-runner@users.noreply.github.com\\\" git clone --depth 1 ${BASE_BRANCH:+--branch \\\"$BASE_BRANCH\\\"} \\\\ \\\"https://x-access-token:${RUNNER_PAT}@github.com/${TARGET\",\n      \"continue_on_error\": null,\n      \"job\": \"run\",\n      \"reasons\": [\n        \"pipe-true-swallows-failure\"\n      ],\n      \"step\": \"Checkout target repo (via PAT) + scrub token + strip repo-local agent config\",\n      \"workflow\": \".github/workflows/codex-runner.yml\"\n    },\n    {\n      \"command_head\": \"git add -A CHANGED=\\\"$(git diff --cached --name-only)\\\" # git-tracked, unquoted paths if [ -z \\\"$CHANGED\\\" ]; then echo \\\"no_changes=1\\\" >> \\\"$GITHUB_OUTPUT\\\" echo \\\"Codex made no changes \\u2014 nothing to PR.\\\"; exit 0 fi N=\\\"$(printf '%s\\\\n' \\\"$CHANGED\\\" | \",\n      \"continue_on_error\": null,\n      \"job\": \"run\",\n      \"reasons\": [\n        \"empty-result-exits-0\"\n      ],\n      \"step\": \"Guardrails \\u2014 diff-cap + forbidden-paths (abort without a PR if tripped)\",\n      \"workflow\": \".github/workflows/codex-runner.yml\"\n    },\n    {\n      \"command_head\": \"python hooks/harness-bench/gate.py --runs 5\",\n      \"continue_on_error\": true,\n      \"job\": \"routing-benchmark\",\n      \"reasons\": [\n        \"continue_on_error=true-on-named-probe\"\n      ],\n      \"step\": \"routing regression probe (5-run; shadow)\",\n      \"workflow\": \".github/workflows/routing-benchmark.yml\"\n    }\n  ],\n  \"ci_status\": \"STATIC-FROM-AUD-0041\",\n  \"default_off_flags\": [],\n  \"early_return_files\": [\n    \"tools/command-center/validate.py\",\n    \"command-center/freeze/lib.py\",\n    \"tools/command-center/unit_manifest.py\",\n    \"command-center/ready_units.py\",\n    \"tools/command-center/render.py\",\n    \".agents/skills/claim-verify-gate/scripts/claim_gate.py\",\n    \"command-center/p2-wave/_measure_one_delivered.py\"\n  ],\n  \"gate_count_static\": 8,\n  \"probe\": \"probe1-static-paths\"\n}",
+   "role": "code-read-early-return-and-default-off"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0045/probe2_empty_and_control.py",
+   "exit_code": 0,
+   "id": "probe2-empty-and-control",
+   "raw_output": "{\n  \"class_counts\": {\n    \"empty-exits-0-with-count\": 1,\n    \"fail-closed\": 5,\n    \"fail-open-empty\": 2,\n    \"measures-nothing\": 2\n  },\n  \"control_closed_class\": \"fail-closed\",\n  \"control_silent_class\": \"measures-nothing\",\n  \"fail_open_ids\": [\n    \"freeze-gate-not-frozen\",\n    \"freeze-gate-clean-plus-checks-none\",\n    \"control-silent-always\",\n    \"control-clean-none-checks\"\n  ],\n  \"measures_nothing_ids\": [\n    \"freeze-gate-not-frozen\",\n    \"control-silent-always\"\n  ],\n  \"named_cases\": [\n    {\n      \"class\": \"empty-exits-0-with-count\",\n      \"empty\": {\n        \"exit_code\": 0,\n        \"no_measured_count\": false,\n        \"output_tail\": \"cc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\\nSUCCESS:cc-validate items=1 open=1 reachable=all\",\n        \"printed_count\": 1\n      },\n      \"gate\": \"tools/command-center/validate.py --no-require-complete\",\n      \"id\": \"cc-validate-m16-disarmed-surface\",\n      \"known_bad\": {\n        \"exit_code\": 1,\n        \"no_measured_count\": false,\n        \"output_tail\": \"n_sentinel' unresolved\\n  V-FIELDS R-M01: work-unit field 'retry_policy' unresolved\\n  V-FIELDS R-M01: work-unit field 'failure_classification' unresolved\\n  V-FIELDS R-M01: work-unit field 'owner_approval_required' unresolved\\ncc-validate items=1 open=1 closed=0 edges=0 acyclic=True owner_questions_open=0 work_unit_fields_unresolved=15 work_unit_fields_from_defaults=0\\nFAILED:cc-validate violations=15\",\n        \"printed_count\": 15\n      },\n      \"named_case\": \"validate.py require_complete defaulting to False\",\n      \"note\": \"Historical CI invoked validate.py bare while require_complete defaulted to False. Live default is True; --no-require-complete is the surviving disarmed surface. empty=disarmed unresolved fields, known_bad=armed same catalog.\"\n    },\n    {\n      \"class\": \"fail-open-empty\",\n      \"empty\": {\n        \"exit_code\": 0,\n        \"no_measured_count\": true,\n        \"output_tail\": \"ok=True reason=clean silent=0 rejections=0 admitted=0\\n{\\\"admitted\\\": [], \\\"frozen_checked\\\": 0, \\\"ok\\\": true, \\\"reason\\\": \\\"clean\\\", \\\"rejection_count\\\": 0, \\\"rejections\\\": [], \\\"silent_count\\\": 0}\",\n        \"printed_count\": 0\n      },\n      \"gate\": \"command-center/freeze/gate.py\",\n      \"id\": \"freeze-gate-clean-plus-checks-none\",\n      \"known_bad\": {\n        \"exit_code\": 1,\n        \"no_measured_count\": false,\n        \"output_tail\": \"ok=False reason=no-version-bump silent=0 rejections=1 admitted=0\\n{\\\"admitted\\\": [], \\\"frozen_checked\\\": 1, \\\"ok\\\": false, \\\"reason\\\": \\\"no-version-bump\\\", \\\"rejection_count\\\": 1, \\\"rejections\\\": [{\\\"path\\\": \\\"command-center/schema/artifact.schema.json\\\", \\\"reason\\\": \\\"no-version-bump\\\"}], \\\"silent_count\\\": 0}\",\n        \"printed_count\": 1\n      },\n      \"named_case\": \"CLEAN plus checks:NONE gate\",\n      \"note\": \"freeze_active=true with frozen_paths=[] exits 0 with reason=clean and silent=0. A sha-mismatched frozen path is the known-bad control.\"\n    },\n    {\n      \"class\": \"fail-open-empty\",\n      \"empty\": {\n        \"exit_code\": 0,\n        \"no_measured_count\": true,\n        \"output_tail\": \"CLEAN\",\n        \"printed_count\": null\n      },\n      \"gate\": \"command-center/p2-wave/probes/AUD-0045/fixtures/clean_none_checks.py\",\n      \"id\": \"control-clean-none-checks\",\n      \"known_bad\": {\n        \"exit_code\": 1,\n        \"no_measured_count\": false,\n        \"output_tail\": \"FAILED:clean-none-checks checks=fail count=1\",\n        \"printed_count\": 1\n      },\n      \"named_case\": \"CLEAN plus checks:NONE gate\",\n      \"role\": \"named-case-model\"\n    }\n  ],\n  \"probe\": \"probe2-empty-and-control\"\n}",
+   "role": "empty-input-execution-plus-known-bad-control"
+  }
+ ],
+ "output_schema": "command-center/schema/audit-finding.schema.json",
+ "question": "For every CI gate and local validator, is there an input under which it exits 0 without having examined anything — an empty input set, a missing optional flag, a swallowed exception, or a skipped tool?",
+ "report_kind": "audit-finding",
+ "residual_caveat": ".github/workflows is not present on this worktree; CI fail-open labels are static reads of AUD-0041's YAML inventory, not live job executions. validate.py's live require_complete default is True; the named historical default-False case is measured via --no-require-complete.",
+ "static_scan": [
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    409
+   ],
+   "exists": true,
+   "path": "tools/command-center/validate.py",
+   "swallowed_exception": []
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [],
+   "exists": true,
+   "path": "command-center/freeze/gate.py",
+   "swallowed_exception": []
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    250,
+    254
+   ],
+   "exists": true,
+   "path": "command-center/freeze/lib.py",
+   "swallowed_exception": []
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    136,
+    150,
+    299
+   ],
+   "exists": true,
+   "path": "tools/command-center/unit_manifest.py",
+   "swallowed_exception": []
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    108,
+    388,
+    394,
+    399,
+    405,
+    415,
+    421,
+    625,
+    753
+   ],
+   "exists": true,
+   "path": "command-center/ready_units.py",
+   "swallowed_exception": [
+    304,
+    393,
+    400,
+    420
+   ]
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    371,
+    374
+   ],
+   "exists": true,
+   "path": "tools/command-center/render.py",
+   "swallowed_exception": []
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    596
+   ],
+   "exists": true,
+   "path": ".agents/skills/claim-verify-gate/scripts/claim_gate.py",
+   "swallowed_exception": []
+  },
+  {
+   "default_off_flags": [],
+   "early_return_zero": [
+    181
+   ],
+   "exists": true,
+   "path": "command-center/p2-wave/_measure_one_delivered.py",
+   "swallowed_exception": []
+  }
+ ],
+ "title": "Fail-open gate census: which gates can pass while measuring nothing"
+}

@@ -1,0 +1,471 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "two-signal-corroboration-gate",
+  "name": "Two-signal corroboration gate before any disruptive action",
+  "description": "Blueprint 46 of 96 (BP-DBG-04 sibling; card BP-DBG-03). FLAGSHIP. Stands between a diagnosis and a DISRUPTIVE action - a restart, a kill, a rollback, a re-fix - and authorises it only when a second, mechanically INDEPENDENT probe agrees. The distinctive mechanism is the hard requirement that the SOURCE probe be declared: independence is a property of a pair, so an undeclared source is zero signals rather than one. That is the exact hole measured in the shipped implementation, where an absent source normalises to empty strings which any non-empty verifier trivially differs from, so the same-probe-rerun check cannot fire and the gate returns violations:[] with exit 0. Here a missing source is a FAILURE, and on disagreement the action is not authorised.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["research-and-evidence", "security-governance-and-risk"],
+  "tags": ["single-signal-verification", "source-probe-required", "pre-destructive-gate"],
+  "flagship": true,
+
+  "params": {
+    "claim": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The load-bearing claim that would authorise the action - 'the agents are stuck', 'mon is not on PATH', 'the PR's checks never ran'"
+    },
+    "source_probe": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "MANDATORY. The measurement that PRODUCED the claim, as an invocation. An empty or absent source is the measured hole this blueprint exists to close - it is a violation, never a pass."
+    },
+    "candidate_verifier_probes": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "max_items": 12,
+      "required": true,
+      "description": "Candidate second signals. Re-running the source is not one of them."
+    },
+    "pending_action": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The disruptive action awaiting authorisation"
+    },
+    "action_reversibility": {
+      "type": "enum",
+      "enum": ["trivial", "easy", "moderate", "hard"],
+      "default": "hard",
+      "description": "Worst-case default: an undeclared reversibility is treated as HARD (adverse inference), which is what makes this gate apply"
+    }
+  },
+
+  "roles": {
+    "claim-recorder": {
+      "description": "Records the claim WITH its producing probe. Refuses the record if the source probe is absent - that refusal is the whole point.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Write", "Bash:python"],
+      "write_paths": ["command-center/corroboration/**"],
+      "speaking_rights": "always"
+    },
+    "verifier-selector": {
+      "description": "Chooses a probe that differs MECHANICALLY - different shell, different data field, different measurement - and states how it differs",
+      "model": "gpt-5-codex",
+      "vendor": "openai",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "cross-examining",
+      "cross_vendor_required": true,
+      "tool_permissions": ["Read", "Grep", "mcp__codex__codex"],
+      "speaking_rights": "always"
+    },
+    "verifier-runner": {
+      "description": "Runs the chosen verifier and records the raw reading. Does not reconcile the two readings.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:python", "Bash:pwsh"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The only actor that may authorise a hard-to-reverse action when the two signals disagree",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Write", "Bash:python", "Bash:pwsh", "mcp__codex__codex"],
+    "deny": ["Bash:rm", "Bash:kill", "Bash:git-reset", "WebFetch"],
+    "require_owner_approval": ["Bash:taskkill", "Bash:git-checkout"],
+    "network": "none",
+    "write_paths": ["command-center/corroboration/**"],
+    "forbid_write_paths": ["command-center/CLAIM-REGISTRY.json"]
+  },
+
+  "model_routing": {
+    "strategy": "vendor-diverse",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "stage_role == verifier-selector",
+        "target": { "model": "gpt-5-codex", "vendor": "openai", "effort": "high" },
+        "reason": "the same model that produced the claim tends to pick a verifier that shares the claim's assumption"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "source-probe-declared": {
+      "predicate": "custom-expression",
+      "expression": "source_probe_declared == true AND source_probe_nonempty == true AND source_probe_is_an_invocation == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "verifier-is-independent": {
+      "predicate": "custom-expression",
+      "expression": "verifier_fingerprint != source_fingerprint AND verifier_is_source_rerun == false AND independence_dimension_named == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "signals-agree": {
+      "predicate": "custom-expression",
+      "expression": "source_reading == verifier_reading",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "action-authorised": {
+      "predicate": "custom-expression",
+      "expression": "signals_agreed == true AND both_probes_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "subworkflows": {
+    "both-states-detector-control": {
+      "workflow_id": "both-states-detector-control",
+      "version_range": ">=1.0.0 <2.0.0",
+      "source": "platform/workflows/both-states-detector-control.json"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "declare-source-probe",
+      "title": "S0 DECLARE the probe that produced the claim - refuse the record without it",
+      "kind": "task",
+      "role": "claim-recorder",
+      "timeout_seconds": 900,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "ADV-0113",
+        "title": "Record every verdict together with its producing probe, and refuse any verdict that declares none",
+        "phase": "12",
+        "question_or_target": "Write the claim, the exact invocation that produced it, and that invocation's fingerprint into a claim record. If the source probe is absent, empty, or is prose rather than an invocation, emit FAILED - do NOT normalise it to an empty string, because an empty source trivially differs from any verifier and silently satisfies the independence check.",
+        "inputs": ["params.claim", "params.source_probe", "params.pending_action"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "claim-recorder",
+          "basis": "this is the step whose absence produced a certified-but-uncorroborated claim in the shipped build"
+        },
+        "tool_permissions": ["Read", "Grep", "Write", "Bash:python"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 900,
+        "output_path": "command-center/corroboration/claim-record.json",
+        "output_schema": "command-center/schema/claim-record.schema.json",
+        "evidence_requirement": "the literal source invocation plus its output, and a fingerprint over (tool, shell, data-field, measurement-kind) - a prose description of how the claim was reached is NOT a source probe",
+        "tests_required": [
+          "a CONFIRMED claim with an EMPTY source_probe must FAIL - run this against the current shipped gate first, where it returns violations:[] and exit 0, to prove the test can fail",
+          "a source_probe that is prose rather than an invocation must FAIL",
+          "both-states control: a properly declared source must PASS the same check, or the check rejects everything and measures nothing"
+        ],
+        "reviewer_requirement": "an independent reviewer who re-runs the declared invocation and confirms it produces the recorded reading",
+        "completion_sentinel": "SUCCESS:ADV-0113 emitted only when claim-record.json exists, parses, and carries a non-empty source invocation, its raw output and its fingerprint; otherwise FAILED:ADV-0113 <reason>",
+        "retry_policy": "no retry: a second attempt to supply a source probe after the fact is a reconstruction, not a record - escalate instead",
+        "failure_classification": ["source-probe-absent", "source-probe-is-prose", "unreproducible-reading"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/corroboration/claim-record.json",
+          "schema_ref": "command-center/schema/claim-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0113",
+          "consumers": ["source-gate", "select-verifier", "compare-readings"]
+        }
+      ]
+    },
+    {
+      "id": "source-gate",
+      "title": "An undeclared source is ZERO signals, not one - this gate is the measured fix",
+      "kind": "gate",
+      "depends_on": ["declare-source-probe"],
+      "gate_ref": "source-probe-declared"
+    },
+    {
+      "id": "select-verifier",
+      "title": "S1 SELECT a probe that differs mechanically, and NAME the dimension it differs on",
+      "kind": "task",
+      "role": "verifier-selector",
+      "depends_on": ["source-gate"],
+      "work_unit_ref": "CNF-0063",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/corroboration/verifier-selection.json",
+          "schema_ref": "command-center/schema/independence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CNF-0063",
+          "consumers": ["independence-gate", "run-verifier"]
+        }
+      ]
+    },
+    {
+      "id": "independence-gate",
+      "title": "Re-running the source probe is not a second signal",
+      "kind": "gate",
+      "depends_on": ["select-verifier"],
+      "gate_ref": "verifier-is-independent"
+    },
+    {
+      "id": "run-verifier",
+      "title": "S2 RUN the independent verifier and record its raw reading",
+      "kind": "task",
+      "role": "verifier-runner",
+      "depends_on": ["independence-gate"],
+      "work_unit_ref": "ADV-0012",
+      "timeout_seconds": 1800,
+      "produces": [
+        {
+          "path": "command-center/corroboration/verifier-reading.json",
+          "schema_ref": "command-center/schema/confirmation-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0012",
+          "consumers": ["agreement-gate", "compare-readings"]
+        }
+      ]
+    },
+    {
+      "id": "agreement-gate",
+      "title": "S3 If they disagree the FIRST reading was probably an artifact - investigate, do not act",
+      "kind": "gate",
+      "depends_on": ["run-verifier"],
+      "gate_ref": "signals-agree"
+    },
+    {
+      "id": "validate-the-source-probe",
+      "title": "S1b On disagreement, put the SOURCE probe through a both-states control before believing either reading",
+      "kind": "subworkflow",
+      "depends_on": ["agreement-gate"],
+      "when": "signals_agreed == false",
+      "workflow": {
+        "workflow_id": "both-states-detector-control",
+        "version_range": ">=1.0.0 <2.0.0"
+      },
+      "params": { "subject_is_test_suite": false },
+      "isolation": "none",
+      "propagate_failure": false,
+      "timeout_seconds": 7200
+    },
+    {
+      "id": "compare-readings",
+      "title": "Record BOTH readings and the reconciliation - the pair is the evidence, not the winner",
+      "kind": "task",
+      "role": "claim-recorder",
+      "depends_on": ["validate-the-source-probe"],
+      "work_unit_ref": "ADV-0009",
+      "timeout_seconds": 1200,
+      "produces": [
+        {
+          "path": "command-center/corroboration/corroboration-verdict.json",
+          "schema_ref": "command-center/schema/confirmation-audit.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:ADV-0009",
+          "consumers": ["authorisation-gate", "authorise-action"]
+        }
+      ]
+    },
+    {
+      "id": "authorisation-gate",
+      "title": "The action is authorised by the PAIR, or it is not authorised",
+      "kind": "gate",
+      "depends_on": ["compare-readings"],
+      "gate_ref": "action-authorised"
+    },
+    {
+      "id": "authorise-action",
+      "title": "A disruptive action on a disagreement needs the owner - and NEVER proceeds by timeout",
+      "kind": "human_checkpoint",
+      "depends_on": ["authorisation-gate"],
+      "prompt": "The two probes disagree, or one of them is unvalidatable. The pending disruptive action is NOT authorised by this gate. Authorise it explicitly, order a third measurement, or abandon it.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "fail",
+      "owner_approval_required": true,
+      "options": ["authorise-explicitly", "order-a-third-measurement", "abandon-the-action"],
+      "decision_artifact": {
+        "path": "command-center/corroboration/authorisation.json",
+        "schema_ref": "command-center/schema/decision-record.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "authorised-by-two-signals",
+      "expression": "signals_agreed == true AND both_probes_recorded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "source_probe_nonempty == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "unresolved-no-authorisation",
+      "expression": "independent_verifier_available == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "source-was-an-artifact",
+      "expression": "source_probe_verdict == MEASURES-NOTHING",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "none",
+    "max_attempts": 1,
+    "no_retry_on": ["source-probe-absent", "source-probe-is-prose", "owner-blocked"]
+  },
+
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": ["source-probe-absent", "verifier-not-independent", "signals-disagree", "unvalidatable-probe"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "authorise-action",
+    "quarantine_path": "command-center/corroboration/quarantine"
+  },
+
+  "resume": {
+    "enabled": false,
+    "resume_from": "restart"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 1,
+    "journal_path": "command-center/replay/two-signal-corroboration-gate.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["clock", "random", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "fail"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "stage",
+    "read_only": true,
+    "invalidate_on": ["probe-change"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "permission-report", "graph"],
+    "plan_artifact": "command-center/dry-run/two-signal-corroboration-gate-plan.json",
+    "forbid_tools": ["Write", "Bash:python", "Bash:pwsh", "mcp__codex__codex"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "almost-certain",
+    "wallclock_seconds": { "min": 60, "expected": 600, "max": 7200 },
+    "tokens": { "min": 10000, "expected": 80000, "max": 400000 },
+    "tool_calls": { "expected": 20, "max": 120 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "the gate itself writes only under command-center/corroboration/**; its PURPOSE is to bound the blast radius of the disruptive action it gates, which it never performs",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "tests", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/two-signal-corroboration-gate.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "rules/common/single-signal-verification.md",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "skills/claim-verify-gate/scripts/claim_gate.py",
+        "relation": "REPAIR",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DBG-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["skills/claim-verify-gate@pre-repair"]
+  },
+
+  "outputs": {
+    "corroboration-verdict": {
+      "path": "command-center/corroboration/corroboration-verdict.json",
+      "schema_ref": "command-center/schema/confirmation-audit.schema.json",
+      "min_bytes": 192,
+      "register_in_manifest": true,
+      "consumers": ["command-center/CLAIM-REGISTRY.json", "owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "Claim: 'mon is not on PATH'. Pending action: reinstall the tool and rewrite every caller.",
+      "source_probe": "`which mon` run in Git Bash -> not found",
+      "verifier_selected": "`Get-Command mon` in PowerShell 7. Independence dimension: DIFFERENT SHELL, and a different resolution rule - PowerShell resolves .cmd shims, MSYS which does not",
+      "verifier_reading": "resolves mon.cmd -> the claim is REFUTED and the reinstall is not authorised. The disruptive action would have been wasted work on a measurement artifact",
+      "the_measured_hole": "the shipped claim_gate.py validates id, text and verdict but NOT source_probe (_validate at :132-156); an absent source normalises to four empty strings at :173-185, which any non-empty verifier differs from, so same-probe-rerun cannot fire. A CONFIRMED claim with no source probe returns violations:[], ok:true, exit 0",
+      "the_fix_here": "source-probe-declared is BLOCKING with on_fail=fail, and the corresponding test is written to run against the CURRENT build first - where it must PASS the bad input - so the test is proven able to fail before it is trusted",
+      "timeout_asymmetry": "on_timeout is `fail`, not `escalate` or `proceed`: a destructive action must never become authorised because nobody answered"
+    },
+    "distinctive_mechanism": "the SOURCE probe is a required, non-empty, invocation-shaped field, and independence is asserted as a named dimension between a declared pair rather than inferred from a string difference",
+    "contraindications": [
+      "NOT for cheap reversible actions - just do it; the gate costs more than the mistake",
+      "NOT when the two available probes cannot be made independent - then the verdict is UNRESOLVED and the action stays unauthorised",
+      "NOT a document-level claim audit - this gates ONE claim at the moment it would authorise a destructive act"
+    ],
+    "not_a_duplicate_because": "the fresh-context blueprint re-derives a value in a CLEAN context; this corroborates one claim with a second probe in the SAME context, and its defining field is the declared source probe.",
+    "flagship_test": "platform/lib/workflows/test_two_signal_corroboration_gate.py"
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CNF-0133 closed confirmation-record",
+  "$comment": "Local closed record used by this unit's confirmer. The catalog path command-center/schema/confirmation-record.schema.json is a generated generic_report shim whose $ref is https://ast-integrate.invalid/... and cannot validate a confirmation record. CONFIRMED|REFUTED with empty source_probe is unrepresentable.",
+  "type": "object",
+  "required": [
+    "claim_id",
+    "confirmer",
+    "blinding_attestation_hash",
+    "verdict",
+    "source_probe",
+    "verifier_probe",
+    "discrepancies",
+    "residual_caveat"
+  ],
+  "properties": {
+    "claim_id": { "type": "string", "minLength": 8 },
+    "confirmer": {
+      "type": "object",
+      "required": ["id", "vendor"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "vendor": { "type": "string", "minLength": 1 }
+      }
+    },
+    "blinding_attestation_hash": { "type": "string", "minLength": 16 },
+    "verdict": {
+      "type": "string",
+      "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "BLOCKED"]
+    },
+    "source_probe": { "$ref": "#/definitions/probe" },
+    "verifier_probe": { "$ref": "#/definitions/probe" },
+    "discrepancies": { "type": "array" },
+    "residual_caveat": { "type": "string", "minLength": 1 },
+    "baseline_repro": {},
+    "corrected_repro": {},
+    "rollback_repro": {},
+    "regression_diff": {}
+  },
+  "allOf": [
+    {
+      "if": {
+        "required": ["verdict"],
+        "properties": {
+          "verdict": { "enum": ["CONFIRMED", "REFUTED"] }
+        }
+      },
+      "then": {
+        "properties": {
+          "source_probe": { "$ref": "#/definitions/nonempty_probe" },
+          "verifier_probe": { "$ref": "#/definitions/nonempty_probe" }
+        }
+      }
+    }
+  ],
+  "definitions": {
+    "probe": {
+      "type": "object",
+      "minProperties": 1
+    },
+    "nonempty_probe": {
+      "type": "object",
+      "required": ["id", "fingerprint"],
+      "minProperties": 2,
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "fingerprint": { "type": "string", "minLength": 16 }
+      }
+    }
+  }
+}

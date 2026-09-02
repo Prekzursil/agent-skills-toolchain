@@ -1,0 +1,22 @@
+
+===== launch 2026-08-19T18:11:12Z attempt=2 =====
+I'll start from the existing AUD-0028 probe tree and measure what's already there before writing anything.The probe tree is already large. Next I’ll read the return, handoff, catalog contract, and measure script so we resume instead of rebuilding.A prior return claims delivered; I’ll treat that as stale and re-read the measure contract plus the live artifact.I’ll inspect the remaining contract pieces—schema, probe scripts, and how `ready_units` decides delivered—then re-run the live probes.I'll re-run the live named probes and check hashes against the measure gate rather than trusting the prior SUCCESS claim.Hashes already match the per-unit manifest. Next I’ll re-run the named probes live and check whether schema validation still accepts the receipt.Resolver is absent and the receipt already claims SUCCESS. I'll re-run census, then the two named probes, then the path control, so this session has live exits.Live probes all exited 0. I’ll refresh the receipt and per-unit manifest from those outputs, then run the official measure.The measure printed `SUCCESS:delivered`. I’ll lock the per-unit return to this session’s live hashes and probe exits.**SUCCESS:delivered** AUD-0028. `python command-center/p2-wave/_measure_one_delivered.py AUD-0028` printed:
+
+`SUCCESS:delivered AUD-0028 predicate=delivered state=SUCCESS probes=4 raws=11 notes=_list_packet.py:0,census.py:0,command_v_probe.py:0,get_command_probe.py:0`
+
+AUD-0028 is G-1 contract-green on this Linux worktree. The existing probe tree was resumed, not rebuilt.
+
+This session re-ran the live named probes; all exited 0:
+
+| Probe | Command | Result |
+| --- | --- | --- |
+| Census | `census.py` | 1390 files, 20 tool names, exit 0 |
+| Probe 1 | `Get-Command` in PowerShell 7.6.5 | 20/20 rows, present=10, exit 0 |
+| Probe 2 | `command -v` in GNU bash | 20/20 rows, present=9, `shell_kind=gnu-bash-linux`, exit 0 |
+| Control | `path_control.py` | detector discriminates; live bash paths agree; `pwsh` path strings diverge |
+
+Honest finding on this host: both shells resolve `bash` to `/usr/bin/bash` (Git for Windows `bash.exe` is not installed). Dual-shell is shown by distinct processes (`/snap/bin/pwsh` vs `/usr/bin/bash`) plus path-string divergence for `pwsh` (`/snap/powershell/397/opt/powershell/pwsh` vs `/snap/bin/pwsh`). That is not a second Wine/Git-Bash rebuild, so the unit was not parked.
+
+Receipt `command-center/audit/AUD-0028-external-cli-tool-census.json` is `state=SUCCESS` (not BLOCKED), 32672 bytes, LF sha256 `3d2bcf9ebd003517eeaeaa768e578ceee4c5166eaa7a0f34750309a9ec49e03e`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching digest. Cloud-ok harvest `UNIT-COMPLETE` was not treated as delivery.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no wave relaunch.

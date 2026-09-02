@@ -1,0 +1,233 @@
+{
+ "artifacts": [
+  {
+   "bytes": 11232,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/install.py",
+   "role": "supporting",
+   "sha256": "ab6b6f0cadef9cf1acc6467c5f1b58f2dc00e66279d509bb8bfeae601d908f8f"
+  },
+  {
+   "bytes": 6192,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_install_transaction.py",
+   "role": "supporting",
+   "sha256": "5d9ad38031b52b5f452328e701a2f313c0b3bf00a3c753ff7d3835c7618f54bc"
+  },
+  {
+   "bytes": 3659,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/harness.py",
+   "role": "supporting",
+   "sha256": "c3c3f913f2e9d088d2623f5371cdbdafc9688551839d042c17979686b19a6472"
+  },
+  {
+   "bytes": 2209,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/schema/projection-map.schema.json",
+   "role": "supporting",
+   "sha256": "85a36701cccf5a5ec387fb2463cc11ff64ff92f3afd6e9f17834364104399042"
+  },
+  {
+   "bytes": 4497,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0023/probe1_clean_install.py",
+   "role": "supporting",
+   "sha256": "12d6104863be4a39fa3d43abaa4f6d36f58aaafa88d83df3fa349c970cd031cf"
+  },
+  {
+   "bytes": 6264,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0023/probe2_kill_and_corrupt.py",
+   "role": "supporting",
+   "sha256": "deb762a6550ea3ce4b2359ed800f376f60a8283436d3bedf75b025ee448500a9"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0023",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0023.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": true,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0023",
+    "exit_code": null,
+    "fingerprint": "248c27597089bd92cd5587d7793e848e",
+    "method": "command",
+    "raw_output": "deferred until after this receipt and per-unit manifest are written",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/install.py:install_plugin",
+   "claim": "A full install into a throwaway HOME produces exactly the live path set predicted by the projection map, and each live file's sha256 matches the payload source bytes recomputed by an independent walk.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0023/probe1_clean_install.py",
+     "exit_code": 0,
+     "fingerprint": "d98e7d1872c2848b793716f2933db7f5",
+     "method": "command",
+     "raw_output": "{\"file_count\": 5, \"live_paths\": [\"README.md\", \"hooks/pre.json\", \"plugin.json\", \"skills/alpha/SKILL.md\", \"skills/beta/SKILL.md\"], \"mtime_hash_census_unchanged\": true, \"pass\": true, \"payload_hashes_match\": true, \"predicted_paths\": [\"README.md\", \"hooks/pre.json\", \"plugin.json\", \"skills/alpha/SKILL.md\", \"skills/beta/SKILL.md\"], \"probe\": \"probe1-clean-install\", \"second_install_status\": \"already-current\", \"set_equal\": true, \"unit_id\": \"IMP-0023\", \"walked_payload_hashes_match\": true}\nset_equal=True files=5 idempotent=True census_entries=6\nSUCCESS:IMP-0023-probe1 clean install matches projection",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction -k test_clean_install_matches_projection",
+     "exit_code": 0,
+     "fingerprint": "23b9895aba316e7548e0fb8a100c842a",
+     "method": "command",
+     "raw_output": "test_clean_install_matches_projection ok",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/install.py:activate",
+   "claim": "SIGKILL of the installer process after verify and before the live symlink replace leaves the live tree byte-identical to the previous generation (OLD). Completing the upgrade reaches NEW. MIXED is rejected.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0023/probe2_kill_and_corrupt.py",
+     "exit_code": 0,
+     "fingerprint": "6dcdaa85dea5ab92c9b48d7206c2925c",
+     "method": "command",
+     "raw_output": "{\"completed_state\": \"NEW\", \"corrupt_code\": \"verify-digest\", \"corrupt_refused\": true, \"inspector_mixed\": \"MIXED\", \"kill_returncode\": -9, \"pass\": true, \"probe\": \"probe2-kill-and-corrupt\", \"state_after_kill\": \"OLD\", \"unit_id\": \"IMP-0023\"}\nkill_state=OLD corrupt_refused=True mixed=MIXED completed=NEW\nSUCCESS:IMP-0023-probe2 kill mid-activate and corrupt-stage refuse",
+     "role": "source"
+    },
+    {
+     "command": "classify_live_state after SIGKILL",
+     "exit_code": 0,
+     "fingerprint": "7a7e858939968e19623ffb129e46ee92",
+     "method": "file-census",
+     "raw_output": "state_after_kill=OLD completed=NEW mixed=MIXED",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/install.py:install_plugin",
+   "claim": "Re-running install on an already-current payload is a no-op: status=already-current, mutated=false, and the plugin-root mtime+hash census is unchanged.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0023/probe1_clean_install.py",
+     "exit_code": 0,
+     "fingerprint": "eea63e14c7718f6925be0f2bcfdb65b5",
+     "method": "command",
+     "raw_output": "second_install_status=already-current mtime_hash_census_unchanged=true",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction -k test_second_install_is_noop_mtime_hash_census",
+     "exit_code": 0,
+     "fingerprint": "7c4c02024bbcd7d04c3b8d303796af56",
+     "method": "command",
+     "raw_output": "test_second_install_is_noop_mtime_hash_census ok",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0023",
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0023/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "verify-digest",
+   "description": "After staging v2, mutate skills/alpha/SKILL.md; verify must refuse with verify-digest and live tree must remain v1.",
+   "fired_on_bad_state": true,
+   "good_state_output": "installed",
+   "id": "corrupt-staged-file",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "MIXED",
+   "description": "A half-copied live directory (v1 files plus v2-only gamma) must classify MIXED, not OLD or NEW.",
+   "fired_on_bad_state": true,
+   "good_state_output": "OLD|NEW",
+   "id": "inspector-mixed-tree",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "Transactional install is stage (generation directory), verify (schema, digests, permissions, exact path set), activate (atomic os.replace of the live symlink). Live `current` is never a real directory being filled file-by-file. Independent confirmer is probe2: SIGKILL of a subprocess plus a second throwaway HOME for the corrupt-stage control. Did not run global unit_manifest.py --write. No ADV rebuild.",
+ "primary_artifact": {
+  "path": "command-center/receipts/IMP-0023.json",
+  "role": "primary"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0010's producer of projection maps is not delivered on this worktree; install consumes a fixture-authored map of the same shape (tools/plugin/schema/projection-map.schema.json).",
+   "settling_experiment": "Re-run probe1 against a map emitted by IMP-0010 once that unit is delivered.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "IMP-0028 journal recovery is intentionally not invoked here (cycle broken: preflight 0029 -> install 0023 -> journal 0028). Interrupted installs are shown to leave a legal live state; leftover staging generations are not journal-reaped.",
+   "settling_experiment": "IMP-0028 kill-point sweep plus recover.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot; never retry an interrupted install without first running the journal recovery (IMP-0028)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0023-probe2-kill-and-negative-control",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0023",
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0023 question_or_target",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction -k test_clean_install_matches_projection",
+   "id": "test_clean_install_matches_projection",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction -k test_kill_mid_activate_leaves_valid_state",
+   "id": "test_kill_mid_activate_leaves_valid_state",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction -k test_corrupt_staged_file_refuses_activation",
+   "id": "test_corrupt_staged_file_refuses_activation",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction -k test_second_install_is_noop_mtime_hash_census",
+   "id": "test_second_install_is_noop_mtime_hash_census",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONPATH=tools PYTHONDONTWRITEBYTECODE=1 python3 -B -m unittest plugin.tests.test_install_transaction",
+   "id": "unittest-full",
+   "raw_output": ".....\n----------------------------------------------------------------------\nRan 5 tests in 0.089s\n\nOK",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:19Z",
+  "started_at": "2026-08-25T00:57:19Z"
+ },
+ "unit_id": "IMP-0023"
+}

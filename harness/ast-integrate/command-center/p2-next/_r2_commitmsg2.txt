@@ -1,0 +1,22 @@
+test(p2next): lint the committed blobs, and carry the audit probes this round cites
+
+Two things that were on ONE disk and would have been lost.
+
+1. _r2_blobcheck.py -- windows-shell 8b, applied to work that is already committed. The worktree
+   ruff green I reported is measured against CRLF bytes; CI checks out LF. Measured over the 10
+   committed .py blobs with the repo's real ruff.toml carried into the temp tree: 0 CRLF, format
+   --check rc=0, check rc=0, and a deliberately mangled blob makes the same invocation exit 1.
+   NOT a duplicate: docs/rule-audit/_r2_blobcheck.py (another lane) already does this for the
+   STAGED index and is the better pre-commit tool. I did not edit it. It cannot serve here because
+   this lane's round-2 work is committed, so `git diff --cached` is empty and it fails closed by
+   design. The two differ in exactly one line of input -- `:<path>` versus `HEAD:<path>`.
+
+2. The AUDITOR's nine probes and their 178 KB population dump, untracked until now. They are not
+   my files and I did not modify them; they live in this lane's declared log scope, my round-2
+   reproduce block cites two of them by name (_audit7_adv0041.py, _audit8_cause.py), and evidence a
+   document cites has to exist for the next reader. _audit2_blocked.py is the independent walker
+   that produced the auditor's 51 population; _audit3_split.py is the deliberately
+   RAIL_BLOCKED-biased classifier whose set agreed with mine; _audit4_preedit.py is the
+   uncontaminated pre-edit re-derivation that my own round-1 edits could not reach.
+
+Both ruff gates pass over the whole lane directory (41 files formatted, all checks passed).

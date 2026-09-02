@@ -1,0 +1,157 @@
+{
+  "contract_id": "REL-0002-rollback",
+  "schema_version": 1,
+  "recorded_creation_set": [
+    "plugins/demo-plugin/plugin.py",
+    "hooks.json#SessionStart:demo-plugin",
+    ".mcp.json#mcpServers.demo-plugin",
+    ".claude/settings.json#enabledPlugins.demo-plugin",
+    "systemd/user/demo-plugin.timer",
+    "cache/demo-plugin/seed.json",
+    ".plugin-state.json#packages.demo-plugin"
+  ],
+  "predated_install_set": [
+    "skills/user-authored/my-skill.md",
+    "commands/user-hello.md",
+    ".claude/settings.json#theme",
+    "hooks.json#UserPromptSubmit:owner-hook"
+  ],
+  "actions": [
+    {
+      "id": "A-write-plugin-file",
+      "action_type": "write_file",
+      "target": "plugins/demo-plugin/plugin.py",
+      "capture_preexisting": false,
+      "creates": [
+        "plugins/demo-plugin/plugin.py"
+      ],
+      "post_inverse_invariant": "plugins/demo-plugin/plugin.py is absent and no path outside this action's creates list was unlinked",
+      "inverse": {
+        "kind": "delete_path",
+        "target": "plugins/demo-plugin/plugin.py",
+        "completeness": "total",
+        "removes": true
+      }
+    },
+    {
+      "id": "A-register-hook",
+      "action_type": "register_hook",
+      "target": "hooks.json#SessionStart:demo-plugin",
+      "capture_preexisting": true,
+      "creates": [
+        "hooks.json#SessionStart:demo-plugin"
+      ],
+      "post_inverse_invariant": "the SessionStart:demo-plugin entry is gone; pre-install hook entries are still present",
+      "inverse": {
+        "kind": "unregister_hook",
+        "target": "hooks.json#SessionStart:demo-plugin",
+        "completeness": "partial",
+        "removes": true,
+        "residue": "other hook entries already in hooks.json remain byte-identical"
+      }
+    },
+    {
+      "id": "A-add-mcp",
+      "action_type": "add_mcp_entry",
+      "target": ".mcp.json#mcpServers.demo-plugin",
+      "capture_preexisting": true,
+      "creates": [
+        ".mcp.json#mcpServers.demo-plugin"
+      ],
+      "post_inverse_invariant": "mcpServers.demo-plugin is absent; servers that pre-dated install remain",
+      "inverse": {
+        "kind": "remove_mcp_entry",
+        "target": ".mcp.json#mcpServers.demo-plugin",
+        "completeness": "partial",
+        "removes": true,
+        "residue": "other mcpServers keys in .mcp.json remain"
+      }
+    },
+    {
+      "id": "A-edit-settings",
+      "action_type": "edit_settings_key",
+      "target": ".claude/settings.json#enabledPlugins.demo-plugin",
+      "capture_preexisting": true,
+      "creates": [
+        ".claude/settings.json#enabledPlugins.demo-plugin"
+      ],
+      "post_inverse_invariant": "enabledPlugins.demo-plugin is gone because the installer created it; owner settings that pre-dated install remain",
+      "inverse": {
+        "kind": "restore_preimage",
+        "target": ".claude/settings.json#enabledPlugins.demo-plugin",
+        "completeness": "partial",
+        "removes": true,
+        "residue": "sibling keys in .claude/settings.json, including owner theme and other enabledPlugins, remain"
+      }
+    },
+    {
+      "id": "A-scheduled-task",
+      "action_type": "create_scheduled_task",
+      "target": "systemd/user/demo-plugin.timer",
+      "capture_preexisting": false,
+      "creates": [
+        "systemd/user/demo-plugin.timer"
+      ],
+      "post_inverse_invariant": "the demo-plugin.timer unit the installer created is removed; no other user timer was touched",
+      "inverse": {
+        "kind": "delete_scheduled_task",
+        "target": "systemd/user/demo-plugin.timer",
+        "completeness": "total",
+        "removes": true
+      }
+    },
+    {
+      "id": "A-seed-cache",
+      "action_type": "seed_cache",
+      "target": "cache/demo-plugin/seed.json",
+      "capture_preexisting": false,
+      "creates": [
+        "cache/demo-plugin/seed.json"
+      ],
+      "post_inverse_invariant": "only the seeded cache/demo-plugin/seed.json blob is purged",
+      "inverse": {
+        "kind": "purge_seeded_cache",
+        "target": "cache/demo-plugin/seed.json",
+        "completeness": "total",
+        "removes": true
+      }
+    },
+    {
+      "id": "A-state-journal",
+      "action_type": "write_state_journal",
+      "target": ".plugin-state.json#packages.demo-plugin",
+      "capture_preexisting": true,
+      "creates": [
+        ".plugin-state.json#packages.demo-plugin"
+      ],
+      "post_inverse_invariant": "the demo-plugin package record is gone; other package records that pre-dated this install remain",
+      "inverse": {
+        "kind": "remove_state_record",
+        "target": ".plugin-state.json#packages.demo-plugin",
+        "completeness": "partial",
+        "removes": true,
+        "residue": "records for other packages in .plugin-state.json remain"
+      }
+    }
+  ],
+  "inventory_source": {
+    "b07_artifact": "ABSENT",
+    "rollback_manifest": "ABSENT",
+    "user_prompts": "ABSENT",
+    "on_tree": [
+      "tools/plugin/install.py",
+      "tools/plugin/placement.py",
+      "tools/plugin/rollback_transaction.py",
+      "tools/plugin/census.py",
+      "tools/plugin/state.py"
+    ],
+    "catalog_named_action_types": [
+      "write_file",
+      "register_hook",
+      "add_mcp_entry",
+      "edit_settings_key",
+      "create_scheduled_task",
+      "seed_cache"
+    ]
+  }
+}

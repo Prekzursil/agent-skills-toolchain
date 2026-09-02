@@ -1,0 +1,27 @@
+
+===== launch 2026-08-20T08:58:06Z attempt=1 =====
+I'll start from the existing IMP-0028 probe tree, read its return artifact if present, and implement until the unit measure is contract-green.IMP-0028 may never have been started; I'll locate the unit spec, measure contract, and a delivered IMP sibling to copy the shape from.The probe tree is missing, so I’ll pull the catalog contract, measure script, and a delivered IMP sibling before building it.Journal code exists but looks incomplete versus the catalog (inverses not durable, truncated records not refused). I’ll inspect the receipt contract, existing tests, and a delivered IMP sibling next.I’ll implement durable inverses, refuse torn journals, add the recover entry point, then build the kill-point probes and tests.Journal and CLI recover are in place. Next I’ll add the kill-point harness, required tests, and named probes.Required tests passed. Next I’ll run the named probes and pack the receipt.IMP-0028 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0028` printed:
+
+`SUCCESS:delivered IMP-0028 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe1_kill_points.py:0,probe2_census.py:0,run_required_tests.py:0`
+
+The probe tree was missing, so it was built rather than parked on `predicate:absent`.
+
+What landed:
+
+- Append-only JSONL journal in `platform/plugin/journal.py` records each step’s intent and a durable inverse **before** the effect, then fsyncs (`JOURNAL_OPEN_MODE=ab`).
+- `recover()` replays those inverses for an interrupted txn. A truncated mid-record raises `E_TXN` instead of guessing.
+- CLI entry point: `astplugin recover --prefix <prefix>`.
+- Kill-point sweep (6 implementer points + reviewer-added `after_journal_before_apply_live`) plus an independent `find`/`sha256sum` census. Recovery only lands on PRE or POST.
+- Catalog tests: `tools/plugin/tests/test_txn_journal.py::test_recovery_at_every_kill_point`.
+
+Artifacts:
+
+| Path | Role |
+|---|---|
+| `command-center/receipts/IMP-0028.json` | `state=SUCCESS`, 27024 bytes, LF sha256 `7c8af755f8258997aae7c56cbd60e707fd798338bcad533bbf72aa5bd42f237b` |
+| `command-center/p2-wave/probes/IMP-0028/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, hash matches live receipt |
+| `command-center/p2-wave/probes/IMP-0028/SUBAGENT-RETURN.json` | `status=DELIVERED`, `registered=true` |
+
+No git add/commit/push/stash/checkout/rebase, no global `unit_manifest.py --write`, no key rotation, no finish-everything-close relaunch. Cloud-ok was not treated as delivery.

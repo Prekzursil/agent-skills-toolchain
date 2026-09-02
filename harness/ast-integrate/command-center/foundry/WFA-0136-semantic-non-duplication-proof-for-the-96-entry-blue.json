@@ -1,0 +1,426 @@
+{
+  "artifacts": [
+    {
+      "bytes": 9802,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/foundry-artifact.schema.json",
+      "role": "supporting",
+      "sha256": "5e898b59e51915f0723905801b4ced068e647db2d5235655ddd0260feaa98278"
+    },
+    {
+      "bytes": 5317,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/WFA-0136/detector.py",
+      "role": "supporting",
+      "sha256": "7155b394d2fdc145db3e8c2093265569ad36070f9805a17e0e30e48d539452ec"
+    },
+    {
+      "bytes": 3268,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/WFA-0136/catalog.py",
+      "role": "supporting",
+      "sha256": "656846eb0478fdb9b4d24ea55daa53943254fdc3dd302c89a29a1f7871dbdabf"
+    },
+    {
+      "bytes": 2346,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/WFA-0136/planted.py",
+      "role": "supporting",
+      "sha256": "a81d26a88be236f2d76b4251995da739c8aff6a182e5a11c74a02586dda7c098"
+    },
+    {
+      "bytes": 4776,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/WFA-0136/scan.py",
+      "role": "supporting",
+      "sha256": "369b20db53bf6aec28ac98b13d90aebed78e87b918d07cac6232741af4d2717d"
+    },
+    {
+      "bytes": 3104,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py",
+      "role": "supporting",
+      "sha256": "31c21ab65f018888d4d05561f282769c1a8c364aeb897f13dabc4810d9fbfc5d"
+    },
+    {
+      "bytes": 8855,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/WFA-0136/probe2_independent_recount.py",
+      "role": "supporting",
+      "sha256": "94897e69504f97a7715b78003533f3788f885dc0749c911621e61ae4a32a5401"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/foundry/WFA-0136-semantic-non-duplication-proof-for-the-96-entry-blue.json",
+      "consumer": "probe2_independent_recount.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe2_independent_recount.py",
+        "exit_code": 0,
+        "fingerprint": "wfa0136:consumer-probe2",
+        "method": "command",
+        "raw_output": "SUCCESS:WFA-0136-probe2 independent recount matches artifact",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/WFA-0136/detector.py:59",
+      "claim": "Token-set Jaccard is the lexical signal; the planted paraphrase stays below the Jaccard threshold.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py",
+          "exit_code": 0,
+          "fingerprint": "wfa0136:probe1-planted-mutant",
+          "method": "command",
+          "raw_output": "planted paraphrase Jaccard-miss / cosine-hit",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/WFA-0136/detector.py:59",
+          "exit_code": 0,
+          "fingerprint": "wfa0136:jaccard-def-anchor",
+          "method": "file-read",
+          "raw_output": "def jaccard(a: str, b: str) -> float:",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/WFA-0136/detector.py:98",
+      "claim": "Sparse TF-IDF embedding cosine is the semantic signal; probe2 re-derives it with an independent intersect-keys loop.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe2_independent_recount.py",
+          "exit_code": 0,
+          "fingerprint": "wfa0136:probe2-intersect-recount",
+          "method": "command",
+          "raw_output": "independent intersect-keys recount",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/WFA-0136/detector.py:98",
+          "exit_code": 0,
+          "fingerprint": "wfa0136:cosine-def-anchor",
+          "method": "static-analysis",
+          "raw_output": "def cosine(u: dict[str, float], v: dict[str, float]) -> float:",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "WFA-0136",
+    "manifest_path": "command-center/p2-wave/probes/WFA-0136/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 512,
+  "negative_controls": [
+    {
+      "bad_state_output": "paraphrase semantic_flag=true cosine=0.936442180446385",
+      "description": "Planted full-rewrite paraphrase (bad state) must be cosine-flagged; planted distinct teapot scheduler (good state) must stay silent. Jaccard flags neither.",
+      "fired_on_bad_state": true,
+      "good_state_output": "distinct semantic_flag=false cosine=0",
+      "id": "WFA-0136-PLANTED-MUTANT",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "xai"
+  },
+  "profile": "foundry-distinctness-proof",
+  "report": {
+    "answer": "None. On the live 160-entry WFA foundry catalog (floor 96), embedding-cosine flags 0 pairs that token-Jaccard scored as distinct. Nearest real cosine is 0.4614 against threshold 0.5619; max Jaccard is 0.3462 against threshold 0.4200. The planted paraphrase is flagged by cosine and missed by Jaccard; the planted distinct pair is missed by both. 09-WORKFLOW-BLUEPRINT-LIBRARY.json (cited 108) is absent on this worktree; this proof is scoped to the live WFA slice.",
+    "both_states": {
+      "distinct_semantic_flag": false,
+      "paraphrase_semantic_flag": true,
+      "pass": true
+    },
+    "control_ids": [
+      "WFA-0136-PLANTED-MUTANT"
+    ],
+    "corpus": {
+      "floor": 96,
+      "floor_met": true,
+      "library": {
+        "any_present": false,
+        "candidates": [
+          {
+            "bytes": 0,
+            "path": "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+            "present": false
+          },
+          {
+            "bytes": 0,
+            "path": "command-center/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+            "present": false
+          },
+          {
+            "bytes": 0,
+            "path": "command-center/wfa/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+            "present": false
+          },
+          {
+            "bytes": 0,
+            "path": "command-center/foundry/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+            "present": false
+          }
+        ],
+        "cited_count": 108,
+        "cited_library": "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+        "floor": 96,
+        "wfa0019_fixture": {
+          "n_blueprints": 1,
+          "path": "command-center/p2-wave/probes/WFA-0019/fixtures/corpus/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+          "present": true,
+          "used_as_corpus": false,
+          "why": "one-record sweep fixture, not the 108-entry library"
+        }
+      },
+      "live": "command-center/WORK-UNIT-CATALOG.json#work_units[id^=WFA-]",
+      "n": 160,
+      "scope": "WFA work-unit slice is the live >=96 foundry catalog on this worktree. The Prompt-One 108-record blueprint library is not on disk."
+    },
+    "cosine_near_jaccard_distinct": [],
+    "cosine_threshold": 0.561865308267831,
+    "detector": {
+      "calibration": {
+        "cosine_threshold": 0.561865308267831,
+        "gap": 0.936442180446385,
+        "jaccard_threshold": 0.42,
+        "ok": true,
+        "rule": "distinct_cosine + 0.60 * (paraphrase_cosine - distinct_cosine), capped 0.10 below paraphrase"
+      },
+      "idf_documents": 160,
+      "lexical": "token-set Jaccard over title+question_or_target+mechanism after stopwording WFA boilerplate",
+      "semantic": "L2-normalized sparse TF-IDF word embedding plus a mechanism exact-id channel; cosine similarity",
+      "why_not_jaccard_alone": "A full-rewrite paraphrase of WFA-0136 scores in the Jaccard distinct band while the mechanism-channel cosine flags it."
+    },
+    "evidence_anchors": [
+      {
+        "line": 59,
+        "mechanism": "token-jaccard",
+        "path": "command-center/p2-wave/probes/WFA-0136/detector.py",
+        "snippet": "def jaccard(a: str, b: str) -> float:"
+      },
+      {
+        "line": 98,
+        "mechanism": "embedding-cosine",
+        "path": "command-center/p2-wave/probes/WFA-0136/detector.py",
+        "snippet": "def cosine(u: dict[str, float], v: dict[str, float]) -> float:"
+      }
+    ],
+    "jaccard_threshold": 0.42,
+    "kind": "distinctness-proof",
+    "lexical_flags": [],
+    "max_cosine": 0.46139302053695047,
+    "max_jaccard": 0.34615384615384615,
+    "n_entries": 160,
+    "n_pairs": 12720,
+    "nadb_counts": {
+      "absent": 128,
+      "mechanism-difference": 31,
+      "unclassified": 1,
+      "wording-only": 0
+    },
+    "nearest_neighbors": [
+      {
+        "a": "WFA-0058",
+        "b": "WFA-0066",
+        "cosine": 0.46139302053695047,
+        "jaccard": 0.17073170731707318,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0033",
+        "b": "WFA-0079",
+        "cosine": 0.4200251573174787,
+        "jaccard": 0.15384615384615385,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0071",
+        "b": "WFA-0076",
+        "cosine": 0.3918267357260635,
+        "jaccard": 0.22580645161290322,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0064",
+        "b": "WFA-0076",
+        "cosine": 0.3849295393331505,
+        "jaccard": 0.17647058823529413,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0036",
+        "b": "WFA-0041",
+        "cosine": 0.38246580253409784,
+        "jaccard": 0.1111111111111111,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0070",
+        "b": "WFA-0073",
+        "cosine": 0.3792153372152861,
+        "jaccard": 0.1282051282051282,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0007",
+        "b": "WFA-0008",
+        "cosine": 0.36932131869785945,
+        "jaccard": 0.2391304347826087,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      {
+        "a": "WFA-0127",
+        "b": "WFA-0128",
+        "cosine": 0.34590578817602863,
+        "jaccard": 0.17307692307692307,
+        "lexical_flag": false,
+        "semantic_flag": false
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/WFA-0136/catalog.py:76",
+        "measured": 160,
+        "method": "json-walk",
+        "name": "n_entries"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/WFA-0136/scan.py:77",
+        "measured": 0,
+        "method": "byte-compare",
+        "name": "n_cosine_near_jaccard_distinct"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py:31",
+        "measured": true,
+        "method": "test-run",
+        "name": "paraphrase_semantic_flag"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py:35",
+        "measured": false,
+        "method": "test-run",
+        "name": "distinct_semantic_flag"
+      }
+    ],
+    "output_path": "command-center/foundry/WFA-0136-semantic-non-duplication-proof-for-the-96-entry-blue.json",
+    "output_schema": "command-center/schema/foundry-artifact.schema.json#/$defs/distinctness-proof",
+    "planted_mutant_control": {
+      "broken_if": "flags both plants or neither plant",
+      "distinct": {
+        "anchor_id": "WFA-0136",
+        "cosine": 0,
+        "id": "WFA-0136-PLANT-DISTINCT",
+        "jaccard": 0.0,
+        "lexical_flag": false,
+        "semantic_flag": false
+      },
+      "jaccard_as_semantic_detector": "BROKEN-flags-neither",
+      "paraphrase": {
+        "anchor_id": "WFA-0136",
+        "cosine": 0.936442180446385,
+        "id": "WFA-0136-PLANT-PARAPHRASE",
+        "jaccard": 0.15294117647058825,
+        "lexical_flag": false,
+        "semantic_flag": true
+      },
+      "verdict": "PASS"
+    },
+    "question": "Produce the explicit catalog proof that the shipped blueprint entries are MATERIALLY distinct, using an embedding-cosine pass rather than token overlap alone, because a lexical scan cannot separate a full-rewrite paraphrase from a genuinely new mechanism. Question: which blueprint pairs are near-duplicates under semantic similarity that token-Jaccard scored as distinct, and does each survivor pair carry a not_a_duplicate_because sentence that names a mechanism difference, not a wording one?",
+    "semantic_flags": [],
+    "survivors": [],
+    "title": "Semantic non-duplication proof for the >=96-entry blueprint catalog"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "09-WORKFLOW-BLUEPRINT-LIBRARY.json is cited as 108 records and is not on this worktree; the WFA-0019 fixture has 1 blueprint and was not used as the corpus.",
+      "settling_experiment": "Place the Prompt-One 108-record library on disk and re-run scan.py over blueprints[] instead of the WFA work-unit slice.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "claim": "128 WFA entries have empty not_a_duplicate_because (WFA-1 slice). Distinctness for those rows is the pairwise score, not a written mechanism-difference sentence.",
+      "settling_experiment": "Backfill mechanism-difference sentences on WFA-1 rows and re-run nadb_kind over the live catalog.",
+      "verdict": "PARTIAL"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot: after the SECOND failure on the same error-fingerprint, enumerate >=2 alternative approaches before a third attempt, or escalate (AGENTS.md 4b)"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "probe2 recomputes IDF and every pair cosine via set intersection over embedding keys; it does not import scan.py.",
+    "reviewer_id": "WFA-0136-probe2-intersect-cosine-recount",
+    "vendor": "openai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:WFA-0136",
+  "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10909",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py",
+      "id": "WFA-0136-PLANTED-PARAPHRASE-FIRES",
+      "name": "planted paraphrase flagged by cosine",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py",
+      "id": "WFA-0136-PLANTED-DISTINCT-SILENT",
+      "name": "planted distinct pair silent under cosine",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe1_planted_mutant_control.py",
+      "id": "WFA-0136-JACCARD-ALONE-BROKEN",
+      "name": "Jaccard-as-semantic flags neither plant",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0136/probe2_independent_recount.py",
+      "id": "WFA-0136-INDEPENDENT-RECOUNT",
+      "name": "probe2 recount matches artifact pair set",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0.0,
+    "ended_at": "2026-08-25T00:34:36Z",
+    "started_at": "2026-08-25T00:34:36Z"
+  },
+  "unit_id": "WFA-0136"
+}

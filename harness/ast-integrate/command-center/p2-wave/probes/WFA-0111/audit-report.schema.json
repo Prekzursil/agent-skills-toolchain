@@ -1,0 +1,223 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/WFA-0111/audit-report.schema.json",
+  "title": "WFA-0111 AuditReport (fusion-operator selection policy)",
+  "description": "Discriminating contract for the operator-selection policy. Headline-only pass claims and garbage documents are rejected. The catalog pointer command-center/wfa/schema/wfa-schema-pack.json#/$defs/AuditReport is WFA-0001's job and is absent here; this local schema is the executable contract.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "record_type",
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "title",
+    "question",
+    "audit_kind",
+    "produced_at",
+    "output_schema",
+    "operators",
+    "features",
+    "upstream",
+    "policy",
+    "corpus",
+    "held_out_evaluation",
+    "random_baseline",
+    "not_fusible",
+    "evidence",
+    "tests",
+    "reviewer",
+    "artifacts",
+    "measured",
+    "notes"
+  ],
+  "properties": {
+    "record_type": { "type": "string", "const": "AuditReport" },
+    "unit_id": { "type": "string", "const": "WFA-0111" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": {
+      "type": "string",
+      "minLength": 16,
+      "pattern": "SUCCESS:WFA-0111"
+    },
+    "completion_sentinel": { "type": "string", "const": "SUCCESS:WFA-0111" },
+    "title": { "type": "string", "minLength": 20 },
+    "question": { "type": "string", "minLength": 40 },
+    "audit_kind": {
+      "type": "string",
+      "const": "fusion-operator-selection-policy"
+    },
+    "produced_at": { "type": "string", "minLength": 20 },
+    "output_schema": { "type": "string", "minLength": 16 },
+    "operators": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": { "type": "string", "minLength": 5 }
+    },
+    "features": {
+      "type": "array",
+      "minItems": 4,
+      "items": { "type": "string", "minLength": 8 }
+    },
+    "upstream": {
+      "type": "object",
+      "required": ["expected", "present", "oracle_mode", "rows"],
+      "properties": {
+        "expected": { "type": "integer", "minimum": 8, "maximum": 8 },
+        "present": { "type": "integer", "minimum": 0 },
+        "oracle_mode": { "type": "string", "minLength": 8 },
+        "rows": { "type": "array", "minItems": 8, "maxItems": 8 }
+      }
+    },
+    "policy": {
+      "type": "object",
+      "required": [
+        "kind",
+        "features",
+        "n_train",
+        "n_bins_occupied",
+        "global_majority",
+        "rules",
+        "revisable",
+        "fit_inputs_path"
+      ],
+      "properties": {
+        "kind": { "type": "string", "minLength": 8 },
+        "features": { "type": "array", "minItems": 4 },
+        "n_train": { "type": "integer", "minimum": 20 },
+        "n_bins_occupied": { "type": "integer", "minimum": 4 },
+        "global_majority": { "type": "string", "minLength": 4 },
+        "rules": { "type": "array", "minItems": 4 },
+        "revisable": { "type": "boolean", "const": true },
+        "fit_inputs_path": { "type": "string", "minLength": 16 }
+      }
+    },
+    "corpus": {
+      "type": "object",
+      "required": ["path", "n", "n_train", "n_held_out", "split_rule", "gold_histogram"],
+      "properties": {
+        "path": { "type": "string", "minLength": 16 },
+        "n": { "type": "integer", "minimum": 40 },
+        "n_train": { "type": "integer", "minimum": 20 },
+        "n_held_out": { "type": "integer", "minimum": 10 },
+        "split_rule": { "type": "string", "minLength": 8 },
+        "gold_histogram": { "type": "object" }
+      }
+    },
+    "held_out_evaluation": {
+      "type": "object",
+      "required": [
+        "n",
+        "exact_matches",
+        "exact_match_rate",
+        "random_expected_rate",
+        "policy_beats_random",
+        "rows"
+      ],
+      "properties": {
+        "n": { "type": "integer", "minimum": 10 },
+        "exact_matches": { "type": "integer", "minimum": 0 },
+        "exact_match_rate": { "type": "number" },
+        "random_expected_rate": { "type": "number" },
+        "policy_beats_random": { "type": "boolean" },
+        "rows": { "type": "array", "minItems": 10 }
+      }
+    },
+    "random_baseline": {
+      "type": "object",
+      "required": [
+        "kind",
+        "n_operators",
+        "draws_not_fusible",
+        "expected_exact_match_rate",
+        "monte_carlo_exact_match_rate",
+        "seed",
+        "draws"
+      ]
+    },
+    "not_fusible": {
+      "type": "object",
+      "required": ["token", "valid_outcome", "n_corpus", "n_held_out", "ids_held_out"],
+      "properties": {
+        "token": { "type": "string", "const": "NOT-FUSIBLE" },
+        "valid_outcome": { "type": "boolean", "const": true },
+        "n_corpus": { "type": "integer", "minimum": 1 },
+        "n_held_out": { "type": "integer", "minimum": 1 },
+        "ids_held_out": { "type": "array", "minItems": 1 }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["kind", "claim"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 3 },
+          "claim": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "minLength": 3 },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"]
+      }
+    },
+    "measured": {
+      "type": "object",
+      "required": [
+        "policy_held_out_exact_match_rate",
+        "random_expected_exact_match_rate",
+        "policy_beats_random",
+        "margin_over_random"
+      ]
+    },
+    "notes": { "type": "string", "minLength": 40 }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "state": { "const": "SUCCESS" } },
+        "required": ["state"]
+      },
+      "then": {
+        "properties": {
+          "held_out_evaluation": {
+            "properties": { "policy_beats_random": { "const": true } }
+          },
+          "reviewer": {
+            "properties": { "verdict": { "const": "PASS" } }
+          }
+        }
+      }
+    }
+  ]
+}

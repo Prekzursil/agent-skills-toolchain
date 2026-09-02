@@ -1,0 +1,65 @@
+{
+  "source": "IMP-0341-mixed-ledger",
+  "note": "Planted both-states ledger: one executable experiment and four audit failures. fail_count is derived, not a summary.",
+  "entries": [
+    {
+      "id": "UQ-CONCRETE",
+      "question": "Does the fixture oracle script exit 0 when invoked with the planted input file?",
+      "settling_experiment": {
+        "command": "python3 -B command-center/p2-wave/probes/IMP-0341/fixtures/oracle_ok.py",
+        "inputs": [
+          "command-center/p2-wave/probes/IMP-0341/fixtures/input.txt",
+          "command-center/p2-wave/probes/IMP-0341/fixtures/oracle_ok.py"
+        ],
+        "oracle": {
+          "kind": "exit-code",
+          "expect": 0
+        }
+      },
+      "impact_statement": "If this experiment cannot run, the ledger cannot distinguish an executable settling experiment from an aspiration."
+    },
+    {
+      "id": "UQ-VAGUE",
+      "question": "What else might be going on with the council's leftover doubts?",
+      "settling_experiment": "investigate further"
+    },
+    {
+      "id": "UQ-NO-ORACLE",
+      "question": "Does a command without an oracle count as a named experiment?",
+      "settling_experiment": {
+        "command": "python3 -B command-center/p2-wave/probes/IMP-0341/fixtures/oracle_ok.py",
+        "inputs": [
+          "command-center/p2-wave/probes/IMP-0341/fixtures/input.txt"
+        ]
+      }
+    },
+    {
+      "id": "UQ-MISSING-INPUT",
+      "question": "Does the audit fire when a declared input path is absent?",
+      "settling_experiment": {
+        "command": "python3 -B command-center/p2-wave/probes/IMP-0341/fixtures/oracle_ok.py",
+        "inputs": [
+          "command-center/p2-wave/probes/IMP-0341/fixtures/no-such-input-imp0341.txt"
+        ],
+        "oracle": {
+          "kind": "exit-code",
+          "expect": 0
+        }
+      }
+    },
+    {
+      "id": "UQ-MISSING-COMMAND",
+      "question": "Does the audit fire when the named binary is not on PATH or disk?",
+      "settling_experiment": {
+        "command": "imp0341-binary-does-not-exist --settle",
+        "inputs": [
+          "command-center/p2-wave/probes/IMP-0341/fixtures/input.txt"
+        ],
+        "oracle": {
+          "kind": "stdout-contains",
+          "expect": "SETTLED"
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,44 @@
+{
+  "id": "wf.pre-phase7.sample",
+  "spec_version": 6,
+  "entry": "pipe-main",
+  "params": {},
+  "nodes": [
+    {
+      "id": "unit-a",
+      "kind": "WorkUnit",
+      "prompt_ref": "prompts/ingest.md",
+      "params": {"source": "corpus"}
+    },
+    {
+      "id": "unit-b",
+      "kind": "WorkUnit",
+      "prompt_ref": "prompts/classify.md",
+      "params": {"axis": "topic"}
+    },
+    {
+      "id": "unit-c",
+      "kind": "WorkUnit",
+      "prompt_ref": "prompts/summarize.md",
+      "params": {"axis": "claims"}
+    },
+    {
+      "id": "fan-bc",
+      "kind": "FanOut",
+      "units": ["unit-b", "unit-c"],
+      "on_failure": "abort"
+    },
+    {
+      "id": "barrier-1",
+      "kind": "Barrier",
+      "wait_for": ["fan-bc"],
+      "on_failure": "abort"
+    },
+    {
+      "id": "pipe-main",
+      "kind": "Pipeline",
+      "steps": ["unit-a", "fan-bc", "barrier-1"],
+      "on_failure": "abort"
+    }
+  ]
+}

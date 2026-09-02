@@ -1,0 +1,180 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m02-micro-go-nogo-3voice",
+  "preset": "release_readiness_board",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide GO or NO-GO on a scoped, reversible action after the devil's advocate has been answered.",
+    "charter": "Three voices, two rounds. The advocate holds a DELAY veto, not a decision veto: it cannot pick the answer, it can only refuse to let the council stop while an objection is unanswered. That delay is the whole value of this preset.",
+    "risk_tier": "moderate",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "every objection the advocate raised is either answered or recorded as open",
+      "two full rounds elapsed before any GO",
+      "the verdict names what would have changed it"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 5, "budget_ceiling_tokens": 25000 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 3, "min": 3, "max": 3 },
+    "diversity": { "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "chair",
+        "display_name": "Chair (calls the vote, does not break ties alone)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["decision framing"],
+        "role": "chair",
+        "authority": "chair",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "medium"
+      },
+      {
+        "participant_id": "advocate",
+        "display_name": "Devil's advocate (mandated, holds the DELAY veto)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["failure analysis", "adversarial review"],
+        "role": "devils_advocate",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "effort": "high",
+        "context": {
+          "briefing": "Your job is to be WRONG usefully: raise the objection that would make this a mistake. You may hold the council open while an objection is unanswered; you may not decide the outcome."
+        },
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "pragmatist",
+        "display_name": "Pragmatist (cost of delay)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["delivery", "cost of delay"],
+        "role": "custom:pragmatist",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "medium"
+      }
+    ],
+    "role_templates": ["chair", "devils_advocate", "custom:pragmatist"],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": false, "independent_prep": true, "min_sources": 1 },
+  "topology": { "kind": "chair_led", "chair": "chair" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "opening", "independent": true },
+      { "kind": "cross_examination", "stage_id": "objections", "rounds": 1, "quotas": { "objections_per_participant": 1 } },
+      { "kind": "synthesis", "stage_id": "verdict" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 2, "max": 3, "divergence_before_convergence": true },
+    "turn": { "max_words": 350 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "forced_dissent": true,
+      "rebuttal_required": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "max_experiments": 1, "runner": "local" }
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 5,
+    "tokens": 25000,
+    "tool_calls": 20,
+    "turns": 9,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": { "objections": 2, "evidence_items": 3 },
+  "voting": {
+    "method": "unanimity",
+    "abstention": { "allowed": false, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "rounds_elapsed >= 2 AND objections_open == 0",
+    "expression": {
+      "all_of": [
+        { "metric": "rounds_elapsed", "op": ">=", "value": 2 },
+        { "metric": "objections_open", "op": "==", "value": 0 }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_objections_addressed": 1
+    },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 5, "max_tokens": 25000, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "dissent", "minority_report"],
+    "conditional_decision_requires": ["the open objection is answered before the action is taken"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["strongest_counterexample", "run_experiment", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["instant_unanimity", "sycophancy", "premature_convergence", "lost_dissent", "prompt_injection"],
+    "fast_unanimity_response": ["forced_dissent", "strongest_counterexample"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "argument_ledger", "votes_by_round", "dissent_minority_report", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 60 },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["any irreversible action"] },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "C-M02 micro-go-nogo-3voice",
+    "notes": "HUMAN-STOP: rounds_elapsed >= 2 AND objections_open == 0 | EDITABLE-DIALS: participants.count.exact_n (seats) . protocol.rounds + stopping.minimum_deliberation.min_rounds (rounds) . budgets.rebuttal_depth and hard_caps.max_rounds (advocate_veto_rounds) | METRIC-MAP: the design's no_unanswered_objection maps to the registered numeric objections_open == 0 | OUTCOME-MAP: CONSENSUS -> decision . MAJORITY_WITH_DISSENT -> decision + dissent . INSUFFICIENT_EVIDENCE and DEFER -> no_decision . CONDITIONAL_DECISION -> conditional_decision | PRESET-NAME: mapped onto the schema preset enum value release_readiness_board because that is the required go/no-go member of the 24-name required list and doc 12 has no separate release-readiness design row; it is a MICRO go/no-go, not a full board, so treat the name as the family and edit the roster up for a real release gate | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11200-11225",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1164-1177"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M02 micro-go-nogo-3voice",
+      "protocol P01 free-form-moderated-panel",
+      "protocol P10 mandated-devils-advocate"
+    ]
+  }
+}

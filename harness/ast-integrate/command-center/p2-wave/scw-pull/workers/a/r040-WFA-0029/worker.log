@@ -1,0 +1,19 @@
+I'll start from the existing WFA-0029 probe tree, read the unit contract and claim-verify-gate skill, then resume rather than rebuild.The probe tree is thin — I'll read the existing refute, the measure script, and a delivered sibling unit so we resume against the real contract.The harvest already names a scheduler and probes that this worktree does not have. I'll pull the catalog contract, a delivered WFA sibling, and `artifact_delivered` so we know what SUCCESS actually requires.The catalog row and ProbeReport schema are next — I’ll also look at a delivered WFA sibling and any leftover probe sources so we can resume instead of inventing a new tree.I have the contract: close the live-route, provider-oracle, and startup-race defects with real probes, then pack a SUCCESS receipt from those runs. Implementing the scheduler and independent provider next.Writing the scheduler, independent provider, and named probes so the live route and both-states controls can actually re-run.The provider self-test used a stale timestamp, so the 429 control never fired. I'll fix that burst case and re-run.**SUCCESS:delivered WFA-0029**
+
+`python command-center/p2-wave/_measure_one_delivered.py WFA-0029` printed:
+
+`SUCCESS:delivered WFA-0029 predicate=delivered state=SUCCESS probes=4 raws=10 notes=acquisition_scheduler.py:0,implementation_probe.py:0,provider_boundary.py:0,provider_oracle.py:0`
+
+That is the G-1 gate for this unit. Cloud `ok=true` was not used as delivery.
+
+What was actually delivered:
+
+- **Scheduler** at `command-center/p2-wave/probes/WFA-0029/acquisition_scheduler.py`: per-provider token bucket from config, sqlite WAL queue, `fcntl.flock` over claim+permit+handler+ack, lease-safe recovery.
+- **Live route:** `r2e_loop.py` now sends its three credentialed Codex sites through `scheduled_run_codex`. AST lint: bypass count 0.
+- **Probe A:** 100 virtual-clock calls; GitHub peak 30/30, OpenAI peak 46/60; HTTP 429s = 0.
+- **Probe B:** separate executable, does not import the scheduler; replay 429s = 0; same-timestamp burst 429s = 2 (provider counters win).
+- **Controls:** 1/min blocks (~60s virtual); 1000/min does not (~0.54s); resume keeps queued work; sibling constructor cannot steal an in-flight call.
+
+Receipt `command-center/wfa/WFA-0029-acquisition-scheduler.json` is `state=SUCCESS`, schema-valid, not self-BLOCKED. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `12921d2f217538656ff8b909565838caa626717d8c8a5b6d0d5e138c8c087ae4`.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global catalog manifest write, no key rotation, no wave relaunch. `CLOUD-OK-REFUTE.json` was left in place. Live GitHub/OpenAI headers remain a residual **NOT-CHECKED**.

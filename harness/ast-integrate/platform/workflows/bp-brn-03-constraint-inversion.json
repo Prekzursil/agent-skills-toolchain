@@ -1,0 +1,773 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "bp-brn-03-constraint-inversion",
+  "name": "Constraint-Inversion Brainstorm",
+  "description": "Blueprint 14 of 96 (design card BP-BRN-03, 09-WORKFLOW-BLUEPRINT-LIBRARY.md:797). MECHANISM: attack the PREMISES rather than the option space. Every stated constraint is traced to its origin document and tagged hard-ban vs inherited BY THE ORCHESTRATOR - never by the agent that will invert it - then each non-hard-ban constraint is inverted in parallel by an agent blind to the others, and every relaxation is PRICED so the output is options-with-cost rather than wishful thinking. Built against the estate's most expensive measured defect class: a false load-bearing premise (a stale pinned ref flipped 5 of 12 verdicts).",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative-work",
+    "product-design-and-strategy"
+  ],
+  "tags": [
+    "brainstorm",
+    "constraint-inversion",
+    "premise-attack",
+    "bp-brn-03"
+  ],
+  "flagship": false,
+  "params": {
+    "problem": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The problem that feels boxed in, or the dead end being re-walked"
+    },
+    "constraints": {
+      "type": "array",
+      "min_items": 1,
+      "max_items": 40,
+      "description": "The constraint list to interrogate. is_hard_ban is set by the ORCHESTRATOR before this workflow starts; an agent-supplied value is a safety violation, not an input.",
+      "items": {
+        "type": "object",
+        "properties": {
+          "text": {
+            "type": "string",
+            "description": "The constraint as stated"
+          },
+          "source": {
+            "type": "string",
+            "description": "The document or measurement it came from; empty means UNSOURCED"
+          },
+          "is_hard_ban": {
+            "type": "boolean",
+            "description": "safety / legal / physics - never inverted"
+          },
+          "tagged_by": {
+            "type": "enum",
+            "enum": [
+              "orchestrator",
+              "owner"
+            ],
+            "description": "who applied is_hard_ban; 'agent' is not a legal value"
+          }
+        }
+      }
+    },
+    "hard_ban_policy": {
+      "type": "enum",
+      "enum": [
+        "refuse-and-record",
+        "refuse-silently"
+      ],
+      "default": "refuse-and-record",
+      "description": "What happens when an inverter is handed a hard ban. Default records the refusal so the attempt is auditable."
+    },
+    "price_currency": {
+      "type": "string",
+      "pattern": "^[A-Z]{3}$",
+      "default": "USD",
+      "description": "Currency for the cost-of-relaxing estimate"
+    }
+  },
+  "roles": {
+    "constraint-auditor": {
+      "description": "Traces every constraint to its origin document and marks the unsourced ones; does NOT decide hard-ban status and has no authority to invert",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "write_paths": [
+        "command-center/brainstorm/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "inverter": {
+      "description": "Inverts exactly one non-hard-ban constraint and generates what becomes possible; blind to every sibling; receives the hard-ban tag as a fact it may not re-evaluate",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "write_paths": [
+        "command-center/brainstorm/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "pricer": {
+      "description": "Prices each relaxation - what it would cost to actually remove the constraint - so no inversion ships as a free option",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "cross-examining",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "reconciler": {
+      "description": "Chairs the relaxation council and emits newly-visible options each carrying its price and its removability verdict",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "chair",
+      "independence": "informed",
+      "tool_permissions": [
+        "Read",
+        "Write(command-center/brainstorm/**)"
+      ],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only authority that may reclassify a constraint as a hard ban or release one",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Grep",
+      "Glob",
+      "Write(command-center/brainstorm/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch",
+      "Edit"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/brainstorm/**"
+    ],
+    "forbid_write_paths": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "AGENTS.md",
+      "CLAUDE.md"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high"
+    },
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "hard-ban-tagging-integrity": {
+      "predicate": "custom-expression",
+      "expression": "untagged_constraints == 0 AND hard_ban_tags_authored_by_agent == 0 AND tagging_authority == ORCHESTRATOR",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "every-relaxation-priced": {
+      "predicate": "custom-expression",
+      "expression": "inversions_without_price == 0 AND inversions_without_removability_verdict == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+  "stages": [
+    {
+      "id": "enumerate",
+      "title": "S0 ENUMERATE constraints, trace each to its origin, mark the unsourced ones",
+      "kind": "task",
+      "role": "constraint-auditor",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "WBRN-0301",
+        "title": "Trace every constraint to an origin document and flag the unsourced",
+        "phase": "2B",
+        "question_or_target": "For each stated constraint, find the document, measurement or command output it came from. A constraint with no traceable source is flagged UNSOURCED - it is the most likely to be false.",
+        "inputs": [
+          "params.problem",
+          "params.constraints"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "constraint-auditor",
+          "basis": "provenance tracing is the load-bearing step; a wrong trace defeats the whole workflow"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/brainstorm/bp-brn-03/constraint-audit.json",
+        "output_schema": "command-center/schema/claim-record.schema.json",
+        "evidence_requirement": "each sourced constraint carries a file:line or an exact command output; each UNSOURCED one names the search surface that failed to find a source, so the absence is a measurement rather than a shrug",
+        "tests_required": [
+          "a constraint whose cited source does not contain it is reported MIS-SOURCED, not sourced",
+          "both-states control: the source check must FIRE on a fabricated file:line and PASS on a real one"
+        ],
+        "reviewer_requirement": "the pricer re-checks two random sourced constraints against their cited anchors before the council opens",
+        "completion_sentinel": "SUCCESS:WBRN-0301 emitted when constraint-audit.json exists, parses, and every constraint carries either an anchor or an explicit UNSOURCED plus its failed search surface; otherwise FAILED:WBRN-0301 <reason>",
+        "retry_policy": "two strikes then pivot: widen the search surface once, then record UNSOURCED rather than guessing an origin",
+        "failure_classification": [
+          "provenance-missing",
+          "detector-failure",
+          "mis-sourced"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-03/constraint-audit.json",
+          "schema_ref": "command-center/schema/claim-record.schema.json",
+          "min_bytes": 384,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0301",
+          "consumers": [
+            "safety-gate",
+            "invert",
+            "reconcile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "safety-gate",
+      "title": "S0b SAFETY - no inversion runs until every constraint carries an ORCHESTRATOR-applied hard-ban tag",
+      "kind": "gate",
+      "depends_on": [
+        "enumerate"
+      ],
+      "gate_ref": "hard-ban-tagging-integrity"
+    },
+    {
+      "id": "invert",
+      "title": "S1 INVERT each NON-hard-ban constraint in parallel, one blind agent per constraint",
+      "kind": "fanout",
+      "depends_on": [
+        "safety-gate"
+      ],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/brainstorm/bp-brn-03/constraint-audit.json",
+        "item_var": "constraint",
+        "key_field": "text"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 200,
+      "max_items": 40,
+      "on_item_failure": "quarantine",
+      "timeout_seconds": 3600,
+      "body": [
+        {
+          "id": "invert-one",
+          "title": "Invert one constraint and enumerate what becomes possible",
+          "kind": "task",
+          "role": "inverter",
+          "timeout_seconds": 1200,
+          "work_unit": {
+            "id": "WBRN-0302",
+            "title": "Invert one non-hard-ban constraint and enumerate the newly visible options",
+            "phase": "2B",
+            "question_or_target": "Assume the assigned constraint is FALSE. Enumerate what becomes possible and which existing decisions depended on it. Refuse and record if the constraint arrives tagged as a hard ban.",
+            "inputs": [
+              "command-center/brainstorm/bp-brn-03/constraint-audit.json",
+              "item.constraint"
+            ],
+            "dependencies": [
+              "WBRN-0301"
+            ],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "inverter",
+              "basis": "the value is in seeing dependent decisions the constraint was hiding"
+            },
+            "tool_permissions": [
+              "Read",
+              "Write(command-center/brainstorm/**)"
+            ],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 1200,
+            "output_path": "command-center/brainstorm/bp-brn-03/inversions/constraint.json",
+            "output_schema": "command-center/schema/option-closure.schema.json",
+            "evidence_requirement": "each newly visible option names the dependent decision it unblocks; an inversion that unblocks nothing is recorded as a NULL inversion rather than padded",
+            "tests_required": [
+              "seed a hard-ban constraint - the inverter must REFUSE and the refusal must be recorded, not silently skipped",
+              "seed a demonstrably false constraint (a stale pinned ref) - the inversion must name the dependent decisions"
+            ],
+            "reviewer_requirement": "no reviewer per item; the reconciling council is the review and it sees every inversion",
+            "completion_sentinel": "SUCCESS:WBRN-0302 emitted per constraint when the inversion artifact exists and parses; a hard-ban arrival emits FAILED:WBRN-0302 hard-ban-refused which is a CORRECT terminal state, not an error to retry",
+            "retry_policy": "no retry on hard-ban-refused; one retry on a severed stream; then quarantine the item and continue",
+            "failure_classification": [
+              "hard-ban-refused",
+              "null-inversion",
+              "severed-stream"
+            ],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "reject_result_matching": [
+          "started in the background",
+          "Check /codex:status"
+        ],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "price",
+      "title": "S2 COST each relaxation - what removing this constraint would actually cost",
+      "kind": "task",
+      "role": "pricer",
+      "depends_on": [
+        "invert"
+      ],
+      "timeout_seconds": 2400,
+      "work_unit": {
+        "id": "WBRN-0303",
+        "title": "Price every relaxation and rule on whether the constraint is actually removable",
+        "phase": "2B",
+        "question_or_target": "For each inversion, state the cost of actually relaxing the constraint and rule is_actually_removable true/false with the evidence for that ruling.",
+        "inputs": [
+          "command-center/brainstorm/bp-brn-03/inversions",
+          "command-center/brainstorm/bp-brn-03/constraint-audit.json"
+        ],
+        "dependencies": [
+          "WBRN-0302"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "pricer",
+          "basis": "pricing is what converts wishful thinking into an option"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Write(command-center/brainstorm/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 2400,
+        "output_path": "command-center/brainstorm/bp-brn-03/priced-inversions.json",
+        "output_schema": "command-center/schema/option-closure.schema.json",
+        "evidence_requirement": "every price states its basis (measured, quoted, or estimated-with-band) and every is_actually_removable ruling cites what would falsify it",
+        "tests_required": [
+          "an inversion with no price fails the every-relaxation-priced gate",
+          "both-states control: delete one price and confirm the gate FAILS, restore it and confirm it PASSES"
+        ],
+        "reviewer_requirement": "the reconciler challenges any price whose basis is 'estimated' and no band is given",
+        "completion_sentinel": "SUCCESS:WBRN-0303 emitted when priced-inversions.json exists, parses, and every inversion carries a price plus a removability ruling; otherwise FAILED:WBRN-0303 <reason>",
+        "retry_policy": "two strikes then pivot: mark the price UNKNOWN-with-band rather than inventing a number",
+        "failure_classification": [
+          "price-missing",
+          "overclaim",
+          "partial-artifact"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-03/priced-inversions.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0303",
+          "consumers": [
+            "price-gate",
+            "reconcile"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "price-gate",
+      "title": "S2b No unpriced inversion leaves this workflow",
+      "kind": "gate",
+      "depends_on": [
+        "price"
+      ],
+      "gate_ref": "every-relaxation-priced"
+    },
+    {
+      "id": "reconcile",
+      "title": "S3 RECONCILE into newly-visible options, each with its price",
+      "kind": "council",
+      "depends_on": [
+        "price-gate"
+      ],
+      "council_spec_ref": "platform/council/protocols/p31-constraint-relaxation.councilspec.json",
+      "participants_min": 3,
+      "participants_max": 6,
+      "timeout_seconds": 3600,
+      "stopping_rules": [
+        {
+          "id": "all-constraints-processed",
+          "expression": "objections_open == 0 AND every_objection_addressed == true",
+          "applies_to": "council",
+          "minimum_conditions": "evidence_items >= 1",
+          "on_stop": "complete"
+        },
+        {
+          "id": "unsourced-premise-found",
+          "expression": "counterexamples_found >= 1",
+          "applies_to": "council",
+          "on_stop": "escalate"
+        }
+      ],
+      "produces": [
+        {
+          "path": "command-center/brainstorm/bp-brn-03/newly-visible-options.json",
+          "schema_ref": "command-center/schema/option-closure.schema.json",
+          "min_bytes": 640,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:WBRN-0304",
+          "consumers": [
+            "owner",
+            "bp-req-01-program-scale-extensive-grill",
+            "bp-cnc-05-governance-decision-gate"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "all-non-hard-ban-constraints-processed",
+      "expression": "non_hard_ban_constraints_processed == non_hard_ban_constraints_total AND inversions_without_price == 0",
+      "applies_to": "workflow",
+      "minimum_conditions": "untagged_constraints == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "false-premise-proved",
+      "expression": "constraints_proved_false >= 1",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    },
+    {
+      "id": "nothing-removable",
+      "expression": "removable_constraints == 0 AND non_hard_ban_constraints_processed >= 1",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm"
+    ],
+    "no_retry_on": [
+      "hard-ban-refused",
+      "owner-blocked"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "owner"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "hard-ban-refused",
+      "provenance-missing",
+      "price-missing",
+      "null-inversion"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/bp-brn-03"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/bp-brn-03",
+    "granularity": "fanout-item",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 172800,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/bp-brn-03.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "model_outputs"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "schema-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "item_key",
+      "inputs_hash"
+    ],
+    "store": "command-center/cache/bp-brn-03",
+    "ttl_seconds": 259200,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "constraint-audit-change",
+      "schema-version-change"
+    ]
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/bp-brn-03-plan.json",
+    "forbid_tools": [
+      "Write(command-center/brainstorm/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "min": 0.3,
+      "expected": 1.1,
+      "max": 4.0
+    },
+    "wallclock_seconds": {
+      "min": 300,
+      "expected": 1200,
+      "max": 3600
+    },
+    "tokens": {
+      "min": 60000,
+      "expected": 220000,
+      "max": 700000
+    },
+    "tool_calls": {
+      "expected": 60,
+      "max": 240
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/brainstorm/bp-brn-03/**; the hard-ban tag is READ, never written by this workflow",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/bp-brn-03.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": true,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "workflows/grill.yaml",
+        "relation": "SPECIALIZE",
+        "license": "owner-proprietary",
+        "credit": "owner",
+        "url": "https://github.com/example/agent-skills-toolchain"
+      },
+      {
+        "source": "exec-harness-strategy-analysis-2026-07-18",
+        "relation": "DISTILL",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-BRN-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "workflows/grill.yaml"
+    ]
+  },
+  "outputs": {
+    "newly_visible_options": {
+      "path": "command-center/brainstorm/bp-brn-03/newly-visible-options.json",
+      "schema_ref": "command-center/schema/option-closure.schema.json",
+      "min_bytes": 640,
+      "register_in_manifest": true,
+      "consumers": [
+        "owner",
+        "bp-req-01-program-scale-extensive-grill"
+      ]
+    },
+    "constraint_audit": {
+      "path": "command-center/brainstorm/bp-brn-03/constraint-audit.json",
+      "schema_ref": "command-center/schema/claim-record.schema.json",
+      "min_bytes": 384,
+      "register_in_manifest": true,
+      "consumers": [
+        "safety-gate",
+        "reconcile"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint_index": 14,
+    "design_card": "BP-BRN-03",
+    "design_card_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.md:797",
+    "acquisition_route": "BUILD-NEW",
+    "state_v": [
+      "NEW"
+    ],
+    "size_v": [
+      "BUILD-SMALL"
+    ],
+    "distinct_mechanism": "orchestrator-owned hard-ban tagging as a blocking PRE-gate, then one blind inverter per constraint over an artifact-sourced fan-out, then a mandatory price per relaxation",
+    "not_a_duplicate_because": "BP-BRN-02 separates generation from judgement in time; this attacks the PREMISES both phases share and is the only blueprint in the range that questions the constraint list itself. Its safety gate runs BEFORE any generation, which no other blueprint here does.",
+    "contraindications": [
+      "genuine hard bans (safety, legal, physics) - inverting those is theatre and the gate refuses",
+      "constraints are few and obviously real - the workflow will price nothing and cost tokens"
+    ],
+    "safety_note": "The hard-ban tag is a SAFETY control. It is applied by the orchestrator or the owner and is READ-ONLY to the inverter; hard-ban-tagging-integrity is a BLOCKING gate with on_fail=fail precisely so a mis-tagged run cannot proceed to generate unsafe suggestions. hard_ban_tags_authored_by_agent == 0 is the mechanical form of that rule.",
+    "worked_examples": [
+      {
+        "name": "a stale pinned ref presented as ground truth",
+        "params": {
+          "problem": "The blueprint corpus is described as holding 96 designs and every downstream count is built on that",
+          "constraints": [
+            {
+              "text": "the blueprint library holds exactly 96 designs",
+              "source": "spawn brief",
+              "is_hard_ban": false,
+              "tagged_by": "orchestrator"
+            },
+            {
+              "text": "never rotate or print a credential",
+              "source": "AGENTS.md 9",
+              "is_hard_ban": true,
+              "tagged_by": "owner"
+            },
+            {
+              "text": "the catalog file must stay byte-identical",
+              "source": "command-center/WORK-UNIT-CATALOG.json baseline hash",
+              "is_hard_ban": false,
+              "tagged_by": "orchestrator"
+            }
+          ],
+          "price_currency": "USD"
+        },
+        "expected_artifacts": [
+          "command-center/brainstorm/bp-brn-03/constraint-audit.json",
+          "command-center/brainstorm/bp-brn-03/priced-inversions.json",
+          "command-center/brainstorm/bp-brn-03/newly-visible-options.json"
+        ],
+        "expected_terminal_state": "SUCCESS:WBRN-0304 with stopping rule false-premise-proved fired",
+        "walkthrough": "S0 traces constraint 1 to the spawn brief only - no measurement - and flags it UNSOURCED-BEYOND-BRIEF. S0b passes: all three constraints carry an orchestrator/owner tag. S1 fans out over the TWO non-hard-ban constraints; the credential constraint is excluded by the tag and never reaches an inverter. Inverting constraint 1 (`assume 96 is false`) surfaces the dependent decisions: the per-unit range split, the flagship arithmetic (40/96), and the completeness claim. S2 prices the relaxation at near zero (re-count the cards mechanically). S3 rules is_actually_removable=true and emits the option `re-count the cards and re-derive the ranges`, price ~0. The false-premise-proved stopping rule fires and the run escalates to the owner rather than quietly continuing on the old number.",
+        "expected_gate_outcomes": {
+          "hard-ban-tagging-integrity": "PASS - untagged_constraints == 0, no agent-authored tags",
+          "every-relaxation-priced": "PASS - 2 inversions, 2 prices, 2 removability rulings"
+        },
+        "arm": "positive"
+      },
+      {
+        "name": "negative control - a hard ban handed to an inverter",
+        "params": {
+          "problem": "Sessions keep refusing estate-local credential diagnosis",
+          "constraints": [
+            {
+              "text": "never rotate, revoke or print a credential",
+              "source": "AGENTS.md 9",
+              "is_hard_ban": true,
+              "tagged_by": "owner"
+            }
+          ]
+        },
+        "expected_artifacts": [
+          "command-center/quarantine/bp-brn-03"
+        ],
+        "expected_terminal_state": "FAILED:WBRN-0302 hard-ban-refused",
+        "walkthrough": "The only constraint is a hard ban, so the fan-out has zero eligible items. If a mis-tagged run does reach an inverter, the inverter REFUSES and the refusal is recorded under hard_ban_policy=refuse-and-record. hard-ban-refused is in no_retry_on, so the pivot never re-attempts it. This is the design card's ship/no-ship benchmark: if the blueprint inverts a safety ban, it is not shipped.",
+        "arm": "negative-control"
+      }
+    ],
+    "benchmark_cases": [
+      "seed a constraint that is demonstrably false (a stale pinned ref) - the inversion must expose the dependent decisions",
+      "seed a real hard ban - it must be refused, not inverted"
+    ],
+    "unverified": "UNVERIFIED entirely as a running loop - the design card records no prior art. Settling experiment: apply it to the current grill queue's Tier-0 constraints and count how many trace to a measurement versus inherited from a brief. Confidence: roughly-even (45-55%) on a well-scoped problem, likely (55-80%) on a stalled one.",
+    "council_presets_referenced": [
+      "platform/council/protocols/p31-constraint-relaxation.councilspec.json"
+    ],
+    "council_metric_binding": {
+      "counterexamples_found": "in the relaxation council this counts constraints proved FALSE by the inversion evidence - the escalation trigger",
+      "objections_open": "an inversion still contested by the council",
+      "every_objection_addressed": "every contested inversion has a recorded resolution"
+    }
+  }
+}

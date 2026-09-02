@@ -1,0 +1,22 @@
+I'll start from the existing AUD-0018 probe tree, read any prior return artifact, and resume from there instead of rebuilding.Existing probes are in place; next I’ll read the catalog contract, measure script, and current artifacts so we resume from the real gap.Probes already exist; I’ll inspect the live artifact, probe scripts, and a delivered unit’s return shape so we know what still fails G-1.Windows receipts are already SUCCESS; I’ll re-run the named probes on this Linux box and check the G-1 measure against live bytes.Measure will re-run every non-skipped `*.py` here, including the Windows PowerShell helper, so I’ll inspect those extra scripts before the live re-run.I'll check the schema, whether `pwsh` exists here, and whether the extra helper scripts would fail the measure re-run.The Windows receipt names deploy scripts this tree may not have; I’ll confirm which of those paths actually exist here.This worktree is missing `scripts/` and `platform/`; I’ll locate a full checkout of those deploy surfaces before deciding whether to resume or park.AUD-0090’s blob-tree is a likely source of the missing scripts; I’ll check that fallback before parking.SSOT copies are in the probe cache. I’ll adapt the named probes to read that cache, keep the extra helpers from failing the measure re-run, and then remasure.Discovery skipped the SSOT cache because `source-cache` was in `SKIP_DIR`. I’ll drop that skip and re-run.`sync-from-live` stayed byte-identical but its detector self-control failed on Linux case-fold; I’ll stop treating that touch list as trusted and record it.**SUCCESS:delivered AUD-0018**
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0018` printed:
+
+`SUCCESS:delivered AUD-0018 predicate=delivered state=SUCCESS probes=3 raws=2 notes=_ps_second_signal.py:0,probe_dry_run.py:0,probe_line_semantics.py:0`
+
+G-1 for this unit is green on this Linux worktree.
+
+**What was already here.** The probe tree existed from a Windows remasure (`probe_line_semantics.py`, `probe_dry_run.py`, fixture pair, per-unit manifest). There was no `SUBAGENT-RETURN.json`. Cloud-ok harvest `ok=true` / `UNIT-COMPLETE` was not treated as delivery.
+
+**What this worktree is missing.** `/opt/p2/ast-integrate` is a P2 subset (`command-center/` + `tools/` only). Live `scripts/` and `platform/` are absent, so the catalog subjects are not in the projection.
+
+**How the named probes were made re-runnable.** GitHub SSOT copies of the deploy/sync surfaces were fetched into `command-center/p2-wave/probes/AUD-0018/source-cache/` (no git checkout). Probe 1 line-reads those bytes. Probe 2 runs dry-runs against scratch fixtures.
+
+**Live results**
+- Probe 1 exit 0: 9 candidates, 8 in-scope, `scripts/deploy-skills-codex.py` absent from GitHub main and this tree.
+- Probe 2 exit 0: 7/7 executed dry-runs byte-identical; mutating negative control went red; `cs-deploy.sh` not executed (no dry-run, starts a daemon). `pwsh` at `/usr/local/bin/pwsh` ran the four PowerShell `-WhatIf` cases. `sync-from-live.ps1` stayed non-destructive but its detector self-control failed on Linux (`CASE-MISMATCH` vs `NEW` for `casing.md`); that touch list is not trusted (finding D9).
+- Receipt `command-center/audit/AUD-0018-deploy-script-semantics.json`: **50939 B**, `state=SUCCESS`, LF sha256 `aede256b24e8debfd3aab9bf0ee14adcc3715a7d9d060a93c2cc02689070c0a5`.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` row matches that sha256.
+- `SUBAGENT-RETURN.json` written.
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no key rotation, no wave relaunch.

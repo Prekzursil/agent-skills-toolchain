@@ -1,0 +1,56 @@
+{
+ "architecture_id": "A8",
+ "fail_closed": true,
+ "id": "a8-error/v1",
+ "required": [
+  "happened",
+  "means",
+  "next_action"
+ ],
+ "rewrites": [
+  {
+   "after": {
+    "happened": "unit-manifest walked the receipts tree and found zero receipt JSON files.",
+    "means": "completion condition 11 cannot be derived; the artifact register is empty, not merely out of date.",
+    "next_action": "emit a per-unit receipt under command-center/p2-wave/probes/<UNIT-ID>/ or pass the receipts root that actually contains receipts, then re-run python3 tools/command-center/unit_manifest.py"
+   },
+   "after_text": "HAPPENED: unit-manifest walked the receipts tree and found zero receipt JSON files.\nMEANS: completion condition 11 cannot be derived; the artifact register is empty, not merely out of date.\nNEXT: emit a per-unit receipt under command-center/p2-wave/probes/<UNIT-ID>/ or pass the receipts root that actually contains receipts, then re-run python3 tools/command-center/unit_manifest.py",
+   "anchor": "tools/command-center/unit_manifest.py:73",
+   "before": "FAILED:unit-manifest discovered ZERO receipts (empty walk)",
+   "id": "E1-unit-manifest-empty-walk",
+   "line": 73,
+   "needle": "raise ManifestError(\"discovered ZERO receipts (empty walk)\")",
+   "path": "tools/command-center/unit_manifest.py"
+  },
+  {
+   "after": {
+    "happened": "cc-validate loaded the catalog but the dependency graph file is not on disk.",
+    "means": "reachability cannot be checked, so catalog and graph would silently drift.",
+    "next_action": "write the graph with python3 tools/command-center/close.py --list (close.py rebuilds DEPENDENCY-GRAPH.json) or cat.build_graph, then re-run python3 tools/command-center/validate.py"
+   },
+   "after_text": "HAPPENED: cc-validate loaded the catalog but the dependency graph file is not on disk.\nMEANS: reachability cannot be checked, so catalog and graph would silently drift.\nNEXT: write the graph with python3 tools/command-center/close.py --list (close.py rebuilds DEPENDENCY-GRAPH.json) or cat.build_graph, then re-run python3 tools/command-center/validate.py",
+   "anchor": "tools/command-center/validate.py:425",
+   "before": "FAILED:cc-validate dependency graph missing at {graph_path}",
+   "id": "E2-validate-graph-missing",
+   "line": 425,
+   "needle": "print(f\"FAILED:cc-validate dependency graph missing at {graph_path}\")",
+   "path": "tools/command-center/validate.py"
+  },
+  {
+   "after": {
+    "happened": "G-1 measure for ARC-0052 found a missing probe dir, empty output_path, or missing per-unit receipts.",
+    "means": "the unit is not implemented on this worktree; cloud ok=true is not delivery.",
+    "next_action": "create command-center/p2-wave/probes/ARC-0052/, emit command-center/phase3/A8/DESIGN.json, run the two named probes to exit 0, then re-run python3 command-center/p2-wave/_measure_one_delivered.py ARC-0052"
+   },
+   "after_text": "HAPPENED: G-1 measure for ARC-0052 found a missing probe dir, empty output_path, or missing per-unit receipts.\nMEANS: the unit is not implemented on this worktree; cloud ok=true is not delivery.\nNEXT: create command-center/p2-wave/probes/ARC-0052/, emit command-center/phase3/A8/DESIGN.json, run the two named probes to exit 0, then re-run python3 command-center/p2-wave/_measure_one_delivered.py ARC-0052",
+   "anchor": "command-center/p2-wave/_measure_one_delivered.py:136",
+   "before": "FAILED:delivered ARC-0052 predicate:absent",
+   "id": "E3-measure-predicate-absent",
+   "line": 136,
+   "needle": "return fail(uid, \"predicate:absent\")",
+   "path": "command-center/p2-wave/_measure_one_delivered.py"
+  }
+ ],
+ "rule": "Every owner-visible failure path emits what happened, what it means, and the exact next action. A string that only says an operation failed is a defect, not a style preference.",
+ "schema_version": 1
+}

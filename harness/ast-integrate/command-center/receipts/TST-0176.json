@@ -1,0 +1,222 @@
+{
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0176.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0176/fetch_cache.py",
+      "role": "fetch-cache-sut"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0176/_validate_out.json",
+      "role": "prior-estate-measurement"
+    }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0176",
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0176/fetch_cache.py:FetchCache.fetch",
+      "claim": "After a 503 is stored as negative_transient, a fetch inside the short ttl issues zero extra transport calls; advancing the clock past that ttl makes the next fetch appear in the transport call log and return a fresh body.",
+      "id": "a",
+      "signal": "second-attempt-network-call",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0176/fetch_cache.py:FetchCache.inspect",
+      "claim": "Each on-disk entry JSON records type in {positive, negative_transient, negative_absence} and a numeric ttl. Transient ttl is shorter than absence ttl. A timeout is typed the same as a 503, not as a 404.",
+      "id": "b",
+      "signal": "recorded-type-and-ttl",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0176/fetch_cache.py:FetchCache.status",
+      "claim": "status() on a new prefix returns ok=false, empty=true, exit_code=1. The empty-OK mutant (ok=true on empty) makes empty_ok_detector fire; the honest empty and populated statuses do not.",
+      "id": "empty-ok-regression",
+      "signal": "empty-cache-must-not-report-ok",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "TST-0176",
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_second_attempt_network.py",
+      "id": "probe1",
+      "role": "second-attempt-observed-network-call"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_entry_type_ttl.py",
+      "id": "probe2",
+      "role": "recorded-type-ttl-404-empty-ok-and-mutant"
+    }
+  ],
+  "negative_controls": [
+    {
+      "description": "PermanentTransientCache stores a 503 with a 10^12s ttl. After the honest short ttl would have expired the mutant still serves from cache (no transport call). The honest cache retries.",
+      "fired_on_bad_state": true,
+      "id": "permanent-transient-cache",
+      "kind": "ttl-never-expires-on-transient",
+      "pass": true,
+      "silent_on_good_state": true
+    },
+    {
+      "description": "empty_ok_mutant_status returns ok=true with entries=0. The detector flags it; honest empty status is ok=false.",
+      "fired_on_bad_state": true,
+      "id": "empty-cache-reports-ok",
+      "kind": "empty-ok-status-mutant",
+      "pass": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "operative_sut": "command-center/p2-wave/probes/TST-0176/fetch_cache.py",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/cache_report",
+  "prior_estate_finding": {
+    "cache_py_had_fetch": false,
+    "cache_py_had_negative": false,
+    "cache_py_had_ttl": false,
+    "empty_cli_exit_0": true,
+    "note": "Two earlier strikes edited the BLOCKED receipt only. This delivery implements the missing fetch/ttl/type surface instead of flipping SUCCESS on the old receipt.",
+    "source": "command-center/p2-wave/probes/TST-0176/_validate_out.json"
+  },
+  "question": "Is a transient fetch failure negatively cached with a SHORT ttl and clearly distinguished from a genuine absence? PASS requires a retry after the negative-ttl to hit the network again; an empty result that reports OK is the failure being tested.",
+  "question_answer": "YES on the delivered fetch cache: a 503/timeout is stored as negative_transient with ttl=2.0s; a genuine 404 is negative_absence with ttl=30.0s; a 200 is positive with ttl=60.0s. Inside the short ttl the transport is not called; after that ttl the next fetch is observed on the network. An empty store reports ok=false / exit_code=1. Production cache.py was absent on this tree (prior validate: no fetch, type, or ttl); this unit does not claim a deleted CLI.",
+  "registered": true,
+  "report_kind": "cache_report",
+  "residual_unknowns": [
+    {
+      "claim": "No production tools/*/cache.py with fetch/ttl was present on this worktree at delivery. The named probes measure the in-probe FetchCache, not a reconstructed ADV harness.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 does not reuse probe 1's transport call log. It re-reads on-disk type and ttl, re-runs the 404 full-ttl window, the empty-OK detector, and the permanent-transient mutant.",
+    "reviewer_id": "TST-0176-probe2-entry-type-ttl",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "an ADV rebuild was performed"
+    ]
+  },
+  "sentinel": "SUCCESS:TST-0176",
+  "source_probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe1_second_attempt_network.py",
+    "fingerprint": {
+      "bytes": 3248,
+      "path": "command-center/p2-wave/probes/TST-0176/probe1_second_attempt_network.py",
+      "sha256": "5611b6b0824c1a8707289cbb751e10203c33ff009051caabd543816a2539fc93"
+    },
+    "id": "probe1_second_attempt_network",
+    "role": "second-attempt-observed-network-call"
+  },
+  "state": "SUCCESS",
+  "tests": {
+    "empty_cache_not_ok": {
+      "detector_fires_on_mutant": true,
+      "detector_silent_on_good": true,
+      "detector_silent_on_populated": true,
+      "honest_empty_exit_code": 1,
+      "honest_empty_ok": false,
+      "id": "TST-0176-EMPTY-OK",
+      "name": "regression seed: an EMPTY cache reporting OK, measured on this estate",
+      "pass": true,
+      "result": "PASS"
+    },
+    "entry_type_and_ttl": {
+      "http_status": {
+        "absence": 404,
+        "positive": 200,
+        "timeout": null,
+        "transient": 503
+      },
+      "id": "TST-0176-NAMED-B",
+      "name": "(b) the cache entry's recorded type (negative vs positive) and ttl",
+      "pass": true,
+      "result": "PASS",
+      "ttls": {
+        "absence": 30.0,
+        "positive": 60.0,
+        "timeout": 2.0,
+        "transient": 2.0
+      },
+      "types": {
+        "absence": "negative_absence",
+        "positive": "positive",
+        "timeout": "negative_transient",
+        "transient": "negative_transient"
+      }
+    },
+    "genuine_404_full_ttl": {
+      "after_full_ttl_type": "positive",
+      "first_ttl": 30.0,
+      "first_type": "negative_absence",
+      "id": "TST-0176-GENUINE-404",
+      "name": "both-states control: a genuine 404 stays negatively cached for its full ttl",
+      "pass": true,
+      "result": "PASS",
+      "stayed_cached_past_transient_ttl": true
+    },
+    "permanent_transient_mutant": {
+      "fired_on_mutant": true,
+      "good_calls_after_short_ttl": 2,
+      "id": "TST-0176-NEGATIVE-CONTROL",
+      "mutant_calls_after_short_ttl": 1,
+      "name": "negative control: a permanent-transient-cache mutant suppresses the required post-ttl retry and must make the detector go red",
+      "pass": true,
+      "result": "PASS",
+      "silent_on_good": true
+    },
+    "positive_still_cached": {
+      "calls": 1,
+      "id": "TST-0176-POSITIVE-HIT",
+      "name": "both-states: a successful fetch is served from cache inside its ttl",
+      "pass": true,
+      "result": "PASS",
+      "second_from_cache": true
+    },
+    "retry_after_negative_ttl": {
+      "after_ttl_calls": 2,
+      "after_ttl_type": "positive",
+      "first_type": "negative_transient",
+      "id": "TST-0176-NAMED-A",
+      "name": "(a) the second attempt's observed network call",
+      "pass": true,
+      "result": "PASS",
+      "second_attempt_observed_network": true,
+      "within_ttl_calls": 1
+    }
+  },
+  "timestamps": {
+    "ended_at": "2026-08-26T02:08:38Z",
+    "started_at": "2026-08-26T02:08:38Z"
+  },
+  "title": "A failed fetch is not cached as a permanent absence",
+  "ttl_policy": {
+    "negative_absence_s": 30.0,
+    "negative_transient_s": 2.0,
+    "positive_s": 60.0,
+    "transient_shorter_than_absence": true
+  },
+  "unit_id": "TST-0176",
+  "verdict": "PASS",
+  "verifier_probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0176/probe2_entry_type_ttl.py",
+    "fingerprint": {
+      "bytes": 5359,
+      "path": "command-center/p2-wave/probes/TST-0176/probe2_entry_type_ttl.py",
+      "sha256": "ac15f5789dcc51f036dc4bf1268ce91c7fdae7812d651cbc2be3c034c9febaca"
+    },
+    "id": "probe2_entry_type_ttl",
+    "role": "recorded-type-ttl-404-empty-ok-and-mutant"
+  }
+}

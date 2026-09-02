@@ -1,0 +1,398 @@
+{
+  "kind": "FusionResult",
+  "id": "wf.host.pipeline-v1++wf.donor.normalize-v1::stage-splice",
+  "unit_id": "WFA-0100",
+  "operator": "stage-splice",
+  "state": "SUCCESS",
+  "completion_sentinel": "SUCCESS:WFA-0100",
+  "title": "Fusion operator: stage-splice, inserting one workflow's stage into another's pipeline",
+  "question_or_target": "Implementation target: an operator that inserts a donor workflow's stage into a host pipeline at a typed insertion point, rewiring inputs and outputs, and that REFUSES when the donor stage's input type is unsatisfied at the chosen point rather than coercing it.",
+  "schema_id": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/FusionResult",
+  "accepted": true,
+  "sources": [
+    "wf.host.pipeline-v1",
+    "wf.donor.normalize-v1"
+  ],
+  "fused": {
+    "id": "wf.host.pipeline-v1++wf.donor.normalize-v1::stage-splice",
+    "kind": "workflow-ir",
+    "operator": "stage-splice",
+    "source_anchor": "command-center/p2-wave/probes/WFA-0100/stage_splice.py:build_fusion",
+    "entry": [
+      {
+        "name": "raw",
+        "type": "bytes"
+      }
+    ],
+    "exit": [
+      {
+        "name": "verdict",
+        "type": "boolean"
+      }
+    ],
+    "stages": [
+      {
+        "id": "ingest",
+        "kind": "ingest",
+        "capability": "pure-transform",
+        "input_type": "bytes",
+        "output_type": "document",
+        "inputs": [
+          {
+            "name": "raw",
+            "type": "bytes"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "doc",
+            "type": "document"
+          }
+        ],
+        "body": {
+          "op": "parse",
+          "from": "raw",
+          "to": "doc"
+        },
+        "source_anchor": "WFA-0100/fixtures:ingest"
+      },
+      {
+        "id": "wf.donor.normalize-v1::normalize",
+        "kind": "transform",
+        "capability": "pure-transform",
+        "input_type": "document",
+        "output_type": "document",
+        "inputs": [
+          {
+            "name": "doc",
+            "type": "document"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "doc",
+            "type": "document"
+          }
+        ],
+        "body": {
+          "op": "normalize",
+          "from": "doc",
+          "to": "doc",
+          "unicode": "NFC"
+        },
+        "source_anchor": "WFA-0100/fixtures:normalize",
+        "spliced_from": {
+          "workflow_id": "wf.donor.normalize-v1",
+          "stage_id": "normalize",
+          "index": 0
+        }
+      },
+      {
+        "id": "extract",
+        "kind": "extract",
+        "capability": "pure-transform",
+        "input_type": "document",
+        "output_type": "number",
+        "inputs": [
+          {
+            "name": "doc",
+            "type": "document"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "score",
+            "type": "number"
+          }
+        ],
+        "body": {
+          "op": "extract",
+          "from": "doc",
+          "to": "score",
+          "quality": 0.62
+        },
+        "source_anchor": "WFA-0100/fixtures:extract"
+      },
+      {
+        "id": "decide",
+        "kind": "gate",
+        "capability": "pure-transform",
+        "input_type": "number",
+        "output_type": "boolean",
+        "inputs": [
+          {
+            "name": "score",
+            "type": "number"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "verdict",
+            "type": "boolean"
+          }
+        ],
+        "body": {
+          "op": "decide",
+          "from": "score",
+          "to": "verdict",
+          "threshold": 0.35
+        },
+        "source_anchor": "WFA-0100/fixtures:decide"
+      }
+    ],
+    "rewire": {
+      "inputs": [
+        {
+          "consumer_stage": "wf.donor.normalize-v1::normalize",
+          "consumer_port": "doc",
+          "producer_stage": "ingest",
+          "producer_port": "doc",
+          "type": "document"
+        }
+      ],
+      "outputs": [
+        {
+          "producer_stage": "wf.donor.normalize-v1::normalize",
+          "producer_port": "doc",
+          "consumer_stage": "extract",
+          "consumer_port": "doc",
+          "type": "document"
+        }
+      ]
+    },
+    "lineage": {
+      "operator": "stage-splice",
+      "host_id": "wf.host.pipeline-v1",
+      "donor_id": "wf.donor.normalize-v1",
+      "insert_index": 1,
+      "donor_index": 0,
+      "donor_stage_id": "normalize",
+      "spliced_stage_id": "wf.donor.normalize-v1::normalize",
+      "after_stage_id": "ingest",
+      "before_stage_id": "extract",
+      "source_ids": [
+        "wf.host.pipeline-v1",
+        "wf.donor.normalize-v1"
+      ],
+      "parents": [
+        "wf.host.pipeline-v1",
+        "wf.donor.normalize-v1"
+      ]
+    },
+    "licence": "Apache-2.0",
+    "version": "splice-insert-1"
+  },
+  "insertion": {
+    "semantics": "insert-at-index",
+    "insert_index": 1,
+    "after_stage_id": "ingest",
+    "before_stage_id": "extract",
+    "donor_stage_id": "normalize",
+    "stage_order": [
+      "ingest",
+      "wf.donor.normalize-v1::normalize",
+      "extract",
+      "decide"
+    ],
+    "declared_order": [
+      "ingest",
+      "wf.donor.normalize-v1::normalize",
+      "extract",
+      "decide"
+    ],
+    "order_matches_declaration": true
+  },
+  "rewire": {
+    "inputs": [
+      {
+        "consumer_stage": "wf.donor.normalize-v1::normalize",
+        "consumer_port": "doc",
+        "producer_stage": "ingest",
+        "producer_port": "doc",
+        "type": "document"
+      }
+    ],
+    "outputs": [
+      {
+        "producer_stage": "wf.donor.normalize-v1::normalize",
+        "producer_port": "doc",
+        "consumer_stage": "extract",
+        "consumer_port": "doc",
+        "type": "document"
+      }
+    ]
+  },
+  "type_satisfaction": {
+    "checker": "command-center/p2-wave/probes/WFA-0100/typecheck.py",
+    "matching": {
+      "ok": true,
+      "producer_type": "document",
+      "donor_input_type": "document",
+      "predecessor_id": "ingest",
+      "successor_id": "extract"
+    },
+    "unsatisfiable": {
+      "ok": false,
+      "reason": "unsatisfied-input-type",
+      "producer_type": "document",
+      "donor_input_type": "pixels",
+      "missing_inputs": [
+        {
+          "name": "image",
+          "type": "pixels"
+        }
+      ]
+    },
+    "coercion": false
+  },
+  "refusals": [
+    {
+      "donor_id": "wf.donor.pixels-unsat",
+      "status": "refused",
+      "reason": "unsatisfied-input-type",
+      "fusion_is_none": true,
+      "trace": [
+        "type-check",
+        "refuse"
+      ],
+      "note": "donor input_type pixels is unsatisfied at a document seam"
+    },
+    {
+      "donor_id": "wf.donor.render-mismatch",
+      "status": "refused",
+      "reason": "unsatisfied-output-type",
+      "fusion_is_none": true,
+      "note": "donor output_type pixels does not rewire into extract's document input"
+    }
+  ],
+  "decomposition": {
+    "source_ids": [
+      "wf.host.pipeline-v1",
+      "wf.donor.normalize-v1"
+    ],
+    "host_id": "wf.host.pipeline-v1",
+    "donor_id": "wf.donor.normalize-v1",
+    "spliced_stage_id": "wf.donor.normalize-v1::normalize",
+    "host_rehearsal_ok": true,
+    "reconstructed_host_stage_ids": [
+      "ingest",
+      "extract",
+      "decide"
+    ]
+  },
+  "untouched_host_stages": [
+    {
+      "host_index": 0,
+      "fused_index": 0,
+      "host_stage_id": "ingest",
+      "identical": true,
+      "host_sha256": "8b7678e789bad0f6c98afe7cb9ddebf79ceb766e26d69a0cbaa004cc7e50a429",
+      "fusion_sha256": "8b7678e789bad0f6c98afe7cb9ddebf79ceb766e26d69a0cbaa004cc7e50a429"
+    },
+    {
+      "host_index": 1,
+      "fused_index": 2,
+      "host_stage_id": "extract",
+      "identical": true,
+      "host_sha256": "49ba6a00fa4f57bb9e3eec781b3ffb0811e500d02d7ca1ff2f915ce02ca7b7fe",
+      "fusion_sha256": "49ba6a00fa4f57bb9e3eec781b3ffb0811e500d02d7ca1ff2f915ce02ca7b7fe"
+    },
+    {
+      "host_index": 2,
+      "fused_index": 3,
+      "host_stage_id": "decide",
+      "identical": true,
+      "host_sha256": "b6626308e90deb40aa358d895ec2108a913be24b3c5c2da1d716b6fd929d5d0e",
+      "fusion_sha256": "b6626308e90deb40aa358d895ec2108a913be24b3c5c2da1d716b6fd929d5d0e"
+    }
+  ],
+  "ir_validation": {
+    "ok": true,
+    "errors": [],
+    "stage_ids": [
+      "ingest",
+      "wf.donor.normalize-v1::normalize",
+      "extract",
+      "decide"
+    ],
+    "stage_count": 4
+  },
+  "worked_splice": {
+    "status": "emitted",
+    "trace": [
+      "type-check",
+      "emit"
+    ],
+    "fusion_id": "wf.host.pipeline-v1++wf.donor.normalize-v1::stage-splice",
+    "host_id": "wf.host.pipeline-v1",
+    "donor_id": "wf.donor.normalize-v1"
+  },
+  "negative_controls": [
+    {
+      "id": "WFA0100-C1",
+      "kind": "both-states-type-satisfaction",
+      "silent_on_good": true,
+      "fires_on_bad": true,
+      "good_state_output": "{\"fusion_id\": \"wf.host.pipeline-v1++wf.donor.normalize-v1::stage-splice\", \"status\": \"emitted\"}",
+      "bad_state_output": "{\"reason\": \"unsatisfied-input-type\", \"status\": \"refused\"}"
+    },
+    {
+      "id": "WFA0100-C2",
+      "kind": "coerce-mutant",
+      "description": "coerce_splice rewrites donor input_type to the producer type and emits. The shipped operator refuses with fusion=None. The independent checker still reports the original donor as unsatisfied.",
+      "mutant_emitted": true,
+      "mutant_trace": [
+        "coerce",
+        "emit"
+      ],
+      "coerced_input_type": "document",
+      "original_input_type": "pixels"
+    }
+  ],
+  "tests_required": [
+    {
+      "id": "refusal-unsatisfiable",
+      "result": "PASS"
+    },
+    {
+      "id": "decompose-host-donor-ids",
+      "result": "PASS"
+    },
+    {
+      "id": "untouched-host-stages-byte-identical",
+      "result": "PASS"
+    }
+  ],
+  "dependencies_on_this_tree": {
+    "WFA-0001": true,
+    "WFA-0044": false,
+    "WFA-0063": false,
+    "WFA-0081": false,
+    "WFA-0094": false
+  },
+  "honesty": {
+    "schema_pack_absent": false,
+    "validated_against": "local WorkflowIR subset in probes/WFA-0100/ir.py",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "WFA-0001 schema pack consumed (absent)",
+      "WFA-0044 IR spec consumed (absent); local typed subset used",
+      "WFA-0063 / WFA-0081 / WFA-0094 artifacts consumed (absent)",
+      "IMP-0182 replace-one-slot splice is this operator (this unit INSERTs)"
+    ]
+  },
+  "operator_module": "command-center/p2-wave/probes/WFA-0100/stage_splice.py",
+  "typecheck_module": "command-center/p2-wave/probes/WFA-0100/typecheck.py",
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "fusion-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T01:01:41+00:00",
+    "ended_at": "2026-08-25T01:01:41+00:00"
+  },
+  "cloud_ok": false
+}

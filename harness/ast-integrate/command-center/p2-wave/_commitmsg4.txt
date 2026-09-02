@@ -1,0 +1,50 @@
+docs(p2): P2 build round-1 report, blocker census, and a half-enforced-contract finding
+
+Fills in the round-1 artifact (the predecessor died at skeleton stage) and adds
+the blocker enumeration the DoD asks for.
+
+TWO CORRECTIONS TO THE GROUNDING LANE, both executed rather than argued.
+
+1. "6 units have a genuinely unresolvable output_schema" is REFUTED. Measured
+   with the repo's own schema_resolver.validator_for() over all 2,007 units:
+   ZERO unresolvable. The four it named individually (IMP-0006, IMP-0044,
+   IMP-0051, RES-0001) all resolve.
+
+   But the real defect is worse than the claimed one and is NOVEL. Those
+   contracts are not unresolvable, they are HALF-ENFORCED. resolve() calls
+   parse_schema_ref(), which takes the leading logical path and silently drops
+   everything after the '+'. Executed:
+
+     declared = 'command-center/schema/receipt.schema.json
+                 + tools/plugin/schema/error-taxonomy.schema.json'
+     resolved logical_id -> command-center/schema/receipt.schema.json
+     a plain receipt validated against that expression -> 0 errors
+
+   A plain receipt is certainly not a valid error-taxonomy document. 41 units
+   declare a two-schema expression (not 6), 5 of them READY right now. Each will
+   report a green contract check that only ever tested half its contract.
+
+2. "drop reviewer -> VALID=True" was state-blind. On a SUCCESS receipt all three
+   strictness conditions hold {sentinel, evidence, reviewer} = all True; on a
+   BLOCKED receipt reviewer is optional, which is correct design because a
+   blocked unit has no reviewer to cite. Covered in the IMP-0433 commit.
+
+THE STRUCTURAL FINDING OF THE LANE: 449 of 449 READY units (100%) carry a
+reviewer_requirement, and receipt_core requires reviewer.verdict=PASS with
+independent=true for state SUCCESS. A build lane working alone can therefore
+deliver ZERO units at SUCCESS without forging completion condition 9. That is
+the schema working as designed -- it is the self-authored-verification result
+encoded as a constraint -- but it means P2 needs a paired reviewer lane or no
+unit in this program will ever legitimately reach SUCCESS.
+
+Other measured blockers over the READY set: 55 cloud-batch units marked
+NOT-CHECKED (no reachability probe was run, so unavailable is not claimed);
+AUD-0001 skipped rather than narrowed because its declared inputs walk
+~/Documents/GitHub, the parent of a directory this wave is forbidden to touch,
+and its reviewer_requirement is cross-vendor-mandatory.
+
+The report also records two detector failures of my own -- a false 12/12 from an
+invalid base fixture, and an SCC detector that was inert on sibling imports and
+would have shipped a confident "0 cycles" without a two-sided control -- plus the
+partition reading dropping from 44 delivered to 1, which is not a regression but
+the first honest number the tool has produced.

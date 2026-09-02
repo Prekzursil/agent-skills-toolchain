@@ -1,0 +1,162 @@
+{
+ "answer": "The agentmon pane classifies via tools/monitorcore/monitorcore/liveness.py:classify_agent. Stall requires orchestrator_state=running plus heartbeat or process_signal. An 11-hour-finished agent with an equally old artifact mtime renders finished, not stalled. A mtime-only record is undecidable. A mtime-only mutant reproduces the statusline defect (stalled) and is rejected. SUCCESS:TST-0152",
+ "completion_sentinel": "SUCCESS:TST-0152",
+ "evidence": [
+  {
+   "anchor": "tools/monitorcore/monitorcore/liveness.py:classify_agent",
+   "claim": "AST scan of classify_agent finds no mtime identifier in If/While/Compare tests. Rendered liveness fields name orchestrator_state, heartbeat, and process_signal.",
+   "kind": "static-source-trace",
+   "traces": [
+    {
+     "field": "agentmon.liveness.mtime_only_stall_banned",
+     "source": "liveness-policy",
+     "value": true
+    },
+    {
+     "field": "agentmon.liveness.agents[agent-live].state",
+     "mtime_used_as_predicate": false,
+     "source": "orchestrator_state+process_signal+heartbeat",
+     "sources_used": [
+      "orchestrator_state",
+      "process_signal",
+      "heartbeat"
+     ],
+     "stall_from_mtime_only": false,
+     "value": "active"
+    },
+    {
+     "field": "agentmon.liveness.agents[agent-11h-finished].state",
+     "mtime_used_as_predicate": false,
+     "source": "orchestrator_state",
+     "sources_used": [
+      "orchestrator_state"
+     ],
+     "stall_from_mtime_only": false,
+     "value": "finished"
+    },
+    {
+     "field": "agentmon.liveness.agents[agent-hung].state",
+     "mtime_used_as_predicate": false,
+     "source": "orchestrator_state+heartbeat+process_signal",
+     "sources_used": [
+      "orchestrator_state",
+      "heartbeat",
+      "process_signal"
+     ],
+     "stall_from_mtime_only": false,
+     "value": "stalled"
+    },
+    {
+     "field": "agentmon.liveness.agents[mtime-only].state",
+     "mtime_used_as_predicate": false,
+     "source": "insufficient-signals",
+     "sources_used": [],
+     "stall_from_mtime_only": false,
+     "value": "undecidable"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0152/fixtures.py:FINISHED_11H",
+   "claim": "Cockpit render of agent-11h-finished (orchestrator finished, artifact mtime 11h) is finished, not stalled.",
+   "finished_11h_state": "finished",
+   "kind": "synthetic-long-finished-agent",
+   "mutant_finished_state": "stalled",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "global_unit_manifest_write": false,
+  "manifest_path": "command-center/p2-wave/probes/TST-0152/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0152/probe1_static_trace.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"classified\": {\"agent-11h-finished\": \"finished\", \"agent-hung\": \"stalled\", \"agent-live\": \"active\", \"mtime-only\": \"undecidable\"}, \"field_traces\": [{\"field\": \"agentmon.liveness.mtime_only_stall_banned\", \"source\": \"liveness-policy\", \"value\": true}, {\"field\": \"agentmon.liveness.agents[agent-live].state\", \"mtime_used_as_predicate\": false, \"source\": \"orchestrator_state+process_signal+heartbeat\", \"sources_used\": [\"orchestrator_state\", \"process_signal\", \"heartbeat\"], \"stall_from_mtime_only\": false, \"value\": \"active\"}, {\"field\": \"agentmon.liveness.agents[agent-11h-finished].state\", \"mtime_used_as_predicate\": false, \"source\": \"orchestrator_state\", \"sources_used\": [\"orchestrator_state\"], \"stall_from_mtime_only\": false, \"value\": \"finished\"}, {\"field\": \"agentmon.liveness.agents[agent-hung].state\", \"mtime_used_as_predicate\": false, \"source\": \"orchestrator_state+heartbeat+process_signal\", \"sources_used\": [\"orchestrator_state\", \"heartbeat\", \"process_signal\"], \"stall_from_mtime_only\": false, \"value\": \"stalled\"}, {\"field\": \"agentmon.liveness.agents[mtime-only].state\", \"mtime_used_as_predicate\": false, \"source\": \"insufficient-signals\", \"sources_used\": [], \"stall_from_mtime_only\": false, \"value\": \"undecidable\"}], \"mtime_only_stall_banned\": true, \"pass\": true, \"probe\": \"probe1-static-trace\", \"static\": {\"bytes\": 4259, \"function\": \"classify_agent\", \"mtime_in_control_flow\": [], \"observational_copy_present\": true, \"ok\": true, \"path\": \"/opt/p2/ast-integrate/tools/monitorcore/monitorcore/liveness.py\"}, \"unit_id\": \"TST-0152\"}\nSUCCESS:TST-0152-probe1 static liveness source trace; mtime-only stall absent",
+   "role": "static-source-trace"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0152/probe2_both_states.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"active_state\": \"active\", \"eleven_h_s\": 39600, \"finished_11h_state\": \"finished\", \"hung_state\": \"stalled\", \"live_differs_from_mutant\": true, \"mtime_only_state\": \"undecidable\", \"mutant_finished_state\": \"stalled\", \"mutant_fired_statusline_defect\": true, \"pass\": true, \"probe\": \"probe2-both-states\", \"unit_id\": \"TST-0152\"}\nSUCCESS:TST-0152-probe2 both-states + 11h-finished not stalled",
+   "role": "both-states-and-11h-regression"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "mutant state=stalled source=file_mtime",
+   "description": "Mutant that stalls on artifact_mtime_age_s >= 11h fires on the finished fixture; live classifier does not.",
+   "fired_on_bad_state": true,
+   "good_state_output": "live state=finished source=orchestrator_state",
+   "id": "TST-0152-NC-MTIME-MUTANT",
+   "kind": "mtime-only-stall",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0152: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not git add/commit. No ADV rebuild. cloud ok=true is not delivery.",
+ "produced_by": {
+  "execution_substrate": "linux-headless-local",
+  "role": "observability-tester"
+ },
+ "question": "Prove no liveness or stall claim in the cockpit is derived from file mtimes alone. PASS requires a static trace of each liveness signal to its source, plus a live case where an 11-hour-finished agent is presented and the cockpit does NOT report it as a stall.",
+ "question_or_target": "Prove no liveness or stall claim in the cockpit is derived from file mtimes alone.",
+ "report_kind": "monitor_report",
+ "residual_unknowns": [
+  "Independent re-run on a second Windows shell (pwsh7 vs Git Bash) was not executed on this Linux worktree."
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Probe 2 drives the live cockpit with four fixtures and a mtime-only mutant. It does not author classify_agent.",
+  "reviewer_id": "TST-0152-probe2-both-states",
+  "verdict": "PASS",
+  "windows_second_shell": "NOT-CHECKED",
+  "windows_second_shell_note": "Catalog asks for a second Windows shell (pwsh7 and Git Bash). This delivery ran both probes on Linux; dual-shell divergence is residual, not claimed checked."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0152",
+ "state": "SUCCESS",
+ "subject": {
+  "classifier": "tools/monitorcore/monitorcore/liveness.py",
+  "pane": "agentmon",
+  "policy": "stall-requires-orchestrator-running-plus-independent-signal",
+  "surface": "monitorcore.unified.cockpit"
+ },
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0152/probe1_static_trace.py",
+   "exit_code": 0,
+   "id": "TST-0152-STATIC-TRACE",
+   "name": "source trace of each rendered liveness field",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0152/probe2_both_states.py",
+   "exit_code": 0,
+   "id": "TST-0152-BOTH-STATES",
+   "name": "active renders active; long-finished renders finished not stalled",
+   "result": "PASS"
+  },
+  {
+   "finished_11h_state": "finished",
+   "id": "TST-0152-REGRESSION-11H",
+   "name": "11-hour-old finished agent is not a live stall",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:07:23Z",
+  "started_at": "2026-08-25T01:07:23Z"
+ },
+ "title": "mtime-only stall detection is banned and proven absent",
+ "unit_id": "TST-0152"
+}

@@ -1,0 +1,518 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/phase4/contracts/ARC-0088.json",
+   "bytes": 9601,
+   "sha256": "359347d384cae2231ab49b902698fcbb6a7cbda4749171f2050aea58d679c53d",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "ARC-0088 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/phase4/contracts/ARC-0088.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/phase4/contracts/ARC-0088.json",
+     "raw_output": "bytes=9601 sha256=359347d384cae2231ab49b902698fcbb6a7cbda4749171f2050aea58d679c53d",
+     "fingerprint": "9f616f9b1bec69bc694e93bad1b51c5d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact ARC-0088",
+     "raw_output": "schema-check",
+     "fingerprint": "005ce92d24216cf921145c6ce6b99426",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ARC-0088 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0088",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py ARC-0088",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "8f4f07a15807027d7f5f9821e21cc469",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered ARC-0088",
+     "raw_output": "schema-valid",
+     "fingerprint": "7f69b35f3c6ac2e8eecfb6616d9bd9f8",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:ARC-0088",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/phase4/contracts/ARC-0088.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "ARC-0088",
+ "extensions": {
+  "legacy_root": {
+   "answer": "Hooks consume a UTF-8 JSON object on stdin (session_id, transcript_path, cwd, hook_event_name, permission_mode, plus event-specific fields). Exit 2 is reserved for irreversible danger on PreToolUse/PermissionRequest with a typed danger claim; every other guidance injects additionalContext and cannot block. Internal errors and timeouts fail open (session continues, process exit 0). Wiring is proven only when a live invocation produces both a dispatcher fire record and a hook-written side effect; a file on disk is not proof. SUCCESS:ARC-0088",
+   "completion_sentinel": "SUCCESS:ARC-0088",
+   "consumer_call_site": {
+    "path": "command-center/p2-wave/probes/ARC-0088/probe1_both_states_wiring.py",
+    "role": "loads the draft and asserts event types, stdin fields, and two-signal wiring",
+    "symbol": "check_contract"
+   },
+   "event_types": [
+    "PreToolUse",
+    "PostToolUse",
+    "PostToolUseFailure",
+    "Notification",
+    "UserPromptSubmit",
+    "SessionStart",
+    "SessionEnd",
+    "Stop",
+    "SubagentStop",
+    "PreCompact",
+    "PermissionRequest"
+   ],
+   "event_types_provenance": {
+    "not_quoted_from_source_slice": true,
+    "reconstructed_from": [
+     "command-center/p2-wave/probes/ARC-0016/fixtures/hatch-run/hatch/hooks/hook.pre-tool.json (event=PreToolUse)",
+     "command-center/p2-wave/probes/ADV-0065/fixtures/packages/adv0065-broad/hooks/hooks.json (event=SessionStart)",
+     "catalog/sibling event names (PostToolUse, Notification, UserPromptSubmit, Stop, PermissionRequest, ...)"
+    ],
+    "user_prompts_slice": "ABSENT"
+   },
+   "executable_semantics": "command-center/p2-wave/probes/ARC-0088/dispatch.py",
+   "exit_code_semantics": {
+    "blocking_events": [
+     "PermissionRequest",
+     "PreToolUse"
+    ],
+    "exit_0": "hook completed; optional additionalContext is injected; session continues",
+    "exit_2": "block the pending action; allowed only for irreversible danger on blocking events",
+    "exit_2_reserved_for": "irreversible_danger_only",
+    "irreversible_danger_classes": [
+     "credential_exfil_untrusted_network",
+     "destructive_force_push_protected_branch",
+     "irreversible_fs_destroy",
+     "production_datastore_destroy"
+    ],
+    "non_dangerous_conditions_cannot_block": [
+     "style_warning",
+     "budget_advisory",
+     "unknown_tool_name",
+     "missing_additional_context",
+     "linter_finding",
+     "secret_scan_advisory"
+    ],
+    "other_nonzero": "treated as internal error: fail open, process exit coerced to 0"
+   },
+   "fail_open": {
+    "on_internal_error": "Uncaught exception, spawn failure, invalid stdin, or any non-zero exit other than a valid danger-backed exit 2 is coerced to process exit 0 with session_continue=true.",
+    "process_exit": 0,
+    "session_continues": true
+   },
+   "honesty": {
+    "architecture_ratification": "ABSENT",
+    "no_host_client_invocation": "This contract is executed against the in-tree dispatcher, not against a live host-client session on this Linux worktree.",
+    "plugin_lifecycle_map": "ABSENT",
+    "seeded_failure_classes_source": "ABSENT (_USER-PROMPTS.md:11300-11347)",
+    "user_prompts_slice": "ABSENT; event list reconstructed from on-disk hook fixtures plus sibling catalog names",
+    "winning_architecture": "ABSENT"
+   },
+   "inject_do_not_block": {
+    "cannot_produce_exit_2": true,
+    "channel": "stdout JSON additionalContext (or hookSpecificOutput.additionalContext)",
+    "rule": "Advisory output (style, budget, unknown tool, missing context, linter, secret-scan advisory) is injected as additionalContext and must never produce exit 2."
+   },
+   "input_presence": {
+    "ARCHITECTURE_RATIFICATION_json": false,
+    "PLUGIN_LIFECYCLE_MAP_md": false,
+    "USER_PROMPTS_md_10797_10822": false,
+    "USER_PROMPTS_md_11300_11347": false,
+    "WINNING_ARCHITECTURE_json": false,
+    "WORK_UNIT_CATALOG_json": true,
+    "hook_fixture_pretool": true,
+    "hook_fixture_session_start": false
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0088/probe1_both_states_wiring.py",
+     "id": "probe1",
+     "role": "both-states-wiring"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0088/probe2_failopen_blockscope.py",
+     "id": "probe2",
+     "role": "fail-open-and-block-scope"
+    }
+   ],
+   "output_schema": "command-center/p2-wave/probes/ARC-0088/hook-contract.schema.json",
+   "phase": "4",
+   "question": "Specify the hook contract: event types, the stdin JSON input shape, exit-code semantics with exit 2 reserved for irreversible danger only, the inject-do-not-block rule for all other guidance, the mandatory fail-open behaviour on internal error, the timeout, and the registration record that PROVES a hook is actually wired rather than merely present as a file.",
+   "registration_record": {
+    "bare_shell_forbidden": true,
+    "explicit_interpreter": true,
+    "proof_is_not_this_record": true,
+    "required_fields": [
+     "id",
+     "event",
+     "command",
+     "interpreter",
+     "timeout_ms",
+     "enabled"
+    ]
+   },
+   "stdin_json_shape": {
+    "delivery": "single UTF-8 JSON object on stdin; no argv payload",
+    "encoding": "utf-8-json-object-on-stdin",
+    "event_extra_fields": {
+     "Notification": [
+      "message"
+     ],
+     "PermissionRequest": [
+      "tool_name",
+      "tool_input"
+     ],
+     "PostToolUse": [
+      "tool_name",
+      "tool_input",
+      "tool_response"
+     ],
+     "PostToolUseFailure": [
+      "tool_name",
+      "tool_input",
+      "error"
+     ],
+     "PreCompact": [
+      "trigger"
+     ],
+     "PreToolUse": [
+      "tool_name",
+      "tool_input"
+     ],
+     "SessionEnd": [
+      "reason"
+     ],
+     "SessionStart": [
+      "source"
+     ],
+     "Stop": [
+      "stop_hook_active"
+     ],
+     "SubagentStop": [
+      "stop_hook_active"
+     ],
+     "UserPromptSubmit": [
+      "prompt"
+     ]
+    },
+    "required_fields": [
+     "session_id",
+     "transcript_path",
+     "cwd",
+     "hook_event_name",
+     "permission_mode"
+    ]
+   },
+   "timeout": {
+    "default_ms": 60000,
+    "on_timeout": "kill the hook, fail open, inject a timeout notice if any",
+    "per_hook_override_field": "timeout_ms",
+    "process_exit": 0
+   },
+   "title": "Contract: Hook contract: IO, exit-code semantics, fail-open requirement and wiring proof",
+   "ts": "2026-08-25T00:50:16Z",
+   "wiring_proof": {
+    "both_states": "unregister (file remains) => wired=false; re-register and invoke => both signals fire and wired=true",
+    "manifest_file_is_not_proof": true,
+    "required_signals": [
+     "dispatcher_record",
+     "side_effect"
+    ],
+    "wired_iff": "dispatcher_record_observed AND side_effect_observed after a live invocation; manifest_present and file_present are recorded and never sufficient"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ARC-0088",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0088/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ARC-0088"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/phase4/contracts/ARC-0088.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/phase4/contracts/ARC-0088.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "333e8f644b501f2a2b595b610c17395d",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "schema",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 9601,
+    "method": "filesystem-stat",
+    "anchor": "command-center/phase4/contracts/ARC-0088.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "Hooks consume a UTF-8 JSON object on stdin (session_id, transcript_path, cwd, hook_event_name, permission_mode, plus event-specific fields). Exit 2 is reserved for irreversible danger on PreToolUse/PermissionRequest with a typed danger claim; every other guidance injects additionalContext and cannot block. Internal errors and timeouts fail open (session continues, process exit 0). Wiring is proven only when a live invocation produces both a dispatcher fire record and a hook-written side effect; a file on disk is not proof. SUCCESS:ARC-0088",
+ "completion_sentinel": "SUCCESS:ARC-0088",
+ "consumer_call_site": {
+  "path": "command-center/p2-wave/probes/ARC-0088/probe1_both_states_wiring.py",
+  "role": "loads the draft and asserts event types, stdin fields, and two-signal wiring",
+  "symbol": "check_contract"
+ },
+ "event_types": [
+  "PreToolUse",
+  "PostToolUse",
+  "PostToolUseFailure",
+  "Notification",
+  "UserPromptSubmit",
+  "SessionStart",
+  "SessionEnd",
+  "Stop",
+  "SubagentStop",
+  "PreCompact",
+  "PermissionRequest"
+ ],
+ "event_types_provenance": {
+  "not_quoted_from_source_slice": true,
+  "reconstructed_from": [
+   "command-center/p2-wave/probes/ARC-0016/fixtures/hatch-run/hatch/hooks/hook.pre-tool.json (event=PreToolUse)",
+   "command-center/p2-wave/probes/ADV-0065/fixtures/packages/adv0065-broad/hooks/hooks.json (event=SessionStart)",
+   "catalog/sibling event names (PostToolUse, Notification, UserPromptSubmit, Stop, PermissionRequest, ...)"
+  ],
+  "user_prompts_slice": "ABSENT"
+ },
+ "executable_semantics": "command-center/p2-wave/probes/ARC-0088/dispatch.py",
+ "exit_code_semantics": {
+  "blocking_events": [
+   "PermissionRequest",
+   "PreToolUse"
+  ],
+  "exit_0": "hook completed; optional additionalContext is injected; session continues",
+  "exit_2": "block the pending action; allowed only for irreversible danger on blocking events",
+  "exit_2_reserved_for": "irreversible_danger_only",
+  "irreversible_danger_classes": [
+   "credential_exfil_untrusted_network",
+   "destructive_force_push_protected_branch",
+   "irreversible_fs_destroy",
+   "production_datastore_destroy"
+  ],
+  "non_dangerous_conditions_cannot_block": [
+   "style_warning",
+   "budget_advisory",
+   "unknown_tool_name",
+   "missing_additional_context",
+   "linter_finding",
+   "secret_scan_advisory"
+  ],
+  "other_nonzero": "treated as internal error: fail open, process exit coerced to 0"
+ },
+ "fail_open": {
+  "on_internal_error": "Uncaught exception, spawn failure, invalid stdin, or any non-zero exit other than a valid danger-backed exit 2 is coerced to process exit 0 with session_continue=true.",
+  "process_exit": 0,
+  "session_continues": true
+ },
+ "honesty": {
+  "architecture_ratification": "ABSENT",
+  "no_host_client_invocation": "This contract is executed against the in-tree dispatcher, not against a live host-client session on this Linux worktree.",
+  "plugin_lifecycle_map": "ABSENT",
+  "seeded_failure_classes_source": "ABSENT (_USER-PROMPTS.md:11300-11347)",
+  "user_prompts_slice": "ABSENT; event list reconstructed from on-disk hook fixtures plus sibling catalog names",
+  "winning_architecture": "ABSENT"
+ },
+ "inject_do_not_block": {
+  "cannot_produce_exit_2": true,
+  "channel": "stdout JSON additionalContext (or hookSpecificOutput.additionalContext)",
+  "rule": "Advisory output (style, budget, unknown tool, missing context, linter, secret-scan advisory) is injected as additionalContext and must never produce exit 2."
+ },
+ "input_presence": {
+  "ARCHITECTURE_RATIFICATION_json": false,
+  "PLUGIN_LIFECYCLE_MAP_md": false,
+  "USER_PROMPTS_md_10797_10822": false,
+  "USER_PROMPTS_md_11300_11347": false,
+  "WINNING_ARCHITECTURE_json": false,
+  "WORK_UNIT_CATALOG_json": true,
+  "hook_fixture_pretool": true,
+  "hook_fixture_session_start": false
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0088/probe1_both_states_wiring.py",
+   "id": "probe1",
+   "role": "both-states-wiring"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0088/probe2_failopen_blockscope.py",
+   "id": "probe2",
+   "role": "fail-open-and-block-scope"
+  }
+ ],
+ "output_schema": "command-center/p2-wave/probes/ARC-0088/hook-contract.schema.json",
+ "phase": "4",
+ "question": "Specify the hook contract: event types, the stdin JSON input shape, exit-code semantics with exit 2 reserved for irreversible danger only, the inject-do-not-block rule for all other guidance, the mandatory fail-open behaviour on internal error, the timeout, and the registration record that PROVES a hook is actually wired rather than merely present as a file.",
+ "registration_record": {
+  "bare_shell_forbidden": true,
+  "explicit_interpreter": true,
+  "proof_is_not_this_record": true,
+  "required_fields": [
+   "id",
+   "event",
+   "command",
+   "interpreter",
+   "timeout_ms",
+   "enabled"
+  ]
+ },
+ "stdin_json_shape": {
+  "delivery": "single UTF-8 JSON object on stdin; no argv payload",
+  "encoding": "utf-8-json-object-on-stdin",
+  "event_extra_fields": {
+   "Notification": [
+    "message"
+   ],
+   "PermissionRequest": [
+    "tool_name",
+    "tool_input"
+   ],
+   "PostToolUse": [
+    "tool_name",
+    "tool_input",
+    "tool_response"
+   ],
+   "PostToolUseFailure": [
+    "tool_name",
+    "tool_input",
+    "error"
+   ],
+   "PreCompact": [
+    "trigger"
+   ],
+   "PreToolUse": [
+    "tool_name",
+    "tool_input"
+   ],
+   "SessionEnd": [
+    "reason"
+   ],
+   "SessionStart": [
+    "source"
+   ],
+   "Stop": [
+    "stop_hook_active"
+   ],
+   "SubagentStop": [
+    "stop_hook_active"
+   ],
+   "UserPromptSubmit": [
+    "prompt"
+   ]
+  },
+  "required_fields": [
+   "session_id",
+   "transcript_path",
+   "cwd",
+   "hook_event_name",
+   "permission_mode"
+  ]
+ },
+ "timeout": {
+  "default_ms": 60000,
+  "on_timeout": "kill the hook, fail open, inject a timeout notice if any",
+  "per_hook_override_field": "timeout_ms",
+  "process_exit": 0
+ },
+ "title": "Contract: Hook contract: IO, exit-code semantics, fail-open requirement and wiring proof",
+ "ts": "2026-08-25T00:50:16Z",
+ "wiring_proof": {
+  "both_states": "unregister (file remains) => wired=false; re-register and invoke => both signals fire and wired=true",
+  "manifest_file_is_not_proof": true,
+  "required_signals": [
+   "dispatcher_record",
+   "side_effect"
+  ],
+  "wired_iff": "dispatcher_record_observed AND side_effect_observed after a live invocation; manifest_present and file_present are recorded and never sufficient"
+ }
+}

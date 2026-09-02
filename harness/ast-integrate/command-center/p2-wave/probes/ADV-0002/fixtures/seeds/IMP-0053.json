@@ -1,0 +1,368 @@
+{
+ "evidence": [
+  {
+   "claim": "IMP-0053 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0053.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0053.json",
+     "raw_output": "bytes=9494 sha256=c159809120fcc6d3ba34faf380a3461feca2c7703cd91f2d2f35759a526690c5",
+     "fingerprint": "cb9472e8499bc5ec93f79f8d6f45487a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0053",
+     "raw_output": "schema-check",
+     "fingerprint": "6ecce4f0b7416355432ce6125bfa9363",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0053 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0053",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0053",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "137199de55f2b69a85345363524b9eef",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0053",
+     "raw_output": "schema-valid",
+     "fingerprint": "566758897094c8a700aab426cee8a574",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:IMP-0053",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0053.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "IMP-0053",
+ "extensions": {
+  "legacy_root": {
+   "components": [
+    {
+     "id": "hooks",
+     "injection": {
+      "degraded": true,
+      "denied": false,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": true
+     },
+     "kind": "hook",
+     "on_failure": "proceed",
+     "posture": "fail-open",
+     "rationale": "Hooks must never block the user. A raising or unparseable hook still exits 0 and the session proceeds, degraded.",
+     "source_rule": "AGENTS.md#6"
+    },
+    {
+     "id": "advisories",
+     "injection": {
+      "degraded": true,
+      "denied": false,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": true
+     },
+     "kind": "advisory",
+     "on_failure": "proceed",
+     "posture": "fail-open",
+     "rationale": "Advisories inject context; they are not a hard stop. Failure to emit an advisory must not refuse the operation.",
+     "source_rule": "AGENTS.md#6"
+    },
+    {
+     "id": "degrade_loudly",
+     "injection": {
+      "degraded": true,
+      "denied": false,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": true
+     },
+     "kind": "warning-channel",
+     "on_failure": "proceed",
+     "posture": "fail-open",
+     "rationale": "The degrade-loudly sink is a warning channel. A write failure must not convert a warning into a blocked user.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "heartbeat",
+     "injection": {
+      "degraded": true,
+      "denied": false,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": true
+     },
+     "kind": "heartbeat",
+     "on_failure": "proceed",
+     "posture": "fail-open",
+     "rationale": "A heartbeat is a liveness surface. Failure to advance a token must not abort the long-running operation.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "validators",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "validator",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "An unverifiable package or config must not proceed. Validator errors deny.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "secret_gate",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "secret-gate",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "A leaked credential is unrecoverable once published. Gate errors deny.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "signature_check",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "signature",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "An invalid or missing signature must refuse the operation, never skip the check.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "payload_allowlist",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "allowlist",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "Shipping unintended content is deny-by-default. Allowlist errors deny.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "forbidden_content",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "content-gate",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "Forbidden-content detection that cannot complete must deny rather than ship.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    },
+    {
+     "id": "tool_permissions",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "permission",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "Undeclared writes, spawns, or network calls are refused. Permission-check errors deny.",
+     "source_rule": "_USER-PROMPTS.md:11359"
+    },
+    {
+     "id": "rollback",
+     "injection": {
+      "degraded": false,
+      "denied": true,
+      "error": "RuntimeError('IMP-0053-injected-fault')",
+      "failure": true,
+      "proceed": false
+     },
+     "kind": "rollback",
+     "on_failure": "deny",
+     "posture": "fail-closed",
+     "rationale": "A rollback that cannot invert applied steps must not report success. Errors deny.",
+     "source_rule": "_USER-PROMPTS.md:10840"
+    }
+   ],
+   "encoded_published_rule": "AGENTS.md#6: Exit 2 (block) only for irreversible/dangerous work. Exit 0 + inject for all other guidance. All hook code wrapped in try/except; any hook error exits 0 (fail-open). Validators, secret gates, and signature checks are not hooks: they deny on error. Changing a row is owner-gated (_USER-PROMPTS.md:11359).",
+   "hooks_syntax_error": {
+    "degraded": true,
+    "denied": false,
+    "error": "JSONDecodeError('Expecting property name enclosed in double quotes: line 1 column 2 (char 1)')",
+    "failure": true,
+    "proceed": true
+   },
+   "human_owner_signature_present": false,
+   "id": "IMP-0053",
+   "notes": "G-1 for IMP-0053: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+   "owner_approval_required_to_change_a_row": true,
+   "owner_lock": {
+    "flip_requires": "owner sign-off",
+    "note": "This table records the published rule. It does not invent a new security posture. Flipping any row remains owner-gated.",
+    "posture_change_owner_gated": true
+   },
+   "policy_schema": "tools/plugin/schema/failure-policy.schema.json",
+   "policy_table": "tools/plugin/failure_policy.json",
+   "posture_change": false,
+   "posture_change_note": "This unit encodes AGENTS.md#6 (block only dangerous; inject otherwise; hook errors exit 0). It does not invent a new posture. Flipping a row remains owner-gated.",
+   "question": "Declare, per component, whether a failure is fail-open (hooks and advisories must never block the user) or fail-closed (validators, secret gates, signature checks must deny on error), record the rationale, and enforce the declaration with a test per component.",
+   "schema": "command-center/schema/receipt.schema.json",
+   "static_audit": {
+    "clean": true,
+    "fail_closed_ids": [
+     "validators",
+     "secret_gate",
+     "signature_check",
+     "payload_allowlist",
+     "forbidden_content",
+     "tool_permissions",
+     "rollback"
+    ],
+    "findings": [],
+    "missing_apply": [],
+    "path": "fp_components.py"
+   },
+   "status": "DELIVERED",
+   "title": "Fail-open versus fail-closed policy table per plugin component",
+   "ts": "2026-08-25T00:59:28Z"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0053",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0053.json",
+   "bytes": 9494,
+   "sha256": "c159809120fcc6d3ba34faf380a3461feca2c7703cd91f2d2f35759a526690c5",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0053/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0053"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0053.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0053.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "7012d34e0fea0591476c1a30ae06c3f6",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "failure-policy",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 9494,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0053.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

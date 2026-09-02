@@ -1,0 +1,139 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0043/council-design-note.schema.json",
+  "title": "CNL-0043 FORECASTING runtime design note (per-unit; catalog schema is a $ref shim)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "kind",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "family_census",
+    "protocols",
+    "unresolvable_as_written",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "evidence",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0043" },
+    "kind": { "type": "string", "const": "council-design-note" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0043" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "family_census": {
+      "type": "object",
+      "required": ["family", "expected_n", "ok"],
+      "properties": {
+        "family": { "type": "string", "const": "FORECASTING" },
+        "expected_n": { "type": "integer", "minimum": 5, "maximum": 5 },
+        "ok": { "type": "boolean", "const": true }
+      }
+    },
+    "protocols": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["id", "resolution_criterion", "scoring_rule"],
+        "properties": {
+          "id": {
+            "type": "string",
+            "enum": ["P33", "P34", "P35", "P36", "P37"]
+          },
+          "resolution_criterion": { "type": "string", "minLength": 16 },
+          "scoring_rule": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "unresolvable_as_written": {
+      "type": "object",
+      "required": ["forecast_ids", "forecast_count"],
+      "properties": {
+        "forecast_ids": {
+          "type": "array",
+          "minItems": 5,
+          "maxItems": 5,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "forecast_count": { "type": "integer", "minimum": 5, "maximum": 5 }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "on_state", "observed"],
+        "properties": {
+          "id": { "type": "string" },
+          "on_state": { "type": "string", "minLength": 8 },
+          "observed": { "type": "string", "minLength": 24 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

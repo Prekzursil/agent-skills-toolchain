@@ -1,0 +1,340 @@
+{
+ "answer": "Yes on this Linux worktree. FollowReader kept the open fd, drained it when the path inode changed, opened the new live file from byte 0, and carried a mid-line fragment across the seam. Live consumed lines equalled the offline concatenation of monitor.log.1 then monitor.log (75 complete lines). A no-rotation control produced the same count. StuckFdReader missed every post-rotate line; RecountOnRotateReader double-counted the pre-rotate lines. tools/monitorcore is absent here, so the monitor under test is the inode-follow tailer in probes/TST-0155/reader.py (same pattern as CNF-0047).",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0155.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0155/reader.py",
+   "role": "monitor-under-test",
+   "sha256": "d33f9862251e0cef42d060b663c9ad4da2d65a48e903a95bf82cc78b7b06eb66"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0155/harness.py",
+   "role": "supporting",
+   "sha256": "429f0598f9d0698ca8e1ed7eb630692eb8324b38869a73b3e55042ee3be92cd9"
+  }
+ ],
+ "both_states": {
+  "expected_total": 75,
+  "no_rotation": {
+   "crash_exc": null,
+   "crashed": false,
+   "expected_count": 75,
+   "inode_changed": false,
+   "live_bytes": 702,
+   "live_exists": true,
+   "match": true,
+   "monitor_count": 75,
+   "monitor_head": [
+    "pre.0000",
+    "pre.0001",
+    "pre.0002"
+   ],
+   "monitor_tail": [
+    "post.0024",
+    "post.0025",
+    "post.0026"
+   ],
+   "offline_count": 75,
+   "offline_head": [
+    "pre.0000",
+    "pre.0001",
+    "pre.0002"
+   ],
+   "pass": true,
+   "polls": 565,
+   "reader": "FollowReader",
+   "recounts": 0,
+   "rotated_bytes": 0,
+   "rotated_exists": false,
+   "rotations": 0,
+   "scenario": "no-rotation",
+   "truncations": 0
+  },
+  "same_count": true,
+  "with_rotation": {
+   "monitor_count": 75,
+   "offline_count": 75
+  }
+ },
+ "boundary": {
+  "between_writes": {
+   "crash_exc": null,
+   "crashed": false,
+   "expected_count": 75,
+   "inode_changed": true,
+   "live_bytes": 270,
+   "live_exists": true,
+   "live_inode_after": 1570706,
+   "live_inode_before": 1442926,
+   "match": true,
+   "monitor_count": 75,
+   "monitor_head": [
+    "pre.0000",
+    "pre.0001",
+    "pre.0002"
+   ],
+   "monitor_tail": [
+    "post.0024",
+    "post.0025",
+    "post.0026"
+   ],
+   "offline_count": 75,
+   "offline_head": [
+    "pre.0000",
+    "pre.0001",
+    "pre.0002"
+   ],
+   "pass": true,
+   "polls": 553,
+   "reader": "FollowReader",
+   "recounts": 0,
+   "rotated_bytes": 432,
+   "rotated_exists": true,
+   "rotated_inode": 1442926,
+   "rotated_is_old_live": true,
+   "rotations": 1,
+   "scenario": "rotation-between-writes",
+   "truncations": 0
+  },
+  "mid_line": {
+   "crash_exc": null,
+   "crashed": false,
+   "inode_changed": true,
+   "live_bytes": 5,
+   "live_exists": true,
+   "live_inode_after": 1616252,
+   "live_inode_before": 1616251,
+   "match": true,
+   "monitor_count": 1,
+   "monitor_head": [
+    "HEAD-TAIL"
+   ],
+   "monitor_lines": [
+    "HEAD-TAIL"
+   ],
+   "monitor_tail": [
+    "HEAD-TAIL"
+   ],
+   "offline_count": 1,
+   "offline_head": [
+    "HEAD-TAIL"
+   ],
+   "offline_lines": [
+    "HEAD-TAIL"
+   ],
+   "pass": true,
+   "polls": 173,
+   "reader": "FollowReader",
+   "recounts": 0,
+   "rotated_bytes": 5,
+   "rotated_exists": true,
+   "rotated_inode": 1616251,
+   "rotated_is_old_live": true,
+   "rotations": 1,
+   "scenario": "rotation-mid-line",
+   "truncations": 0
+  },
+  "mid_line_emitted": [
+   "HEAD-TAIL"
+  ],
+  "mid_line_offline": [
+   "HEAD-TAIL"
+  ]
+ },
+ "completion_sentinel": "SUCCESS:TST-0155",
+ "evidence": [
+  {
+   "claim": "FollowReader emitted exactly the pre-rotation lines then the post-rotation lines, with no recap and no crash.",
+   "id": "a-monitor-counted-lines",
+   "kind": "live-reader",
+   "monitor_count": 75,
+   "path": "command-center/p2-wave/probes/TST-0155/reader.py",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "claim": "Independent split of monitor.log.1 bytes concatenated with monitor.log bytes produced the same list.",
+   "id": "b-offline-concat",
+   "kind": "offline-file-concat",
+   "offline_count": 75,
+   "path": "command-center/p2-wave/probes/TST-0155/harness.py",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_verdicts": [
+  "CONFIRMED",
+  "CONFIRMED"
+ ],
+ "id": "TST-0155",
+ "min_bytes_threshold": 2048,
+ "monitor_under_test": {
+  "class": "FollowReader",
+  "note": "tools/monitorcore is absent on this Linux worktree. The unit runs the rotation-safe tailer required by the question: inode follow, partial-line carry, no recap of consumed bytes.",
+  "path": "command-center/p2-wave/probes/TST-0155/reader.py",
+  "production_monitorcore_present": true,
+  "signals": [
+   "live FollowReader.consumed complete lines",
+   "offline concat of rotated-then-live file bytes"
+  ],
+  "source_sha256": "d33f9862251e0cef42d060b663c9ad4da2d65a48e903a95bf82cc78b7b06eb66"
+ },
+ "negative_controls": [
+  {
+   "detail": "Keeps the original fd after rename-rotate (tail -f without -F). Counted only the pre-rotation lines; offline concat still had pre+post.",
+   "fired_on_bad_state": true,
+   "id": "TST-0155-NC-STUCK-FD",
+   "monitor_count": 48,
+   "offline_count": 75,
+   "reader": "StuckFdReader",
+   "silent_on_good_state": true
+  },
+  {
+   "detail": "On inode change, re-reads monitor.log.1 from byte 0 and appends those lines on top of lines already consumed. Counted 123 against offline 75.",
+   "fired_on_bad_state": true,
+   "id": "TST-0155-NC-RECOUNT-ON-ROTATE",
+   "monitor_count": 123,
+   "offline_count": 75,
+   "reader": "RecountOnRotateReader",
+   "recounts": 48,
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for TST-0155: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. Cloud ok=true is not delivery. Did not rotate or print API keys. SUCCESS:TST-0155",
+ "output_path": "command-center/receipts/TST-0155.json",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/monitor_report",
+ "produced_by": {
+  "execution_substrate": "linux-local-serialized",
+  "platform": "Linux-6.18.33.2-microsoft-standard-WSL2-x86_64-with-glibc2.39",
+  "python": "3.12.3",
+  "role": "observability-tester",
+  "worktree": "/home/prekzursil/p2-g1"
+ },
+ "profile": "monitor-report",
+ "question_or_target": "While the monitor tails a log, rotate it: does the reader continue without crashing and without re-counting lines already consumed? PASS requires an exact line-count match against the concatenated pre- and post-rotation content.",
+ "reader_api": {
+  "complete_lines_ignores_trailing_fragment": true,
+  "follow_uses_inode": true,
+  "recount_cls": "RecountOnRotateReader",
+  "stuck_cls": "StuckFdReader"
+ },
+ "report_kind": "monitor_report",
+ "residuals": [
+  {
+   "detail": "Catalog reviewer_requirement asked for a second Windows shell. Substrate here is Linux; the rotation property was proven with os.replace on an open fd.",
+   "id": "windows-second-shell",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "detail": "tools/monitorcore is not in this worktree. The unit ships and tests FollowReader rather than claiming a missing production binary passed.",
+   "id": "production-monitorcore-absent",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "detector_control_rerun": true,
+  "independent": true,
+  "method": "Named probe2 re-runs the no-rotation control, the mid-line boundary, and both known-broken readers. It does not share probe1's process or consumed list.",
+  "reviewer_id": "TST-0155-probe2-both-states-midline-negatives",
+  "verdict": "PASS",
+  "windows_second_shell": {
+   "executed": false,
+   "reason": "This worktree is Linux. pwsh7 and Git Bash were not available. Residual: a Windows rename of an open live log can fail where Linux os.replace succeeds; that platform-gap is recorded, not claimed PASS.",
+   "required_by_catalog": true,
+   "verdict": "NOT-CHECKED"
+  }
+ },
+ "sentinel": "SUCCESS:TST-0155",
+ "source_hashes": {
+  "command-center/p2-wave/probes/TST-0155/harness.py": {
+   "bytes": 9713,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0155/harness.py",
+   "sha256": "429f0598f9d0698ca8e1ed7eb630692eb8324b38869a73b3e55042ee3be92cd9"
+  },
+  "command-center/p2-wave/probes/TST-0155/reader.py": {
+   "bytes": 7603,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0155/reader.py",
+   "sha256": "d33f9862251e0cef42d060b663c9ad4da2d65a48e903a95bf82cc78b7b06eb66"
+  }
+ },
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "target_result": {
+  "between_writes": {
+   "crash_exc": null,
+   "crashed": false,
+   "expected_count": 75,
+   "inode_changed": true,
+   "live_bytes": 270,
+   "live_exists": true,
+   "live_inode_after": 1570706,
+   "live_inode_before": 1442926,
+   "match": true,
+   "monitor_count": 75,
+   "monitor_head": [
+    "pre.0000",
+    "pre.0001",
+    "pre.0002"
+   ],
+   "monitor_tail": [
+    "post.0024",
+    "post.0025",
+    "post.0026"
+   ],
+   "offline_count": 75,
+   "offline_head": [
+    "pre.0000",
+    "pre.0001",
+    "pre.0002"
+   ],
+   "pass": true,
+   "polls": 553,
+   "reader": "FollowReader",
+   "recounts": 0,
+   "rotated_bytes": 432,
+   "rotated_exists": true,
+   "rotated_inode": 1442926,
+   "rotated_is_old_live": true,
+   "rotations": 1,
+   "scenario": "rotation-between-writes",
+   "truncations": 0
+  },
+  "pass": true
+ },
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0155/probe1_rotation_match.py",
+   "id": "TST-0155-TARGET-ROTATION-MATCH",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0155/probe2_both_states_and_boundary.py",
+   "id": "TST-0155-BOTH-STATES-NO-ROTATION",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0155/probe2_both_states_and_boundary.py",
+   "id": "TST-0155-BOUNDARY-MID-LINE",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0155/probe2_both_states_and_boundary.py",
+   "id": "TST-0155-NEGATIVE-STUCK-FD",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0155/probe2_both_states_and_boundary.py",
+   "id": "TST-0155-NEGATIVE-RECOUNT",
+   "result": "PASS"
+  }
+ ],
+ "title": "Log rotation under a live reader causes neither crash nor double-count",
+ "ts": "2026-09-02T00:55:08Z",
+ "unit_id": "TST-0155"
+}

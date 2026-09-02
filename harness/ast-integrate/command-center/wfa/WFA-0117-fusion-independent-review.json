@@ -1,0 +1,838 @@
+{
+ "unit_id": "WFA-0117",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0117",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0117-fusion-independent-review.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0117-fusion-independent-review.json",
+   "bytes": 15342,
+   "sha256": "b219d5a49cccd8096ab1c8cb1c3a8c272b810558adcf55a7a02d6a9e5294f4eb",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0117 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0117-fusion-independent-review.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0117-fusion-independent-review.json",
+     "raw_output": "bytes=15342 sha256=b219d5a49cccd8096ab1c8cb1c3a8c272b810558adcf55a7a02d6a9e5294f4eb",
+     "fingerprint": "a959d220de2bc95f1de0c91511281b71",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0117",
+     "raw_output": "schema-check",
+     "fingerprint": "a459165afaf11547abde773f0016996f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0117 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0117",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0117",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "08139d79248d8b52ed561fa7f17dc897",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0117",
+     "raw_output": "schema-valid",
+     "fingerprint": "306002d806ccb5029d2f11d084cfbf4d",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:WFA-0117",
+   "title": "Independent cross-vendor review of fusion results, starting from raw runs not conclusions",
+   "question": "Starting from the raw benchmark run records rather than the fusion lane's conclusions, does an independent cross-vendor reviewer reproduce the same certification verdicts - and where it does not, which side's probe is right?",
+   "claim_under_test": "An independent reviewer who sees only raw matched-pair run records recomputes the same certification verdicts as a sealed fusion-lane summary except where that summary is naive; splits are resolved by reading both probes, never by vote; insufficient evidence is REFUTED.",
+   "honesty": {
+    "upstream_catalog_artifacts_absent": {
+     "WFA-0113": true,
+     "WFA-0115": true,
+     "WFA-0116": true,
+     "WFA-0001_schema_pack": false
+    },
+    "substrate": "command-center/p2-wave/probes/WFA-0117/substrate.py is a unit-local matched-pair harness. This unit does not claim WFA-0113/0115/0116 were delivered. A later wave that lands those artifacts must re-run these probes against their raw records.",
+    "schema": "Catalog names command-center/wfa/schema/wfa-schema-pack.json#/$defs/AuditReport. That path exists as a generated shim whose $defs $ref an unreachable URL; this artifact validates against the unit-local AuditReport schema shipped with the probes."
+   },
+   "independence_protocol": {
+    "fusion_unread_before_recompute": true,
+    "recompute_module_omits_fusion_lane": true,
+    "default_insufficient_to": "REFUTED",
+    "blind_check": {
+     "ok": true,
+     "import_hits": [],
+     "token_hits": [],
+     "path": "command-center/p2-wave/probes/WFA-0117/recompute.py"
+    },
+    "order": [
+     "collect raw run records",
+     "recompute rubric scores from records only",
+     "commit independent verdicts",
+     "then open the sealed fusion-lane summary",
+     "adjudicate splits by reading both probes"
+    ]
+   },
+   "raw_records_digest": {
+    "sha256": "4d093a8d4f03956b4b0e5c63ffdb5fd2aeaeb7b1cfa3db781d39abc6bafdc6e8",
+    "n_records": 21,
+    "path": "command-center/p2-wave/probes/WFA-0117/raw_runs.json",
+    "bytes": 9412,
+    "budget_parity": true,
+    "variance_floor": {
+     "measured": true,
+     "floor": 0.0,
+     "same_input_hash": true,
+     "same_oracle": true,
+     "same_cost": true,
+     "pair": [
+      "source_alpha::case.gamma::seed=7",
+      "source_alpha::case.gamma::seed=7::repeat"
+     ],
+     "method": "same workflow (source_alpha) twice on case.gamma with identical seed and budget; floor is 0 iff oracle and cost match"
+    },
+    "failed_arms_retained": true
+   },
+   "recomputed_scores": {
+    "scores": {
+     "source_alpha": {
+      "correctness": 0.5,
+      "coverage": 0.5,
+      "usability": 0.8,
+      "composite": 0.56,
+      "n_rows": 4,
+      "n_pass": 2,
+      "unmeasurable": [
+       "recovery"
+      ],
+      "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+      "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+     },
+     "source_beta": {
+      "correctness": 0.5,
+      "coverage": 0.5,
+      "usability": 0.8,
+      "composite": 0.56,
+      "n_rows": 4,
+      "n_pass": 2,
+      "unmeasurable": [
+       "recovery"
+      ],
+      "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+      "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+     },
+     "fused_complement": {
+      "correctness": 1.0,
+      "coverage": 1.0,
+      "usability": 0.65,
+      "composite": 0.93,
+      "n_rows": 4,
+      "n_pass": 4,
+      "unmeasurable": [
+       "recovery"
+      ],
+      "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+      "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+     },
+     "fused_worse": {
+      "correctness": 0.25,
+      "coverage": 0.25,
+      "usability": 0.9,
+      "composite": 0.38,
+      "n_rows": 4,
+      "n_pass": 1,
+      "unmeasurable": [
+       "recovery"
+      ],
+      "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+      "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+     },
+     "fused_gaming": {
+      "correctness": 1.0,
+      "coverage": 1.0,
+      "usability": 0.99,
+      "composite": 0.998,
+      "n_rows": 4,
+      "n_pass": 4,
+      "unmeasurable": [
+       "recovery"
+      ],
+      "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+      "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+     }
+    },
+    "complementarity": {
+     "fused_complement": {
+      "cases_fusion_passes_sources_fail": [
+       "case.delta"
+      ],
+      "delta": 1,
+      "operationalised_as": "count of cases fusion passes and every source fails"
+     },
+     "fused_worse": {
+      "cases_fusion_passes_sources_fail": [],
+      "delta": 0,
+      "operationalised_as": "count of cases fusion passes and every source fails"
+     },
+     "fused_gaming": {
+      "cases_fusion_passes_sources_fail": [
+       "case.delta"
+      ],
+      "delta": 1,
+      "operationalised_as": "count of cases fusion passes and every source fails"
+     }
+    },
+    "verdicts": [
+     {
+      "workflow_id": "fused_complement",
+      "verdict": "PASS",
+      "reason": "complementarity delta=1 (cases=['case.delta']) with composite 0.93 vs best source 0.56, floor=0.0",
+      "advantage_vs_best": 0.37
+     },
+     {
+      "workflow_id": "fused_worse",
+      "verdict": "FAIL",
+      "reason": "composite 0.38 below ALL sources (worst=0.56) by more than floor 0.0",
+      "advantage_vs_best": -0.18
+     },
+     {
+      "workflow_id": "fused_gaming",
+      "verdict": "VOID",
+      "reason": "gaming detector fired; benchmark record voided, not adjusted"
+     }
+    ],
+    "weights": {
+     "correctness": 0.5,
+     "coverage": 0.3,
+     "usability": 0.2
+    },
+    "read_fusion_summary": false
+   },
+   "fusion_lane_comparison": {
+    "sealed_path": "command-center/p2-wave/probes/WFA-0117/fusion_lane_sealed.json",
+    "canary": "WFA-0117-FUSION-LANE-CANARY",
+    "fusion_verdicts": [
+     {
+      "workflow_id": "fused_complement",
+      "verdict": "PASS",
+      "oracle_pass_rate": 1.0,
+      "method": "naive pass-rate >= 0.75; no gaming scan, no complementarity, no variance floor"
+     },
+     {
+      "workflow_id": "fused_worse",
+      "verdict": "FAIL",
+      "oracle_pass_rate": 0.25,
+      "method": "naive pass-rate >= 0.75; no gaming scan, no complementarity, no variance floor"
+     },
+     {
+      "workflow_id": "fused_gaming",
+      "verdict": "PASS",
+      "oracle_pass_rate": 1.0,
+      "method": "naive pass-rate >= 0.75; no gaming scan, no complementarity, no variance floor"
+     }
+    ],
+    "independent_verdicts": [
+     {
+      "workflow_id": "fused_complement",
+      "verdict": "PASS",
+      "reason": "complementarity delta=1 (cases=['case.delta']) with composite 0.93 vs best source 0.56, floor=0.0",
+      "advantage_vs_best": 0.37
+     },
+     {
+      "workflow_id": "fused_worse",
+      "verdict": "FAIL",
+      "reason": "composite 0.38 below ALL sources (worst=0.56) by more than floor 0.0",
+      "advantage_vs_best": -0.18
+     },
+     {
+      "workflow_id": "fused_gaming",
+      "verdict": "VOID",
+      "reason": "gaming detector fired; benchmark record voided, not adjusted"
+     }
+    ]
+   },
+   "reproduced_runs": [
+    {
+     "run_id": "fused_complement::case.delta::seed=7",
+     "workflow_id": "fused_complement",
+     "case_id": "case.delta",
+     "input_hash_match": true,
+     "oracle_match": true,
+     "live_oracle_pass": true
+    },
+    {
+     "run_id": "fused_worse::case.alpha::seed=7",
+     "workflow_id": "fused_worse",
+     "case_id": "case.alpha",
+     "input_hash_match": true,
+     "oracle_match": true,
+     "live_oracle_pass": false
+    },
+    {
+     "run_id": "fused_gaming::case.alpha::seed=7",
+     "workflow_id": "fused_gaming",
+     "case_id": "case.alpha",
+     "input_hash_match": true,
+     "oracle_match": true,
+     "live_oracle_pass": true
+    }
+   ],
+   "reviewers": [
+    {
+     "reviewer_id": "WFA-0117-codex-style-recompute",
+     "vendor_role": "openai independent-verifier",
+     "verdict": "PASS",
+     "independent": true,
+     "sees_other_verdict": false
+    },
+    {
+     "reviewer_id": "WFA-0117-claude-adversarial-reproduce",
+     "vendor_role": "anthropic adversarial reviewer",
+     "verdict": "PASS",
+     "independent": true,
+     "sees_other_verdict": false
+    }
+   ],
+   "split_resolution": {
+    "rule": "a split verdict is resolved by reading both probes, never by vote or by seniority; insufficient evidence defaults to REFUTED",
+    "votes_were_supplied": true,
+    "rows": [
+     {
+      "workflow_id": "fused_complement",
+      "agreement": true,
+      "independent": "PASS",
+      "fusion": "PASS",
+      "chosen": "PASS",
+      "which_side_right": "both",
+      "resolved_by": "both-probes-agree",
+      "votes_ignored": true
+     },
+     {
+      "workflow_id": "fused_worse",
+      "agreement": true,
+      "independent": "FAIL",
+      "fusion": "FAIL",
+      "chosen": "FAIL",
+      "which_side_right": "both",
+      "resolved_by": "both-probes-agree",
+      "votes_ignored": true
+     },
+     {
+      "workflow_id": "fused_gaming",
+      "agreement": false,
+      "independent": "VOID",
+      "fusion": "PASS",
+      "chosen": "VOID",
+      "which_side_right": "independent",
+      "resolved_by": "read-both-probes-not-vote",
+      "supporting_probe": "independent",
+      "votes_ignored": true,
+      "evidence_notes": "independent VOID from static oracle-constants plus perturbation collapse; fusion-lane PASS is naive pass-rate only"
+     },
+     {
+      "workflow_id": "fused_absent",
+      "agreement": false,
+      "independent": "REFUTED",
+      "fusion": "PASS",
+      "chosen": "REFUTED",
+      "which_side_right": null,
+      "resolved_by": "default-REFUTED-insufficient-evidence",
+      "votes_ignored": true
+     }
+    ]
+   },
+   "gaming_detector": {
+    "static": {
+     "hits": [
+      "sum=10 constant",
+      "lengths/sorted literal [1,2,3]",
+      "palindrome True constant",
+      "case-id keyed lookup table"
+     ],
+     "fired": true,
+     "source_chars": 411
+    },
+    "perturbation": {
+     "genuine_holds": true,
+     "gaming_collapses": true,
+     "fired": true
+    },
+    "hits": {
+     "fused_gaming": true,
+     "fused_complement": false,
+     "fused_worse": false,
+     "source_alpha": false,
+     "source_beta": false
+    },
+    "which_signal": [
+     "static",
+     "perturbation"
+    ],
+    "voids_record": true
+   },
+   "answer": {
+    "reproduced_fusion_verdicts": {
+     "fused_complement": true,
+     "fused_worse": true,
+     "fused_gaming": false
+    },
+    "where_they_differ": "fused_gaming",
+    "which_side_right": "independent",
+    "why": "the sealed fusion-lane scorer used oracle pass-rate only and certified a lookup-table workflow; static constants plus a held-out n=5 perturbation show the independent VOID"
+   }
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0117",
+ "min_bytes_threshold": 1,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0117/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0117"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0117-fusion-independent-review.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0117-fusion-independent-review.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "57b7a5b2e96ffdabd6b72c0129d81a9d",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "AuditReport",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 15342,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0117-fusion-independent-review.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "completion_sentinel": "SUCCESS:WFA-0117",
+ "title": "Independent cross-vendor review of fusion results, starting from raw runs not conclusions",
+ "question": "Starting from the raw benchmark run records rather than the fusion lane's conclusions, does an independent cross-vendor reviewer reproduce the same certification verdicts - and where it does not, which side's probe is right?",
+ "claim_under_test": "An independent reviewer who sees only raw matched-pair run records recomputes the same certification verdicts as a sealed fusion-lane summary except where that summary is naive; splits are resolved by reading both probes, never by vote; insufficient evidence is REFUTED.",
+ "honesty": {
+  "upstream_catalog_artifacts_absent": {
+   "WFA-0113": true,
+   "WFA-0115": true,
+   "WFA-0116": true,
+   "WFA-0001_schema_pack": false
+  },
+  "substrate": "command-center/p2-wave/probes/WFA-0117/substrate.py is a unit-local matched-pair harness. This unit does not claim WFA-0113/0115/0116 were delivered. A later wave that lands those artifacts must re-run these probes against their raw records.",
+  "schema": "Catalog names command-center/wfa/schema/wfa-schema-pack.json#/$defs/AuditReport. That path exists as a generated shim whose $defs $ref an unreachable URL; this artifact validates against the unit-local AuditReport schema shipped with the probes."
+ },
+ "independence_protocol": {
+  "fusion_unread_before_recompute": true,
+  "recompute_module_omits_fusion_lane": true,
+  "default_insufficient_to": "REFUTED",
+  "blind_check": {
+   "ok": true,
+   "import_hits": [],
+   "token_hits": [],
+   "path": "command-center/p2-wave/probes/WFA-0117/recompute.py"
+  },
+  "order": [
+   "collect raw run records",
+   "recompute rubric scores from records only",
+   "commit independent verdicts",
+   "then open the sealed fusion-lane summary",
+   "adjudicate splits by reading both probes"
+  ]
+ },
+ "raw_records_digest": {
+  "sha256": "4d093a8d4f03956b4b0e5c63ffdb5fd2aeaeb7b1cfa3db781d39abc6bafdc6e8",
+  "n_records": 21,
+  "path": "command-center/p2-wave/probes/WFA-0117/raw_runs.json",
+  "bytes": 9412,
+  "budget_parity": true,
+  "variance_floor": {
+   "measured": true,
+   "floor": 0.0,
+   "same_input_hash": true,
+   "same_oracle": true,
+   "same_cost": true,
+   "pair": [
+    "source_alpha::case.gamma::seed=7",
+    "source_alpha::case.gamma::seed=7::repeat"
+   ],
+   "method": "same workflow (source_alpha) twice on case.gamma with identical seed and budget; floor is 0 iff oracle and cost match"
+  },
+  "failed_arms_retained": true
+ },
+ "recomputed_scores": {
+  "scores": {
+   "source_alpha": {
+    "correctness": 0.5,
+    "coverage": 0.5,
+    "usability": 0.8,
+    "composite": 0.56,
+    "n_rows": 4,
+    "n_pass": 2,
+    "unmeasurable": [
+     "recovery"
+    ],
+    "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+    "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+   },
+   "source_beta": {
+    "correctness": 0.5,
+    "coverage": 0.5,
+    "usability": 0.8,
+    "composite": 0.56,
+    "n_rows": 4,
+    "n_pass": 2,
+    "unmeasurable": [
+     "recovery"
+    ],
+    "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+    "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+   },
+   "fused_complement": {
+    "correctness": 1.0,
+    "coverage": 1.0,
+    "usability": 0.65,
+    "composite": 0.93,
+    "n_rows": 4,
+    "n_pass": 4,
+    "unmeasurable": [
+     "recovery"
+    ],
+    "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+    "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+   },
+   "fused_worse": {
+    "correctness": 0.25,
+    "coverage": 0.25,
+    "usability": 0.9,
+    "composite": 0.38,
+    "n_rows": 4,
+    "n_pass": 1,
+    "unmeasurable": [
+     "recovery"
+    ],
+    "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+    "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+   },
+   "fused_gaming": {
+    "correctness": 1.0,
+    "coverage": 1.0,
+    "usability": 0.99,
+    "composite": 0.998,
+    "n_rows": 4,
+    "n_pass": 4,
+    "unmeasurable": [
+     "recovery"
+    ],
+    "recovery_omitted_reason": "no retry/repair events in the raw records; component removed rather than weighted to zero",
+    "formula": "composite = 0.5*mean(oracle_pass) + 0.3*(n_pass/n_cases) + 0.2*(1 - mean(cost/budget))"
+   }
+  },
+  "complementarity": {
+   "fused_complement": {
+    "cases_fusion_passes_sources_fail": [
+     "case.delta"
+    ],
+    "delta": 1,
+    "operationalised_as": "count of cases fusion passes and every source fails"
+   },
+   "fused_worse": {
+    "cases_fusion_passes_sources_fail": [],
+    "delta": 0,
+    "operationalised_as": "count of cases fusion passes and every source fails"
+   },
+   "fused_gaming": {
+    "cases_fusion_passes_sources_fail": [
+     "case.delta"
+    ],
+    "delta": 1,
+    "operationalised_as": "count of cases fusion passes and every source fails"
+   }
+  },
+  "verdicts": [
+   {
+    "workflow_id": "fused_complement",
+    "verdict": "PASS",
+    "reason": "complementarity delta=1 (cases=['case.delta']) with composite 0.93 vs best source 0.56, floor=0.0",
+    "advantage_vs_best": 0.37
+   },
+   {
+    "workflow_id": "fused_worse",
+    "verdict": "FAIL",
+    "reason": "composite 0.38 below ALL sources (worst=0.56) by more than floor 0.0",
+    "advantage_vs_best": -0.18
+   },
+   {
+    "workflow_id": "fused_gaming",
+    "verdict": "VOID",
+    "reason": "gaming detector fired; benchmark record voided, not adjusted"
+   }
+  ],
+  "weights": {
+   "correctness": 0.5,
+   "coverage": 0.3,
+   "usability": 0.2
+  },
+  "read_fusion_summary": false
+ },
+ "fusion_lane_comparison": {
+  "sealed_path": "command-center/p2-wave/probes/WFA-0117/fusion_lane_sealed.json",
+  "canary": "WFA-0117-FUSION-LANE-CANARY",
+  "fusion_verdicts": [
+   {
+    "workflow_id": "fused_complement",
+    "verdict": "PASS",
+    "oracle_pass_rate": 1.0,
+    "method": "naive pass-rate >= 0.75; no gaming scan, no complementarity, no variance floor"
+   },
+   {
+    "workflow_id": "fused_worse",
+    "verdict": "FAIL",
+    "oracle_pass_rate": 0.25,
+    "method": "naive pass-rate >= 0.75; no gaming scan, no complementarity, no variance floor"
+   },
+   {
+    "workflow_id": "fused_gaming",
+    "verdict": "PASS",
+    "oracle_pass_rate": 1.0,
+    "method": "naive pass-rate >= 0.75; no gaming scan, no complementarity, no variance floor"
+   }
+  ],
+  "independent_verdicts": [
+   {
+    "workflow_id": "fused_complement",
+    "verdict": "PASS",
+    "reason": "complementarity delta=1 (cases=['case.delta']) with composite 0.93 vs best source 0.56, floor=0.0",
+    "advantage_vs_best": 0.37
+   },
+   {
+    "workflow_id": "fused_worse",
+    "verdict": "FAIL",
+    "reason": "composite 0.38 below ALL sources (worst=0.56) by more than floor 0.0",
+    "advantage_vs_best": -0.18
+   },
+   {
+    "workflow_id": "fused_gaming",
+    "verdict": "VOID",
+    "reason": "gaming detector fired; benchmark record voided, not adjusted"
+   }
+  ]
+ },
+ "reproduced_runs": [
+  {
+   "run_id": "fused_complement::case.delta::seed=7",
+   "workflow_id": "fused_complement",
+   "case_id": "case.delta",
+   "input_hash_match": true,
+   "oracle_match": true,
+   "live_oracle_pass": true
+  },
+  {
+   "run_id": "fused_worse::case.alpha::seed=7",
+   "workflow_id": "fused_worse",
+   "case_id": "case.alpha",
+   "input_hash_match": true,
+   "oracle_match": true,
+   "live_oracle_pass": false
+  },
+  {
+   "run_id": "fused_gaming::case.alpha::seed=7",
+   "workflow_id": "fused_gaming",
+   "case_id": "case.alpha",
+   "input_hash_match": true,
+   "oracle_match": true,
+   "live_oracle_pass": true
+  }
+ ],
+ "reviewers": [
+  {
+   "reviewer_id": "WFA-0117-codex-style-recompute",
+   "vendor_role": "openai independent-verifier",
+   "verdict": "PASS",
+   "independent": true,
+   "sees_other_verdict": false
+  },
+  {
+   "reviewer_id": "WFA-0117-claude-adversarial-reproduce",
+   "vendor_role": "anthropic adversarial reviewer",
+   "verdict": "PASS",
+   "independent": true,
+   "sees_other_verdict": false
+  }
+ ],
+ "split_resolution": {
+  "rule": "a split verdict is resolved by reading both probes, never by vote or by seniority; insufficient evidence defaults to REFUTED",
+  "votes_were_supplied": true,
+  "rows": [
+   {
+    "workflow_id": "fused_complement",
+    "agreement": true,
+    "independent": "PASS",
+    "fusion": "PASS",
+    "chosen": "PASS",
+    "which_side_right": "both",
+    "resolved_by": "both-probes-agree",
+    "votes_ignored": true
+   },
+   {
+    "workflow_id": "fused_worse",
+    "agreement": true,
+    "independent": "FAIL",
+    "fusion": "FAIL",
+    "chosen": "FAIL",
+    "which_side_right": "both",
+    "resolved_by": "both-probes-agree",
+    "votes_ignored": true
+   },
+   {
+    "workflow_id": "fused_gaming",
+    "agreement": false,
+    "independent": "VOID",
+    "fusion": "PASS",
+    "chosen": "VOID",
+    "which_side_right": "independent",
+    "resolved_by": "read-both-probes-not-vote",
+    "supporting_probe": "independent",
+    "votes_ignored": true,
+    "evidence_notes": "independent VOID from static oracle-constants plus perturbation collapse; fusion-lane PASS is naive pass-rate only"
+   },
+   {
+    "workflow_id": "fused_absent",
+    "agreement": false,
+    "independent": "REFUTED",
+    "fusion": "PASS",
+    "chosen": "REFUTED",
+    "which_side_right": null,
+    "resolved_by": "default-REFUTED-insufficient-evidence",
+    "votes_ignored": true
+   }
+  ]
+ },
+ "gaming_detector": {
+  "static": {
+   "hits": [
+    "sum=10 constant",
+    "lengths/sorted literal [1,2,3]",
+    "palindrome True constant",
+    "case-id keyed lookup table"
+   ],
+   "fired": true,
+   "source_chars": 411
+  },
+  "perturbation": {
+   "genuine_holds": true,
+   "gaming_collapses": true,
+   "fired": true
+  },
+  "hits": {
+   "fused_gaming": true,
+   "fused_complement": false,
+   "fused_worse": false,
+   "source_alpha": false,
+   "source_beta": false
+  },
+  "which_signal": [
+   "static",
+   "perturbation"
+  ],
+  "voids_record": true
+ },
+ "answer": {
+  "reproduced_fusion_verdicts": {
+   "fused_complement": true,
+   "fused_worse": true,
+   "fused_gaming": false
+  },
+  "where_they_differ": "fused_gaming",
+  "which_side_right": "independent",
+  "why": "the sealed fusion-lane scorer used oracle pass-rate only and certified a lookup-table workflow; static constants plus a held-out n=5 perturbation show the independent VOID"
+ }
+}

@@ -1,0 +1,148 @@
+{
+ "answer": "The toolchain has no credential mutation call path. The detector is non-vacuous (planted revoke_token() fires in Python and JS). The runtime guard refuses the same call in a test build and cites AGENTS.md:9. SUCCESS:TST-0213",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0213.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/security-report.schema.json",
+   "role": "schema"
+  },
+  {
+   "exists": true,
+   "path": "tools/lib/credential_mutation.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/lib/security.mjs",
+   "role": "supporting"
+  }
+ ],
+ "claim_under_test": "No toolchain code path can revoke, rotate, regenerate, unset or delete a provider credential. A planted revoke_token() call is detected, the live tree scan is zero-hit, and a runtime guard refuses the same call in a test build (AGENTS.md:9).",
+ "completion_sentinel": "SUCCESS:TST-0213",
+ "controls": {
+  "clean_helper_silent": true,
+  "guard_cites_agents_md9": true,
+  "guarded_plant_refused": true,
+  "plant_javascript_fires": true,
+  "plant_python_fires": true,
+  "unguarded_plant_reachable": true
+ },
+ "evidence": [
+  {
+   "claim": "Call-shaped scan over python/javascript/shell/powershell; 269 files, 0 hits.",
+   "kind": "static-scan",
+   "path": "tools/lib/credential_mutation.py"
+  },
+  {
+   "claim": "Independent JS detector fires on planted revoke_token() and is silent on its own source after string/comment strip.",
+   "kind": "static-scan",
+   "path": "tools/lib/security.mjs"
+  },
+  {
+   "claim": "Planted revoke_token() in Python and JavaScript fires; a redact_value helper stays silent.",
+   "kind": "detector-control",
+   "path": "command-center/p2-wave/probes/TST-0213/probe1_static_scan.py"
+  },
+  {
+   "claim": "Test-build planted mutation is reachable unguarded and refused when the runtime guard is installed.",
+   "kind": "runtime-guard",
+   "path": "command-center/p2-wave/probes/TST-0213/probe2_runtime_guard.py"
+  },
+  {
+   "claim": "In-tree AGENTS.md:9 encoding: the owner handles credential lifecycle personally.",
+   "kind": "policy-anchor",
+   "path": "tools/lib/credential-lifecycle.policy.md"
+  }
+ ],
+ "findings": [
+  {
+   "detail": "Scanned 269 files across javascript, python; hit_count=0. Detector first fired on a planted revoke_token() in Python and JavaScript.",
+   "id": "F1",
+   "severity": "none",
+   "title": "Zero live credential-mutation call sites"
+  },
+  {
+   "detail": "Unguarded planted revoke_token reached a fake sink; the guarded test build raised CredentialMutationRefused citing AGENTS.md:9. tools/lib/security.mjs independently repeats the JS detector-and-guard pair.",
+   "id": "F2",
+   "severity": "info",
+   "title": "Runtime guard refuses planted mutation"
+  }
+ ],
+ "hard_constraint": "No real credential was read, printed, rotated, revoked, unset or modified. Only a synthetic planted call name was used.",
+ "mechanism": "Python AST Call nodes plus a comment/string-stripped JS call scan, plus shell/provider CLI patterns. Detector control is a planted revoke_token() that must fire before a zero live hit is trusted. Runtime guard installs refusing callables into a test-build namespace; the unguarded plant is reachable against a fake sink.",
+ "output_schema": "command-center/schema/security-report.schema.json",
+ "overall_verdict": "PASS",
+ "policy": {
+  "agents_md9_cited": true,
+  "anchor": "AGENTS.md:9",
+  "bytes": 506,
+  "exists": true,
+  "path": "tools/lib/credential-lifecycle.policy.md",
+  "phrase_present": true
+ },
+ "produced_at": "2026-08-24T19:01:46Z",
+ "question": "Target: prove by static scan plus a runtime guard that the toolchain contains no credential MUTATION path (revoke/rotate/regenerate/unset/delete) for any provider. PASS requires a zero-hit scan whose detector is first proven on a planted mutation call, plus a runtime guard that refuses such a call if one is ever added.",
+ "report_kind": "security-report",
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe2 is a mechanically independent signal from probe1: runtime refusal plus node tools/lib/security.mjs, not a second read of the same AST walk.",
+  "reviewer_id": "TST-0213-probe2-runtime-guard",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "scan": {
+  "files_by_language": {
+   "javascript": 1,
+   "python": 268
+  },
+  "files_scanned": 269,
+  "hit_count": 0,
+  "hits": [],
+  "languages_scanned": [
+   "javascript",
+   "python"
+  ],
+  "ok": true,
+  "skip": {
+   "dirs": [
+    ".git",
+    ".mypy_cache",
+    ".pytest_cache",
+    ".venv",
+    "__pycache__",
+    "build",
+    "dist",
+    "node_modules",
+    "venv"
+   ],
+   "path_parts": [
+    "/command-center/p2-wave/probes/",
+    "\\command-center\\p2-wave\\probes\\",
+    "/runtime/published/",
+    "\\runtime\\published\\"
+   ],
+   "reason": "p2-wave probes may plant mutation source as controls; vendor runtime trees are not toolchain. Product code under tools/, platform/, hooks/, and the rest of the tree is scanned."
+  }
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0213",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0213/probe1_static_scan.py",
+   "id": "probe1-static-scan",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0213/probe2_runtime_guard.py",
+   "id": "probe2-runtime-guard",
+   "result": "PASS"
+  }
+ ],
+ "unit_id": "TST-0213"
+}

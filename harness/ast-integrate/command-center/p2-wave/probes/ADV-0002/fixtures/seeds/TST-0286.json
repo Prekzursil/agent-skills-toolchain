@@ -1,0 +1,334 @@
+{
+ "artifacts": [
+  {
+   "exists": true,
+   "note": "self-sha omitted; per-unit UNIT-ARTIFACT-MANIFEST.json carries sha256",
+   "path": "command-center/receipts/TST-0286.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 12960,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0286/simulate.py",
+   "role": "supporting",
+   "sha256": "06ee64e26af14ce1463df7bf3471baecb0cba40369b944129b5cf4dd91d633a9"
+  },
+  {
+   "bytes": 4499,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0286/store.py",
+   "role": "supporting",
+   "sha256": "637d6770076c1b58a74df48874ad596278dbbf557d532498923c75c3e086e62f"
+  },
+  {
+   "bytes": 5514,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0286/probe1_pause_resume.py",
+   "role": "supporting",
+   "sha256": "bea22b8a0b14cdb73e798a3d28edc83475be039344eb8edfb21e6bffc23fcdaf"
+  },
+  {
+   "bytes": 8634,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0286/probe2_torn_write_live.py",
+   "role": "supporting",
+   "sha256": "6362d9831d755e51c579102bc9e808f530a617b3bac0fbfd2c5a34aa55ffb669"
+  }
+ ],
+ "catalog_inputs": {
+  "b07_persistence": {
+   "path": "tools/council/artifacts/store.py",
+   "present": false
+  },
+  "local_runtime": {
+   "note": "Catalog inputs tools/council/simulate.py and the B07 event store are absent on this worktree. The unit vendors a local deterministic simulator and append-only length-prefixed log so the pause/resume/replay contract is measured rather than parked on predicate:absent.",
+   "simulate": "command-center/p2-wave/probes/TST-0286/simulate.py",
+   "store": "command-center/p2-wave/probes/TST-0286/store.py"
+  },
+  "tools_council_simulate_py": {
+   "path": "tools/council/simulate.py",
+   "present": false
+  }
+ },
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0286/simulate.py:301",
+   "claim": "Pause serialises the event log after round k via atomic persist.",
+   "confidence": "almost-certain",
+   "line": 301,
+   "path": "command-center/p2-wave/probes/TST-0286/simulate.py",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe1_pause_resume.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "uninterrupted=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad pause_resume=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad replay=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+     "role": "source"
+    }
+   ],
+   "snippet": "def pause_at(",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0286/simulate.py:308",
+   "claim": "Resume loads the log, rejects a missing pause marker, and continues remaining rounds.",
+   "confidence": "almost-certain",
+   "line": 308,
+   "path": "command-center/p2-wave/probes/TST-0286/simulate.py",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe1_pause_resume.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "uninterrupted=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad pause_resume=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad replay=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+     "role": "source"
+    }
+   ],
+   "snippet": "def resume(",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0286/simulate.py:329",
+   "claim": "Replay rebuilds events from the persisted log with no persona re-emit and no side state.",
+   "confidence": "almost-certain",
+   "line": 329,
+   "path": "command-center/p2-wave/probes/TST-0286/simulate.py",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe1_pause_resume.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "uninterrupted=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad pause_resume=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad replay=0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+     "role": "source"
+    }
+   ],
+   "snippet": "def replay_from_log(",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0286/store.py:37",
+   "claim": "A truncated record is TornWriteError, not a silently truncated council state.",
+   "confidence": "almost-certain",
+   "line": 37,
+   "path": "command-center/p2-wave/probes/TST-0286/store.py",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe2_torn_write_live.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "torn_fired=True live_canonical_match=True raw_diverge=True",
+     "role": "verifier"
+    }
+   ],
+   "snippet": "class TornWriteError",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0286/simulate.py:34",
+   "claim": "Live-model fields are stripped from the canonical transcript before hashing.",
+   "confidence": "almost-certain",
+   "line": 34,
+   "path": "command-center/p2-wave/probes/TST-0286/simulate.py",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe2_torn_write_live.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "torn_fired=True live_canonical_match=True raw_diverge=True",
+     "role": "verifier"
+    }
+   ],
+   "snippet": "LIVE_FIELDS = (",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "live_model_boundary": {
+  "canonical_sha256_live": "ea30f35694317c863b0511cf13d652f9e085a51eec3703539087604432952162",
+  "canonical_sha256_scripted": "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+  "guaranteed_reproducible_fields": [
+   "kind",
+   "round",
+   "persona_id",
+   "text",
+   "vote",
+   "dissent",
+   "confidence",
+   "tally",
+   "stopping",
+   "decision",
+   "replaced",
+   "replacement",
+   "child_id",
+   "parent_round",
+   "seed",
+   "spec_id",
+   "mode"
+  ],
+  "live_vs_scripted_named_field": "canonical_events[0].mode",
+  "recorded_but_not_reproducible_fields": [
+   "live_model_text",
+   "wall_clock_utc",
+   "latency_ms",
+   "sampler_draw"
+  ],
+  "two_live_runs_canonical_match": true,
+  "two_live_runs_raw_logs_diverge": true
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0286/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "description": "A second seed must produce a different canonical transcript hash.",
+   "fired_on_bad_state": true,
+   "id": "TST-0286-SEED-PERTURBATION",
+   "kind": "seed-perturbation",
+   "named_field": "canonical_events[0].seed",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "SIGKILL mid-persist must raise TornWriteError; a clean pause+resume must complete.",
+   "detector_fired": true,
+   "fired_on_bad_state": true,
+   "id": "TST-0286-TORN-WRITE-RESUME",
+   "kind": "known-broken-fixture",
+   "planted_defect": "truncated length-prefixed record after MAGIC",
+   "silent_on_good": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "pause": {
+  "child_events": 4,
+  "decision": "approve",
+  "dissenters_final": [
+   "skeptic"
+  ],
+  "paused_rounds": [
+   1,
+   2
+  ],
+  "replacement_events": 1,
+  "resumed_rounds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ],
+  "round_k": 2,
+  "uninterrupted_rounds": [
+   1,
+   2,
+   3,
+   4,
+   5
+  ]
+ },
+ "produced_by": {
+  "execution_substrate": "local-serialized-linux",
+  "role": "test-engineer"
+ },
+ "question": "A run paused at round k and resumed must produce the same final transcript as an uninterrupted run on the same seed, and a replay from the persisted state must reproduce it again. Where true determinism is impossible (live model calls), name which fields are guaranteed reproducible and which are recorded-but-not-reproducible.",
+ "residual_unknowns": [
+  {
+   "claim": "Catalog reviewer_requirement asks for a second Windows shell (pwsh7 and Git Bash). This worker is Linux; those binaries are absent.",
+   "settling_experiment": "Re-run probe1_pause_resume.py under pwsh7 and Git Bash on a Windows worktree and diff the three sha256 values against this receipt.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "This measurement is against the TST-0286 local simulator, not a production tools/council/simulate.py / B07 store (both absent).",
+   "settling_experiment": "After TST-0257/IMP-0315 land, point the probes at those modules and re-compare the three hashes.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "Two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "probe2 re-computes the three transcript hashes under /usr/bin/sh invoking a fresh python3 -B process, not the authoring interpreter.",
+  "reviewer_id": "TST-0286-probe2-second-shell",
+  "second_shell": "/usr/bin/sh",
+  "second_shell_hashes": [
+   "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+   "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+   "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad"
+  ],
+  "verdict": "PASS",
+  "windows_pwsh7_git_bash": {
+   "git_bash": null,
+   "pwsh": null,
+   "reason": "Linux worker; pwsh7 and Git Bash are not the second substrate here. /bin/sh re-run is the independent shell on this host.",
+   "status": "NOT-CHECKED"
+  }
+ },
+ "schema_version": 1,
+ "seed_perturbation": {
+  "diverged": true,
+  "first_differing_field": "canonical_events[0].seed",
+  "hash_a": "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+  "hash_b": "5777cb7fa7ae3b4ba3d5e359f7b6373d495c54e13d32c47d1d0f1e3b7c971b6c"
+ },
+ "sentinel": "SUCCESS:TST-0286",
+ "spec_anchor": "_USER-PROMPTS.md:10946 pause/resume; _USER-PROMPTS.md:11194 replay/audit",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe1_pause_resume.py",
+   "id": "TST-0286-PAUSE-RESUME-HASH",
+   "name": "Pause at round k, resume, compare final transcript hash to the uninterrupted run.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe1_pause_resume.py",
+   "id": "TST-0286-REPLAY-FROM-STATE",
+   "name": "Replay from persisted state reproduces the transcript.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe2_torn_write_live.py",
+   "id": "TST-0286-TORN-WRITE",
+   "name": "Kill the process mid-persist; resume fails loudly, never from a half-written state.",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0286/probe2_torn_write_live.py",
+   "id": "TST-0286-LIVE-MODEL-BOUNDARY",
+   "name": "Live-model arm: name non-reproducible fields and prove the rest hash-match.",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:55:17Z",
+  "started_at": "2026-08-25T00:55:17Z"
+ },
+ "title": "Pause, resume and deterministic replay of a council run",
+ "torn_write": {
+  "error": "torn-write: truncated-checksum at offset=14",
+  "fired_on_bad_state": true,
+  "killed_mid_persist": true,
+  "resume_from_half_written": false,
+  "silent_on_good_state": true,
+  "size_after": 30,
+  "truncated": true
+ },
+ "transcript_hashes": {
+  "bytes": 5451,
+  "divergence_attribution": null,
+  "equal": true,
+  "pause_resume": "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+  "replay_from_state": "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad",
+  "uninterrupted": "0375999000bd0a29da34d7b4f076318ceaccad4829fa7be5f08b1f914216c0ad"
+ },
+ "unit_id": "TST-0286"
+}

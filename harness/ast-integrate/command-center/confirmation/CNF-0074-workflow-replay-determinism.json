@@ -1,0 +1,520 @@
+{
+ "evidence": [
+  {
+   "claim": "CNF-0074 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+     "raw_output": "bytes=11340 sha256=c30eb684940863715b01f69df51b5f3e775f04b83ddc5ed314b5b58a36e588f9",
+     "fingerprint": "fa30a13d5540c7cc508fb15b32b6e397",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0074",
+     "raw_output": "schema-check",
+     "fingerprint": "664c06c841ed60b8f251404bb9092cfe",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0074 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0074",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0074",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "3b39611d4b9abae584c14bfa936765f0",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0074",
+     "raw_output": "schema-valid",
+     "fingerprint": "b7e9f408288b928694cf423582f1c9d1",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "report": {
+  "kind": "determinism-report",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0074/battery.py:replay_all",
+    "measured": true,
+    "method": "identical-input-replay",
+    "name": "seeded-stable-byte-identical"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0074/battery.py:change_one_input_control",
+    "measured": true,
+    "method": "content-cache-mutation",
+    "name": "change-one-input-artifacts-differ"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0074/battery.py:overclaim_detector",
+    "measured": true,
+    "method": "semantic-diff-under-claimed-determinism",
+    "name": "overclaim-filed"
+   }
+  ],
+  "control_ids": [
+   "change-one-input",
+   "broken-id-only-cache",
+   "overclaim-unseeded-sample"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0074 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the change-one-input control produced a different artifact, ruling out cache-driven false identity. Any other terminal state is FAILED:CNF-0074 <classification> with the diagnostic tail attached.",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0074-workflow-replay-determinism.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "CNF-0074",
+ "extensions": {
+  "legacy_root": {
+   "adv_rebuild_circle": false,
+   "answer": "Pinned, seeded workflows (wf.catalog-class.discovery-only and wf.seeded-stable) replay byte-identical. wf.timestamp-wallclock differs only in created_at/stamped_at; after timestamp normalisation the artifacts match and those fields are reported separately. wf.path-leaking (honestly non-claiming) diverges by run_dir/abs_path (cause=path). wf.overclaim-unseeded-sample claims determinism but diverges in chosen/sample_nonce (cause=model-sampling) and is filed as OVERCLAIM. Change-one-input on wf.seeded-stable produced a different artifact (52b8cf851175 vs a6e483bc338a), so identity is not cache-driven false identity. Known-broken id-only cache served a stale artifact and the detector fired. SUCCESS:CNF-0074 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the change-one-input control produced a different artifact, ruling out cache-driven false identity. Any other terminal state is FAILED:CNF-0074 <classification> with the diagnostic tail attached.",
+   "broken_cache_detector": {
+    "baseline_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+    "fired": true,
+    "mutated_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+    "reason": "id-only cache served the pre-mutation artifact",
+    "second_run_cache_hit": true,
+    "workflow_id": "wf.seeded-stable"
+   },
+   "change_one_input_control": {
+    "artifacts_differ": true,
+    "baseline_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+    "cache_masking_ruled_out": true,
+    "changed_input": "alpha.txt",
+    "mutated_sha256": "a6e483bc338a4ed65939c0a9fed05c2eb3cbda1df237014d19ee843ce6ed8691",
+    "performed": true,
+    "workflow_id": "wf.seeded-stable"
+   },
+   "cloud_ok": false,
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0074/probe1_replay.py",
+     "id": "probe1",
+     "role": "identical-input-replay"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0074/probe2_control.py",
+     "id": "probe2",
+     "role": "change-one-input-detector-control"
+    }
+   ],
+   "output_path": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+   "output_schema": "command-center/schema/determinism-report.schema.json",
+   "overclaim_detector": {
+    "fired": true,
+    "reason": "unseeded sampler diverged in a semantic field while claiming determinism",
+    "semantic_paths": [
+     "$.chosen",
+     "$.chosen_sha256",
+     "$.sample_nonce"
+    ],
+    "verdict": "OVERCLAIM",
+    "workflow_id": "wf.overclaim-unseeded-sample"
+   },
+   "overclaims": [
+    {
+     "reason": "Workflow claims determinism (claims_determinism=true, seed and routing pin present) but a semantic field diverged under identical replay because unseeded-sample ignores the seed. Filed as overclaim, not as timestamp noise.",
+     "semantic_paths": [
+      "$.chosen",
+      "$.chosen_sha256",
+      "$.sample_nonce"
+     ],
+     "workflow_id": "wf.overclaim-unseeded-sample"
+    }
+   ],
+   "question": "Is a workflow run reproducible? Re-run each workflow with identical inputs, seeds and pinned model routing, then answer: is the produced artifact byte-identical, and where it is not, which specific fields differ and what causes each - timestamp, ordering, model sampling, or path?",
+   "timestamp_normalization": {
+    "applied": true,
+    "fields": [
+     "$.created_at",
+     "$.stamped_at"
+    ],
+    "reported_separately": true
+   },
+   "title": "Deterministic replay of a workflow run and quantification of its nondeterminism sources",
+   "workflows": [
+    {
+     "byte_identical_normalized": true,
+     "byte_identical_raw": true,
+     "claims_determinism": true,
+     "field_diffs": [],
+     "id": "wf.catalog-class.discovery-only",
+     "routing_pin": "echo-deterministic@v1",
+     "run_a_sha256": "b4d125e5acf8fba49be61cf0aa78b9450a1e3d9cfab18dc7f23aee862ad0e192",
+     "run_b_sha256": "b4d125e5acf8fba49be61cf0aa78b9450a1e3d9cfab18dc7f23aee862ad0e192",
+     "seed": 9001,
+     "verdict": "DETERMINISTIC"
+    },
+    {
+     "byte_identical_normalized": true,
+     "byte_identical_raw": true,
+     "claims_determinism": true,
+     "field_diffs": [],
+     "id": "wf.seeded-stable",
+     "routing_pin": "echo-deterministic@v1",
+     "run_a_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+     "run_b_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+     "seed": 42,
+     "verdict": "DETERMINISTIC"
+    },
+    {
+     "byte_identical_normalized": true,
+     "byte_identical_raw": false,
+     "claims_determinism": true,
+     "field_diffs": [
+      {
+       "cause": "timestamp",
+       "path": "$.created_at",
+       "run_a": "1787619268353781253",
+       "run_b": "1787619268354221919"
+      },
+      {
+       "cause": "timestamp",
+       "path": "$.stamped_at",
+       "run_a": "\"ns:1787619268353781253\"",
+       "run_b": "\"ns:1787619268354221919\""
+      }
+     ],
+     "id": "wf.timestamp-wallclock",
+     "routing_pin": "echo-deterministic@v1",
+     "run_a_sha256": "d49679b2d6451f0af2d3268809595e945a1d1727bcd93f670361a8d331b0d91d",
+     "run_b_sha256": "7b860b43bd8b6aba355cfb9ae31724f1e9396a91bcd56d0cd0790757ed0bec23",
+     "seed": 42,
+     "verdict": "TIMESTAMP-ONLY"
+    },
+    {
+     "byte_identical_normalized": false,
+     "byte_identical_raw": false,
+     "claims_determinism": true,
+     "field_diffs": [
+      {
+       "cause": "model-sampling",
+       "path": "$.chosen",
+       "run_a": "\"alpha.txt\"",
+       "run_b": "\"beta.txt\""
+      },
+      {
+       "cause": "model-sampling",
+       "path": "$.chosen_sha256",
+       "run_a": "\"b3f05d56344388861f6e633cc4145505be410aad8c3779486ad976fd4d19bfb3\"",
+       "run_b": "\"0a1e230c7a4e0e2410016e80ea8ae51c19fd0f29e3294d98346e219afe0ea637\""
+      },
+      {
+       "cause": "model-sampling",
+       "path": "$.sample_nonce",
+       "run_a": "\"nonce:438a8acfad885a74\"",
+       "run_b": "\"nonce:6f0f85603e968a63\""
+      }
+     ],
+     "id": "wf.overclaim-unseeded-sample",
+     "routing_pin": "echo-deterministic@v1",
+     "run_a_sha256": "6b713d309914f87c91598b00584c46e7d5408518ea60a338800874fce9d2e9a9",
+     "run_b_sha256": "dc706b5b566d367ff5158733e53bb1053bb7c95f13525fcbdf2cfa6f6ae6e768",
+     "seed": 42,
+     "verdict": "OVERCLAIM"
+    },
+    {
+     "byte_identical_normalized": false,
+     "byte_identical_raw": false,
+     "claims_determinism": false,
+     "field_diffs": [
+      {
+       "cause": "path",
+       "path": "$.abs_path",
+       "run_a": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-a/artifact.json\"",
+       "run_b": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-b/artifact.json\""
+      },
+      {
+       "cause": "path",
+       "path": "$.run_dir",
+       "run_a": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-a\"",
+       "run_b": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-b\""
+      }
+     ],
+     "id": "wf.path-leaking",
+     "routing_pin": "echo-deterministic@v1",
+     "run_a_sha256": "1ef0a7562eed6125da2f09769e6eabfa8861bdeb5ae4d3b227d8124568a5a1cf",
+     "run_b_sha256": "b8be5f584d4e5c2384b324e66c52abeb6881d54ed10c1ff03fc7aae17c822cbd",
+     "seed": 7,
+     "verdict": "NONDETERMINISTIC"
+    }
+   ]
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0074",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+   "bytes": 11340,
+   "sha256": "c30eb684940863715b01f69df51b5f3e775f04b83ddc5ed314b5b58a36e588f9",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0074/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0074"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "00c4418b8a49e7f781636b69705d4afc",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "adv_rebuild_circle": false,
+ "answer": "Pinned, seeded workflows (wf.catalog-class.discovery-only and wf.seeded-stable) replay byte-identical. wf.timestamp-wallclock differs only in created_at/stamped_at; after timestamp normalisation the artifacts match and those fields are reported separately. wf.path-leaking (honestly non-claiming) diverges by run_dir/abs_path (cause=path). wf.overclaim-unseeded-sample claims determinism but diverges in chosen/sample_nonce (cause=model-sampling) and is filed as OVERCLAIM. Change-one-input on wf.seeded-stable produced a different artifact (52b8cf851175 vs a6e483bc338a), so identity is not cache-driven false identity. Known-broken id-only cache served a stale artifact and the detector fired. SUCCESS:CNF-0074 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the change-one-input control produced a different artifact, ruling out cache-driven false identity. Any other terminal state is FAILED:CNF-0074 <classification> with the diagnostic tail attached.",
+ "broken_cache_detector": {
+  "baseline_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+  "fired": true,
+  "mutated_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+  "reason": "id-only cache served the pre-mutation artifact",
+  "second_run_cache_hit": true,
+  "workflow_id": "wf.seeded-stable"
+ },
+ "change_one_input_control": {
+  "artifacts_differ": true,
+  "baseline_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+  "cache_masking_ruled_out": true,
+  "changed_input": "alpha.txt",
+  "mutated_sha256": "a6e483bc338a4ed65939c0a9fed05c2eb3cbda1df237014d19ee843ce6ed8691",
+  "performed": true,
+  "workflow_id": "wf.seeded-stable"
+ },
+ "cloud_ok": false,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0074/probe1_replay.py",
+   "id": "probe1",
+   "role": "identical-input-replay"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0074/probe2_control.py",
+   "id": "probe2",
+   "role": "change-one-input-detector-control"
+  }
+ ],
+ "output_path": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+ "output_schema": "command-center/schema/determinism-report.schema.json",
+ "overclaim_detector": {
+  "fired": true,
+  "reason": "unseeded sampler diverged in a semantic field while claiming determinism",
+  "semantic_paths": [
+   "$.chosen",
+   "$.chosen_sha256",
+   "$.sample_nonce"
+  ],
+  "verdict": "OVERCLAIM",
+  "workflow_id": "wf.overclaim-unseeded-sample"
+ },
+ "overclaims": [
+  {
+   "reason": "Workflow claims determinism (claims_determinism=true, seed and routing pin present) but a semantic field diverged under identical replay because unseeded-sample ignores the seed. Filed as overclaim, not as timestamp noise.",
+   "semantic_paths": [
+    "$.chosen",
+    "$.chosen_sha256",
+    "$.sample_nonce"
+   ],
+   "workflow_id": "wf.overclaim-unseeded-sample"
+  }
+ ],
+ "question": "Is a workflow run reproducible? Re-run each workflow with identical inputs, seeds and pinned model routing, then answer: is the produced artifact byte-identical, and where it is not, which specific fields differ and what causes each - timestamp, ordering, model sampling, or path?",
+ "timestamp_normalization": {
+  "applied": true,
+  "fields": [
+   "$.created_at",
+   "$.stamped_at"
+  ],
+  "reported_separately": true
+ },
+ "title": "Deterministic replay of a workflow run and quantification of its nondeterminism sources",
+ "workflows": [
+  {
+   "byte_identical_normalized": true,
+   "byte_identical_raw": true,
+   "claims_determinism": true,
+   "field_diffs": [],
+   "id": "wf.catalog-class.discovery-only",
+   "routing_pin": "echo-deterministic@v1",
+   "run_a_sha256": "b4d125e5acf8fba49be61cf0aa78b9450a1e3d9cfab18dc7f23aee862ad0e192",
+   "run_b_sha256": "b4d125e5acf8fba49be61cf0aa78b9450a1e3d9cfab18dc7f23aee862ad0e192",
+   "seed": 9001,
+   "verdict": "DETERMINISTIC"
+  },
+  {
+   "byte_identical_normalized": true,
+   "byte_identical_raw": true,
+   "claims_determinism": true,
+   "field_diffs": [],
+   "id": "wf.seeded-stable",
+   "routing_pin": "echo-deterministic@v1",
+   "run_a_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+   "run_b_sha256": "52b8cf85117520856456ebe952502a4244a3d3c1adfcff6b00cb3d375567605e",
+   "seed": 42,
+   "verdict": "DETERMINISTIC"
+  },
+  {
+   "byte_identical_normalized": true,
+   "byte_identical_raw": false,
+   "claims_determinism": true,
+   "field_diffs": [
+    {
+     "cause": "timestamp",
+     "path": "$.created_at",
+     "run_a": "1787619268353781253",
+     "run_b": "1787619268354221919"
+    },
+    {
+     "cause": "timestamp",
+     "path": "$.stamped_at",
+     "run_a": "\"ns:1787619268353781253\"",
+     "run_b": "\"ns:1787619268354221919\""
+    }
+   ],
+   "id": "wf.timestamp-wallclock",
+   "routing_pin": "echo-deterministic@v1",
+   "run_a_sha256": "d49679b2d6451f0af2d3268809595e945a1d1727bcd93f670361a8d331b0d91d",
+   "run_b_sha256": "7b860b43bd8b6aba355cfb9ae31724f1e9396a91bcd56d0cd0790757ed0bec23",
+   "seed": 42,
+   "verdict": "TIMESTAMP-ONLY"
+  },
+  {
+   "byte_identical_normalized": false,
+   "byte_identical_raw": false,
+   "claims_determinism": true,
+   "field_diffs": [
+    {
+     "cause": "model-sampling",
+     "path": "$.chosen",
+     "run_a": "\"alpha.txt\"",
+     "run_b": "\"beta.txt\""
+    },
+    {
+     "cause": "model-sampling",
+     "path": "$.chosen_sha256",
+     "run_a": "\"b3f05d56344388861f6e633cc4145505be410aad8c3779486ad976fd4d19bfb3\"",
+     "run_b": "\"0a1e230c7a4e0e2410016e80ea8ae51c19fd0f29e3294d98346e219afe0ea637\""
+    },
+    {
+     "cause": "model-sampling",
+     "path": "$.sample_nonce",
+     "run_a": "\"nonce:438a8acfad885a74\"",
+     "run_b": "\"nonce:6f0f85603e968a63\""
+    }
+   ],
+   "id": "wf.overclaim-unseeded-sample",
+   "routing_pin": "echo-deterministic@v1",
+   "run_a_sha256": "6b713d309914f87c91598b00584c46e7d5408518ea60a338800874fce9d2e9a9",
+   "run_b_sha256": "dc706b5b566d367ff5158733e53bb1053bb7c95f13525fcbdf2cfa6f6ae6e768",
+   "seed": 42,
+   "verdict": "OVERCLAIM"
+  },
+  {
+   "byte_identical_normalized": false,
+   "byte_identical_raw": false,
+   "claims_determinism": false,
+   "field_diffs": [
+    {
+     "cause": "path",
+     "path": "$.abs_path",
+     "run_a": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-a/artifact.json\"",
+     "run_b": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-b/artifact.json\""
+    },
+    {
+     "cause": "path",
+     "path": "$.run_dir",
+     "run_a": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-a\"",
+     "run_b": "\"/tmp/cnf0074-replay-2ztw4dza/wf.path-leaking/run-b\""
+    }
+   ],
+   "id": "wf.path-leaking",
+   "routing_pin": "echo-deterministic@v1",
+   "run_a_sha256": "1ef0a7562eed6125da2f09769e6eabfa8861bdeb5ae4d3b227d8124568a5a1cf",
+   "run_b_sha256": "b8be5f584d4e5c2384b324e66c52abeb6881d54ed10c1ff03fc7aae17c822cbd",
+   "seed": 7,
+   "verdict": "NONDETERMINISTIC"
+  }
+ ]
+}

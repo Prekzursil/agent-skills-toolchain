@@ -1,0 +1,11 @@
+I'll start from the existing TST-0247 probe tree, read the unit contract and any prior return, then drive G-1 green for this unit only.Existing probes are in place; I’ll read the return, handoff, and measure contract next so we resume instead of rebuilding.The prior return is a cloud-ok refute, not delivery. I’ll inspect the catalog contract, a green unit, and whether `--plain` exists on the live cockpit.The receipt still claims `--plain` is missing; I’ll locate the live cockpit and a delivered TST unit so we know what “green” looks like here.TST-0244 is the delivery template. Next I’ll restore the cockpit, add `--plain`, and inspect the field contract plus SUCCESS schema so probes can actually re-run.I’m restoring the cockpit into `tools/monitorcore`, then adding `--plain` and a 3.10 StrEnum polyfill so the named probes can actually run.Import works. Next I’ll add the field contract and the two named probes, then iterate until they exit 0.**SUCCESS:delivered TST-0247** predicate=delivered state=SUCCESS probes=3 raws=2 notes=field_contract.py:0,probe_plain_field_set.py:0,probe_tui_field_set.py:0
+
+Resumed from the cloud-ok refute (`survived=false`, `--plain` unrecognized, named scripts absent). That harvest `ok=true` / `UNIT-COMPLETE` wrapping was not treated as delivery.
+
+What landed:
+
+- Restored the live cockpit at `tools/monitorcore` and added `--plain`, which dumps every pane through the same `frame()` path as the TUI as line-oriented text with no cursor-addressing CSI.
+- Named probes re-ran exit 0: 78/78 plain fields, TUI set equal, hide-`health.driver` mutant produced `[health.driver]`, live `python -m monitorcore.unified --plain --once` exit 0.
+- Receipt `command-center/receipts/TST-0247.json` is `state=SUCCESS` (not BLOCKED). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `1e79586b7db58e753c61a0f1b46f4356c587f27b4065f4914e822c844871cdf2`.
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no finish-everything / p2-cloud-ok-deliver relaunch.

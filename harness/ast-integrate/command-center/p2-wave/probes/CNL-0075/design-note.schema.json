@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0075/design-note.schema.json",
+  "title": "CNL-0075 decision-lineage design note",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "missing_link",
+    "lineage_rules",
+    "hop_table",
+    "decomposition_counts",
+    "tests",
+    "negative_controls",
+    "evidence",
+    "reviewer",
+    "residual_unknowns"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0075" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0075" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 80 },
+    "missing_link": {
+      "type": "string",
+      "pattern": "^[a-z_]+->[a-z_]+$"
+    },
+    "lineage_rules": {
+      "type": "object",
+      "required": ["chain", "orphan_if", "walkers_must_agree"],
+      "properties": {
+        "chain": { "type": "array", "minItems": 7 },
+        "orphan_if": { "type": "array", "minItems": 1 },
+        "walkers_must_agree": { "type": "array", "minItems": 2 }
+      }
+    },
+    "hop_table": { "type": "array", "minItems": 6 },
+    "decomposition_counts": {
+      "type": "object",
+      "required": ["good_sentences", "good_resolved", "orphan_ids"],
+      "properties": {
+        "good_sentences": { "type": "integer", "minimum": 1 },
+        "good_resolved": { "type": "integer", "minimum": 0 },
+        "orphan_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "rejects",
+          "fired_on_bad_state",
+          "silent_on_good_state",
+          "bad_state_output",
+          "good_state_output"
+        ],
+        "properties": {
+          "id": { "type": "string" },
+          "rejects": { "type": "string", "minLength": 16 },
+          "fired_on_bad_state": { "type": "boolean" },
+          "silent_on_good_state": { "type": "boolean" },
+          "bad_state_output": { "type": "string", "minLength": 8 },
+          "good_state_output": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "mechanism", "path", "line", "snippet"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "mechanism": { "type": "string", "minLength": 4 },
+          "path": { "type": "string", "minLength": 8 },
+          "line": { "type": "integer", "minimum": 1 },
+          "snippet": { "type": "string", "minLength": 4 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "reviewer_id",
+        "verdict",
+        "independent",
+        "recount_good_sentences",
+        "recount_orphan_ids"
+      ],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean", "const": true },
+        "recount_good_sentences": { "type": "integer", "minimum": 1 },
+        "recount_orphan_ids": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "residual_unknowns": { "type": "array", "items": { "type": "string" } }
+  }
+}

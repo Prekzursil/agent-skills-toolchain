@@ -1,0 +1,111 @@
+{
+  "measured_on": "2026-08-24T20:41:00Z",
+  "libraries": {
+    "09-WORKFLOW-BLUEPRINT-LIBRARY.json": {
+      "on_this_tree": false,
+      "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A08].evidence"
+    },
+    "12-COUNCIL-PROTOCOLS-AND-PRESETS.json": {
+      "on_this_tree": false,
+      "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence"
+    },
+    "skills/council/SKILL.md": {
+      "on_this_tree": false,
+      "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence"
+    },
+    "command-center/p2-wave/probes/ARC-0010/registry.json": {
+      "on_this_tree": true,
+      "role": "typed-capability-stand-in"
+    },
+    "command-center/p2-wave/probes/TST-0003/reducer.py": {
+      "on_this_tree": true,
+      "role": "shared-completion-reducer"
+    }
+  },
+  "samples": [
+    {
+      "kind": "skill",
+      "id": "skill.council",
+      "source_id": "skills/council/SKILL.md",
+      "source_citation": "command-center/p2-wave/probes/ARC-0010/registry.json entries[id=skill.council]",
+      "transcription_basis": "Typed registry entry on this worktree (library SKILL.md absent). Encoded as one work-unit whose completion is TST-0003.evaluate.",
+      "body": {
+        "path": "skills/council/SKILL.md",
+        "origin": "ARC-0010-registry",
+        "roles": ["Architect", "Skeptic", "Pragmatist", "Critic"],
+        "frontmatter": {
+          "name": "council",
+          "description": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler."
+        },
+        "instructions": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+        "completion": "shared-reducer:TST-0003.evaluate"
+      }
+    },
+    {
+      "kind": "workflow_blueprint",
+      "id": "wf.catalog-class.discovery-only",
+      "source_id": "09-WORKFLOW-BLUEPRINT-LIBRARY.json#discovery_only",
+      "source_citation": "command-center/p2-wave/probes/ARC-0010/registry.json entries[id=wf.catalog-class.discovery-only]",
+      "transcription_basis": "Registry workflow on this worktree; fan-out of stage units plus a barrier, reduced by the shared predicate.",
+      "body": {
+        "discovery_only": true,
+        "library": "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+        "stages": [
+          {
+            "id": "discover",
+            "kind": "static-scan",
+            "inputs": ["repo"],
+            "outputs": ["candidates.json"]
+          },
+          {
+            "id": "record",
+            "kind": "write-config",
+            "inputs": ["candidates.json"],
+            "outputs": ["blueprint.json"]
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "completion": "shared-reducer:TST-0003.evaluate"
+      }
+    },
+    {
+      "kind": "council_preset",
+      "id": "council.preset.catalog-class.editable",
+      "source_id": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json#presets",
+      "source_citation": "command-center/p2-wave/probes/ARC-0010/registry.json entries[id=council.preset.catalog-class.editable]",
+      "transcription_basis": "Registry preset on this worktree; one work-unit per voice plus ONE shared reducer (local completion forbidden).",
+      "body": {
+        "editable": true,
+        "roles": ["Architect", "Skeptic", "Pragmatist", "Critic"],
+        "voting": {
+          "rule": "unanimous-or-record-dissent",
+          "quorum": 4
+        },
+        "stopping": {
+          "max_rounds": 8,
+          "on_timeout": "halt"
+        },
+        "consensus": {
+          "reducer": "shared-completion-predicate-name",
+          "local_completion_forbidden": true
+        },
+        "completion": "shared-reducer:TST-0003.evaluate"
+      }
+    }
+  ],
+  "negative_control": {
+    "kind": "skill",
+    "id": "NEG.complete-on-exit-code-0",
+    "source_id": "ARC-0031.tests_required[negative-control]",
+    "source_citation": "command-center/p2-wave/probes/TST-0003/reducer.py docstring: Exit code 0 is not consulted.",
+    "body": {
+      "roles": ["Architect"],
+      "complete_on": "exit_code_0",
+      "complete_on_exit_code": true,
+      "skip_reducer": true
+    }
+  }
+}

@@ -1,0 +1,71 @@
+{
+  "server": "fixture-docs",
+  "tools": [
+    {
+      "name": "docs_get",
+      "description": "Fetch a document by id. Marker RES0017-MCP-DOCS-SCHEMA. Eager MCP schemas consume turn-0 context; deferred tools would not.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["doc_id"],
+        "properties": {
+          "doc_id": { "type": "string", "minLength": 1 },
+          "format": {
+            "type": "string",
+            "enum": ["markdown", "html", "plain", "json"]
+          },
+          "offset": { "type": "integer", "minimum": 0 },
+          "limit": { "type": "integer", "minimum": 1, "maximum": 20000 }
+        }
+      }
+    },
+    {
+      "name": "docs_list",
+      "description": "List documents in a collection. Extra enum values inflate the schema without adding server source to occupancy.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "collection": {
+            "type": "string",
+            "enum": [
+              "handbook",
+              "api",
+              "runbooks",
+              "adrs",
+              "postmortems",
+              "schemas",
+              "probes"
+            ]
+          },
+          "cursor": { "type": "string" },
+          "page_size": { "type": "integer", "minimum": 1, "maximum": 200 }
+        }
+      }
+    },
+    {
+      "name": "docs_toc",
+      "description": "Table of contents. Marker RES0017-MCP-DOCS-TOC.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "doc_id": { "type": "string" },
+          "depth": { "type": "integer", "minimum": 1, "maximum": 8 },
+          "include_anchors": { "type": "boolean" }
+        }
+      }
+    },
+    {
+      "name": "docs_diff",
+      "description": "Diff two document revisions. Not inferred from mcp-server.js byte size.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["left", "right"],
+        "properties": {
+          "left": { "type": "string" },
+          "right": { "type": "string" },
+          "context_lines": { "type": "integer" },
+          "ignore_whitespace": { "type": "boolean" }
+        }
+      }
+    }
+  ]
+}

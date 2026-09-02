@@ -1,0 +1,367 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "shared.write-as-you-go-artifact",
+ "name": "Write-As-You-Go Truthful Artifact (shared primitive)",
+ "description": "Write the artifact IMMEDIATELY as a skeleton in which every claim is marked 'UNKNOWN - not yet measured', then rewrite it at each milestone. Whatever is on disk must ALWAYS be truthful. Measured: one unit ran 70 minutes, produced 691 KB of transcript, then froze and wrote NOTHING - an unrecoverable total loss; a relaunched unit under this mandate produced a truthful artifact in 3 minutes. The postcondition is the inverse of the mandate: an artifact still carrying the UNKNOWN marker is NOT complete.",
+ "version": "1.0.0",
+ "kind": "subworkflow",
+ "categories": [
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "durability",
+  "truthful-partial",
+  "postcondition",
+  "shared-primitive"
+ ],
+ "flagship": false,
+ "params": {
+  "artifact_path": {
+   "type": "path",
+   "required": true,
+   "description": "Where the unit's artifact lives"
+  },
+  "claims": {
+   "type": "array",
+   "required": true,
+   "items": {
+    "type": "string"
+   },
+   "min_items": 1,
+   "description": "Every claim the finished artifact will make; each is enumerated up front as UNKNOWN"
+  },
+  "min_artifact_bytes": {
+   "type": "integer",
+   "default": 256,
+   "minimum": 1,
+   "description": "Below this the artifact is a stub, not a partial result"
+  }
+ },
+ "roles": {
+  "writer": {
+   "description": "Owns the artifact and rewrites it at every milestone rather than at the end",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "medium",
+   "authority": "advisory",
+   "tool_permissions": [
+    "Read",
+    "Write(command-center/**)"
+   ],
+   "write_paths": [
+    "command-center/**"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Write(command-center/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/**"
+  ]
+ },
+ "model_routing": {
+  "strategy": "static",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  }
+ },
+ "gates": {
+  "skeleton-exists-first": {
+   "predicate": "custom-expression",
+   "expression": "skeleton_written_before_work_started == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "unknown-marker-blocks-completion": {
+   "predicate": "custom-expression",
+   "expression": "unknown_markers_remaining == 0 AND artifact_bytes >= 256",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "write-skeleton",
+   "title": "Write the skeleton with every claim marked UNKNOWN, BEFORE any work",
+   "kind": "task",
+   "role": "writer",
+   "timeout_seconds": 300,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-SHARED-WAYG-SKELETON",
+    "title": "Write the truthful skeleton first",
+    "phase": "2B",
+    "question_or_target": "Enumerate every claim the artifact will make and write each as UNKNOWN, plus a COVERAGE line naming the unmeasured sections.",
+    "inputs": [
+     "params.claims",
+     "params.artifact_path"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "writer",
+     "basis": "cheap and mandatory; the artifact must exist before it can be truthful"
+    },
+    "tool_permissions": [
+     "Read",
+     "Write(command-center/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 300,
+    "output_path": "command-center/durability/skeleton.json",
+    "output_schema": "command-center/schema/work-result.schema.json",
+    "evidence_requirement": "the skeleton exists on disk and carries one UNKNOWN row per declared claim plus a COVERAGE line",
+    "tests_required": [
+     "a skeleton missing a declared claim must FAIL, since an unenumerated claim can be silently forgotten",
+     "the skeleton must state that if it still reads this way the unit died before measuring anything"
+    ],
+    "reviewer_requirement": "none - existence and row count are mechanical",
+    "completion_sentinel": "SUCCESS:BP3-SHARED-WAYG-SKELETON only when the file exists and carries one UNKNOWN row per declared claim; otherwise FAILED:BP3-SHARED-WAYG-SKELETON <reason>",
+    "retry_policy": "none; if the skeleton cannot be written the unit cannot start",
+    "failure_classification": [
+     "partial-artifact"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/durability/skeleton.json",
+     "schema_ref": "command-center/schema/work-result.schema.json",
+     "min_bytes": 64,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-SHARED-WAYG-SKELETON",
+     "consumers": [
+      "rewrite-at-milestone"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "rewrite-at-milestone",
+   "title": "Rewrite the artifact at each milestone; the disk copy stays truthful",
+   "kind": "loop",
+   "depends_on": [
+    "write-skeleton"
+   ],
+   "loop_var": "milestone",
+   "body": [
+    {
+     "id": "rewrite-once",
+     "kind": "task",
+     "role": "writer",
+     "timeout_seconds": 600,
+     "work_unit": {
+      "id": "BP3-SHARED-WAYG-REWRITE",
+      "title": "Replace UNKNOWN rows with measured values as each milestone lands",
+      "phase": "2B",
+      "question_or_target": "Rewrite the artifact so every measured claim carries its measurement and every unmeasured claim still says UNKNOWN.",
+      "inputs": [
+       "command-center/durability/skeleton.json"
+      ],
+      "dependencies": [
+       "BP3-SHARED-WAYG-SKELETON"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "writer",
+       "basis": "the rewrite cadence is what converts a total-loss risk into partial progress"
+      },
+      "tool_permissions": [
+       "Read",
+       "Write(command-center/**)"
+      ],
+      "execution_substrate": "local-single",
+      "timeout_seconds": 600,
+      "output_path": "command-center/durability/artifact.json",
+      "output_schema": "command-center/schema/work-result.schema.json",
+      "evidence_requirement": "each replaced row names the measurement that replaced it; an unmeasured row is left as UNKNOWN rather than filled in optimistically",
+      "tests_required": [
+       "an UNKNOWN row replaced without a cited measurement must FAIL as an overclaim",
+       "the artifact must remain parseable after every rewrite, so a crash mid-rewrite cannot corrupt it"
+      ],
+      "reviewer_requirement": "the caller's completion predicate",
+      "completion_sentinel": "SUCCESS:BP3-SHARED-WAYG-REWRITE only when the artifact parses and every non-UNKNOWN row cites a measurement; otherwise FAILED:BP3-SHARED-WAYG-REWRITE <reason>",
+      "retry_policy": "bounded by the loop; a failed rewrite leaves the previous truthful copy in place",
+      "failure_classification": [
+       "partial-artifact",
+       "overclaim"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "convergence": {
+    "max_iterations": 50,
+    "min_iterations": 1,
+    "converged_when": "unknown_markers_remaining == 0",
+    "no_progress_rounds": 3,
+    "metrics": [
+     {
+      "name": "unknown_markers_remaining",
+      "direction": "decrease",
+      "target": 0
+     }
+    ],
+    "on_no_convergence": "emit-partial"
+   }
+  },
+  {
+   "id": "postcondition",
+   "title": "An artifact still carrying UNKNOWN is NOT complete, however green the run",
+   "kind": "gate",
+   "depends_on": [
+    "rewrite-at-milestone"
+   ],
+   "gate_ref": "unknown-marker-blocks-completion"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "artifact-truthful-and-complete",
+   "expression": "unknown_markers_remaining == 0",
+   "applies_to": "workflow",
+   "minimum_conditions": "skeleton_written_before_work_started == true",
+   "on_stop": "complete"
+  },
+  {
+   "id": "died-mid-flight",
+   "expression": "unit_died == true AND artifact_parses == true",
+   "applies_to": "workflow",
+   "on_stop": "emit-partial"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "none",
+  "max_attempts": 1
+ },
+ "failure_policy": {
+  "on_failure": "degrade-loudly",
+  "classify_as": [
+   "partial-artifact"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "caller",
+  "quarantine_path": "command-center/quarantine/durability"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/durability",
+  "granularity": "stage",
+  "idempotency_key_from": [
+   "workflow_id",
+   "stage_id",
+   "inputs_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": false
+ },
+ "cache": {
+  "enabled": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan"
+  ],
+  "plan_artifact": "command-center/dry-run/durability-plan.json",
+  "forbid_tools": [
+   "Write(command-center/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 5,
+   "expected": 60,
+   "max": 600
+  },
+  "tokens": {
+   "min": 1000,
+   "expected": 8000,
+   "max": 40000
+  },
+  "tool_calls": {
+   "expected": 3,
+   "max": 60
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "writes one artifact under command-center/**; overwrites only its own prior copy",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/shared-wayg.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "rules/common/fan-out-contract.md#C1",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "artifact": {
+   "path": "command-center/durability/artifact.json",
+   "schema_ref": "command-center/schema/work-result.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "bp-pln-04.resume-safe-program-checkpointing",
+    "the caller"
+   ]
+  }
+ },
+ "x_extensions": {
+  "role": "SHARED PRIMITIVE - not one of the twelve blueprints",
+  "mechanism": "mechanisms.unit_complete + mechanisms.is_truthful_partial",
+  "why_factored_out": "BP-PLN-04 needs it as a stage, and every long-running unit in the programme needs it as a discipline. Promoting it to a thirteenth blueprint would inflate the range count against a sibling's allocation; leaving it inline in PLN-04 would hide a reusable primitive."
+ }
+}

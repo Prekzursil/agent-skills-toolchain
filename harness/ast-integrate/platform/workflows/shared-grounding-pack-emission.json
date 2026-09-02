@@ -1,0 +1,692 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "shared-grounding-pack-emission",
+  "name": "Shared grounding-pack emission - one ranked map, frozen, injected into every lane",
+  "description": "Blueprint 85 of 96 (design BP-DOC-04). Build ONE ranked, token-budgeted map of a code tree and inject it into every lane of a fan-out, instead of letting each agent rediscover the same files. Mechanism: reference-graph centrality ranking under a hard token budget, then a FREEZE - once the first lane launches the pack is immutable, because editing it mid-run leaves contradictory instructions live in sibling prompts. Failure semantics are deliberately DEGRADE-LOUDLY rather than fail-fast: a fan-out without a pack is merely more expensive, so a generator failure must not block the work it was meant to cheapen.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative-work"
+  ],
+  "tags": [
+    "grounding",
+    "fan-out",
+    "token-budget",
+    "freeze"
+  ],
+  "flagship": false,
+  "params": {
+    "repo_root": {
+      "type": "path",
+      "required": true,
+      "description": "ABSOLUTE repo root. The generator's documented default is repo-relative and dies with [Errno 2] from any other cwd - passing the absolute form IS the wrapper this blueprint exists to add."
+    },
+    "token_budget": {
+      "type": "integer",
+      "default": 6000,
+      "minimum": 500,
+      "maximum": 60000,
+      "description": "Hard ceiling for the emitted pack. A pack that blows the per-turn budget costs more than the rediscovery it prevents."
+    },
+    "out_path": {
+      "type": "path",
+      "required": true,
+      "description": "Where the pack is written. Every lane prompt inlines THIS file, not a paraphrase of it."
+    },
+    "ranking_source": {
+      "type": "enum",
+      "enum": [
+        "symbol-scan-pagerank",
+        "lsp-reference-edges"
+      ],
+      "default": "symbol-scan-pagerank",
+      "description": "symbol-scan-pagerank works anywhere; lsp-reference-edges is better where a language server is available because the edges are real references rather than name matches"
+    },
+    "manual_must_include": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 0,
+      "default": [],
+      "description": "Paths that must appear regardless of rank. Centrality favours central code and can bury the unusual file that actually matters - this is the documented escape hatch for that weakness."
+    },
+    "expected_lane_count": {
+      "type": "integer",
+      "default": 8,
+      "minimum": 1,
+      "maximum": 200,
+      "description": "Lanes the pack will be injected into. Below 8 the pack rarely pays for itself; that threshold is the recommended-default boundary, not a hard rule."
+    }
+  },
+  "roles": {
+    "pack-generator": {
+      "description": "Runs the ranking generator with absolute paths and writes the pack under the token budget",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Grep",
+        "Bash:python",
+        "Write(command-center/grounding/**)"
+      ],
+      "write_paths": [
+        "command-center/grounding/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "omission-reviewer": {
+      "description": "Reads the ranking for obvious omissions - the file a human would expect and centrality buried",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "vote_weight": 1,
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Glob",
+        "Grep"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Bash:python",
+      "Write(command-center/grounding/**)"
+    ],
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/grounding/**"
+    ],
+    "forbid_write_paths": [
+      "platform/schema/**",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "cost-aware",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_id == review-ranking",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "spotting the buried-but-important file is judgement; the generation itself is mostly mechanical"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "absolute-paths-used": {
+      "predicate": "custom-expression",
+      "expression": "generator_invoked_with_absolute_root == true AND errno2_encountered == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "retry"
+    },
+    "within-token-budget": {
+      "predicate": "custom-expression",
+      "expression": "pack_tokens <= token_budget AND must_include_all_present == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "frozen-before-first-lane": {
+      "predicate": "custom-expression",
+      "expression": "pack_frozen == true AND pack_hash_recorded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "generate-pack",
+      "title": "Run the ranking generator with an ABSOLUTE root",
+      "kind": "task",
+      "role": "pack-generator",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "cache": {
+        "enabled": true,
+        "scope": "workflow",
+        "key_from": [
+          "workflow_version",
+          "stage_id",
+          "inputs_hash",
+          "params_hash",
+          "tool_versions"
+        ],
+        "store": "command-center/cache/grounding-pack",
+        "ttl_seconds": 86400,
+        "verify_integrity": true,
+        "invalidate_on": [
+          "tree-head-moved",
+          "token-budget-change"
+        ],
+        "read_only": false
+      },
+      "work_unit": {
+        "id": "BPW-8501",
+        "title": "Emit a centrality-ranked, token-budgeted grounding pack for the tree",
+        "phase": "2",
+        "question_or_target": "Rank the tree's symbols by reference-graph centrality (or by LSP reference edges where available), then emit the top-ranked slice that fits token_budget, with every path in manual_must_include forced in. Invoke the generator with the ABSOLUTE repo_root.",
+        "inputs": [
+          "params.repo_root",
+          "params.token_budget",
+          "params.ranking_source",
+          "params.manual_must_include"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "pack-generator",
+          "basis": "the ranking is mechanical; deciding what to truncate at the budget boundary is not"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Grep",
+          "Bash:python",
+          "Write(command-center/grounding/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/grounding/GROUNDING-PACK.json",
+        "output_schema": "command-center/schema/coverage-map.schema.json",
+        "evidence_requirement": "the literal generator command line showing the absolute root, the measured token count of the emitted pack, and the rank score of the lowest-ranked included symbol",
+        "tests_required": [
+          "both-states control: invoking the generator from a DIFFERENT cwd with a repo-relative root must produce [Errno 2], and the absolute form must succeed from that same cwd - a wrapper that succeeds in both cases proves nothing about the defect it claims to fix",
+          "a pack exceeding token_budget must FAIL rather than be truncated silently",
+          "every manual_must_include path must appear in the emitted pack"
+        ],
+        "reviewer_requirement": "the omission reviewer reads the ranking independently, without being shown the generator's own confidence",
+        "completion_sentinel": "SUCCESS:BPW-8501 emitted only when the pack exists, is within budget, and contains every must-include path; otherwise FAILED:BPW-8501 <reason>",
+        "retry_policy": "one retry with the absolute root if the first attempt hit [Errno 2]; a second [Errno 2] means the wrapper is wrong and the run degrades rather than retrying a third time",
+        "failure_classification": [
+          "errno2-relative-path",
+          "budget-exceeded",
+          "must-include-missing"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/grounding/GROUNDING-PACK.json",
+          "schema_ref": "command-center/schema/coverage-map.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8501",
+          "consumers": [
+            "review-ranking",
+            "freeze-pack"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-absolute",
+      "title": "The wrapper is the fix - prove it was used",
+      "kind": "gate",
+      "depends_on": [
+        "generate-pack"
+      ],
+      "gate_ref": "absolute-paths-used"
+    },
+    {
+      "id": "review-ranking",
+      "title": "What did centrality bury?",
+      "kind": "task",
+      "role": "omission-reviewer",
+      "depends_on": [
+        "gate-absolute"
+      ],
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "BPW-8502",
+        "title": "Review the ranking for the important file that centrality buried",
+        "phase": "2",
+        "question_or_target": "Read the emitted pack and the tree structure and name any path a competent reader of this task would expect and the ranking omitted. For each, say WHY centrality missed it (recently added, few inbound references, configuration rather than code).",
+        "inputs": [
+          "command-center/grounding/GROUNDING-PACK.json",
+          "params.repo_root"
+        ],
+        "dependencies": [
+          "BPW-8501"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "omission-reviewer",
+          "basis": "this is the one genuinely non-mechanical step: PageRank cannot know which unusual file matters for THIS task"
+        },
+        "tool_permissions": [
+          "Read",
+          "Glob",
+          "Grep"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/grounding/pack-omission-review.json",
+        "output_schema": "command-center/schema/negative-evidence-audit.schema.json",
+        "evidence_requirement": "per omission the path, its inbound reference count, and the reason the ranking scored it low; an omission claim with no reference count is an opinion",
+        "tests_required": [
+          "a file with zero inbound references that is nonetheless the task's entry point must be flagged",
+          "the review must NOT simply re-list the top-ranked entries - a review whose findings are a subset of the pack has found nothing"
+        ],
+        "reviewer_requirement": "none - this stage IS the review; its own output is checked only for the re-listing failure mode",
+        "completion_sentinel": "SUCCESS:BPW-8502 emitted only when the review either names at least one omission with a reference count or states explicitly that it found none and how far down the ranking it looked; otherwise FAILED:BPW-8502 <reason>",
+        "retry_policy": "no retry - a second pass by the same reviewer over the same pack is not an independent signal",
+        "failure_classification": [
+          "review-restates-pack",
+          "insufficient-depth",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/grounding/pack-omission-review.json",
+          "schema_ref": "command-center/schema/negative-evidence-audit.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8502",
+          "consumers": [
+            "freeze-pack"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-budget",
+      "title": "Within budget, with every must-include present",
+      "kind": "gate",
+      "depends_on": [
+        "review-ranking"
+      ],
+      "gate_ref": "within-token-budget"
+    },
+    {
+      "id": "freeze-pack",
+      "title": "FREEZE - record the hash, then never edit it again this run",
+      "kind": "task",
+      "role": "pack-generator",
+      "depends_on": [
+        "gate-budget"
+      ],
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "BPW-8503",
+        "title": "Fold the reviewed omissions in, hash the pack, and mark it frozen",
+        "phase": "2",
+        "question_or_target": "Add the reviewed omissions, re-check the token budget, hash the final bytes, and record the hash as the frozen pack identity. After this point any edit is a new pack with a new hash, not a revision of this one.",
+        "inputs": [
+          "command-center/grounding/GROUNDING-PACK.json",
+          "command-center/grounding/pack-omission-review.json"
+        ],
+        "dependencies": [
+          "BPW-8501",
+          "BPW-8502"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "pack-generator",
+          "basis": "folding omissions in without breaching the budget is a trade-off decision"
+        },
+        "tool_permissions": [
+          "Read",
+          "Bash:python",
+          "Write(command-center/grounding/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/grounding/pack-freeze-record.json",
+        "output_schema": "command-center/schema/environment-manifest.schema.json",
+        "evidence_requirement": "the sha256 of the frozen bytes, the final token count, and the list of omissions folded in with what was dropped to make room",
+        "tests_required": [
+          "editing the pack after the freeze record must produce a hash mismatch that any lane can detect",
+          "folding omissions in must not push the token count over budget"
+        ],
+        "reviewer_requirement": "one independent reader who recomputes the hash from the pack bytes",
+        "completion_sentinel": "SUCCESS:BPW-8503 emitted only when the frozen hash is recorded and the final token count is within budget; otherwise FAILED:BPW-8503 <reason>",
+        "retry_policy": "one retry after dropping the lowest-ranked entries to make room; a second budget breach means the omission set is too large and the run degrades with the pack it has",
+        "failure_classification": [
+          "budget-exceeded",
+          "hash-not-recorded"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/grounding/pack-freeze-record.json",
+          "schema_ref": "command-center/schema/environment-manifest.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8503",
+          "consumers": [
+            "gate-frozen",
+            "every fan-out lane prompt"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-frozen",
+      "title": "Frozen before the first lane launches",
+      "kind": "gate",
+      "depends_on": [
+        "freeze-pack"
+      ],
+      "gate_ref": "frozen-before-first-lane"
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "pack-emitted-and-frozen",
+      "expression": "pack_frozen == true AND pack_tokens <= token_budget",
+      "applies_to": "workflow",
+      "minimum_conditions": "generator_invoked_with_absolute_root == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "degrade-without-pack",
+      "expression": "errno2_encountered == true AND retry_count >= 1",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "not-worth-it",
+      "expression": "expected_lane_count < 8",
+      "applies_to": "workflow",
+      "minimum_conditions": "pack_frozen == false",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "fixed",
+    "max_attempts": 2,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": [
+      "errno2-relative-path",
+      "budget-exceeded"
+    ],
+    "no_retry_on": [
+      "review-restates-pack",
+      "must-include-missing"
+    ]
+  },
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": [
+      "errno2-relative-path",
+      "budget-exceeded",
+      "must-include-missing"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "the calling fan-out orchestrator",
+    "quarantine_path": "command-center/quarantine/grounding-pack"
+  },
+  "resume": {
+    "enabled": false,
+    "resume_from": "restart"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260810,
+    "journal_path": "command-center/replay/grounding-pack.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "network",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "artifact-cache",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "workflow",
+    "key_from": [
+      "workflow_version",
+      "params_hash",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/grounding-pack",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": [
+      "tree-head-moved",
+      "token-budget-change",
+      "ranking-source-change"
+    ],
+    "read_only": false
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "graph"
+    ],
+    "plan_artifact": "command-center/dry-run/grounding-pack-plan.json",
+    "forbid_tools": [
+      "Bash:python",
+      "Write(command-center/grounding/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "hybrid",
+    "confidence": "likely",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DOC-04 and fan-out-contract A11 - the measured waste it removes: 16 of 25 agents read the same source file, 13 of 25 the same doc, one agent re-read one path 22 times; ONE grounding agent is estimated to remove 60-90 tool calls in a 39-agent workflow",
+    "cost": {
+      "currency": "USD",
+      "min": 0.05,
+      "expected": 0.4,
+      "max": 2.0
+    },
+    "wallclock_seconds": {
+      "min": 30,
+      "expected": 300,
+      "max": 1800
+    },
+    "tokens": {
+      "min": 5000,
+      "expected": 40000,
+      "max": 200000
+    },
+    "tool_calls": {
+      "min": 4,
+      "expected": 20,
+      "max": 80
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "writes only under command-center/grounding/**; its real reach is indirect - every lane prompt in the calling fan-out inlines the pack, so a wrong pack misleads N lanes at once",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage",
+        "cache-manifest"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/grounding-pack.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "warn"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DOC-04",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "tools/repomap",
+        "relation": "ADOPT-WITH-WRAPPER",
+        "license": "owner-proprietary",
+        "credit": "owner - PageRank over symbol references sized to a token budget"
+      },
+      {
+        "source": "rules/common/fan-out-contract.md#A11",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - the measured rediscovery waste and the freeze rule"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "tools/repomap@current invoked manually with an absolute root"
+    ]
+  },
+  "outputs": {
+    "pack": {
+      "path": "command-center/grounding/GROUNDING-PACK.json",
+      "schema_ref": "command-center/schema/coverage-map.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-8503",
+      "consumers": [
+        "every fan-out lane prompt",
+        "skill-plugin-portfolio-stocktake"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 85,
+      "of": 96,
+      "design_card": "BP-DOC-04",
+      "design_family": "D16-documentation",
+      "spec_category": "data-science-knowledge-and-creative-work",
+      "acquisition_route": "ADOPT-WITH-WRAPPER",
+      "flagship": false
+    },
+    "mechanism": "centrality ranking under a hard token budget, one human-judgement omission review, then an immutable FREEZE identified by hash. The freeze is the mechanism that prevents mid-run split-brain across lanes; the budget is what stops the cure costing more than the disease.",
+    "not_a_duplicate_because": {
+      "vs_skill-plugin-portfolio-stocktake": "that measures what the HARNESS loads and prunes it against a context budget; this ranks a CODE TREE for injection into prompts and prunes nothing",
+      "vs_memory-temporal-validity-curation": "that maintains semantic memory across sessions and verifies by recall order; this is a single-run, frozen, per-tree artifact that is deliberately discarded when the run ends"
+    },
+    "contraindications": [
+      "NOT for a single-agent task - the pack pays for itself only across lanes",
+      "NOT for a tree small enough to read directly",
+      "NOT for a run already in flight - a pack produced mid-run leaves contradictory instructions live"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "different-cwd-control",
+        "given": "the generator invoked from a cwd other than the repo root",
+        "expect": "the repo-relative form raises [Errno 2] and the absolute form succeeds from the SAME cwd"
+      },
+      {
+        "id": "two-arm-tool-call-comparison",
+        "given": "a 10-lane fan-out run with and without the pack",
+        "expect": "a measurable reduction in duplicate reads of the same path; the design's 60-90 figure is an estimate from a 39-agent run, not a measurement of this workflow"
+      },
+      {
+        "id": "buried-entry-point",
+        "given": "a task entry point with zero inbound references",
+        "expect": "flagged by the omission review and folded in at freeze time"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "ground-a-12-lane-audit",
+        "params": {
+          "repo_root": "C:/Users/Prekzursil/source/ast-integrate",
+          "token_budget": 6000,
+          "out_path": "command-center/grounding/GROUNDING-PACK.json",
+          "ranking_source": "symbol-scan-pagerank",
+          "manual_must_include": [
+            "platform/lib/wfdsl/semantics.py",
+            "platform/schema/workflow-dsl.schema.json"
+          ],
+          "expected_lane_count": 12
+        },
+        "generated": {
+          "symbols_ranked": 1840,
+          "included": 96,
+          "pack_tokens": 5412,
+          "lowest_included_rank_score": 0.0031
+        },
+        "omission_review": [
+          {
+            "path": "platform/lib/wfdsl/expr.py",
+            "inbound_refs": 3,
+            "why_missed": "few inbound references but it owns the stopping-expression grammar every lane will touch"
+          }
+        ],
+        "frozen": {
+          "sha256": "e3b0...9a7c",
+          "final_tokens": 5904,
+          "dropped_to_make_room": [
+            "platform/lib/_derive_size_floors.py"
+          ]
+        },
+        "terminal_state": "SUCCESS:BPW-8503 - pack frozen at 5,904 tokens of a 6,000 budget, 1 omission folded in, 1 low-rank entry dropped",
+        "note": "The dropped entry is recorded rather than silently discarded: a budget trade-off nobody can see is indistinguishable from a bug."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "The 60-90 tool-call saving is an ESTIMATE quoted from the design card for a 39-agent workflow; it is UNVERIFIED for this estate and for this workflow. Settling experiment = the two-arm tool-call comparison benchmark case, run on one real 10-lane fan-out with the pack and one without.",
+      "That centrality ranking is the RIGHT ranking is UNVERIFIED - the omission review exists precisely because the ranking is known to bury unusual-but-important files. No measurement here establishes how often that happens. Settling experiment = count folded-in omissions across ten runs; a high rate would mean the ranking, not the review, needs replacing."
+    ]
+  }
+}

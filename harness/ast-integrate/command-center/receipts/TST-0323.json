@@ -1,0 +1,596 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0323",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0323",
+  "spec_anchor": "_USER-PROMPTS.md:11041 expand re-verification of the entire affected class when the sampled error rate exceeds a predefined threshold; catalog work_units[id=TST-0323]",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0323.json",
+      "bytes": 21352,
+      "sha256": "86e6867157f68ed9e1bb8958b0e559408e03fc065f051efc62b095cad1ed6663",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/receipt.schema.json",
+      "bytes": 5882,
+      "sha256": "ff5169b8b8a36c693f5c1a70f6f4aca29b956adf926909c896401e3a5bdb5e1a",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0323/threshold_prereg.json",
+      "bytes": 1594,
+      "sha256": "5c2558b53e3cfd6fbea7f0906f9b897c4674de410f63e4b9b9f38e0eed34209b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0323/protocol.json",
+      "bytes": 1495,
+      "sha256": "fe7780d66310f162f37cee2725054fdb81e7111959a437d841bf18b3257a5d9d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0323/fixtures/ledger.json",
+      "bytes": 31112,
+      "sha256": "a7619acf207d3ef04570e0fdbaf214c197fcf112e7c89b9561e22242235f4b1c",
+      "exists": true,
+      "eol": "LF",
+      "role": "fixture"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A recorded-seed stratified draw is reproducible, seed+1 differs, and per-stratum Wilson intervals recompute from raw k/n.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0323/probe1_seeded_sample.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "command-center/p2-wave/probes/TST-0323/sample.py:draw_frame",
+          "raw_output": "seed=3230323 n_per_stratum=8 population_n=80",
+          "fingerprint": "899f85636f25438afcbc2b66e4a827ac86e395ac2206a1d2e91cec03e23ae00e"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe1_seeded_sample.py",
+          "raw_output": "wilson_0_8 low=0.000000000000 high=0.324407564884 closed=0.324407564884\npartition ok=True n=80 counts={'deterministic:fail': 20, 'deterministic:pass': 20, 'judged:fail': 20, 'judged:pass': 20} unmatched=0\nstratum deterministic:fail k=1 n=8 rate=0.125 low=0.022417 high=0.470888\nstratum deterministic:pass k=0 n=8 rate=0.0 low=0.000000 high=0.324408\nstratum judged:fail k=5 n=8 rate=0.625 low=0.305742 high=0.863156\nstratum judged:pass k=1 n=8 rate=0.125 low=0.022417 high=0.470888\npooled_unstratified k=7 n=32 rate=0.21875\n{\"judged_fail_rate\": 0.625, \"pass\": true, \"pooled_rate\": 0.21875, \"probe\": \"probe1-seeded-sample\", \"same_seed_identical\": true, \"seed_plus_one_differs\": true, \"unit_id\": \"TST-0323\", \"wilson_0_8_not_wald\": true}\nSUCCESS:TST-0323-probe1 seeded-sample+wilson",
+          "fingerprint": "f0cb3ce42276fdd4f2c11703f80b7eac2dce893500de30c779910d0b3a874122",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Escalation fires on a known-bad stratum (full class enqueued), stays silent on a clean class and at exact threshold under strict_gt, and drops BLOCKED from the denominator.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/TST-0323/probe2_escalation.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "command-center/p2-wave/probes/TST-0323/escalate.py:decide",
+          "raw_output": "fired_strata=['deterministic:fail', 'judged:fail', 'judged:pass'] threshold=0.1",
+          "fingerprint": "d715e67cf901d8305fd6ddbf5be1a55b01924e0ad956938a3fcb5dcc89dccf68"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe2_escalation.py",
+          "raw_output": "known_bad fired=True rate=0.6 enqueued=12 class_size=12\nclean fired=False rate=0.0 enqueued=[]\nexact_threshold fired=False rate=0.1\njust_above fired=True rate=0.2\nanti_thrash fired=True enqueued=[]\nblocked_excluded fired=True rate=1.0 n=1 rate_if_blocked_in_denom=0.1\n{\"anti_thrash_empty_enqueue\": true, \"blocked_changes_decision\": true, \"clean_silent\": true, \"exact_threshold_silent\": true, \"known_bad_full_class\": true, \"pass\": true, \"probe\": \"probe2-escalation\", \"unit_id\": \"TST-0323\"}\nSUCCESS:TST-0323-probe2 escalation fires and stays silent",
+          "fingerprint": "7f92471bd2a3107576db9465ed8f2e64568b1d41bb441c2fc57037fe9c084c78",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "seeded-stratified-sample-not-hand-picked",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe1_seeded_sample.py",
+      "result": "PASS"
+    },
+    {
+      "id": "error-rate-per-stratum-with-wilson-intervals",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe1_seeded_sample.py",
+      "result": "PASS"
+    },
+    {
+      "id": "escalation-fires-on-known-bad-full-class",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe2_escalation.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-known-bad-full-class",
+      "kind": "known-broken-fixture",
+      "description": "A judged:fail sample with rate 0.6 on a class of 12 must fire and enqueue all 12 ids, not only the sample.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "known_bad fired=True class_size=12",
+      "good_state_output": "clean fired=False enqueued=[]"
+    },
+    {
+      "id": "NC-exact-threshold-silent",
+      "kind": "known-broken-fixture",
+      "description": "Rate exactly equal to the pre-registered 0.10 floor is silent under strict_gt; 0.20 fires.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "just_above fired=True rate=0.2",
+      "good_state_output": "exact_threshold fired=False rate=0.1"
+    },
+    {
+      "id": "NC-blocked-denominator",
+      "kind": "malformed-input",
+      "description": "BLOCKED rows excluded from the denominator change the decision on the 1-error + 9-blocked fixture.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "blocked_excluded fired=True rate=1.0 n=1",
+      "good_state_output": "rate_if_blocked_in_denom=0.1 silent"
+    },
+    {
+      "id": "NC-anti-thrash",
+      "kind": "other",
+      "description": "An already-expanded class reports fired=true with an empty enqueue rather than re-enqueuing the class.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "anti_thrash fired=True enqueued=[]",
+      "good_state_output": "clean enqueued=[]"
+    },
+    {
+      "id": "NC-wilson-not-wald",
+      "kind": "mutation",
+      "description": "Wilson 0/8 high equals z^2/(n+z^2) and is not the Wald collapse [0,0].",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "wald 0/8 would be [0,0]",
+      "good_state_output": "wilson_0_8 high=0.324407564884"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0323-wilson-recompute",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "vendor": "local",
+    "notes": "Probe 1 re-draws the sample from the recorded seed and recomputes Wilson intervals from raw k/n. Probe 2 is the independent both-states escalation control.",
+    "reviewed_at": "2026-08-25T01:04:32Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0323/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0323",
+    "registered_at": "2026-08-25T01:04:32Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads of catalog output_path",
+      "artifact_path": "command-center/receipts/TST-0323.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "schema-validate",
+        "command": "json.loads(command-center/receipts/TST-0323.json)",
+        "raw_output": "json.loads ok unit_id=TST-0323 bytes=21352",
+        "fingerprint": "ded02c876d927fce853999562e48d37be80472b6135a290dc964dcbe0bb14ea2",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "TST-0323 probe1 Wilson recompute against this receipt",
+      "artifact_path": "command-center/receipts/TST-0323.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe1_seeded_sample.py",
+        "raw_output": "wilson_0_8 low=0.000000000000 high=0.324407564884 closed=0.324407564884\npartition ok=True n=80 counts={'deterministic:fail': 20, 'deterministic:pass': 20, 'judged:fail': 20, 'judged:pass': 20} unmatched=0\nstratum deterministic:fail k=1 n=8 rate=0.125 low=0.022417 high=0.470888\nstratum deterministic:pass k=0 n=8 rate=0.0 low=0.000000 high=0.324408\nstratum judged:fail k=5 n=8 rate=0.625 low=0.305742 high=0.863156\nstratum judged:pass k=1 n=8 rate=0.125 low=0.022417 high=0.470888\npooled_unstratified k=7 n=32 rate=0.21875\n{\"judged_fail_rate\": 0.625, \"pass\": true, \"pooled_rate\": 0.21875, \"probe\": \"probe1-seeded-sample\", \"same_seed_identical\": true, \"seed_plus_one_differs\": true, \"unit_id\": \"TST-0323\", \"wilson_0_8_not_wald\": true}\nSUCCESS:TST-0323-probe1 seeded-sample+wilson",
+        "fingerprint": "f0cb3ce42276fdd4f2c11703f80b7eac2dce893500de30c779910d0b3a874122",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:04:32Z",
+    "ended_at": "2026-08-25T01:04:32Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live command-center/bench/results/ and bench/cases/ are absent, as is receipts/TST-0309.json. Rates characterize the frozen synthetic frame plus the wired sampler, Wilson interval, and strict_gt trigger, not live platform verdicts.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Place a live append-only bench ledger under command-center/bench/results/, re-freeze the frame from those rows, and re-run both named probes."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "benchmark-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "stratified-spot-audit",
+    "title": "Stratified human spot-audit of benchmark verdicts, with an escalation threshold",
+    "question": "Implementation target: mirror the Phase-11 rule at :11041 - sample the platform's own verdicts, re-adjudicate them by hand, and if the sampled error rate exceeds a pre-set threshold, expand re-verification to the entire affected class. Stratify the sample by oracle type (deterministic versus judged) and by verdict (pass versus fail), because a platform that is accurate on passes and wrong on failures has a specific, fixable bias that an unstratified sample averages away.",
+    "answer": "Sample design first: 2x2 strata (oracle_type \u00d7 platform_verdict), equal n=8 per stratum, seed=3230323, selection=sort-then-shuffle-with-stratum-derived-rng. Frozen synthetic ledger n=80 because command-center/bench/results/ is absent (live_results_usable=True). Per-stratum Wilson 95% intervals follow that design. judged:fail sampled error rate=0.625 exceeds pre-registered threshold 0.1 (boundary=strict_gt, recorded_at=2026-08-24T18:00:00Z); full-class re-verification enqueued for ['deterministic:fail', 'judged:fail', 'judged:pass']. deterministic:pass sampled rate=0, so the pass/fail bias is visible only because the sample is stratified. TST-0309 present=False. SUCCESS:TST-0323",
+    "sample_design": {
+      "allocation": "equal n_per_stratum drawn independently inside each of the four oracle_type \u00d7 platform_verdict strata",
+      "blocked_excluded_from_denominator": true,
+      "n_per_stratum": 8,
+      "population_counts": {
+        "deterministic:fail": 20,
+        "deterministic:pass": 20,
+        "judged:fail": 20,
+        "judged:pass": 20
+      },
+      "population_n": 80,
+      "population_source": "command-center/p2-wave/probes/TST-0323/fixtures/ledger.json",
+      "sampled_case_ids_by_stratum": {
+        "deterministic:fail": [
+          "SYN-DET-FAIL-0019",
+          "SYN-DET-FAIL-0014",
+          "SYN-DET-FAIL-0010",
+          "SYN-DET-FAIL-0015",
+          "SYN-DET-FAIL-0002",
+          "SYN-DET-FAIL-0020",
+          "SYN-DET-FAIL-0006",
+          "SYN-DET-FAIL-0001"
+        ],
+        "deterministic:pass": [
+          "SYN-DET-PASS-0011",
+          "SYN-DET-PASS-0003",
+          "SYN-DET-PASS-0013",
+          "SYN-DET-PASS-0002",
+          "SYN-DET-PASS-0019",
+          "SYN-DET-PASS-0007",
+          "SYN-DET-PASS-0001",
+          "SYN-DET-PASS-0005"
+        ],
+        "judged:fail": [
+          "SYN-JUD-FAIL-0009",
+          "SYN-JUD-FAIL-0008",
+          "SYN-JUD-FAIL-0017",
+          "SYN-JUD-FAIL-0010",
+          "SYN-JUD-FAIL-0014",
+          "SYN-JUD-FAIL-0011",
+          "SYN-JUD-FAIL-0002",
+          "SYN-JUD-FAIL-0018"
+        ],
+        "judged:pass": [
+          "SYN-JUD-PASS-0016",
+          "SYN-JUD-PASS-0009",
+          "SYN-JUD-PASS-0020",
+          "SYN-JUD-PASS-0006",
+          "SYN-JUD-PASS-0001",
+          "SYN-JUD-PASS-0015",
+          "SYN-JUD-PASS-0003",
+          "SYN-JUD-PASS-0011"
+        ]
+      },
+      "sampled_counts": {
+        "deterministic:fail": 8,
+        "deterministic:pass": 8,
+        "judged:fail": 8,
+        "judged:pass": 8
+      },
+      "seed": 3230323,
+      "selection_method": "Within each stratum, sort case_id lexicographically, shuffle with random.Random(int(sha256(utf8(frame_seed || '|' || stratum_id))[:16], 16)), take the first n_per_stratum ids. The draw is a function of (seed, population, stratum), not a hand-picked list.",
+      "strata": [
+        "deterministic:fail",
+        "deterministic:pass",
+        "judged:fail",
+        "judged:pass"
+      ],
+      "stratum_definition": "cartesian product oracle_type \u2208 {deterministic, judged} \u00d7 platform_verdict \u2208 {fail, pass}. Every ledger row lands in exactly one stratum.",
+      "synthetic": true,
+      "why_before_rates": "An error rate from a convenience sample is not an error rate. Strata, sizes, seed and selection method are recorded here before any k/n is reported."
+    },
+    "stratum_error_rates": [
+      {
+        "stratum_id": "deterministic:fail",
+        "sampled_case_ids": [
+          "SYN-DET-FAIL-0019",
+          "SYN-DET-FAIL-0014",
+          "SYN-DET-FAIL-0010",
+          "SYN-DET-FAIL-0015",
+          "SYN-DET-FAIL-0002",
+          "SYN-DET-FAIL-0020",
+          "SYN-DET-FAIL-0006",
+          "SYN-DET-FAIL-0001"
+        ],
+        "k": 1,
+        "n": 8,
+        "n_blocked": 0,
+        "rate": 0.125,
+        "defined": true,
+        "interval": {
+          "defined": true,
+          "k": 1,
+          "n": 8,
+          "rate": 0.125,
+          "low": 0.02241749145005667,
+          "high": 0.47088818221285345,
+          "center": 0.24665283683145506,
+          "margin": 0.2242353453813984,
+          "method": "wilson_score",
+          "z": 1.9599639845400536,
+          "alpha": 0.05
+        }
+      },
+      {
+        "stratum_id": "deterministic:pass",
+        "sampled_case_ids": [
+          "SYN-DET-PASS-0011",
+          "SYN-DET-PASS-0003",
+          "SYN-DET-PASS-0013",
+          "SYN-DET-PASS-0002",
+          "SYN-DET-PASS-0019",
+          "SYN-DET-PASS-0007",
+          "SYN-DET-PASS-0001",
+          "SYN-DET-PASS-0005"
+        ],
+        "k": 0,
+        "n": 8,
+        "n_blocked": 0,
+        "rate": 0.0,
+        "defined": true,
+        "interval": {
+          "defined": true,
+          "k": 0,
+          "n": 8,
+          "rate": 0.0,
+          "low": 0.0,
+          "high": 0.3244075648838801,
+          "center": 0.16220378244194006,
+          "margin": 0.16220378244194006,
+          "method": "wilson_score",
+          "z": 1.9599639845400536,
+          "alpha": 0.05
+        }
+      },
+      {
+        "stratum_id": "judged:fail",
+        "sampled_case_ids": [
+          "SYN-JUD-FAIL-0009",
+          "SYN-JUD-FAIL-0008",
+          "SYN-JUD-FAIL-0017",
+          "SYN-JUD-FAIL-0010",
+          "SYN-JUD-FAIL-0014",
+          "SYN-JUD-FAIL-0011",
+          "SYN-JUD-FAIL-0002",
+          "SYN-JUD-FAIL-0018"
+        ],
+        "k": 5,
+        "n": 8,
+        "n_blocked": 0,
+        "rate": 0.625,
+        "defined": true,
+        "interval": {
+          "defined": true,
+          "k": 5,
+          "n": 8,
+          "rate": 0.625,
+          "low": 0.3057423946026274,
+          "high": 0.8631557141764026,
+          "center": 0.584449054389515,
+          "margin": 0.2787066597868876,
+          "method": "wilson_score",
+          "z": 1.9599639845400536,
+          "alpha": 0.05
+        }
+      },
+      {
+        "stratum_id": "judged:pass",
+        "sampled_case_ids": [
+          "SYN-JUD-PASS-0016",
+          "SYN-JUD-PASS-0009",
+          "SYN-JUD-PASS-0020",
+          "SYN-JUD-PASS-0006",
+          "SYN-JUD-PASS-0001",
+          "SYN-JUD-PASS-0015",
+          "SYN-JUD-PASS-0003",
+          "SYN-JUD-PASS-0011"
+        ],
+        "k": 1,
+        "n": 8,
+        "n_blocked": 0,
+        "rate": 0.125,
+        "defined": true,
+        "interval": {
+          "defined": true,
+          "k": 1,
+          "n": 8,
+          "rate": 0.125,
+          "low": 0.02241749145005667,
+          "high": 0.47088818221285345,
+          "center": 0.24665283683145506,
+          "margin": 0.2242353453813984,
+          "method": "wilson_score",
+          "z": 1.9599639845400536,
+          "alpha": 0.05
+        }
+      }
+    ],
+    "escalations": [
+      {
+        "already_skipped": [],
+        "class_size": 20,
+        "defined": true,
+        "enqueued": [
+          "SYN-DET-FAIL-0001",
+          "SYN-DET-FAIL-0002",
+          "SYN-DET-FAIL-0003",
+          "SYN-DET-FAIL-0004",
+          "SYN-DET-FAIL-0005",
+          "SYN-DET-FAIL-0006",
+          "SYN-DET-FAIL-0007",
+          "SYN-DET-FAIL-0008",
+          "SYN-DET-FAIL-0009",
+          "SYN-DET-FAIL-0010",
+          "SYN-DET-FAIL-0011",
+          "SYN-DET-FAIL-0012",
+          "SYN-DET-FAIL-0013",
+          "SYN-DET-FAIL-0014",
+          "SYN-DET-FAIL-0015",
+          "SYN-DET-FAIL-0016",
+          "SYN-DET-FAIL-0017",
+          "SYN-DET-FAIL-0018",
+          "SYN-DET-FAIL-0019",
+          "SYN-DET-FAIL-0020"
+        ],
+        "fired": true,
+        "k": 1,
+        "n": 8,
+        "rate": 0.125,
+        "stratum_id": "deterministic:fail",
+        "threshold": 0.1
+      },
+      {
+        "already_skipped": [],
+        "class_size": 20,
+        "defined": true,
+        "enqueued": [],
+        "fired": false,
+        "k": 0,
+        "n": 8,
+        "rate": 0.0,
+        "stratum_id": "deterministic:pass",
+        "threshold": 0.1
+      },
+      {
+        "already_skipped": [],
+        "class_size": 20,
+        "defined": true,
+        "enqueued": [
+          "SYN-JUD-FAIL-0001",
+          "SYN-JUD-FAIL-0002",
+          "SYN-JUD-FAIL-0003",
+          "SYN-JUD-FAIL-0004",
+          "SYN-JUD-FAIL-0005",
+          "SYN-JUD-FAIL-0006",
+          "SYN-JUD-FAIL-0007",
+          "SYN-JUD-FAIL-0008",
+          "SYN-JUD-FAIL-0009",
+          "SYN-JUD-FAIL-0010",
+          "SYN-JUD-FAIL-0011",
+          "SYN-JUD-FAIL-0012",
+          "SYN-JUD-FAIL-0013",
+          "SYN-JUD-FAIL-0014",
+          "SYN-JUD-FAIL-0015",
+          "SYN-JUD-FAIL-0016",
+          "SYN-JUD-FAIL-0017",
+          "SYN-JUD-FAIL-0018",
+          "SYN-JUD-FAIL-0019",
+          "SYN-JUD-FAIL-0020"
+        ],
+        "fired": true,
+        "k": 5,
+        "n": 8,
+        "rate": 0.625,
+        "stratum_id": "judged:fail",
+        "threshold": 0.1
+      },
+      {
+        "already_skipped": [],
+        "class_size": 20,
+        "defined": true,
+        "enqueued": [
+          "SYN-JUD-PASS-0001",
+          "SYN-JUD-PASS-0002",
+          "SYN-JUD-PASS-0003",
+          "SYN-JUD-PASS-0004",
+          "SYN-JUD-PASS-0005",
+          "SYN-JUD-PASS-0006",
+          "SYN-JUD-PASS-0007",
+          "SYN-JUD-PASS-0008",
+          "SYN-JUD-PASS-0009",
+          "SYN-JUD-PASS-0010",
+          "SYN-JUD-PASS-0011",
+          "SYN-JUD-PASS-0012",
+          "SYN-JUD-PASS-0013",
+          "SYN-JUD-PASS-0014",
+          "SYN-JUD-PASS-0015",
+          "SYN-JUD-PASS-0016",
+          "SYN-JUD-PASS-0017",
+          "SYN-JUD-PASS-0018",
+          "SYN-JUD-PASS-0019",
+          "SYN-JUD-PASS-0020"
+        ],
+        "fired": true,
+        "k": 1,
+        "n": 8,
+        "rate": 0.125,
+        "stratum_id": "judged:pass",
+        "threshold": 0.1
+      }
+    ],
+    "threshold_preregistration": {
+      "boundary": "strict_gt",
+      "citation": "Phase-11 spec _USER-PROMPTS.md:11041 \u2014 expand re-verification of the entire affected class when the sampled error rate exceeds a predefined threshold. The 0.10 floor is declared here before any TST-0323 error rate is computed; it is not fitted to the synthetic ledger.",
+      "path": "command-center/p2-wave/probes/TST-0323/threshold_prereg.json",
+      "prereg_sha256": "5c2558b53e3cfd6fbea7f0906f9b897c4674de410f63e4b9b9f38e0eed34209b",
+      "recorded_at": "2026-08-24T18:00:00Z",
+      "recorded_before_computation": true,
+      "value": 0.1
+    },
+    "inputs_on_disk": {
+      "TST-0309": {
+        "path": "command-center/receipts/TST-0309.json",
+        "present": false
+      },
+      "bench_cases": {
+        "path": "command-center/bench/cases/",
+        "present": false
+      },
+      "bench_results": {
+        "file_count": 1,
+        "path": "command-center/bench/results/",
+        "present": true,
+        "usable": true
+      }
+    },
+    "generating_commit": null,
+    "upstream_stand_in": {
+      "reason": "live bench ledger absent; frame frozen rather than blocked",
+      "synthetic_population": true
+    }
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "output_schema_note": "Catalog receipt.schema.json is a generated shim. This receipt is validated against platform/schema/receipt.schema.json (receipt_core).",
+    "named_probes": [
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe1_seeded_sample.py",
+        "exit_code": 0,
+        "id": "probe1",
+        "raw_output": "wilson_0_8 low=0.000000000000 high=0.324407564884 closed=0.324407564884\npartition ok=True n=80 counts={'deterministic:fail': 20, 'deterministic:pass': 20, 'judged:fail': 20, 'judged:pass': 20} unmatched=0\nstratum deterministic:fail k=1 n=8 rate=0.125 low=0.022417 high=0.470888\nstratum deterministic:pass k=0 n=8 rate=0.0 low=0.000000 high=0.324408\nstratum judged:fail k=5 n=8 rate=0.625 low=0.305742 high=0.863156\nstratum judged:pass k=1 n=8 rate=0.125 low=0.022417 high=0.470888\npooled_unstratified k=7 n=32 rate=0.21875\n{\"judged_fail_rate\": 0.625, \"pass\": true, \"pooled_rate\": 0.21875, \"probe\": \"probe1-seeded-sample\", \"same_seed_identical\": true, \"seed_plus_one_differs\": true, \"unit_id\": \"TST-0323\", \"wilson_0_8_not_wald\": true}\nSUCCESS:TST-0323-probe1 seeded-sample+wilson"
+      },
+      {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0323/probe2_escalation.py",
+        "exit_code": 0,
+        "id": "probe2",
+        "raw_output": "known_bad fired=True rate=0.6 enqueued=12 class_size=12\nclean fired=False rate=0.0 enqueued=[]\nexact_threshold fired=False rate=0.1\njust_above fired=True rate=0.2\nanti_thrash fired=True enqueued=[]\nblocked_excluded fired=True rate=1.0 n=1 rate_if_blocked_in_denom=0.1\n{\"anti_thrash_empty_enqueue\": true, \"blocked_changes_decision\": true, \"clean_silent\": true, \"exact_threshold_silent\": true, \"known_bad_full_class\": true, \"pass\": true, \"probe\": \"probe2-escalation\", \"unit_id\": \"TST-0323\"}\nSUCCESS:TST-0323-probe2 escalation fires and stays silent"
+      }
+    ]
+  }
+}

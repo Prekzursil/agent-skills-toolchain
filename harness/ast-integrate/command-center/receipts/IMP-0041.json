@@ -1,0 +1,203 @@
+{
+ "artifacts": [
+  {
+   "bytes": 18992,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin-cache-reaper/cache.py",
+   "role": "primary",
+   "sha256": "a6c19423f53073a8a2aa8b4625dda2581247f0a4214a91a70087893ab429c9f6"
+  },
+  {
+   "bytes": 12106,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin-cache-reaper/reap.py",
+   "role": "supporting",
+   "sha256": "2f08d9628de5fc01ef29f5ed71e49546573c8ba4bd98fb149d3604d570c55708"
+  },
+  {
+   "bytes": 4327,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_cache_corruption.py",
+   "role": "supporting",
+   "sha256": "1d3cd7c70f2090eb78620058dbaa38f2956f6e8dbe1e2e3e40edd711e2176ab4"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0041.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0041",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "run after this emitter writes the receipt and per-unit manifest",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin-cache-reaper/cache.py:PluginCache.refresh",
+   "claim": "A deliberately truncated cache entry is detected and quarantined. quarantine listing=['20260825T005822Z-truncated-broke-b62f9e1a66f3-663b4b9c']; quarantined_ids=['broke']; intact sibling 'keep' is absent from that listing (negative control: truncated_named=True intact_absent=True).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PluginCache.refresh after in-place truncate of payload.bin",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"listing\": [\"20260825T005822Z-truncated-broke-b62f9e1a66f3-663b4b9c\"], \"quarantined_ids\": [\"broke\"], \"intact_ids\": [\"keep\"]}",
+     "role": "source"
+    },
+    {
+     "command": "list quarantine/ directory names (independent of report.quarantined)",
+     "exit_code": 0,
+     "method": "file-read",
+     "raw_output": "[\"20260825T005822Z-truncated-broke-b62f9e1a66f3-663b4b9c\"]",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin-cache-reaper/cache.py:PluginCache.get",
+   "claim": "After quarantine the consumer is served rebuilt bytes whose sha256 equals the source (b62f9e1a66f3a128797105a11250e315b802e9e7a18786a1b66732c97bafeb61). consumer=b62f9e1a66f3a128797105a11250e315b802e9e7a18786a1b66732c97bafeb61 hash_equal=True. Detection without correct downstream service would fail this check.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "hashlib.sha256(source_bytes)",
+     "exit_code": 0,
+     "method": "byte-compare",
+     "raw_output": "b62f9e1a66f3a128797105a11250e315b802e9e7a18786a1b66732c97bafeb61",
+     "role": "source"
+    },
+    {
+     "command": "hashlib.sha256(PluginCache.get(...))",
+     "exit_code": 0,
+     "method": "byte-compare",
+     "raw_output": "b62f9e1a66f3a128797105a11250e315b802e9e7a18786a1b66732c97bafeb61",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0041/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "[\"20260825T005822Z-truncated-broke-b62f9e1a66f3-663b4b9c\"]",
+   "description": "Same refresh run: truncated entry must be quarantined AND the intact sibling must not appear in the quarantine directory listing.",
+   "fired_on_bad_state": true,
+   "good_state_output": "[\"keep\"]",
+   "id": "IMP0041-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "report": {
+  "cli": [
+   "cache refresh",
+   "cache clear <scope>"
+  ],
+  "implementation": "tools/plugin-cache-reaper/cache.py",
+  "kind": "cache_refresh_quarantine",
+  "live": {
+   "atomic_write_contract": {
+    "ok": true,
+    "path": "/opt/p2/ast-integrate/tools/plugin-cache-reaper/cache.py",
+    "payload_name": "payload.bin",
+    "tmp_prefix": ".tmp-",
+    "uses_os_replace": true,
+    "uses_tmp_prefix": true
+   },
+   "consumer_sha256": "b62f9e1a66f3a128797105a11250e315b802e9e7a18786a1b66732c97bafeb61",
+   "hash_equal": true,
+   "intact_absent_from_listing": true,
+   "intact_hash_equal": true,
+   "intact_ids": [
+    "keep"
+   ],
+   "quarantine_listing": [
+    "20260825T005822Z-truncated-broke-b62f9e1a66f3-663b4b9c"
+   ],
+   "quarantined_ids": [
+    "broke"
+   ],
+   "rebuilt_ids": [
+    "broke"
+   ],
+   "source_sha256": "b62f9e1a66f3a128797105a11250e315b802e9e7a18786a1b66732c97bafeb61",
+   "truncated_named_in_listing": true
+  },
+  "unittest": {
+   "ok": true,
+   "tests_run": 8
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0040 (content-addressed keying) is a catalog dependency and is not separately delivered on this worktree. This unit implements (plugin_id, version, source_sha256) keys inside plugin-cache-reaper so quarantine/rebuild is not a second cache.",
+   "settling_experiment": "Deliver IMP-0040 against the same PluginCache key helper.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "AST of tools/plugin-cache-reaper/cache.py:atomic_write_bytes uses a .tmp- sibling and os.replace; consumer sha256 equals source sha256 after rebuild.",
+  "reviewer_id": "IMP-0041-probe2-atomic-write-ast",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0041",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0041",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 6,
+   "command": "python3 -B tools/plugin/tests/test_cache_corruption.py",
+   "id": "T1-truncated-zero-wronghash-partial",
+   "output_tail": "wrong_hash) ... ok\ntest_zero_byte (__main__.CacheCorruptionTests.test_zero_byte) ... ok\n\n----------------------------------------------------------------------\nRan 6 tests in 0.038s\n\nOK\nkilled: age-gate becomes OR (one signal can authorise a delete)\nkilled: staging regex loses its end anchor\nkilled: candidate scan stops checking that the entry is a directory\nkilled: root validation becomes a no-op (any path is deletable)\nkilled: dry-run deletes anyway\nSUCCESS:reap-mutations 5/5 mutations killed\n",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "live refresh with intact+truncated pair",
+   "id": "T2-negative-control-intact-not-quarantined",
+   "output_tail": "[\"keep\"]",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "assert_atomic_write_contract(cache.py)",
+   "id": "T3-atomic-write-tmp-plus-rename",
+   "output_tail": "{\"ok\": true, \"path\": \"/opt/p2/ast-integrate/tools/plugin-cache-reaper/cache.py\", \"payload_name\": \"payload.bin\", \"tmp_prefix\": \".tmp-\", \"uses_os_replace\": true, \"uses_tmp_prefix\": true}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 8,
+   "command": "python3 -B tools/plugin-cache-reaper/test_reap_mutations.py",
+   "id": "T4-reaper-mutation-suite",
+   "output_tail": "tests_run=8 failures=0",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:21Z",
+  "started_at": "2026-08-25T00:58:21Z"
+ },
+ "title": "Cache refresh, invalidation, and corrupted-entry quarantine",
+ "unit_id": "IMP-0041"
+}

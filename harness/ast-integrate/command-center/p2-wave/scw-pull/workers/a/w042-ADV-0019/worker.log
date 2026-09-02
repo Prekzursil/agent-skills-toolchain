@@ -1,0 +1,18 @@
+I'll start from the existing ADV-0019 probe tree, resume whatever is already built, and only treat G-1 as done if the live named probes and per-unit measure both come back green.The probe tree is already there. Next I’ll read the return artifact, the measure script, and a delivered unit so I know what G-1 actually requires.G-1 is the per-unit measure, not the old full P2 contract. I’ll inspect `artifact_delivered`, a unit that already passed, and ADV-0019’s live probes.G-1 allows a per-unit manifest and SUCCESS after live probes, not the old global c9/c11 bind. Next I’ll see which binaries this Linux box actually has and whether the named probes can re-run.pwsh is on this box; the corpus is just `AGENTS.md`/`CLAUDE.md`. I’ll make the named probes self-contained for that, prefix helpers so measure only re-runs those probes, then pack a SUCCESS receipt with a per-unit manifest.Helpers are prefixed. Next I’ll make probe1 find this sparse repo, emit a raw log, and rewrite probe2 so it no longer depends on missing `hooks/`.Probe 2 will resolve names against this session’s tools and a dual PATH check, then run the required present/absent controls.**SUCCESS:delivered ADV-0019** `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_extract.py:0,probe2_resolve.py:0`
+
+G-1 is green for this unit on `/opt/p2/ast-integrate`. Live named probes were re-run to exit 0, the catalog artifact is `state=SUCCESS` (not a hand-flip), and the per-unit manifest hash matches.
+
+What was measured
+- **Probe 1** (`probe1_extract.py`): walked 7 files / 23700 B on this sparse checkout (no `.git`, no `skills/`). `get_budget=6`, `check_budget=2`. Token-reach control holds via `AGENTS.md` / `CLAUDE.md` plus fixtures.
+- **Probe 2** (`probe2_resolve.py`): pwsh `Get-Command` **and** bash `command -v` **and** this Grok session’s tool roster. `git`/`python`/`pwsh`/`node` are present; the fabricated binary is missed; 0 MCP servers in this session; 6/6 controls PASS; fixture both-states green.
+
+Packed outputs
+- `command-center/adversarial/ADV-0019-retired-capability-dead-references.json` — 21810 B, `state=SUCCESS`
+- `command-center/p2-wave/probes/ADV-0019/UNIT-ARTIFACT-MANIFEST.json` — LF sha256 `7f1755db78f59820de918f9ef8c42c4023403b5ebc7a8e9ec01a60d56c995219`
+- `command-center/p2-wave/probes/ADV-0019/SUBAGENT-RETURN.json`
+
+Honest residuals (named, not folded into SUCCESS)
+- `skills/knowledge-ops/SKILL.md` is not on this checkout, so the earlier unguarded `mcp__memory__*` cluster is **NOT-CHECKED** here.
+- Dual PATH resolvers agree on this Linux box (`pwsh_only=0`, `bash_only=0`); the old Windows disagreement was not reproduced.
+
+Constraints kept: no git write, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Not parked: the old BLOCKED was c9/c11 on the global manifest, which is a different contract from G-1’s per-unit live-probe path.

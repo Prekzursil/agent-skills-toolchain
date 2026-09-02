@@ -1,0 +1,22 @@
+I'll start from the existing ADV-0058 probe tree and resume from whatever is already there, then measure delivery against the G-1 contract.The probe tree is already populated. Next I’ll read the return, manifest, handoff, and measure script so I can resume rather than rebuild.Probes and sidecars are already on disk even though the old return still calls them absent. I’ll inspect the live artifact, probe scripts, and a delivered sibling so we resume from that tree.Probes look complete and already encode the planted-transitive measurement. Next I’ll check the owned artifact, catalog row, and a delivered sibling so we can make this unit contract-green without a rebuild loop.The owned receipt already says SUCCESS, so I’ll re-run the live probes and the measure script, then check whether `_handoff_remeasure.py` would fail the gate.The leftover Windows remasure script would fail the Linux gate, so I’ll inspect how a delivered sibling handled it and whether the marketplace SBOM module is importable here.Marketplace is missing on this sparse tree, so I’ll make the existing probes self-contained, fix the Windows remasure path, then re-run and pack.Probes are self-contained now. Next I’ll re-run them live, then pack the receipt and per-unit manifest from those outputs.Both named probes exited 0 with the planted-transitive REFUTED measurement. Packing the receipt and per-unit manifest from those live outputs next.Measure printed `SUCCESS:delivered`. I’ll gather live hashes and write `SUBAGENT-RETURN.json` so the per-unit record matches that result.**SUCCESS:delivered ADV-0058** `predicate=delivered state=SUCCESS probes=3 raws=5 notes=_handoff_remeasure.py:0,probe1_artifact_setdiff.py:0,probe2_direct_plant.py:0`
+
+G-1 is green for this unit. Cloud-ok `unit_complete` was not treated as delivery.
+
+What was already here: the CLOUD-OK return still said BLOCKED with 16 missing sidecars, but the probe tree already had the zip, SBOM, oracle, both named probes, and raw outputs. I resumed that tree.
+
+What I changed:
+- **Probe 1** now re-runs on this sparse Linux tree (`platform/marketplace` is absent). It keeps the planted fixture and uses a local SBOM bijection / MKT-P03 allowlist when `mkt` cannot be imported.
+- **`_handoff_remeasure.py`** no longer points at a Windows path, so the measure gate can re-run it.
+- Packed an honest `state=SUCCESS` receipt and the per-unit manifest from live probe bytes.
+
+Live measurement (unchanged scientific claim):
+- Probe 1 exit 0, verdict **REFUTED**: 6 identified components, 2 billed in the SBOM, plant `pkg:npm/stealth-transitive@7.8.9` present in the artifact and missing from the SBOM. Declared-normal control is live; the manifest-only mutant still goes red.
+- Probe 2 exit 0: `PLANT-PRESENT-IN-ARTIFACT-AND-MISSING-FROM-SBOM`.
+
+Receipt and registration:
+- `command-center/adversarial/ADV-0058-sbom-completeness-planted-transitive.json` — 24847 bytes, `state=SUCCESS`
+- live LF sha256 `a0d895befe48ded3f59226960f6fde32f056f39a77711b63b70436ead05c0cc6` matches `command-center/p2-wave/probes/ADV-0058/UNIT-ARTIFACT-MANIFEST.json`
+- `command-center/p2-wave/probes/ADV-0058/SUBAGENT-RETURN.json` records this delivery
+- `CLOUD-OK-REFUTE.json` is still the harvest refute (not delivery)
+
+Did not git add/commit/push/stash/checkout/rebase, did not run `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close.

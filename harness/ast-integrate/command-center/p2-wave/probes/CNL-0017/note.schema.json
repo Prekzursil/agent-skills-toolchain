@@ -1,0 +1,161 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0017/note.schema.json",
+  "$comment": "Per-unit note schema. The catalog shim command-center/schema/council-design-note.schema.json $ref's https://ast-integrate.invalid/... and jsonschema 4.10 fetches that URL. G-1 does not network-validate the shim. This file is the live constraint: state is an enum so NOT-A-STATE fails, metric/scores/reviewer are required so an empty object cannot pass.",
+  "title": "CNL-0017 stakeholder-balance design note",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "taxonomy",
+    "metric",
+    "scores",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "evidence",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0017" },
+    "state": {
+      "type": "string",
+      "enum": [
+        "SUCCESS",
+        "PARTIAL",
+        "BLOCKED",
+        "FAILED",
+        "TIMEOUT",
+        "SEVERED"
+      ]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0017" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "taxonomy": {
+      "type": "object",
+      "required": ["id", "axis", "closed", "classes"],
+      "properties": {
+        "id": { "type": "string", "const": "CNL-0017.stakeholder.v1" },
+        "axis": { "type": "string", "const": "stakeholder_class" },
+        "closed": { "type": "boolean", "const": true },
+        "classes": { "type": "array", "minItems": 6, "maxItems": 6 }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "required": ["id", "formula", "decision", "I_star", "I_star_declared_before_scoring"],
+      "properties": {
+        "id": { "type": "string" },
+        "formula": { "type": "string", "minLength": 8 },
+        "decision": { "type": "string", "minLength": 8 },
+        "I_star": { "type": "integer", "minimum": 0 },
+        "I_star_declared_before_scoring": { "type": "boolean", "const": true }
+      }
+    },
+    "scores": {
+      "type": "object",
+      "required": ["threshold_sha256", "I_star", "balanced", "unbalanced"],
+      "properties": {
+        "threshold_sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "I_star": { "type": "integer", "minimum": 0 },
+        "balanced": {
+          "type": "object",
+          "required": ["I", "D", "fires"],
+          "properties": {
+            "I": { "type": "integer" },
+            "D": { "type": "integer" },
+            "fires": { "type": "boolean" }
+          }
+        },
+        "unbalanced": {
+          "type": "object",
+          "required": ["I", "D", "fires"],
+          "properties": {
+            "I": { "type": "integer" },
+            "D": { "type": "integer" },
+            "fires": { "type": "boolean" }
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "ERROR", "SKIP", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "what_the_check_does"],
+        "properties": {
+          "id": { "type": "string" },
+          "what_the_check_does": { "type": "string", "minLength": 16 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "independent", "counterexample_instance"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 8 },
+        "independent": { "type": "boolean", "const": true },
+        "counterexample_instance": {
+          "type": "object",
+          "required": ["roster_id", "D", "I"],
+          "properties": {
+            "roster_id": {
+              "type": "string",
+              "const": "roster-unbalanced-merely-diverse"
+            },
+            "D": { "type": "integer" },
+            "I": { "type": "integer" }
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"]
+      }
+    }
+  }
+}

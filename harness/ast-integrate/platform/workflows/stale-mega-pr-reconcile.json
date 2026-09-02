@@ -1,0 +1,407 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "stale-mega-pr-reconcile",
+  "name": "Stale mega-PR reconcile: measure the conflict surface, then apply a per-file-class recipe",
+  "description": "Blueprint 37 of 96 (BP-PLN-05). Rescues ONE unmergeable stale branch. The distinctive mechanism is that the conflict surface is MEASURED on a throwaway merge before any resolution is planned - a +72k-line / 288-commit PR had a five-file surface - and every conflicted file is then resolved by its CLASS (deps / machinery / tests / source) rather than by judgement. Line count is banned as an estimator and a guessed runtime-dependent expected value is treated as fabrication, so it is deferred to the owner instead.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["engineering-and-reliability"],
+  "tags": ["git", "reconcile", "conflict-surface", "measure-first"],
+  "flagship": false,
+
+  "params": {
+    "branch": {
+      "type": "string",
+      "required": true,
+      "min_length": 1,
+      "description": "The stale branch or PR head to reconcile"
+    },
+    "base": {
+      "type": "string",
+      "default": "origin/main",
+      "description": "The base ref the branch must land on"
+    },
+    "intent_statement": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "What the branch was FOR. If the intent is itself obsolete the branch is closed, not reconciled (contraindication)."
+    },
+    "conflict_file_budget": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 1,
+      "maximum": 500,
+      "description": "Above this measured surface the reconcile is escalated rather than attempted"
+    },
+    "file_classes": {
+      "type": "enum",
+      "enum": ["deps", "machinery", "tests", "source"],
+      "default": "source",
+      "description": "The four resolution classes; each conflicted file is assigned exactly one"
+    }
+  },
+
+  "roles": {
+    "surveyor": {
+      "description": "Runs the mechanical measurement only - throwaway merge, unmerged-path count, A/M/D composition. Emits numbers, never resolutions.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Bash:git", "Write(command-center/reconcile/**)"],
+      "write_paths": ["command-center/reconcile/**"],
+      "speaking_rights": "always"
+    },
+    "resolver": {
+      "description": "Resolves ONE conflicted file by its declared class recipe; may not widen scope to a file it was not assigned.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Bash:git", "Bash:python", "Write(command-center/reconcile/**)"],
+      "write_paths": ["command-center/reconcile/**"],
+      "speaking_rights": "always"
+    },
+    "owner": {
+      "description": "The human owner - the only role that may pin a runtime-dependent expected value or close the branch",
+      "vendor": "human",
+      "authority": "owner",
+      "speaking_rights": "on-request"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Grep", "Glob", "Bash:git", "Bash:python", "Write(command-center/reconcile/**)"],
+    "deny": ["WebFetch", "WebSearch"],
+    "require_owner_approval": ["Bash:gh"],
+    "network": "read-only",
+    "write_paths": ["command-center/reconcile/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json", "platform/schema/**"]
+  },
+
+  "model_routing": {
+    "strategy": "static",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "surface-measured": {
+      "predicate": "custom-expression",
+      "expression": "surface_from_throwaway_merge == true AND estimated_from_line_count == false AND merge_aborted == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "surface-within-budget": {
+      "predicate": "custom-expression",
+      "expression": "conflict_surface_files <= conflict_file_budget",
+      "blocking": true,
+      "on_fail": "escalate-to-human"
+    },
+    "no-guessed-runtime-values": {
+      "predicate": "custom-expression",
+      "expression": "guessed_runtime_expected_values == 0 AND deleted_deferred_machinery == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "measure-surface",
+      "title": "Throwaway merge: count the UNMERGED paths, then abort",
+      "kind": "task",
+      "role": "surveyor",
+      "checkpoint": true,
+      "timeout_seconds": 1800,
+      "work_unit": {
+        "id": "AUD-0002",
+        "title": "Measure the real conflict surface of a stale branch on a throwaway merge",
+        "phase": "0",
+        "question_or_target": "On a throwaway branch cut from base, run a no-commit no-ff merge of the stale branch, count `git diff --name-only --diff-filter=U`, record the A/M/D composition from the merge-base diff, then abort the merge. Report the UNMERGED-path count and never the +/- line count as the estimate of work.",
+        "inputs": ["params.branch", "params.base", "params.intent_statement"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "surveyor",
+          "basis": "substantive subagents default to Opus"
+        },
+        "tool_permissions": ["Read", "Grep", "Bash:git"],
+        "execution_substrate": "local-serial",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/reconcile/conflict-surface.json",
+        "output_schema": "command-center/schema/divergence-report.schema.json",
+        "evidence_requirement": "the literal `git diff --name-only --diff-filter=U` output and the `git diff --name-status <merge-base> <head>` A/M/D tally, both re-runnable, plus proof the merge was aborted (a clean `git status` on the throwaway branch)",
+        "tests_required": [
+          "both-states control: a branch with a KNOWN conflicted file must report count >= 1, and a fast-forwardable branch must report 0 - a measurement that returns 0 in both states measures nothing",
+          "the reported count must differ from the changed-line count on a branch whose additions dominate (added files never conflict)"
+        ],
+        "reviewer_requirement": "one independent reviewer who re-runs the merge measurement on the same two refs and compares the unmerged-path set, not the summary",
+        "completion_sentinel": "SUCCESS:AUD-0002 emitted only when conflict-surface.json exists, parses against output_schema, carries the raw unmerged-path list, and the throwaway branch is clean; otherwise FAILED:AUD-0002 <reason>",
+        "retry_policy": "two strikes then pivot; a second failure to construct the throwaway merge means the refs are wrong - re-fetch and re-derive rather than retrying the same command",
+        "failure_classification": ["stale-ref", "detector-failure", "partial-artifact"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/reconcile/conflict-surface.json",
+          "schema_ref": "command-center/schema/divergence-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:AUD-0002",
+          "consumers": ["classify-and-resolve", "defer-runtime-values"]
+        }
+      ]
+    },
+    {
+      "id": "superset-check",
+      "title": "Optional S0b: if `git log B..A` is empty then B contains A - close A instead",
+      "kind": "task",
+      "role": "surveyor",
+      "depends_on": ["measure-surface"],
+      "when": "sibling_branch_declared == true",
+      "work_unit_ref": "AUD-0008",
+      "timeout_seconds": 900
+    },
+    {
+      "id": "surface-gate",
+      "title": "The surface must come from the merge, not from the diff size",
+      "kind": "gate",
+      "depends_on": ["measure-surface"],
+      "gate_ref": "surface-measured"
+    },
+    {
+      "id": "budget-gate",
+      "title": "A surface above the budget is escalated, not attempted",
+      "kind": "gate",
+      "depends_on": ["surface-gate"],
+      "gate_ref": "surface-within-budget"
+    },
+    {
+      "id": "classify-and-resolve",
+      "title": "One resolver per conflicted file, dispatched by file CLASS",
+      "kind": "fanout",
+      "depends_on": ["budget-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/reconcile/conflict-surface.json",
+        "item_var": "conflicted_file",
+        "key_field": "path"
+      },
+      "max_concurrency": 6,
+      "max_items": 500,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "resolve-one-file",
+          "title": "Apply the class recipe: deps->take base wholesale; machinery->keep base unless the branch's intent is to change it; tests->graft only self-contained ones; source->manual",
+          "kind": "task",
+          "role": "resolver",
+          "work_unit_ref": "BLD-0034",
+          "timeout_seconds": 2700,
+          "produces": [
+            {
+              "path": "command-center/reconcile/per-file-plan.json",
+              "schema_ref": "command-center/schema/disposition-table.schema.json",
+              "min_bytes": 128,
+              "register_in_manifest": true,
+              "consumers": ["defer-runtime-values"]
+            }
+          ]
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true,
+        "reject_result_matching": ["started in the background", "Check /codex:status"]
+      }
+    },
+    {
+      "id": "fabrication-gate",
+      "title": "Guessing a runtime-dependent expected value is fabrication; deleting deferred machinery is scope theft",
+      "kind": "gate",
+      "depends_on": ["classify-and-resolve"],
+      "gate_ref": "no-guessed-runtime-values"
+    },
+    {
+      "id": "defer-runtime-values",
+      "title": "Hand the runtime-dependent assertions and the ungraftable tests back to the owner, in writing",
+      "kind": "human_checkpoint",
+      "depends_on": ["fabrication-gate"],
+      "prompt": "These conflicted items cannot be resolved without guessing: runtime-dependent expected values, and tests that depend on the other side's helpers and would not compile if grafted. Pin the values, or accept them as PR-disclosed follow-ups.",
+      "approvers": ["owner"],
+      "approval_mode": "owner-only",
+      "timeout_seconds": 86400,
+      "on_timeout": "escalate",
+      "owner_approval_required": true,
+      "options": ["pin-the-values", "accept-as-disclosed-followups", "close-the-branch"],
+      "decision_artifact": {
+        "path": "command-center/reconcile/deferred-to-owner.json",
+        "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+        "min_bytes": 128,
+        "register_in_manifest": true
+      }
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "surface-resolved-or-deferred",
+      "expression": "unresolved_conflicts == 0 OR all_remaining_deferred_in_writing == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "surface_from_throwaway_merge == true",
+      "on_stop": "complete"
+    },
+    {
+      "id": "intent-obsolete",
+      "expression": "branch_intent_obsolete == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 15,
+    "jitter": false,
+    "retry_on": ["stale-ref", "index-lock"],
+    "no_retry_on": ["owner-blocked", "branch-intent-obsolete"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "defer-runtime-values"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": ["stale-ref", "ungraftable-test", "semantic-conflict"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "defer-runtime-values",
+    "quarantine_path": "command-center/reconcile/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/stale-mega-pr-reconcile",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "stage_id", "item_key", "params_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 43200,
+    "on_stale": "restart"
+  },
+
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/stale-mega-pr-reconcile.jsonl",
+    "record": ["params", "tool_calls", "tool_results", "env_fingerprint"],
+    "forbid_nondeterministic_sources": ["filesystem-order"],
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": false,
+    "scope": "stage",
+    "read_only": true,
+    "invalidate_on": ["base-ref-moved"]
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "graph", "permission-report"],
+    "plan_artifact": "command-center/dry-run/stale-mega-pr-reconcile-plan.json",
+    "forbid_tools": ["Write(command-center/reconcile/**)", "Bash:python"]
+  },
+
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "wallclock_seconds": { "min": 900, "expected": 5400, "max": 28800 },
+    "tokens": { "min": 60000, "expected": 300000, "max": 1200000 },
+    "tool_calls": { "expected": 90, "max": 500 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "a throwaway measurement branch plus writes under command-center/reconcile/**; the stale branch itself is never force-pushed by this workflow",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "examples", "lineage"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/stale-mega-pr-reconcile.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject"
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "rules/common/stale-megapr-reconcile.md",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-05",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["rules/common/stale-megapr-reconcile.md"]
+  },
+
+  "outputs": {
+    "per-file-plan": {
+      "path": "command-center/reconcile/per-file-plan.json",
+      "schema_ref": "command-center/schema/disposition-table.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["defer-runtime-values"]
+    },
+    "deferred": {
+      "path": "command-center/reconcile/deferred-to-owner.json",
+      "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "worked_example": {
+      "scenario": "A branch 288 commits behind base whose PR shows +72,431 / -1,208 across 1,188 files.",
+      "step_1_measure": "throwaway merge -> `git diff --name-only --diff-filter=U` returns 5 paths: package.json, package-lock.json, .github/workflows/quality.yml, src/nav/items.ts, src/nav/items.test.ts",
+      "step_2_compose": "merge-base diff A=1,141 M=42 D=5 - the additions are what made the PR look unlandable and they cannot conflict",
+      "step_3_classify": "deps -> package.json + lockfile (branch has NO unique deps, so base is the superset: take base wholesale); machinery -> quality.yml (keep base, the branch's intent does not touch CI); source -> src/nav/items.ts (manual); tests -> src/nav/items.test.ts",
+      "step_4_defer": "items.test.ts asserts `expect(navItems.length).toBe(10)` while base's new code makes it 11. The workflow does NOT guess 11 - fabrication-gate blocks and defer-runtime-values hands it to the owner or to CI.",
+      "measured_outcome": "reconcile cost = 5 files, not 1,188; the line count over-estimated the surface by ~237x on the file axis"
+    },
+    "contraindications": [
+      "NOT for a fresh PR - there is no stale surface to measure",
+      "NOT when the branch's intent is itself obsolete - close it instead of reconciling (stopping rule intent-obsolete)",
+      "NOT a substitute for CI on semantic conflict - this blueprint only addresses textual conflict"
+    ],
+    "distinctive_mechanism": "surface measured on a throwaway merge BEFORE planning; resolution dispatched by file class; runtime-dependent values deferred rather than guessed",
+    "not_a_duplicate_because": "BP-PLN-03 orders N already-mergeable PRs; this rescues ONE unmergeable stale branch and its defining act is a measurement that replaces an estimate."
+  }
+}

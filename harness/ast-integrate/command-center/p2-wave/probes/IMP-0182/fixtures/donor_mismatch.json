@@ -1,0 +1,104 @@
+{
+  "id": "wf.donor.pixels-mismatch",
+  "licence": "Apache-2.0",
+  "version": "2.0.0",
+  "entry": [
+    {
+      "name": "raw",
+      "type": "bytes"
+    }
+  ],
+  "exit": [
+    {
+      "name": "verdict",
+      "type": "boolean"
+    }
+  ],
+  "stages": [
+    {
+      "id": "ingest",
+      "kind": "ingest",
+      "capability": "pure-transform",
+      "inputs": [
+        {
+          "name": "raw",
+          "type": "bytes"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "doc",
+          "type": "document"
+        }
+      ],
+      "body": {
+        "op": "parse",
+        "from": "raw",
+        "to": "doc"
+      },
+      "source_anchor": "IMP-0182/fixtures:ingest",
+      "performance": {
+        "metric": "latency_ms",
+        "score": 9.0,
+        "benchmark_run_id": "donor-ingest-1"
+      }
+    },
+    {
+      "id": "classify",
+      "kind": "vision",
+      "capability": "pure-transform",
+      "inputs": [
+        {
+          "name": "image",
+          "type": "pixels"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "score",
+          "type": "number"
+        }
+      ],
+      "body": {
+        "op": "classify_image",
+        "from": "image",
+        "to": "score"
+      },
+      "source_anchor": "IMP-0182/fixtures:classify",
+      "performance": {
+        "metric": "f1",
+        "score": 0.99,
+        "benchmark_run_id": "donor-classify-1"
+      }
+    },
+    {
+      "id": "decide",
+      "kind": "gate",
+      "capability": "gate",
+      "inputs": [
+        {
+          "name": "score",
+          "type": "number"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "verdict",
+          "type": "boolean"
+        }
+      ],
+      "body": {
+        "op": "decide",
+        "from": "score",
+        "to": "verdict",
+        "threshold": 0.4
+      },
+      "source_anchor": "IMP-0182/fixtures:decide",
+      "performance": {
+        "metric": "accuracy",
+        "score": 0.8,
+        "benchmark_run_id": "donor-decide-1"
+      }
+    }
+  ]
+}

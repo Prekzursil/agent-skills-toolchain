@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Trusted Publishers for All Package Repositories | wg-securing-software-repos</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Trusted Publishers for All Package Repositories" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="OpenSSF Working Group on Securing Software Repositories" />
+<meta property="og:description" content="OpenSSF Working Group on Securing Software Repositories" />
+<link rel="canonical" href="https://repos.openssf.org/trusted-publishers-for-all-package-repositories.html" />
+<meta property="og:url" content="https://repos.openssf.org/trusted-publishers-for-all-package-repositories.html" />
+<meta property="og:site_name" content="wg-securing-software-repos" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Trusted Publishers for All Package Repositories" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"OpenSSF Working Group on Securing Software Repositories","headline":"Trusted Publishers for All Package Repositories","url":"https://repos.openssf.org/trusted-publishers-for-all-package-repositories.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+    <link rel="stylesheet" href="/assets/css/style.css?v=1dee4d468c1e768dc72bed53029253bf897be0f1">
+    <!-- start custom head snippets, customize with your own _includes/head-custom.html file -->
+
+<!-- Setup Google Analytics -->
+
+
+
+<!-- You can set your favicon here -->
+<!-- link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" -->
+
+<!-- end custom head snippets -->
+
+  </head>
+  <body>
+    <div class="container-lg px-3 my-5 markdown-body">
+      
+      <h1><a href="https://repos.openssf.org/">wg-securing-software-repos</a></h1>
+      
+
+      <h1 id="trusted-publishers-for-all-package-repositories">Trusted Publishers for All Package Repositories</h1>
+
+<p>Authors: <a href="https://github.com/sethmlarson">Seth Michael Larson (Python Software Foundation)</a></p>
+
+<p>Last updated: May 2025</p>
+
+<p>Trusted Publishers is a new authentication method that builds on the existing OpenID Connect standard (OIDC) for user infrastructure publishing to public package repositories (e.g. CI publishing to PyPI, as opposed to maintainers publishing from their system or Homebrew’s centralized builds). Authentication is performed by exchanging OIDC identity tokens for short-lived and tightly scoped API tokens for authenticating with package repository publishing APIs. Using short-lived API tokens removes the need to share long-lived and potentially highly privileged API tokens with external systems when publishing software.</p>
+
+<h2 id="why-trusted-publishers">Why Trusted Publishers?</h2>
+
+<p><strong>The goal of Trusted Publishers is to reduce the need for long-lived tokens or credentials to be shared with external systems when authenticating with package repositories.</strong> Managing the lifecycle of long-lived tokens <a href="https://www.bleepingcomputer.com/news/security/over-12-million-auth-secrets-and-keys-leaked-on-github-in-2023/">poses additional security and management challenges</a> for package indices and maintainers.</p>
+
+<p>After configuration, Trusted Publishers require little to no user maintenance. They provide an ergonomic and secure publishing experience for users, since users no longer need to manage long-lived secrets manually. Trusted publishers also allow maintainers to centralize authorization in a machine/workload identity, rather than additionally requiring managing users and authentication in the package repository.</p>
+
+<p>Trusted Publishers are popular with users when they’re available, for example PyPI added support for Trusted Publishers in April of 2023 and has since seen <a href="https://p.datadoghq.com/sb/7dc8b3250-b3f27ea9680eb560a2a1fb8ee12ff00b?fromUser=false&amp;refresh_mode=sliding&amp;from_ts=1716921809407&amp;to_ts=1719513809407&amp;live=true">over 13,000 projects</a> voluntarily adopt Trusted Publishers.</p>
+
+<p>Trusted Publishers ensures a package is coming from a specific CI system, workflow, hosted machine or build pipeline, reducing the window for exfiltration abuse, unlike a long-lived API token.</p>
+
+<p>For some Trusted Publishing providers, Trusted Publishers allow binding verifiable metadata like the source repository URL to a published artifact, allowing package repositories to avoid “<a href="https://capec.mitre.org/data/definitions/693.html">Star-Jacking</a>” and similar attacks that confuse users about the trustworthiness of a project.</p>
+
+<p>Trusted Publishers are ideal for package repositories that accept user-built packages, like PyPI and RubyGems, as opposed to package repositories that have centralized build infrastructure like Homebrew.</p>
+
+<p>Trusted Publishers pairs well with other technologies such as SLSA build provenance, as it is built on the same underlying technology, the OIDC standard.</p>
+
+<p>Package repositories which don’t host separate artifacts (such as pkg.go.dev) don’t require authenticating with the repository, thus Trusted Publishers isn’t applicable.</p>
+
+<h2 id="how-trusted-publishers-works">How Trusted Publishers works</h2>
+
+<p>Trusted Publishers allow a package repository like the Python Package Index (PyPI) to authenticate an identity from an Identity Provider (IdP) like GitHub Actions or GitLab Pipelines, and using a technology called OpenID Connect (OIDC).</p>
+
+<p>Trusted Publishers works by requiring users to pre-configure a trust policy on the receiving package repository which will be later used as part of authenticating a publish request. When new artifacts are being published to the registry, the OIDC ID token (implemented as a JWT) will be verified by <a href="https://www.criipto.com/blog/jwt-validation-guide">checking the JWT claims and signature against the IdP’s JSON Web Keyset (JWK)</a> and checked to ensure the OIDC ID token’s issuer and claims match the <a href="https://docs.pypi.org/trusted-publishers/adding-a-publisher/#github-actions">pre-configured trust policy for the package</a>.</p>
+
+<p>The trust policy doesn’t necessarily need to have a <em>direct</em> link to a package, for example some package repositories may want to assign trust policies to package namespaces, the trust policy determines whether a given package can be published by a given workload identity.</p>
+
+<p>The JWKs are discovered using the <a href="https://swagger.io/docs/specification/authentication/openid-connect-discovery/">well-known OpenID Connect Discovery URL</a> which is based on the JWT’s issuer (“iss”) claim. For example, GitHub’s “iss” claim is “<a href="https://token.actions.githubusercontent.com">https://token.actions.githubusercontent.com</a>” and thus it’s well-known OpenID Connect Discovery URL is “<a href="https://token.actions.githubusercontent.com/.well-known/openid-configuration">https://token.actions.githubusercontent.com/.well-known/openid-configuration</a>”.</p>
+
+<p>A high-level overview of how PyPI verifies the OIDC ID token against a pre-configured policy is below:</p>
+
+<ul>
+  <li>Parse the JWT without verifying the claims or signature to extract the issuer claim (<code class="language-plaintext highlighter-rouge">iss</code>). Be sure that this parsed JWT is discarded and that the JWT isn’t marked as verified by the service at this stage.</li>
+  <li>Checking this issuer against the supported list of OIDC identity providers for the package repository, select the implementation for verifying the token (e.g “GitHub” or “GitLab”).</li>
+  <li>Fetch the OpenID Connect discovery URL and JWKs for the issuer.</li>
+  <li>Using the JWKs, <a href="https://www.criipto.com/blog/jwt-validation-guide">verify the JWT signature and claims</a> (claims like <code class="language-plaintext highlighter-rouge">nbf</code>, <code class="language-plaintext highlighter-rouge">exp</code>, <code class="language-plaintext highlighter-rouge">jti</code>, etc).</li>
+  <li>Verify that the audience claim (<code class="language-plaintext highlighter-rouge">aud</code>) is equal to a service-specific value (i.e. <code class="language-plaintext highlighter-rouge">pypi</code> and <code class="language-plaintext highlighter-rouge">testpypi</code>). This requires that the IdP supports configuring the audience of the emitted OIDC ID token.</li>
+  <li>Using the claims, check the values against the pre-configured trust policy for the Trusted Publisher. For example, a GitHub workflow would check the following claims:
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">sub</code> (Subject) is of the form <code class="language-plaintext highlighter-rouge">example-owner/example-repo:.*</code></li>
+      <li><code class="language-plaintext highlighter-rouge">repository</code> is <code class="language-plaintext highlighter-rouge">example-repo</code></li>
+      <li><code class="language-plaintext highlighter-rouge">repository_owner</code> is <code class="language-plaintext highlighter-rouge">example-owner</code></li>
+      <li><code class="language-plaintext highlighter-rouge">repository_owner_id</code> is <code class="language-plaintext highlighter-rouge">12345</code></li>
+      <li><code class="language-plaintext highlighter-rouge">workflow_ref</code> is <code class="language-plaintext highlighter-rouge">example-owner/example-repo/.github/workflows/publish.yml@abcdef</code></li>
+    </ul>
+  </li>
+</ul>
+
+<p>Once this is complete, the package repository can authorize publications by delegating to a repository-managed token.</p>
+
+<p>This document recommends exchanging the OIDC ID token for a separate repository-managed token, but this step is not required and the OIDC ID token may be used directly for authenticating the publish request. See the “Resulting Design Decisions” section for further reasoning behind this recommendation.</p>
+
+<p><img src="/imgs/trusted-publishers-flow.png" alt="Diagram of Trusted Publishers flow" /></p>
+
+<p>Every unique IdP that a package repository wishes to support will require its own implementation as the claims on each OIDC ID token vary depending on the provider (beyond the standard issuer, expiration, and audience claims of JWT tokens). The sets of claims chosen to check must constitute sufficiently trusted metadata to be checked against the trust policy on packages. Trusted Publisher implementations must not rely exclusively on a generic set of claims (i.e. only <code class="language-plaintext highlighter-rouge">sub</code> + <code class="language-plaintext highlighter-rouge">iss</code> + <code class="language-plaintext highlighter-rouge">aud</code>) as these do not constitute a sufficiently trusted set for many IdPs.</p>
+
+<h2 id="resulting-design-decisions">Resulting Design Decisions</h2>
+
+<h3 id="security-model-of-trusted-publishers">Security model of Trusted Publishers</h3>
+
+<p>Trusted Publishers represent a more secure authentication model than long-lived API tokens, however Trusted Publishers are not a panacea. The following security model must be followed by users to maintain a secure configuration:</p>
+
+<ul>
+  <li>Short-lived tokens like OIDC ID tokens or repository-managed API tokens are still sensitive material and should not be disclosed. Either of these tokens being disclosed means they can be used by an attacker to publish malicious packages to the repository until they expire.</li>
+  <li>Configuring a Trusted Publisher is a means of establishing trust in some external state. That external state (both the IdP itself and the resources managed by the IdP) must not be controllable by untrusted parties.</li>
+</ul>
+
+<p>It’s recommended to document this security model alongside provider-specific guides on how to adopt Trusted Publishers for the package repository.</p>
+
+<h3 id="data-model-of-trusted-publishers">Data model of Trusted Publishers</h3>
+
+<p>The intuitive answer for the data model of Trusted Publisher configurations to packages is one-to-one, with one source of artifacts for each package. However, for many packaging ecosystems, a many-to-many approach will be needed to support the complete range of existing use-cases for authenticating a source of artifacts with a project.</p>
+
+<p>“Monorepos” are where multiple separate projects’ source code is stored in a single source repository. Monorepos are common across many packaging ecosystems and their existence requires a one-to-many relationship between a Trusted Publisher configuration and packages on a package repository.</p>
+
+<p>For packaging ecosystems where there are multiple artifacts per release or multiple publishing workflows to support multiple platforms or CPU architectures (such as Python), the opposite “one-to-many” relationship is needed to support multiple Trusted Publisher configurations for a single package, to allow publishing from multiple build systems</p>
+
+<h3 id="identity-providers-and-claims">Identity Providers and Claims</h3>
+
+<p>OIDC ID tokens are implemented as <a href="https://en.wikipedia.org/wiki/JSON_Web_Token">JSON Web Tokens</a> (JWTs) and come with a set of claims, which are a mix of standard OIDC claims and provider-specific claims.</p>
+
+<p>IdPs must support customizing the audience claim (<code class="language-plaintext highlighter-rouge">aud</code>) and Trusted Publisher implementations must only accept OIDC ID tokens with a service-specific audience claim (e.g. “pypi”).</p>
+
+<p>IdPs all have their own claim sets for their OIDC ID tokens. Creating a Trusted Publisher for a provider requires knowledge about the provider’s internal implementation and behavior when determining which subsets constitute a sufficiently trusted set to provide to users. Trusted Publisher implementations must not rely exclusively on a generic set of claims (i.e. only <code class="language-plaintext highlighter-rouge">sub</code> + <code class="language-plaintext highlighter-rouge">iss</code> + <code class="language-plaintext highlighter-rouge">aud</code>) as these do not constitute a sufficiently trusted set for many IdPs.</p>
+
+<p>IdPs vary their sets of claims depending on the situation the OIDC ID token is used in, for example GitHub has special claims for reusable workflows or for different workflow trigger types. Providers have also been known to change their claims with varying amounts of fore-warning or documentation about the changes.</p>
+
+<p>Some IdPs support the <code class="language-plaintext highlighter-rouge">jti</code> claim. When supported by an IdP, Trusted Publisher implementations should utilize the <code class="language-plaintext highlighter-rouge">jti</code> claim to prevent replaying of OIDC ID tokens by rejecting tokens which have been previously used.</p>
+
+<p>IdPs may allow customizing other claims, like validity time of the OIDC ID token. Trusted Publisher implementations may decide to add further requirements to IdPs and their OIDC ID tokens (such as maximum validity time) to enforce more secure OIDC ID token handling where this is possible with the IdP.</p>
+
+<h3 id="oidc-id-tokens-and-repository-controlled-tokens">OIDC ID tokens and repository-controlled tokens</h3>
+
+<p>Package repositories should not use OIDC ID tokens for directly authenticating with package publishing APIs. Instead, package repositories should exchange the OIDC ID token for a repository-controlled API token that is used for authenticating with publishing APIs. Below are a list of reasons for the exchange:</p>
+
+<ul>
+  <li>If the package repository already supports token-based authentication, OIDC ID tokens won’t plug into the pre-existing existing authentication and authorization implementations. This will lead to needing to reimplement them for OIDC ID tokens, effectively having two token types and potentially leading to more bugs.</li>
+  <li>JWTs can contain any information that the provider decides to include, like private or personally identifiable information (i.e. names and email addresses). Using a separate token avoids holding on to this information for extended periods of time to reduce potential exposure or persistence.</li>
+  <li>Identity Providers can change the expiration and other policies around their tokens without notice. Creating your own temporary token makes the repository resilient to these changes.</li>
+  <li>Repository-managed tokens are more pluggable into existing tooling for publishing packages.</li>
+  <li>Repository-managed tokens benefit from external infrastructure, such as Secret Scanning.</li>
+</ul>
+
+<p>Package repositories that don’t support authenticating with API tokens are recommended to implement this capability as a part of their Trusted Publisher implementation.</p>
+
+<h3 id="resurrection-and-rename-attacks">Resurrection and Rename Attacks</h3>
+
+<p>Many third-party resources have human-readable attributes that are more discoverable (such as mutable GitHub owner and repository names) that relate to attributes that aren’t as accessible to humans but constitute a much stronger guarantee about the resource (such as immutable GitHub owner IDs).</p>
+
+<p>Resource names are typically mutable, meaning if they are solely depended on for a trust policy then that policy could be abused if resources are renamed or deleted on the third-party service without updating the corresponding Trusted Publisher.</p>
+
+<p>Trusted Publisher policies are typically configured by humans, so it’s more ergonomic to input the resource names rather than their IDs. To mitigate this issue, part of configuring a Trusted Publisher for many services is reaching out to the third-party service to “resolve” IDs from the configured names and then persist those IDs as a part of the Trusted Publisher policy.</p>
+
+<p>There are limits to this approach, as not all resources will have IDs (for example, GitHub’s “workflow file name” doesn’t have an ID), but constraining the problem as tightly as possible should prevent the most common issues.</p>
+
+<h3 id="pending-trusted-publishers">“Pending” Trusted Publishers</h3>
+
+<p>Trusted Publishers as described above are linked to <em>existing</em> resources in a package repository, either packages themselves or package namespaces, etc. But this leaves a casualty dilemma for package repositories that can only <em>create a new package</em> upon the first upload of an artifact (PyPI does this, for example). For package repositories with this property, it wouldn’t be possible to create a new package using a Trusted Publisher, because the package has to exist before a Trusted Publisher is configured for it. Leaving this situation as-is would mean that other, less secure publishing methods need to be used before users can adopt Trusted Publishers which is both an ergonomics and security problem.</p>
+
+<p>One solution to this issue is to implement <a href="https://docs.pypi.org/trusted-publishers/creating-a-project-through-oidc/">“Pending” Trusted Publishers</a>, which are only tied to a specific account or organization until after they’re used for the first time, at which point they are bound further to a specific package or package namespace. When being used to authenticate an upload for the first time, the “pending” model is converted into a normal Trusted Publisher and associated with the authenticated resource in the database. This is done within the same database transaction as persisting the models to avoid scenarios where there’s partial success during the upload process.</p>
+
+<h2 id="support">Support</h2>
+
+<p>As of December 2025, the following package repositories support Trusted Publishers:</p>
+
+<ul>
+  <li><a href="https://dart.dev/tools/pub/automated-publishing">Dart’s pub.dev</a></li>
+  <li><a href="https://docs.npmjs.com/trusted-publishers">npm</a></li>
+  <li><a href="https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing">NuGet</a></li>
+  <li><a href="https://blog.pypi.org/posts/2023-04-20-introducing-trusted-publishers/">Python Package Index</a></li>
+  <li><a href="https://blog.rubygems.org/2023/12/14/trusted-publishing.html">RubyGems.org</a></li>
+  <li><a href="https://crates.io/docs/trusted-publishing">Rust crates</a></li>
+</ul>
+
+<h2 id="references">References</h2>
+
+<ul>
+  <li><a href="https://docs.pypi.org/trusted-publishers/internals/">https://docs.pypi.org/trusted-publishers/internals/</a></li>
+  <li><a href="https://docs.pypi.org/trusted-publishers/security-model/">https://docs.pypi.org/trusted-publishers/security-model/</a></li>
+  <li><a href="https://docs.google.com/presentation/d/e/2PACX-1vTJ2k4yr4tzug5Nf4HIrJ9Am2vMX2I1b0wUlreDPZc2dbWow9SRm78fmuvlyhEggtdk1Mefme3nmtd_/pub">https://docs.google.com/presentation/d/e/2PACX-1vTJ2k4yr4tzug5Nf4HIrJ9Am2vMX2I1b0wUlreDPZc2dbWow9SRm78fmuvlyhEggtdk1Mefme3nmtd_/pub</a></li>
+</ul>
+
+
+      
+      <div class="footer border-top border-gray-light mt-5 pt-3 text-right text-gray">
+        This site is open source. <a href="https://github.com/ossf/wg-securing-software-repos/edit/main/docs/trusted-publishers-for-all-package-repositories.md">Improve this page</a>.
+      </div>
+      
+    </div>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/anchor-js/4.1.0/anchor.min.js" integrity="sha256-lZaRhKri35AyJSypXXs4o6OPFTbTmUoltBbDCbdzegg=" crossorigin="anonymous"></script>
+    <script>anchors.add();</script>
+  </body>
+</html>

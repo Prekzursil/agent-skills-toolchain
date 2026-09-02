@@ -1,0 +1,638 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+  <link rel="stylesheet" href="/assets/css/just-the-docs-default.css">
+
+  <link rel="stylesheet" href="/assets/css/just-the-docs-head-nav.css" id="jtd-head-nav-stylesheet">
+
+  <style id="jtd-nav-activation">
+  
+.site-nav ul li a {
+  background-image: none;
+}
+
+  </style>
+
+  
+
+  
+    <script src="/assets/js/vendor/lunr.min.js"></script>
+  
+
+  <script src="/assets/js/just-the-docs.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+
+
+
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>Improving GPT-4’s codebase understanding with ctags | aider</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="Improving GPT-4’s codebase understanding with ctags" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Using ctags to build a “repository map” to increase GPT-4’s ability to understand a large code base." />
+<meta property="og:description" content="Using ctags to build a “repository map” to increase GPT-4’s ability to understand a large code base." />
+<link rel="canonical" href="https://aider.chat/docs/ctags.html" />
+<meta property="og:url" content="https://aider.chat/docs/ctags.html" />
+<meta property="og:site_name" content="aider" />
+<meta property="og:type" content="website" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="Improving GPT-4’s codebase understanding with ctags" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebPage","description":"Using ctags to build a “repository map” to increase GPT-4’s ability to understand a large code base.","headline":"Improving GPT-4’s codebase understanding with ctags","url":"https://aider.chat/docs/ctags.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  
+<meta property="og:image" content="https://aider.chat/assets/robot-flowchart.png">
+<meta property="twitter:image" content="https://aider.chat/assets/robot-flowchart.png">
+
+
+<!-- Custom site title styling -->
+<style>
+  @font-face {
+    font-family: GlassTTYVT220;
+    src: local("Glass TTY VT220"), local("Glass TTY VT220 Medium"), url(/assets/Glass_TTY_VT220.ttf) format("truetype");
+  }
+  
+  .site-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-family: 'GlassTTYVT220', monospace;
+    color: #14b014; /* terminal green color */
+    text-decoration: none;
+    letter-spacing: 0.5px;
+  }
+  
+  /* For SVG logo inside site-title */
+  .site-title img {
+    height: 1.8rem;
+    vertical-align: middle;
+  }
+ 
+  /* Sidebar gradient styling to match hero section */
+  .side-bar { 
+    background: linear-gradient(135deg, #ffffff 0%, rgba(20, 176, 20, 0.01) 25%, rgba(20, 176, 20, 0.04) 40%, rgba(220, 230, 255, 0.4) 60%, rgba(205, 218, 255, 0.4) 80%, #F5F6FA 100%);
+  }
+
+  @media (max-width: 50em) {
+    .ea-ad--sidebar { display: none; }
+    .ea-ad--mobile { display: block; }
+  }
+</style>
+<link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://aider.chat/feed.xml">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Logo Progressive Enhancement for Jekyll pages -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const siteTitle = document.querySelector('.site-title');
+    if (siteTitle) {
+      const textContent = siteTitle.textContent; // Save the text for fallback
+      
+      // Create new image element
+      const logoImg = new Image();
+      logoImg.src = '/assets/logo.svg';
+      logoImg.alt = 'Aider Logo';
+      logoImg.style.height = '1.8rem';
+      logoImg.style.verticalAlign = 'middle';
+      
+      // Only replace if image loads successfully
+      logoImg.onload = function() {
+        siteTitle.textContent = ''; // Clear text
+        siteTitle.appendChild(logoImg);
+      };
+      
+      // If image fails to load, do nothing (keep the text)
+      logoImg.onerror = function() {
+        console.log('SVG logo failed to load, keeping text fallback');
+      };
+    }
+  });
+</script>
+<meta name="theme-color" content="#157878">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="/assets/icons/site.webmanifest">
+<link rel="mask-icon" href="/assets/icons/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+
+
+
+
+</head>
+
+<body>
+  <a class="skip-to-main" href="#main-content">Skip to main content</a>
+  <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+  <symbol id="svg-link" viewBox="0 0 24 24">
+  <title>Link</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-link">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+  </svg>
+</symbol>
+
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+  <title>Menu</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu">
+    <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+</symbol>
+
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+  <title>Expand</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+</symbol>
+
+  <!-- Feather. MIT License: https://github.com/feathericons/feather/blob/master/LICENSE -->
+<symbol id="svg-external-link" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link">
+  <title id="svg-external-link-title">(external link)</title>
+  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
+</symbol>
+
+  
+    <symbol id="svg-doc" viewBox="0 0 24 24">
+  <title>Document</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file">
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline>
+  </svg>
+</symbol>
+
+    <symbol id="svg-search" viewBox="0 0 24 24">
+  <title>Search</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search">
+    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+</symbol>
+
+  
+  
+    <!-- Bootstrap Icons. MIT License: https://github.com/twbs/icons/blob/main/LICENSE.md -->
+<symbol id="svg-copy" viewBox="0 0 16 16">
+  <title>Copy</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+  </svg>
+</symbol>
+<symbol id="svg-copied" viewBox="0 0 16 16">
+  <title>Copied</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check-fill" viewBox="0 0 16 16">
+    <path d="M6.5 0A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Zm3 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Z"/>
+    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1A2.5 2.5 0 0 1 9.5 5h-3A2.5 2.5 0 0 1 4 2.5v-1Zm6.854 7.354-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708Z"/>
+  </svg>
+</symbol>
+
+  
+</svg>
+
+  <div class="side-bar">
+  <div class="site-header" role="banner">
+    <a href="/" class="site-title lh-tight">
+  aider
+
+</a>
+    <button id="menu-button" class="site-button btn-reset" aria-label="Toggle menu" aria-pressed="false">
+      <svg viewBox="0 0 24 24" class="icon" aria-hidden="true"><use xlink:href="#svg-menu"></use></svg>
+    </button>
+  </div>
+
+  <nav aria-label="Main" id="site-nav" class="site-nav">
+  
+  
+    <ul class="nav-list"><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Installation category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/install.html" class="nav-list-link">Installation</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/install/optional.html" class="nav-list-link">Optional steps</a></li><li class="nav-list-item"><a href="/docs/install/docker.html" class="nav-list-link">Aider with docker</a></li><li class="nav-list-item"><a href="/docs/install/codespaces.html" class="nav-list-link">GitHub Codespaces</a></li><li class="nav-list-item"><a href="/docs/install/replit.html" class="nav-list-link">Replit</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Usage category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/usage.html" class="nav-list-link">Usage</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/usage/tips.html" class="nav-list-link">Tips</a></li><li class="nav-list-item"><a href="/docs/usage/commands.html" class="nav-list-link">In-chat commands</a></li><li class="nav-list-item"><a href="/docs/usage/modes.html" class="nav-list-link">Chat modes</a></li><li class="nav-list-item"><a href="/docs/usage/tutorials.html" class="nav-list-link">Tutorial videos</a></li><li class="nav-list-item"><a href="/docs/usage/voice.html" class="nav-list-link">Voice-to-code with aider</a></li><li class="nav-list-item"><a href="/docs/usage/images-urls.html" class="nav-list-link">Images &amp; web pages</a></li><li class="nav-list-item"><a href="/docs/usage/caching.html" class="nav-list-link">Prompt caching</a></li><li class="nav-list-item"><a href="/docs/usage/watch.html" class="nav-list-link">Aider in your IDE</a></li><li class="nav-list-item"><a href="/docs/usage/notifications.html" class="nav-list-link">Notifications</a></li><li class="nav-list-item"><a href="/docs/usage/browser.html" class="nav-list-link">Aider in your browser</a></li><li class="nav-list-item"><a href="/docs/usage/conventions.html" class="nav-list-link">Specifying coding conventions</a></li><li class="nav-list-item"><a href="/docs/usage/copypaste.html" class="nav-list-link">Copy/paste with web chat</a></li><li class="nav-list-item"><a href="/docs/usage/lint-test.html" class="nav-list-link">Linting and testing</a></li><li class="nav-list-item"><a href="/docs/usage/not-code.html" class="nav-list-link">Editing config &amp; text files</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Connecting to LLMs category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/llms.html" class="nav-list-link">Connecting to LLMs</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/llms/openai.html" class="nav-list-link">OpenAI</a></li><li class="nav-list-item"><a href="/docs/llms/anthropic.html" class="nav-list-link">Anthropic</a></li><li class="nav-list-item"><a href="/docs/llms/gemini.html" class="nav-list-link">Gemini</a></li><li class="nav-list-item"><a href="/docs/llms/groq.html" class="nav-list-link">GROQ</a></li><li class="nav-list-item"><a href="/docs/llms/lm-studio.html" class="nav-list-link">LM Studio</a></li><li class="nav-list-item"><a href="/docs/llms/xai.html" class="nav-list-link">xAI</a></li><li class="nav-list-item"><a href="/docs/llms/azure.html" class="nav-list-link">Azure</a></li><li class="nav-list-item"><a href="/docs/llms/cohere.html" class="nav-list-link">Cohere</a></li><li class="nav-list-item"><a href="/docs/llms/deepseek.html" class="nav-list-link">DeepSeek</a></li><li class="nav-list-item"><a href="/docs/llms/ollama.html" class="nav-list-link">Ollama</a></li><li class="nav-list-item"><a href="/docs/llms/openai-compat.html" class="nav-list-link">OpenAI compatible APIs</a></li><li class="nav-list-item"><a href="/docs/llms/openrouter.html" class="nav-list-link">OpenRouter</a></li><li class="nav-list-item"><a href="/docs/llms/github.html" class="nav-list-link">GitHub Copilot</a></li><li class="nav-list-item"><a href="/docs/llms/vertex.html" class="nav-list-link">Vertex AI</a></li><li class="nav-list-item"><a href="/docs/llms/bedrock.html" class="nav-list-link">Amazon Bedrock</a></li><li class="nav-list-item"><a href="/docs/llms/other.html" class="nav-list-link">Other LLMs</a></li><li class="nav-list-item"><a href="/docs/llms/warnings.html" class="nav-list-link">Model warnings</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Configuration category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/config.html" class="nav-list-link">Configuration</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/config/api-keys.html" class="nav-list-link">API Keys</a></li><li class="nav-list-item"><a href="/docs/config/options.html" class="nav-list-link">Options reference</a></li><li class="nav-list-item"><a href="/docs/config/aider_conf.html" class="nav-list-link">YAML config file</a></li><li class="nav-list-item"><a href="/docs/config/dotenv.html" class="nav-list-link">Config with .env</a></li><li class="nav-list-item"><a href="/docs/config/editor.html" class="nav-list-link">Editor configuration</a></li><li class="nav-list-item"><a href="/docs/config/reasoning.html" class="nav-list-link">Reasoning models</a></li><li class="nav-list-item"><a href="/docs/config/adv-model-settings.html" class="nav-list-link">Advanced model settings</a></li><li class="nav-list-item"><a href="/docs/config/model-aliases.html" class="nav-list-link">Model Aliases</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Troubleshooting category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/troubleshooting.html" class="nav-list-link">Troubleshooting</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/troubleshooting/edit-errors.html" class="nav-list-link">File editing problems</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/warnings.html" class="nav-list-link">Model warnings</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/token-limits.html" class="nav-list-link">Token limits</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/aider-not-found.html" class="nav-list-link">Aider not found</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/imports.html" class="nav-list-link">Dependency versions</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/models-and-keys.html" class="nav-list-link">Models and API keys</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/support.html" class="nav-list-link">Using /help</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Screen recordings category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/recordings/" class="nav-list-link">Screen recordings</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/recordings/tree-sitter-language-pack.html" class="nav-list-link">Add language support via tree-sitter-language-pack</a></li><li class="nav-list-item"><a href="/docs/recordings/auto-accept-architect.html" class="nav-list-link">Add –auto-accept-architect feature</a></li><li class="nav-list-item"><a href="/docs/recordings/dont-drop-original-read-files.html" class="nav-list-link">Don’t /drop read-only files added at launch</a></li><li class="nav-list-item"><a href="/docs/recordings/model-accepts-settings.html" class="nav-list-link">Warn when users apply unsupported reasoning settings</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Example chat transcripts category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/examples/README.html" class="nav-list-link">Example chat transcripts</a><ul class="nav-list"><li class="nav-list-item"><a href="/examples/hello-world-flask.html" class="nav-list-link">Create a simple flask app with aider</a></li><li class="nav-list-item"><a href="/examples/2048-game.html" class="nav-list-link">Modify an open source 2048 game with aider</a></li><li class="nav-list-item"><a href="/examples/complex-change.html" class="nav-list-link">A complex multi-file change, with debugging</a></li><li class="nav-list-item"><a href="/examples/add-test.html" class="nav-list-link">Create a “black box” test case</a></li><li class="nav-list-item"><a href="/examples/update-docs.html" class="nav-list-link">Automatically update docs with aider</a></li><li class="nav-list-item"><a href="/examples/pong.html" class="nav-list-link">Build pong with aider and pygame.</a></li><li class="nav-list-item"><a href="/examples/css-exercises.html" class="nav-list-link">Complete a css exercise with aider</a></li><li class="nav-list-item"><a href="/examples/census.html" class="nav-list-link">Download, analyze and plot US Census data</a></li><li class="nav-list-item"><a href="/examples/asciinema.html" class="nav-list-link">Editing an asciinema cast file with aider</a></li><li class="nav-list-item"><a href="/examples/hello.html" class="nav-list-link">Hello aider!</a></li><li class="nav-list-item"><a href="/examples/no-color.html" class="nav-list-link">Honor the NO_COLOR environment variable</a></li><li class="nav-list-item"><a href="/examples/chat-transcript-css.html" class="nav-list-link">Improve css styling of chat transcripts</a></li><li class="nav-list-item"><a href="/examples/semantic-search-replace.html" class="nav-list-link">Semantic search &amp; replace code with aider</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in More info category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/more-info.html" class="nav-list-link">More info</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/git.html" class="nav-list-link">Git integration</a></li><li class="nav-list-item"><a href="/docs/languages.html" class="nav-list-link">Supported languages</a></li><li class="nav-list-item"><a href="/docs/repomap.html" class="nav-list-link">Repository map</a></li><li class="nav-list-item"><a href="/docs/scripting.html" class="nav-list-link">Scripting aider</a></li><li class="nav-list-item"><a href="/docs/more/infinite-output.html" class="nav-list-link">Infinite output</a></li><li class="nav-list-item"><a href="/docs/more/edit-formats.html" class="nav-list-link">Edit formats</a></li><li class="nav-list-item"><a href="/docs/more/analytics.html" class="nav-list-link">Analytics</a></li><li class="nav-list-item"><a href="/docs/legal/privacy.html" class="nav-list-link">Privacy policy</a></li></ul></li><li class="nav-list-item"><a href="/docs/faq.html" class="nav-list-link">FAQ</a></li><li class="nav-list-item"><a href="/HISTORY.html" class="nav-list-link">Release history</a></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Aider LLM Leaderboards category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/leaderboards/" class="nav-list-link">Aider LLM Leaderboards</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/leaderboards/edit.html" class="nav-list-link">Code editing leaderboard</a></li><li class="nav-list-item"><a href="/docs/leaderboards/refactor.html" class="nav-list-link">Refactoring leaderboard</a></li><li class="nav-list-item"><a href="/docs/leaderboards/by-release-date.html" class="nav-list-link">Scores by release date</a></li><li class="nav-list-item"><a href="/docs/leaderboards/notes.html" class="nav-list-link">Benchmark notes</a></li><li class="nav-list-item"><a href="/docs/leaderboards/contrib.html" class="nav-list-link">Contributing results</a></li></ul></li><li class="nav-list-item"><a href="/blog/" class="nav-list-link">Aider blog</a></li></ul>
+
+  <ul class="nav-list"><li class="nav-list-item external">
+          <a href="https://github.com/Aider-AI/aider" class="nav-list-link external"
+            
+          >
+            GitHub
+            <svg viewBox="0 0 24 24" aria-labelledby="svg-external-link-title"><use xlink:href="#svg-external-link"></use></svg>
+          </a>
+        </li><li class="nav-list-item external">
+          <a href="https://discord.gg/Y7X7bhMQFV" class="nav-list-link external"
+            
+          >
+            Discord
+            <svg viewBox="0 0 24 24" aria-labelledby="svg-external-link-title"><use xlink:href="#svg-external-link"></use></svg>
+          </a>
+        </li></ul>
+</nav>
+
+
+  
+  
+    <footer class="site-footer">
+    Aider is AI pair programming in your terminal.
+    Aider is on
+    <a href="https://github.com/Aider-AI/aider">GitHub</a>
+    and
+    <a href="https://discord.gg/Y7X7bhMQFV">Discord</a>.
+</footer>
+
+  
+</div>
+
+  <div class="main" id="top">
+    <div id="main-header" class="main-header">
+  
+    
+
+<div class="search" role="search">
+  <div class="search-input-wrap">
+    <input type="text" id="search-input" class="search-input" tabindex="0" placeholder="Search aider" aria-label="Search aider" autocomplete="off">
+    <label for="search-input" class="search-label"><svg viewBox="0 0 24 24" class="search-icon"><use xlink:href="#svg-search"></use></svg></label>
+  </div>
+  <div id="search-results" class="search-results"></div>
+</div>
+
+  
+  
+  
+    <nav aria-label="Auxiliary" class="aux-nav">
+  <ul class="aux-nav-list">
+    
+      <li class="aux-nav-list-item">
+        <a href="https://github.com/Aider-AI/aider" class="site-button"
+          
+        >
+          GitHub
+        </a>
+      </li>
+    
+      <li class="aux-nav-list-item">
+        <a href="https://discord.gg/Y7X7bhMQFV" class="site-button"
+          
+        >
+          Discord
+        </a>
+      </li>
+    
+      <li class="aux-nav-list-item">
+        <a href="/blog/" class="site-button"
+          
+        >
+          Blog
+        </a>
+      </li>
+    
+  </ul>
+</nav>
+
+  
+</div>
+
+    <div class="main-content-wrap">
+      
+      <div id="main-content" class="main-content">
+        <main>
+          
+            <h1 id="improving-gpt-4s-codebase-understanding-with-ctags">
+  
+  
+    <a href="#improving-gpt-4s-codebase-understanding-with-ctags" class="anchor-heading" aria-labelledby="improving-gpt-4s-codebase-understanding-with-ctags"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Improving GPT-4’s codebase understanding with ctags
+  
+  
+</h1>
+    
+
+<p><img src="/assets/robot-flowchart.png" alt="robot flowchat" /></p>
+<h2 id="updated">
+  
+  
+    <a href="#updated" class="anchor-heading" aria-labelledby="updated"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Updated
+  
+  
+</h2>
+    
+
+<p>Aider no longer uses ctags to build a repo map.
+Please see the newer article about
+<a href="https://aider.chat/docs/repomap.html">using tree-sitter to build a better repo map</a>.</p><hr />
+
+<p>GPT-4 is extremely useful for “self-contained” coding tasks,
+like generating brand new code or modifying a pure function
+that has no dependencies.</p>
+
+<p>But it’s difficult to use GPT-4 to modify or extend
+a large, complex pre-existing codebase.
+To modify such code, GPT needs to understand the dependencies and APIs
+which interconnect its subsystems.
+Somehow we need to provide this “code context” to GPT
+when we ask it to accomplish a coding task. Specifically, we need to:</p>
+
+<ul>
+  <li>Help GPT understand the overall codebase, so that it
+can decifer the meaning of code with complex dependencies and generate
+new code that respects and utilizes existing abstractions.</li>
+  <li>Convey all of this “code context” to GPT in an
+efficient manner that fits within the 8k-token context window.</li>
+</ul>
+
+<p>To address these issues, <code class="language-plaintext highlighter-rouge">aider</code> now
+sends GPT a <strong>concise map of your whole git repository</strong>
+that includes
+all declared variables and functions with call signatures.
+This <em>repo map</em> is built automatically using <code class="language-plaintext highlighter-rouge">ctags</code>, which
+extracts symbol definitions from source files. Historically,
+ctags were generated and indexed by IDEs and editors to
+help humans search and navigate large codebases.
+Instead, we’re going to use ctags to help GPT better comprehend, navigate
+and edit code in larger repos.</p>
+
+<p>To get a sense of how effective this can be, this
+<a href="https://aider.chat/examples/add-test.html">chat transcript</a>
+shows GPT-4 creating a black box test case, <strong>without being given
+access to the source code of the function being tested or any of the
+other code in the repo.</strong>
+Using only the meta-data in the repo map, GPT is able to figure out how to
+call the method to be tested, as well as how to instantiate multiple
+class objects that are required to prepare for the test.</p>
+
+<p>To code with GPT-4 using the techniques discussed here:</p>
+
+<ul>
+  <li>Install <a href="https://aider.chat/docs/install.html">aider</a>.</li>
+  <li>Install universal ctags.</li>
+  <li>Run <code class="language-plaintext highlighter-rouge">aider</code> inside your repo, and it should say “Repo-map: universal-ctags using 1024 tokens”.</li>
+</ul>
+<h2 id="the-problem-code-context">
+  
+  
+    <a href="#the-problem-code-context" class="anchor-heading" aria-labelledby="the-problem-code-context"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> The problem: code context
+  
+  
+</h2>
+    
+
+<p>GPT-4 is great at “self contained” coding tasks, like writing or
+modifying a pure function with no external dependencies.
+GPT can easily handle requests like “write a
+Fibonacci function” or “rewrite the loop using list
+comprehensions”, because they require no context beyond the code
+being discussed.</p>
+
+<p>Most real code is not pure and self-contained, it is intertwined with
+and depends on code from many different files in a repo.
+If you ask GPT to “switch all the print statements in class Foo to
+use the BarLog logging system”, it needs to see the code in the Foo class
+with the prints, and it also needs to understand the project’s BarLog
+subsystem.</p>
+
+<p>A simple solution is to <strong>send the entire codebase</strong> to GPT along with
+each change request. Now GPT has all the context! But this won’t work
+for even moderately
+sized repos, because they won’t fit into the 8k-token context window.</p>
+
+<p>A better approach is to be selective,
+and <strong>hand pick which files to send</strong>.
+For the example above, you could send the file that
+contains the Foo class
+and the file that contains the BarLog logging subsystem.
+This works pretty well, and is supported by <code class="language-plaintext highlighter-rouge">aider</code> – you
+can manually specify which files to “add to the chat” you are having with GPT.</p>
+
+<p>But it’s not ideal to have to manually identify the right
+set of files to add to the chat.
+And sending whole files is a bulky way to send code context,
+wasting the precious 8k context window.
+GPT doesn’t need to see the entire implementation of BarLog,
+it just needs to understand it well enough to use it.
+You may quickly run out of context window if you
+send many files worth of code just to convey context.</p>
+<h2 id="using-a-repo-map-to-provide-context">
+  
+  
+    <a href="#using-a-repo-map-to-provide-context" class="anchor-heading" aria-labelledby="using-a-repo-map-to-provide-context"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Using a repo map to provide context
+  
+  
+</h2>
+    
+
+<p>The latest version of <code class="language-plaintext highlighter-rouge">aider</code> sends a <strong>repo map</strong> to GPT along with
+each change request. The map contains a list of all the files in the
+repo, along with the symbols which are defined in each file. Callables
+like functions and methods also include their signatures.</p>
+
+<p>Here’s a
+sample of the map of the aider repo, just showing the maps of
+<a href="https://github.com/Aider-AI/aider/blob/main/aider/main.py">main.py</a>
+and
+<a href="https://github.com/Aider-AI/aider/blob/main/aider/io.py">io.py</a>
+:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>aider/
+   ...
+   main.py:
+      function
+         main (args=None, input=None, output=None)
+      variable
+         status
+   ...
+   io.py:
+      class
+         FileContentCompleter
+         InputOutput
+      FileContentCompleter
+         member
+            __init__ (self, fnames, commands)
+            get_completions (self, document, complete_event)
+      InputOutput
+         member
+            __init__ (self, pretty, yes, input_history_file=None, chat_history_file=None, input=None, output=None)
+            ai_output (self, content)
+            append_chat_history (self, text, linebreak=False, blockquote=False)
+            confirm_ask (self, question, default="y")
+            get_input (self, fnames, commands)
+            prompt_ask (self, question, default=None)
+            tool (self, *messages, log_only=False)
+            tool_error (self, message)
+   ...
+</code></pre></div></div>
+
+<p>Mapping out the repo like this provides some benefits:</p>
+
+<ul>
+  <li>GPT can see variables, classes, methods and function signatures from everywhere in the repo. This alone may give it enough context to solve many tasks. For example, it can probably figure out how to use the API exported from a module just based on the details shown in the map.</li>
+  <li>If it needs to see more code, GPT can use the map to figure out by itself which files it needs to look at. GPT will then ask to see these specific files, and <code class="language-plaintext highlighter-rouge">aider</code> will automatically add them to the chat context (with user approval).</li>
+</ul>
+
+<p>Of course, for large repositories even just the map might be too large
+for the context window.  However, this mapping approach opens up the
+ability to collaborate with GPT-4 on larger codebases than previous
+methods.  It also reduces the need to manually curate which files to
+add to the chat context, empowering GPT to autonomously identify
+relevant files for the task at hand.</p>
+<h2 id="using-ctags-to-make-the-map">
+  
+  
+    <a href="#using-ctags-to-make-the-map" class="anchor-heading" aria-labelledby="using-ctags-to-make-the-map"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Using ctags to make the map
+  
+  
+</h2>
+    
+
+<p>Under the hood, <code class="language-plaintext highlighter-rouge">aider</code> uses
+<a href="https://github.com/universal-ctags/ctags">universal ctags</a>
+to build the
+map. Universal ctags can scan source code written in many
+languages, and extract data about all the symbols defined in each
+file.</p>
+
+<p>Historically, ctags were generated and indexed by IDEs or code editors
+to make it easier for a human to search and navigate a
+codebase, find the implementation of functions, etc.
+Instead, we’re going to use ctags to help GPT navigate and understand the codebase.</p>
+
+<p>Here is the type of output you get when you run ctags on source code. Specifically,
+this is the
+<code class="language-plaintext highlighter-rouge">ctags --fields=+S --output-format=json</code> output for the <code class="language-plaintext highlighter-rouge">main.py</code> file mapped above:</p>
+
+<div class="language-json highlighter-rouge"><div class="highlight"><pre class="highlight"><code><span class="p">{</span><span class="w">
+  </span><span class="nl">"_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tag"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"main"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"aider/main.py"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/^def main(args=None, input=None, output=None):$/"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"function"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"signature"</span><span class="p">:</span><span class="w"> </span><span class="s2">"(args=None, input=None, output=None)"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span><span class="p">{</span><span class="w">
+  </span><span class="nl">"_type"</span><span class="p">:</span><span class="w"> </span><span class="s2">"tag"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"name"</span><span class="p">:</span><span class="w"> </span><span class="s2">"status"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"path"</span><span class="p">:</span><span class="w"> </span><span class="s2">"aider/main.py"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"pattern"</span><span class="p">:</span><span class="w"> </span><span class="s2">"/^    status = main()$/"</span><span class="p">,</span><span class="w">
+  </span><span class="nl">"kind"</span><span class="p">:</span><span class="w"> </span><span class="s2">"variable"</span><span class="w">
+</span><span class="p">}</span><span class="w">
+</span></code></pre></div></div>
+
+<p>The repo map is built using this type of <code class="language-plaintext highlighter-rouge">ctags</code> data,
+but formatted into the space
+efficient hierarchical tree format shown earlier.
+This is a format that GPT can easily understand
+and which conveys the map data using a
+minimal number of tokens.</p>
+<h2 id="example-chat-transcript">
+  
+  
+    <a href="#example-chat-transcript" class="anchor-heading" aria-labelledby="example-chat-transcript"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Example chat transcript
+  
+  
+</h2>
+    
+
+<p>This
+<a href="https://aider.chat/examples/add-test.html">chat transcript</a>
+shows GPT-4 creating a black box test case, <strong>without being given
+access to the source code of the function being tested or any of the
+other code in the repo.</strong> Instead, GPT is operating solely off
+the repo map.</p>
+
+<p>Using only the meta-data in the map, GPT is able to figure out how to call the method to be tested, as well as how to instantiate multiple class objects that are required to prepare for the test.</p>
+
+<p>GPT makes one reasonable mistake writing the first version of the test, but is
+able to quickly fix the issue after being shown the <code class="language-plaintext highlighter-rouge">pytest</code> error output.</p>
+<h2 id="future-work">
+  
+  
+    <a href="#future-work" class="anchor-heading" aria-labelledby="future-work"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Future work
+  
+  
+</h2>
+    
+
+<p>Just as “send the whole codebase to GPT with every request”
+is not an efficient solution to this problem,
+there are probably better approaches than
+“send the whole repo map with every request”.
+Sending an appropriate subset of the repo map would help <code class="language-plaintext highlighter-rouge">aider</code> work
+better with even larger repositories which have large maps.</p>
+
+<p>Some possible approaches to reducing the amount of map data are:</p>
+
+<ul>
+  <li>Distill the global map, to prioritize important symbols and discard “internal” or otherwise less globally relevant identifiers. Possibly enlist <code class="language-plaintext highlighter-rouge">gpt-3.5-turbo</code> to perform this distillation in a flexible and language agnostic way.</li>
+  <li>Provide a mechanism for GPT to start with a distilled subset of the global map, and let it ask to see more detail about subtrees or keywords that it feels are relevant to the current coding task.</li>
+  <li>Attempt to analyze the natural language coding task given by the user and predict which subset of the repo map is relevant. Possibly by analysis of prior coding chats within the specific repo. Work on certain files or types of features may require certain somewhat predictable context from elsewhere in the repo. Vector and keyword search against the chat history, repo map or codebase may help here.</li>
+</ul>
+
+<p>One key goal is to prefer solutions which are language agnostic or
+which can be easily deployed against most popular code languages.
+The <code class="language-plaintext highlighter-rouge">ctags</code> solution has this benefit, since it comes pre-built
+with support for most popular languages.
+I suspect that Language Server Protocol might be an even
+better tool than <code class="language-plaintext highlighter-rouge">ctags</code> for this problem.
+But it is more cumbersome to deploy for a broad
+array of languages.
+Users would need to stand up an LSP server for their
+specific language(s) of interest.</p>
+<h2 id="try-it-out">
+  
+  
+    <a href="#try-it-out" class="anchor-heading" aria-labelledby="try-it-out"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Try it out
+  
+  
+</h2>
+    
+
+<p>To use this experimental repo map feature:</p>
+
+<ul>
+  <li>Install <a href="https://aider.chat/docs/install.html">aider</a>.</li>
+  <li>Install ctags.</li>
+  <li>Run <code class="language-plaintext highlighter-rouge">aider</code> inside your repo, and it should say “Repo-map: universal-ctags using 1024 tokens”.</li>
+</ul>
+
+          
+
+          
+        </main>
+        
+
+
+      </div>
+    </div>
+    
+      
+
+<div class="search-overlay"></div>
+
+    
+  </div>
+
+  
+</body>
+</html>
+

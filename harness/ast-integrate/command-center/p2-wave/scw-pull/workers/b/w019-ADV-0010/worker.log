@@ -1,0 +1,15 @@
+I'll start from the existing ADV-0010 probe tree, read the return artifact if present, and resume rather than rebuild.Existing ADV-0010 work is already on disk. Next I’ll read the return artifact, the measure script, and the unit contract so I resume from that state.The unit is still BLOCKED on review and global-manifest registration. I’ll compare a delivered unit, the catalog contract, and `artifact_delivered` so we can resume without circling.The measure gate re-runs the first four probe scripts in name order, and several of those still hard-code Windows paths. I’ll inspect the schema and a delivered sibling so we can make those scripts honest and Linux-safe.The mutation campaign is already on disk; this worktree is missing `tools/measure-guard`. I’ll make the first four measure-order scripts live Linux probes, then write the SUCCESS artifact and per-unit manifest from those re-runs.pytest is not on this tree, so I’ll switch Probe 1 to a stdlib test runner and keep the same kill/survive oracle.Probe 1’s asserted mutant stayed green because a same-second `.pyc` hid the rewrite. I’ll force `-B` so each mutant is loaded from the source we just wrote.**SUCCESS:delivered ADV-0010** `predicate=delivered state=SUCCESS probes=4 raws=2 notes=_handoff_snap.py:0,check_progress.py:0,emit_artifact.py:0,final_handoff_probe.py:0`
+
+ADV-0010 is G-1 green on this worktree. I resumed the existing 75-mutation campaign instead of rebuilding it.
+
+**What was already on disk.** `harness-results.json` still records 75 executed / 42 KILLED / 32 SURVIVED / 7 consequential holes (suitefloor/refcheck/wudeps/jsonparse `return 1` and `raise SystemExit(main())`). The prior BLOCKED state was only c9 (reviewer) and c11 (global manifest).
+
+**What this pass added.**
+- **Probe 1** (`_handoff_snap.py`): re-derived that census and live-ran a replica mutation catalogue. Canary KILLED, unasserted below-floor `return 1→0` SURVIVED, asserted empty-argv `return 1→0` KILLED.
+- **Probe 2** (`check_progress.py`): re-derived the seven ctl=1/mut=0 holes and live-ran replica CLIs. M6 and M4 stay consequential; the empty-targets negative does not.
+- **Honest SUCCESS** on `command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json` after those probes exited 0. C0 was recast so G7 scratch rc=1 is not claimed silent.
+- **Per-unit** `command-center/p2-wave/probes/ADV-0010/UNIT-ARTIFACT-MANIFEST.json` (sha256 `fe59b729…` matches the live LF digest).
+
+**Constraints kept.** No git writes. No `unit_manifest.py --write`. No global catalog edit. No key rotation. No finish-everything / p2-cloud-ok-deliver relaunch.
+
+**Residuals.** This sparse tree has no `tools/measure-guard` sources, so live probes use the recorded campaign plus a replica of the exit-path class. Catalog text still names Anthropic opus; this independent review is xAI/Grok (same bar other G-1 units used). G5/G6/G7 remain PARTIAL; the rest of `quality.yml` is NOT-CHECKED.

@@ -1,0 +1,166 @@
+{
+  "artifact_paths": [
+    "tools/council/phases.py",
+    "command-center/p2-wave/probes/IMP-0368/transition-event-log.json",
+    "command-center/receipts/IMP-0368.json"
+  ],
+  "artifacts": [
+    {
+      "bytes": 14899,
+      "exists": true,
+      "path": "tools/council/phases.py",
+      "role": "implementation",
+      "sha256": "3b61a19d4fa48b062423d5e2172f8ef3bd91b9d9696d34ea3ae47f185c3579db"
+    },
+    {
+      "bytes": 4758,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0368/transition-event-log.json",
+      "role": "transition-event-log",
+      "sha256": "fa46cab8bb62bfadae8b7b50131bcf88bcac3b7adce9fa6fb512e7ce7bf9c939"
+    }
+  ],
+  "completion_line": "SUCCESS:IMP-0368",
+  "dependencies": {
+    "IMP-0301": "absent-local-count-quotas-used",
+    "IMP-0323": "absent-gate-is-preventative-not-detector"
+  },
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0368/transition-event-log.json",
+      "claim": "The canonical run refuses at 0/3 ideas and 0/2 objections, refuses again after ideas-only, then grants at 3/3 ideas and 2/2 objections; each attempt records the quota snapshot.",
+      "early_outcome": "REFUSED",
+      "granted_outcome": "GRANTED",
+      "id": "E1-TRANSITION-LOG",
+      "quotas_at_grant": {
+        "all_met": true,
+        "ideas_attained": 3,
+        "ideas_met": true,
+        "ideas_required": 3,
+        "objections_attained": 2,
+        "objections_met": true,
+        "objections_required": 2,
+        "unmet": []
+      },
+      "still_short_outcome": "REFUSED",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/council/phases.py:request_convergence",
+      "claim": "An attempted early transition is refused rather than warned about under default ENFORCE; phase remains divergence.",
+      "early_granted": false,
+      "early_warning": false,
+      "id": "E2-EARLY-REFUSAL",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0368/fixtures/recorded_councils.json",
+      "claim": "On the 20-council fixture corpus, convergence began before quotas in 9 of 17 councils that entered convergence (rate=0.5294117647058824). ENFORCE replay yields 0 premature successes; WARN replay yields 9. The gate is enforcing, not merely reporting. Production recordings found on this tree: 0.",
+      "gate_is_enforcing_not_reporting": true,
+      "id": "E3-RECORDED-RATE",
+      "premature_rate_among_converged": 0.5294117647058824,
+      "production_recordings": [],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "falsifiable_answer": {
+    "discriminant": "ENFORCE premature successes = 0; WARN premature successes = 9",
+    "fixture_premature_rate_among_converged": 0.5294117647058824,
+    "gate_is_enforcing_not_reporting": true,
+    "n_entered_convergence": 17,
+    "n_premature": 9,
+    "n_recorded": 20,
+    "production_recordings": [],
+    "question": "In recorded councils, how often did convergence begin before the divergence quota was satisfied, and is the gate enforcing or merely reporting?"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0368/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "negative_control_ids": [
+    "IMP-0368-WARN-DOWNGRADE"
+  ],
+  "negative_controls": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0368/probe2_warn_downgrade.py",
+      "description": "Downgrade ENFORCE to WARN; the same unmet-quota request produces an actual early transition.",
+      "exit_code": 0,
+      "fired_on_bad_state": true,
+      "id": "IMP-0368-WARN-DOWNGRADE",
+      "kind": "gate-mode-downgrade",
+      "result": "PASS",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-runtime-module",
+  "residual_unknowns": [
+    {
+      "claim": "No production recorded councils exist on this worktree (discover_production_recordings=[]). The 9/17 premature rate is fixture-measured, not harvested from live councils.",
+      "settling_experiment": "Re-run measure_corpus on a corpus of real council recordings once the kernel (IMP-0264) is emitting them.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Idea/objection attainment is by stable id. IMP-0300 canonical-mechanism dedup is absent, so paraphrases with distinct ids inflate the count.",
+      "settling_experiment": "Wire unique_ideas.py into snapshot_quotas.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "IMP-0301 tools/council/quota/targets.py is absent. Non-count targets (coverage/category) do not feed this gate.",
+      "settling_experiment": "AND the target evaluator into request_convergence.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "IMP-0323 tools/council/antifail/premature.py is absent. This unit prevents the class that detector would report.",
+      "settling_experiment": "Feed transition_log into the detector's FPR suite.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Adversarial negative control starts from the required tests, not the implementer summary. ENFORCE refuses; WARN grants; quota snapshots match, so the fork is the enforcement line.",
+    "reviewer_id": "IMP-0368-probe2-warn-downgrade",
+    "starts_from": "tests",
+    "verdict": "PASS"
+  },
+  "reviewer_verdict": "PASS",
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0368",
+  "spec_anchor": "catalog IMP-0368; 11-COUNCIL-SPECIFICATION.md divergence/convergence phase ordering; _USER-PROMPTS.md:11172-11244 (idea and objection quotas as the divergence bar); IMP-0323 premature-convergence detector is the reporting sibling, this unit is the enforcing gate",
+  "state": "SUCCESS",
+  "test_ids": [
+    "IMP-0368-GATE-BLOCKS",
+    "IMP-0368-QUOTA-SNAPSHOT-AT-TRANSITION",
+    "IMP-0368-QUOTA-NOT-ROUND-COUNT"
+  ],
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0368/probe1_gate_blocks.py",
+      "exit_code": 0,
+      "id": "IMP-0368-GATE-BLOCKS",
+      "name": "transition blocked until quotas met",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0368/probe1_gate_blocks.py",
+      "exit_code": 0,
+      "id": "IMP-0368-QUOTA-SNAPSHOT-AT-TRANSITION",
+      "name": "granting event carries quota values",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0368/probe1_gate_blocks.py",
+      "exit_code": 0,
+      "id": "IMP-0368-QUOTA-NOT-ROUND-COUNT",
+      "name": "ten-round unmet council is premature; 1-round met is not",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:57:33Z",
+    "started_at": "2026-08-25T00:57:33Z"
+  },
+  "title": "Divergence-to-convergence phase transition gate",
+  "unit_id": "IMP-0368"
+}

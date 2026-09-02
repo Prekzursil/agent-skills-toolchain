@@ -1,0 +1,649 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "crv.refactor-equivalence-proof",
+  "name": "Refactor-equivalence proof by symbolic divergence search",
+  "description": "When a change CLAIMS to be behaviour-preserving, get an EXTERNAL oracle instead of the author's opinion: CrossHair drives Z3 to search for a concrete input where old(x) != new(x), with a Hypothesis differential test as the fallback where symbolic execution cannot proceed. Advisory by construction - it reports a counterexample, it never blocks - and 'no divergence found' is NEVER reported as 'proven equivalent': the report must name the bound the search actually reached.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "engineering-and-reliability"
+  ],
+  "tags": [
+    "code-review",
+    "equivalence",
+    "symbolic-execution",
+    "advisory"
+  ],
+  "flagship": false,
+  "params": {
+    "old_fn_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "Dotted path of the pre-change function",
+      "examples": [
+        "mypkg.util.normalise_v1"
+      ]
+    },
+    "new_fn_ref": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "Dotted path of the post-change function"
+    },
+    "purity_assertion": {
+      "type": "boolean",
+      "required": true,
+      "description": "The caller asserts the pair is pure and deterministic; stage 0 tries to REFUTE this"
+    },
+    "engine": {
+      "type": "enum",
+      "enum": [
+        "crosshair",
+        "hypothesis",
+        "auto"
+      ],
+      "default": "auto",
+      "description": "auto tries symbolic first and falls back"
+    },
+    "search_timeout_seconds": {
+      "type": "integer",
+      "default": 120,
+      "minimum": 5,
+      "maximum": 3600,
+      "description": "The bound that the report must disclose"
+    }
+  },
+  "roles": {
+    "purity-auditor": {
+      "description": "Tries to refute the caller's purity assertion by reading the pair",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob"
+      ],
+      "speaking_rights": "always"
+    },
+    "equivalence-runner": {
+      "description": "Runs the engines and records the bound each one reached",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "Grep",
+        "Glob",
+        "Bash:crosshair",
+        "Bash:pytest",
+        "Write(command-center/review/**)"
+      ],
+      "write_paths": [
+        "command-center/review/**"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Bash:crosshair",
+      "Bash:pytest",
+      "Glob",
+      "Grep",
+      "Read",
+      "Write(command-center/review/**)"
+    ],
+    "network": "none",
+    "deny": [
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "write_paths": [
+      "command-center/review/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true
+    }
+  },
+  "model_routing": {
+    "strategy": "capability",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == PURITY_AUDITOR",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "a wrong purity verdict silently invalidates the whole proof"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "purity-precondition": {
+      "predicate": "custom-expression",
+      "expression": "target_is_pure == true AND impure_signal_count == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "bound-disclosure": {
+      "predicate": "custom-expression",
+      "expression": "search_bound_recorded == true AND engine_version_recorded == true AND claims_proven_equivalent == false",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "advisory-only": {
+      "predicate": "custom-expression",
+      "expression": "blocks_merge == false AND counterexample_reported_when_found == true",
+      "blocking": false,
+      "evidence_required": true,
+      "on_fail": "record-and-continue"
+    }
+  },
+  "stages": [
+    {
+      "id": "assert-purity",
+      "title": "Refute the purity assertion before spending a search",
+      "kind": "task",
+      "role": "purity-auditor",
+      "checkpoint": true,
+      "timeout_seconds": 600,
+      "work_unit": {
+        "id": "CRV-5101",
+        "title": "Try to refute the caller's purity assertion for the function pair",
+        "phase": "2B",
+        "question_or_target": "Read both functions and their transitive callees and look for I/O, global mutation, clock, random, network, or filesystem-order dependence. An impure pair is REFUSED, never approximated: a symbolic equivalence result on an impure function is meaningless, not merely weaker.",
+        "inputs": [
+          "params.old_fn_ref",
+          "params.new_fn_ref",
+          "params.purity_assertion"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "purity-auditor",
+          "basis": "a wrong purity verdict invalidates every downstream result"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/review/crv-51-purity-verdict.json",
+        "output_schema": "command-center/schema/contract-spec.schema.json",
+        "evidence_requirement": "each impurity signal cites file:line; a clean verdict lists the callees actually inspected",
+        "tests_required": [
+          "an impure function (reads os.environ) must be REFUSED, not analysed",
+          "both-states control: a genuinely pure function must pass, so the refusal is not a blanket reject"
+        ],
+        "reviewer_requirement": "mechanical gate; the refusal path needs no human sign-off",
+        "completion_sentinel": "SUCCESS:CRV-5101 emitted only when the verdict names every callee inspected and either lists at least one impurity signal with a file:line or asserts purity over an enumerated set; otherwise FAILED:CRV-5101 <reason>",
+        "retry_policy": "no retry - re-reading the same code with the same model is not a second signal",
+        "failure_classification": [
+          "impure-target",
+          "detector-failure"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "static read of the call closure for impurity signals"
+      },
+      "retry": {
+        "strategy": "none",
+        "max_attempts": 1
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-51-purity-verdict.json",
+          "schema_ref": "command-center/schema/contract-spec.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:CRV-5101",
+          "consumers": [
+            "symbolic-search",
+            "emit-report"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "purity-precondition",
+      "title": "Refuse an impure target",
+      "kind": "gate",
+      "depends_on": [
+        "assert-purity"
+      ],
+      "gate_ref": "purity-precondition"
+    },
+    {
+      "id": "symbolic-search",
+      "title": "CrossHair diffbehavior: search for a divergent input",
+      "kind": "task",
+      "depends_on": [
+        "purity-precondition"
+      ],
+      "role": "equivalence-runner",
+      "when": "engine != HYPOTHESIS",
+      "timeout_seconds": 3600,
+      "work_unit_ref": "TST-0003"
+    },
+    {
+      "id": "hypothesis-fallback",
+      "title": "Differential property test where symbolic execution cannot proceed",
+      "kind": "task",
+      "depends_on": [
+        "symbolic-search"
+      ],
+      "role": "equivalence-runner",
+      "when": "symbolic_status != COMPLETED",
+      "timeout_seconds": 1800,
+      "work_unit_ref": "TST-0116"
+    },
+    {
+      "id": "bound-disclosure",
+      "title": "No divergence found is not proven equivalent",
+      "kind": "gate",
+      "depends_on": [
+        "hypothesis-fallback"
+      ],
+      "gate_ref": "bound-disclosure"
+    },
+    {
+      "id": "emit-report",
+      "title": "Emit the counterexample or the bounded no-divergence result",
+      "kind": "task",
+      "depends_on": [
+        "bound-disclosure"
+      ],
+      "role": "equivalence-runner",
+      "work_unit": {
+        "id": "CRV-5102",
+        "title": "Emit the equivalence report with its engine, seed, bound and coverage caveat",
+        "phase": "2B",
+        "question_or_target": "Report either a concrete counterexample input with both outputs, or a NO-DIVERGENCE-WITHIN-BOUND result that states the engine, the engine version, the seed, the wall-clock bound and the paths not explored. The wording 'proven equivalent' is forbidden.",
+        "inputs": [
+          "command-center/review/crv-51-purity-verdict.json",
+          "command-center/review/crv-51-engine-output.json"
+        ],
+        "dependencies": [
+          "CRV-5101"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "equivalence-runner",
+          "basis": "the report is where this blueprint's honesty constraint is enforced"
+        },
+        "tool_permissions": [
+          "Read",
+          "Grep",
+          "Glob",
+          "Write(command-center/review/**)"
+        ],
+        "execution_substrate": "local-single",
+        "timeout_seconds": 600,
+        "output_path": "command-center/review/crv-51-equivalence-report.json",
+        "output_schema": "command-center/schema/blind-test-report.schema.json",
+        "evidence_requirement": "engine name, engine version, seed and bound are all present, and a counterexample if one exists is re-runnable",
+        "tests_required": [
+          "a refactor with a deliberate off-by-one must yield a concrete counterexample",
+          "both-states control: assert the report is REJECTED when it contains the phrase proven equivalent without a bound"
+        ],
+        "reviewer_requirement": "one reviewer checks that the disclosed bound matches the engine's actual exit reason",
+        "completion_sentinel": "SUCCESS:CRV-5102 emitted only when the report carries engine, version, seed and bound, and either a re-runnable counterexample or an explicit within-bound qualifier; otherwise FAILED:CRV-5102 <reason>",
+        "retry_policy": "two strikes then pivot to reporting UNVERIFIED with the reason the engines could not run",
+        "failure_classification": [
+          "engine-unavailable",
+          "overclaim",
+          "timeout"
+        ],
+        "owner_approval_required": false,
+        "mechanism": "report assembly with a forbidden-wording check on the equivalence claim"
+      },
+      "produces": [
+        {
+          "path": "command-center/review/crv-51-equivalence-report.json",
+          "schema_ref": "command-center/schema/blind-test-report.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "consumers": [
+            "crv.overclaim-scoping-review",
+            "tst.diff-scoped-mutation-gate"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "advisory-only",
+      "title": "This blueprint never blocks a merge",
+      "kind": "gate",
+      "depends_on": [
+        "emit-report"
+      ],
+      "gate_ref": "advisory-only"
+    },
+    {
+      "id": "record-advisory-verdict",
+      "title": "Record the advisory verdict downstream of the bound-disclosure gate",
+      "kind": "task",
+      "depends_on": [
+        "advisory-only"
+      ],
+      "role": "equivalence-runner",
+      "work_unit_ref": "TST-0058",
+      "timeout_seconds": 900,
+      "produces": [
+        {
+          "path": "command-center/review/crv-51-advisory-verdict.json",
+          "schema_ref": "command-center/schema/completion-verdict.schema.json",
+          "min_bytes": 192,
+          "register_in_manifest": true,
+          "consumers": [
+            "crv.overclaim-scoping-review"
+          ]
+        }
+      ]
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "counterexample-or-bound",
+      "expression": "counterexample_found == true OR search_bound_reached == true",
+      "applies_to": "workflow",
+      "on_stop": "complete",
+      "minimum_conditions": "target_is_pure == true"
+    },
+    {
+      "id": "engines-unavailable",
+      "expression": "engine_available == false AND unverified_disclosed == true",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 20,
+    "jitter": true,
+    "retry_on": [
+      "severed-stream",
+      "quota-429-storm",
+      "runner-flake"
+    ],
+    "no_retry_on": [
+      "owner-blocked",
+      "detector-failure",
+      "overclaim"
+    ],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "emit-report"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "quarantine",
+    "classify_as": [
+      "impure-target",
+      "engine-unavailable",
+      "timeout",
+      "overclaim"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "emit-report",
+    "quarantine_path": "command-center/quarantine/crv-51"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/crv-51",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "workflow_version",
+      "stage_id",
+      "inputs_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": true,
+    "seed": 20260812,
+    "journal_path": "command-center/replay/crv-51-equivalence.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "env_fingerprint"
+    ],
+    "forbid_nondeterministic_sources": [
+      "clock",
+      "random",
+      "filesystem-order",
+      "process-id"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": [
+      "workflow_version",
+      "stage_id",
+      "inputs_hash",
+      "tool_versions"
+    ],
+    "store": "command-center/cache/crv-51",
+    "ttl_seconds": 604800,
+    "verify_integrity": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "estimate",
+      "permission-report"
+    ],
+    "plan_artifact": "command-center/dry-run/crv-51-plan.json",
+    "forbid_tools": [
+      "Bash:crosshair",
+      "Bash:pytest",
+      "Write(command-center/review/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "roughly-even",
+    "cost": {
+      "currency": "USD",
+      "expected": 0.15,
+      "max": 0.6
+    },
+    "wallclock_seconds": {
+      "expected": 300,
+      "max": 3600
+    },
+    "tokens": {
+      "expected": 40000
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "advisory only; writes one report under command-center/review/**",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/crv-51-equivalence.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": {
+        "require_signature": false,
+        "allow_publishers": [
+          "prekzursil"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-CRV-03",
+        "relation": "REBUILD-FROM-SPEC",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "skills/refactor-equivalence",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "owner"
+      },
+      {
+        "source": "pschanely/CrossHair",
+        "relation": "ADOPT-AS-IS",
+        "license": "MIT",
+        "credit": "CrossHair authors"
+      },
+      {
+        "source": "HypothesisWorks/hypothesis",
+        "relation": "ADOPT-AS-IS",
+        "license": "MPL-2.0",
+        "credit": "Hypothesis authors"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "skills/refactor-equivalence"
+    ]
+  },
+  "outputs": {
+    "equivalence-report": {
+      "path": "command-center/review/crv-51-equivalence-report.json",
+      "schema_ref": "command-center/schema/blind-test-report.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": [
+        "crv.overclaim-scoping-review"
+      ]
+    }
+  },
+  "x_extensions": {
+    "library_card": "BP-CRV-03",
+    "card_index": 51,
+    "family": "D10-code-review",
+    "acquisition_route": "ADOPT",
+    "mechanism_fingerprint": {
+      "subject": "function-pair",
+      "oracle": "symbolic-solver",
+      "execution_required": true,
+      "mutation_target": "none",
+      "comparison_axis": "old-impl-vs-new-impl",
+      "output_type": "counterexample",
+      "information_barrier": false
+    },
+    "mechanism": "Z3-backed search over the input space of two implementations for a witness that they differ. The oracle is a solver, not a test suite and not a reader.",
+    "contraindications": [
+      "NOT for behaviour-CHANGING edits - divergence is the intent there, so a counterexample means nothing",
+      "NOT for impure functions (I/O, globals, clock, random, network) - those are REFUSED, not approximated",
+      "NOT for non-Python targets",
+      "NOT a blocker: advisory by construction"
+    ],
+    "benchmark_cases": [
+      {
+        "name": "deliberate-off-by-one",
+        "setup": "a refactor that shifts a slice bound by one",
+        "expected": "a concrete counterexample input with both outputs"
+      },
+      {
+        "name": "impure-refusal",
+        "setup": "a function that reads an environment variable",
+        "expected": "REFUSED at the purity gate; a silent analysis here is the failure"
+      }
+    ],
+    "why_not_a_duplicate": "BP-CRV-05 fixes an over-claimed SENTENCE; this mechanically tests an over-claimed BEHAVIOURAL equivalence. BP-TST-02 also hunts behavioural difference, but it mutates SOURCE and uses the test suite as the oracle; here nothing is mutated and the oracle is a solver.",
+    "unverified": "UNVERIFIED (roughly-even) that a useful fraction of this estate's Python is pure enough to be addressable; settling experiment = scan the harness for pure functions and report the addressable fraction. Confidence in the MECHANISM is very-likely (80-90%); confidence in its REACH here is roughly-even.",
+    "owner_decision": null,
+    "worked_example": {
+      "name": "prove a slug-normaliser rewrite is behaviour-preserving",
+      "params": {
+        "old_fn_ref": "wfdsl.expr._tokenize_v1",
+        "new_fn_ref": "wfdsl.expr._tokenize",
+        "purity_assertion": true,
+        "engine": "auto",
+        "search_timeout_seconds": 120
+      },
+      "narrative": "The purity auditor inspected 4 callees and found no impurity signal. CrossHair ran 120s and exited on its own bound without a witness, so the report reads NO-DIVERGENCE-WITHIN-BOUND(crosshair 0.0.98, seed 20260812, 120s, 3 paths unexplored) - not 'proven equivalent'.",
+      "context": {
+        "target_is_pure": true,
+        "impure_signal_count": 0,
+        "search_bound_recorded": true,
+        "engine_version_recorded": true,
+        "claims_proven_equivalent": false,
+        "blocks_merge": false,
+        "counterexample_reported_when_found": true,
+        "counterexample_found": false,
+        "search_bound_reached": true,
+        "engine_available": true,
+        "unverified_disclosed": false,
+        "engine": "AUTO",
+        "symbolic_status": "COMPLETED",
+        "stage_role": "EQUIVALENCE_RUNNER"
+      },
+      "expected_gate_pass": [
+        "purity-precondition",
+        "bound-disclosure",
+        "advisory-only"
+      ],
+      "expected_stop": [
+        "counterexample-or-bound"
+      ],
+      "negative_control": {
+        "gate": "bound-disclosure",
+        "overrides": {
+          "claims_proven_equivalent": true
+        },
+        "expected": false,
+        "why": "the exact overclaim this blueprint exists to prevent - an unbounded equivalence claim - must be rejected by the gate"
+      }
+    }
+  }
+}

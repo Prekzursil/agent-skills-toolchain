@@ -1,0 +1,20 @@
+I'll start from the existing ADV-0114 probe tree, read any SUBAGENT-RETURN, and resume from what's already built rather than scrapping it.The probe tree is already populated. I'll read the return, manifest, handoff, and measure script next so I can resume from the last honest state.The old return is a cloud-ok refute; the probe scripts and per-unit manifest are already on disk. I'll read the measure script and a delivered unit so this delivery matches G-1.The artifact already claims SUCCESS, but hashes and the old refute disagree. I'll inspect `ready_units`, the rest of the receipt, and a delivered sibling so we don't hand-flip around a parked science block.The catalog allows a BLOCKED target verdict under unit SUCCESS. I'll check `artifact_delivered`, re-run the named probes, and see why the live hash does not match the per-unit manifest.I'll run the live probes and inspect how a delivered sibling locks hashes, then I'll see whether this receipt already validates.Probes and the apply packer are already on disk. I'll re-run the named probes live, then relock hashes from those raws.Probe 1 and 2 fail because they cannot see `CANONICAL-CLAIMS.json` at the computed repo path. I'll locate the live corpus and fix the input resolution.`platform/` looked absent at the worktree root, but grep found `schema_resolver.py` under cached copies. I'll check those trees for the real corpus and schema.A live Phase 1 corpus is in the AUD-0005 toolchain copy (909/1282, counterexample present). I'll freeze that as the ADV-0114 input and point the named probes at it.Named probes all exited 0, including the 1282/909/303 arithmetic and the 878 refute. Next I’ll pack the receipt from those live raws and relock the per-unit manifest.**SUCCESS:delivered ADV-0114** `predicate=delivered state=SUCCESS probes=4 raws=5 notes=control_planted.py:0,probe1_canonical_clusters.py:0,probe2_fix_equivalence.py:0,refute_fix_equivalence.py:0`
+
+G-1 is green for this unit. Cloud-ok `unit_complete` was not treated as delivery.
+
+Resumed the existing probe tree. `platform/corpus/CANONICAL-CLAIMS.json` is missing on this sparse worktree, so the named probes now read a frozen live copy at `command-center/p2-wave/probes/ADV-0114/CANONICAL-CLAIMS.json` (from the AUD-0005 toolchain tree; sha256 `507580f9…`, not the harvest `a100d791…` copy). Live re-runs:
+
+| Probe | Result |
+|---|---|
+| Probe 1 | 1282 raw / 909 canonical / 303 multi-member clusters, exit 0 |
+| Probe 2 | 521 full signature keys, 90 multi-claim groups; harvest **878 refused**, exit 0 |
+| Refute | `CLM-2e74b6904e8a` has three facets; merge-only tuple **REFUTED**, exit 0 |
+| Planted control | good exit 0; file-only mutant exit 1 |
+
+Catalog receipt `command-center/adversarial/ADV-0114-final-findings-mechanism-collapse.json` is `state=SUCCESS` (287352 B, LF sha256 `3d396f2b18de741d4f86a2ecb785e85be0dbed49635bfdc3652d4ca85ee12c98`). Target verdicts stay honest: Phase 1 **PARTIAL**, 878 **REFUTED**, exact synthesis count **BLOCKED** (SYN-0011 / SYN-0017 still absent).
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0114/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0114/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; digest matches live file)
+
+No git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

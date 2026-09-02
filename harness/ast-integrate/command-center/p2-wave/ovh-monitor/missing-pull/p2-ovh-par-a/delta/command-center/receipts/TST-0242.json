@@ -1,0 +1,241 @@
+{
+ "SUCCESS:TST-0242": true,
+ "answer": "Yes. Lazy-shared 10x fan-out stayed at 3 stub processes (peak procfs=3, peak ps=3) against a process ceiling of 5. Eager unbounded reproduced 12 = sessions\u00d7servers. The budgeted eager path refused the next session (process-ceiling-refuse-new-work) with would_spawn=False and no extra child. Production selection spared shared pid 99382; the kill-based mutant selected it (both-states).",
+ "artifact_paths": [
+  "command-center/receipts/TST-0242.json",
+  "tools/plugin/pressure_guard.py",
+  "tools/plugin/mcp_activation.py",
+  "tools/plugin/stub_mcp_server.py",
+  "command-center/p2-wave/probes/TST-0242/harness.py",
+  "command-center/p2-wave/probes/TST-0242/probe1_fanout_ceiling.py",
+  "command-center/p2-wave/probes/TST-0242/probe2_shared_pid_refusal.py"
+ ],
+ "candidate_selection_audit": {
+  "fired_on_bad": true,
+  "mutant": {
+   "kill_set": [
+    99382,
+    8000001,
+    8000002
+   ],
+   "overlap": [
+    99382
+   ],
+   "shared_pids": [
+    99382
+   ],
+   "shared_selected": true,
+   "spared": []
+  },
+  "production": {
+   "kill_set": [
+    8000001
+   ],
+   "overlap": [],
+   "shared_pids": [
+    99382
+   ],
+   "shared_selected": false,
+   "spared": [
+    99382
+   ]
+  },
+  "shared_pid": 99382,
+  "shared_survived": true,
+  "silent_on_good": true
+ },
+ "completion_sentinel": "SUCCESS:TST-0242",
+ "evidence": [
+  {
+   "baseline": {
+    "commit_proxy_bytes": 88334336,
+    "committed_as_kb": 8620212,
+    "procfs_n": 3,
+    "ps_n": 3
+   },
+   "claim": "Peak process count and committed memory were sampled by an external monitor (/proc cmdline + ps, Committed_AS + stub RSS+swap proxy), not by the pool's internal dict.",
+   "commit_control": {
+    "cold_ok": true,
+    "commit_limit_kb": 128863960,
+    "committed_as_kb_after": 8641116,
+    "committed_as_kb_before": 8535048,
+    "hot_ok": false,
+    "hot_would_spawn": false
+   },
+   "id": "E1-external-process-and-commit-monitor",
+   "path": "command-center/p2-wave/probes/TST-0242/harness.py",
+   "shared_10x": {
+    "commit_proxy_bytes": 88342528,
+    "committed_as_kb": 8641116,
+    "peak_commit_proxy_bytes": 88342528,
+    "peak_procfs": 3,
+    "peak_ps": 3,
+    "procfs_n": 3,
+    "ps_n": 3
+   }
+  },
+  {
+   "claim": "The production guard's kill-candidate list has empty overlap with the shared-service PID set. A kill-based mutant that drops the allowlist selects the same live PID.",
+   "id": "E2-candidate-list-vs-shared-pid-set",
+   "mutant_audit": {
+    "kill_set": [
+     99382,
+     8000001,
+     8000002
+    ],
+    "overlap": [
+     99382
+    ],
+    "shared_pids": [
+     99382
+    ],
+    "shared_selected": true,
+    "spared": []
+   },
+   "path": "tools/plugin/pressure_guard.py",
+   "production_audit": {
+    "kill_set": [
+     8000001
+    ],
+    "overlap": [],
+    "shared_pids": [
+     99382
+    ],
+    "shared_selected": false,
+    "spared": [
+     99382
+    ]
+   }
+  }
+ ],
+ "implementation": {
+  "activation": "tools/plugin/mcp_activation.py",
+  "bytes": 20158,
+  "path": "tools/plugin/pressure_guard.py",
+  "sha256": "6cf46be6b66a6a3231aadd19a5687fe6e7579e649a8c2ef7726f00524b2d60c9"
+ },
+ "measurements": {
+  "eager_unbounded": {
+   "procfs_n": 12,
+   "ps_n": 12,
+   "sessions": 4,
+   "want": 12
+  },
+  "external_monitor": {
+   "commit_signals": [
+    "/proc/meminfo Committed_AS (kB)",
+    "/proc/<pid>/status VmRSS+VmSwap commit proxy"
+   ],
+   "process_count_signals": [
+    "procfs_/proc/<pid>/cmdline",
+    "ps_-eo_pid,rss,args"
+   ]
+  },
+  "fanout_mult": 10,
+  "fanout_sessions": 10,
+  "n_servers": 3,
+  "process_ceiling": 5,
+  "shared_10x": {
+   "commit_proxy_bytes": 88342528,
+   "committed_as_kb": 8641116,
+   "peak_commit_proxy_bytes": 88342528,
+   "peak_procfs": 3,
+   "peak_ps": 3,
+   "procfs_n": 3,
+   "ps_n": 3
+  },
+  "shared_baseline": {
+   "commit_proxy_bytes": 88334336,
+   "committed_as_kb": 8620212,
+   "procfs_n": 3,
+   "ps_n": 3
+  }
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe1_fanout_ceiling.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\"base_sessions\": 1, \"ceiling_held\": true, \"commit_control\": {\"cold_ok\": true, \"commit_limit_kb\": 128863960, \"committed_as_kb_after\": 8641116, \"committed_as_kb_before\": 8535048, \"hot_ok\": false, \"hot_would_spawn\": false}, \"eager_budget_refuse\": {\"after_refuse_n\": 3, \"below_ceiling_n\": 3, \"reason\": \"process-ceiling-refuse-new-work\", \"spawn_attempts\": 1, \"would_spawn\": false}, \"eager_unbounded\": {\"procfs_n\": 12, \"ps_n\": 12, \"sessions\": 4, \"want\": 12}, \"fanout_mult\": 10, \"fanout_sessions\": 10, \"n_servers\": 3, \"pass\": true, \"probe\": \"probe1_fanout_ceiling\", \"process_ceiling\": 5, \"shared_10x\": {\"commit_proxy_bytes\": 88342528, \"committed_as_kb\": 8641116, \"peak_commit_proxy_bytes\": 88342528, \"peak_procfs\": 3, \"peak_ps\": 3, \"procfs_n\": 3, \"ps_n\": 3}, \"shared_baseline\": {\"commit_proxy_bytes\": 88334336, \"committed_as_kb\": 8620212, \"procfs_n\": 3, \"ps_n\": 3}}\nshared_10x=3 eager=12 peak=3 refuse=process-ceiling-refuse-new-work\nSUCCESS:TST-0242-probe1 fanout-ceiling"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe2_shared_pid_refusal.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\"fired_on_bad\": true, \"mutant_audit\": {\"kill_set\": [99382, 8000001, 8000002], \"overlap\": [99382], \"shared_pids\": [99382], \"shared_selected\": true, \"spared\": []}, \"pass\": true, \"probe\": \"probe2_shared_pid_refusal\", \"production_audit\": {\"kill_set\": [8000001], \"overlap\": [], \"shared_pids\": [99382], \"shared_selected\": false, \"spared\": [99382]}, \"production_decisions\": [{\"action\": \"spare\", \"pid\": 99382, \"reason\": \"shared-service-allowlist\", \"selected_for_kill\": false}, {\"action\": \"reap-orphan\", \"pid\": 8000001, \"reason\": \"proven-orphan-of-dead-session\", \"selected_for_kill\": true}, {\"action\": \"spare\", \"pid\": 8000002, \"reason\": \"live-session-child\", \"selected_for_kill\": false}], \"shared_pid\": 99382, \"shared_survived\": true, \"silent_on_good\": true}\nshared_pid=99382 spared=[99382] mutant_overlap=[99382] both_states=True\nSUCCESS:TST-0242-probe2 shared-pid-refusal"
+  }
+ ],
+ "negative_control_ids": [
+  "NC1:eager-stdio-multiplies-sessions-times-servers",
+  "NC2:kill-based-mutant-selects-shared-pid",
+  "NC3:synthetic-commit-ratio-0.20-admits"
+ ],
+ "notes": "G-1 for TST-0242: live named probes, honest SUCCESS receipt, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0242",
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+ "owner_approval": "NOT-CHECKED as a live-estate kill: this unit spawned isolated stubs with unique argv marks and never signalled a pre-existing shared service. Catalog flag remains true for enabling kill-based orphan reaping on the owner's machine.",
+ "owner_approval_required": true,
+ "question": "Does the harness bound per-session MCP/worker process multiplication, and can its memory guard ever terminate a live shared service? PASS requires the ceiling to hold under a 10x fan-out AND the guard to be proven incapable of selecting a shared-service PID.",
+ "report_kind": "benchmark_result",
+ "residual_unknowns": [
+  "System-wide Committed_AS is recorded but not used as a pass/fail threshold: it moves with unrelated processes on this box. Pass/fail for memory uses the per-stub RSS+swap proxy plus the synthetic commit-ratio control that refuses spawn without exhausting the host.",
+  "command-center/schema/receipt.schema.json is absent on this worktree; this artifact is a benchmark_result-shaped receipt."
+ ],
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "TST-0242-probe2-shared-pid-refusal",
+  "starts_from": "OS process table + candidate-selection list, not the author's summary",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "sentinel": "SUCCESS:TST-0242",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=TST-0242]; _USER-PROMPTS.md:11326-11328 (eager per-session MCP multiplication; commit exhaustion freezes process creation; kill-based memory guard terminates a live shared service)",
+ "state": "SUCCESS",
+ "test_ids": [
+  "fanout-10x-shared-process-count-flat",
+  "eager-unbounded-multiplies",
+  "process-ceiling-refuse-before-spawn",
+  "commit-hot-refuse-cold-admit",
+  "shared-pid-not-in-kill-set",
+  "kill-based-mutant-selects-shared"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe2_shared_pid_refusal.py",
+   "id": "detector-control-shared-service-pid-refused",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe1_fanout_ceiling.py",
+   "id": "regression-seed-eager-per-session-mcp-multiplication",
+   "observed": {
+    "procfs_n": 12,
+    "ps_n": 12,
+    "sessions": 4,
+    "want": 12
+   },
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe1_fanout_ceiling.py",
+   "id": "regression-seed-commit-exhaustion-refuses-before-spawn",
+   "observed": {
+    "cold_ok": true,
+    "commit_limit_kb": 128863960,
+    "committed_as_kb_after": 8641116,
+    "committed_as_kb_before": 8535048,
+    "hot_ok": false,
+    "hot_would_spawn": false
+   },
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0242/probe2_shared_pid_refusal.py",
+   "id": "regression-seed-kill-based-guard-selects-shared-on-mutant-only",
+   "result": "PASS"
+  }
+ ],
+ "title": "Process and memory ceilings hold, and the guard never kills a shared service",
+ "ts": "2026-08-25T01:04:45Z",
+ "unit_id": "TST-0242"
+}

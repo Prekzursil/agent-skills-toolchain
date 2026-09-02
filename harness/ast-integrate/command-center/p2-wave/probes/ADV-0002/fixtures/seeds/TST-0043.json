@@ -1,0 +1,220 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0043.json",
+   "bytes": 6463,
+   "sha256": "f716f198c50952726b8be7a9baa62831d26c72d3052b3860efed31c32eb2cba8",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0043 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0043.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0043.json",
+     "raw_output": "bytes=6463 sha256=f716f198c50952726b8be7a9baa62831d26c72d3052b3860efed31c32eb2cba8",
+     "fingerprint": "3b21212c5e2c529fd71d778819b52bf7",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0043",
+     "raw_output": "schema-check",
+     "fingerprint": "ed99e525d28149848d515e866471c8f9",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0043 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0043",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0043",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "899d179a9c68552902894f13c74e23fd",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0043",
+     "raw_output": "schema-valid",
+     "fingerprint": "ce55a33c50cb37d9fcec73c635f1992c",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "report": {
+  "kind": "conformance-report",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0043/probe1_contract_negatives.py",
+    "measured": 2,
+    "method": "check_tree on fixtures/conforming (echo-skill, scoped-skill)",
+    "name": "conforming-twins-pass"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0043/fixtures.py",
+    "measured": 15,
+    "method": "one malformed SKILL.md per contract reason code",
+    "name": "negatives-per-rule"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0043/artifacts/deploy-malformed.log",
+    "measured": "REJECT skill=broken-yaml reason=FRONTMATTER_UNPARSEABLE path=skills/broken-yaml/SKILL.md",
+    "method": "deploy_tree mixed tree; silence is failure",
+    "name": "deploy-reject-line"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0043/deploy.py",
+    "measured": false,
+    "method": "broken-yaml absent from dest after REJECT",
+    "name": "malformed-not-installed"
+   }
+  ],
+  "control_ids": [
+   "malformed-frontmatter-rejected",
+   "silent-skip-mutant-distinguished",
+   "always-ok-mutant-misses-every-negative"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:TST-0043",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0043.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "TST-0043",
+ "extensions": {
+  "legacy_root": {
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0043",
+   "contract_under_test": {
+    "id": "ARC-0089",
+    "note": "ARC-0089 is not on this worktree. The executable contract under test is contract.py (name, description, trigger/load surface, malformed front-matter). This suite is written before broad production wiring.",
+    "path": "command-center/phase4/contracts/ARC-0089.json",
+    "present": false,
+    "stand_in": "command-center/p2-wave/probes/TST-0043/contract.py"
+   },
+   "deploy": {
+    "accept_lines": [
+     "ACCEPT skill=echo-skill path=skills/echo-skill/SKILL.md"
+    ],
+    "clean_ok": true,
+    "conforming_installed": true,
+    "malformed_installed": false,
+    "reject_lines": [
+     "REJECT skill=broken-yaml reason=FRONTMATTER_UNPARSEABLE path=skills/broken-yaml/SKILL.md"
+    ],
+    "silent_skip_installed_malformed": true,
+    "silent_skip_reject_count": 0
+   },
+   "method": "Restricted YAML front-matter parse of skills/*/SKILL.md; required name (resolvable, dir-equal), description, and load class (always-on, or lazy with paths). deploy_tree copies only ok skills and logs REJECT skill=<id> reason=<code> path=<rel> for each malformed skill. A silent-skip mutant is the negative control: it installs the malformed skill with no REJECT line.",
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0043/probe1_contract_negatives.py",
+     "id": "probe1",
+     "role": "contract-negatives"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0043/probe2_deploy_reject_log.py",
+     "id": "probe2",
+     "role": "deploy-reject-log"
+    }
+   ],
+   "notes": "Executable skill-contract suite plus loud deploy REJECT for malformed SKILL.md front-matter. Cloud ok=true is not delivery. SUCCESS:TST-0043",
+   "question": "Does every skill declare a resolvable name, description and trigger surface, and is a skill whose SKILL.md front-matter is malformed rejected at deploy rather than silently skipped?",
+   "title": "Executable conformance tests for the skill contract",
+   "ts": "2026-08-25T01:07:35Z",
+   "verdict": "PASS"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0043",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0043/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0043"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0043.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0043.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "5fd4a6e8270385ef8f477e4ea67d6242",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

@@ -1,0 +1,358 @@
+{
+ "artifacts": [
+  {
+   "bytes": 20241,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/marketplace/federated_identity.py",
+   "role": "implementation",
+   "sha256": "1ab1dc04a858520d852c5989a15d9c94bbc7e92faa9de66ecb9e1b898862e8aa"
+  },
+  {
+   "bytes": 10047,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/marketplace/tests/test_federated_identity.py",
+   "role": "supporting",
+   "sha256": "a73541dacabd74141e7fb271b3f9483fbc51b57bb191972c05404502afcfb621"
+  },
+  {
+   "bytes": 3882,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0081/probe1_verified_mapping.py",
+   "role": "named-probe",
+   "sha256": "477da2b54c10996a89ad302c5502a9b9411b7c4bada8ec8bbdfdbec4c357298f"
+  },
+  {
+   "bytes": 5744,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0081/probe2_asserted_mismatch.py",
+   "role": "named-probe",
+   "sha256": "fb7a5c98c8785739b30561318b0891fe59ece314bd087a97b6e50fa919b08b04"
+  },
+  {
+   "bytes": 527,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0081/fixtures/marketplace.json",
+   "role": "fixture",
+   "sha256": "d0fcb737339aac7f2e8ead0d0220e6705131232404655e752689daaa2de7a1b9"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0081",
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/marketplace/federated_identity.py",
+   "consumer": "tools/marketplace/tests/test_federated_identity.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py",
+    "exit_code": 0,
+    "fingerprint": "e7e0ddb9de8381ed170c6bbf35b6697f",
+    "method": "command",
+    "raw_output": "PASS test_verified\nPASS test_asserted\nPASS test_mismatched\nPASS test_unreachable_upstream\nPASS test_mismatched_commit_not_recorded_as_verified\nPASS test_local_dot_slash_source_does_not_crash\nPASS test_repo_sourced_cannot_masquerade_as_first_party\nPASS test_asserted_never_renders_identically_to_verified\nPASS test_https_and_ssh_parse\nPASS test_live_git_ls_remote_verified\nPASS test_map_index_local_and_git\nSUCCESS:IMP-0081 11 tests passed",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/federated_identity.py:map_identity",
+   "claim": "For a verified mapping, the upstream ref resolves and its commit matches recorded provenance. Independent git rev-parse of the planted repo agrees with the mapper.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "git ls-remote file://planted + map_identity",
+     "exit_code": 0,
+     "fingerprint": "6a50bbc43f53ca0e35cbb990e2fb4302",
+     "method": "command",
+     "raw_output": "{\"identity\": {\"host\": \"file\", \"org\": \"imp0081-emit-dnwef5z4\", \"ref\": \"HEAD\", \"remote_url\": \"file:///tmp/imp0081-emit-dnwef5z4/upstream\", \"repo\": \"upstream\"}, \"recorded\": \"6934ed986a8967b2b7a7aaed14a1ef583195e218\", \"resolved\": \"6934ed986a8967b2b7a7aaed14a1ef583195e218\", \"status\": \"VERIFIED\"}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py",
+     "exit_code": 0,
+     "fingerprint": "e7e0ddb9de8381ed170c6bbf35b6697f",
+     "method": "command",
+     "raw_output": "PASS test_verified\nPASS test_asserted\nPASS test_mismatched\nPASS test_unreachable_upstream\nPASS test_mismatched_commit_not_recorded_as_verified\nPASS test_local_dot_slash_source_does_not_crash\nPASS test_repo_sourced_cannot_masquerade_as_first_party\nPASS test_asserted_never_renders_identically_to_verified\nPASS test_https_and_ssh_parse\nPASS test_live_git_ls_remote_verified\nPASS test_map_index_local_and_git\nSUCCESS:IMP-0081 11 tests passed",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/federated_identity.py:surfaces_distinguish",
+   "claim": "For an unverifiable mapping the record is ASSERTED and is visibly distinguishable from VERIFIED on index_json, display_line, and query_row. A mismatched commit is REJECTED_MISMATCH and is not recorded as VERIFIED. Local './' is first-party-local and does not crash.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "surfaces_distinguish(VERIFIED, ASSERTED) + mismatch index attach",
+     "exit_code": 0,
+     "fingerprint": "d33ea7992763f1403595c42e96ac47f9",
+     "method": "command",
+     "raw_output": "{\"asserted_badge\": \"ASSERTED-UNVERIFIED\", \"distinguished\": true, \"local\": \"FIRST_PARTY_LOCAL\", \"mismatch_index\": \"REJECTED_MISMATCH\", \"verified_badge\": \"VERIFIED-UPSTREAM\"}",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py",
+     "exit_code": 0,
+     "fingerprint": "e7e0ddb9de8381ed170c6bbf35b6697f",
+     "method": "command",
+     "raw_output": "PASS test_verified\nPASS test_asserted\nPASS test_mismatched\nPASS test_unreachable_upstream\nPASS test_mismatched_commit_not_recorded_as_verified\nPASS test_local_dot_slash_source_does_not_crash\nPASS test_repo_sourced_cannot_masquerade_as_first_party\nPASS test_asserted_never_renders_identically_to_verified\nPASS test_https_and_ssh_parse\nPASS test_live_git_ls_remote_verified\nPASS test_map_index_local_and_git\nSUCCESS:IMP-0081 11 tests passed",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0081",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0081/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "mapper": {
+  "fixture_index": {
+   "description": "Fixture index: local './' source plus a git-sourced plugin.",
+   "name": "imp-0081-fixture-marketplace",
+   "owner": {
+    "name": "imp-0081"
+   },
+   "plugins": [
+    {
+     "federated_identity": {
+      "badge": "FIRST-PARTY-LOCAL",
+      "fetch_attempts": 0,
+      "first_party": true,
+      "identity": null,
+      "reason": "explicit-local-source",
+      "recorded_commit": null,
+      "resolved_commit": null,
+      "status": "FIRST_PARTY_LOCAL",
+      "verification": "explicit-local-dot-slash-source"
+     },
+     "first_party": true,
+     "name": "ast-integrate",
+     "source": "./",
+     "version": "0.0.0-fixture"
+    },
+    {
+     "federated_identity": {
+      "badge": "VERIFIED-UPSTREAM",
+      "fetch_attempts": 1,
+      "first_party": false,
+      "identity": {
+       "host": "github.com",
+       "org": "acme",
+       "ref": "v1.2.3",
+       "remote_url": "https://github.com/acme/federated-pkg.git",
+       "repo": "federated-pkg"
+      },
+      "reason": "ref-resolved-commit-matches-provenance",
+      "recorded_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "resolved_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+      "status": "VERIFIED",
+      "verification": "upstream-ref-resolved-and-commit-matches-provenance"
+     },
+     "first_party": false,
+     "name": "federated-pkg",
+     "provenance": {
+      "commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
+     },
+     "source": "https://github.com/acme/federated-pkg.git#v1.2.3",
+     "version": "1.2.3"
+    }
+   ]
+  },
+  "live_git": {
+   "identity": {
+    "host": "file",
+    "org": "imp0081-emit-dnwef5z4",
+    "ref": "HEAD",
+    "remote_url": "file:///tmp/imp0081-emit-dnwef5z4/upstream",
+    "repo": "upstream"
+   },
+   "resolved_commit": "6934ed986a8967b2b7a7aaed14a1ef583195e218",
+   "status": "VERIFIED"
+  },
+  "module": "tools/marketplace/federated_identity.py",
+  "retry": {
+   "max_attempts": 3,
+   "unreachable_yields": "ASSERTED"
+  },
+  "scripted": {
+   "asserted": {
+    "badge": "ASSERTED-UNVERIFIED",
+    "fetch_attempts": 3,
+    "first_party": false,
+    "identity": {
+     "host": "github.com",
+     "org": "acme",
+     "ref": "v1.2.3",
+     "remote_url": "https://github.com/acme/federated-pkg.git",
+     "repo": "federated-pkg"
+    },
+    "reason": "unreachable-upstream",
+    "recorded_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolved_commit": null,
+    "status": "ASSERTED",
+    "verification": "upstream-unreachable-or-unconfirmed"
+   },
+   "local_dot_slash": {
+    "badge": "FIRST-PARTY-LOCAL",
+    "fetch_attempts": 0,
+    "first_party": true,
+    "identity": null,
+    "reason": "explicit-local-source",
+    "recorded_commit": null,
+    "resolved_commit": null,
+    "status": "FIRST_PARTY_LOCAL",
+    "verification": "explicit-local-dot-slash-source"
+   },
+   "mismatch": {
+    "badge": "REJECTED-MISMATCH",
+    "fetch_attempts": 1,
+    "first_party": false,
+    "identity": {
+     "host": "github.com",
+     "org": "acme",
+     "ref": "v1.2.3",
+     "remote_url": "https://github.com/acme/federated-pkg.git",
+     "repo": "federated-pkg"
+    },
+    "reason": "commit-mismatch",
+    "recorded_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolved_commit": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "status": "REJECTED_MISMATCH",
+    "verification": "resolved-commit-does-not-match-recorded-provenance"
+   },
+   "verified": {
+    "badge": "VERIFIED-UPSTREAM",
+    "fetch_attempts": 1,
+    "first_party": false,
+    "identity": {
+     "host": "github.com",
+     "org": "acme",
+     "ref": "v1.2.3",
+     "remote_url": "https://github.com/acme/federated-pkg.git",
+     "repo": "federated-pkg"
+    },
+    "reason": "ref-resolved-commit-matches-provenance",
+    "recorded_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "resolved_commit": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "status": "VERIFIED",
+    "verification": "upstream-ref-resolved-and-commit-matches-provenance"
+   }
+  },
+  "statuses": [
+   "VERIFIED",
+   "ASSERTED",
+   "REJECTED_MISMATCH",
+   "FIRST_PARTY_LOCAL"
+  ],
+  "surfaces": {
+   "a_badge": "VERIFIED-UPSTREAM",
+   "a_status": "VERIFIED",
+   "b_badge": "ASSERTED-UNVERIFIED",
+   "b_status": "ASSERTED",
+   "distinguished": true,
+   "identical_surfaces": []
+  }
+ },
+ "min_bytes_threshold": 512,
+ "negative_controls": [
+  {
+   "bad_state_output": "resolved=bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb recorded=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa status=REJECTED_MISMATCH",
+   "description": "A mismatched commit must not be recorded as VERIFIED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "matching commit status=VERIFIED",
+   "id": "IMP0081-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\"display_line\": \"federated-pkg github.com/acme/federated-pkg@v1.2.3 [ASSERTED-UNVERIFIED] status=ASSERTED first_party=false commit=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa reason=unreachable-upstream\", \"index_json\": \"{\\\"badge\\\":\\\"ASSERTED-UNVERIFIED\\\",\\\"fetch_attempts\\\":3,\\\"first_party\\\":false,\\\"identity\\\":{\\\"host\\\":\\\"github.com\\\",\\\"org\\\":\\\"acme\\\",\\\"ref\\\":\\\"v1.2.3\\\",\\\"remote_url\\\":\\\"https://github.com/acme/federated-pkg.git\\\",\\\"repo\\\":\\\"federated-pkg\\\"},\\\"reason\\\":\\\"unreachable-upstream\\\",\\\"recorded_commit\\\":\\\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"resolved_commit\\\":null,\\\"status\\\":\\\"ASSERTED\\\",\\\"verification\\\":\\\"upstream-unreachable-or-unconfirmed\\\"}\", \"query_row\": \"[\\\"ASSERTED\\\",\\\"ASSERTED-UNVERIFIED\\\",false,null]\"}",
+   "description": "ASSERTED and VERIFIED must not render identically on any surface.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"display_line\": \"federated-pkg github.com/acme/federated-pkg@v1.2.3 [VERIFIED-UPSTREAM] status=VERIFIED first_party=false commit=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa reason=ref-resolved-commit-matches-provenance\", \"index_json\": \"{\\\"badge\\\":\\\"VERIFIED-UPSTREAM\\\",\\\"fetch_attempts\\\":1,\\\"first_party\\\":false,\\\"identity\\\":{\\\"host\\\":\\\"github.com\\\",\\\"org\\\":\\\"acme\\\",\\\"ref\\\":\\\"v1.2.3\\\",\\\"remote_url\\\":\\\"https://github.com/acme/federated-pkg.git\\\",\\\"repo\\\":\\\"federated-pkg\\\"},\\\"reason\\\":\\\"ref-resolved-commit-matches-provenance\\\",\\\"recorded_commit\\\":\\\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"resolved_commit\\\":\\\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\",\\\"status\\\":\\\"VERIFIED\\\",\\\"verification\\\":\\\"upstream-ref-resolved-and-commit-matches-provenance\\\"}\", \"query_row\": \"[\\\"VERIFIED\\\",\\\"VERIFIED-UPSTREAM\\\",false,\\\"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa\\\"]\"}",
+   "id": "IMP0081-C2",
+   "kind": "both-states-same-run",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0081: federated identity mapper VERIFIED vs ASSERTED, mismatch refused, local './' handled. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0081",
+ "output_path": "command-center/receipts/IMP-0081.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "question_or_target": "Map a package sourced from a git repository to a verifiable upstream identity (host, org, repo, ref) and record whether the mapping was verified or merely asserted, so a repo-sourced entry cannot masquerade as first-party without evidence.",
+ "residual_unknowns": [
+  {
+   "claim": ".claude-plugin/marketplace.json is absent on this worktree; the catalog names plugins[].source currently './'. The './' case is exercised via fixtures/marketplace.json rather than a live marketplace.json.",
+   "settling_experiment": "Re-run map_index on .claude-plugin/marketplace.json once IMP-0067 authors that file on this tree.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "bounded backoff x3 on upstream fetch; unreachable => ASSERTED"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 confirms ASSERTED never renders identically to VERIFIED on index_json, display_line, or query_row; mismatch is not indexed as VERIFIED; './' is handled without a crash.",
+  "reviewer_id": "IMP-0081-probe2-asserted-surfaces",
+  "verdict": "PASS"
+ },
+ "schema_validation": {
+  "declared": "command-center/schema/receipt.schema.json",
+  "present": false,
+  "reason": "declared schema path is absent; G-1 does not require it",
+  "verdict": "NOT-CHECKED"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0081",
+ "spec_anchor": "_USER-PROMPTS.md:10865",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py::test_verified",
+   "id": "test_verified",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py::test_asserted",
+   "id": "test_asserted",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py::test_mismatched",
+   "id": "test_mismatched",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py::test_unreachable_upstream",
+   "id": "test_unreachable_upstream",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py::test_mismatched_commit_not_recorded_as_verified",
+   "id": "test_mismatched_commit_not_recorded_as_verified",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_federated_identity.py::test_local_dot_slash_source_does_not_crash",
+   "id": "test_local_dot_slash_source_does_not_crash",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:59:30Z",
+  "started_at": "2026-08-24T18:59:30Z"
+ },
+ "title": "Federated identity mapping for repository-sourced packages",
+ "unit_id": "IMP-0081"
+}

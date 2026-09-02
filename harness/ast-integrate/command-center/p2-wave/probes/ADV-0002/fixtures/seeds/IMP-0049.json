@@ -1,0 +1,356 @@
+{
+ "architecture_id": "plugin-lifecycle",
+ "artifacts": [
+  {
+   "bytes": 11647,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/migration_ledger.py",
+   "role": "implementation",
+   "sha256": "e2d7afcdd55848afd390054f714ee8dba3748aaf4911eb1dc12727919bfb1ae1"
+  },
+  {
+   "bytes": 2033,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/hash_census.py",
+   "role": "implementation",
+   "sha256": "e54c1b06f163cef38f7c0160279e28499621cd7856782a065ae0db515e71e7f9"
+  },
+  {
+   "bytes": 3576,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/legacy_layout_steps.py",
+   "role": "fixture-steps",
+   "sha256": "1bc7f039ffb7af94b2736bdc8d5751562c1e3b87d2fabf8ae2a0442ec598b85a"
+  },
+  {
+   "bytes": 1175,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/schema/migration-ledger.schema.json",
+   "role": "schema",
+   "sha256": "646004afbdfa9e70ddac95adbd14469eccbfe392e14dd420377660cbb6334677"
+  },
+  {
+   "bytes": 5830,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_migration_ledger.py",
+   "role": "tests",
+   "sha256": "05772dec2e719dc32ac25adf275a49cdf4432f5b09cbcb6e71f416d95b2e37d5"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0049",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0049.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "notes": "Measure runs after this emit; named probes re-execute live.",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/plugin/migration_ledger.py:MigrationLedger.steps_for_run",
+   "claim": "Signal 1: after a three-step legacy-layout migration the ledger recorded step list ['copied-skills-to-marketplace', 'root-mcp-to-project', 'pre-dispatch-hooks-to-manifest'] (started records, run mgr-74ad289dbbc14c70). Applied markers exist as separate append-only rows so a crash between mutate and complete still leaves the started inverse.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "live run_recorded_steps on a seeded legacy tree",
+     "method": "command",
+     "raw_output": "[\"copied-skills-to-marketplace\", \"root-mcp-to-project\", \"pre-dispatch-hooks-to-manifest\"]",
+     "role": "source"
+    },
+    {
+     "command": "re-read JSONL and list status=started step_id",
+     "method": "file-read",
+     "raw_output": "[\"copied-skills-to-marketplace\", \"root-mcp-to-project\", \"pre-dispatch-hooks-to-manifest\"]",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/plugin/hash_census.py:hash_census",
+   "claim": "Signal 2: replaying only the recorded preimage inverses restored the pre-migration hash census (6 paths before, 10 after apply, restored_equal=True). Apply was not a no-op (census_changed=True).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "hash_census(pre) vs hash_census(replayed post-copy)",
+     "method": "hash-census",
+     "raw_output": "{\"equal\": true, \"missing\": [], \"extra\": [], \"changed\": []}",
+     "role": "source"
+    },
+    {
+     "command": "independent copytree + replay_inverses",
+     "method": "hash-census",
+     "raw_output": "{\"equal\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "census": "tools/plugin/hash_census.py",
+  "ledger": "tools/plugin/migration_ledger.py",
+  "on_disk": "JSONL, O_APPEND, hash-chained record_hash <- prev_hash",
+  "schema": "tools/plugin/schema/migration-ledger.schema.json",
+  "seam": "begin_step captures a preimage inverse before mutate; complete_step appends an applied marker. IMP-0047 calls this seam.",
+  "tests": "tools/plugin/tests/test_migration_ledger.py"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0049/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0049/probe1_inverse_replay.py",
+   "id": "probe1",
+   "role": "recorded-steps-and-inverse-replay-census"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0049/probe2_append_only.py",
+   "id": "probe2",
+   "role": "append-only-omit-step-interrupted"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"equal\": false, \"missing\": [\".mcp.json\"], \"extra\": [\"dir:project\", \"project/.mcp.json\"], \"changed\": []}",
+   "description": "Drop the inverse for root-mcp-to-project and replay. The census must differ from the pre-migration snapshot. Full replay on the same post-tree must match, or the comparator is vacuous.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"equal\": true, \"missing\": [], \"extra\": [], \"changed\": []}",
+   "id": "IMP0049-C1-omit-step",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "record_hash mismatch at seq=1 line=1",
+   "description": "API rewrite attempts must raise AppendOnlyError without changing bytes; a hex-edit of a step_id must fail hash-chain load.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"rejected\": [{\"op\": \"replace_record\", \"raised\": true, \"type\": \"AppendOnlyError\"}, {\"op\": \"rewrite_all\", \"raised\": true, \"type\": \"AppendOnlyError\"}, {\"op\": \"truncate\", \"raised\": true, \"type\": \"AppendOnlyError\"}], \"bytes_unchanged\": true}",
+   "id": "IMP0049-C2-in-place-edit",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/migration-ledger.schema.json",
+ "question": "Record, append-only, which migration steps ran on this machine, when, from which version, with the inverse needed to undo each \u2014 so a later rollback knows exactly what to reverse and a support question can be answered from disk rather than from memory.",
+ "report": {
+  "from_version": "legacy-layout",
+  "kind": "migration-provenance-ledger",
+  "ledger_records": [
+   {
+    "from_version": "legacy-layout",
+    "inverse_entry_count": 3,
+    "inverse_kind": "preimage",
+    "inverse_paths": [
+     "project/.claude-plugin/marketplace.json",
+     "project/.claude-plugin",
+     "project"
+    ],
+    "machine_id": "imp0049-emit",
+    "prev_hash": "0000000000000000000000000000000000000000000000000000000000000000",
+    "record_hash": "20a92206a56addac16a75c5edc35d3196fa87191a7324c2133baf7039a8f39ba",
+    "record_id": "rec-668c56668789",
+    "recorded_at": "2026-08-25T01:00:40Z",
+    "run_id": "mgr-74ad289dbbc14c70",
+    "seq": 1,
+    "status": "started",
+    "step_id": "copied-skills-to-marketplace",
+    "to_version": "current-layout",
+    "touched_paths": [
+     "project/.claude-plugin/marketplace.json",
+     "project/.claude-plugin",
+     "project"
+    ]
+   },
+   {
+    "from_version": "legacy-layout",
+    "inverse_entry_count": 0,
+    "inverse_kind": null,
+    "inverse_paths": [],
+    "machine_id": "imp0049-emit",
+    "prev_hash": "20a92206a56addac16a75c5edc35d3196fa87191a7324c2133baf7039a8f39ba",
+    "record_hash": "9c647a12367601b21e5af52302c9a43d5dd0c9b50d756875ad799c408567194a",
+    "record_id": "rec-66c1e1d6e20b",
+    "recorded_at": "2026-08-25T01:00:40Z",
+    "run_id": "mgr-74ad289dbbc14c70",
+    "seq": 2,
+    "status": "applied",
+    "step_id": "copied-skills-to-marketplace",
+    "to_version": "current-layout",
+    "touched_paths": []
+   },
+   {
+    "from_version": "legacy-layout",
+    "inverse_entry_count": 3,
+    "inverse_kind": "preimage",
+    "inverse_paths": [
+     ".mcp.json",
+     "project/.mcp.json",
+     "project"
+    ],
+    "machine_id": "imp0049-emit",
+    "prev_hash": "9c647a12367601b21e5af52302c9a43d5dd0c9b50d756875ad799c408567194a",
+    "record_hash": "a7f6ff89224a30bb55db71fd47a4f233d63f95afa7c999f757b4f022aba5a2fd",
+    "record_id": "rec-a7bf81f90860",
+    "recorded_at": "2026-08-25T01:00:40Z",
+    "run_id": "mgr-74ad289dbbc14c70",
+    "seq": 3,
+    "status": "started",
+    "step_id": "root-mcp-to-project",
+    "to_version": "current-layout",
+    "touched_paths": [
+     ".mcp.json",
+     "project/.mcp.json",
+     "project"
+    ]
+   },
+   {
+    "from_version": "legacy-layout",
+    "inverse_entry_count": 0,
+    "inverse_kind": null,
+    "inverse_paths": [],
+    "machine_id": "imp0049-emit",
+    "prev_hash": "a7f6ff89224a30bb55db71fd47a4f233d63f95afa7c999f757b4f022aba5a2fd",
+    "record_hash": "caced77d0da6e9d81953a9c9f2710fffe5ebbb21afc3592006df4dd6d2a90965",
+    "record_id": "rec-325a52e27a4c",
+    "recorded_at": "2026-08-25T01:00:40Z",
+    "run_id": "mgr-74ad289dbbc14c70",
+    "seq": 4,
+    "status": "applied",
+    "step_id": "root-mcp-to-project",
+    "to_version": "current-layout",
+    "touched_paths": []
+   },
+   {
+    "from_version": "legacy-layout",
+    "inverse_entry_count": 3,
+    "inverse_kind": "preimage",
+    "inverse_paths": [
+     "hooks/check.json",
+     "hooks/_dispatch/manifest.json",
+     "hooks/_dispatch"
+    ],
+    "machine_id": "imp0049-emit",
+    "prev_hash": "caced77d0da6e9d81953a9c9f2710fffe5ebbb21afc3592006df4dd6d2a90965",
+    "record_hash": "958c267eb4c4b320817300ac3126421b038338b038bc299a9e93b5bf47e34f19",
+    "record_id": "rec-884bb570df9d",
+    "recorded_at": "2026-08-25T01:00:40Z",
+    "run_id": "mgr-74ad289dbbc14c70",
+    "seq": 5,
+    "status": "started",
+    "step_id": "pre-dispatch-hooks-to-manifest",
+    "to_version": "current-layout",
+    "touched_paths": [
+     "hooks/check.json",
+     "hooks/_dispatch/manifest.json",
+     "hooks/_dispatch"
+    ]
+   },
+   {
+    "from_version": "legacy-layout",
+    "inverse_entry_count": 0,
+    "inverse_kind": null,
+    "inverse_paths": [],
+    "machine_id": "imp0049-emit",
+    "prev_hash": "958c267eb4c4b320817300ac3126421b038338b038bc299a9e93b5bf47e34f19",
+    "record_hash": "c4369262c9e67ee711ef890074a6814fa6c329609108c9523002d4e044949885",
+    "record_id": "rec-e06cd79fb00f",
+    "recorded_at": "2026-08-25T01:00:40Z",
+    "run_id": "mgr-74ad289dbbc14c70",
+    "seq": 6,
+    "status": "applied",
+    "step_id": "pre-dispatch-hooks-to-manifest",
+    "to_version": "current-layout",
+    "touched_paths": []
+   }
+  ],
+  "measured": {
+   "census_changed": true,
+   "interrupted": {
+    "last_hash_ok": true,
+    "last_status": "started",
+    "record_count": 5,
+    "replay_equal": true,
+    "started_without_applied": true
+   },
+   "omit_equal": false,
+   "post_count": 10,
+   "pre_count": 6,
+   "replay_equal": true,
+   "run_id": "mgr-74ad289dbbc14c70",
+   "step_ids": [
+    "copied-skills-to-marketplace",
+    "root-mcp-to-project",
+    "pre-dispatch-hooks-to-manifest"
+   ]
+  },
+  "to_version": "current-layout"
+ },
+ "report_kind": "implementation-receipt",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0047 (versioned step framework) is not delivered on this worktree; the ledger seam is exercised by legacy_layout_steps stand-ins for the four historical layouts IMP-0048 will detect.",
+   "settling_experiment": "Wire MigrationLedger.begin_step into IMP-0047 apply.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Reviewer_requirement: ledger survives an interrupted migration (partial started records remain valid hash-chained records and their inverses still restore the prior census). Named probe 2 re-runs that experiment on a fresh tree.",
+  "reviewer_id": "IMP-0049-probe2-append-only-omit-interrupted",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0049",
+ "spec_anchor": "_USER-PROMPTS.md:10817",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 1,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_migration_ledger.py",
+   "id": "test_inverse_replay_restores_prior_state",
+   "output_tail": "replay_equal=True steps=['copied-skills-to-marketplace', 'root-mcp-to-project', 'pre-dispatch-hooks-to-manifest']",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "replay inverses with STEP_IDS[1] removed",
+   "id": "NEGATIVE CONTROL omit one step from the ledger",
+   "output_tail": "{\"equal\": false, \"missing\": [\".mcp.json\"], \"extra\": [\"dir:project\", \"project/.mcp.json\"], \"changed\": []}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "replace_record/rewrite_all/truncate + hex-edit load",
+   "id": "append-only in-place edit rejected",
+   "output_tail": "{\"api\": {\"rejected\": [{\"op\": \"replace_record\", \"raised\": true, \"type\": \"AppendOnlyError\"}, {\"op\": \"rewrite_all\", \"raised\": true, \"type\": \"AppendOnlyError\"}, {\"op\": \"truncate\", \"raised\": true, \"type\": \"AppendOnlyError\"}], \"bytes_unchanged\": true}, \"hash_chain_error\": \"record_hash mismatch at seq=1 line=1\"}",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "complete=False last status=started then replay inverses",
+   "id": "interrupted migration partial records remain valid",
+   "output_tail": "{\"last_status\": \"started\", \"last_hash_ok\": true, \"record_count\": 5, \"started_without_applied\": true, \"replay_equal\": true}",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:00:40Z",
+  "started_at": "2026-08-25T01:00:40Z"
+ },
+ "title": "Migration provenance ledger recording each step and its inverse",
+ "unit_id": "IMP-0049"
+}

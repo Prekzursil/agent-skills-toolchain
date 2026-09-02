@@ -1,0 +1,216 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0029/council-design-note.schema.json",
+  "title": "CNL-0029 design note (per-unit; catalog council-design-note.schema.json is a generated $ref shim to ast-integrate.invalid)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "family",
+    "verdicts",
+    "claims",
+    "evidence",
+    "matrix",
+    "both_states",
+    "negative_control",
+    "tests",
+    "reviewer",
+    "residual_unknowns",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "pattern": "^CNL-0029$" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "pattern": "^SUCCESS:CNL-0029$" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 80 },
+    "family": {
+      "type": "object",
+      "required": ["name", "expected_n", "counted_n", "members"],
+      "properties": {
+        "name": { "type": "string", "minLength": 3 },
+        "expected_n": { "type": "integer", "minimum": 1 },
+        "counted_n": { "type": "integer", "minimum": 1 },
+        "members": { "type": "array", "minItems": 1 }
+      }
+    },
+    "verdicts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["record_id", "verdict"],
+        "properties": {
+          "record_id": { "type": "string", "minLength": 1 },
+          "verdict": { "type": "string", "enum": ["EXECUTABLE"] }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "verdict", "anchor"],
+        "properties": {
+          "id": { "type": "string", "minLength": 2 },
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 },
+          "defect_locus": { "type": "string", "enum": ["DESIGN", "SENTENCE"] },
+          "scoped_restatement": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["path", "line", "snippet", "claim", "verdict", "anchor", "mechanism"],
+        "properties": {
+          "path": { "type": "string", "minLength": 3 },
+          "line": { "type": "integer", "minimum": 1 },
+          "snippet": { "type": "string", "minLength": 3 },
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 },
+          "mechanism": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "matrix": {
+      "type": "object",
+      "required": [
+        "template_count",
+        "ordered_pair_count",
+        "incompatible_ordered",
+        "compatible_ordered",
+        "incompatible_unordered",
+        "ladder_misses",
+        "cells",
+        "bitmask_agree"
+      ],
+      "properties": {
+        "template_count": { "type": "integer", "minimum": 1 },
+        "ordered_pair_count": { "type": "integer", "minimum": 1 },
+        "incompatible_ordered": { "type": "integer", "minimum": 0 },
+        "compatible_ordered": { "type": "integer", "minimum": 0 },
+        "incompatible_unordered": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "ladder_misses": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "cells": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["a", "b", "incompatible"],
+            "properties": {
+              "a": { "type": "string" },
+              "b": { "type": "string" },
+              "incompatible": { "type": "boolean" }
+            }
+          }
+        },
+        "bitmask_agree": { "type": "boolean", "const": true }
+      }
+    },
+    "both_states": {
+      "type": "object",
+      "required": ["planted_bad", "known_good"],
+      "properties": {
+        "planted_bad": {
+          "type": "object",
+          "required": ["fired", "silent", "verbatim"],
+          "properties": {
+            "fired": { "type": "boolean", "const": true },
+            "silent": { "type": "boolean", "const": false },
+            "verbatim": { "type": "string", "minLength": 8 }
+          }
+        },
+        "known_good": {
+          "type": "object",
+          "required": ["fired", "silent", "verbatim"],
+          "properties": {
+            "fired": { "type": "boolean", "const": false },
+            "silent": { "type": "boolean", "const": true },
+            "verbatim": { "type": "string", "minLength": 8 }
+          }
+        }
+      }
+    },
+    "negative_control": {
+      "type": "object",
+      "required": ["fixture", "intended_reject_state", "fired", "verbatim"],
+      "properties": {
+        "fixture": { "type": "string", "minLength": 3 },
+        "intended_reject_state": { "type": "string", "minLength": 8 },
+        "fired": { "type": "boolean", "const": true },
+        "verbatim": { "type": "string", "minLength": 8 }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent", "scope_not_agreement"],
+      "properties": {
+        "reviewer_id": { "type": "string", "pattern": "^CNL-0029-probe2-bitmask-recount$" },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean", "const": true },
+        "scope_not_agreement": { "type": "boolean", "const": true }
+      }
+    },
+    "residual_unknowns": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 8 }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

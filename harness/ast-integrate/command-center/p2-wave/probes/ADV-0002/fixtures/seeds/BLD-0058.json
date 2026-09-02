@@ -1,0 +1,437 @@
+{
+  "schema_version": 1,
+  "unit_id": "BLD-0058",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:BLD-0058 emitted: live arrival_quota_probe.py and refute_controls.py exit 0; 10x burst produces 429s without stagger and none with 3s/4s; synthetic 529 injected through r2e_loop does not reduce concurrency; OpenAI 503 Slow Down classifies as OUR_ARRIVAL_RATE; unmeasurable quotas emit NOT-CHECKED; per-unit UNIT-ARTIFACT-MANIFEST.json registered",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:BLD-0058",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "openai",
+    "model": "gpt-5.6-sol",
+    "role": "headless Prompt Two R2E implement worker",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/BLD-0058.json",
+      "bytes": 54011,
+      "sha256": "2cede2dfc5085d6d1b6d67312330dec12a5e09173f080d9d2cc8fe1c44f66ea6",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A fresh rerun reproduced the conditional synthetic model: the 480-item burst produced 460 HTTP 429 results, while t_i=4*i seconds produced none and reserved five interactive arrivals per minute.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0058/probe1-arrival-schedule.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py arrival",
+          "raw_output": "NAMED PROBE 1: 10X ARRIVAL SCHEDULE, BOTH STATES, AND INTERACTIVE RESERVE\nEVIDENCE_REQUIREMENT_VERBATIM=Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.\nTEST_REQUIREMENT_VERBATIM=Both-states: a simulated burst at 10x must produce 429s WITHOUT the stagger and none WITH it.\nLIVE_SCHEDULER|source=command-center/p2-wave/r2e_loop.py|concurrency=48|configured_stagger_seconds=3.0|sleep_semantics=worker-relative-index-times-stagger\nMODEL|baseline_fanout=48|target_scale=10x|target_fanout=480|limiter=rolling-window|window_seconds=60.0\nSYNTHETIC_ENVELOPE|label=SIMULATED-NOT-VENDOR-QUOTA|total_rpm=20|interactive_reserve_rpm=5|batch_rpm=15|provenance=configured-3s-cadence-used-as-test-fixture-only\nCASE|name=without-stagger-10x-burst|duration_seconds=0|accepted=20|http_429=460|expected_red=true\nCASE|name=configured-3s-full-rate|first_at_seconds=0.0|last_at_seconds=1437.0|accepted=480|http_429=0|batch_rpm=20|interactive_headroom_rpm=0\nINTERACTIVE_STARVATION|schedule=configured-3s-full-rate|rolling_window_first_full_at_seconds=57.0|first_guaranteed_post_batch_slot_at_seconds=1440.0|reason=twentieth batch arrival fills all 20 modeled slots; no slot is reserved\nCASE|name=recommended-4s-reserved|formula=t_i=4*i seconds|first_at_seconds=0.0|last_at_seconds=1916.0|makespan_seconds=1916.0|batch_accepted=480|interactive_accepted=160|http_429=0|interactive_headroom_rpm=5\nASSERT|name=burst_produces_429|result=PASS\nASSERT|name=configured_stagger_has_no_429|result=PASS\nASSERT|name=recommended_stagger_has_no_429|result=PASS\nASSERT|name=recommended_schedule_preserves_interactive_lane|result=PASS\nASSERT|name=recommended_stagger_is_four_seconds|result=PASS\nBINDING_QUOTA|synthetic=request-arrival-20-rpm|live_vendor_quota=NOT-CHECKED|subscription_primary=NOT-CHECKED|subscription_secondary=NOT-CHECKED\nANSWER|schedule=launch batch item i at t0+4*i seconds|target_items=480|injection_span=31m56s|caveat=conditional on synthetic 20-rpm envelope; live vendor quota is NOT-CHECKED\nSUCCESS:BLD-0058-probe1\nPROBE-1-COMPLETE:BLD-0058\n",
+          "fingerprint": "dc6bc3c9ed2d2dd87b5c7b8bdd4942b9b3fcfae9f6f465cb88982ab4dc989420",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+          "raw_output": "REFUTE PROBE: CLASSIFIER AMBIGUITY, CENSUS COVERAGE, AND LIVE ENFORCEMENT\nSTAGE=rerefute\nPRIOR_STAGE_OUTPUT=fix applied: Slow Down split, parse-before-filter, r2e_loop 429/529 injection\nDEFAULT_REFUTE_DISPOSITION=HOLD-THEN-MEASURE\nRERAN_NAMED_PROBES=true\nOFFICIAL_SEMANTICS|vendor=anthropic|429=account-rate-or-acceleration-limit|529=global-provider-capacity|source=https://platform.claude.com/docs/en/api/errors\nOFFICIAL_SEMANTICS|vendor=openai|503-engine-overloaded=provider-capacity|503-slow-down=arrival-rate-increase|source=https://developers.openai.com/api/docs/guides/error-codes\nNAMED_PROBE_RERUN|arrival_exit=0|error_quota_exit=0\nCLASSIFY|case=anthropic-429-acceleration|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true\nCLASSIFY|case=anthropic-529-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true|concurrency_action=KEEP\nCLASSIFY|case=openai-503-engine-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true\nCLASSIFY|case=openai-503-slow-down|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true|required_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_BAD_OPENAI_503_COLLAPSE|detector=RED|fired=true|actual=PROVIDER_CAPACITY\nSCAN_CONTROL_GOOD_PARSE_FIRST|compact_candidates=1|compact_errors=1|spaced_candidates=1|spaced_errors=1|pass=true\nSCAN_CONTROL_BAD_EQUIVALENT_SPACED_JSON|candidate_records=0|error_records=0|detector=RED|valid_json=true|compact_prefilter_hits=1\nLIVE_SCHEDULER_INTEGRATION|explicit_429_branch=True|explicit_529_branch=True|retry_after_branch=True|synthetic_529_injection_path=True|http_429_hits=3|http_529_hits=6|retry_after_hits=1\nREQUIRED_529_CONTROL_SCOPE|probe_local_classifier=true|production_scheduler=true|concurrency_before=480|concurrency_after=480|reduced=false|pass=true\nFRESH_CENSUS|rollout_files=0|direct_candidate_records=0|token_count_records=0|non_null_rate_snapshots=0|session_root=ABSENT\nREVIEWER_THROUGHPUT|method=observed-configured-stagger-not-vendor-docs|r2e_stagger_seconds=3.0|packed_rpm_if_saturated=20.0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED|binding_live_quota=NOT-CHECKED|reason=no vendor rate headers and zero non-null subscription snapshots; 4s reserved schedule is derived from the synthetic 15-batch/5-interactive split of the observed 3s packed cadence\nREFUTE_ASSERT|name=named_probes_reran_green|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_slow_down_classified|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_collapse_mutant_red|fired=false|pass=true\nREFUTE_ASSERT|name=parse_first_accepts_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=compact_prefilter_misses_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=r2e_has_429_529_retry_after|fired=false|pass=true\nREFUTE_ASSERT|name=production_529_keeps_concurrency|fired=false|pass=true\nREFUTE_ASSERT|name=unknown_quota_not_checked|fired=false|pass=true\nIMPLEMENT_CLAIM_VERDICT=HOLD\nREQUIRED_FIX=none\nSUCCESS:BLD-0058-refute\nREFUTE-PROBE-COMPLETE:BLD-0058\n",
+          "fingerprint": "6a0443e6eaeac12aa4cdd4d4c045043ef50eab75ca6f80c49c4557c34a158c13",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "The production scheduler classifies vendor errors, keeps concurrency on a synthetic Anthropic 529 injected through r2e_loop.inject_synthetic_vendor_error, splits OpenAI 503 Slow Down from engine-overloaded, parses JSONL before filtering, and emits unmeasurable quotas as NOT-CHECKED.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0058/refute-controls.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py error-quota",
+          "raw_output": "NAMED PROBE 2: VENDOR ERROR CLASSIFICATION, 529 CONTROL, AND NULL QUOTAS\nEVIDENCE_REQUIREMENT_VERBATIM=Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.\nTEST_REQUIREMENT_529_VERBATIM=Control: a synthetic 529 must NOT cause the scheduler to reduce concurrency.\nTEST_REQUIREMENT_UNKNOWN_VERBATIM=Control: an unmeasurable quota must be emitted as NOT-CHECKED rather than defaulted to a number.\nDOC|vendor=anthropic|errors=https://platform.claude.com/docs/en/api/errors|rates=https://platform.claude.com/docs/en/api/rate-limits\nDOC|vendor=openai|errors=https://developers.openai.com/api/docs/guides/error-codes|rates=https://developers.openai.com/api/docs/guides/rate-limits\nVENDOR_SEMANTICS|vendor=anthropic|http_429=rate_limit_error/account-or-acceleration-limit|http_529=overloaded_error/global-provider-capacity\nVENDOR_SEMANTICS|vendor=openai|http_429=temporary-rate-or-explicit-credit-spend-usage-code|provider_overload=HTTP-503-engine-overloaded|arrival=HTTP-503-Slow-Down\nOBSERVED_SYNTHETIC_ERROR|name=anthropic-arrival|vendor=anthropic|status=429|error_code=rate_limit_error|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=anthropic + HTTP 429 + rate/acceleration_limit|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=pace-and-ramp-gradually\nOBSERVED_SYNTHETIC_ERROR|name=anthropic-capacity|vendor=anthropic|status=529|error_code=overloaded_error|error_class=PROVIDER_CAPACITY|expected=PROVIDER_CAPACITY|pass=true|basis=vendor=anthropic + HTTP 529 + overloaded_error|concurrency_action=KEEP|arrival_action=retry-with-jitter-or-reroute-without-lowering-concurrency-ceiling\nOBSERVED_SYNTHETIC_ERROR|name=openai-arrival|vendor=openai|status=429|error_code=rate_limit_reached|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=openai + HTTP 429 + temporary-rate|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=pace-and-ramp-gradually\nOBSERVED_SYNTHETIC_ERROR|name=openai-account|vendor=openai|status=429|error_code=organization_usage_limit_exceeded|error_class=ACCOUNT_QUOTA|expected=ACCOUNT_QUOTA|pass=true|basis=vendor=openai + HTTP 429 + usage/credit/spend code|concurrency_action=STOP-NEW-WORK|arrival_action=do-not-retry-until-account-limit-changes\nOBSERVED_SYNTHETIC_ERROR|name=openai-capacity|vendor=openai|status=503|error_code=engine_overloaded|error_class=PROVIDER_CAPACITY|expected=PROVIDER_CAPACITY|pass=true|basis=vendor=openai + HTTP 503 engine-overloaded|concurrency_action=KEEP|arrival_action=retry-with-jitter-or-reroute-without-lowering-concurrency-ceiling\nOBSERVED_SYNTHETIC_ERROR|name=openai-slow-down|vendor=openai|status=503|error_code=slow_down|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=openai + HTTP 503 Slow Down / sudden request-rate increase|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_529_GOOD|concurrency_before=480|concurrency_after=480|reduced=false|result=PASS|path=r2e_loop.inject_synthetic_vendor_error\nCONTROL_529_BAD_MUTANT|concurrency_before=480|concurrency_after=240|reduced=true|detector=RED\nLIVE_SCOPE|captured_at=2026-08-19T12:07:11.424745Z|session_root=ABSENT|rollout_files=0|direct_candidate_records=0|malformed_direct_candidate_records=0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED\nLIVE_ERROR_COVERAGE|observed_error_records=0|classified_error_records=0|live_http_429=0|live_http_529=0|note=synthetic cases are separate from live observations\nLIVE_SCHEDULER_POLICY|auth_mode=API-KEY|explicit_429_branch=true|explicit_529_branch=true|retry_after_branch=true|adaptive_arrival_controller=true\nRATE_SNAPSHOT_CENSUS|token_count_records=0|non_null_rate_snapshots=0\nSUBSCRIPTION_BUDGET|name=primary|value=NOT-CHECKED|numeric_default_used=false|reason=no non-null token_count.rate_limits.primary value\nSUBSCRIPTION_BUDGET|name=secondary|value=NOT-CHECKED|numeric_default_used=false|reason=no non-null token_count.rate_limits.secondary value\nCONTROL_UNKNOWN_GOOD|missing_input=null|emitted=NOT-CHECKED|numeric=false|result=PASS\nCONTROL_UNKNOWN_BAD_MUTANT|missing_input=null|emitted=20|numeric=true|detector=RED\nASSERT|name=synthetic_529_is_provider_capacity|result=PASS\nASSERT|name=synthetic_529_keeps_concurrency|result=PASS\nASSERT|name=wrong_529_reducer_can_go_red|result=PASS\nASSERT|name=every_live_error_classified|result=PASS\nASSERT|name=primary_unknown_not_numeric|result=PASS\nASSERT|name=secondary_unknown_not_numeric|result=PASS\nASSERT|name=unknown_default_mutant_can_go_red|result=PASS\nASSERT|name=openai_slow_down_is_arrival_rate|result=PASS\nASSERT|name=production_529_injection_path|result=PASS\nLIVE_BINDING_QUOTA|verdict=NOT-CHECKED|reason=vendor headers/account limits absent and both subscription snapshots unmeasurable\nSUCCESS:BLD-0058-probe2\nPROBE-2-COMPLETE:BLD-0058\n",
+          "fingerprint": "40744b0487928ff6acb5525c7a16d995f022fc558a7e83d82d8d08a92e047c56",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+          "raw_output": "REFUTE PROBE: CLASSIFIER AMBIGUITY, CENSUS COVERAGE, AND LIVE ENFORCEMENT\nSTAGE=rerefute\nPRIOR_STAGE_OUTPUT=fix applied: Slow Down split, parse-before-filter, r2e_loop 429/529 injection\nDEFAULT_REFUTE_DISPOSITION=HOLD-THEN-MEASURE\nRERAN_NAMED_PROBES=true\nOFFICIAL_SEMANTICS|vendor=anthropic|429=account-rate-or-acceleration-limit|529=global-provider-capacity|source=https://platform.claude.com/docs/en/api/errors\nOFFICIAL_SEMANTICS|vendor=openai|503-engine-overloaded=provider-capacity|503-slow-down=arrival-rate-increase|source=https://developers.openai.com/api/docs/guides/error-codes\nNAMED_PROBE_RERUN|arrival_exit=0|error_quota_exit=0\nCLASSIFY|case=anthropic-429-acceleration|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true\nCLASSIFY|case=anthropic-529-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true|concurrency_action=KEEP\nCLASSIFY|case=openai-503-engine-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true\nCLASSIFY|case=openai-503-slow-down|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true|required_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_BAD_OPENAI_503_COLLAPSE|detector=RED|fired=true|actual=PROVIDER_CAPACITY\nSCAN_CONTROL_GOOD_PARSE_FIRST|compact_candidates=1|compact_errors=1|spaced_candidates=1|spaced_errors=1|pass=true\nSCAN_CONTROL_BAD_EQUIVALENT_SPACED_JSON|candidate_records=0|error_records=0|detector=RED|valid_json=true|compact_prefilter_hits=1\nLIVE_SCHEDULER_INTEGRATION|explicit_429_branch=True|explicit_529_branch=True|retry_after_branch=True|synthetic_529_injection_path=True|http_429_hits=3|http_529_hits=6|retry_after_hits=1\nREQUIRED_529_CONTROL_SCOPE|probe_local_classifier=true|production_scheduler=true|concurrency_before=480|concurrency_after=480|reduced=false|pass=true\nFRESH_CENSUS|rollout_files=0|direct_candidate_records=0|token_count_records=0|non_null_rate_snapshots=0|session_root=ABSENT\nREVIEWER_THROUGHPUT|method=observed-configured-stagger-not-vendor-docs|r2e_stagger_seconds=3.0|packed_rpm_if_saturated=20.0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED|binding_live_quota=NOT-CHECKED|reason=no vendor rate headers and zero non-null subscription snapshots; 4s reserved schedule is derived from the synthetic 15-batch/5-interactive split of the observed 3s packed cadence\nREFUTE_ASSERT|name=named_probes_reran_green|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_slow_down_classified|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_collapse_mutant_red|fired=false|pass=true\nREFUTE_ASSERT|name=parse_first_accepts_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=compact_prefilter_misses_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=r2e_has_429_529_retry_after|fired=false|pass=true\nREFUTE_ASSERT|name=production_529_keeps_concurrency|fired=false|pass=true\nREFUTE_ASSERT|name=unknown_quota_not_checked|fired=false|pass=true\nIMPLEMENT_CLAIM_VERDICT=HOLD\nREQUIRED_FIX=none\nSUCCESS:BLD-0058-refute\nREFUTE-PROBE-COMPLETE:BLD-0058\n",
+          "fingerprint": "6a0443e6eaeac12aa4cdd4d4c045043ef50eab75ca6f80c49c4557c34a158c13",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "Live vendor RPM/TPM headers and both subscription budgets are unmeasurable on this box (session root ABSENT, zero non-null rate snapshots) and are emitted as NOT-CHECKED rather than a numeric default.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/BLD-0058/probe2-error-quota-control.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py error-quota",
+          "raw_output": "NAMED PROBE 2: VENDOR ERROR CLASSIFICATION, 529 CONTROL, AND NULL QUOTAS\nEVIDENCE_REQUIREMENT_VERBATIM=Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.\nTEST_REQUIREMENT_529_VERBATIM=Control: a synthetic 529 must NOT cause the scheduler to reduce concurrency.\nTEST_REQUIREMENT_UNKNOWN_VERBATIM=Control: an unmeasurable quota must be emitted as NOT-CHECKED rather than defaulted to a number.\nDOC|vendor=anthropic|errors=https://platform.claude.com/docs/en/api/errors|rates=https://platform.claude.com/docs/en/api/rate-limits\nDOC|vendor=openai|errors=https://developers.openai.com/api/docs/guides/error-codes|rates=https://developers.openai.com/api/docs/guides/rate-limits\nVENDOR_SEMANTICS|vendor=anthropic|http_429=rate_limit_error/account-or-acceleration-limit|http_529=overloaded_error/global-provider-capacity\nVENDOR_SEMANTICS|vendor=openai|http_429=temporary-rate-or-explicit-credit-spend-usage-code|provider_overload=HTTP-503-engine-overloaded|arrival=HTTP-503-Slow-Down\nOBSERVED_SYNTHETIC_ERROR|name=anthropic-arrival|vendor=anthropic|status=429|error_code=rate_limit_error|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=anthropic + HTTP 429 + rate/acceleration_limit|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=pace-and-ramp-gradually\nOBSERVED_SYNTHETIC_ERROR|name=anthropic-capacity|vendor=anthropic|status=529|error_code=overloaded_error|error_class=PROVIDER_CAPACITY|expected=PROVIDER_CAPACITY|pass=true|basis=vendor=anthropic + HTTP 529 + overloaded_error|concurrency_action=KEEP|arrival_action=retry-with-jitter-or-reroute-without-lowering-concurrency-ceiling\nOBSERVED_SYNTHETIC_ERROR|name=openai-arrival|vendor=openai|status=429|error_code=rate_limit_reached|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=openai + HTTP 429 + temporary-rate|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=pace-and-ramp-gradually\nOBSERVED_SYNTHETIC_ERROR|name=openai-account|vendor=openai|status=429|error_code=organization_usage_limit_exceeded|error_class=ACCOUNT_QUOTA|expected=ACCOUNT_QUOTA|pass=true|basis=vendor=openai + HTTP 429 + usage/credit/spend code|concurrency_action=STOP-NEW-WORK|arrival_action=do-not-retry-until-account-limit-changes\nOBSERVED_SYNTHETIC_ERROR|name=openai-capacity|vendor=openai|status=503|error_code=engine_overloaded|error_class=PROVIDER_CAPACITY|expected=PROVIDER_CAPACITY|pass=true|basis=vendor=openai + HTTP 503 engine-overloaded|concurrency_action=KEEP|arrival_action=retry-with-jitter-or-reroute-without-lowering-concurrency-ceiling\nOBSERVED_SYNTHETIC_ERROR|name=openai-slow-down|vendor=openai|status=503|error_code=slow_down|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=openai + HTTP 503 Slow Down / sudden request-rate increase|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_529_GOOD|concurrency_before=480|concurrency_after=480|reduced=false|result=PASS|path=r2e_loop.inject_synthetic_vendor_error\nCONTROL_529_BAD_MUTANT|concurrency_before=480|concurrency_after=240|reduced=true|detector=RED\nLIVE_SCOPE|captured_at=2026-08-19T12:07:11.424745Z|session_root=ABSENT|rollout_files=0|direct_candidate_records=0|malformed_direct_candidate_records=0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED\nLIVE_ERROR_COVERAGE|observed_error_records=0|classified_error_records=0|live_http_429=0|live_http_529=0|note=synthetic cases are separate from live observations\nLIVE_SCHEDULER_POLICY|auth_mode=API-KEY|explicit_429_branch=true|explicit_529_branch=true|retry_after_branch=true|adaptive_arrival_controller=true\nRATE_SNAPSHOT_CENSUS|token_count_records=0|non_null_rate_snapshots=0\nSUBSCRIPTION_BUDGET|name=primary|value=NOT-CHECKED|numeric_default_used=false|reason=no non-null token_count.rate_limits.primary value\nSUBSCRIPTION_BUDGET|name=secondary|value=NOT-CHECKED|numeric_default_used=false|reason=no non-null token_count.rate_limits.secondary value\nCONTROL_UNKNOWN_GOOD|missing_input=null|emitted=NOT-CHECKED|numeric=false|result=PASS\nCONTROL_UNKNOWN_BAD_MUTANT|missing_input=null|emitted=20|numeric=true|detector=RED\nASSERT|name=synthetic_529_is_provider_capacity|result=PASS\nASSERT|name=synthetic_529_keeps_concurrency|result=PASS\nASSERT|name=wrong_529_reducer_can_go_red|result=PASS\nASSERT|name=every_live_error_classified|result=PASS\nASSERT|name=primary_unknown_not_numeric|result=PASS\nASSERT|name=secondary_unknown_not_numeric|result=PASS\nASSERT|name=unknown_default_mutant_can_go_red|result=PASS\nASSERT|name=openai_slow_down_is_arrival_rate|result=PASS\nASSERT|name=production_529_injection_path|result=PASS\nLIVE_BINDING_QUOTA|verdict=NOT-CHECKED|reason=vendor headers/account limits absent and both subscription snapshots unmeasurable\nSUCCESS:BLD-0058-probe2\nPROBE-2-COMPLETE:BLD-0058\n",
+          "fingerprint": "40744b0487928ff6acb5525c7a16d995f022fc558a7e83d82d8d08a92e047c56",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+          "raw_output": "REFUTE PROBE: CLASSIFIER AMBIGUITY, CENSUS COVERAGE, AND LIVE ENFORCEMENT\nSTAGE=rerefute\nPRIOR_STAGE_OUTPUT=fix applied: Slow Down split, parse-before-filter, r2e_loop 429/529 injection\nDEFAULT_REFUTE_DISPOSITION=HOLD-THEN-MEASURE\nRERAN_NAMED_PROBES=true\nOFFICIAL_SEMANTICS|vendor=anthropic|429=account-rate-or-acceleration-limit|529=global-provider-capacity|source=https://platform.claude.com/docs/en/api/errors\nOFFICIAL_SEMANTICS|vendor=openai|503-engine-overloaded=provider-capacity|503-slow-down=arrival-rate-increase|source=https://developers.openai.com/api/docs/guides/error-codes\nNAMED_PROBE_RERUN|arrival_exit=0|error_quota_exit=0\nCLASSIFY|case=anthropic-429-acceleration|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true\nCLASSIFY|case=anthropic-529-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true|concurrency_action=KEEP\nCLASSIFY|case=openai-503-engine-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true\nCLASSIFY|case=openai-503-slow-down|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true|required_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_BAD_OPENAI_503_COLLAPSE|detector=RED|fired=true|actual=PROVIDER_CAPACITY\nSCAN_CONTROL_GOOD_PARSE_FIRST|compact_candidates=1|compact_errors=1|spaced_candidates=1|spaced_errors=1|pass=true\nSCAN_CONTROL_BAD_EQUIVALENT_SPACED_JSON|candidate_records=0|error_records=0|detector=RED|valid_json=true|compact_prefilter_hits=1\nLIVE_SCHEDULER_INTEGRATION|explicit_429_branch=True|explicit_529_branch=True|retry_after_branch=True|synthetic_529_injection_path=True|http_429_hits=3|http_529_hits=6|retry_after_hits=1\nREQUIRED_529_CONTROL_SCOPE|probe_local_classifier=true|production_scheduler=true|concurrency_before=480|concurrency_after=480|reduced=false|pass=true\nFRESH_CENSUS|rollout_files=0|direct_candidate_records=0|token_count_records=0|non_null_rate_snapshots=0|session_root=ABSENT\nREVIEWER_THROUGHPUT|method=observed-configured-stagger-not-vendor-docs|r2e_stagger_seconds=3.0|packed_rpm_if_saturated=20.0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED|binding_live_quota=NOT-CHECKED|reason=no vendor rate headers and zero non-null subscription snapshots; 4s reserved schedule is derived from the synthetic 15-batch/5-interactive split of the observed 3s packed cadence\nREFUTE_ASSERT|name=named_probes_reran_green|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_slow_down_classified|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_collapse_mutant_red|fired=false|pass=true\nREFUTE_ASSERT|name=parse_first_accepts_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=compact_prefilter_misses_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=r2e_has_429_529_retry_after|fired=false|pass=true\nREFUTE_ASSERT|name=production_529_keeps_concurrency|fired=false|pass=true\nREFUTE_ASSERT|name=unknown_quota_not_checked|fired=false|pass=true\nIMPLEMENT_CLAIM_VERDICT=HOLD\nREQUIRED_FIX=none\nSUCCESS:BLD-0058-refute\nREFUTE-PROBE-COMPLETE:BLD-0058\n",
+          "fingerprint": "6a0443e6eaeac12aa4cdd4d4c045043ef50eab75ca6f80c49c4557c34a158c13",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-10X-BOTH-STATES",
+      "name": "Both-states: a simulated burst at 10x must produce 429s WITHOUT the stagger and none WITH it.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py arrival",
+      "result": "PASS",
+      "assertions": 5,
+      "output_tail": "20 modeled slots; no slot is reserved\nCASE|name=recommended-4s-reserved|formula=t_i=4*i seconds|first_at_seconds=0.0|last_at_seconds=1916.0|makespan_seconds=1916.0|batch_accepted=480|interactive_accepted=160|http_429=0|interactive_headroom_rpm=5\nASSERT|name=burst_produces_429|result=PASS\nASSERT|name=configured_stagger_has_no_429|result=PASS\nASSERT|name=recommended_stagger_has_no_429|result=PASS\nASSERT|name=recommended_schedule_preserves_interactive_lane|result=PASS\nASSERT|name=recommended_stagger_is_four_seconds|result=PASS\nBINDING_QUOTA|synthetic=request-arrival-20-rpm|live_vendor_quota=NOT-CHECKED|subscription_primary=NOT-CHECKED|subscription_secondary=NOT-CHECKED\nANSWER|schedule=launch batch item i at t0+4*i seconds|target_items=480|injection_span=31m56s|caveat=conditional on synthetic 20-rpm envelope; live vendor quota is NOT-CHECKED\nSUCCESS:BLD-0058-probe1\nPROBE-1-COMPLETE:BLD-0058\n"
+    },
+    {
+      "id": "T-529-SCHEDULER-CONTROL",
+      "name": "Control: a synthetic 529 must NOT cause the scheduler to reduce concurrency.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py error-quota; PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "probe-local and r2e_loop.inject_synthetic_vendor_error kept 480->480; wrong mutant halved to 240 detector=RED"
+    },
+    {
+      "id": "T-UNKNOWN-QUOTA-NOT-CHECKED",
+      "name": "Control: an unmeasurable quota must be emitted as NOT-CHECKED rather than defaulted to a number.",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py error-quota",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "primary=NOT-CHECKED secondary=NOT-CHECKED; numeric-default mutant emitted=20 detector=RED"
+    },
+    {
+      "id": "T-OPENAI-503-DISAMBIGUATION",
+      "name": "OpenAI engine overload and Slow Down must classify differently",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "engine-overloaded=PROVIDER_CAPACITY PASS; Slow Down expected OUR_ARRIVAL_RATE actual OUR_ARRIVAL_RATE pass=true"
+    },
+    {
+      "id": "T-LIVE-CENSUS-EQUIVALENT-JSON",
+      "name": "Equivalent valid JSONL formatting must not change error coverage",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "parse-first compact/spaced candidate/error=1/1; compact-prefilter mutant misses spaced JSON detector=RED"
+    },
+    {
+      "id": "T-CONDITION-11-LIVE",
+      "name": "Condition 11 is satisfied via the per-unit UNIT-ARTIFACT-MANIFEST.json",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/validate_delivery.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "CONDITION_11=GREEN route=STRUCTURAL-CONDITION-11 per-unit UNIT-ARTIFACT-MANIFEST.json WRITE_MODE_INVOKED=false"
+    },
+    {
+      "id": "T-LIVE-R2E-HAS-429-529",
+      "name": "Production r2e_loop.py now has 429, 529, and Retry-After branches plus synthetic injection",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+      "result": "PASS",
+      "assertions": 3,
+      "output_tail": "-CHECKED|binding_live_quota=NOT-CHECKED|reason=no vendor rate headers and zero non-null subscription snapshots; 4s reserved schedule is derived from the synthetic 15-batch/5-interactive split of the observed 3s packed cadence\nREFUTE_ASSERT|name=named_probes_reran_green|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_slow_down_classified|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_collapse_mutant_red|fired=false|pass=true\nREFUTE_ASSERT|name=parse_first_accepts_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=compact_prefilter_misses_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=r2e_has_429_529_retry_after|fired=false|pass=true\nREFUTE_ASSERT|name=production_529_keeps_concurrency|fired=false|pass=true\nREFUTE_ASSERT|name=unknown_quota_not_checked|fired=false|pass=true\nIMPLEMENT_CLAIM_VERDICT=HOLD\nREQUIRED_FIX=none\nSUCCESS:BLD-0058-refute\nREFUTE-PROBE-COMPLETE:BLD-0058\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-10X-NO-STAGGER",
+      "kind": "known-broken-fixture",
+      "description": "A simultaneous 480-arrival burst must make the zero-429 assertion red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "accepted=20 http_429=460 detector=RED\n",
+      "good_state_output": "batch_accepted=480 interactive_accepted=160 http_429=0 detector=GREEN\n"
+    },
+    {
+      "id": "NC-529-CONCURRENCY-REDUCTION",
+      "kind": "mutation",
+      "description": "A deliberately wrong Anthropic 529 reducer halves concurrency and must go red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "concurrency_before=480 concurrency_after=240 detector=RED\n",
+      "good_state_output": "concurrency_before=480 concurrency_after=480 result=PASS\n"
+    },
+    {
+      "id": "NC-UNKNOWN-QUOTA-NUMERIC-DEFAULT",
+      "kind": "mutation",
+      "description": "A missing quota defaulted to 20 must go red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "missing_input=null emitted=20 numeric=true detector=RED\n",
+      "good_state_output": "missing_input=null emitted=NOT-CHECKED numeric=false result=PASS\n"
+    },
+    {
+      "id": "NC-OPENAI-503-SLOW-DOWN",
+      "kind": "known-broken-fixture",
+      "description": "Collapsing OpenAI Slow Down into provider overload must make the semantic classifier control red.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "expected=OUR_ARRIVAL_RATE actual=PROVIDER_CAPACITY detector=RED\n",
+      "good_state_output": "engine-overloaded expected=PROVIDER_CAPACITY; Slow Down expected=OUR_ARRIVAL_RATE actual=OUR_ARRIVAL_RATE pass=true\n"
+    },
+    {
+      "id": "NC-CENSUS-SPACED-JSON",
+      "kind": "known-broken-fixture",
+      "description": "A valid task_complete JSONL record with ordinary spaces must expose the exact-substring prefilter blind spot.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "valid_json=true candidate_records=0 error_records=0 detector=RED\n",
+      "good_state_output": "parse-first compact and spaced candidate/error=1/1 pass=true\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-BLD-0058-independent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Independent re-derivation from live named probes on this worktree, not from harvested embedded raw_output. arrival_quota_probe.py and refute_controls.py both exited 0. Binding quota re-derived from the observed/configured 3.0s scheduler stagger (packed 20 RPM if saturated) rather than vendor documentation pages. Live vendor RPM/TPM and both subscription snapshots remain NOT-CHECKED. The 4-second reserved schedule is 60/15 batch RPM with 5 interactive slots. A synthetic 529 injected through r2e_loop.inject_synthetic_vendor_error kept concurrency 480. Distinct from produced_by vendor openai.",
+    "reviewed_at": "2026-08-19T12:15:12Z"
+  },
+  "defects": [
+    {
+      "id": "BLD-0058-F1",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Production r2e_loop.py now classifies 429/529, honors Retry-After scan, and injects synthetic 529 without reducing concurrency."
+    },
+    {
+      "id": "BLD-0058-F2",
+      "severity": "P2",
+      "status": "resolved",
+      "summary": "Live vendor and subscription quotas remain unmeasurable and are correctly emitted as NOT-CHECKED."
+    },
+    {
+      "id": "BLD-0058-F3",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "OpenAI 503 Slow Down is classified OUR_ARRIVAL_RATE; engine-overloaded remains PROVIDER_CAPACITY."
+    },
+    {
+      "id": "BLD-0058-F4",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "JSONL records are json.loads'd before filtering; the compact-substring prefilter is retained only as a red mutant."
+    },
+    {
+      "id": "BLD-0058-F5",
+      "severity": "P1",
+      "status": "resolved",
+      "summary": "Named probe scripts and hashed raw logs now exist under command-center/p2-wave/probes/BLD-0058/."
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/BLD-0058/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "BLD-0058",
+    "registered_at": "2026-08-19T12:15:12Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/receipts/BLD-0058.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python -B command-center/p2-wave/_measure_one_delivered.py BLD-0058",
+        "raw_output": "ready_units.artifact_delivered is evaluated by command-center/p2-wave/_measure_one_delivered.py after this pack",
+        "fingerprint": "34c0491d1029672cf554725d08613d214fea33952ee4009be9d1e72d500c1b03",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-16T21:36:27Z",
+    "ended_at": "2026-08-19T12:15:12Z",
+    "duration_seconds": 0
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Retry once with a lower burst rate; never retry a burst that produced sustained 429s against a live vendor.",
+    "attempts": []
+  },
+  "residual_unknowns": [
+    {
+      "claim": "The assigned live vendor RPM and TPM limits are unavailable on this box.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Capture credential-redacted x-ratelimit headers or read the owning account limits page."
+    },
+    {
+      "claim": "Neither independent subscription budget can be ranked as the first live binder.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Capture both non-null subscription windows and reset instants before scheduling."
+    }
+  ],
+  "report": {
+    "kind": "scale-model",
+    "stage": "fix",
+    "refute_outcome": "HOLD",
+    "observations": [
+      {
+        "name": "target_fanout",
+        "measured": 480,
+        "method": "10 multiplied by live scheduler default concurrency 48",
+        "anchor": "command-center/p2-wave/probes/BLD-0058/probe1-arrival-schedule.raw.txt"
+      },
+      {
+        "name": "conditional_stagger_seconds",
+        "measured": 4,
+        "method": "60 seconds divided by synthetic reserved batch allowance 15 RPM",
+        "anchor": "command-center/p2-wave/probes/BLD-0058/probe1-arrival-schedule.raw.txt"
+      },
+      {
+        "name": "burst_http_429_count",
+        "measured": 460,
+        "method": "synthetic rolling-window simulation",
+        "anchor": "command-center/p2-wave/probes/BLD-0058/probe1-arrival-schedule.raw.txt"
+      },
+      {
+        "name": "interactive_accepted_on_4s_schedule",
+        "measured": 160,
+        "method": "reserved rolling-window simulation",
+        "anchor": "command-center/p2-wave/probes/BLD-0058/probe1-arrival-schedule.raw.txt"
+      },
+      {
+        "name": "primary_subscription_budget",
+        "measured": "NOT-CHECKED",
+        "method": "fresh named-probe census; session root ABSENT; zero non-null snapshots",
+        "anchor": "command-center/p2-wave/probes/BLD-0058/probe2-error-quota-control.raw.txt"
+      },
+      {
+        "name": "secondary_subscription_budget",
+        "measured": "NOT-CHECKED",
+        "method": "fresh named-probe census; session root ABSENT; zero non-null snapshots",
+        "anchor": "command-center/p2-wave/probes/BLD-0058/probe2-error-quota-control.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "NC-10X-NO-STAGGER",
+      "NC-529-CONCURRENCY-REDUCTION",
+      "NC-UNKNOWN-QUOTA-NUMERIC-DEFAULT",
+      "NC-OPENAI-503-SLOW-DOWN",
+      "NC-CENSUS-SPACED-JSON"
+    ],
+    "question_or_target": "What arrival schedule avoids a 429 storm at ten times fan-out, which quota binds first, and when would batch work starve interactive work?",
+    "answer": "On the synthetic 20 RPM envelope: launch batch item i at t0+4*i seconds (15 batch RPM, 5 interactive reserved). A simultaneous 480-item burst yields 460 HTTP 429s; the live 3s stagger yields 0 HTTP 429s but starves interactive work at t=57s. The live binding quota is NOT-CHECKED (no vendor headers, no subscription snapshots). Independent review re-derived the 20 RPM packed cadence from the observed 3.0s r2e_loop stagger, not from vendor docs.",
+    "evidence_requirement_verbatim": "Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.",
+    "tests_required_verbatim": [
+      "Both-states: a simulated burst at 10x must produce 429s WITHOUT the stagger and none WITH it.",
+      "Control: a synthetic 529 must NOT cause the scheduler to reduce concurrency.",
+      "Control: an unmeasurable quota must be emitted as NOT-CHECKED rather than defaulted to a number."
+    ],
+    "binding_quota": {
+      "synthetic": "request-arrival envelope at 20 RPM",
+      "live": "NOT-CHECKED",
+      "primary_subscription": "NOT-CHECKED",
+      "secondary_subscription": "NOT-CHECKED"
+    },
+    "vendor_error_policy": [
+      {
+        "vendor": "anthropic",
+        "status": 429,
+        "structured_code": "rate_limit_error plus rate/acceleration evidence",
+        "class": "OUR_ARRIVAL_RATE",
+        "response": "pace and ramp gradually; honor Retry-After"
+      },
+      {
+        "vendor": "anthropic",
+        "status": 529,
+        "structured_code": "overloaded_error",
+        "class": "PROVIDER_CAPACITY",
+        "response": "keep concurrency ceiling; retry with jitter or reroute; do not lower concurrency solely because of 529"
+      },
+      {
+        "vendor": "openai",
+        "status": 429,
+        "structured_code": "temporary rate evidence",
+        "class": "OUR_ARRIVAL_RATE",
+        "response": "pace requests and honor Retry-After"
+      },
+      {
+        "vendor": "openai",
+        "status": 429,
+        "structured_code": "credit/spend/usage limit code",
+        "class": "ACCOUNT_QUOTA",
+        "response": "stop new work; do not retry until account condition changes"
+      },
+      {
+        "vendor": "openai",
+        "status": 503,
+        "structured_code": "engine overloaded message",
+        "class": "PROVIDER_CAPACITY",
+        "response": "keep ceiling; brief jittered retry or reroute"
+      },
+      {
+        "vendor": "openai",
+        "status": 503,
+        "structured_code": "Slow Down / sudden request-rate increase",
+        "class": "OUR_ARRIVAL_RATE",
+        "response": "reduce request rate, hold stable, then gradually increase"
+      }
+    ],
+    "official_sources": [
+      "https://developers.openai.com/api/docs/guides/error-codes",
+      "https://developers.openai.com/api/docs/guides/rate-limits",
+      "https://platform.claude.com/docs/en/api/errors",
+      "https://platform.claude.com/docs/en/api/rate-limits"
+    ],
+    "required_fix": "none"
+  },
+  "extensions": {
+    "named_probes": [
+      {
+        "name": "10x-arrival-schedule-and-interactive-reserve",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py arrival",
+        "raw_output_verbatim": "NAMED PROBE 1: 10X ARRIVAL SCHEDULE, BOTH STATES, AND INTERACTIVE RESERVE\nEVIDENCE_REQUIREMENT_VERBATIM=Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.\nTEST_REQUIREMENT_VERBATIM=Both-states: a simulated burst at 10x must produce 429s WITHOUT the stagger and none WITH it.\nLIVE_SCHEDULER|source=command-center/p2-wave/r2e_loop.py|concurrency=48|configured_stagger_seconds=3.0|sleep_semantics=worker-relative-index-times-stagger\nMODEL|baseline_fanout=48|target_scale=10x|target_fanout=480|limiter=rolling-window|window_seconds=60.0\nSYNTHETIC_ENVELOPE|label=SIMULATED-NOT-VENDOR-QUOTA|total_rpm=20|interactive_reserve_rpm=5|batch_rpm=15|provenance=configured-3s-cadence-used-as-test-fixture-only\nCASE|name=without-stagger-10x-burst|duration_seconds=0|accepted=20|http_429=460|expected_red=true\nCASE|name=configured-3s-full-rate|first_at_seconds=0.0|last_at_seconds=1437.0|accepted=480|http_429=0|batch_rpm=20|interactive_headroom_rpm=0\nINTERACTIVE_STARVATION|schedule=configured-3s-full-rate|rolling_window_first_full_at_seconds=57.0|first_guaranteed_post_batch_slot_at_seconds=1440.0|reason=twentieth batch arrival fills all 20 modeled slots; no slot is reserved\nCASE|name=recommended-4s-reserved|formula=t_i=4*i seconds|first_at_seconds=0.0|last_at_seconds=1916.0|makespan_seconds=1916.0|batch_accepted=480|interactive_accepted=160|http_429=0|interactive_headroom_rpm=5\nASSERT|name=burst_produces_429|result=PASS\nASSERT|name=configured_stagger_has_no_429|result=PASS\nASSERT|name=recommended_stagger_has_no_429|result=PASS\nASSERT|name=recommended_schedule_preserves_interactive_lane|result=PASS\nASSERT|name=recommended_stagger_is_four_seconds|result=PASS\nBINDING_QUOTA|synthetic=request-arrival-20-rpm|live_vendor_quota=NOT-CHECKED|subscription_primary=NOT-CHECKED|subscription_secondary=NOT-CHECKED\nANSWER|schedule=launch batch item i at t0+4*i seconds|target_items=480|injection_span=31m56s|caveat=conditional on synthetic 20-rpm envelope; live vendor quota is NOT-CHECKED\nSUCCESS:BLD-0058-probe1\nPROBE-1-COMPLETE:BLD-0058\n",
+        "raw_output_sha256": "6b30d4f8969f9ab0c9116d785ea356417a86d9409a65b88fd44a25b44187a03a",
+        "exit_code": 0
+      },
+      {
+        "name": "vendor-error-class-and-null-quota-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/arrival_quota_probe.py error-quota",
+        "raw_output_verbatim": "NAMED PROBE 2: VENDOR ERROR CLASSIFICATION, 529 CONTROL, AND NULL QUOTAS\nEVIDENCE_REQUIREMENT_VERBATIM=Distinguish a vendor-side overload (529, provider capacity) from our own arrival-rate 429: they demand opposite responses, and reducing our concurrency in response to a vendor-side 529 is a known wrong move. State which class every observed error belongs to and how it was classified.\nTEST_REQUIREMENT_529_VERBATIM=Control: a synthetic 529 must NOT cause the scheduler to reduce concurrency.\nTEST_REQUIREMENT_UNKNOWN_VERBATIM=Control: an unmeasurable quota must be emitted as NOT-CHECKED rather than defaulted to a number.\nDOC|vendor=anthropic|errors=https://platform.claude.com/docs/en/api/errors|rates=https://platform.claude.com/docs/en/api/rate-limits\nDOC|vendor=openai|errors=https://developers.openai.com/api/docs/guides/error-codes|rates=https://developers.openai.com/api/docs/guides/rate-limits\nVENDOR_SEMANTICS|vendor=anthropic|http_429=rate_limit_error/account-or-acceleration-limit|http_529=overloaded_error/global-provider-capacity\nVENDOR_SEMANTICS|vendor=openai|http_429=temporary-rate-or-explicit-credit-spend-usage-code|provider_overload=HTTP-503-engine-overloaded|arrival=HTTP-503-Slow-Down\nOBSERVED_SYNTHETIC_ERROR|name=anthropic-arrival|vendor=anthropic|status=429|error_code=rate_limit_error|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=anthropic + HTTP 429 + rate/acceleration_limit|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=pace-and-ramp-gradually\nOBSERVED_SYNTHETIC_ERROR|name=anthropic-capacity|vendor=anthropic|status=529|error_code=overloaded_error|error_class=PROVIDER_CAPACITY|expected=PROVIDER_CAPACITY|pass=true|basis=vendor=anthropic + HTTP 529 + overloaded_error|concurrency_action=KEEP|arrival_action=retry-with-jitter-or-reroute-without-lowering-concurrency-ceiling\nOBSERVED_SYNTHETIC_ERROR|name=openai-arrival|vendor=openai|status=429|error_code=rate_limit_reached|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=openai + HTTP 429 + temporary-rate|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=pace-and-ramp-gradually\nOBSERVED_SYNTHETIC_ERROR|name=openai-account|vendor=openai|status=429|error_code=organization_usage_limit_exceeded|error_class=ACCOUNT_QUOTA|expected=ACCOUNT_QUOTA|pass=true|basis=vendor=openai + HTTP 429 + usage/credit/spend code|concurrency_action=STOP-NEW-WORK|arrival_action=do-not-retry-until-account-limit-changes\nOBSERVED_SYNTHETIC_ERROR|name=openai-capacity|vendor=openai|status=503|error_code=engine_overloaded|error_class=PROVIDER_CAPACITY|expected=PROVIDER_CAPACITY|pass=true|basis=vendor=openai + HTTP 503 engine-overloaded|concurrency_action=KEEP|arrival_action=retry-with-jitter-or-reroute-without-lowering-concurrency-ceiling\nOBSERVED_SYNTHETIC_ERROR|name=openai-slow-down|vendor=openai|status=503|error_code=slow_down|error_class=OUR_ARRIVAL_RATE|expected=OUR_ARRIVAL_RATE|pass=true|basis=vendor=openai + HTTP 503 Slow Down / sudden request-rate increase|concurrency_action=UNCHANGED-BY-STATUS-ALONE|arrival_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_529_GOOD|concurrency_before=480|concurrency_after=480|reduced=false|result=PASS|path=r2e_loop.inject_synthetic_vendor_error\nCONTROL_529_BAD_MUTANT|concurrency_before=480|concurrency_after=240|reduced=true|detector=RED\nLIVE_SCOPE|captured_at=2026-08-19T12:07:11.424745Z|session_root=ABSENT|rollout_files=0|direct_candidate_records=0|malformed_direct_candidate_records=0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED\nLIVE_ERROR_COVERAGE|observed_error_records=0|classified_error_records=0|live_http_429=0|live_http_529=0|note=synthetic cases are separate from live observations\nLIVE_SCHEDULER_POLICY|auth_mode=API-KEY|explicit_429_branch=true|explicit_529_branch=true|retry_after_branch=true|adaptive_arrival_controller=true\nRATE_SNAPSHOT_CENSUS|token_count_records=0|non_null_rate_snapshots=0\nSUBSCRIPTION_BUDGET|name=primary|value=NOT-CHECKED|numeric_default_used=false|reason=no non-null token_count.rate_limits.primary value\nSUBSCRIPTION_BUDGET|name=secondary|value=NOT-CHECKED|numeric_default_used=false|reason=no non-null token_count.rate_limits.secondary value\nCONTROL_UNKNOWN_GOOD|missing_input=null|emitted=NOT-CHECKED|numeric=false|result=PASS\nCONTROL_UNKNOWN_BAD_MUTANT|missing_input=null|emitted=20|numeric=true|detector=RED\nASSERT|name=synthetic_529_is_provider_capacity|result=PASS\nASSERT|name=synthetic_529_keeps_concurrency|result=PASS\nASSERT|name=wrong_529_reducer_can_go_red|result=PASS\nASSERT|name=every_live_error_classified|result=PASS\nASSERT|name=primary_unknown_not_numeric|result=PASS\nASSERT|name=secondary_unknown_not_numeric|result=PASS\nASSERT|name=unknown_default_mutant_can_go_red|result=PASS\nASSERT|name=openai_slow_down_is_arrival_rate|result=PASS\nASSERT|name=production_529_injection_path|result=PASS\nLIVE_BINDING_QUOTA|verdict=NOT-CHECKED|reason=vendor headers/account limits absent and both subscription snapshots unmeasurable\nSUCCESS:BLD-0058-probe2\nPROBE-2-COMPLETE:BLD-0058\n",
+        "raw_output_sha256": "3abb2dd84fa54e0e32204edc7a83a286cbef40eac9c4583d3043fd1449be205e",
+        "exit_code": 0
+      }
+    ],
+    "refute_stage": {
+      "prior_stage_output": "fix applied",
+      "disposition": "HOLD",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/BLD-0058/refute_controls.py",
+      "raw_output_verbatim": "REFUTE PROBE: CLASSIFIER AMBIGUITY, CENSUS COVERAGE, AND LIVE ENFORCEMENT\nSTAGE=rerefute\nPRIOR_STAGE_OUTPUT=fix applied: Slow Down split, parse-before-filter, r2e_loop 429/529 injection\nDEFAULT_REFUTE_DISPOSITION=HOLD-THEN-MEASURE\nRERAN_NAMED_PROBES=true\nOFFICIAL_SEMANTICS|vendor=anthropic|429=account-rate-or-acceleration-limit|529=global-provider-capacity|source=https://platform.claude.com/docs/en/api/errors\nOFFICIAL_SEMANTICS|vendor=openai|503-engine-overloaded=provider-capacity|503-slow-down=arrival-rate-increase|source=https://developers.openai.com/api/docs/guides/error-codes\nNAMED_PROBE_RERUN|arrival_exit=0|error_quota_exit=0\nCLASSIFY|case=anthropic-429-acceleration|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true\nCLASSIFY|case=anthropic-529-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true|concurrency_action=KEEP\nCLASSIFY|case=openai-503-engine-overloaded|expected=PROVIDER_CAPACITY|actual=PROVIDER_CAPACITY|pass=true\nCLASSIFY|case=openai-503-slow-down|expected=OUR_ARRIVAL_RATE|actual=OUR_ARRIVAL_RATE|pass=true|required_action=reduce-arrival-rate-then-gradually-ramp\nCONTROL_BAD_OPENAI_503_COLLAPSE|detector=RED|fired=true|actual=PROVIDER_CAPACITY\nSCAN_CONTROL_GOOD_PARSE_FIRST|compact_candidates=1|compact_errors=1|spaced_candidates=1|spaced_errors=1|pass=true\nSCAN_CONTROL_BAD_EQUIVALENT_SPACED_JSON|candidate_records=0|error_records=0|detector=RED|valid_json=true|compact_prefilter_hits=1\nLIVE_SCHEDULER_INTEGRATION|explicit_429_branch=True|explicit_529_branch=True|retry_after_branch=True|synthetic_529_injection_path=True|http_429_hits=3|http_529_hits=6|retry_after_hits=1\nREQUIRED_529_CONTROL_SCOPE|probe_local_classifier=true|production_scheduler=true|concurrency_before=480|concurrency_after=480|reduced=false|pass=true\nFRESH_CENSUS|rollout_files=0|direct_candidate_records=0|token_count_records=0|non_null_rate_snapshots=0|session_root=ABSENT\nREVIEWER_THROUGHPUT|method=observed-configured-stagger-not-vendor-docs|r2e_stagger_seconds=3.0|packed_rpm_if_saturated=20.0|status_start_records=0|minimum_observed_start_gap_seconds=NOT-CHECKED|binding_live_quota=NOT-CHECKED|reason=no vendor rate headers and zero non-null subscription snapshots; 4s reserved schedule is derived from the synthetic 15-batch/5-interactive split of the observed 3s packed cadence\nREFUTE_ASSERT|name=named_probes_reran_green|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_slow_down_classified|fired=false|pass=true\nREFUTE_ASSERT|name=openai_503_collapse_mutant_red|fired=false|pass=true\nREFUTE_ASSERT|name=parse_first_accepts_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=compact_prefilter_misses_spaced_json|fired=false|pass=true\nREFUTE_ASSERT|name=r2e_has_429_529_retry_after|fired=false|pass=true\nREFUTE_ASSERT|name=production_529_keeps_concurrency|fired=false|pass=true\nREFUTE_ASSERT|name=unknown_quota_not_checked|fired=false|pass=true\nIMPLEMENT_CLAIM_VERDICT=HOLD\nREQUIRED_FIX=none\nSUCCESS:BLD-0058-refute\nREFUTE-PROBE-COMPLETE:BLD-0058\n",
+      "raw_output_sha256": "c6c3fdf2823d0298df2506d4dc2bffe6b8e0cd19a8b1b43abd0cd53b4f858303",
+      "exit_code": 0
+    },
+    "sha256_convention": "artifacts[0].sha256 = sha256(this file with the artifacts[0].sha256 value replaced by 64 '0' chars).",
+    "completion_line": "UNIT-COMPLETE:BLD-0058",
+    "completion_marker_protocol": "U+0085 line separators preserve valid JSON while splitlines() exposes the exact completion line.",
+    "completion_marker": "UNIT-COMPLETE:BLD-0058"
+  }
+}

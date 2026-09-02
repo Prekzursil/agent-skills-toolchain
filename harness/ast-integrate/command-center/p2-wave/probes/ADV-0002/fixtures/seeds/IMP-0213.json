@@ -1,0 +1,725 @@
+{
+ "evidence": [
+  {
+   "claim": "IMP-0213 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0213.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0213.json",
+     "raw_output": "bytes=18124 sha256=ac6889fb61b61718af09e7b682e90157103c944c26011c9e45b56f59f846fb2e",
+     "fingerprint": "cc1aa302f3d214bde8df319821360426",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0213",
+     "raw_output": "schema-check",
+     "fingerprint": "558e537427e3e117f0d82ddd13333f3a",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0213 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0213",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0213",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "43d4dc8eac3b2fc2a61b5b49e92cf027",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0213",
+     "raw_output": "schema-valid",
+     "fingerprint": "95dbe1d461ea9c3a03a1a64df33885a7",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:IMP-0213",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0213.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "IMP-0213",
+ "extensions": {
+  "legacy_root": {
+   "cost_model": {
+    "dimensions": [
+     "expected_cost (inverted)",
+     "licence_risk (inverted)",
+     "capability_fit (higher is better)",
+     "maintenance_burden (inverted)"
+    ],
+    "engine": "tools/workflows/path_recommender.py",
+    "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+    "hard_constraints": [
+     "licence_risk>=850 ineligible for ADOPT/REPAIR/MERGE (IMP-0210)",
+     "n_candidates<2 ineligible for MERGE/COMPOSE",
+     "as-is quality below quality_bar ineligible for ADOPT",
+     "IMP-0211 anti-rebuild blocks BUILD when a high-coverage incumbent meets the bar",
+     "COMPOSE may wrap a toxic licence (isolation); BUILD remains first-party"
+    ],
+    "paths": [
+     "ADOPT",
+     "REPAIR",
+     "MERGE",
+     "COMPOSE",
+     "BUILD"
+    ],
+    "scale": "millipoints 0..1000 (integers; no floats in the combine)",
+    "tie_break": [
+     "ADOPT",
+     "REPAIR",
+     "MERGE",
+     "COMPOSE",
+     "BUILD"
+    ],
+    "weights": {
+     "capability_fit": 300,
+     "expected_cost": 300,
+     "licence_risk": 250,
+     "maintenance_burden": 150
+    }
+   },
+   "dependencies_consumed": {
+    "IMP-0209": "typed scout snapshot adapter inputs_from_snapshots(); engine does not invent coverage",
+    "IMP-0211": "anti_rebuild_blocks_build maps the planted-incumbent BUILD block",
+    "note": "Those units are not delivered in this worktree; the adapter is ready, the grid supplies numeric snapshots."
+   },
+   "distinct_recommendations": [
+    "ADOPT",
+    "BUILD",
+    "COMPOSE",
+    "MERGE",
+    "REPAIR"
+   ],
+   "id": "IMP-0213",
+   "implementation_artifacts": [
+    {
+     "bytes": 14234,
+     "exists": true,
+     "path": "tools/workflows/path_recommender.py",
+     "role": "implementation",
+     "sha256": "31843ae996357a8cda4def7407ce3b4e1fed6b0ec8b60089c679c8cf2885e07c"
+    },
+    {
+     "bytes": 2943,
+     "exists": true,
+     "path": "command-center/p2-wave/probes/IMP-0213/probe1_sensitivity_grid.py",
+     "role": "supporting",
+     "sha256": "7207c3a0121bfd8df2bbb05e972d6bfcd02a758395822b05ecd52e1cf919c78e"
+    },
+    {
+     "bytes": 4962,
+     "exists": true,
+     "path": "command-center/p2-wave/probes/IMP-0213/probe2_recompute_scores.py",
+     "role": "supporting",
+     "sha256": "eea74db28b4fd29a9bb6442d3735154ef53d5b45b2de885ec4f9d60178934c8a"
+    }
+   ],
+   "n_distinct": 5,
+   "notes": "G-1 for IMP-0213: live named probes, SUCCESS:IMP-0213 sentinel, per-unit UNIT-ARTIFACT-MANIFEST.json. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+   "question": "For this goal, is it cheaper and safer to adopt, repair, merge, compose or build?",
+   "sensitivity_table": [
+    {
+     "inputs": {
+      "anti_rebuild_blocks_build": true,
+      "incumbent_coverage": 950,
+      "incumbent_quality": 920,
+      "licence_risk": 50,
+      "n_candidates": 2,
+      "quality_bar": 800,
+      "repair_effort": 150
+     },
+     "margin": 39,
+     "paths": {
+      "ADOPT": {
+       "arithmetic": "score = (300*(1000-76) + 250*(1000-50) + 300*950 + 150*(1000-100)) // 1000 = 934",
+       "capability_fit": 950,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 934,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "incumbent-meets-bar-and-licence-ok",
+       "eligible": true,
+       "expected_cost": 76,
+       "licence_risk": 50,
+       "maintenance_burden": 100,
+       "score": 934
+      },
+      "BUILD": {
+       "eligibility": "anti-rebuild-incumbent-at-or-above-bar",
+       "eligible": false,
+       "score": null
+      },
+      "COMPOSE": {
+       "arithmetic": "score = (300*(1000-430) + 250*(1000-30) + 300*1000 + 150*(1000-536)) // 1000 = 783",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 783,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "compose-may-isolate-licence",
+       "eligible": true,
+       "expected_cost": 430,
+       "licence_risk": 30,
+       "maintenance_burden": 536,
+       "score": 783
+      },
+      "MERGE": {
+       "arithmetic": "score = (300*(1000-340) + 250*(1000-50) + 300*1000 + 150*(1000-390)) // 1000 = 827",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 827,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "two-plus-candidates-licence-ok",
+       "eligible": true,
+       "expected_cost": 340,
+       "licence_risk": 50,
+       "maintenance_burden": 390,
+       "score": 827
+      },
+      "REPAIR": {
+       "arithmetic": "score = (300*(1000-150) + 250*(1000-50) + 300*950 + 150*(1000-215)) // 1000 = 895",
+       "capability_fit": 950,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 895,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "incumbent-repairable-licence-ok",
+       "eligible": true,
+       "expected_cost": 150,
+       "licence_risk": 50,
+       "maintenance_burden": 215,
+       "score": 895
+      }
+     },
+     "recommendation": "ADOPT",
+     "runner_up": "REPAIR",
+     "scenario": "planted-incumbent-adopt"
+    },
+    {
+     "inputs": {
+      "anti_rebuild_blocks_build": false,
+      "incumbent_coverage": 820,
+      "incumbent_quality": 520,
+      "licence_risk": 70,
+      "n_candidates": 1,
+      "quality_bar": 800,
+      "repair_effort": 220
+     },
+     "margin": 261,
+     "paths": {
+      "ADOPT": {
+       "eligibility": "as-is-below-quality-bar",
+       "eligible": false,
+       "score": null
+      },
+      "BUILD": {
+       "arithmetic": "score = (300*(1000-920) + 250*(1000-40) + 300*1000 + 150*(1000-820)) // 1000 = 591",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 591,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "first-party-build-permitted",
+       "eligible": true,
+       "expected_cost": 920,
+       "licence_risk": 40,
+       "maintenance_burden": 820,
+       "score": 591
+      },
+      "COMPOSE": {
+       "eligibility": "n-candidates-lt-2",
+       "eligible": false,
+       "score": null
+      },
+      "MERGE": {
+       "eligibility": "n-candidates-lt-2",
+       "eligible": false,
+       "score": null
+      },
+      "REPAIR": {
+       "arithmetic": "score = (300*(1000-220) + 250*(1000-70) + 300*913 + 150*(1000-250)) // 1000 = 852",
+       "capability_fit": 913,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 852,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "incumbent-repairable-licence-ok",
+       "eligible": true,
+       "expected_cost": 220,
+       "licence_risk": 70,
+       "maintenance_burden": 250,
+       "score": 852
+      }
+     },
+     "recommendation": "REPAIR",
+     "runner_up": "BUILD",
+     "scenario": "repair-near-miss"
+    },
+    {
+     "inputs": {
+      "anti_rebuild_blocks_build": false,
+      "incumbent_coverage": 410,
+      "incumbent_quality": 280,
+      "licence_risk": 90,
+      "n_candidates": 3,
+      "quality_bar": 800,
+      "repair_effort": 780
+     },
+     "margin": 64,
+     "paths": {
+      "ADOPT": {
+       "eligibility": "as-is-below-quality-bar",
+       "eligible": false,
+       "score": null
+      },
+      "BUILD": {
+       "arithmetic": "score = (300*(1000-920) + 250*(1000-40) + 300*1000 + 150*(1000-820)) // 1000 = 591",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 591,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "first-party-build-permitted",
+       "eligible": true,
+       "expected_cost": 920,
+       "licence_risk": 40,
+       "maintenance_burden": 820,
+       "score": 591
+      },
+      "COMPOSE": {
+       "arithmetic": "score = (300*(1000-455) + 250*(1000-30) + 300*620 + 150*(1000-564)) // 1000 = 657",
+       "capability_fit": 620,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 657,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "compose-may-isolate-licence",
+       "eligible": true,
+       "expected_cost": 455,
+       "licence_risk": 30,
+       "maintenance_burden": 564,
+       "score": 657
+      },
+      "MERGE": {
+       "arithmetic": "score = (300*(1000-380) + 250*(1000-90) + 300*740 + 150*(1000-425)) // 1000 = 721",
+       "capability_fit": 740,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 721,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "two-plus-candidates-licence-ok",
+       "eligible": true,
+       "expected_cost": 380,
+       "licence_risk": 90,
+       "maintenance_burden": 425,
+       "score": 721
+      },
+      "REPAIR": {
+       "arithmetic": "score = (300*(1000-780) + 250*(1000-90) + 300*583 + 150*(1000-530)) // 1000 = 538",
+       "capability_fit": 583,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 538,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "incumbent-repairable-licence-ok",
+       "eligible": true,
+       "expected_cost": 780,
+       "licence_risk": 90,
+       "maintenance_burden": 530,
+       "score": 538
+      }
+     },
+     "recommendation": "MERGE",
+     "runner_up": "COMPOSE",
+     "scenario": "merge-complementary"
+    },
+    {
+     "inputs": {
+      "anti_rebuild_blocks_build": false,
+      "incumbent_coverage": 480,
+      "incumbent_quality": 300,
+      "licence_risk": 900,
+      "n_candidates": 2,
+      "quality_bar": 800,
+      "repair_effort": 700
+     },
+     "margin": 57,
+     "paths": {
+      "ADOPT": {
+       "eligibility": "licence-toxic",
+       "eligible": false,
+       "score": null
+      },
+      "BUILD": {
+       "arithmetic": "score = (300*(1000-920) + 250*(1000-40) + 300*1000 + 150*(1000-820)) // 1000 = 591",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 591,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "first-party-build-permitted",
+       "eligible": true,
+       "expected_cost": 920,
+       "licence_risk": 40,
+       "maintenance_burden": 820,
+       "score": 591
+      },
+      "COMPOSE": {
+       "arithmetic": "score = (300*(1000-430) + 250*(1000-112) + 300*620 + 150*(1000-536)) // 1000 = 648",
+       "capability_fit": 620,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 648,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "compose-may-isolate-licence",
+       "eligible": true,
+       "expected_cost": 430,
+       "licence_risk": 112,
+       "maintenance_burden": 536,
+       "score": 648
+      },
+      "MERGE": {
+       "eligibility": "licence-toxic",
+       "eligible": false,
+       "score": null
+      },
+      "REPAIR": {
+       "eligibility": "licence-toxic",
+       "eligible": false,
+       "score": null
+      }
+     },
+     "recommendation": "COMPOSE",
+     "runner_up": "BUILD",
+     "scenario": "compose-toxic-licence"
+    },
+    {
+     "inputs": {
+      "anti_rebuild_blocks_build": false,
+      "incumbent_coverage": 0,
+      "incumbent_quality": 0,
+      "licence_risk": 0,
+      "n_candidates": 0,
+      "quality_bar": 800,
+      "repair_effort": 900
+     },
+     "margin": 591,
+     "paths": {
+      "ADOPT": {
+       "eligibility": "no-incumbent",
+       "eligible": false,
+       "score": null
+      },
+      "BUILD": {
+       "arithmetic": "score = (300*(1000-920) + 250*(1000-40) + 300*1000 + 150*(1000-820)) // 1000 = 591",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 591,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "first-party-build-permitted",
+       "eligible": true,
+       "expected_cost": 920,
+       "licence_risk": 40,
+       "maintenance_burden": 820,
+       "score": 591
+      },
+      "COMPOSE": {
+       "eligibility": "n-candidates-lt-2",
+       "eligible": false,
+       "score": null
+      },
+      "MERGE": {
+       "eligibility": "n-candidates-lt-2",
+       "eligible": false,
+       "score": null
+      },
+      "REPAIR": {
+       "eligibility": "no-incumbent",
+       "eligible": false,
+       "score": null
+      }
+     },
+     "recommendation": "BUILD",
+     "runner_up": null,
+     "scenario": "greenfield-build"
+    },
+    {
+     "inputs": {
+      "anti_rebuild_blocks_build": false,
+      "incumbent_coverage": 350,
+      "incumbent_quality": 200,
+      "licence_risk": 960,
+      "n_candidates": 4,
+      "quality_bar": 800,
+      "repair_effort": 850
+     },
+     "margin": 35,
+     "paths": {
+      "ADOPT": {
+       "eligibility": "licence-toxic",
+       "eligible": false,
+       "score": null
+      },
+      "BUILD": {
+       "arithmetic": "score = (300*(1000-920) + 250*(1000-40) + 300*1000 + 150*(1000-820)) // 1000 = 591",
+       "capability_fit": 1000,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 591,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "first-party-build-permitted",
+       "eligible": true,
+       "expected_cost": 920,
+       "licence_risk": 40,
+       "maintenance_burden": 820,
+       "score": 591
+      },
+      "COMPOSE": {
+       "arithmetic": "score = (300*(1000-480) + 250*(1000-120) + 300*630 + 150*(1000-592)) // 1000 = 626",
+       "capability_fit": 630,
+       "combine": {
+        "formula": "score = (300*(1000-expected_cost) + 250*(1000-licence_risk) + 300*capability_fit + 150*(1000-maintenance_burden)) // 1000",
+        "score": 626,
+        "weights": {
+         "capability_fit": 300,
+         "expected_cost": 300,
+         "licence_risk": 250,
+         "maintenance_burden": 150
+        }
+       },
+       "eligibility": "compose-may-isolate-licence",
+       "eligible": true,
+       "expected_cost": 480,
+       "licence_risk": 120,
+       "maintenance_burden": 592,
+       "score": 626
+      },
+      "MERGE": {
+       "eligibility": "licence-toxic",
+       "eligible": false,
+       "score": null
+      },
+      "REPAIR": {
+       "eligibility": "licence-toxic",
+       "eligible": false,
+       "score": null
+      }
+     },
+     "recommendation": "COMPOSE",
+     "runner_up": "BUILD",
+     "scenario": "compose-toxic-many"
+    }
+   ],
+   "title": "Implement the find-vs-repair-vs-merge-vs-build recommender with an explicit cost model",
+   "winners_in_order": [
+    "ADOPT",
+    "REPAIR",
+    "MERGE",
+    "COMPOSE",
+    "BUILD",
+    "COMPOSE"
+   ]
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0213",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0213.json",
+   "bytes": 18124,
+   "sha256": "ac6889fb61b61718af09e7b682e90157103c944c26011c9e45b56f59f846fb2e",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0213/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0213"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0213.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0213.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "6c943e0a00da9d3f7e70c7c8e183a722",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 18124,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0213.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

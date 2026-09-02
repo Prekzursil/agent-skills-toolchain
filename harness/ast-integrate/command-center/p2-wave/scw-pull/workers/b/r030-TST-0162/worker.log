@@ -1,0 +1,14 @@
+I'll start from the existing TST-0162 probe tree, read any prior return artifact, and resume from there rather than rebuilding.The probe tree is present but thin. Next I’ll read the handoff, catalog row, measure script, and a delivered unit as the template.Catalog question is resume skip plus corrupt-claim redispatch. I'll inspect the current receipt, similar delivered units, and the resume/claim surface.I'll inspect delivered TST units, the G-1 contract, and the resume/claim code so we can resume rather than rebuild.The skip guard is claim-aware. Next I’ll add the named probes, oracle, snapshot helper, and packer.**SUCCESS:delivered TST-0162** `predicate=delivered state=SUCCESS probes=3 raws=10 notes=resume_oracle.py:0,run_probes.py:0,validate_delivery.py:0`
+
+Cloud-ok harvest was not treated as delivery. The prior tree was BLOCKED (claim-blind `r2e_loop` skip, named probes absent). This turn implemented the missing resume behavior, re-ran live probes to exit 0, then packed `state=SUCCESS`.
+
+**What changed**
+- `r2e_loop.process_unit` now skips a terminal unit only when `claim_is_corrupt(unit_id)` is false. `project_resume_plan` emits skip/redispatch lists. With no claims directory the default wave path is unchanged.
+- Named probes: intact terminal `TST-9162` is skipped; truncated claim `TST-9163` is redispatched (3 mocked dispatch calls); independent receipt snapshot shows only `TST-9163.json` modified. Oracle is silent on the ideal plan and red on skip-both.
+
+**Artifacts**
+- `command-center/receipts/TST-0162.json` — 30991 B, `state=SUCCESS`, LF sha256 `72fe4e331079402672610632e34cd4cee73f16db4b8794ac299d030e6e95e0e2`
+- `command-center/p2-wave/probes/TST-0162/UNIT-ARTIFACT-MANIFEST.json` — same sha256
+- `command-center/p2-wave/probes/TST-0162/SUBAGENT-RETURN.json`
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no key rotation, no wave relaunch.

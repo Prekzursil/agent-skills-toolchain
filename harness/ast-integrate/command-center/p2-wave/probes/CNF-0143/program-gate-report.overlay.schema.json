@@ -1,0 +1,89 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.local/command-center/p2-wave/probes/CNF-0143/program-gate-report.overlay.schema.json",
+  "title": "CNF-0143 completeness overlay: BLOCKED requires a named non-empty prerequisite",
+  "$comment": "The catalog program-gate-report path is a generated $ref shim (receipt_core). It cannot express the catalog test 'every BLOCKED record must have a non-empty prerequisite string (schema-enforced)'. This overlay does. It is local; it does not fetch ast-integrate.invalid.",
+  "type": "object",
+  "required": ["unit_id", "state", "sentinel"],
+  "additionalProperties": true,
+  "properties": {
+    "unit_id": { "type": "string", "minLength": 1 },
+    "state": { "type": "string", "minLength": 1 },
+    "sentinel": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 20 },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "additionalProperties": true,
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 1 },
+          "result": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "additionalProperties": true,
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "minLength": 1 },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path"],
+        "additionalProperties": true,
+        "properties": {
+          "path": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "blocked": { "$ref": "#/$defs/blocked_list" },
+    "extensions": {
+      "type": "object",
+      "additionalProperties": true,
+      "properties": {
+        "blocked": { "$ref": "#/$defs/blocked_list" },
+        "question": { "type": "string", "minLength": 20 }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "anyOf": [
+        { "required": ["blocked"] },
+        {
+          "required": ["extensions"],
+          "properties": {
+            "extensions": { "required": ["blocked"] }
+          }
+        }
+      ]
+    }
+  ],
+  "$defs": {
+    "blocked_entry": {
+      "type": "object",
+      "required": ["claim_id", "prerequisite", "unblock_experiment"],
+      "additionalProperties": true,
+      "properties": {
+        "claim_id": { "type": "string", "minLength": 1 },
+        "prerequisite": { "type": "string", "minLength": 1, "pattern": "\\S" },
+        "unblock_experiment": { "type": "string", "minLength": 8 }
+      }
+    },
+    "blocked_list": {
+      "type": "array",
+      "items": { "$ref": "#/$defs/blocked_entry" }
+    }
+  }
+}

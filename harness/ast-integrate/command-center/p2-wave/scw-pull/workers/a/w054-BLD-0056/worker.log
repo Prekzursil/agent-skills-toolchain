@@ -1,0 +1,25 @@
+I'll start from the existing BLD-0056 probe tree and the unit's current artifacts, then resume delivery against the G-1 contract.The probe tree is thin—no `SUBAGENT-RETURN.json` yet. Next I’ll read the handoff, catalog contract, and a successful unit’s return shape.The receipt is still BLOCKED and the named probes are missing. I’ll pull the schema, a delivered unit’s return shape, and any leftover probe scripts.I'll inspect the scale-model contract, a delivered unit's return files, and `artifact_delivered` so we know the exact G-1 bar.I’ll pull the physical schema, a successful scale-model pack, and this box’s capacity for the 10x parse and NTFS probes.NTFS FUSE is available; the first `dd` call used a bad argument form. I’ll retry the mount and start writing the named probes.NTFS FUSE works and the catalog is in place. Next I’ll add the named probes, then remesure 1x/10x parse, the 20,480-entry NTFS directory, and the 774 KB control.Probe 1 is still running the 10x parse. I’ll draft the packer in parallel and wait for the measurement to finish.Both named probes exited 0 with live 10x parse and NTFS numbers. Next I’ll pack the receipt and register the per-unit manifest.Schema rejected `accepted` as a defect status. I’ll switch those rows to the allowed enum and pack again.**SUCCESS:delivered BLD-0056** `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_measure_scale.py:0,probe2_ntfs_and_control.py:0`
+
+G-1 is green for this unit. Cloud-ok harvest `unit_complete` was not treated as delivery. The prior refute was right that probes were missing; this pass restored them and remesured on this box.
+
+**Named probes (re-ran exit 0)**
+- `probe1_measure_scale.py` — live 1x/10x full-parse of `AUD-0083-script-interpreter-audit.json`
+- `probe2_ntfs_and_control.py` — NTFS 20,480 list/glob plus 774 KB always-skip control
+
+**Packed receipt numbers** (`command-center/receipts/BLD-0056.json`, 39507 B, `state=SUCCESS`)
+| Measurement | Result |
+|---|---|
+| 1x parse | 88,419,837 B in 492.682 ms |
+| 10x parse | 884,198,381 B in 7810.443 ms (**over 1000 ms budget**) |
+| NTFS 20480 | list 8.915 ms, glob 28.957 ms (fuseblk, under budget) |
+| 774 KB control | bad exit 1 / good exit 0 |
+| First degradation | largest live primary JSON; reader `unit_manifest.py` still full-parse-and-retain at lines 64/69 |
+
+Receipt 20,480 footprint is labelled **ESTIMATE** (mean 2,789,172,294 B, median 878,366,720 B).
+
+**Registration**
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/receipts/BLD-0056.json` with live LF sha256 `fe762c0576ce820b6d1edf3f6b3b9571cc2a688557d3eace768b7557b574f5f8`
+- `ready_units.artifact_delivered=(True, delivered)`
+- Return object: `command-center/p2-wave/probes/BLD-0056/SUBAGENT-RETURN.json`
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Existing CLOUD-OK refute/handoff files were left in place.

@@ -1,0 +1,868 @@
+{
+  "good": {
+    "branches": [
+      {
+        "id": "br.search-cheap",
+        "is_default": false,
+        "predicate": {
+          "args": [
+            {
+              "field": "task_class",
+              "op": "eq",
+              "value": "search"
+            },
+            {
+              "field": "budget",
+              "op": "eq",
+              "value": "cheap"
+            }
+          ],
+          "op": "and"
+        },
+        "source_id": "wf.scout"
+      },
+      {
+        "id": "br.extract",
+        "is_default": false,
+        "predicate": {
+          "field": "task_class",
+          "op": "eq",
+          "value": "extract"
+        },
+        "source_id": "wf.extract"
+      },
+      {
+        "id": "br.default",
+        "is_default": true,
+        "predicate": {
+          "op": "true"
+        },
+        "source_id": "wf.general"
+      }
+    ],
+    "id": "fusion.conditional-hybrid.imp-0186",
+    "input_type": {
+      "fields": {
+        "budget": {
+          "kind": "enum",
+          "values": [
+            "cheap",
+            "expensive"
+          ]
+        },
+        "locale": {
+          "kind": "enum",
+          "values": [
+            "en",
+            "ja",
+            "other"
+          ]
+        },
+        "task_class": {
+          "kind": "enum",
+          "values": [
+            "search",
+            "extract",
+            "summarize"
+          ]
+        }
+      }
+    },
+    "sources": {
+      "wf.extract": {
+        "id": "wf.extract",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ]
+          },
+          {
+            "id": "slice",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "span-extract",
+            "outputs": [
+              "result.json"
+            ]
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        }
+      },
+      "wf.general": {
+        "id": "wf.general",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ]
+          },
+          {
+            "id": "reduce",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "summarize",
+            "outputs": [
+              "result.json"
+            ]
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        }
+      },
+      "wf.scout": {
+        "id": "wf.scout",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ]
+          },
+          {
+            "id": "fanout",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "index-search",
+            "outputs": [
+              "result.json"
+            ]
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        }
+      }
+    },
+    "strategy": "conditional-hybrid"
+  },
+  "plant_dead_ids": {
+    "contradiction": "br.dead-contradiction",
+    "never": "br.dead-never",
+    "out-of-enum": "br.dead-ghost-class",
+    "subsumed": "br.dead-subsumed"
+  },
+  "plants": {
+    "contradiction": {
+      "branches": [
+        {
+          "id": "br.search-cheap",
+          "is_default": false,
+          "predicate": {
+            "args": [
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "search"
+              },
+              {
+                "field": "budget",
+                "op": "eq",
+                "value": "cheap"
+              }
+            ],
+            "op": "and"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.dead-contradiction",
+          "is_default": false,
+          "predicate": {
+            "args": [
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "search"
+              },
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "extract"
+              }
+            ],
+            "op": "and"
+          },
+          "source_id": "wf.general"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "fusion.conditional-hybrid.plant-contradiction",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja",
+              "other"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    },
+    "never": {
+      "branches": [
+        {
+          "id": "br.search-cheap",
+          "is_default": false,
+          "predicate": {
+            "args": [
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "search"
+              },
+              {
+                "field": "budget",
+                "op": "eq",
+                "value": "cheap"
+              }
+            ],
+            "op": "and"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.dead-never",
+          "is_default": false,
+          "predicate": {
+            "op": "false"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "fusion.conditional-hybrid.plant-never",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja",
+              "other"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    },
+    "out-of-enum": {
+      "branches": [
+        {
+          "id": "br.search-cheap",
+          "is_default": false,
+          "predicate": {
+            "args": [
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "search"
+              },
+              {
+                "field": "budget",
+                "op": "eq",
+                "value": "cheap"
+              }
+            ],
+            "op": "and"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.dead-ghost-class",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "translate"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "fusion.conditional-hybrid.plant-out-of-enum",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja",
+              "other"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    },
+    "subsumed": {
+      "branches": [
+        {
+          "id": "br.search-cheap",
+          "is_default": false,
+          "predicate": {
+            "args": [
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "search"
+              },
+              {
+                "field": "budget",
+                "op": "eq",
+                "value": "cheap"
+              }
+            ],
+            "op": "and"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.dead-subsumed",
+          "is_default": false,
+          "predicate": {
+            "args": [
+              {
+                "field": "task_class",
+                "op": "eq",
+                "value": "search"
+              },
+              {
+                "field": "budget",
+                "op": "eq",
+                "value": "cheap"
+              }
+            ],
+            "op": "and"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "fusion.conditional-hybrid.plant-subsumed",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja",
+              "other"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ]
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ]
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    }
+  }
+}

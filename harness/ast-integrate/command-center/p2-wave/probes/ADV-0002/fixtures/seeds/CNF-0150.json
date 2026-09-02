@@ -1,0 +1,526 @@
+{
+ "answer": "Shell-dependent on this worktree: cmd-shim-presence (PowerShell finds .cmd, both bash-likes miss it), msys-sdcard-intact (only Git Bash/MSYS rewrites /sdcard), crlf-agent-sh (GNU/WSL bash -n rejects CRLF if/then; Git Bash igncr accepts it), ps-caret-git-ref (PowerShell git.cmd caret unescape drops trailing ^ and resolves HEAD not HEAD^). Portable subset: ['msys-data-nopathconv', 'portable-lf-printf', 'pytest-argv-portable']. Plugin launchers NOT-CHECKED (absent). Native pwsh/Git Bash/wsl.exe are absent; GNU bash is live; Windows columns are labeled executable models. SUCCESS:CNF-0150",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/CNF-0150.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/reproduction-matrix.schema.json",
+   "role": "contract"
+  }
+ ],
+ "axes": {
+  "columns": [
+   {
+    "backend": "pathext-and-cmd-shim-model",
+    "id": "powershell-7",
+    "label": "PowerShell 7 (PATHEXT Get-Command + git.cmd caret model)"
+   },
+   {
+    "backend": "msys-pathconv-and-igncr-model",
+    "id": "git-bash-msys",
+    "label": "Git Bash / MSYS (pathconv + igncr + posix which)"
+   },
+   {
+    "backend": "native-gnu-bash",
+    "id": "wsl-gnu-bash",
+    "label": "WSL / GNU bash (native /usr/bin/bash on this Linux host)"
+   }
+  ],
+  "rows": [
+   {
+    "claim": "A tool shipped only as name.cmd is present. PowerShell Get-Command must resolve it; Git Bash which / POSIX which must not. A single-shell absence is not evidence of absence.",
+    "id": "cmd-shim-presence",
+    "label": "Tool that exists only as a .cmd shim is detected"
+   },
+   {
+    "claim": "An argument beginning with /sdcard is not rewritten. MSYS rewrites it; PowerShell and GNU bash do not.",
+    "id": "msys-sdcard-intact",
+    "label": "/sdcard argument delivered intact to the child"
+   },
+   {
+    "claim": "MSYS_NO_PATHCONV=1 scoped to one call leaves /data/... intact even under the MSYS converter.",
+    "id": "msys-data-nopathconv",
+    "label": "/data argument intact under scoped MSYS_NO_PATHCONV"
+   },
+   {
+    "claim": "An agent-written .sh with CRLF compound commands is valid. Must be checked with real GNU/WSL bash -n, not Git Bash igncr bash -n.",
+    "id": "crlf-agent-sh",
+    "label": "Agent-written CRLF .sh is a valid bash script"
+   },
+   {
+    "claim": "HEAD^ is the first parent. PowerShell invoking git via a .cmd shim feeds cmd.exe caret-unescaping, which drops a trailing caret and resolves HEAD instead.",
+    "id": "ps-caret-git-ref",
+    "label": "git rev-parse HEAD^ returns the first parent"
+   },
+   {
+    "claim": "A genuinely portable LF-only bash script passes in all three shells.",
+    "id": "portable-lf-printf",
+    "label": "LF-only printf script runs"
+   },
+   {
+    "claim": "tools/command-center/tests/test_validate.py and test_reconcile_delivery.py spawn via argv arrays, not a shell string, so they are not shell-dependent.",
+    "id": "pytest-argv-portable",
+    "label": "pytest subprocess uses argv arrays (no shell)"
+   },
+   {
+    "claim": "Launcher scripts shipped in the plugin package execute in each shell.",
+    "id": "plugin-launchers",
+    "label": "Plugin-package launcher scripts run in each shell"
+   }
+  ]
+ },
+ "cells": [
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "shim-found",
+   "message": "Get-Command/PATHEXT resolved /tmp/cnf0150-14b9f1z7/shims/onlyshim.cmd",
+   "row_id": "cmd-shim-presence",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "fingerprint": "shim-missed",
+   "message": "which/command -v missed onlyshim.cmd (not executable, no PATHEXT)",
+   "row_id": "cmd-shim-presence",
+   "verdict": "FAIL"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "shim-missed",
+   "message": "which/command -v missed onlyshim.cmd (not executable, no PATHEXT)",
+   "row_id": "cmd-shim-presence",
+   "verdict": "FAIL"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "intact:/sdcard",
+   "message": "argv delivered intact ['/sdcard/Download/app.apk'] (no MSYS conversion)",
+   "row_id": "msys-sdcard-intact",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "delivered_argv": [
+    "C:\\Program Files\\Git\\sdcard\\Download\\app.apk"
+   ],
+   "fingerprint": "rewritten:/sdcard",
+   "message": "MSYS rewrote '/sdcard/Download/app.apk' -> ['C:\\\\Program Files\\\\Git\\\\sdcard\\\\Download\\\\app.apk']",
+   "row_id": "msys-sdcard-intact",
+   "verdict": "FAIL"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "intact:/sdcard",
+   "message": "argv delivered intact ['/sdcard/Download/app.apk'] (no MSYS conversion)",
+   "row_id": "msys-sdcard-intact",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "delivered_argv": [
+    "/data/local/tmp/payload"
+   ],
+   "fingerprint": "intact:/data",
+   "message": "PowerShell has no MSYS converter; '/data/local/tmp/payload' intact",
+   "row_id": "msys-data-nopathconv",
+   "unscoped_msys": [
+    "C:\\Program Files\\Git\\data\\local\\tmp\\payload"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "delivered_argv": [
+    "/data/local/tmp/payload"
+   ],
+   "fingerprint": "intact:/data",
+   "message": "MSYS_NO_PATHCONV=1 scoped: '/data/local/tmp/payload' -> ['/data/local/tmp/payload']; unscoped would be ['C:\\\\Program Files\\\\Git\\\\data\\\\local\\\\tmp\\\\payload']",
+   "row_id": "msys-data-nopathconv",
+   "unscoped_msys": [
+    "C:\\Program Files\\Git\\data\\local\\tmp\\payload"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "delivered_argv": [
+    "/data/local/tmp/payload"
+   ],
+   "fingerprint": "intact:/data",
+   "message": "GNU bash has no MSYS converter; '/data/local/tmp/payload' intact",
+   "row_id": "msys-data-nopathconv",
+   "unscoped_msys": [
+    "C:\\Program Files\\Git\\data\\local\\tmp\\payload"
+   ],
+   "verdict": "PASS"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "crlf-gnu-rejected",
+   "message": "Catalog requires wsl.exe bash -n, not Git Bash bash -n. Delegating to GNU bash -n: rc=2 '/tmp/cnf0150-14b9f1z7/agent-written.sh: line 5: syntax error: unexpected end of file'. Shebang exec second signal: rc=127 '/usr/bin/env: \u2018bash\\\\r\u2019: No such file or directory\\n/usr/bin/env: use -[v]S to pass options in shebang lines'",
+   "row_id": "crlf-agent-sh",
+   "verdict": "FAIL"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "fingerprint": "crlf-igncr-accepted",
+   "message": "Git Bash igncr (CR stripped then bash -n): rc=0 ''",
+   "row_id": "crlf-agent-sh",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "crlf-gnu-rejected",
+   "message": "GNU bash -n on CRLF if/then: rc=2 '/tmp/cnf0150-14b9f1z7/agent-written.sh: line 5: syntax error: unexpected end of file'. Shebang exec: rc=127 '/usr/bin/env: \u2018bash\\\\r\u2019: No such file or directory\\n/usr/bin/env: use -[v]S to pass options in shebang lines'",
+   "row_id": "crlf-agent-sh",
+   "verdict": "FAIL"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "caret-ate-parent",
+   "message": "Get-Command git -> git.cmd; cmd caret unescape HEAD^ -> 'HEAD'; rev-parse=42ba555b6f13de24992e32e14d0d4914429fe888 HEAD=42ba555b6f13de24992e32e14d0d4914429fe888 HEAD~1=8b3338e579206a23d437b3901b685ca2eb2c3de6 rc=0",
+   "row_id": "ps-caret-git-ref",
+   "verdict": "FAIL"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "fingerprint": "caret-kept-parent",
+   "message": "direct git (not git.cmd) argv HEAD^ seen='HEAD^' rev-parse=8b3338e579206a23d437b3901b685ca2eb2c3de6 expected-parent=8b3338e579206a23d437b3901b685ca2eb2c3de6 rc=0",
+   "row_id": "ps-caret-git-ref",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "caret-kept-parent",
+   "message": "direct git (not git.cmd) argv HEAD^ seen='HEAD^' rev-parse=8b3338e579206a23d437b3901b685ca2eb2c3de6 expected-parent=8b3338e579206a23d437b3901b685ca2eb2c3de6 rc=0",
+   "row_id": "ps-caret-git-ref",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "portable-ok",
+   "message": "bash portable.sh rc=0 out='portable-ok'",
+   "row_id": "portable-lf-printf",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "fingerprint": "portable-ok",
+   "message": "bash portable.sh rc=0 out='portable-ok'",
+   "row_id": "portable-lf-printf",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "portable-ok",
+   "message": "bash portable.sh rc=0 out='portable-ok'",
+   "row_id": "portable-lf-printf",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "argv-portable",
+   "message": "test_validate.py:310 and test_reconcile_delivery.py spawn subprocess argv arrays (no shell=True in tools/). live argv rc=0 out='argv-ok'",
+   "row_id": "pytest-argv-portable",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "fingerprint": "argv-portable",
+   "message": "test_validate.py:310 and test_reconcile_delivery.py spawn subprocess argv arrays (no shell=True in tools/). live argv rc=0 out='argv-ok'",
+   "row_id": "pytest-argv-portable",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "argv-portable",
+   "message": "test_validate.py:310 and test_reconcile_delivery.py spawn subprocess argv arrays (no shell=True in tools/). live argv rc=0 out='argv-ok'",
+   "row_id": "pytest-argv-portable",
+   "verdict": "PASS"
+  },
+  {
+   "backend": "pathext-and-cmd-shim-model",
+   "column_id": "powershell-7",
+   "fingerprint": "launchers-absent",
+   "message": "plugin package launcher scripts absent: tools/plugin contains no .sh/.ps1/.cmd/.bat (found=[]). NOT-CHECKED, not folded into PASS.",
+   "row_id": "plugin-launchers",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "backend": "msys-pathconv-and-igncr-model",
+   "column_id": "git-bash-msys",
+   "fingerprint": "launchers-absent",
+   "message": "plugin package launcher scripts absent: tools/plugin contains no .sh/.ps1/.cmd/.bat (found=[]). NOT-CHECKED, not folded into PASS.",
+   "row_id": "plugin-launchers",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "backend": "native-gnu-bash",
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "launchers-absent",
+   "message": "plugin package launcher scripts absent: tools/plugin contains no .sh/.ps1/.cmd/.bat (found=[]). NOT-CHECKED, not folded into PASS.",
+   "row_id": "plugin-launchers",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "census": {
+  "command_center_tests": [
+   "tools/command-center/tests/test_close.py",
+   "tools/command-center/tests/test_eol_policy.py",
+   "tools/command-center/tests/test_reconcile_delivery.py",
+   "tools/command-center/tests/test_registry.py",
+   "tools/command-center/tests/test_render.py",
+   "tools/command-center/tests/test_seed.py",
+   "tools/command-center/tests/test_validate.py"
+  ],
+  "confirmation_suite_dir_present": true,
+  "plugin_launchers": [],
+  "tools_shell_true": [],
+  "tools_subprocess": [
+   "tools/plugin/conformance.py",
+   "tools/plugin/blob.py",
+   "tools/plugin/packet.py",
+   "tools/marketplace/registry_diff_gate.py",
+   "tools/command-center/reconcile_delivery.py",
+   "tools/command-center/worktree_origin_guard.py",
+   "tools/command-center/eol_policy.py",
+   "tools/plugin/tests/test_degrade_loudly.py",
+   "tools/command-center/tests/test_reconcile_delivery.py",
+   "tools/command-center/tests/test_validate.py"
+  ],
+  "windows_shell_md": [
+   {
+    "bytes": 40,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/live/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 58,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/repo/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/rollback-restore-probe/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/rollback-snapshot/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/migrated/config/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 51,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/live/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/repo/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 1109,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/IMP-0036/fixtures/live/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 111,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/IMP-0036/fixtures/repo/rules/common/windows-shell.md"
+   }
+  ]
+ },
+ "divergent_claims": [
+  "cmd-shim-presence",
+  "msys-sdcard-intact",
+  "crlf-agent-sh",
+  "ps-caret-git-ref"
+ ],
+ "empty_cells": 0,
+ "host": {
+  "bash": "/usr/bin/bash",
+  "bash_version": "GNU bash 5.2 (x86_64-pc-linux-gnu)",
+  "git_bash": null,
+  "msys_prefix_assumption": "C:\\Program Files\\Git",
+  "native_windows_shells_absent": true,
+  "note": "pwsh, Git Bash, and wsl.exe are not installed. GNU bash on this host is the WSL bash interpreter. PowerShell and Git Bash cells run labeled executable models of PATHEXT, MSYS path conversion, igncr, and cmd caret.",
+  "os": "linux",
+  "pwsh": null,
+  "wsl_exe": null
+ },
+ "inputs_observed": {
+  "confirmation_suite": true,
+  "plugin_launchers": [],
+  "shell_invoking_tests": [
+   "tools/command-center/tests/test_close.py",
+   "tools/command-center/tests/test_eol_policy.py",
+   "tools/command-center/tests/test_reconcile_delivery.py",
+   "tools/command-center/tests/test_registry.py",
+   "tools/command-center/tests/test_render.py",
+   "tools/command-center/tests/test_seed.py",
+   "tools/command-center/tests/test_validate.py"
+  ],
+  "windows_shell_md": [
+   {
+    "bytes": 40,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/live/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 58,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0005/fixtures/census/repo/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/rollback-restore-probe/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/rollback-snapshot/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/migrated/config/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 51,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/live/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 92,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/ARC-0007/fixtures/repo/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 1109,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/IMP-0036/fixtures/live/rules/common/windows-shell.md"
+   },
+   {
+    "bytes": 111,
+    "has_numbered_sections": false,
+    "path": "command-center/p2-wave/probes/IMP-0036/fixtures/repo/rules/common/windows-shell.md"
+   }
+  ],
+  "windows_shell_md_note": "rules/common/windows-shell.md sections 1, 2, 3, 8, 11 are not in this worktree; only ARC fixture stubs exist and they have no numbered sections. Traps were taken from the catalog question, not from those stubs."
+ },
+ "portable_subset": [
+  "msys-data-nopathconv",
+  "portable-lf-printf",
+  "pytest-argv-portable"
+ ],
+ "produced_by": {
+  "ended_at": "2026-08-24T18:45:35Z",
+  "execution_substrate": "linux-headless-gnu-bash-plus-labeled-windows-shell-models",
+  "role": "environment-reproduction-engineer"
+ },
+ "question": "Question: which confirmations are shell-dependent? Re-run the shell-touching subset under PowerShell 7, Git Bash/MSYS and real WSL bash, and record every divergence. Known live traps to probe explicitly: MSYS rewriting POSIX-looking arguments, PowerShell caret escaping in git refs, CRLF in agent-written .sh rejected by real bash, and 'which' in Git Bash missing .cmd shims that Get-Command resolves.",
+ "report_kind": "reproduction-matrix",
+ "reviewer": {
+  "independent": true,
+  "note": "Probe 2 re-derives completeness, both-states, and schema-can-fail from the artifact and a fresh live matrix; it does not re-read probe 1.",
+  "reviewer_id": "CNF-0150-probe2-cell-contract",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:CNF-0150",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "detail": "onlyshim.cmd on PATH: PowerShell PATHEXT Get-Command found it; Git Bash/POSIX which missed it.",
+   "id": "known-present-cmd-shim",
+   "result": "PASS"
+  },
+  {
+   "detail": "MSYS rewrote '/sdcard/Download/app.apk' to ['C:\\\\Program Files\\\\Git\\\\sdcard\\\\Download\\\\app.apk']; MSYS_NO_PATHCONV=1 left '/data/local/tmp/payload' as ['/data/local/tmp/payload']; unscoped would be ['C:\\\\Program Files\\\\Git\\\\data\\\\local\\\\tmp\\\\payload'].",
+   "id": "path-conversion-sdcard-and-nopathconv",
+   "result": "PASS"
+  },
+  {
+   "detail": "GNU/WSL bash -n rejected CRLF if/then (rc=2); Git Bash igncr bash -n accepted it (rc=0). bash -n on a simple CRLF echo is silent on GNU bash 5.2; the discriminating fixture is compound CRLF (if/then).",
+   "id": "crlf-wsl-bash-n-not-git-bash",
+   "result": "PASS"
+  },
+  {
+   "detail": "portable-lf-printf and pytest-argv-portable PASS in all three shells; portable_subset=['msys-data-nopathconv', 'portable-lf-printf', 'pytest-argv-portable']",
+   "id": "both-states-portable",
+   "result": "PASS"
+  }
+ ],
+ "title": "Cross-shell reproduction: PowerShell 7 versus Git Bash versus real WSL bash",
+ "unit_id": "CNF-0150",
+ "verbatim_failing_messages": [
+  {
+   "column_id": "git-bash-msys",
+   "fingerprint": "shim-missed",
+   "message": "which/command -v missed onlyshim.cmd (not executable, no PATHEXT)",
+   "row_id": "cmd-shim-presence"
+  },
+  {
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "shim-missed",
+   "message": "which/command -v missed onlyshim.cmd (not executable, no PATHEXT)",
+   "row_id": "cmd-shim-presence"
+  },
+  {
+   "column_id": "git-bash-msys",
+   "fingerprint": "rewritten:/sdcard",
+   "message": "MSYS rewrote '/sdcard/Download/app.apk' -> ['C:\\\\Program Files\\\\Git\\\\sdcard\\\\Download\\\\app.apk']",
+   "row_id": "msys-sdcard-intact"
+  },
+  {
+   "column_id": "powershell-7",
+   "fingerprint": "crlf-gnu-rejected",
+   "message": "Catalog requires wsl.exe bash -n, not Git Bash bash -n. Delegating to GNU bash -n: rc=2 '/tmp/cnf0150-14b9f1z7/agent-written.sh: line 5: syntax error: unexpected end of file'. Shebang exec second signal: rc=127 '/usr/bin/env: \u2018bash\\\\r\u2019: No such file or directory\\n/usr/bin/env: use -[v]S to pass options in shebang lines'",
+   "row_id": "crlf-agent-sh"
+  },
+  {
+   "column_id": "wsl-gnu-bash",
+   "fingerprint": "crlf-gnu-rejected",
+   "message": "GNU bash -n on CRLF if/then: rc=2 '/tmp/cnf0150-14b9f1z7/agent-written.sh: line 5: syntax error: unexpected end of file'. Shebang exec: rc=127 '/usr/bin/env: \u2018bash\\\\r\u2019: No such file or directory\\n/usr/bin/env: use -[v]S to pass options in shebang lines'",
+   "row_id": "crlf-agent-sh"
+  },
+  {
+   "column_id": "powershell-7",
+   "fingerprint": "caret-ate-parent",
+   "message": "Get-Command git -> git.cmd; cmd caret unescape HEAD^ -> 'HEAD'; rev-parse=42ba555b6f13de24992e32e14d0d4914429fe888 HEAD=42ba555b6f13de24992e32e14d0d4914429fe888 HEAD~1=8b3338e579206a23d437b3901b685ca2eb2c3de6 rc=0",
+   "row_id": "ps-caret-git-ref"
+  }
+ ]
+}

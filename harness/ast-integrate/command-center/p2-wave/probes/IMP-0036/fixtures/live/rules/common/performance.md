@@ -1,0 +1,27 @@
+# rules/common/performance.md
+shared:rules/common/performance.md
+live-unique:rules/common/performance.md
+live-pad:rules/common/performance.md:0
+live-pad:rules/common/performance.md:1
+live-pad:rules/common/performance.md:2
+live-pad:rules/common/performance.md:3
+live-pad:rules/common/performance.md:4
+live-pad:rules/common/performance.md:5
+live-pad:rules/common/performance.md:6
+live-pad:rules/common/performance.md:7
+live-pad:rules/common/performance.md:8
+live-pad:rules/common/performance.md:9
+live-pad:rules/common/performance.md:10
+live-pad:rules/common/performance.md:11
+live-pad:rules/common/performance.md:12
+live-pad:rules/common/performance.md:13
+live-pad:rules/common/performance.md:14
+live-pad:rules/common/performance.md:15
+live-pad:rules/common/performance.md:16
+live-pad:rules/common/performance.md:17
+live-pad:rules/common/performance.md:18
+live-pad:rules/common/performance.md:19
+live-pad:rules/common/performance.md:20
+live-pad:rules/common/performance.md:21
+live-pad:rules/common/performance.md:22
+live-pad:rules/common/performance.md:23

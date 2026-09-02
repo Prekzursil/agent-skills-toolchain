@@ -1,0 +1,593 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0358.json",
+  "tools/council/risk.py"
+ ],
+ "artifacts": [
+  {
+   "bytes": 16807,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0358.json",
+   "role": "primary",
+   "sha256": "b6fc79250faa5b26d1da6d26426ac722756a499fc4cbb22d8d99621a1b525b6a"
+  },
+  {
+   "bytes": 15240,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/risk.py",
+   "role": "implementation",
+   "sha256": "b6d0ef8f13067258ee85f3cc39d87e400ad5beba77fd560564dc1e82adc39dcf"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0358.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0358",
+    "exit_code": 0,
+    "fingerprint": "6f145c5f84e277f55c0b76acdb7ee6a7",
+    "method": "command",
+    "raw_output": "measure runs after this emitter writes the per-unit manifest row",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/risk.py:DeliberationSession.reclassify",
+   "claim": "A mid-run mutation changing the risk class is refused with event RISK_CLASS_MUTATION_REFUSED; production cannot take a HIGH decision under LOW floors by relabeling after start.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c 'from council.risk import high_under_low_attack; print(high_under_low_attack())'",
+     "exit_code": 0,
+     "fingerprint": "97ca5e7de073e9c4eb981c891b42dbec",
+     "method": "command",
+     "raw_output": "{\"mutant_high_under_low\": true, \"production_event\": {\"from_class\": \"LOW\", \"to_class\": \"HIGH\", \"type\": \"RISK_CLASS_MUTATION_REFUSED\"}, \"production_high_under_low\": false}",
+     "role": "source"
+    },
+    {
+     "command": "tools/council/risk.py EVENT_MUTATION_REFUSED and FLOORS",
+     "exit_code": 0,
+     "fingerprint": "57b961f3765eff34db1723cdbe958619",
+     "method": "file-read",
+     "raw_output": "risk.py sha256=b6d0ef8f13067258ee85f3cc39d87e400ad5beba77fd560564dc1e82adc39dcf bytes=15240 event=RISK_CLASS_MUTATION_REFUSED",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/risk.py:floor_enforcement_matrix",
+   "claim": "Floor-enforcement matrix covers LOW/MODERATE/HIGH/CRITICAL: at-floor configs are accepted and every one-below dimension is refused.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c 'from council.risk import floor_enforcement_matrix, matrix_is_sound; m=floor_enforcement_matrix(); print(len(m), matrix_is_sound(m))'",
+     "exit_code": 0,
+     "fingerprint": "ab5ea646ccec2184255020eb4b4158d7",
+     "method": "command",
+     "raw_output": "{\"errors\": [], \"mapping\": {\"CRITICAL\": {\"evidence_standard\": \"independent-reproduction\", \"immutable_after_start\": true, \"protocol_strength\": \"judicial\", \"quorum\": 5, \"reviewer_count\": 3, \"risk_class\": \"CRITICAL\"}, \"HIGH\": {\"evidence_standard\": \"reproducible\", \"immutable_after_start\": true, \"protocol_strength\": \"adversarial\", \"quorum\": 4, \"reviewer_count\": 2, \"risk_class\": \"HIGH\"}, \"LOW\": {\"evidence_standard\": \"assertion\", \"immutable_after_start\": true, \"protocol_strength\": \"informal\", \"quorum\": 1, \"reviewer_count\": 0, \"risk_class\": \"LOW\"}, \"MODERATE\": {\"evidence_standard\": \"sourced\", \"immutable_after_start\": true, \"protocol_strength\": \"deliberative\", \"quorum\": 3, \"reviewer_count\": 1, \"risk_class\": \"MODERATE\"}}, \"rows\": 20}",
+     "role": "source"
+    },
+    {
+     "command": "read FLOORS in tools/council/risk.py",
+     "exit_code": 0,
+     "fingerprint": "ea89aa37a07a19341ac069a2d39bd8fe",
+     "method": "file-read",
+     "raw_output": "{\"CRITICAL\": {\"evidence_standard\": \"independent-reproduction\", \"immutable_after_start\": true, \"protocol_strength\": \"judicial\", \"quorum\": 5, \"reviewer_count\": 3, \"risk_class\": \"CRITICAL\"}, \"HIGH\": {\"evidence_standard\": \"reproducible\", \"immutable_after_start\": true, \"protocol_strength\": \"adversarial\", \"quorum\": 4, \"reviewer_count\": 2, \"risk_class\": \"HIGH\"}, \"LOW\": {\"evidence_standard\": \"assertion\", \"immutable_after_start\": true, \"protocol_strength\": \"informal\", \"quorum\": 1, \"reviewer_count\": 0, \"risk_class\": \"LOW\"}, \"MODERATE\": {\"evidence_standard\": \"sourced\", \"immutable_after_start\": true, \"protocol_strength\": \"deliberative\", \"quorum\": 3, \"reviewer_count\": 1, \"risk_class\": \"MODERATE\"}}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0358/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "scope": "per-unit (not tools/command-center/unit_manifest.py --write)"
+ },
+ "min_bytes_threshold": 1024,
+ "negative_control_ids": [
+  "IMP0358-late-reclass-immutability-fails"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"bound_class\": \"HIGH\", \"high_under_low\": true, \"immutability_holds\": false}",
+   "description": "allow_late_reclassification=True; immutability_holds() FAILS and a HIGH label is applied to a LOW configuration.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"bound_class\": \"LOW\", \"event\": \"RISK_CLASS_MUTATION_REFUSED\", \"high_under_low\": false, \"immutability_holds\": true}",
+   "id": "IMP0358-late-reclass-immutability-fails",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-worktree",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "profile": "council-runtime-module",
+ "report": {
+  "kind": "council-risk-class-routing",
+  "late_declaration": {
+   "refused": true,
+   "started": false
+  },
+  "mapping": {
+   "CRITICAL": {
+    "evidence_standard": "independent-reproduction",
+    "immutable_after_start": true,
+    "protocol_strength": "judicial",
+    "quorum": 5,
+    "reviewer_count": 3,
+    "risk_class": "CRITICAL"
+   },
+   "HIGH": {
+    "evidence_standard": "reproducible",
+    "immutable_after_start": true,
+    "protocol_strength": "adversarial",
+    "quorum": 4,
+    "reviewer_count": 2,
+    "risk_class": "HIGH"
+   },
+   "LOW": {
+    "evidence_standard": "assertion",
+    "immutable_after_start": true,
+    "protocol_strength": "informal",
+    "quorum": 1,
+    "reviewer_count": 0,
+    "risk_class": "LOW"
+   },
+   "MODERATE": {
+    "evidence_standard": "sourced",
+    "immutable_after_start": true,
+    "protocol_strength": "deliberative",
+    "quorum": 3,
+    "reviewer_count": 1,
+    "risk_class": "MODERATE"
+   }
+  },
+  "matrix": [
+   {
+    "accepted": true,
+    "case": "at-floor",
+    "config": {
+     "evidence_standard": "assertion",
+     "protocol_strength": "informal",
+     "quorum": 1,
+     "reviewer_count": 0
+    },
+    "dimension": null,
+    "risk_class": "LOW",
+    "violations": []
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "assertion",
+     "protocol_strength": "none",
+     "quorum": 1,
+     "reviewer_count": 0
+    },
+    "dimension": "protocol_strength",
+    "risk_class": "LOW",
+    "violations": [
+     {
+      "dimension": "protocol_strength",
+      "floor": "informal",
+      "observed": "none",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "assertion",
+     "protocol_strength": "informal",
+     "quorum": 0,
+     "reviewer_count": 0
+    },
+    "dimension": "quorum",
+    "risk_class": "LOW",
+    "violations": [
+     {
+      "dimension": "quorum",
+      "floor": 1,
+      "observed": 0,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "none",
+     "protocol_strength": "informal",
+     "quorum": 1,
+     "reviewer_count": 0
+    },
+    "dimension": "evidence_standard",
+    "risk_class": "LOW",
+    "violations": [
+     {
+      "dimension": "evidence_standard",
+      "floor": "assertion",
+      "observed": "none",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "assertion",
+     "protocol_strength": "informal",
+     "quorum": 1,
+     "reviewer_count": -1
+    },
+    "dimension": "reviewer_count",
+    "risk_class": "LOW",
+    "violations": [
+     {
+      "dimension": "reviewer_count",
+      "floor": 0,
+      "observed": -1,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": true,
+    "case": "at-floor",
+    "config": {
+     "evidence_standard": "sourced",
+     "protocol_strength": "deliberative",
+     "quorum": 3,
+     "reviewer_count": 1
+    },
+    "dimension": null,
+    "risk_class": "MODERATE",
+    "violations": []
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "sourced",
+     "protocol_strength": "informal",
+     "quorum": 3,
+     "reviewer_count": 1
+    },
+    "dimension": "protocol_strength",
+    "risk_class": "MODERATE",
+    "violations": [
+     {
+      "dimension": "protocol_strength",
+      "floor": "deliberative",
+      "observed": "informal",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "sourced",
+     "protocol_strength": "deliberative",
+     "quorum": 2,
+     "reviewer_count": 1
+    },
+    "dimension": "quorum",
+    "risk_class": "MODERATE",
+    "violations": [
+     {
+      "dimension": "quorum",
+      "floor": 3,
+      "observed": 2,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "assertion",
+     "protocol_strength": "deliberative",
+     "quorum": 3,
+     "reviewer_count": 1
+    },
+    "dimension": "evidence_standard",
+    "risk_class": "MODERATE",
+    "violations": [
+     {
+      "dimension": "evidence_standard",
+      "floor": "sourced",
+      "observed": "assertion",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "sourced",
+     "protocol_strength": "deliberative",
+     "quorum": 3,
+     "reviewer_count": 0
+    },
+    "dimension": "reviewer_count",
+    "risk_class": "MODERATE",
+    "violations": [
+     {
+      "dimension": "reviewer_count",
+      "floor": 1,
+      "observed": 0,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": true,
+    "case": "at-floor",
+    "config": {
+     "evidence_standard": "reproducible",
+     "protocol_strength": "adversarial",
+     "quorum": 4,
+     "reviewer_count": 2
+    },
+    "dimension": null,
+    "risk_class": "HIGH",
+    "violations": []
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "reproducible",
+     "protocol_strength": "deliberative",
+     "quorum": 4,
+     "reviewer_count": 2
+    },
+    "dimension": "protocol_strength",
+    "risk_class": "HIGH",
+    "violations": [
+     {
+      "dimension": "protocol_strength",
+      "floor": "adversarial",
+      "observed": "deliberative",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "reproducible",
+     "protocol_strength": "adversarial",
+     "quorum": 3,
+     "reviewer_count": 2
+    },
+    "dimension": "quorum",
+    "risk_class": "HIGH",
+    "violations": [
+     {
+      "dimension": "quorum",
+      "floor": 4,
+      "observed": 3,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "sourced",
+     "protocol_strength": "adversarial",
+     "quorum": 4,
+     "reviewer_count": 2
+    },
+    "dimension": "evidence_standard",
+    "risk_class": "HIGH",
+    "violations": [
+     {
+      "dimension": "evidence_standard",
+      "floor": "reproducible",
+      "observed": "sourced",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "reproducible",
+     "protocol_strength": "adversarial",
+     "quorum": 4,
+     "reviewer_count": 1
+    },
+    "dimension": "reviewer_count",
+    "risk_class": "HIGH",
+    "violations": [
+     {
+      "dimension": "reviewer_count",
+      "floor": 2,
+      "observed": 1,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": true,
+    "case": "at-floor",
+    "config": {
+     "evidence_standard": "independent-reproduction",
+     "protocol_strength": "judicial",
+     "quorum": 5,
+     "reviewer_count": 3
+    },
+    "dimension": null,
+    "risk_class": "CRITICAL",
+    "violations": []
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "independent-reproduction",
+     "protocol_strength": "adversarial",
+     "quorum": 5,
+     "reviewer_count": 3
+    },
+    "dimension": "protocol_strength",
+    "risk_class": "CRITICAL",
+    "violations": [
+     {
+      "dimension": "protocol_strength",
+      "floor": "judicial",
+      "observed": "adversarial",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "independent-reproduction",
+     "protocol_strength": "judicial",
+     "quorum": 4,
+     "reviewer_count": 3
+    },
+    "dimension": "quorum",
+    "risk_class": "CRITICAL",
+    "violations": [
+     {
+      "dimension": "quorum",
+      "floor": 5,
+      "observed": 4,
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "reproducible",
+     "protocol_strength": "judicial",
+     "quorum": 5,
+     "reviewer_count": 3
+    },
+    "dimension": "evidence_standard",
+    "risk_class": "CRITICAL",
+    "violations": [
+     {
+      "dimension": "evidence_standard",
+      "floor": "independent-reproduction",
+      "observed": "reproducible",
+      "reason": "below-floor"
+     }
+    ]
+   },
+   {
+    "accepted": false,
+    "case": "one-below",
+    "config": {
+     "evidence_standard": "independent-reproduction",
+     "protocol_strength": "judicial",
+     "quorum": 5,
+     "reviewer_count": 2
+    },
+    "dimension": "reviewer_count",
+    "risk_class": "CRITICAL",
+    "violations": [
+     {
+      "dimension": "reviewer_count",
+      "floor": 3,
+      "observed": 2,
+      "reason": "below-floor"
+     }
+    ]
+   }
+  ],
+  "matrix_rows": 20,
+  "mutant_attack": {
+   "bound_class": "HIGH",
+   "high_under_low": true,
+   "immutability_holds": false
+  },
+  "production_attack": {
+   "bound_class": "LOW",
+   "high_under_low": false,
+   "immutability_holds": true,
+   "mutation_event": {
+    "from_class": "LOW",
+    "to_class": "HIGH",
+    "type": "RISK_CLASS_MUTATION_REFUSED"
+   }
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Numeric floors (quorum, reviewer_count) and ordered protocol/evidence ranks are the IMP-0358 contract encoded in tools/council/risk.py. 11-COUNCIL-SPECIFICATION.md and 12-COUNCIL-PROTOCOLS-AND-PRESETS.json are not in this worktree, so named preset/protocol ids are not bound here.",
+   "settling_experiment": "Re-run map_risk_class against the 72 presets once 12-COUNCIL-PROTOCOLS-AND-PRESETS.json is present.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Adversarial probe starts from the immutability test and the late-reclass mutant, not from the implementer summary.",
+  "reviewer_id": "IMP-0358-probe2-immutability",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0358",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0358] title='Risk-class routing to stricter protocol and quorum floors'",
+ "state": "SUCCESS",
+ "test_ids": [
+  "IMP0358-floors-per-class",
+  "IMP0358-immutability-mutation-event"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0358/probe1_floors.py",
+   "id": "IMP0358-floors-per-class",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0358/probe2_immutability.py",
+   "id": "IMP0358-immutability-mutation-event",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:03Z",
+  "started_at": "2026-08-25T00:59:03Z"
+ },
+ "unit_id": "IMP-0358"
+}

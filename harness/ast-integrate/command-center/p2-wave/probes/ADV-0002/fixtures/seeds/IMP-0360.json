@@ -1,0 +1,183 @@
+{
+ "unit_id": "IMP-0360",
+ "id": "IMP-0360",
+ "title": "Role-template registry with custom-role authoring",
+ "state": "SUCCESS",
+ "status": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0360",
+ "completion_sentinel": "SUCCESS:IMP-0360",
+ "spec_anchor": "_USER-PROMPTS.md:11177",
+ "spec_anchors": [
+  "_USER-PROMPTS.md:11177",
+  "command-center/WORK-UNIT-CATALOG.json:58041",
+  "tools/council/roles/templates.py:20",
+  "tools/council/roles/templates.py:33",
+  "tools/council/roles/templates.py:349",
+  "tools/council/roles/templates.py:429",
+  "tools/council/roles/templates.py:508"
+ ],
+ "phase": "7A",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-runtime-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+ "artifact_paths": [
+  "tools/council/roles/templates.py",
+  "command-center/receipts/IMP-0360.json",
+  "command-center/p2-wave/probes/IMP-0360/probe1_schema_and_resolution.py",
+  "command-center/p2-wave/probes/IMP-0360/probe2_rights_escalation.py"
+ ],
+ "artifacts": [
+  {
+   "path": "tools/council/roles/templates.py",
+   "role": "primary-module",
+   "bytes": 27365,
+   "sha256": "4998c7ec21fc8fc8415cc5bc88bd01ba5001a3fac6b71666c5e9eee471803c4a",
+   "exists": true
+  }
+ ],
+ "evidence": [
+  {
+   "id": "E1-schema-conformance",
+   "claim": "Every builtin template and one authored custom role parse under MANDATE_SCHEMA with error count 0.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/council/roles/templates.py:349",
+   "probes": [
+    {
+     "role": "source",
+     "method": "schema_conformance_pass(builtin_templates)",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0360/probe1_schema_and_resolution.py",
+     "raw_output": "ok=True checked=10 errors=[] custom_ok=True custom_checked=11"
+    },
+    {
+     "role": "verifier",
+     "method": "resolve_template identity vs registry walk",
+     "command": "resolve_template(id) == registry.get(id) for each builtin",
+     "raw_output": "resolved=['architect', 'chair', 'critic', 'juror', 'observer', 'pragmatist', 'proposer', 'scribe', 'skeptic', 'synthesiser']"
+    }
+   ]
+  },
+  {
+   "id": "E2-rights-escalation-refused",
+   "claim": "A custom role that grants tool_access runtime.unrestricted (a token no builtin template allows) is refused; the matching observer-based role without that token is accepted.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/council/roles/templates.py:429",
+   "probes": [
+    {
+     "role": "source",
+     "method": "author_custom_role with NEVER_GRANTED_TOOL",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0360/probe2_rights_escalation.py",
+     "raw_output": "accepted=False refusals=['rights-escalation:tool_access:runtime.unrestricted', 'exceeds-template:tool_access:runtime.unrestricted'] escalation_fired=True"
+    },
+    {
+     "role": "verifier",
+     "method": "ceiling membership + both-states author",
+     "command": "NEVER_GRANTED_TOOL in registry.ceiling().tools",
+     "raw_output": "tool_on_ceiling=False good_accepted=True ceiling_tools=['edit', 'glob', 'grep', 'read', 'write']"
+    }
+   ]
+  },
+  {
+   "id": "E3-template-drift-detected",
+   "claim": "Live templates have zero drift; a mutant that adds secret_right is reported as unknown mandate fields.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/council/roles/templates.py:372",
+   "probes": [
+    {
+     "role": "source",
+     "method": "detect_template_drift(registry)",
+     "command": "detect_template_drift(builtin_registry())",
+     "raw_output": "live_drift=0"
+    },
+    {
+     "role": "verifier",
+     "method": "detect_template_drift(mutant extra key)",
+     "command": "detect_template_drift(reg, mutant={..., secret_right: true})",
+     "raw_output": "mutant_drift=1 reasons=['unknown mandate fields: secret_right']"
+    }
+   ]
+  }
+ ],
+ "test_ids": [
+  "unit:template-resolution",
+  "unit:schema-conformance-templates-and-custom",
+  "unit:template-drift-mutant"
+ ],
+ "tests": [
+  {
+   "id": "unit:template-resolution",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0360/probe1_schema_and_resolution.py",
+   "result": "PASS"
+  },
+  {
+   "id": "unit:custom-role-validation",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0360/probe1_schema_and_resolution.py",
+   "result": "PASS"
+  },
+  {
+   "id": "negative:rights-escalating-custom-role",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0360/probe2_rights_escalation.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_control_ids": [
+  "NC1-rights-escalation-runtime.unrestricted",
+  "NC2-template-drift-secret_right",
+  "NC3-exceeds-template-observer-veto"
+ ],
+ "negative_controls": [
+  {
+   "id": "NC1-rights-escalation-runtime.unrestricted",
+   "kind": "rights-escalation",
+   "description": "Author a custom observer that adds tool_access runtime.unrestricted; author_custom_role must refuse and rights_escalation_check must FIRE. The same spec without that tool must be accepted and silent.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "accepted=False refusals=['rights-escalation:tool_access:runtime.unrestricted', 'exceeds-template:tool_access:runtime.unrestricted']",
+   "good_state_output": "accepted=True"
+  }
+ ],
+ "reviewer_verdict": "PASS",
+ "reviewer": {
+  "reviewer_id": "IMP-0360-probe2-rights-escalation",
+  "independent": true,
+  "fresh_context": true,
+  "starts_from": "tests (probe2_rights_escalation.py), not author summary",
+  "verdict": "PASS"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0280 tools/council/roles/mandate.py is not on this worktree. IMP-0360 embeds the mandate contract (obligations/permissions/rights/tool_access/source_access) locally. If mandate.py later ships a divergent schema, templates.py must import it rather than keep a fork.",
+   "settling_experiment": "Re-run schema_conformance_pass after IMP-0280 delivers mandate.py.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "11-COUNCIL-SPECIFICATION.schema.json $defs.role is not present on this worktree; the field set is reconstructed from catalog CNL-0022 / IMP-0280 / IMP-0360, not from a byte-identical spec file.",
+   "settling_experiment": "Diff MANDATE_REQUIRED against $defs.role when the spec file is restored.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-24T18:45:47Z",
+  "ended_at": "2026-08-24T18:45:47Z"
+ },
+ "module": {
+  "path": "tools/council/roles/templates.py",
+  "templates": [
+   "architect",
+   "chair",
+   "critic",
+   "juror",
+   "observer",
+   "pragmatist",
+   "proposer",
+   "scribe",
+   "skeptic",
+   "synthesiser"
+  ],
+  "template_count": 10,
+  "never_granted_tool": "runtime.unrestricted",
+  "spec_anchor": "_USER-PROMPTS.md:11177"
+ },
+ "falsifiable_answers": {
+  "can_custom_role_grant_rights_no_template_allows": false,
+  "is_template_drift_from_mandate_schema_detected": true
+ },
+ "notes": "G-1 IMP-0360: tools/council/roles/templates.py provides the template registry and custom-role authoring path. Named probes re-run independently. Did not run unit_manifest.py --write. Did not relaunch finish-everything-close."
+}

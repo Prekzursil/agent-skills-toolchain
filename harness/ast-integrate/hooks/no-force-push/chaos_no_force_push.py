@@ -1,0 +1,162 @@
+#!/usr/bin/env python3
+r"""chaos_no_force_push.py - CHAOS / GameDay self-test for the no-force-push gate.
+
+Fault-injects against the REAL hook process to PROVE the blocking properties.
+The discipline is not "installed" until all hold:
+
+  1. BLOCKS   : a dangerous payload      -> exit 2 + a reason on stderr.
+  2. ALLOWS   : a benign payload         -> exit 0 (no block).
+  3. FAILOPEN : garbage stdin / opt-out  -> exit 0 (NEVER 2), no traceback.
+
+Property 3 is the critical one for a gate: a crashing tripwire that blocked every
+command would be catastrophic, so on ANY error it must allow (exit 0), not block.
+"""
+
+from __future__ import annotations
+
+import json
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+HOOK = HERE / "hook.py"
+FIX = json.loads((HERE / "fixtures.json").read_text(encoding="utf-8"))
+_FAILS: list[str] = []
+
+
+def _set(d: dict, path: str, val) -> None:
+    parts = path.split(".")
+    cur = d
+    for p in parts[:-1]:
+        cur = cur.setdefault(p, {})
+    cur[parts[-1]] = val
+
+
+def _payload(value: str) -> dict:
+    kind = FIX["kind"]
+    p = dict(FIX.get("extra_payload") or {})
+    if kind == "prompt":
+        p["prompt"] = value
+    elif kind == "command":
+        p.setdefault("tool_input", {})["command"] = value
+    elif kind == "tool":
+        p["tool_name"] = value
+    elif kind == "field":
+        _set(p, FIX["field"], value)
+    return p
+
+
+def _run(stdin_text: str, env_extra: dict | None = None):
+    env = dict(os.environ)
+    env.pop("FORGE_NO_FORCE_PUSH_OFF", None)
+    env["PYTHONIOENCODING"] = "utf-8"
+    if env_extra:
+        env.update(env_extra)
+    res = subprocess.run(
+        [sys.executable, str(HOOK)],
+        input=stdin_text,
+        cwd=str(HERE),
+        capture_output=True,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        env=env,
+        timeout=60,
+    )
+    return res.returncode, (res.stdout or ""), (res.stderr or "")
+
+
+def _run_with_broken_tripwire(stdin_text: str):
+    """Copy the hook beside a DELIBERATELY broken tripwire.py and run it.
+
+    Proves the gate fails open (exit 0) when its predicate module is corrupted -
+    i.e. that the tripwire import is guarded, not at module scope.
+    """
+    d = Path(tempfile.mkdtemp(prefix="forge-gate-broken-"))
+    try:
+        shutil.copy(HOOK, d / "hook.py")
+        (d / "tripwire.py").write_text(
+            "raise ImportError('forged: broken tripwire')\n", encoding="utf-8"
+        )
+        env = dict(os.environ)
+        env.pop("FORGE_NO_FORCE_PUSH_OFF", None)
+        env["PYTHONIOENCODING"] = "utf-8"
+        res = subprocess.run(
+            [sys.executable, str(d / "hook.py")],
+            input=stdin_text,
+            cwd=str(d),
+            capture_output=True,
+            text=True,
+            encoding="utf-8",
+            errors="replace",
+            env=env,
+            timeout=60,
+        )
+        return res.returncode, (res.stderr or "")
+    finally:
+        shutil.rmtree(d, ignore_errors=True)
+
+
+def check(label: str, ok: bool, detail: str = "") -> None:
+    print(
+        f"  [{'PASS' if ok else 'FAIL'}] {label}"
+        + (f" - {detail}" if detail and not ok else "")
+    )
+    if not ok:
+        _FAILS.append(f"{label}: {detail}")
+
+
+def main() -> int:
+    print(f"CHAOS self-test: {FIX['name']} (gate / {FIX['event']})")
+
+    # 1. BLOCKS the dangerous payload (exit 2 + reason on stderr)
+    rc, out, err = _run(json.dumps(_payload(FIX["fire_value"])))
+    check(
+        "blocks dangerous op (exit 2 + reason)",
+        rc == 2 and bool(err.strip()),
+        f"rc={rc} stderr={err.strip()!r}",
+    )
+
+    # 2. ALLOWS the benign payload
+    rc, out, err = _run(json.dumps(_payload(FIX["silent_value"])))
+    check("allows benign op (exit 0)", rc == 0, f"rc={rc} stderr={err.strip()!r}")
+
+    # 3. FAIL-OPEN on garbage (must be exit 0, never 2)
+    for i, junk in enumerate(FIX["garbage"]):
+        rc, out, err = _run(junk)
+        check(
+            f"fail-open on garbage[{i}] (exit 0, not 2)",
+            rc == 0 and "Traceback" not in err,
+            f"rc={rc} err={err.strip()!r}",
+        )
+
+    # 4. opt-out is honoured (env disables -> allows even the dangerous payload)
+    rc, out, err = _run(
+        json.dumps(_payload(FIX["fire_value"])),
+        env_extra={"FORGE_NO_FORCE_PUSH_OFF": "1"},
+    )
+    check("opt-out env disables the gate (exit 0)", rc == 0, f"rc={rc}")
+
+    # 5. FAIL-OPEN when the predicate module itself is broken (exit 0, NEVER 2).
+    rc, err = _run_with_broken_tripwire(json.dumps(_payload(FIX["fire_value"])))
+    check(
+        "fail-open on broken tripwire.py (exit 0, not 2)",
+        rc == 0,
+        f"rc={rc} err={err.strip()!r}",
+    )
+
+    if _FAILS:
+        print(f"\nCHAOS-FAIL: {len(_FAILS)} property/properties unproven")
+        return 1
+    print(
+        "\nCHAOS-PASS: gate blocks the dangerous op, allows benign ops, and fails open"
+    )
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -1,0 +1,258 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0182",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0182",
+  "spec_anchor": "_USER-PROMPTS.md:10737,11161",
+  "min_bytes_threshold": 2048,
+  "question": "Target: implement the stage-splice strategy - replace one workflow's stage with a better-performing stage from another, preserving the surrounding contract. Acceptance: the spliced stage's input/output contract is checked against its neighbours BEFORE the fusion is emitted; a contract mismatch is a refusal.",
+  "title": "Implement stage-splice fusion",
+  "strategy": "stage-splice",
+  "profile": "workflow-fusion-operator",
+  "cloud_ok": false,
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "fusion-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:55:00+00:00",
+    "ended_at": "2026-08-25T00:55:00+00:00"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot"
+  },
+  "dependencies_on_this_tree": {
+    "IMP-0174": false,
+    "IMP-0175": false,
+    "agentspec.evals.fake_rail": true,
+    "receipt.schema.json": true
+  },
+  "scope": {
+    "implemented": "stage-splice replace-one-slot operator with neighbour contract check before emit, plus a hermetic fake rail that executes the spliced plan",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "IMP-0174 component graph or IMP-0175 compatibility map consumed (absent)",
+      "tools/agentspec/agentspec/evals/fake_rail.py imported (absent)",
+      "receipt.schema.json validated (file absent on this worktree)",
+      "all eight fusion strategies implemented"
+    ],
+    "proof_surface": "executable operator on in-tree fixtures; both-states contract mismatch; fake-rail plans compared by sha256 of executed stage fingerprints"
+  },
+  "operator": {
+    "module": "command-center/p2-wave/probes/IMP-0182/stage_splice.py",
+    "fake_rail": "command-center/p2-wave/probes/IMP-0182/fake_rail.py",
+    "host_index": 1,
+    "donor_index": 1,
+    "matching": {
+      "status": "emitted",
+      "trace": [
+        "contract-check",
+        "emit"
+      ],
+      "fusion_id": "wf.host.extract-v1++wf.donor.extract-v2::stage-splice",
+      "lineage": {
+        "strategy": "stage-splice",
+        "host_id": "wf.host.extract-v1",
+        "donor_id": "wf.donor.extract-v2",
+        "host_stage_id": "extract",
+        "donor_stage_id": "extract_v2",
+        "host_index": 1,
+        "donor_index": 1,
+        "parents": [
+          "wf.host.extract-v1",
+          "wf.donor.extract-v2"
+        ]
+      }
+    },
+    "input_mismatch": {
+      "status": "refused",
+      "reason": "contract-mismatch",
+      "trace": [
+        "contract-check",
+        "refuse"
+      ],
+      "fusion_is_none": true,
+      "missing_inputs": [
+        {
+          "name": "image",
+          "type": "pixels"
+        }
+      ]
+    },
+    "successor_mismatch": {
+      "status": "refused",
+      "reason": "contract-mismatch",
+      "fusion_is_none": true,
+      "missing_outputs": [
+        {
+          "name": "score",
+          "type": "number"
+        }
+      ]
+    },
+    "emit_first_mutant": {
+      "status": "refused",
+      "trace": [
+        "emit",
+        "contract-check",
+        "refuse"
+      ],
+      "fusion_present_on_mismatch": true,
+      "note": "known-broken control; not the shipped path"
+    }
+  },
+  "fake_rail_runs": {
+    "host_plan_fingerprint": "5864daed7fe708512fe3849bb1319b52394450e3b65b11cd1e69b5208e27a978",
+    "donor_plan_fingerprint": "693812371a5c74f3907ade69b68f27c7a7bd69250f03b803c706713cf185f3fa",
+    "fusion_plan_fingerprint": "5b8f8f34b59169d676baec9c97c81db1e3eea6579f4a1b3219f681a62469c8e5",
+    "differs_from_host": true,
+    "differs_from_donor": true,
+    "spawn_count": 0,
+    "network_count": 0,
+    "fusion_verdict": true,
+    "fusion_score": 0.681569,
+    "untouched_host_stages": [
+      {
+        "index": 0,
+        "host_stage_id": "ingest",
+        "identical": true,
+        "host_sha256": "420404c3b6e17f745276850cc154aff2b562393030e971131787cb1d87088c63",
+        "fusion_sha256": "420404c3b6e17f745276850cc154aff2b562393030e971131787cb1d87088c63"
+      },
+      {
+        "index": 2,
+        "host_stage_id": "decide",
+        "identical": true,
+        "host_sha256": "a59a1850ba660c54699ad651f8fb6f3d2ce5c61053cb66b3b48d8743e4cfeffb",
+        "fusion_sha256": "a59a1850ba660c54699ad651f8fb6f3d2ce5c61053cb66b3b48d8743e4cfeffb"
+      }
+    ]
+  },
+  "tests": [
+    {
+      "id": "T1-contract-mismatch-refused",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0182/probe1_contract_mismatch.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "input mismatch fusion=None reason=contract-mismatch; matching splice emitted"
+    },
+    {
+      "id": "T2-spliced-plan-differs-from-both-parents",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0182/probe2_plan_differs.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "fusion=5b8f8f34b59169d6 host=5864daed7fe70851 donor=693812371a5c74f3"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0182-C1",
+      "kind": "known-broken-fixture",
+      "description": "Both-states: matching neighbour contract is accepted; a donor stage whose inputs are unsatisfied by the predecessor is refused with fusion=None.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"reason\": \"contract-mismatch\", \"status\": \"refused\"}",
+      "good_state_output": "{\"fusion_id\": \"wf.host.extract-v1++wf.donor.extract-v2::stage-splice\", \"status\": \"emitted\"}"
+    },
+    {
+      "id": "IMP0182-C2",
+      "kind": "emit-first-mutant",
+      "description": "The shipped operator checks contracts before constructing a fusion. An emit-first mutant still carries a fusion object on mismatch, proving 'fusion is None' is a live detector.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"mutant_fusion_present\": true, \"trace\": [\"emit\", \"contract-check\", \"refuse\"]}",
+      "good_state_output": "{\"fusion_emitted\": true, \"shipped_trace\": [\"contract-check\", \"emit\"]}"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A contract-mismatch fixture is refused before a fusion workflow is emitted (fusion is None; trace is contract-check then refuse).",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0182/stage_splice.py:stage_splice",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "stage_splice(host, mismatch_donor)",
+          "raw_output": "{\"fusion_is_none\": true, \"reason\": \"contract-mismatch\", \"status\": \"refused\", \"trace\": [\"contract-check\", \"refuse\"]}"
+        }
+      ]
+    },
+    {
+      "claim": "A valid splice runs end to end on the fake rail and its executed plan differs from both parents.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0182/fake_rail.py:FakeRail.run",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "FakeRail.run(host|donor|fusion)",
+          "raw_output": "{\"donor\": \"693812371a5c74f3907ade69b68f27c7a7bd69250f03b803c706713cf185f3fa\", \"fusion\": \"5b8f8f34b59169d676baec9c97c81db1e3eea6579f4a1b3219f681a62469c8e5\", \"host\": \"5864daed7fe708512fe3849bb1319b52394450e3b65b11cd1e69b5208e27a978\", \"network_count\": 0, \"spawn_count\": 0}"
+        }
+      ]
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0182-probe1-contract-mismatch",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Named probe1 re-runs matching vs mismatch vs emit-first mutant. Named probe2 re-runs fake-rail plans on a different field (executed fingerprints, spawn counters, untouched-stage bytes)."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0182/UNIT-ARTIFACT-MANIFEST.json",
+    "note": "per-unit only; global unit_manifest.py --write was not run"
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "contract-mismatch-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0182/probe1_contract_mismatch.py"
+    },
+    {
+      "id": "probe2",
+      "role": "fake-rail-plan-differs",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0182/probe2_plan_differs.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0182.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0182/stage_splice.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0182/fake_rail.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Neighbour cover is exact-type, name-preferring. A richer IMP-0175 compatibility map (licence, stop-rule, tool policy) is not on this tree and is not silently assumed.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "When IMP-0175 exists, call its cell for the spliced pair and require FORBIDDEN cells to refuse here too."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0182.json",
+      "executed": false,
+      "read_ok": true,
+      "exit_code": null,
+      "note": "measure runs after this emit; probes re-run live"
+    }
+  ]
+}

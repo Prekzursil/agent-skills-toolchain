@@ -1,0 +1,244 @@
+{
+ "artifacts": [
+  {
+   "bytes": 21841,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/replay_log.py",
+   "role": "primary-implementation",
+   "sha256": "8f427dd1fcdd77233f89a31c528d28458e530b492b22f0f90ef61b1b13dbecc8"
+  },
+  {
+   "bytes": 1247,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/clock.py",
+   "role": "supporting",
+   "sha256": "494ffaf998662e452b6814e065c6ed82deab8551360e978580ab7b8cd746c91b"
+  },
+  {
+   "bytes": 1997,
+   "exists": true,
+   "path": "tools/event-ledger/ledger.py",
+   "role": "supporting",
+   "sha256": "5712ddd90bb91fbcfb972f79f4d79e6ab1918e85bac5dcfebe040e3958fd8f64"
+  },
+  {
+   "bytes": 5946,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0144/fixtures/recorded-run.jsonl",
+   "role": "supporting",
+   "sha256": "93ec4aac09cc0fa860a848730e00514be9d30197ad3625d1fd72ea9c08035af1"
+  },
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0144.json",
+   "role": "receipt"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0144",
+ "evidence": [
+  {
+   "anchor": "tools/agentspec/agentspec/replay_log.py:expand_plan",
+   "claim": "Replay of the recorded fixture reproduces the plan byte-for-byte.",
+   "id": "signal-1-plan-bytes",
+   "measured": {
+    "plan_bytes": 1452,
+    "plan_equal": true,
+    "plan_sha256": "83dcf7e8f1be67f9da073851be4f14da8ed336b36b59c08e457215e728d61594",
+    "slot_count": 6
+   },
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/replay_log.py:CountingFakeRail",
+   "claim": "Replay performs zero rail spawns; record performed a positive count.",
+   "id": "signal-2-zero-spawns",
+   "measured": {
+    "dispatch_events": 5,
+    "record_spawns": 5,
+    "replay_calls": [],
+    "replay_spawns": 0
+   },
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "format_id": "agentspec.replay-log/v1",
+ "inputs_absent_on_this_worktree": [
+  "tools/agentspec/agentspec/clock.py (created by this unit)",
+  "tools/event-ledger (created by this unit)",
+  "command-center/events/EVENTS.jsonl (fixture log used instead of a global ledger)"
+ ],
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0144/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "ReplayLogError: run.start payload missing ['params']",
+   "description": "Delete run.start.payload.params; reconstruction must not yield the original plan.",
+   "fired_on_bad_state": true,
+   "good_state_output": "intact log plan bytes match",
+   "id": "IMP0144-C1-load-bearing-params",
+   "kind": "field-drop",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "slots after dropping beta=['producer', 'map-item#alpha', 'map-item#gamma', 'join', 'judge']",
+   "description": "Delete debug_note. If this also went red the detector would be vacuous (any mutation fails). It must stay equal.",
+   "fired_on_bad_state": true,
+   "good_state_output": "debug_note drop still byte-identical",
+   "id": "IMP0144-C2-non-load-bearing-debug-note",
+   "kind": "field-drop-control",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0144. Catalog inputs clock.py and event-ledger were absent; they are implemented here. EVENTS.jsonl is not used as a production append log (that is IMP-0224). Downstream IMP-0228 consumes this format.",
+ "plan_sha256": "83dcf7e8f1be67f9da073851be4f14da8ed336b36b59c08e457215e728d61594",
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "profile": "replay-log-format",
+ "question": "Question: what minimal event record makes a run replayable such that replaying it reproduces the SAME plan and the SAME verdicts without re-dispatching? Target: specify and implement that record. Acceptance: replay of a recorded run produces a byte-identical plan and identical oracle verdicts, with zero spawns.",
+ "replay_log_format": {
+  "answer": "The minimal record is a six-kind JSONL stream whose planning inputs are hashed and whose plan is a function of those inputs. Replay is recompute-plus-reapply, not re-dispatch.",
+  "clock": "FrozenClock logical ticks only. Wall-clock, timezone, uuid4 and time.time must not enter the plan bytes.",
+  "encoding": "UTF-8 JSONL, LF-only, canonical dumps (sort_keys, separators comma-colon)",
+  "envelope_required": [
+   "v",
+   "seq",
+   "kind",
+   "ts_logical",
+   "run_id",
+   "payload"
+  ],
+  "kinds_closed": [
+   "run.start",
+   "plan.input",
+   "unit.planned",
+   "dispatch.recorded",
+   "oracle.verdict",
+   "run.end"
+  ],
+  "load_bearing_fields": [
+   "run.start.payload.workflow",
+   "run.start.payload.params",
+   "plan.input.payload.value (fan-out items)",
+   "plan.input.payload.value_hash",
+   "oracle.verdict.payload.verdict",
+   "oracle.verdict.payload.receipt_sha256",
+   "run.end.payload.plan_sha256"
+  ],
+  "non_load_bearing_fields": [
+   "debug_note",
+   "note",
+   "annotation"
+  ],
+  "reconstruction": "Replay recomputes the plan from run.start.workflow + run.start.params + plan.input values (producer receipts). It re-applies oracle.verdict rows. It never calls the rail. unit.planned and dispatch.recorded are audit; they are not the reconstruction source, so dropping a planning input cannot be masked by a stored plan blob."
+ },
+ "report": {
+  "event_count": 20,
+  "fixture_log": "command-center/p2-wave/probes/IMP-0144/fixtures/recorded-run.jsonl",
+  "fixture_log_sha256": "93ec4aac09cc0fa860a848730e00514be9d30197ad3625d1fd72ea9c08035af1",
+  "kind": "replay-log-acceptance",
+  "mutation": {
+   "debug_note_still_equal": true,
+   "fanout_item_plan_equal": false,
+   "fanout_item_slots": [
+    "producer",
+    "map-item#alpha",
+    "map-item#gamma",
+    "join",
+    "judge"
+   ],
+   "intact_still_equal": true,
+   "params_err": "ReplayLogError: run.start payload missing ['params']",
+   "params_field_red": true
+  },
+  "plan_sha256": "83dcf7e8f1be67f9da073851be4f14da8ed336b36b59c08e457215e728d61594",
+  "record_spawns": 5,
+  "replay_spawns": 0,
+  "slot_ids": [
+   "producer",
+   "map-item#alpha",
+   "map-item#beta",
+   "map-item#gamma",
+   "join",
+   "judge"
+  ],
+  "verdict_sha256": "c5088c330a0e21a86ea2d3b9d83f94a234b9599d61c4effb19a254efcb30ff4d",
+  "verdicts": [
+   {
+    "evidence_hash": "548a98c524e64b43ee99bce271e7bb3968bebdba535d56fcbb5b193f587bcad6",
+    "receipt_sha256": "548a98c524e64b43ee99bce271e7bb3968bebdba535d56fcbb5b193f587bcad6",
+    "unit_id": "producer",
+    "verdict": "PASS"
+   },
+   {
+    "evidence_hash": "5cacd4df66a99ba144841ddab7fd87695fef3b5f3db051c8998a0732502fc854",
+    "receipt_sha256": "5cacd4df66a99ba144841ddab7fd87695fef3b5f3db051c8998a0732502fc854",
+    "unit_id": "map-item#alpha",
+    "verdict": "PASS"
+   },
+   {
+    "evidence_hash": "c0bdec6162078a63ca21dc14d1847d373d1bea4f7b5af2f1f6fcbfe8d1ce36e0",
+    "receipt_sha256": "c0bdec6162078a63ca21dc14d1847d373d1bea4f7b5af2f1f6fcbfe8d1ce36e0",
+    "unit_id": "map-item#beta",
+    "verdict": "FAIL"
+   },
+   {
+    "evidence_hash": "fa155ef01c217ee44030bc9d67d15a685cde05cb66944ed03b32f93feecdc598",
+    "receipt_sha256": "fa155ef01c217ee44030bc9d67d15a685cde05cb66944ed03b32f93feecdc598",
+    "unit_id": "map-item#gamma",
+    "verdict": "PASS"
+   },
+   {
+    "evidence_hash": "c4b2dccf1ac7dbd1b185058ab13090f6e756b2c2f1c418609fbdac489fcda470",
+    "receipt_sha256": "c4b2dccf1ac7dbd1b185058ab13090f6e756b2c2f1c418609fbdac489fcda470",
+    "unit_id": "join",
+    "verdict": "PASS"
+   },
+   {
+    "evidence_hash": "9b753d7ff4d6c69c1127bf4415fd67c2849c590bddaa8466db3c2fc199be6757",
+    "receipt_sha256": "9b753d7ff4d6c69c1127bf4415fd67c2849c590bddaa8466db3c2fc199be6757",
+    "unit_id": "judge",
+    "verdict": "PASS"
+   }
+  ]
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Adversarial mutation probe drops params (required) and a fan-out item (planning input). Both turn plan byte-equality red. Dropping debug_note does not. Record-rail spawn count is the control that zero replay spawns is not a dead counter.",
+  "reviewer_id": "IMP-0144-probe2-field-mutation",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0144",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 4,
+   "id": "T1-record-then-replay",
+   "name": "record-then-replay yields a byte-identical plan and identical verdicts",
+   "output_tail": "plan_equal=True verdict_equal=True record_spawns=5 replay_spawns=0",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "id": "T2-drop-field-goes-red",
+   "name": "mutation: drop one event field and the byte-equality test must go red",
+   "output_tail": "params_equal=False item_plan_equal=False note_equal=True intact=True",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:46:39+00:00",
+  "started_at": "2026-08-24T18:46:39+00:00"
+ },
+ "title": "Define the deterministic replay log format (event stream to identical plan)",
+ "unit_id": "IMP-0144",
+ "verdict_sha256": "c5088c330a0e21a86ea2d3b9d83f94a234b9599d61c4effb19a254efcb30ff4d"
+}

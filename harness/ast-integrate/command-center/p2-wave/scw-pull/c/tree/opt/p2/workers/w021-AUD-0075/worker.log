@@ -1,0 +1,19 @@
+I'll start from the existing AUD-0075 probe tree and resume from whatever is already there, without touching git or the global catalog.Existing probe files are in place. Next I’ll read the return artifact, schema, and the measurement script so I know what “delivered” actually requires.The tree already has probes and a later per-unit manifest. I’ll inspect those scripts, the live artifact, and a successful sibling unit so we resume instead of rebuilding.The catalog receipt is already marked SUCCESS, but the remesure looks Windows-era. I’ll pull the schema, a delivered sibling, and the catalog row before re-running the live probes.I’ll update the packer so Linux remesure is recorded honestly, then re-run the named probes and pack the receipt from live output.This tree has no `.git` and only `command-center/` plus `tools/`. I’ll remesure with `python3` and record git pins as not-checked instead of inventing a HEAD.A copy of the schema resolver is in `/tmp/aud0013-src`. I’ll inspect what it needs so we can validate the receipt for real instead of skipping the contract.**SUCCESS:delivered** `AUD-0075`
+
+G-1 is contract-green for this unit on `/opt/p2/ast-integrate`. `python command-center/p2-wave/_measure_one_delivered.py AUD-0075` printed:
+
+`SUCCESS:delivered AUD-0075 predicate=delivered state=SUCCESS probes=2 raws=7 notes=audit_stale_premises.py:0,fingerprint_control.py:0`
+
+Resumed the existing probe tree instead of replacing it. Re-ran `audit_stale_premises.py` and `fingerprint_control.py` (both exit 0), packed an honest `state=SUCCESS` catalog receipt from those live logs, and registered it in the per-unit manifest.
+
+| Item | Result |
+|---|---|
+| Catalog receipt | `command-center/audit/AUD-0075-stale-premise-sweep.json` |
+| State | `SUCCESS` (not BLOCKED) |
+| Bytes / sha256 | 107776 / `7ff795227bbcebef5ef8c7090e61381eb3884d902f9c979696492bba4c108076` |
+| Per-unit manifest | `command-center/p2-wave/probes/AUD-0075/UNIT-ARTIFACT-MANIFEST.json` (sha256 matches) |
+| Return | `command-center/p2-wave/probes/AUD-0075/SUBAGENT-RETURN.json` |
+
+Live remesure on this tree: **6 SUPPORTED**, **1 CONTRADICTED-CURRENT-ENVIRONMENT** (FF-01 still pins the Windows path; cwd is `/opt/p2/ast-integrate`), **5 NOT-CHECKED** (no `.git` here, plus the two undeclared workflow envelopes). Independently certified pairs stay **0** because all 12 origins are UNDECLARED — that is the catalog finding, not a missing probe.
+
+Did not git add/commit/push/stash/checkout/rebase, did not run `unit_manifest.py --write`, did not rotate keys, did not relaunch finish-everything-close or p2-cloud-ok-deliver. Cloud-ok refute remains on disk and is not the delivery.

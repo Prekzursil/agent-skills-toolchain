@@ -1,0 +1,394 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+   "bytes": 7941,
+   "sha256": "685c94631b7f8323df7901f295901d6fe203368cfaafbfbcc344fd907c2c608d",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0030 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+     "raw_output": "bytes=7941 sha256=685c94631b7f8323df7901f295901d6fe203368cfaafbfbcc344fd907c2c608d",
+     "fingerprint": "d26098fcfd4f32041eaabc8d477e7eb5",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0030",
+     "raw_output": "schema-check",
+     "fingerprint": "119e4de34fb41d03394d0a5fe5c625f3",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0030 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0030",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0030",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "ca6ebe389bc0a12198bf8f0b58ffd781",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0030",
+     "raw_output": "schema-valid",
+     "fingerprint": "96e582f668ae907f6b4e6cf91cfe95b8",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0030",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0030-fresh-clone-confirm.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "CNF-0030",
+ "extensions": {
+  "legacy_root": {
+   "answer": "The fixture fix that leaves required_payload.txt untracked passes in the developer tree and fails in a clean clone at the same SHA; that file must be copied in by hand for the clone to pass, so it is a missing-commit defect. The committed-file control passes in both trees with clone SHA equal to fix SHA. Product-tree fixes are NOT-CHECKED because this worktree is not a git repository and CNF-0022's fix-commit list is absent.",
+   "clone_path": "/tmp/cnf0030-emit-ap2awljj/clone-committed",
+   "clone_sha": "74afae7cec8268a4c4f1876f7ecc35030a180319",
+   "clone_sha_equals_fix_sha": true,
+   "command": "/usr/bin/python3 -B test_payload.py",
+   "completion_sentinel": "SUCCESS:CNF-0030 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the clone SHA equals the fix SHA and both trees ran the identical command. Any other terminal state is FAILED:CNF-0030 <classification> with the diagnostic tail attached.",
+   "developer_path": "/tmp/cnf0030-emit-ap2awljj/dev-committed",
+   "findings": [
+    {
+     "classification": "uncommitted-dependency",
+     "clone_exit": 1,
+     "developer_exit": 0,
+     "hand_copy_makes_clone_pass": true,
+     "id": "F1-untracked-required-payload",
+     "missing_file": "required_payload.txt",
+     "passes_developer_fails_clone": true,
+     "summary": "Fixture fix whose test requires required_payload.txt: the developer tree has that file untracked (test exit 0) and a fresh clone at the fix SHA does not (test exit non-zero). Copying the file in by hand makes the clone pass, so it is a missing-commit defect."
+    },
+    {
+     "classification": "committed-control",
+     "clone_exit": 0,
+     "developer_exit": 0,
+     "hand_copy_makes_clone_pass": null,
+     "id": "F2-committed-required-payload",
+     "missing_file": null,
+     "passes_developer_fails_clone": false,
+     "summary": "Same test with required_payload.txt committed at the fix SHA: developer and clone both exit 0, and clone SHA equals fix SHA. The detector is not always-red."
+    },
+    {
+     "classification": "product-tree-not-git",
+     "clone_exit": null,
+     "developer_exit": null,
+     "hand_copy_makes_clone_pass": null,
+     "id": "F3-product-tree",
+     "missing_file": null,
+     "passes_developer_fails_clone": false,
+     "summary": "Product worktree /opt/p2/ast-integrate has no .git object database, so it cannot be cloned at a product fix SHA. CNF-0022 (fix commit list) is also absent. Product-tree fixes are therefore NOT-CHECKED; the load-bearing clone/SHA experiment runs on an isolated fixture repository."
+    }
+   ],
+   "fix_sha": "74afae7cec8268a4c4f1876f7ecc35030a180319",
+   "identical_command_both_trees": true,
+   "product_tree": {
+    "cnf0022_present": false,
+    "is_git": false,
+    "note": "Product worktree /opt/p2/ast-integrate has no .git object database, so it cannot be cloned at a product fix SHA. CNF-0022 (fix commit list) is also absent. Product-tree fixes are therefore NOT-CHECKED; the load-bearing clone/SHA experiment runs on an isolated fixture repository.",
+    "path": "/opt/p2/ast-integrate"
+   },
+   "question": "Does the fix depend on untracked local files? Clone the repository fresh at the fix commit into a new directory, run the associated tests, and answer: which fixes pass in the developer tree but fail in a clean clone because a required file was never committed?",
+   "report_kind": "repro-report",
+   "runs": [
+    {
+     "command": "/usr/bin/python3 -B test_payload.py",
+     "exit_code": 0,
+     "id": "R1-missing-developer",
+     "scenario": "untracked-required-payload",
+     "stdout_tail": "PASS payload-ok",
+     "tree_role": "developer"
+    },
+    {
+     "command": "/usr/bin/python3 -B test_payload.py",
+     "exit_code": 1,
+     "id": "R2-missing-clone",
+     "scenario": "untracked-required-payload",
+     "stdout_tail": "MISSING required_payload.txt",
+     "tree_role": "clone"
+    },
+    {
+     "command": "/usr/bin/python3 -B test_payload.py",
+     "exit_code": 0,
+     "id": "R3-missing-hand-copy",
+     "scenario": "untracked-required-payload",
+     "stdout_tail": "PASS payload-ok",
+     "tree_role": "clone-after-hand-copy"
+    },
+    {
+     "command": "/usr/bin/python3 -B test_payload.py",
+     "exit_code": 0,
+     "id": "R4-control-developer",
+     "scenario": "committed-required-payload",
+     "stdout_tail": "PASS payload-ok",
+     "tree_role": "developer"
+    },
+    {
+     "command": "/usr/bin/python3 -B test_payload.py",
+     "exit_code": 0,
+     "id": "R5-control-clone",
+     "scenario": "committed-required-payload",
+     "stdout_tail": "PASS payload-ok",
+     "tree_role": "clone"
+    }
+   ],
+   "title": "Confirm the fix in a fresh clone rather than the developer tree",
+   "ts": "2026-08-25T00:54:18Z",
+   "untracked_inventory": [
+    {
+     "note": "Required payload is present untracked in the developer tree.",
+     "paths": [
+      "required_payload.txt"
+     ],
+     "tree": "fixture-developer-untracked-scenario"
+    },
+    {
+     "note": "Fresh clone at fix SHA has no untracked required payload.",
+     "paths": [],
+     "tree": "fixture-clone-untracked-scenario"
+    },
+    {
+     "note": "Control developer tree has no untracked required payload.",
+     "paths": [],
+     "tree": "fixture-developer-committed-control"
+    },
+    {
+     "note": "git status cannot run: product worktree is not a git repository. Entire tree is therefore not cloneable at a SHA.",
+     "paths": [],
+     "tree": "product-worktree"
+    }
+   ]
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0030",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0030/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0030"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0030-fresh-clone-confirm.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "53dde9272690cc1d1183818d4da5deef",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "repro-report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 7941,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0030-fresh-clone-confirm.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answer": "The fixture fix that leaves required_payload.txt untracked passes in the developer tree and fails in a clean clone at the same SHA; that file must be copied in by hand for the clone to pass, so it is a missing-commit defect. The committed-file control passes in both trees with clone SHA equal to fix SHA. Product-tree fixes are NOT-CHECKED because this worktree is not a git repository and CNF-0022's fix-commit list is absent.",
+ "clone_path": "/tmp/cnf0030-emit-ap2awljj/clone-committed",
+ "clone_sha": "74afae7cec8268a4c4f1876f7ecc35030a180319",
+ "clone_sha_equals_fix_sha": true,
+ "command": "/usr/bin/python3 -B test_payload.py",
+ "completion_sentinel": "SUCCESS:CNF-0030 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the clone SHA equals the fix SHA and both trees ran the identical command. Any other terminal state is FAILED:CNF-0030 <classification> with the diagnostic tail attached.",
+ "developer_path": "/tmp/cnf0030-emit-ap2awljj/dev-committed",
+ "findings": [
+  {
+   "classification": "uncommitted-dependency",
+   "clone_exit": 1,
+   "developer_exit": 0,
+   "hand_copy_makes_clone_pass": true,
+   "id": "F1-untracked-required-payload",
+   "missing_file": "required_payload.txt",
+   "passes_developer_fails_clone": true,
+   "summary": "Fixture fix whose test requires required_payload.txt: the developer tree has that file untracked (test exit 0) and a fresh clone at the fix SHA does not (test exit non-zero). Copying the file in by hand makes the clone pass, so it is a missing-commit defect."
+  },
+  {
+   "classification": "committed-control",
+   "clone_exit": 0,
+   "developer_exit": 0,
+   "hand_copy_makes_clone_pass": null,
+   "id": "F2-committed-required-payload",
+   "missing_file": null,
+   "passes_developer_fails_clone": false,
+   "summary": "Same test with required_payload.txt committed at the fix SHA: developer and clone both exit 0, and clone SHA equals fix SHA. The detector is not always-red."
+  },
+  {
+   "classification": "product-tree-not-git",
+   "clone_exit": null,
+   "developer_exit": null,
+   "hand_copy_makes_clone_pass": null,
+   "id": "F3-product-tree",
+   "missing_file": null,
+   "passes_developer_fails_clone": false,
+   "summary": "Product worktree /opt/p2/ast-integrate has no .git object database, so it cannot be cloned at a product fix SHA. CNF-0022 (fix commit list) is also absent. Product-tree fixes are therefore NOT-CHECKED; the load-bearing clone/SHA experiment runs on an isolated fixture repository."
+  }
+ ],
+ "fix_sha": "74afae7cec8268a4c4f1876f7ecc35030a180319",
+ "identical_command_both_trees": true,
+ "product_tree": {
+  "cnf0022_present": false,
+  "is_git": false,
+  "note": "Product worktree /opt/p2/ast-integrate has no .git object database, so it cannot be cloned at a product fix SHA. CNF-0022 (fix commit list) is also absent. Product-tree fixes are therefore NOT-CHECKED; the load-bearing clone/SHA experiment runs on an isolated fixture repository.",
+  "path": "/opt/p2/ast-integrate"
+ },
+ "question": "Does the fix depend on untracked local files? Clone the repository fresh at the fix commit into a new directory, run the associated tests, and answer: which fixes pass in the developer tree but fail in a clean clone because a required file was never committed?",
+ "report_kind": "repro-report",
+ "runs": [
+  {
+   "command": "/usr/bin/python3 -B test_payload.py",
+   "exit_code": 0,
+   "id": "R1-missing-developer",
+   "scenario": "untracked-required-payload",
+   "stdout_tail": "PASS payload-ok",
+   "tree_role": "developer"
+  },
+  {
+   "command": "/usr/bin/python3 -B test_payload.py",
+   "exit_code": 1,
+   "id": "R2-missing-clone",
+   "scenario": "untracked-required-payload",
+   "stdout_tail": "MISSING required_payload.txt",
+   "tree_role": "clone"
+  },
+  {
+   "command": "/usr/bin/python3 -B test_payload.py",
+   "exit_code": 0,
+   "id": "R3-missing-hand-copy",
+   "scenario": "untracked-required-payload",
+   "stdout_tail": "PASS payload-ok",
+   "tree_role": "clone-after-hand-copy"
+  },
+  {
+   "command": "/usr/bin/python3 -B test_payload.py",
+   "exit_code": 0,
+   "id": "R4-control-developer",
+   "scenario": "committed-required-payload",
+   "stdout_tail": "PASS payload-ok",
+   "tree_role": "developer"
+  },
+  {
+   "command": "/usr/bin/python3 -B test_payload.py",
+   "exit_code": 0,
+   "id": "R5-control-clone",
+   "scenario": "committed-required-payload",
+   "stdout_tail": "PASS payload-ok",
+   "tree_role": "clone"
+  }
+ ],
+ "title": "Confirm the fix in a fresh clone rather than the developer tree",
+ "ts": "2026-08-25T00:54:18Z",
+ "untracked_inventory": [
+  {
+   "note": "Required payload is present untracked in the developer tree.",
+   "paths": [
+    "required_payload.txt"
+   ],
+   "tree": "fixture-developer-untracked-scenario"
+  },
+  {
+   "note": "Fresh clone at fix SHA has no untracked required payload.",
+   "paths": [],
+   "tree": "fixture-clone-untracked-scenario"
+  },
+  {
+   "note": "Control developer tree has no untracked required payload.",
+   "paths": [],
+   "tree": "fixture-developer-committed-control"
+  },
+  {
+   "note": "git status cannot run: product worktree is not a git repository. Entire tree is therefore not cloneable at a SHA.",
+   "paths": [],
+   "tree": "product-worktree"
+  }
+ ]
+}

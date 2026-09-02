@@ -1,0 +1,490 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p25-blind-reevaluation",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Re-decide an already-settled question with fresh, attribution-blind seats and downgrade the original outcome if the blind verdict diverges from it.",
+    "charter": "Once a panel has agreed it cannot un-see the agreement. Strip attribution, ordering and prior verdicts; re-present the options to seats that have never seen the council; a divergence downgrades the original outcome.",
+    "risk_tier": "high",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "every juror produced an independent position before seeing any peer",
+      "the provenance leak scan found zero seat names, model names or file paths in the option text",
+      "the blind verdict was compared to the sealed original and the delta is recorded"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 4
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_models": 2,
+      "max_share_per_vendor": 0.75
+    },
+    "roster": [
+      {
+        "participant_id": "blind-juror-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "juror",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "the decision domain under re-review"
+        ],
+        "anonymous": true,
+        "context": {
+          "briefing": "You have never seen this council. Decide from the anonymised option set only.",
+          "partition_id": "anonymised-option-set"
+        }
+      },
+      {
+        "participant_id": "blind-juror-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "juror",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "independent reproduction"
+        ],
+        "anonymous": true,
+        "context": {
+          "briefing": "You have never seen this council. Decide from the anonymised option set only.",
+          "partition_id": "anonymised-option-set"
+        }
+      },
+      {
+        "participant_id": "blind-juror-c",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "juror",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        },
+        "expertise": [
+          "adversarial review"
+        ],
+        "anonymous": true,
+        "context": {
+          "briefing": "You have never seen this council. Decide from the anonymised option set only.",
+          "partition_id": "anonymised-option-set"
+        }
+      },
+      {
+        "participant_id": "divergence-auditor",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "verifier",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "provenance leak scanning",
+          "verdict comparison"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false,
+          "may_recruit": true
+        },
+        "context": {
+          "briefing": "Hold the sealed original verdict. Run the provenance leak scan over every anonymised option BEFORE the jurors read it, then compare verdicts.",
+          "partition_id": "sealed-original-verdict"
+        }
+      }
+    ],
+    "role_templates": [
+      "juror",
+      "verifier"
+    ],
+    "anonymity": {
+      "mode": "double_blind"
+    },
+    "information_partition": {
+      "enabled": true,
+      "strategy": "role_scoped",
+      "partitions": [
+        {
+          "partition_id": "anonymised-option-set",
+          "visible_to": [
+            "blind-juror-a",
+            "blind-juror-b",
+            "blind-juror-c"
+          ],
+          "sources": [
+            "leak-scanned option cards",
+            "anonymised evidence pack"
+          ]
+        },
+        {
+          "partition_id": "sealed-original-verdict",
+          "visible_to": [
+            "divergence-auditor"
+          ],
+          "sources": [
+            "original council transcript",
+            "original vote record"
+          ]
+        }
+      ]
+    },
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "conflict_of_interest",
+        "prompt_injection_detected",
+        "hallucinated_expertise"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "prompt",
+        "model"
+      ],
+      "max_similarity": 0.85
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "prep_time_minutes": 10,
+    "required_artifacts": [
+      "evidence_pack",
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "jury"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "custom_name": "provenance_leak_scan",
+        "stage_id": "leak-scan",
+        "rounds": 1,
+        "participants": [
+          "divergence-auditor"
+        ],
+        "exit_when": {
+          "metric": "custom:provenance_leak_count",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "blind-open",
+        "participants": [
+          "blind-juror-a",
+          "blind-juror-b",
+          "blind-juror-c"
+        ],
+        "independent": true,
+        "anonymous": true
+      },
+      {
+        "kind": "jury",
+        "stage_id": "blind-verdict",
+        "rounds": 2,
+        "participants": [
+          "blind-juror-a",
+          "blind-juror-b",
+          "blind-juror-c"
+        ],
+        "anonymous": true,
+        "quotas": {
+          "objections_per_participant": 2,
+          "counterexamples_per_round": 1,
+          "novel_ideas_per_round": 1,
+          "ideas_per_participant": 1
+        },
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "independent_positions",
+              "op": ">=",
+              "value": 3
+            },
+            {
+              "metric": "all_participants_spoke",
+              "op": "==",
+              "value": true
+            }
+          ]
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "divergence_audit_against_sealed_original",
+        "stage_id": "divergence-audit",
+        "rounds": 1,
+        "participants": [
+          "divergence-auditor"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "reconcile"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 700
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": false,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "adversarial"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 45,
+    "turns": 20,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "novelty_ratio": 0.3,
+    "counterexamples": 3,
+    "evidence_items": 6,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "juror",
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[independent_positions >= 3, all_participants_spoke == true, custom:provenance_leak_count <= 0, custom:divergence_audit_complete == true]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 3
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "custom:provenance_leak_count",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:divergence_audit_complete",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_evidence_items": 4
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 60,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the original outcome is downgraded to CONDITIONAL until the divergence is explained",
+      "the leak scan is clean, otherwise the re-run is void rather than confirming"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "strongest_counterexample",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "sycophancy",
+      "instant_unanimity",
+      "echo_chamber",
+      "lost_dissent",
+      "minority_suppression",
+      "moderator_capture",
+      "hidden_conflict_of_interest"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "strongest_counterexample",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "votes_by_round",
+      "dissent_minority_report",
+      "evidence_map",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "downgrading a shipped decision",
+        "voiding the original verdict"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p25-blind-reevaluation",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P25 blind re-evaluation (ANONYMOUS)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:503",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:508",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:514",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:515"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P25 blind-reevaluation"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (>=3 required, 7 declared): (1) sycophancy and (2) instant_unanimity are cut structurally - the jurors are fresh_context and never see the original verdict or each other's first position; (3) echo_chamber is cut by double_blind anonymity plus a role_scoped information partition; (4) lost_dissent and (5) minority_suppression are met by minority_report=required with preserve_verbatim and suppression_check, and outcomes.allowed carries minority_report; (6) moderator_capture is cut by giving the auditor no vote; (7) hidden_conflict_of_interest is met by disclosure_required + recuse_from_vote, which is how a seat that authored the original is kept out. FAST UNANIMITY: this protocol IS the estate's fast-unanimity remedy, and it still arms its own - blind_re_evaluation, strongest_counterexample, recruit_independent_critic. CARD FAILURE MODE MADE EXECUTABLE: 'anonymisation is incomplete and the option text itself reveals provenance' - custom:provenance_leak_count <= 0 is both a stage exit condition and a stopping-rule leaf, so a leaky run cannot terminate successfully. UNVERIFIED: no leak scanner exists yet on this estate, so custom:provenance_leak_count is named in the lane's PRODUCERS map (platform/lib/council_protocols/_shared.py, republished in PROTOCOL-EXPECTATIONS-25-36.json) and NOT implemented; the experiment that settles it is the card's own both-states test (inject a provenance token into an option and confirm the scanner catches it). custom:divergence_audit_complete is likewise named in the lane's PRODUCERS map (platform/lib/council_protocols/_shared.py, republished in PROTOCOL-EXPECTATIONS-25-36.json) and NOT implemented. The producer cannot live in the JSON leaf itself: SEM-001 requires parse(source_expression) == expression exactly and the parser emits no producer key, so attaching one costs 11 SEM-001 errors and 11 of 12 files (measured, command-center/_proto3_probe_sem001_vs_sem012.py)."
+  }
+}

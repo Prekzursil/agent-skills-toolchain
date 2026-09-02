@@ -1,0 +1,198 @@
+{
+  "gold_id": "WFA-0036-stages-gold-v1",
+  "version": 1,
+  "frozen": true,
+  "note": "Twenty native-form records for the stages dimension. WFA-0042 catalog gold is absent on this worktree; these labels are frozen here and must version-bump if replaced.",
+  "records": [
+    {
+      "id": "g01-json-two-stage",
+      "family": "B-repo-workflow",
+      "native": {
+        "id": "wf-json-discover-record",
+        "stages": [
+          {"name": "discover", "inputs": ["repo"], "outputs": ["candidates.json"], "fan_out": 1},
+          {"name": "record", "inputs": ["candidates.json"], "outputs": ["blueprint.json"], "gate": "human-ack", "fan_out": 1}
+        ]
+      }
+    },
+    {
+      "id": "g02-json-fanout-3",
+      "family": "A-saved-workflow",
+      "native": {
+        "id": "wf-json-map-workers",
+        "stages": [
+          {"name": "map", "inputs": ["shards"], "outputs": ["partials"], "fan_out": 3}
+        ]
+      }
+    },
+    {
+      "id": "g03-json-no-stages",
+      "family": "G-skill",
+      "native": {
+        "id": "sk-echo",
+        "name": "echo",
+        "does": "First scan the repo then write a report."
+      }
+    },
+    {
+      "id": "g04-json-empty-stages",
+      "family": "C-repo-tool",
+      "native": {
+        "id": "tool-empty-pipeline",
+        "stages": []
+      }
+    },
+    {
+      "id": "g05-json-prose-fanout",
+      "family": "E-agent",
+      "native": {
+        "id": "ag-spread",
+        "stages": [
+          {"name": "spread", "inputs": ["jobs"], "outputs": ["done"], "fan_out": "many workers"}
+        ]
+      }
+    },
+    {
+      "id": "g06-js-three-phase",
+      "family": "A-saved-workflow",
+      "native": {
+        "kind": "js",
+        "source": "export async function workflow() {\n  await phase(\"research\", {inputs: [\"brief\"], outputs: [\"notes\"]});\n  await phase(\"plan\", {inputs: [\"notes\"], outputs: [\"plan.md\"]});\n  await phase(\"execute\", {inputs: [\"plan.md\"], outputs: [\"patch\"]});\n}\n"
+      }
+    },
+    {
+      "id": "g07-js-parallel",
+      "family": "A-saved-workflow",
+      "native": {
+        "kind": "js",
+        "source": "export async function workflow() {\n  await phase(\"review\");\n  await parallel([agent(\"left\"), agent(\"right\")]);\n}\n"
+      }
+    },
+    {
+      "id": "g08-js-no-phase",
+      "family": "D-harness-runtime",
+      "native": {
+        "kind": "js",
+        "source": "export async function workflow() {\n  console.log(\"hello\");\n}\n"
+      }
+    },
+    {
+      "id": "g09-md-stages",
+      "family": "B-repo-workflow",
+      "native": {
+        "kind": "md",
+        "source": "# Workflow\n## Stage: ingest\ninputs: raw\noutputs: clean\n## Stage: publish\ninputs: clean\noutputs: site\ngate: editor-ok\nfan-out: 1\n"
+      }
+    },
+    {
+      "id": "g10-md-prose-only",
+      "family": "H-executed-corpus",
+      "native": {
+        "kind": "md",
+        "source": "# How we work\nFirst analyze the ticket, then ship the fix.\n"
+      }
+    },
+    {
+      "id": "g11-json-gate",
+      "family": "F-plugin",
+      "native": {
+        "id": "plug-lint-gate",
+        "steps": [
+          {"name": "lint", "inputs": ["tree"], "outputs": ["lint.json"], "fan_out": 1},
+          {"name": "hold", "inputs": ["lint.json"], "outputs": ["verdict"], "gate": "owner-signoff", "fan_out": 1}
+        ]
+      }
+    },
+    {
+      "id": "g12-json-null-fanout",
+      "family": "I-command",
+      "native": {
+        "id": "cmd-single",
+        "stages": [
+          {"name": "run", "inputs": ["argv"], "outputs": ["status"]}
+        ]
+      }
+    },
+    {
+      "id": "g13-json-steps-key",
+      "family": "C-repo-tool",
+      "native": {
+        "id": "tool-steps",
+        "steps": [
+          {"id": "parse", "inputs": ["src"], "outputs": ["ast"], "fan_out": 1}
+        ]
+      }
+    },
+    {
+      "id": "g14-json-phases-key",
+      "family": "D-harness-runtime",
+      "native": {
+        "id": "harness-phases",
+        "phases": [
+          {"title": "boot", "inputs": ["cfg"], "outputs": ["runtime"], "fan_out": 1},
+          {"title": "serve", "inputs": ["runtime"], "outputs": ["port"], "fan_out": 1}
+        ]
+      }
+    },
+    {
+      "id": "g15-json-single-stage",
+      "family": "G-skill",
+      "native": {
+        "id": "sk-one-shot",
+        "stages": [
+          {"name": "answer", "inputs": ["prompt"], "outputs": ["reply"], "fan_out": 1}
+        ]
+      }
+    },
+    {
+      "id": "g16-json-four-stage",
+      "family": "B-repo-workflow",
+      "native": {
+        "id": "wf-four",
+        "stages": [
+          {"name": "clone", "inputs": ["url"], "outputs": ["tree"], "fan_out": 1},
+          {"name": "scan", "inputs": ["tree"], "outputs": ["findings"], "fan_out": 1},
+          {"name": "shard", "inputs": ["findings"], "outputs": ["parts"], "fan_out": 2},
+          {"name": "merge", "inputs": ["parts"], "outputs": ["report"], "gate": "reviewer", "fan_out": 1}
+        ]
+      }
+    },
+    {
+      "id": "g17-js-gate",
+      "family": "A-saved-workflow",
+      "native": {
+        "kind": "js",
+        "source": "export async function workflow() {\n  await phase(\"hold\", {gate: \"human\"});\n}\n"
+      }
+    },
+    {
+      "id": "g18-json-numeric-string-fanout",
+      "family": "E-agent",
+      "native": {
+        "id": "ag-string-four",
+        "stages": [
+          {"name": "fan", "inputs": ["work"], "outputs": ["chunks"], "fan_out": "4"}
+        ]
+      }
+    },
+    {
+      "id": "g19-json-missing-io",
+      "family": "F-plugin",
+      "native": {
+        "id": "plug-named-only",
+        "stages": [
+          {"name": "tick"}
+        ]
+      }
+    },
+    {
+      "id": "g20-json-hint-only",
+      "family": "H-executed-corpus",
+      "native": {
+        "id": "hist-hint",
+        "pipeline_hint": "scan, build, test",
+        "does": "First scan then build then test."
+      }
+    }
+  ]
+}

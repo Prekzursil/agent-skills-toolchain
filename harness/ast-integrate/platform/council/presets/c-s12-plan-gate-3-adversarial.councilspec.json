@@ -1,0 +1,172 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s12-plan-gate-3-adversarial",
+  "preset": "plan_review_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Pass or fail a plan on three adversarial axes - feasibility, completeness, and scope/alignment - after a MECHANICAL stage-0 lint has already run.",
+    "charter": "All three reviewers must pass; one fail blocks. The reusable core is the ordering: a deterministic lint runs BEFORE any model reads the plan, so cheap mechanical defects (missing sections, dangling references, unnumbered steps) never consume reviewer attention. If a question is answerable by an exact algorithm, the algorithm answers it.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "the stage-0 lint ran and its output is attached, not merely claimed",
+      "all three reviewers returned an explicit PASS or FAIL with a reason",
+      "a FAIL names the specific plan step it attaches to",
+      "no reviewer graded an axis other than its own"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.8,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 1, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 20 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "adversarial"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 3, "min": 3, "max": 3 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 3 },
+    "roster": [
+      {
+        "participant_id": "feasibility",
+        "display_name": "Feasibility reviewer (can this actually be built as written)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["implementation feasibility", "dependency analysis"],
+        "role": "custom:feasibility_reviewer",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "completeness",
+        "display_name": "Completeness reviewer (what is missing that would stop execution)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["requirements coverage", "gap analysis"],
+        "role": "custom:completeness_reviewer",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "scope-alignment",
+        "display_name": "Scope and alignment reviewer (is this the job that was asked for)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["scope discipline", "owner intent"],
+        "role": "custom:scope_guardian",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      }
+    ],
+    "role_templates": ["custom:feasibility_reviewer", "custom:completeness_reviewer", "custom:scope_guardian"],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 1 },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 1, "required_artifacts": ["position_memo"] },
+  "topology": { "kind": "committee", "committees": [ { "committee_id": "reviewers", "mandate": "three disjoint review axes; no cross-grading", "members": ["feasibility", "completeness", "scope-alignment"] } ] },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "custom_name": "stage-0-mechanical-plan-lint", "stage_id": "lint", "rounds": 1 },
+      { "kind": "blind_independent_first_pass", "stage_id": "reviews", "independent": true, "anonymous": true, "participants": ["feasibility", "completeness", "scope-alignment"] },
+      { "kind": "synthesis", "stage_id": "verdict" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2, "divergence_before_convergence": true },
+    "turn": { "max_words": 700 },
+    "obligations": { "must_cite_evidence": true, "forced_dissent": true, "declare_confidence": true },
+    "critique_intensity": "adversarial",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 2, "runner": "local" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 20, "tokens": 90000, "tool_calls": 80, "sources": 12, "turns": 9, "max_inactivity_rounds": 1 },
+  "targets": { "objections": 3, "evidence_items": 6 },
+  "voting": {
+    "method": "unanimity",
+    "abstention": { "allowed": false, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:stage0_plan_lint_clean",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "stage 'lint': the mechanical plan linter exits 0 with its output attached; a missing or unattached lint output counts as NOT clean, never as clean",
+          "note": "Fail-closed by design. This is the lint_rules dial: edit the linter's rule set, not this leaf."
+        },
+        {
+          "metric": "quality_gate",
+          "op": "==",
+          "value": "PASS",
+          "note": "The all_must_pass condition: the reduced gate over the three reviewer verdicts. Any FAIL leaves this at FAIL."
+        },
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 3,
+          "note": "All three reviewers actually returned. Two PASSes and a silence is not a pass."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 3, "every_participant_spoke": true, "min_evidence_items": 3 },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 20, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": ["the plan is revised on each FAIL axis and re-reviewed by the seat that failed it"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["narrow_scope", "split_question", "recruit_independent_critic", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["instant_unanimity", "sycophancy", "evidence_free_majority", "premature_convergence", "lost_dissent", "prompt_injection"],
+    "fast_unanimity_response": ["forced_dissent", "strongest_counterexample"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "argument_ledger", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "action_plan"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 90 },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "C-S12 plan-gate-3-adversarial",
+    "notes": "HUMAN-STOP: custom:stage0_plan_lint_clean == true AND quality_gate == PASS AND independent_positions >= 3 | EDITABLE-DIALS: the producer text on the lint leaf (lint_rules) . participants.roster (reviewers) . the 3 in the independent_positions leaf must move with participants.count.exact_n | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | METRIC-MAP: the design's all_3_pass maps to the registered ENUM metric quality_gate == PASS (the reduced verdict) plus independent_positions >= 3 (they all actually returned); this pair is what stops two-passes-and-a-silence from reading as a pass | OUTCOME-MAP: CONSENSUS -> decision . MAJORITY_WITH_DISSENT -> decision + dissent . INSUFFICIENT_EVIDENCE and DEFER -> no_decision . CONDITIONAL_DECISION -> conditional_decision | VOTING-MAP: design all_must_pass -> voting.method=unanimity | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11200-11225",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1314-1327"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-S12 plan-gate-3-adversarial",
+      "protocol P45 scientific-peer-review",
+      "protocol P53 escalation-ladder"
+    ]
+  }
+}

@@ -1,0 +1,1678 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+	<meta charset="UTF-8" />
+	<meta name="awa-expId" content="tv-downloadv2:1227265;" />
+	<meta name="awa-env" content="prod" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<meta name="google-site-verification" content="hNs7DXrTySP_X-0P_AC0WulAXvUwgSXEmgfcO2r79dw" />
+
+	<!-- Twitter and Facebook OpenGraph Metadata-->
+	<meta name="twitter:card" content="summary_large_image" />
+	<meta name="twitter:site" content="@code" />
+
+	<meta name="keywords" content="vscode API" />
+
+<meta name="description" content="Learn how to publish Visual Studio Code extensions to the public Marketplace and share them with other developers." />
+
+<meta name="ms.prod" content="vs-code" />
+<meta name="ms.TOCTitle" content="Publishing Extensions" />
+<meta name="ms.ContentId" content="7EA90618-43A3-4873-A9B5-61CC131CE4EE" />
+<meta name="ms.topic" content="conceptual" />
+<meta name="ms.date" content="8/19/2026" />
+<!-- Twitter and Facebook OpenGraph Metadata-->
+<meta name="twitter:card" content="summary_large_image" />
+<meta property="og:url" content="https://code.visualstudio.com/api/working-with-extensions/publishing-extension" />
+
+<meta property="og:description" content="Learn how to publish Visual Studio Code extensions to the public Marketplace and share them with other developers." />
+
+<meta property="og:type" content="article" />
+<meta property="og:title" content="Publishing Extensions" />
+
+<meta property="og:image" content="https://code.visualstudio.com/opengraphimg/generated/api/working-with-extensions/publishing-extension.webp" />
+
+
+
+	<link rel="shortcut icon" href="/assets/favicon.ico" sizes="128x128" />
+	<link rel="apple-touch-icon" href="/assets/apple-touch-icon.png">
+
+	<title>Publishing Extensions | Visual Studio Code Extension
+API</title>
+
+	<link rel="stylesheet" href="/dist/style.css">
+
+	<script src="https://consentdeliveryfd.azurefd.net/mscc/lib/v2/wcp-consent.js"></script>
+	<script type="text/javascript" src="https://js.monitor.azure.com/scripts/c/ms.analytics-web-4.min.js"></script>
+	
+	<script type="text/javascript">
+	// Leave as var; siteConsent is initialized and referenced elsewhere.
+	var siteConsent = null;
+	
+	const GPC_DataSharingOptIn = false;
+	WcpConsent.onInitCallback(function () {
+		window.appInsights = new oneDS.ApplicationInsights();
+		window.appInsights.initialize({
+			instrumentationKey: "1a3eb3104447440391ad5f2a6ee06a0a-62879566-bc58-4741-9650-302bf2af703f-7103",
+			propertyConfiguration: {
+				userConsented: false,
+				gpcDataSharingOptIn: false,
+				callback: {
+					// Stable closure: the SDK calls this per-event, so it picks up the
+					// real consent state once WcpConsent.init() resolves (siteConsent
+					// is still null when this callback is registered).
+					userConsentDetails: function () {
+						return siteConsent ? siteConsent.getConsent() : undefined;
+					}
+				},
+			},
+			cookieCfg: {
+				ignoreCookies: ["MSCC"]
+			},
+			webAnalyticsConfiguration:{ // Web Analytics Plugin configuration
+				urlCollectQuery: true,
+				urlCollectHash: true,
+				autoCapture: {
+					scroll: true,
+					pageView: true,
+					onLoad: true,
+					onUnload: true,
+					click: true,
+					resize: true,
+					jsError: true
+				}
+			}
+		}, []);
+	
+		window.appInsights.getPropertyManager().getPropertiesContext().web.gpcDataSharingOptIn = GPC_DataSharingOptIn;
+	});
+	</script>
+	<link rel="alternate" type="application/atom+xml" title="RSS Feed for code.visualstudio.com" href="/feed.xml" />
+</head>
+
+<body >
+	<!-- Setting theme here to avoid FOUC -->
+	<script>
+		function setTheme(themeName) {
+			if (themeName === 'dark') {
+				document.documentElement.removeAttribute('data-theme'); // dark is default, so no data-theme attribute needed
+			}
+
+			if (themeName === 'light') {
+				document.documentElement.setAttribute('data-theme', themeName);
+			}
+			return;
+		}
+
+		// Determine initial theme: user preference or system preference
+		let theme = localStorage.getItem('theme') || (window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
+		setTheme(theme); // Apply the initial theme
+
+		// Listen for changes in the system theme preference
+		window.matchMedia('(prefers-color-scheme: dark)').addListener(e => {
+			if (!localStorage.getItem('theme')) { // Only if no user preference is saved
+				setTheme(e.matches ? 'dark' : 'light');
+			}
+		});
+	</script>
+
+	<div id="main">
+		<div class="navbar-fixed-container">
+			<div class="navbar navbar-inverse navbar-fixed-top ">
+				<div id='cookie-banner'></div>		<nav role="navigation" aria-label="Top Level">
+					<div class="container">
+						<div class="nav navbar-header">
+							<a class="navbar-brand" href="/"><span>Visual Studio Code</span></a>
+						</div>
+						<div class="navbar-collapse collapse">
+							<ul class="nav navbar-nav navbar-left" data-m='{"cN":"top-navbar","aN":"navigation"}'>
+								<li class="nav-dropdown">
+									<a id="nav-features" href="#" class="nav-dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false" data-m='{"cN":"Features","aN":"navigation","cT":"toggle"}'>
+										Features <span class="nav-dropdown-caret" aria-hidden="true"></span>
+									</a>
+									<ul class="nav-dropdown-menu" role="menu">
+										<li role="none"><a role="menuitem" href="/features/agents" data-m='{"cN":"Agents","aN":"navigation - Features"}'>Agents</a></li>
+										<li role="none"><a role="menuitem" href="/features/customizations" data-m='{"cN":"Agent Customization","aN":"navigation - Features"}'>Agent Customization</a></li>
+										<li role="none"><a role="menuitem" href="/features/models" data-m='{"cN":"Models &amp; Agent Harnesses","aN":"navigation - Features"}'>Models &amp; Agent Harnesses</a></li>
+										<li role="none"><a role="menuitem" href="/features/enterprise" data-m='{"cN":"Enterprise","aN":"navigation - Features"}'>Enterprise</a></li>
+										<li role="none"><a role="menuitem" href="/features/extensibility" data-m='{"cN":"Extensibility","aN":"navigation - Features"}'>Extensibility</a></li>
+									</ul>
+								</li>
+								<li class="nav-dropdown active">
+									<a id="nav-docs" href="#" class="nav-dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false" data-m='{"cN":"Docs","aN":"navigation","cT":"toggle"}'>
+										Docs <span class="nav-dropdown-caret" aria-hidden="true"></span>
+									</a>
+									<ul class="nav-dropdown-menu" role="menu">
+										<li role="none"><a role="menuitem" href="/docs" data-m='{"cN":"Documentation","aN":"navigation - Docs"}'>Documentation</a></li>
+										<li role="none"><a role="menuitem" href="/api" data-m='{"cN":"API","aN":"navigation - Docs"}'>API</a></li>
+										<li role="none"><a role="menuitem" id="nav-faqs" href="/docs/supporting/faq" data-m='{"cN":"FAQ","aN":"navigation - Docs"}'>FAQ</a></li>
+									</ul>
+								</li>
+								<li ><a id="nav-updates" href="/updates" data-m='{"cN":"Release Notes"}'>Release Notes</a>
+								</li>
+								<li ><a id="nav-blogs" href="/blogs" data-m='{"cN":"Blog"}'>Blog</a></li>
+								<li ><a id="nav-learn" href="/learn" data-m='{"cN":"Learn"}'>Learn</a></li>
+								<li><a id="nav-events" href="https://aka.ms/vscode/live" target="_blank" rel="noopener" data-m='{"cN":"Events"}'>Events<span class="codicon codicon-link-external nav-external-icon" aria-hidden="true"></span></a></li>
+								<li class="nav-dropdown">
+									<a id="nav-resources" href="#" class="nav-dropdown-toggle" role="button" aria-haspopup="true" aria-expanded="false" data-m='{"cN":"Resources","aN":"navigation","cT":"toggle"}'>
+										Resources <span class="nav-dropdown-caret" aria-hidden="true"></span>
+									</a>
+									<ul class="nav-dropdown-menu" role="menu">
+										<li role="none"><a role="menuitem" href="https://marketplace.visualstudio.com/VSCode" target="_blank" rel="noopener"
+												id="nav-extensions" data-m='{"cN":"Extensions","aN":"navigation - Resources"}'>Extensions<span class="codicon codicon-link-external nav-external-icon" aria-hidden="true"></span></a></li>
+										<li role="none"><a role="menuitem" id="nav-mcp" href="/mcp" target="_blank" rel="noopener" data-m='{"cN":"MCP","aN":"navigation - Resources"}'>MCP<span class="codicon codicon-link-external nav-external-icon" aria-hidden="true"></span></a></li>
+									</ul>
+								</li>
+							</ul>
+							<ul class="nav navbar-nav navbar-right" role="presentation">
+								<li>
+									<a class="link-button" href="/download" id="nav-download">
+										<span>Download</span>
+									</a>
+								</li>
+							</ul>
+						</div>
+						<div class="navbar-actions">
+							<div class="search" role="presentation">
+								<div class="nav-search search-control" role="button" tabindex="0" aria-label="Open search dialog">
+									<div class="input-group" role="presentation">
+										<span class="input-group-btn">
+											<span class="btn search-icon-container" aria-hidden="true">
+												<img class="search-icon-dark" src="/assets/icons/search-dark.svg" alt="" />
+												<img class="search-icon-light" src="/assets/icons/search.svg" alt="" />
+											</span>
+										</span>
+										<span class="search-box form-control" aria-hidden="true" role="presentation"></span>
+										<span class="search-shortcut-placeholder">Search</span>
+										<span class="search-shortcut-overlay"></span>
+									</div>
+								</div>					</div>
+							<button type="button" class="theme-switch" id="theme-toggle">
+								<img class="theme-icon-light" src="/assets/icons/theme-light.svg" alt="Switch to the dark theme" />
+								<img class="theme-icon-dark" src="/assets/icons/theme-dark.svg" alt="Switch to the light theme" />
+							</button>
+							<a class="link-button navbar-actions-download" href="/Download">
+								<span>Download</span>
+							</a>
+						</div>
+						<button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse"
+							aria-label="Expand and Collapse Menu">
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+							<span class="icon-bar"></span>
+						</button>
+					</div>
+				</nav>
+			</div>
+		</div>		<div data-announcement-version="2026-06-01-vscode-live-build" class="updates-banner ">
+			<div class="container">
+				<p class="message"><a href="https://aka.ms/VSCode/Livestage?source=vsc-website-banner" target="_blank" rel="noopener">📼 Rewatch VS Code Live at MS Build 2026</a></p>
+			</div>
+			<div tabindex="0" role="button" title="Dismiss this update" class="dismiss-btn" id="banner-dismiss-btn"><span class="sr-only">Dismiss this update</span><span aria-hidden="true" class="glyph-icon"></span></div>
+		</div>
+		<script>
+			// Hide the banner synchronously (before first paint) if this version was
+			// already dismissed, to avoid a flicker/layout shift once the main bundle loads.
+			(function () {
+				try {
+					var banner = document.currentScript.previousElementSibling;
+					if (banner && localStorage.getItem('dismissedAnnouncementVersion') === banner.getAttribute('data-announcement-version')) {
+						banner.classList.add('js-hidden');
+					}
+				} catch (e) { /* ignore */ }
+			})();
+		</script>
+		<!-- This div wraps around the entire site -->
+		<!-- The body itself should already have a main tag -->
+		<main id="main-content">
+			<div class="body-content docs docs-github-layout">
+	<div class="docs-layout-wrapper">
+		<!-- Left sidebar - Table of Contents -->
+		<aside class="docs-left-sidebar">
+			<nav id="docs-navbar" aria-label="Topics" class="docs-nav visible-md visible-lg">
+			  <h4>Extension API</h4>
+			  <ul class="nav" id="main-nav">
+			  <li >
+			    <a href="/api" >Overview</a>
+			  </li>
+			  
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#get-started-articles" data-parent="#main-nav" data-toggle="collapse">Get Started</a>
+			  <ul id="get-started-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/get-started/your-first-extension" >Your First Extension</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/get-started/extension-anatomy" >Extension Anatomy</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/get-started/wrapping-up" >Wrapping Up</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#extension-capabilities-articles" data-parent="#main-nav" data-toggle="collapse">Extension Capabilities</a>
+			  <ul id="extension-capabilities-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/extension-capabilities/overview" >Overview</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-capabilities/common-capabilities" >Common Capabilities</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-capabilities/theming" >Theming</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-capabilities/extending-workbench" >Extending Workbench</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#extension-guides-articles" data-parent="#main-nav" data-toggle="collapse">Extension Guides</a>
+			  <ul id="extension-guides-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/extension-guides/overview" >Overview</a>
+			        </li>
+			          
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#extension-guides-ai-articles" data-parent="#extension-guides-articles" data-toggle="collapse">AI</a>
+			  <ul id="extension-guides-ai-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/extension-guides/ai/ai-extensibility-overview" >AI Extensibility</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/tools" >Language Model Tool</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/mcp" >MCP Dev Guide</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/chat" >Chat Participant</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/chat-tutorial" >Chat Tutorial</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/language-model" >Language Model</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/language-model-tutorial" >Language Model Tutorial</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/language-model-chat-provider" >Language Model Chat Provider</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/ai/prompt-tsx" >Prompt TSX</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			        
+			        <li >
+			          <a href="/api/extension-guides/command" >Command</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/color-theme" >Color Theme</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/file-icon-theme" >File Icon Theme</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/product-icon-theme" >Product Icon Theme</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/tree-view" >Tree View</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/webview" >Webview</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/notebook" >Notebook</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/custom-editors" >Custom Editors</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/virtual-documents" >Virtual Documents</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/virtual-workspaces" >Virtual Workspaces</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/web-extensions" >Web Extensions</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/workspace-trust" >Workspace Trust</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/task-provider" >Task Provider</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/scm-provider" >Source Control</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/debugger-extension" >Debugger Extension</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/markdown-extension" >Markdown Extension</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/testing" >Test Extension</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/custom-data-extension" >Custom Data Extension</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/extension-guides/telemetry" >Telemetry</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#ux-guidelines-articles" data-parent="#main-nav" data-toggle="collapse">UX Guidelines</a>
+			  <ul id="ux-guidelines-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/ux-guidelines/overview" >Overview</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/activity-bar" >Activity Bar</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/sidebars" >Sidebars</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/panel" >Panel</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/status-bar" >Status Bar</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/views" >Views</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/editor-actions" >Editor Actions</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/quick-picks" >Quick Picks</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/command-palette" >Command Palette</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/notifications" >Notifications</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/webviews" >Webviews</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/context-menus" >Context Menus</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/walkthroughs" >Walkthroughs</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/ux-guidelines/settings" >Settings</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#language-extensions-articles" data-parent="#main-nav" data-toggle="collapse">Language Extensions</a>
+			  <ul id="language-extensions-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/language-extensions/overview" >Overview</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/syntax-highlight-guide" >Syntax Highlight Guide</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/semantic-highlight-guide" >Semantic Highlight Guide</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/snippet-guide" >Snippet Guide</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/language-configuration-guide" >Language Configuration Guide</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/programmatic-language-features" >Programmatic Language Features</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/language-server-extension-guide" >Language Server Extension Guide</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/language-extensions/embedded-languages" >Embedded Languages</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel active expanded">
+			  <a class="area" role="button" href="#working-with-extensions-articles" data-parent="#main-nav" data-toggle="collapse">Testing and Publishing</a>
+			  <ul id="working-with-extensions-articles" class="collapse in">
+			
+			        <li >
+			          <a href="/api/working-with-extensions/testing-extension" >Testing Extensions</a>
+			        </li>
+			          
+			        <li class="active">
+			          <a href="/api/working-with-extensions/publishing-extension" aria-label="Current Page: Publishing Extensions">Publishing Extensions</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/working-with-extensions/bundling-extension" >Bundling Extensions</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/working-with-extensions/continuous-integration" >Continuous Integration</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#advanced-topics-articles" data-parent="#main-nav" data-toggle="collapse">Advanced Topics</a>
+			  <ul id="advanced-topics-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/advanced-topics/extension-host" >Extension Host</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/advanced-topics/remote-extensions" >Remote Development and Codespaces</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/advanced-topics/using-proposed-api" >Using Proposed API</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/advanced-topics/tslint-eslint-migration" >Migrate from TSLint to ESLint</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/advanced-topics/python-extension-template" >Python Extension Template</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			<li class="panel collapsed">
+			  <a class="area" role="button" href="#references-articles" data-parent="#main-nav" data-toggle="collapse">References</a>
+			  <ul id="references-articles" class="collapse ">
+			
+			        <li >
+			          <a href="/api/references/vscode-api" >VS Code API</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/contribution-points" >Contribution Points</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/activation-events" >Activation Events</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/extension-manifest" >Extension Manifest</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/commands" >Built-In Commands</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/when-clause-contexts" >When Clause Contexts</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/theme-color" >Theme Color</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/icons-in-labels" >Product Icon Reference</a>
+			        </li>
+			          
+			        <li >
+			          <a href="/api/references/document-selector" >Document Selector</a>
+			        </li>
+			          
+			  </ul>
+			</li>
+			    
+			  </ul>
+			</nav>
+			
+			<nav id="small-nav" aria-label="Topics" class="docs-nav hidden-md hidden-lg">
+				<label class="faux-h4" for="small-nav-dropdown">Topics</label>
+				<select id="small-nav-dropdown" aria-label="topics">
+			    <option value="/api" >Overview</option>
+			
+			  <optgroup label="Get Started">
+			
+			        <option value="/api/get-started/your-first-extension" >Your First Extension</option>
+			        
+			        <option value="/api/get-started/extension-anatomy" >Extension Anatomy</option>
+			        
+			        <option value="/api/get-started/wrapping-up" >Wrapping Up</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="Extension Capabilities">
+			
+			        <option value="/api/extension-capabilities/overview" >Overview</option>
+			        
+			        <option value="/api/extension-capabilities/common-capabilities" >Common Capabilities</option>
+			        
+			        <option value="/api/extension-capabilities/theming" >Theming</option>
+			        
+			        <option value="/api/extension-capabilities/extending-workbench" >Extending Workbench</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="Extension Guides">
+			
+			        <option value="/api/extension-guides/overview" >Overview</option>
+			        
+			        <optgroup label="Extension Guides - AI">
+			
+			          <option value="/api/extension-guides/ai/ai-extensibility-overview" >AI Extensibility</option>
+			          
+			          <option value="/api/extension-guides/ai/tools" >Language Model Tool</option>
+			          
+			          <option value="/api/extension-guides/ai/mcp" >MCP Dev Guide</option>
+			          
+			          <option value="/api/extension-guides/ai/chat" >Chat Participant</option>
+			          
+			          <option value="/api/extension-guides/ai/chat-tutorial" >Chat Tutorial</option>
+			          
+			          <option value="/api/extension-guides/ai/language-model" >Language Model</option>
+			          
+			          <option value="/api/extension-guides/ai/language-model-tutorial" >Language Model Tutorial</option>
+			          
+			          <option value="/api/extension-guides/ai/language-model-chat-provider" >Language Model Chat Provider</option>
+			          
+			          <option value="/api/extension-guides/ai/prompt-tsx" >Prompt TSX</option>
+			          
+			        </optgroup>
+			
+			        <option value="/api/extension-guides/command" >Command</option>
+			        
+			        <option value="/api/extension-guides/color-theme" >Color Theme</option>
+			        
+			        <option value="/api/extension-guides/file-icon-theme" >File Icon Theme</option>
+			        
+			        <option value="/api/extension-guides/product-icon-theme" >Product Icon Theme</option>
+			        
+			        <option value="/api/extension-guides/tree-view" >Tree View</option>
+			        
+			        <option value="/api/extension-guides/webview" >Webview</option>
+			        
+			        <option value="/api/extension-guides/notebook" >Notebook</option>
+			        
+			        <option value="/api/extension-guides/custom-editors" >Custom Editors</option>
+			        
+			        <option value="/api/extension-guides/virtual-documents" >Virtual Documents</option>
+			        
+			        <option value="/api/extension-guides/virtual-workspaces" >Virtual Workspaces</option>
+			        
+			        <option value="/api/extension-guides/web-extensions" >Web Extensions</option>
+			        
+			        <option value="/api/extension-guides/workspace-trust" >Workspace Trust</option>
+			        
+			        <option value="/api/extension-guides/task-provider" >Task Provider</option>
+			        
+			        <option value="/api/extension-guides/scm-provider" >Source Control</option>
+			        
+			        <option value="/api/extension-guides/debugger-extension" >Debugger Extension</option>
+			        
+			        <option value="/api/extension-guides/markdown-extension" >Markdown Extension</option>
+			        
+			        <option value="/api/extension-guides/testing" >Test Extension</option>
+			        
+			        <option value="/api/extension-guides/custom-data-extension" >Custom Data Extension</option>
+			        
+			        <option value="/api/extension-guides/telemetry" >Telemetry</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="UX Guidelines">
+			
+			        <option value="/api/ux-guidelines/overview" >Overview</option>
+			        
+			        <option value="/api/ux-guidelines/activity-bar" >Activity Bar</option>
+			        
+			        <option value="/api/ux-guidelines/sidebars" >Sidebars</option>
+			        
+			        <option value="/api/ux-guidelines/panel" >Panel</option>
+			        
+			        <option value="/api/ux-guidelines/status-bar" >Status Bar</option>
+			        
+			        <option value="/api/ux-guidelines/views" >Views</option>
+			        
+			        <option value="/api/ux-guidelines/editor-actions" >Editor Actions</option>
+			        
+			        <option value="/api/ux-guidelines/quick-picks" >Quick Picks</option>
+			        
+			        <option value="/api/ux-guidelines/command-palette" >Command Palette</option>
+			        
+			        <option value="/api/ux-guidelines/notifications" >Notifications</option>
+			        
+			        <option value="/api/ux-guidelines/webviews" >Webviews</option>
+			        
+			        <option value="/api/ux-guidelines/context-menus" >Context Menus</option>
+			        
+			        <option value="/api/ux-guidelines/walkthroughs" >Walkthroughs</option>
+			        
+			        <option value="/api/ux-guidelines/settings" >Settings</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="Language Extensions">
+			
+			        <option value="/api/language-extensions/overview" >Overview</option>
+			        
+			        <option value="/api/language-extensions/syntax-highlight-guide" >Syntax Highlight Guide</option>
+			        
+			        <option value="/api/language-extensions/semantic-highlight-guide" >Semantic Highlight Guide</option>
+			        
+			        <option value="/api/language-extensions/snippet-guide" >Snippet Guide</option>
+			        
+			        <option value="/api/language-extensions/language-configuration-guide" >Language Configuration Guide</option>
+			        
+			        <option value="/api/language-extensions/programmatic-language-features" >Programmatic Language Features</option>
+			        
+			        <option value="/api/language-extensions/language-server-extension-guide" >Language Server Extension Guide</option>
+			        
+			        <option value="/api/language-extensions/embedded-languages" >Embedded Languages</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="Testing and Publishing">
+			
+			        <option value="/api/working-with-extensions/testing-extension" >Testing Extensions</option>
+			        
+			        <option value="/api/working-with-extensions/publishing-extension" selected>Publishing Extensions</option>
+			        
+			        <option value="/api/working-with-extensions/bundling-extension" >Bundling Extensions</option>
+			        
+			        <option value="/api/working-with-extensions/continuous-integration" >Continuous Integration</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="Advanced Topics">
+			
+			        <option value="/api/advanced-topics/extension-host" >Extension Host</option>
+			        
+			        <option value="/api/advanced-topics/remote-extensions" >Remote Development and Codespaces</option>
+			        
+			        <option value="/api/advanced-topics/using-proposed-api" >Using Proposed API</option>
+			        
+			        <option value="/api/advanced-topics/tslint-eslint-migration" >Migrate from TSLint to ESLint</option>
+			        
+			        <option value="/api/advanced-topics/python-extension-template" >Python Extension Template</option>
+			        
+			  </optgroup>
+			  
+			  <optgroup label="References">
+			
+			        <option value="/api/references/vscode-api" >VS Code API</option>
+			        
+			        <option value="/api/references/contribution-points" >Contribution Points</option>
+			        
+			        <option value="/api/references/activation-events" >Activation Events</option>
+			        
+			        <option value="/api/references/extension-manifest" >Extension Manifest</option>
+			        
+			        <option value="/api/references/commands" >Built-In Commands</option>
+			        
+			        <option value="/api/references/when-clause-contexts" >When Clause Contexts</option>
+			        
+			        <option value="/api/references/theme-color" >Theme Color</option>
+			        
+			        <option value="/api/references/icons-in-labels" >Product Icon Reference</option>
+			        
+			        <option value="/api/references/document-selector" >Document Selector</option>
+			        
+			  </optgroup>
+			  
+				</select>
+			</nav>		</aside>
+		
+		<!-- Content wrapper contains main content + right sidebar -->
+		<div class="docs-content-wrapper">
+			<!-- Main article content -->
+			<main class="docs-main-content body">
+				<h1>Publishing Extensions</h1>
+<p>Once you have made a high-quality extension, you can publish it to the <a href="https://marketplace.visualstudio.com/vscode" class="external-link" target="_blank">VS Code Extension Marketplace</a> so others can find, download, and use your extension. Alternatively, you can <a href="#packaging-extensions">package</a> an extension into the installable VSIX format and share it with other users.</p>
+<p>This topic covers:</p>
+<ul>
+<li>Using <a href="#vsce">vsce</a>, the CLI tool for managing VS Code extensions</li>
+<li><a href="#packaging-extensions">Packaging</a>, <a href="#publishing-extensions">publishing</a> and <a href="#unpublishing-extensions">unpublishing</a> extensions</li>
+<li><a href="#create-a-publisher">Registering a publisher</a> necessary for publishing extensions</li>
+</ul>
+<h2 id="vsce" data-needslink="vsce">vsce</h2>
+<p><a href="https://github.com/microsoft/vscode-vsce" class="external-link" target="_blank">vsce</a>, short for &quot;Visual Studio Code Extensions&quot;, is a command-line tool for packaging, publishing and managing VS Code extensions.</p>
+<h3 id="installation" data-needslink="installation">Installation</h3>
+<p>Make sure you have <a href="https://nodejs.org/" class="external-link" target="_blank">Node.js</a> installed. Then run:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">npm</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> install</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> -g</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> @vscode/vsce</span></span>
+<span class="line"></span></code></pre>
+<h3 id="usage" data-needslink="usage">Usage</h3>
+<p>You can use <code>vsce</code> to easily <a href="#packaging-extensions">package</a> and <a href="#publishing-extensions">publish</a> your extensions:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">$</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> cd</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> myExtension</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">$</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> package</span></span>
+<span class="line"><span style="--shiki-dark:#6A9955;--shiki-light:#008000"># myExtension.vsix generated</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">$</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span></span>
+<span class="line"><span style="--shiki-dark:#6A9955;--shiki-light:#008000"># &#x3C;publisher id>.myExtension published to VS Code Marketplace</span></span>
+<span class="line"></span></code></pre>
+<p><code>vsce</code> can also search, retrieve metadata, and unpublish extensions. For a reference on all the available <code>vsce</code> commands, run <code>vsce --help</code>.</p>
+<h2 id="publishing-extensions" data-needslink="publishing-extensions">Publishing extensions</h2>
+<hr>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>Due to security concerns, <code>vsce</code> will not publish extensions that contain user-provided SVG images.</p>
+</div><p>The publishing tool checks the following constraints:</p>
+<ul>
+<li>The icon provided in <code>package.json</code> may not be an SVG.</li>
+<li>The badges provided in the <code>package.json</code> may not be SVGs unless they are from <a href="/api/references/extension-manifest#approved-badges">trusted badge providers</a>.</li>
+<li>Image URLs in <code>README.md</code> and <code>CHANGELOG.md</code> need to resolve to <code>https</code> URLs.</li>
+<li>Images in <code>README.md</code> and <code>CHANGELOG.md</code> may not be SVGs unless they are from <a href="/api/references/extension-manifest#approved-badges">trusted badge providers</a>.</li>
+</ul>
+<hr>
+<p>Visual Studio Code uses <a href="https://azure.microsoft.com/services/devops/" class="external-link" target="_blank">Azure DevOps</a> for its Marketplace services. This means that authentication, hosting, and management of extensions are provided through Azure DevOps.</p>
+<div class="markdown-alert important" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z">
+          </path>
+        </svg>
+        Important
+      </span><p>On December 1, 2026, global Personal Access Tokens (PATs) in Azure DevOps are retired. To keep publishing extensions, use <a href="#secure-automated-publishing-to-visual-studio-marketplace">secure automated publishing</a> with Microsoft Entra ID instead of PATs. For more information, see <a href="https://devblogs.microsoft.com/devops/retirement-of-global-personal-access-tokens-in-azure-devops/" class="external-link" target="_blank">Retirement of global Personal Access Tokens in Azure DevOps</a>.</p>
+</div><h3 id="secure-automated-publishing-to-visual-studio-marketplace" data-needslink="secure-automated-publishing-to-visual-studio-marketplace">Secure automated publishing to Visual Studio Marketplace</h3>
+<p>We recommend that extension publishing use <a href="https://learn.microsoft.com/en-us/azure/devops/integrate/get-started/authentication/entra?view=azure-devops" class="external-link" target="_blank">Microsoft Entra ID–based authentication</a> with <strong>workload identity federation and managed identities</strong>. This approach eliminates long-lived secrets such as Personal Access Tokens (PATs) and enables secure, automated publishing pipelines.</p>
+<p>This approach strengthens the overall security posture by removing reliance on stored credentials, simplifies operations through native integration with Azure Pipelines and Entra ID, scales effectively across environments, and aligns with modern identity and access management standards required for enterprise compliance. For more information, see <a href="https://devblogs.microsoft.com/devops/reducing-pat-usage-across-azure-devops/" class="external-link" target="_blank">Reduce PAT usage</a>.</p>
+<ol>
+<li>
+<p>Create a Service Connection (Azure DevOps)</p>
+<ul>
+<li>Navigate to <strong>Project Settings → Service Connections</strong></li>
+<li>Create a new <strong>Azure Resource Manager</strong> connection</li>
+<li>Select <strong>Workload Identity Federation (manual)</strong></li>
+<li>Save the connection in draft mode to collect required values later</li>
+</ul>
+</li>
+<li>
+<p>Create a Managed Identity (Azure)</p>
+<ul>
+<li>Create a <strong>user-assigned managed identity</strong> in Azure</li>
+<li>Assign the <strong>Reader</strong> role</li>
+<li>Record the following values: <strong>Client ID</strong>, <strong>Tenant ID</strong>, <strong>Subscription</strong> details</li>
+</ul>
+</li>
+<li>
+<p>Configure Federated Credentials</p>
+<p>Establish link between Azure DevOps and Azure:</p>
+<ul>
+<li>Add a federated credential to the managed identity</li>
+<li>Exchange required values between systems:
+<ul>
+<li>From Azure DevOps → Azure: <strong>issuer and subject</strong></li>
+<li>From Azure → Azure DevOps: <strong>client ID, tenant ID, subscription</strong></li>
+</ul>
+</li>
+<li>In Azure DevOps, select <strong>Verify and save</strong></li>
+</ul>
+</li>
+<li>
+<p>Grant Pipeline Access</p>
+<ul>
+<li>Open the service connection</li>
+<li>Grant access to the pipelines responsible for publishing</li>
+</ul>
+</li>
+<li>
+<p>Retrieve Managed Identity Resource ID (one-time)</p>
+<ul>
+<li>Run an Azure CLI task to retrieve the identity information:<pre class="shiki" data-lang="yaml" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">steps</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">:</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">- </span><span style="--shiki-dark:#569CD6;--shiki-light:#800000">task</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">AzureCLI@2</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">  displayName</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">'Get identity details'</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">  inputs</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">:</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    azureSubscription</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">&#x3C;ServiceConnectionName></span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    scriptType</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">pscore</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    scriptLocation</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">inlineScript</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    inlineScript</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#C586C0;--shiki-light:#AF00DB">|</span></span>
+<span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">      az rest -u https://app.vssps.visualstudio.com/_apis/profile/profiles/me --resource 499b84ac-1321-427f-aa17-267ca6975798</span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>From the output JSON, capture the managed identity resource ID (the <code>id</code> field).</li>
+</ul>
+</li>
+<li>
+<p>Authorize the Identity in Visual Studio Marketplace</p>
+<ul>
+<li>Add the managed identity (using its resource ID) as a member of your publisher.</li>
+<li>Assign the <strong>Contributor</strong> role</li>
+</ul>
+</li>
+<li>
+<p>Configure the CI/CD Pipeline</p>
+<ul>
+<li>Set up your Azure Pipelines CI/CD workflow</li>
+<li>Replace PAT-based authentication with the identity-based approach</li>
+</ul>
+</li>
+<li>
+<p>Publish Using Managed Identity</p>
+<ul>
+<li>In your pipeline, generate a Microsoft Entra ID (AAD) access token via Azure CLI.</li>
+<li>Use the token with your publishing commands (for example: <code>vsce publish --azure-credential</code>).</li>
+</ul>
+</li>
+</ol>
+<p>Sample YAML tasks.  Replace <ExtensionDirectory> with the extension directory path.</p>
+<pre class="shiki" data-lang="yaml" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#6A9955;--shiki-light:#008000"># Install VS Code Extension Manager (vsce >= v2.26.1 needed) and dependencies</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">- </span><span style="--shiki-dark:#569CD6;--shiki-light:#800000">script</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#C586C0;--shiki-light:#AF00DB">|</span></span>
+<span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">    cd &#x3C;ExtensionDirectory></span></span>
+<span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">    npm install -g @vscode/vsce</span></span>
+<span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">    npm install</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">  displayName</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"Install vsce and dependencies"</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-dark:#6A9955;--shiki-light:#008000"># Publish</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">- </span><span style="--shiki-dark:#569CD6;--shiki-light:#800000">task</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">AzureCLI@2</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">  displayName</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">'Publish using managed identity'</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">  inputs</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">:</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    azureSubscription</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">&#x3C;ServiceConnectionName></span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    scriptType</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">pscore</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    scriptLocation</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">inlineScript</span></span>
+<span class="line"><span style="--shiki-dark:#569CD6;--shiki-light:#800000">    inlineScript</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#C586C0;--shiki-light:#AF00DB">|</span></span>
+<span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">      cd &#x3C;ExtensionDirectory></span></span>
+<span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#0000FF">      vsce publish --azure-credential</span></span>
+<span class="line"></span></code></pre>
+<hr>
+<p><code>vsce</code> can also publish extensions using <a href="https://learn.microsoft.com/azure/devops/organizations/accounts/use-personal-access-tokens-to-authenticate" class="external-link" target="_blank">Personal Access Tokens</a>.</p>
+<div class="markdown-alert important" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z">
+          </path>
+        </svg>
+        Important
+      </span><p>Global PATs in Azure DevOps are retired on December 1, 2026. We recommend that you use <a href="#secure-automated-publishing-to-visual-studio-marketplace">secure automated publishing</a> with Microsoft Entra ID instead of PATs. For more information, see <a href="https://devblogs.microsoft.com/devops/retirement-of-global-personal-access-tokens-in-azure-devops/" class="external-link" target="_blank">Retirement of global Personal Access Tokens in Azure DevOps</a>.</p>
+</div><h3 id="get-a-personal-access-token" data-needslink="get-a-personal-access-token">Get a Personal Access Token</h3>
+<p>You can create a Personal Access Token via the Azure DevOps portal. To create a Personal Access Token:</p>
+<ol>
+<li>
+<p>If you don't have an Azure DevOps organization yet, follow the steps in the <a href="https://learn.microsoft.com/azure/devops/organizations/accounts/create-organization" class="external-link" target="_blank">Create an organization</a> article.</p>
+</li>
+<li>
+<p>Go to the <a href="https://go.microsoft.com/fwlink/?LinkId=307137" class="external-link" target="_blank">Azure DevOps portal</a>, and select your organization.</p>
+</li>
+<li>
+<p>Open the User settings dropdown menu next to your profile image and select <strong>Personal access tokens</strong>:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/menu-pat.png" alt="Personal settings menu" loading="lazy"></p>
+</li>
+<li>
+<p>On the <strong>Personal Access Tokens</strong> page, select <strong>New Token</strong>:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/new-token.png" alt="Create new token button" loading="lazy"></p>
+</li>
+<li>
+<p>In the Create a new personal access token modal, select the following details for the token:</p>
+<ul>
+<li>Name: any name you want for the token</li>
+<li>Organization: <strong>All accessible organizations</strong></li>
+<li>Expiration (optional): set the desired expiration date for the token</li>
+<li>Scopes: <strong>Custom defined</strong>:
+<ul>
+<li>click <strong>Show all scopes</strong> link below the <strong>Scopes</strong> section</li>
+<li>in the Scopes list, scroll to <strong>Marketplace</strong> and select <strong>Manage</strong> scope</li>
+</ul>
+</li>
+</ul>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/create-token.png" alt="Create personal access token" loading="lazy"></p>
+</li>
+<li>
+<p>Click <strong>Create</strong>.</p>
+<p>You'll be presented with your newly created Personal Access Token. <strong>Copy</strong> it to the safe location, you'll need it to <a href="#create-a-publisher">create a publisher</a>.</p>
+</li>
+</ol>
+<h3 id="create-a-publisher" data-needslink="create-a-publisher">Create a publisher</h3>
+<p>A <strong>publisher</strong> is an identity that can publish extensions to the Visual Studio Code Marketplace. Every extension needs to include a <code>publisher</code> identifier in its <a href="/api/references/extension-manifest"><code>package.json</code> file</a>.</p>
+<p>To create a publisher:</p>
+<ol>
+<li>
+<p>Go to the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a>.</p>
+</li>
+<li>
+<p>Log in with the same Microsoft account you used to create the <a href="#get-a-personal-access-token">Personal Access Token</a> in the previous section.</p>
+</li>
+<li>
+<p>Click <strong>Create publisher</strong> in the pane on the left.</p>
+</li>
+<li>
+<p>In the new page, specify the mandatory parameters for a new publisher - identifier and name (<strong>ID</strong> and <strong>Name</strong> fields respectively):</p>
+<ul>
+<li><strong>ID</strong>: the <strong>unique</strong> identifier for your publisher in Marketplace that will be used in your extension URLs. ID cannot be changed once created.</li>
+<li><strong>Name</strong>: the <strong>unique</strong> name of your publisher that will be displayed in Marketplace with your extensions. This can be your company or brand name.</li>
+</ul>
+<p>Below is an example of publisher identifier and name for the Python extension:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/publisher-id-and-name.png" alt="Example of publisher identifier and name" loading="lazy"></p>
+</li>
+<li>
+<p>Optionally, fill out the rest of the fields.</p>
+</li>
+<li>
+<p>Click <strong>Create</strong></p>
+</li>
+<li>
+<p>Verify the newly created publisher using <code>vsce</code>. In your terminal, run the following command, and when prompted, type the Personal Access Token created in the previous step:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> login</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000"> &#x3C;</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">publisher</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> i</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">d></span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">https://marketplace.visualstudio.com/manage/publishers/</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">Personal</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> Access</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> Token</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> for</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publisher</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> '&#x3C;publisher id>':</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> ****************************************************</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">The</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> Personal</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> Access</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> Token</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> verification</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> succeeded</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> for</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> the</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publisher</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> '&#x3C;publisher id>'.</span></span>
+<span class="line"></span></code></pre>
+</li>
+</ol>
+<p>Once verified, you are ready to publish an extension.</p>
+<h3 id="publish-an-extension" data-needslink="publish-an-extension">Publish an extension</h3>
+<p>You can publish an extension in two ways:</p>
+<ol>
+<li>
+<p>Automatically, using <code>vsce publish</code> command:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span></span>
+<span class="line"></span></code></pre>
+<p>If you haven't already provided your personal access token with the <code>vsce login</code> command above, <code>vsce</code> will ask for it.</p>
+</li>
+<li>
+<p>Manually, using <code>vsce package</code> to package the extension into the installable VSIX format and then uploading it to the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a>:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/add-extension.png" alt="Add an extension through management page" loading="lazy"></p>
+</li>
+</ol>
+<h2 id="review-extension-installs-and-ratings" data-needslink="review-extension-installs-and-ratings">Review extension installs and ratings</h2>
+<p>The <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a> gives you access to each extension's Acquisition Trend over time, as well as Total Acquisition counts and Ratings &amp; Reviews. To see the reports, click an extension or choose <strong>More Actions &gt; Reports</strong>.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/extension-report.png" alt="Marketplace extension report" loading="lazy"></p>
+<h2 id="auto-increment-the-extension-version" data-needslink="auto-increment-the-extension-version">Auto-increment the extension version</h2>
+<p>When publishing an extension, you can auto-increment its version number by specifying the <a href="https://semver.org/" class="external-link" target="_blank">SemVer</a>-compatible number or version (<code>major</code>, <code>minor</code>, or <code>patch</code>) to increment. For example, to update an extension's version from 1.0.0 to 1.1.0, you would specify:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> minor</span></span>
+<span class="line"></span></code></pre>
+<p>or</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span><span style="--shiki-dark:#B5CEA8;--shiki-light:#098658"> 1.1.0</span></span>
+<span class="line"></span></code></pre>
+<p>Both commands will first modify the extension's <code>package.json</code> <a href="/api/references/extension-manifest#fields">version</a> attribute and then publish it with the updated version.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>If you run <code>vsce publish</code> in a git repo, it will also create a version commit and tag via <a href="https://docs.npmjs.com/cli/version#description" class="external-link" target="_blank">npm-version</a>. The default commit message will be the extension's version, but you can supply a custom commit message using the <code>-m</code> flag. (The current version can be referenced from the commit message with <code>%s</code>).</p>
+</div><h2 id="unpublishing-extensions" data-needslink="unpublishing-extensions">Unpublishing extensions</h2>
+<p>You can unpublish an extension from the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a> by clicking <strong>More Actions &gt; Unpublish</strong>:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/unpublish-extension.png" alt="Unpublish the extension via the Marketplace management page" loading="lazy"></p>
+<p>Once unpublished, the extension's Availability status is changed to <strong>Unpublished</strong> and it will no longer be available for download from both the Marketplace and Visual Studio Code:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/unpublished-extension.png" alt="Unpublished extension" loading="lazy"></p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>When you unpublish an extension, the Marketplace preserves the extension statistics. The extension remains publicly discoverable and available via an existing API.</p>
+</div><h2 id="removing-extensions" data-needslink="removing-extensions">Removing extensions</h2>
+<p>You can remove an extension in two ways:</p>
+<ol>
+<li>
+<p>Automatically, using <a href="#vsce"><code>vsce</code></a> with the <code>unpublish</code> command:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> unpublish</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000"> &#x3C;</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">publisher</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> i</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">d></span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">.</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">&#x3C;</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">extension</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> nam</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">e></span></span>
+<span class="line"></span></code></pre>
+</li>
+<li>
+<p>Manually, from the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a> by clicking <strong>More Actions &gt; Remove</strong>:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/remove-extension.png" alt="Remove the extension via the Marketplace management page" loading="lazy"></p>
+</li>
+</ol>
+<p>In both cases, you will be prompted to confirm the removal by typing the extension name. Note that the removal action is <strong>irreversible</strong>.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>When you remove an extension, the Marketplace also removes any extension statistics. You may want to unpublish your extension rather than remove it.
+Important! Extension names are unique identifiers in the Visual Studio Code Marketplace. Once an extension is removed, its extension name is permanently reserved and cannot be reused, even by the original publisher. This helps protect users from impersonation and maintains trust in the Marketplace ecosystem. Before deleting an extension, ensure that you no longer need the name, as this action is irreversible.</p>
+</div><h2 id="removing-specific-extension-versions" data-needslink="removing-specific-extension-versions">Removing specific extension versions</h2>
+<p>You can remove a specific extension version from the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a> by selecting <strong>More Actions &gt; Reports</strong>:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/extension-manage.png" alt="Screenshot showing the More Actions menu with the Reports option in the Marketplace publisher management page" loading="lazy"></p>
+<p>On the <strong>Manage</strong> tab, select <strong>Delete this version</strong>.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/remove-version.png" alt="Screenshot showing the manage tab with the Delete this version button" loading="lazy"></p>
+<p>You are prompted to confirm the removal by typing the extension name. This action is <strong>irreversible</strong>.</p>
+<div class="markdown-alert important" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 1.75C0 .784.784 0 1.75 0h12.5C15.216 0 16 .784 16 1.75v9.5A1.75 1.75 0 0 1 14.25 13H8.06l-2.573 2.573A1.458 1.458 0 0 1 3 14.543V13H1.75A1.75 1.75 0 0 1 0 11.25Zm1.75-.25a.25.25 0 0 0-.25.25v9.5c0 .138.112.25.25.25h2a.75.75 0 0 1 .75.75v2.19l2.72-2.72a.749.749 0 0 1 .53-.22h6.5a.25.25 0 0 0 .25-.25v-9.5a.25.25 0 0 0-.25-.25Zm7 2.25v2.5a.75.75 0 0 1-1.5 0v-2.5a.75.75 0 0 1 1.5 0ZM9 9a1 1 0 1 1-2 0 1 1 0 0 1 2 0Z">
+          </path>
+        </svg>
+        Important
+      </span><p>Once deleted, you can't reuse this version number for a new publish. Additionally, you cannot delete the latest version of an extension.</p>
+</div><h2 id="deprecating-extensions" data-needslink="deprecating-extensions">Deprecating extensions</h2>
+<p>You can just deprecate an extension or deprecate in favor of another extension or a setting. The deprecated extension will be rendered with a dimmed strike-through text in the UI:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/deprecated-extension.png" alt="Rust extension shown as deprecated in extension search" loading="lazy"></p>
+<p>Each deprecated extension has a yellow warning icon in the bottom right corner of the extension tile (see the screenshot above). When hovering over the extension tile, you can see deprecation details next to this icon, whether:</p>
+<ul>
+<li>
+<p>The extension was deprecated without any alternatives:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/deprecated-with-no-alternatives.png" alt="Deprecated extension without alternatives" loading="lazy"></p>
+</li>
+<li>
+<p>The extension was deprecated in favor of another extension:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/deprecated-with-alternative-extension.png" alt="Deprecated extension with an alternative extension" loading="lazy"></p>
+</li>
+<li>
+<p>The extension was deprecated in favor of a setting:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/deprecated-with-alternative-setting.png" alt="Deprecated extension with an alternative setting" loading="lazy"></p>
+</li>
+</ul>
+<p>VS Code will not automatically migrate or uninstall already installed deprecated extensions. If a deprecated extension has an alternative extension, or a setting, VS Code will show a <strong>Migrate</strong> button to help you quickly switch to the specified alternative:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/deprecated-migrate-button.png" alt="Deprecated extension with a migrate button" loading="lazy"></p>
+<p>To mark your extension as deprecated, please leave a comment in the <a href="https://github.com/microsoft/vscode-discussions/discussions/1" class="external-link" target="_blank">Deprecated extensions</a> discussion thread.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>For now, extensions are not rendered as deprecated in the Marketplace. This functionality will be available later.</p>
+</div><h2 id="packaging-extensions" data-needslink="packaging-extensions">Packaging extensions</h2>
+<p>You can choose to package your extension if you want to:</p>
+<ul>
+<li>Test it on your VS Code instance.</li>
+<li>Distribute it without publishing it to the Marketplace.</li>
+<li>Share it with others privately.</li>
+</ul>
+<p>Packaging means creating a <code>.vsix</code> file that contains your extension. This file can then be installed in VS Code. Some extensions publish <code>.vsix</code> files as a part of their GitHub releases.</p>
+<p>To package an extension, run the following command in your extension's root folder:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> package</span></span>
+<span class="line"></span></code></pre>
+<p>This command creates a <code>.vsix</code> file in your extension's root folder. For example, <code>my-extension-0.0.1.vsix</code>.</p>
+<p>For users, to install a <code>.vsix</code> file in VS Code:</p>
+<ul>
+<li>
+<p>From the Extensions view in VS Code:</p>
+<ol>
+<li>Go to the Extensions view.</li>
+<li>Select <strong>Views and More Actions...</strong></li>
+<li>Select <strong>Install from VSIX...</strong></li>
+</ol>
+</li>
+<li>
+<p>From the command line:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#6A9955;--shiki-light:#008000"># if you use VS Code</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">code</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --install-extension</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> my-extension-0.0.1.vsix</span></span>
+<span class="line"></span>
+<span class="line"><span style="--shiki-dark:#6A9955;--shiki-light:#008000"># if you use VS Code Insiders</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">code-insiders</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --install-extension</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> my-extension-0.0.1.vsix</span></span>
+<span class="line"></span></code></pre>
+</li>
+</ul>
+<h2 id="your-extension-folder" data-needslink="your-extension-folder">Your extension folder</h2>
+<p>To load an extension, you need to copy the files to your VS Code extensions folder <code>.vscode/extensions</code>. Depending on your operating system, this folder has a different location:</p>
+<ul>
+<li><strong>Windows:</strong> <code>%USERPROFILE%\.vscode\extensions</code></li>
+<li><strong>macOS:</strong> <code>~/.vscode/extensions</code></li>
+<li><strong>Linux:</strong> <code>~/.vscode/extensions</code></li>
+</ul>
+<h2 id="visual-studio-code-compatibility" data-needslink="visual-studio-code-compatibility">Visual Studio Code compatibility</h2>
+<p>When authoring an extension, you must specify the versions of VS Code your extension is compatible with. To do this, use the <code>engines.vscode</code> property inside <code>package.json</code>:</p>
+<pre class="shiki" data-lang="json" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">{</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "engines"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: {</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">    "vscode"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"^1.8.0"</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">  }</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">}</span></span>
+<span class="line"></span></code></pre>
+<ul>
+<li>A value of <code>1.8.0</code> (without caret) means that your extension is compatible only with VS Code <code>1.8.0</code>.</li>
+<li>A value of <code>^1.8.0</code> means that your extension is compatible with VS Code <code>1.8.0</code> and onwards, including <code>1.8.1</code>, <code>1.9.0</code>, etc.</li>
+</ul>
+<p>You can use the <code>engines.vscode</code> property to ensure the extension only gets installed for clients that contain the API you depend on. This mechanism plays well both with Stable and Insiders releases.</p>
+<p>For example, imagine that the latest Stable version of VS Code is <code>1.8.0</code>. During the development of version <code>1.9.0</code>, a new API was introduced and made available in the Insider release through the version <code>1.9.0-insider</code>. If you want to publish an extension version that benefits from this API, you should indicate a version dependency of <code>^1.9.0</code>. In this way, your new extension version will only be available on VS Code <code>&gt;=1.9.0</code> (in other words, users with the current Insiders release). Users with the VS Code Stable will only get the update when the Stable release reaches version <code>1.9.0</code>.</p>
+<p>To target an Insiders build by date, append a date tag in <code>YYYYMMDD</code> format to the version. VS Code 1.57 and later enforce the date tag. Earlier versions evaluate only the numeric portion of the version. For example, <code>^1.56.0-20210428</code> targets VS Code 1.56 or later builds created on or after 0:00 UTC on April 28, 2021.</p>
+<h2 id="advanced-usage" data-needslink="advanced-usage">Advanced usage</h2>
+<h3 id="marketplace-integration" data-needslink="marketplace-integration">Marketplace integration</h3>
+<p>You can customize how your extension looks in the Visual Studio Marketplace. See the <a href="https://marketplace.visualstudio.com/items/golang.go" class="external-link" target="_blank">Go extension</a> for an example.</p>
+<p>Here are some tips for making your extension look great on the Marketplace:</p>
+<ul>
+<li>
+<p>Add a <code>README.md</code> file to the root of your extension with the content you want to show on the extension's Marketplace page.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>If you have a <code>repository</code> property in your <code>package.json</code> that points to a public GitHub repository, <code>vsce</code> will automatically detect it and adjust relative links accordingly, using the <code>main</code> branch by default. You can override this with the <code>--githubBranch</code> flag when running <code>vsce package</code> or <code>vsce publish</code>. You can also set base URLs for links and images with the <code>--baseContentUrl</code> and <code>--baseImagesUrl</code> flags.</p>
+</div></li>
+<li>
+<p>Add a <code>LICENSE</code> file to the root of your extension with the information about the extension's license.</p>
+</li>
+<li>
+<p>Add a <code>CHANGELOG.md</code> file to the root of your extension with the information about the history of the changes for your extension.</p>
+</li>
+<li>
+<p>Add a <code>SUPPORT.md</code> file to the root of your extension with the information about how to get support for your extension.</p>
+</li>
+<li>
+<p>Set the banner background color on the Marketplace page by specifying the corresponding hex value via the <code>galleryBanner.color</code> property in <code>package.json</code>.</p>
+</li>
+<li>
+<p>Set an icon by specifying a relative path to a PNG file of at least 128x128px included in your extension via the <code>icon</code> property in <code>package.json</code>.</p>
+</li>
+</ul>
+<p>See more information in <a href="/api/references/extension-manifest#marketplace-presentation-tips">Marketplace Presentation Tips</a>.</p>
+<h3 id="verify-a-publisher" data-needslink="verify-a-publisher">Verify a publisher</h3>
+<p>You can become a <strong>verified publisher</strong> by verifying ownership of an <a href="#eligible-domains">eligible domain</a> associated with your brand or identity. Once your publisher is verified, the Marketplace will add a verified badge to your extension details.</p>
+<h4>Prerequisites</h4>
+<p>To become verified, a publisher must have one or more extensions on the VS Marketplace for a minimum of 6 months, and the registration of the domain must also be at least 6 months old. Please wait until these criteria are met before applying for verification.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/verified-publisher.png" alt="Verified publisher indicators in VS Code" loading="lazy"></p>
+<p>To verify a publisher:</p>
+<ol>
+<li>
+<p>Go to the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a>.</p>
+</li>
+<li>
+<p>In the pane on the left, select or <a href="#create-a-publisher">create a publisher</a> you wish to verify.</p>
+</li>
+<li>
+<p>In the main pane, select the <strong>Details</strong> tab.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/publisher-details-tab.png" alt="Publisher details tab location" loading="lazy"></p>
+</li>
+<li>
+<p>In the <strong>Details tab</strong>, under the <strong>Verified domain</strong> section, type an <a href="#eligible-domains">eligible domain</a>.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/publisher-details-tab-verified-domain.png" alt="Publisher details tab with provided domain to verify" loading="lazy"></p>
+<blockquote><p><strong>Note</strong>: Notice an asterisk (*) next to <strong>Details</strong> tab title after you start typing. Just like in VS Code, this indicates that you have unsaved changes. For the same reason, the <strong>Verify</strong> button is disabled yet.</p>
+</blockquote></li>
+<li>
+<p>Select <strong>Save</strong> and then <strong>Verify</strong>.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/saved-domain-to-verify.png" alt="Saved domain to verify" loading="lazy"></p>
+<p>A dialog window will appear, providing you with instructions about adding a TXT record to your domain's DNS configuration.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/txt-record-verification.png" alt="TXT record verification" loading="lazy"></p>
+</li>
+<li>
+<p>Follow the instructions to add the TXT record to your domain's DNS configuration.</p>
+</li>
+<li>
+<p>Select <strong>Verify</strong> in the dialog window to validate that the TXT record has been successfully added.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/validation-submitted.png" alt="Validation submitted" loading="lazy"></p>
+<p>Once your TXT record has been validated, the Marketplace team will review your request and let you know the result within 5 business days. The validation includes, but is not limited to: domain, website and extensions <a href="#prerequisites">prerequisites for track record</a>, content eligibility, legitimacy, trust and positive reputation.</p>
+</li>
+</ol>
+<p>If validation is passed, you will see the corresponding badge next to your publisher name in the Visual Studio Marketplace publisher management page:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/verified-publisher-manage.png" alt="Verified publisher manage" loading="lazy"></p>
+<blockquote><p><strong>Notes</strong>:</p>
+<ul>
+<li>Any changes to the publisher display name will revoke the verified badge.</li>
+<li>Any future <a href="https://cdn.vsassets.io/v/M190_20210811.1/_content/Microsoft-Visual-Studio-Marketplace-Terms-of-Use.pdf" class="external-link" target="_blank">Terms of Use</a> or above mentioned validation violations from the publisher will revoke the verified badge.</li>
+</ul>
+</blockquote><h3 id="eligible-domains" data-needslink="eligible-domains">Eligible domains</h3>
+<p>Eligible domains meet the following criteria:</p>
+<ul>
+<li>You must be able to manage the DNS configuration settings and add a TXT record.</li>
+<li>It is not a subdomain ({subdomain}.github.io, {subdomain}.contoso.com, or similar).</li>
+<li>It must use an HTTPS protocol.</li>
+<li>It must be able to respond with an HTTP 200 status to a HEAD request.</li>
+</ul>
+<h3 id="extension-pricing-label" data-needslink="extension-pricing-label">Extension pricing label</h3>
+<p>You can opt-in to show a pricing label on your extension's Marketplace page to indicate that it is <code>Free</code> or <code>Free Trial</code>.</p>
+<p>To show a pricing label, add the <code>pricing</code> property to your <code>package.json</code>. For example:</p>
+<pre class="shiki" data-lang="json" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">{</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "pricing"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"Free"</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">}</span></span>
+<span class="line"></span></code></pre>
+<p>Allowed values are: <code>Free</code> and <code>Trial</code> (case-sensitive). When the <code>pricing</code> property is not specified, the default value is <code>Free</code>.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>Make sure to use the <code>vsce</code> version &gt;= <code>2.10.0</code> when publishing your extension for the pricing label to work.</p>
+</div><h3 id="extension-sponsor" data-needslink="extension-sponsor">Extension Sponsor</h3>
+<p>You can opt-in to sponsorship to give your users a way to support your work.</p>
+<p>To show a sponsor link, add the <code>sponsor</code> property to your <code>package.json</code>. For example:</p>
+<pre class="shiki" data-lang="json" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"sponsor"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: {</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "url"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"https://github.com/sponsors/nvaccess"</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">}</span></span>
+<span class="line"></span></code></pre>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>Make sure to use the <code>vsce</code> version &gt;= <code>2.9.1</code> when publishing your extension for sponsorship to work.</p>
+</div><p>The sponsor link will appear on your extension's page in Marketplace and VS Code in the extension details header:</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/sponsor-link-example.png" alt="Sponsor link in extension details page" loading="lazy"></p>
+<p>We hope this will allow our users to fund the extensions that they depend on to improve the extension's performance, reliability, and stability.</p>
+<h3 id="using-.vscodeignore" data-needslink="using-.vscodeignore">Using .vscodeignore</h3>
+<p>You can create a <code>.vscodeignore</code> file to prevent some files from being included in your extension's package. This file is a collection of <a href="https://github.com/isaacs/minimatch" class="external-link" target="_blank">glob</a> patterns, one per line. For example:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">**/*.ts</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">**/tsconfig.json</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">!</span><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">file.ts</span></span>
+<span class="line"></span></code></pre>
+<p>You should ignore all files not needed at runtime. For example, if your extension is written in TypeScript, you should ignore all <code>**/*.ts</code> files, like in the example above.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>Development dependencies listed in <code>devDependencies</code> will be automatically ignored, so you don't need to add them explicitly.</p>
+</div><h3 id="pre-publish-step" data-needslink="pre-publish-step">Pre-publish step</h3>
+<p>You can add a pre-publish step to your manifest file, which will be called every time the extension is packaged. For example, you may want to invoke the <a href="https://www.typescriptlang.org/" class="external-link" target="_blank">TypeScript</a> compiler at this stage:</p>
+<pre class="shiki" data-lang="json" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">{</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "name"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"uuid"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">,</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "version"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"0.0.1"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">,</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "publisher"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"someone"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">,</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "engines"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: {</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">    "vscode"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"0.10.x"</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">  },</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">  "scripts"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: {</span></span>
+<span class="line"><span style="--shiki-dark:#9CDCFE;--shiki-light:#0451A5">    "vscode:prepublish"</span><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">: </span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515">"tsc"</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">  }</span></span>
+<span class="line"><span style="--shiki-dark:#D4D4D4;--shiki-light:#000000">}</span></span>
+<span class="line"></span></code></pre>
+<h3 id="pre-release-extensions" data-needslink="pre-release-extensions">Pre-release extensions</h3>
+<p>Users can install pre-release versions of extensions in VS Code or VS Code Insiders to regularly get the latest extension version before the official extension release.</p>
+<p><img src="/assets/api/working-with-extensions/publishing-extension/pre-release.png" alt="GitHub PR extension pre-release version in the extensions view" loading="lazy"></p>
+<p>To publish a pre-release version, pass the <code>--pre-release</code> flag to the <code>vsce package</code> or <code>vsce publish</code> commands:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> package</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --pre-release</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --pre-release</span></span>
+<span class="line"></span></code></pre>
+<p>We only support <code>major.minor.patch</code> for extension versions, <code>semver</code> pre-release tags are <strong>not supported</strong>. Versions must be different between pre-release and regular releases. That is, if <code>1.2.3</code> is uploaded as a pre-release, the next regular release must be uploaded with a distinct version, such as <code>1.2.4</code>. Full <code>semver</code> support will be available in the future.</p>
+<p>VS Code will automatically update extensions to the highest version available, so even if a user opted-into a pre-release version and there is an extension release with a higher version, the user will be updated to the released version. So, we recommend that extensions use <code>major.EVEN_NUMBER.patch</code> for release versions and <code>major.ODD_NUMBER.patch</code> for pre-release versions. For example: <code>0.2.*</code> for release and <code>0.3.*</code> for pre-release.</p>
+<p>If extension authors do not want their pre-release users to be updated to the release version, we recommend always incrementing and publishing a new pre-release version before publishing a release version to make sure that the pre-release version is always higher. Note that while pre-release users will be updated to a release version if it is higher, they still remain eligible to automatically update to future pre-releases with higher version numbers than the release version.</p>
+<p>Pre-release extensions are supported after VS Code version <code>1.63.0</code>, so all pre-release extensions should have the <code>engines.vscode</code> value in their <code>package.json</code> set to <code>&gt;= 1.63.0</code>.</p>
+<div class="markdown-alert note" dir="auto">
+      <span>
+        <svg class="markdown-alert-icon" viewBox="0 0 16 16" version="1.1" width="16" height="16" aria-hidden="true">
+          <path d="M0 8a8 8 0 1 1 16 0A8 8 0 0 1 0 8Zm8-6.5a6.5 6.5 0 1 0 0 13 6.5 6.5 0 0 0 0-13ZM6.5 7.75A.75.75 0 0 1 7.25 7h1a.75.75 0 0 1 .75.75v2.75h.25a.75.75 0 0 1 0 1.5h-2a.75.75 0 0 1 0-1.5h.25v-2h-.25a.75.75 0 0 1-.75-.75ZM8 6a1 1 0 1 1 0-2 1 1 0 0 1 0 2Z">
+          </path>
+        </svg>
+        Note
+      </span><p>Extensions that already have a separate standalone pre-release extension should reach out to the VS Code team to enable the automatic uninstall of the outdated separate extension and install the pre-release version of the main extension.</p>
+</div><h3 id="platform-specific-extensions" data-needslink="platform-specific-extensions">Platform-specific extensions</h3>
+<p>You can publish your extension's VSIX package for each platform (Windows, Linux, macOS) VS Code is running on. We call such extensions <strong>platform-specific</strong>.</p>
+<p>Starting with version <code>1.61.0</code>, VS Code looks for the extension package that matches the current platform.</p>
+<p>Platform-specific extensions are useful if your extension has platform-specific libraries or dependencies, so you can control the exact binaries that are included in a platform package. A common use case is the use of <strong>native node modules</strong>.</p>
+<p>Platform-specific extensions are published as separate packages containing platform-specific content. You can specify the target platform by passing the <a href="#publishing"><code>--target</code> flag</a>. If you don't pass this flag, that package will be used as a fallback for all platforms that have no platform-specific package.</p>
+<p>The currently available platforms are: <code>win32-x64</code>, <code>win32-arm64</code>, <code>linux-x64</code>, <code>linux-arm64</code>, <code>linux-armhf</code>, <code>alpine-x64</code>, <code>alpine-arm64</code>, <code>darwin-x64</code>, <code>darwin-arm64</code> and <code>web</code>.</p>
+<p>If you want a platform-specific extension to also support running in the browser as a <a href="/api/extension-guides/web-extensions">web extension</a>, it <strong>must</strong> target the <code>web</code> platform when publishing. The <code>web</code> platform respects the <code>browser</code> entry point in the <code>package.json</code>. To disable the extension capabilities that are not supported in the <code>web</code>, we recommend using <code>when</code> clauses in the <code>package.json</code> instead of shipping separate <code>package.json</code> for the web platform or removing parts of the VSIX that do not work in the <code>web</code>.</p>
+<h4>Publishing</h4>
+<p>Starting from version <code>1.99.0</code>, <a href="https://github.com/microsoft/vscode-vsce" class="external-link" target="_blank">vsce</a> supports a <code>--target</code> parameter that allows you to specify the target platform while packaging and publishing a VSIX.</p>
+<p>Here's how you can publish a VSIX for the <code>win32-x64</code> and <code>win32-arm64</code> platforms:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --target</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> win32-x64</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> win32-arm64</span></span>
+<span class="line"></span></code></pre>
+<p>Alternatively, you can also use the <code>--target</code> flag when packaging to create a platform-specific VSIX. For example, to package a VSIX for the <code>win32-x64</code> platform and then publish it:</p>
+<pre class="shiki" data-lang="bash" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> package</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --target</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> win32-x64</span></span>
+<span class="line"><span style="--shiki-dark:#DCDCAA;--shiki-light:#795E26">vsce</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> publish</span><span style="--shiki-dark:#569CD6;--shiki-light:#0000FF"> --packagePath</span><span style="--shiki-dark:#CE9178;--shiki-light:#A31515"> PATH_TO_WIN32X64_VSIX</span></span>
+<span class="line"></span></code></pre>
+<h4>Continuous integration</h4>
+<p>Managing multiple platform-specific VSIXs might get overwhelming, so we suggest automating your extension's build process with <a href="/api/working-with-extensions/continuous-integration">continuous integration</a> (CI) tooling. For example, you can use <a href="https://github.com/features/actions" class="external-link" target="_blank">GitHub Actions</a> to build your extensions. Our <a href="https://github.com/microsoft/vscode-platform-specific-sample" class="external-link" target="_blank">platform-specific extension sample</a> can be used as a starting point for learning: its <a href="https://github.com/microsoft/vscode-platform-specific-sample/blob/main/.github/workflows/ci.yml" class="external-link" target="_blank">workflow</a> enables the common scenario of using platform-specific extension support to distribute native node modules as dependencies across all supported VS Code targets.</p>
+<h2 id="next-steps" data-needslink="next-steps">Next steps</h2>
+<ul>
+<li><a href="/docs/configure/extensions/extension-marketplace">Extension Marketplace</a> - Learn more about VS Code's public Extension Marketplace.</li>
+<li><a href="/api/working-with-extensions/testing-extension">Testing Extensions</a> - Add tests to your extension project to ensure high quality.</li>
+<li><a href="/api/working-with-extensions/bundling-extension">Bundling Extensions</a> - Improve load times by bundling your extension files with webpack.</li>
+</ul>
+<h2 id="common-questions" data-needslink="common-questions">Common questions</h2>
+<h3 id="i-get-a-you-exceeded-the-number-of-allowed-tags-of-30-error-when-i-try-to-publish-my-extension" data-needslink="i-get-a-you-exceeded-the-number-of-allowed-tags-of-30-error-when-i-try-to-publish-my-extension">I get a &quot;You exceeded the number of allowed tags of 30&quot; error when I try to publish my extension?</h3>
+<p>The Visual Studio Marketplace does not allow an extension package to have more than 30 <code>keywords</code> in the <code>package.json</code>. Limit the number of keywords/tags to maximum 30 to avoid this error.</p>
+<h3 id="i-get-403-forbidden-or-401-unauthorized-error-when-i-try-to-publish-my-extension" data-needslink="i-get-403-forbidden-or-401-unauthorized-error-when-i-try-to-publish-my-extension">I get 403 Forbidden (or 401 Unauthorized) error when I try to publish my extension?</h3>
+<p>One easy mistake to make when creating the PAT (Personal Access Token) is to select a specific organization instead of <strong>All accessible organizations</strong> in the <strong>Organizations</strong> field dropdown. Another possible mistake is incorrect scope - you should set the Authorized Scopes to <code>Marketplace (Manage)</code> for the publish to work.</p>
+<h3 id="i-cant-unpublish-my-extension-through-the-vsce-tool" data-needslink="i-cant-unpublish-my-extension-through-the-vsce-tool">I can't unpublish my extension through the <code>vsce</code> tool?</h3>
+<p>You may have changed your extension ID or publisher ID. You can also manage your extensions directly via the <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Visual Studio Marketplace publisher management page</a>. For example, update or <a href="#unpublishing-extensions">unpublish</a>.</p>
+<h3 id="why-does-vsce-not-preserve-file-attributes" data-needslink="why-does-vsce-not-preserve-file-attributes">Why does vsce not preserve file attributes?</h3>
+<p>Note that when building and publishing your extension from Windows, all the files included in the extension package will lack POSIX file attributes, namely the executable bit. Some <code>node_modules</code> dependencies rely on those attributes to function properly. Publishing from Linux and macOS works as expected.</p>
+<h3 id="can-i-publish-from-a-continuous-integration-ci-build" data-needslink="can-i-publish-from-a-continuous-integration-ci-build">Can I publish from a continuous integration (CI) build?</h3>
+<p>Yes, see the <a href="/api/working-with-extensions/continuous-integration#automated-publishing">Automated publishing</a> section of the <a href="/api/working-with-extensions/continuous-integration">Continuous Integration</a> topic to learn how to configure Azure DevOps, GitHub Actions, and GitLab CI to automatically publish your extension to the Marketplace.</p>
+<h3 id="i-get-error-the-extension-name-already-exists-in-the-marketplace-error-when-i-try-to-publish-my-extension" data-needslink="i-get-error-the-extension-name-already-exists-in-the-marketplace-error-when-i-try-to-publish-my-extension">I get &quot;ERROR The extension 'name' already exists in the Marketplace&quot; error when I try to publish my extension?</h3>
+<p>The Marketplace requires the <a href="/api/references/extension-manifest">extension name</a> to be unique for every extension. If an extension with the same name already exists in the Marketplace, you will get the following error:</p>
+<pre class="shiki" data-lang="text" shiki-themes dark-plus light-plus" style="--shiki-dark:#D4D4D4;--shiki-light:#000000;--shiki-dark-bg:#1E1E1E;--shiki-light-bg:#FFFFFF" tabindex="0"><code><span class="line"><span>ERROR The extension 'name' already exists in the Marketplace.</span></span>
+<span class="line"><span></span></span></code></pre>
+<p>The same rule applies for the <a href="/api/references/extension-manifest">display name</a> of an extension.</p>
+<h3 id="what-package-managers-are-supported" data-needslink="what-package-managers-are-supported">What package managers are supported?</h3>
+<p>You can either use npm or yarn v1 to manage your extension's dependencies.</p>
+<h3 id="i-need-help-with-my-vs-marketplace-account-or-support-in-publishing-an-extension" data-needslink="i-need-help-with-my-vs-marketplace-account-or-support-in-publishing-an-extension">I need help with my VS Marketplace account or support in publishing an extension?</h3>
+<p>You can reach out to the VS Marketplace support team by signing in at <a href="https://marketplace.visualstudio.com/manage" class="external-link" target="_blank">Manage Publishers &amp; Extensions</a> and clicking on the ‘Contact Microsoft’ link at the top right.</p>
+
+				<div class="feedback" data-edit-url="https://vscode.dev/github/microsoft/vscode-docs/blob/main/api/working-with-extensions/publishing-extension.md"></div>
+				
+				<div class="body-footer">8/19/2026</div>
+				
+            </main>
+            
+            <!-- Right sidebar - On This Page -->
+            <aside class="docs-right-sidebar hidden-xs">
+                <div class="docs-markdown-actions">
+                    <div class="docs-markdown-dropdown" data-raw-url="/raw/api/working-with-extensions/publishing-extension.md">
+                        <button type="button" class="docs-markdown-btn-main" data-action="copy-markdown" aria-label="Copy as Markdown">
+                            <span class="codicon codicon-copy" aria-hidden="true"></span>
+                            <span>Copy as Markdown</span>
+                        </button>
+                        <button type="button" class="docs-markdown-btn-trigger" aria-haspopup="true" aria-expanded="false" aria-label="More Markdown options">
+                            <span class="codicon codicon-chevron-down docs-markdown-chevron" aria-hidden="true"></span>
+                        </button>
+                        <ul class="docs-markdown-menu" role="menu" aria-label="Markdown options">
+                            <li role="menuitem" tabindex="0" data-action="copy-markdown">
+                                <span class="codicon codicon-copy" aria-hidden="true"></span>
+                                <span>Copy as Markdown</span>
+                            </li>
+                            <li role="menuitem" tabindex="0" data-action="view-markdown">
+                                <span class="codicon codicon-file" aria-hidden="true"></span>
+                                <span>View as Markdown</span>
+                                <span class="codicon codicon-link-external" aria-hidden="true"></span>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+                <nav id="docs-subnavbar" aria-label="On Page">
+                    
+                    <h4><span class="sr-only">On this page there are 14 sections</span><span
+                            aria-hidden="true">On this page</span></h4>
+                    <ul class="nav">
+                        
+                        <li><a href="#vsce">vsce</a></li>
+                        
+                        <li><a href="#publishing-extensions">Publishing extensions</a></li>
+                        
+                        <li><a href="#review-extension-installs-and-ratings">Review extension installs and ratings</a></li>
+                        
+                        <li><a href="#auto-increment-the-extension-version">Auto-increment the extension version</a></li>
+                        
+                        <li><a href="#unpublishing-extensions">Unpublishing extensions</a></li>
+                        
+                        <li><a href="#removing-extensions">Removing extensions</a></li>
+                        
+                        <li><a href="#removing-specific-extension-versions">Removing specific extension versions</a></li>
+                        
+                        <li><a href="#deprecating-extensions">Deprecating extensions</a></li>
+                        
+                        <li><a href="#packaging-extensions">Packaging extensions</a></li>
+                        
+                        <li><a href="#your-extension-folder">Your extension folder</a></li>
+                        
+                        <li><a href="#visual-studio-code-compatibility">Visual Studio Code compatibility</a></li>
+                        
+                        <li><a href="#advanced-usage">Advanced usage</a></li>
+                        
+                        <li><a href="#next-steps">Next steps</a></li>
+                        
+                        <li><a href="#common-questions">Common questions</a></li>
+                        
+                    </ul>
+                    
+                </nav>
+            </aside>
+		</div>
+		<div class="docs-mobile-widgets visible-xs">
+			<div class="connect-widget"></div>
+		</div>
+	</div>
+</div>
+		</main>
+	</div>
+
+	<div id="search-popup-overlay" class="search-popup-overlay" role="dialog" aria-modal="true" aria-label="Search">
+		<div class="search-popup-container">
+			<div class="search-popup-header">
+				<form class="search-popup-form">
+					<div class="input-group">
+						<input type="text" name="q" class="search-box form-control" placeholder="Search the website"
+							aria-label="Search text" role="combobox" aria-expanded="false"
+							aria-autocomplete="list" aria-controls="search-results-listbox"
+							aria-activedescendant="" />
+						<span class="input-group-btn">
+							<button tabindex="0" class="btn" type="submit" aria-label="Search">
+								<img class="search-icon-dark" src="/assets/icons/search-dark.svg" alt="Search" />
+								<img class="search-icon-light" src="/assets/icons/search.svg" alt="Search" />
+							</button>
+						</span>
+					</div>
+				</form>
+				<button class="search-popup-close" type="button" aria-label="Close search"><i class="codicon codicon-close" aria-hidden="true"></i></button>
+			</div>
+			<div class="search-popup-results">
+				<ul class="search-popup-results-list" id="search-results-listbox" role="listbox" aria-label="Search results"></ul>
+			</div>
+			<div class="sr-only" role="status" aria-live="polite" aria-atomic="true" id="search-popup-status"></div>
+		</div>
+	</div>
+
+
+	<footer role="contentinfo" class="container">
+		<div class="footer-container">
+			<div class="footer-row">
+				<div class="footer-social">
+					<ul class="links">
+						<li>
+							<a href="https://github.com/microsoft/vscode"><img src="/assets/icons/github-icon.svg" alt="VS Code on Github"></a>
+						</li>
+						<li>
+							<a href="https://go.microsoft.com/fwlink/?LinkID=533687"><img src="/assets/icons/x-icon.svg" class="x-icon" alt="Follow us on X"></a>
+						</li>
+						<li>
+							<a href="https://www.linkedin.com/showcase/vs-code"><img src="/assets/icons/linkedin-icon.svg" alt="VS Code on LinkedIn"></a>
+						</li>
+						<li>
+							<a href="https://bsky.app/profile/vscode.dev"><img src="/assets/icons/bluesky-icon.svg" alt="VS Code on Bluesky"></a>
+						</li>
+						<li>
+							<a href="https://www.reddit.com/r/vscode/"><img src="/assets/icons/reddit-icon.svg" alt="Join the VS Code community on Reddit"></a>
+						</li>
+						<li>
+							<a href="https://www.vscodepodcast.com"><img src="/assets/icons/podcast-icon.svg" alt="The VS Code Insiders Podcast"></a>
+						</li>
+						<li>
+							<a href="https://www.tiktok.com/@vscode"><img src="/assets/icons/tiktok-icon.svg" alt="VS Code on TikTok"></a>
+						</li>
+						<li>
+							<a href="https://www.youtube.com/@code"><img src="/assets/icons/youtube-icon.svg" alt="VS Code on YouTube"></a>
+						</li>
+						<script>
+							function manageConsent() {
+								if (siteConsent && siteConsent.isConsentRequired) {
+									siteConsent.manageConsent();
+								}
+							}
+						</script>
+					</ul>
+					<a id="footer-microsoft-link" class="microsoft-logo" href="https://www.microsoft.com">
+						<img src="/assets/icons/microsoft.svg" alt="Microsoft homepage" />
+					</a>
+				</div>
+			</div>
+			<div class="footer-row">
+				<ul class="links">
+					<li><a id="footer-support-link" href="https://support.serviceshub.microsoft.com/supportforbusiness/create?sapId=d66407ed-3967-b000-4cfb-2c318cad363d"
+						target="_blank" rel="noopener" title="Get support for VS Code"
+						aria-label="Get support for VS Code (opens in new tab)">Support</a></li>
+					<li><a id="footer-privacy-link" href="https://go.microsoft.com/fwlink/?LinkId=521839"
+						target="_blank" rel="noopener" title="View the Microsoft privacy statement"
+						aria-label="Microsoft privacy statement (opens in new tab)">Privacy</a></li>
+					<li style="display: none;"><a id="footer-cookie-link" style="cursor: pointer;" onclick="manageConsent()"
+						target="_blank" rel="noopener">Manage Cookies</a></li>
+					<li><a id="footer-terms-link" href="https://www.microsoft.com/legal/terms-of-use"
+						target="_blank" rel="noopener" title="View the Microsoft Terms of Use"
+						aria-label="Microsoft Terms of Use (opens in new tab)">Terms of Use</a></li>
+					<li><a id="footer-license-link" href="/License"
+						target="_blank" rel="noopener" title="View the Visual Studio Code license"
+						aria-label="Visual Studio Code license (opens in new tab)">License</a></li>
+				</ul>
+			</div>
+			<div class="footer-row">
+				<ul class="links">
+					<li>
+						<svg class="privacy-choices" role="img" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 30 14" xml:space="preserve" height="16" width="43">
+							<title>Your Privacy Choices Opt-Out Icon</title>
+							<path d="M7.4 12.8h6.8l3.1-11.6H7.4C4.2 1.2 1.6 3.8 1.6 7s2.6 5.8 5.8 5.8z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#fff"></path>
+							<path d="M22.6 0H7.4c-3.9 0-7 3.1-7 7s3.1 7 7 7h15.2c3.9 0 7-3.1 7-7s-3.2-7-7-7zm-21 7c0-3.2 2.6-5.8 5.8-5.8h9.9l-3.1 11.6H7.4c-3.2 0-5.8-2.6-5.8-5.8z" style="fill-rule:evenodd;clip-rule:evenodd;fill:#06f"></path>
+							<path d="M24.6 4c.2.2.2.6 0 .8L22.5 7l2.2 2.2c.2.2.2.6 0 .8-.2.2-.6.2-.8 0l-2.2-2.2-2.2 2.2c-.2.2-.6.2-.8 0-.2-.2-.2-.6 0-.8L20.8 7l-2.2-2.2c-.2-.2-.2-.6 0-.8.2-.2.6-.2.8 0l2.2 2.2L23.8 4c.2-.2.6-.2.8 0z" style="fill:#fff"></path>
+							<path d="M12.7 4.1c.2.2.3.6.1.8L8.6 9.8c-.1.1-.2.2-.3.2-.2.1-.5.1-.7-.1L5.4 7.7c-.2-.2-.2-.6 0-.8.2-.2.6-.2.8 0L8 8.6l3.8-4.5c.2-.2.6-.2.9 0z" style="fill:#06f"></path>
+						</svg>
+						<a id="footer-privacy-choices-link" href="https://aka.ms/YourCaliforniaPrivacyChoices"
+						target="_blank" rel="noopener" title="View Your Privacy Choices"
+						aria-label="Your Privacy Choices (opens in new tab)">Your Privacy Choices</a></li>
+					<li><a id="footer-consumer-health-privacy-link" href="https://go.microsoft.com/fwlink/?linkid=2259814"
+						target="_blank" rel="noopener" title="View the Microsoft Consumer Health Privacy policy"
+						aria-label="Microsoft Consumer Health Privacy policy (opens in new tab)">Consumer Health Privacy</a></li>
+				</ul>
+			</div>
+		</div>
+	</footer>
+	<script type="module">
+		document.addEventListener('DOMContentLoaded', () => {
+			const copilotDeepLinks = document.querySelectorAll('.copilot-deep-link');
+			if (copilotDeepLinks.length === 0) {
+				return;
+			}
+			if (window.innerWidth < 992) {
+				for (const link of copilotDeepLinks) {
+					link.href = 'https://aka.ms/vscode-activatecopilotfree';
+				}
+			}
+		});
+	</script>
+
+	<script src="/dist/index.js"></script>
+
+	
+
+	<script type="application/ld+json">
+		{
+			"@context" : "http://schema.org",
+			"@type" : "SoftwareApplication",
+			"name" : "Visual Studio Code",
+			"softwareVersion": "1.134",
+			"offers": {
+				"@type": "Offer",
+				"price": "0",
+				"priceCurrency": "USD"
+			},
+			"applicationCategory": "DeveloperApplication",
+			"applicationSubCategory": "AI Code Editor",
+			"description": "Visual Studio Code is a free, open source AI code editor for agent-first development. Build with AI agents, manage multi-agent workflows, and code across any environment.",
+			"alternateName": "VS Code",
+			"datePublished": "2021-11-03",
+			"operatingSystem": "Mac, Linux, Windows",
+			"logo": "https://code.visualstudio.com/assets/apple-touch-icon.png",
+			"screenshot": "https://code.visualstudio.com/assets/images/product-screenshot.png",
+			"releaseNotes": "https://code.visualstudio.com/updates",
+			"downloadUrl": "https://code.visualstudio.com/download",
+			"license": "https://code.visualstudio.com/license",
+			"softwareRequirements": "https://code.visualstudio.com/docs/supporting/requirements",
+			"url" : "https://code.visualstudio.com",
+			"author": {
+				"@type": "Organization",
+				"name": "Microsoft"
+			},
+			"publisher": {
+				"@type": "Organization",
+				"name": "Microsoft"
+			},
+			"maintainer": {
+				"@type": "Organization",
+				"name": "Microsoft"
+			},
+			"potentialAction": {
+				"@type": "SearchAction",
+				"target": "https://code.visualstudio.com/Search?q={search_term_string}",
+				"query-input": "required name=search_term_string"
+			},
+			"sameAs" : [
+				"https://en.wikipedia.org/wiki/Visual_Studio_Code",
+				"https://twitter.com/code",
+				"https://www.youtube.com/code",
+				"https://www.tiktok.com/@vscode",
+				"https://github.com/microsoft/vscode"
+			]
+		}
+	</script>
+</body>
+
+</html>

@@ -1,0 +1,111 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "e3-oxford-debate-unanimity-or-12-rounds",
+  "preset": "adversarial_collaboration",
+  "objective": {
+    "statement": "Argue the release-mode question to unanimity, or stop at twelve rounds and report the split.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": ["unanimity reached", "or twelve rounds elapsed with an attributed split"],
+    "consensus_intent": "surface_disagreement"
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["adversarial", "vendor_diverse"] },
+    "count": { "mode": "exact", "exact_n": 4 },
+    "diversity": { "min_distinct_vendors": 2 },
+    "roster": [
+      {
+        "participant_id": "prop-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["release engineering"],
+        "role": "proposer",
+        "authority": "voter",
+        "effort": "high"
+      },
+      {
+        "participant_id": "opp-1",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["release engineering"],
+        "role": "devils_advocate",
+        "authority": "voter",
+        "effort": "high"
+      },
+      {
+        "participant_id": "steel-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["argument analysis"],
+        "role": "steelman",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "scribe-1",
+        "model": "haiku-4",
+        "vendor": "anthropic",
+        "expertise": ["record keeping"],
+        "role": "scribe",
+        "authority": "observer",
+        "rights": { "may_speak": true, "may_vote": false }
+      }
+    ]
+  },
+  "topology": { "kind": "red_blue" },
+  "protocol": {
+    "sequence": [
+      { "kind": "oxford", "stage_id": "debate", "rounds": 12 },
+      { "kind": "steelman_before_rebuttal", "stage_id": "steel", "rounds": 2 },
+      { "kind": "cross_examination", "stage_id": "xexam", "participants": ["prop-1", "opp-1"] },
+      { "kind": "synthesis", "stage_id": "close" }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 2, "max": 12, "divergence_before_convergence": true },
+    "turn": { "max_words": 500, "time_limit_seconds": 300 },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "forced_dissent": true
+    },
+    "critique_intensity": "maximally_adversarial"
+  },
+  "budgets": { "effort": "high", "turns": 48, "rebuttal_depth": 4 },
+  "voting": { "method": "unanimity", "tie_break": "no_decision" },
+  "consensus": {
+    "threshold": 1.0,
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "unanimity == true OR max_rounds == 12",
+    "expression": {
+      "any_of": [
+        { "metric": "unanimity", "op": "==", "value": true },
+        { "metric": "max_rounds", "op": "==", "value": 12 }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 2, "every_participant_spoke": true },
+    "hard_caps": { "max_rounds": 12, "on_cap": "no_decision" }
+  },
+  "outcomes": { "allowed": ["decision", "no_decision", "irreducible_disagreement", "minority_report", "dissent"] },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 3, "repetition_similarity": 0.92 },
+    "resolution": ["rotate_roles", "strongest_counterexample", "declare_no_decision"]
+  },
+  "anti_failure": {
+    "controls": ["instant_unanimity", "endless_debate", "circular_debate", "role_collapse", "sycophancy"],
+    "fast_unanimity_response": ["blind_re_evaluation", "forced_dissent", "role_rotation"]
+  },
+  "outputs": {
+    "required": ["transcript", "argument_ledger", "votes_by_round", "dissent_minority_report", "final_recommendation"]
+  },
+  "audit": { "transcript": true, "replay": true, "determinism": "seeded" },
+  "metadata": {
+    "title": "Unanimity or twelve rounds",
+    "spec_citations": ["_USER-PROMPTS.md:10939", "_USER-PROMPTS.md:11198"],
+    "notes": "Spec example 3 of 6: unanimity == true OR max_rounds == 12"
+  }
+}

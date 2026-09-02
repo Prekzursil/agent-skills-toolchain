@@ -1,0 +1,213 @@
+{
+  "id": "IMP-0161",
+  "unit_id": "IMP-0161",
+  "schema_version": 1,
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0161",
+  "completion_sentinel": "SUCCESS:IMP-0161",
+  "title": "Build the import adapter for Codex fan-out profiles",
+  "question": "Target: translate tools/codex/profiles/schemas/fanout.schema.json instances into typed Workflows. Acceptance: the translation preserves the dispatch-safety properties agentspec owns - no fire-and-forget, explicit timeout, prompt routed off argv - and a profile that violates any of them is REFUSED at import rather than imported and left to fail at run time.",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "adapter-author",
+    "execution_substrate": "linux-worktree-isolated"
+  },
+  "adapter": {
+    "id": "codex-fanout",
+    "path": "tools/import-adapters/codex_fanout.py",
+    "sha256": "c809bb0b718269cee07b81ab8b819d7cc38ec7e40d2609c23220f18c0ecd8f80",
+    "bytes": 8129,
+    "argv_module": "tools/agentspec/agentspec/argv.py",
+    "argv_sha256": "ab857067ee751be4a0bb2aa00f5a0e7bd3707c27eaf01f8225ab005662cd1cb9",
+    "argv_bytes": 9800,
+    "source_schema": "tools/codex/profiles/schemas/fanout.schema.json",
+    "schema_sha256": "c68f88d08d5768bafc56434d3851d0e23c18dc6932df79f217de456e21d7ca51",
+    "schema_bytes": 1682,
+    "closed_reason_ids": [
+      "dispatch.background-flagged",
+      "dispatch.fire-and-forget",
+      "dispatch.missing-timeout",
+      "dispatch.prompt-on-argv"
+    ],
+    "uses_agentspec_argv_build": true,
+    "local_argv_builder": false
+  },
+  "inputs_on_this_worktree": {
+    "tools/codex/profiles/schemas/fanout.schema.json": "present on this worktree (catalog input; result-schema, not the profile grammar)",
+    "tools/fanout-schema/fanout_schema.mjs": "absent on this sparse worktree; dispatch-safety encoded in the Python adapter + agentspec.argv rather than reconstructed as a fake JS package",
+    "rules/common/cross-vendor-dispatch.md": "absent on this sparse worktree; fire-and-forget / timeout / prompt-off-argv taken from the catalog target and agentspec.argv",
+    "tools/agentspec/agentspec/argv.py": "present; adapter calls argv.build and does not ship a rival local builder",
+    "IMP-0135": "dependency receipt absent; routing table not required for import refusal"
+  },
+  "evidence": [
+    {
+      "id": "signal-1-background-fire-and-forget-refused",
+      "kind": "import-refusal",
+      "requirement": "a background-flagged profile is refused at import with a named reason",
+      "fixture": "command-center/p2-wave/probes/IMP-0161/fixtures/fire-and-forget.json",
+      "reason_id": "dispatch.fire-and-forget",
+      "imported": false,
+      "named_reason": true,
+      "closed_set_member": true
+    },
+    {
+      "id": "signal-2-argv-through-agentspec",
+      "kind": "ast-and-value",
+      "requirement": "the imported plan's argv is built through agentspec.argv (AST assertion, no local argv builder)",
+      "adapter_path": "tools/import-adapters/codex_fanout.py",
+      "calls_argv_build": true,
+      "independent_rebuild_matches": true,
+      "units": [
+        {
+          "unit_id": "auth-lens",
+          "argv": [
+            "codex",
+            "--timeout",
+            "120",
+            "--prompt-file",
+            "prompts/auth-lens.md"
+          ],
+          "matches_agentspec_argv_build": true
+        },
+        {
+          "unit_id": "session-lens",
+          "argv": [
+            "codex",
+            "--timeout",
+            "120",
+            "--prompt-file",
+            "prompts/session-lens.md"
+          ],
+          "matches_agentspec_argv_build": true
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "fire-and-forget-refused-both-states",
+      "result": "PASS",
+      "blocking_twin_imported": true,
+      "fanout_width": 2,
+      "refused_reason_id": "dispatch.fire-and-forget"
+    },
+    {
+      "id": "no-local-argv-builder-ast",
+      "result": "PASS",
+      "probe": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0161/probe2_argv_ast.py"
+    },
+    {
+      "id": "missing-timeout-refused",
+      "result": "PASS",
+      "reason_id": "dispatch.missing-timeout"
+    },
+    {
+      "id": "prompt-on-argv-refused",
+      "result": "PASS",
+      "reason_id": "dispatch.prompt-on-argv"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "both-states-fire-and-forget",
+      "bad_fixture": "command-center/p2-wave/probes/IMP-0161/fixtures/fire-and-forget.json",
+      "good_fixture": "command-center/p2-wave/probes/IMP-0161/fixtures/blocking-twin.json",
+      "bad_refused": true,
+      "good_imported": true,
+      "discriminator": "background / fire_and_forget flags"
+    },
+    {
+      "id": "planted-local-argv-builder",
+      "probe": "probe2_argv_ast.py",
+      "planted_detected": true,
+      "live_adapter_clean": true
+    }
+  ],
+  "imported_plan_sample": {
+    "workflow_id": "codex-research-fanout-blocking",
+    "kind": "Workflow",
+    "fanout_width": 2,
+    "barrier_waits_for": [
+      "auth-lens",
+      "session-lens"
+    ],
+    "unit_ids": [
+      "auth-lens",
+      "session-lens"
+    ],
+    "argv_has_prompt_file_flag": true,
+    "argv_has_timeout": true
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "fire-and-forget-refuse-and-blocking-twin",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0161/probe1_refuse_fire_and_forget.py"
+    },
+    {
+      "id": "probe2",
+      "role": "agentspec-argv-ast-no-local-builder",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0161/probe2_argv_ast.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0161.json",
+      "role": "primary",
+      "exists": true
+    },
+    {
+      "path": "tools/import-adapters/codex_fanout.py",
+      "role": "supporting",
+      "exists": true,
+      "sha256": "c809bb0b718269cee07b81ab8b819d7cc38ec7e40d2609c23220f18c0ecd8f80",
+      "bytes": 8129
+    },
+    {
+      "path": "tools/agentspec/agentspec/argv.py",
+      "role": "supporting",
+      "exists": true,
+      "sha256": "ab857067ee751be4a0bb2aa00f5a0e7bd3707c27eaf01f8225ab005662cd1cb9",
+      "bytes": 9800
+    },
+    {
+      "path": "tools/codex/profiles/schemas/fanout.schema.json",
+      "role": "supporting",
+      "exists": true,
+      "sha256": "c68f88d08d5768bafc56434d3851d0e23c18dc6932df79f217de456e21d7ca51",
+      "bytes": 1682
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0161-probe2-argv-ast",
+    "verdict": "PASS",
+    "independent": true,
+    "scope_not_agreement": true,
+    "notes": "Probe2 is a second code path (stdlib ast over the adapter blob) and a planted local build_argv control. Catalog reviewer_requirement asks for a fresh-context human adversarial reviewer; that human pass is residual on this G-1 delivery and is not claimed."
+  },
+  "cloud_ok": false,
+  "residual_unknowns": [
+    {
+      "id": "sparse-worktree-missing-upstream-mjs",
+      "text": "tools/fanout-schema/fanout_schema.mjs and rules/common/cross-vendor-dispatch.md are not on this worktree. The adapter encodes the three catalogued dispatch-safety properties directly. A later merge against the full estate must re-run the named probes against the live schema/mjs rather than this authored JSON schema."
+    },
+    {
+      "id": "human-reviewer-residual",
+      "text": "G-1 named probes are green. A second human in a fresh context has not scored this unit."
+    },
+    {
+      "id": "typed-workflow-runtime-not-executed",
+      "text": "This unit translates to a typed Workflow dict (FanOut + Barrier). It does not spawn Codex. Runtime dispatch is out of scope."
+    }
+  ],
+  "does_not_claim": [
+    "cloud ok=true is delivery",
+    "global unit_manifest.py --write was run",
+    "tools/fanout-schema/fanout_schema.mjs was read from disk",
+    "a human adversarial reviewer in a fresh context scored PASS",
+    "IMP-0135 routing through rails.toml was re-implemented"
+  ],
+  "ts": "2026-08-25T00:59:20Z"
+}

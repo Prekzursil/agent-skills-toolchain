@@ -1,0 +1,422 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0097-clean-install-linux.json",
+   "bytes": 4810,
+   "sha256": "f2c26497f6d12e3971734cf03beb452c28001d96ebc43208932739b95d6d84f9",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0097 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the container listing proves no repository checkout was present during the install. Any other terminal state is FAILED:CNF-0097 <classification> with the diagnostic tail attached.",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0097-clean-install-linux.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  },
+  {
+   "id": "T-CLEAN-INSTALL",
+   "name": "published tarball installs in a no-repo container",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0097/probe1_clean_install.py",
+   "result": "PASS",
+   "assertions": 3,
+   "output_tail": "install:extracted harness-plugin-1.0.0.tar.gz -> /artifact/src/harness-plugin-1.0.0 install:installed files=11 prefix=/install-prefix install:SUCCESS:install"
+  },
+  {
+   "id": "T-HEALTH-CHECK",
+   "name": "installed plugin health check exits 0 and fires the hook",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0097/probe1_clean_install.py",
+   "result": "PASS",
+   "assertions": 2,
+   "output_tail": "health:hook-fired /install-prefix/hook-side-effect.json health:healthy prefix=/install-prefix name=harness version=1.0.0 health:SUCCESS:health-check"
+  },
+  {
+   "id": "T-WINSEP-CONTROL",
+   "name": "no Windows path separator in payload; backslash-join mutant is detected",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0097/probe2_winsep_control.py",
+   "result": "PASS",
+   "assertions": 2,
+   "output_tail": "windows_path_separators=[] windows_separator_assumed=false mutant backslash-join detected"
+  }
+ ],
+ "unit_id": "CNF-0097",
+ "extensions": {
+  "legacy_root": {
+   "answers": {
+    "install_succeeded": true,
+    "undeclared_system_package_required": false,
+    "windows_separator_assumed": false
+   },
+   "container": {
+    "artifact_listing": [
+     "harness-plugin-1.0.0.tar.gz",
+     "src"
+    ],
+    "artifact_listing_pre_install": [
+     "harness-plugin-1.0.0.tar.gz"
+    ],
+    "image_digest": "sha256:9ba3ca2e15ce8c8843e385572cf5d25164bc934622cacc8f934875b7767f711c",
+    "image_identity": {
+     "artifact_name": "harness-plugin-1.0.0.tar.gz",
+     "machine": "x86_64",
+     "python": "3.12.3",
+     "release": "6.8.0-136-generic",
+     "runtime": "linux-user-ns-chroot",
+     "sysname": "Linux"
+    },
+    "prefix_listing": [
+     "catalogs/council.json",
+     "catalogs/workflows.json",
+     "council/presets/council.preset.catalog-class.editable.json",
+     "docs/doc.a2-overview.md",
+     "hook-side-effect.json",
+     "hooks/hook.pre-tool.json",
+     "hooks/pre-tool.py",
+     "install-receipt.json",
+     "marketplace/marketplace.harness.json",
+     "plugin.json",
+     "rules/rule.no-secrets.md",
+     "skills/skill.council/SKILL.md",
+     "workflows/wf.catalog-class.discovery-only.json"
+    ],
+    "repo_checkout_present": false,
+    "repo_markers_found": [],
+    "root_listing": [
+     "artifact",
+     "bin",
+     "dev",
+     "etc",
+     "install-prefix",
+     "lib",
+     "lib64",
+     "results",
+     "tmp",
+     "usr"
+    ],
+    "root_listing_pre_install": [
+     "artifact",
+     "bin",
+     "dev",
+     "etc",
+     "lib",
+     "lib64",
+     "results",
+     "tmp",
+     "usr"
+    ],
+    "runtime": "linux-user-ns-chroot"
+   },
+   "declared_packages": [
+    "python3 (>=3.10)"
+   ],
+   "health_check": {
+    "exit_code": 0,
+    "healthy": true,
+    "output": [
+     "hook-fired /install-prefix/hook-side-effect.json",
+     "healthy prefix=/install-prefix name=harness version=1.0.0",
+     "SUCCESS:health-check"
+    ]
+   },
+   "install": {
+    "copied_files": [
+     "catalogs/council.json",
+     "catalogs/workflows.json",
+     "council/presets/council.preset.catalog-class.editable.json",
+     "docs/doc.a2-overview.md",
+     "hooks/hook.pre-tool.json",
+     "hooks/pre-tool.py",
+     "marketplace/marketplace.harness.json",
+     "plugin.json",
+     "rules/rule.no-secrets.md",
+     "skills/skill.council/SKILL.md",
+     "workflows/wf.catalog-class.discovery-only.json"
+    ],
+    "exit_code": 0,
+    "success": true,
+    "transcript": [
+     "extracted harness-plugin-1.0.0.tar.gz -> /artifact/src/harness-plugin-1.0.0",
+     "installed files=11 prefix=/install-prefix",
+     "SUCCESS:install"
+    ]
+   },
+   "measured_at": "2026-08-25T00:54:55Z",
+   "packages_used_during_install": [
+    "python3"
+   ],
+   "packaging_defects": [],
+   "platform": {
+    "kernel": "6.8.0-136-generic",
+    "machine": "x86_64",
+    "os": "Linux",
+    "python": "3.12.3"
+   },
+   "published_artifact": {
+    "bytes": 4048,
+    "name": "harness",
+    "path": "command-center/p2-wave/probes/CNF-0097/dist/harness-plugin-1.0.0.tar.gz",
+    "sha256": "90fbbc8d3a088c7777a1501fa3b0025e63decfc36d1eb5e3f89f52ff86a7598b",
+    "version": "1.0.0"
+   },
+   "question": "Does the published artifact install on Linux with no repository present? In a container with only the artifact and a package manager, install and run the health check, and answer: does it succeed, does it require an undeclared system package, and does any path assume a Windows separator?",
+   "undeclared_packages": [],
+   "windows_path_separators": []
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0097",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "CNF-0097 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0097-clean-install-linux.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0097-clean-install-linux.json",
+     "raw_output": "bytes=4810 sha256=f2c26497f6d12e3971734cf03beb452c28001d96ebc43208932739b95d6d84f9",
+     "fingerprint": "1433c9e657fe9589889a354b0419f880",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0097",
+     "raw_output": "schema-check",
+     "fingerprint": "40c8b0b7a6c60f6b199c2742ba769d0f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0097 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0097",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0097",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "23ceaab492d5961065409b69d687a7a8",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0097",
+     "raw_output": "schema-valid",
+     "fingerprint": "73f6fa763bf4ba03cf7b62baa381438b",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0097/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0097"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0097-clean-install-linux.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0097-clean-install-linux.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "dc37e887d449468939c198f58fe6304f",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "install-report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 4810,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0097-clean-install-linux.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "answers": {
+  "install_succeeded": true,
+  "undeclared_system_package_required": false,
+  "windows_separator_assumed": false
+ },
+ "container": {
+  "artifact_listing": [
+   "harness-plugin-1.0.0.tar.gz",
+   "src"
+  ],
+  "artifact_listing_pre_install": [
+   "harness-plugin-1.0.0.tar.gz"
+  ],
+  "image_digest": "sha256:9ba3ca2e15ce8c8843e385572cf5d25164bc934622cacc8f934875b7767f711c",
+  "image_identity": {
+   "artifact_name": "harness-plugin-1.0.0.tar.gz",
+   "machine": "x86_64",
+   "python": "3.12.3",
+   "release": "6.8.0-136-generic",
+   "runtime": "linux-user-ns-chroot",
+   "sysname": "Linux"
+  },
+  "prefix_listing": [
+   "catalogs/council.json",
+   "catalogs/workflows.json",
+   "council/presets/council.preset.catalog-class.editable.json",
+   "docs/doc.a2-overview.md",
+   "hook-side-effect.json",
+   "hooks/hook.pre-tool.json",
+   "hooks/pre-tool.py",
+   "install-receipt.json",
+   "marketplace/marketplace.harness.json",
+   "plugin.json",
+   "rules/rule.no-secrets.md",
+   "skills/skill.council/SKILL.md",
+   "workflows/wf.catalog-class.discovery-only.json"
+  ],
+  "repo_checkout_present": false,
+  "repo_markers_found": [],
+  "root_listing": [
+   "artifact",
+   "bin",
+   "dev",
+   "etc",
+   "install-prefix",
+   "lib",
+   "lib64",
+   "results",
+   "tmp",
+   "usr"
+  ],
+  "root_listing_pre_install": [
+   "artifact",
+   "bin",
+   "dev",
+   "etc",
+   "lib",
+   "lib64",
+   "results",
+   "tmp",
+   "usr"
+  ],
+  "runtime": "linux-user-ns-chroot"
+ },
+ "declared_packages": [
+  "python3 (>=3.10)"
+ ],
+ "health_check": {
+  "exit_code": 0,
+  "healthy": true,
+  "output": [
+   "hook-fired /install-prefix/hook-side-effect.json",
+   "healthy prefix=/install-prefix name=harness version=1.0.0",
+   "SUCCESS:health-check"
+  ]
+ },
+ "install": {
+  "copied_files": [
+   "catalogs/council.json",
+   "catalogs/workflows.json",
+   "council/presets/council.preset.catalog-class.editable.json",
+   "docs/doc.a2-overview.md",
+   "hooks/hook.pre-tool.json",
+   "hooks/pre-tool.py",
+   "marketplace/marketplace.harness.json",
+   "plugin.json",
+   "rules/rule.no-secrets.md",
+   "skills/skill.council/SKILL.md",
+   "workflows/wf.catalog-class.discovery-only.json"
+  ],
+  "exit_code": 0,
+  "success": true,
+  "transcript": [
+   "extracted harness-plugin-1.0.0.tar.gz -> /artifact/src/harness-plugin-1.0.0",
+   "installed files=11 prefix=/install-prefix",
+   "SUCCESS:install"
+  ]
+ },
+ "measured_at": "2026-08-25T00:54:55Z",
+ "packages_used_during_install": [
+  "python3"
+ ],
+ "packaging_defects": [],
+ "platform": {
+  "kernel": "6.8.0-136-generic",
+  "machine": "x86_64",
+  "os": "Linux",
+  "python": "3.12.3"
+ },
+ "published_artifact": {
+  "bytes": 4048,
+  "name": "harness",
+  "path": "command-center/p2-wave/probes/CNF-0097/dist/harness-plugin-1.0.0.tar.gz",
+  "sha256": "90fbbc8d3a088c7777a1501fa3b0025e63decfc36d1eb5e3f89f52ff86a7598b",
+  "version": "1.0.0"
+ },
+ "question": "Does the published artifact install on Linux with no repository present? In a container with only the artifact and a package manager, install and run the health check, and answer: does it succeed, does it require an undeclared system package, and does any path assume a Windows separator?",
+ "undeclared_packages": [],
+ "windows_path_separators": []
+}

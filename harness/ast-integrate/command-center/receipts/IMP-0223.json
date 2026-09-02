@@ -1,0 +1,203 @@
+{
+ "artifacts": [
+  {
+   "bytes": 66213,
+   "exists": true,
+   "path": "tools/gitcrypt-worktree/gitcrypt_worktree.py",
+   "role": "implementation",
+   "sha256": "f92a3facf3d44e8015f7db3bd5e6145111b67beb8f09ab8082cb5500b7636b01"
+  },
+  {
+   "bytes": 3401,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+   "role": "probe",
+   "sha256": "c53acfc03804836a0833fd129132cd07663b568b51306289cb2ab5a731d907d7"
+  },
+  {
+   "bytes": 3810,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+   "role": "probe",
+   "sha256": "e18e1fe04f64b17d6e1b041d47e53b63d9f83ebea1b8fcf82a3957771b010dcf"
+  },
+  {
+   "bytes": 0,
+   "exists": true,
+   "path": "command-center/receipts/IMP-0223.json",
+   "role": "primary",
+   "sha256": "see-per-unit-manifest"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0223.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+   "executed": true,
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/receipts/IMP-0223.json",
+   "consumer": "command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+   "executed": true,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/gitcrypt-worktree/gitcrypt_worktree.py:measure_disjoint_indexes",
+   "claim": "Two concurrent mutating units provisioned via git worktree produce disjoint staged sets (set intersection empty) and do not share an index file. The shared-index control stages both sibling paths with one broad git add -A.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+     "exit_code": 0,
+     "method": "command",
+     "role": "source"
+    },
+    {
+     "command": "staged_a & staged_b == empty; index_a != index_b",
+     "exit_code": 0,
+     "method": "computed-set-intersection",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/gitcrypt-worktree/gitcrypt_worktree.py:teardown",
+   "claim": "Teardown refuses when harvest does not byte-match every worktree file. After squash-merge the shard branch reports AHEAD; a naive ancestry-ahead mutant would authorize delete while an uncommitted remainder is still only in the shard. Content comparison refuses that state and deletes only after a harvest digest match.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+     "exit_code": 0,
+     "method": "command",
+     "role": "source"
+    },
+    {
+     "command": "teardown(harvest=None) refuses; teardown(harvest=bytes) deletes",
+     "exit_code": 0,
+     "method": "both-states",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_computed": {
+  "disjoint_indexes": {
+   "contamination_detected": true,
+   "index_a_basename": "index",
+   "index_b_basename": "index",
+   "indexes_disjoint": true,
+   "indexes_equal": false,
+   "intersection": [],
+   "intersection_empty": true,
+   "staged_a": [
+    "unit-a.txt"
+   ],
+   "staged_b": [
+    "unit-b.txt"
+   ]
+  },
+  "teardown_both_states": {
+   "ancestry_not_authorization": true,
+   "branch_is_ancestor_of_integration": false,
+   "content_refused_unharvested": true,
+   "dangerous_deleted": false,
+   "dangerous_reason": "unpreserved-content",
+   "dangerous_refused": true,
+   "good_deleted": true,
+   "good_reason": "content-proven",
+   "naive_ancestry_would_authorize": true,
+   "squash_ahead_count": 1,
+   "squash_reports_ahead": true
+  }
+ },
+ "id": "IMP-0223",
+ "implementation": {
+  "ancestry_authorization": "never",
+  "estate_git_mutated": false,
+  "module": "tools/gitcrypt-worktree/gitcrypt_worktree.py",
+  "note": "Fixture repos under tempfile only. This estate root has no .git; no git add/commit/push/stash/checkout/rebase was run against it.",
+  "provision": "git worktree add -b shard/<unit>/<token>",
+  "teardown_authorization": "byte-level harvest comparison only"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0223/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "unit-a.txt and unit-b.txt both staged on shared index",
+   "description": "Two sibling files on one checkout plus git add -A must stage both paths. Detector fires on that contamination mode.",
+   "fired_on_bad_state": true,
+   "good_state_output": "isolated worktrees: intersection empty",
+   "id": "shared-index-broad-add",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "reason=unpreserved-content refused=true",
+   "description": "Teardown of a shard whose unique bytes are nowhere else must refuse and leave the worktree on disk.",
+   "fired_on_bad_state": true,
+   "good_state_output": "reason=content-proven deleted=true",
+   "id": "unpreserved-teardown",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "reports_ahead=true naive_ancestry_would_authorize=true refused=true",
+   "description": "Squash-merge plus an uncommitted remainder: ancestry reports AHEAD (mutant would delete); content comparison refuses.",
+   "fired_on_bad_state": true,
+   "good_state_output": "harvest digest match then deleted",
+   "id": "squash-merge-ancestry-ahead",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0223: live named probes re-run the provisioner against throwaway git repos. SUCCESS:IMP-0223 is the catalog sentinel. cloud ok=true is not delivery. Did not run global unit_manifest.py --write.",
+ "residual_unknowns": [
+  {
+   "claim": "tools/lib/git-diff.mjs and git-crypt itself are absent on this Linux worktree. Isolation is proven with git worktree indexes and git diff --cached --name-only, not with that JS helper.",
+   "settling_experiment": "Re-run measure_disjoint_indexes against a host that still has tools/lib/git-diff.mjs and compare the staged-set output.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "note": "Probe 2 is a different field than probe 1 (teardown refusal / ancestry-vs-content, not staged-set intersection).",
+  "reviewer_id": "IMP-0223-probe2-teardown-both-states",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0223",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0223",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe1_disjoint_indexes.py",
+   "id": "concurrent-mutators-disjoint-indexes",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0223/probe2_teardown_refused.py",
+   "id": "teardown-refused-when-unpreserved",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:22Z",
+  "started_at": "2026-08-25T00:59:22Z"
+ },
+ "title": "Implement worktree provisioning and teardown per implementation shard",
+ "unit_id": "IMP-0223"
+}

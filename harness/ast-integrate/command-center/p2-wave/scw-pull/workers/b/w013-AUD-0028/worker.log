@@ -1,0 +1,28 @@
+I'll start from the existing AUD-0028 probe tree, read any prior return artifact, and resume rather than rebuilding.The probe tree is already populated. Next I’ll read the return artifact, catalog contract, and measure script so I know what still has to be green.The cloud-ok refute is stale relative to the rebuilt probes. I’ll read the measure script and the current catalog/artifact so we can see what G-1 actually requires here.Probes already exist; next I’ll inspect their Linux behavior and the catalog/ready_units contract before deciding whether to re-run or park.The named probes are Windows/Git-Bash specific. I’ll check the environment, prior Linux adaptations, and how similar units were delivered or parked.I’ll inspect how other Linux deliveries handled Windows-only probes, and check whether `pwsh` or Git Bash exists on this host.Measure failed on missing Git Bash. Next I’ll inspect the schema and a valid BLOCKED receipt so we can park honestly if the dual-shell control still cannot be met.Two independent remounts show the same structural limit: this Linux host cannot run PowerShell 7 vs Git Bash with WSL/MSYS path divergence. I’ll record the live detector cases, then park the unit honestly.I have the remount facts. Next I’ll write the live remount log and a blocked packer so the receipt stays honest.**FAILED:AUD-0028** `predicate:self-declared:BLOCKED`
+
+The unit is parked. G-1 is not met on this Linux worktree, and the receipt is honest `BLOCKED` rather than a hand-flipped `SUCCESS`.
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0028` printed:
+
+```text
+FAILED:delivered AUD-0028 predicate:self-declared:BLOCKED
+```
+
+**Why it is parked.** Two independent remounts share the same structural reason: this Linux/Wine class of host cannot instantiate the catalog pair (PowerShell 7 `Get-Command` vs Git Bash `command -v`) with the required WSL-versus-MSYS bash-path split.
+
+| Refute | Where | Observation |
+| --- | --- | --- |
+| 1 | Harvest Wine/Linux worker | Both shells resolved bash to `/usr/bin/bash`; `paths_different=false` |
+| 2 | This worktree (`p2-grok-b`, `/opt/p2/ast-integrate`) | Live `get_command_probe.py` exit 1 (`pwsh` missing); live `command_v_probe.py` exit 1 (`git-bash` missing); only bash is `/usr/bin/bash` |
+
+The fixture detector still works (known-good different-path exit 0, known-bad agreeing-path exit 1). The live WSL-versus-MSYS pair cannot be formed here. Native GNU bash was not substituted for Git Bash, and `/bin/bash` vs `/usr/bin/bash` (same file) was not treated as that divergence.
+
+**What was resumed, not scrapped.** The existing probe scripts and Windows sidecar raws are still in `command-center/p2-wave/probes/AUD-0028/`. Census re-ran to exit 0 (12 floor names; `scripts/` is absent on this tree).
+
+**required_fix.** Re-run Probe 1 (`Get-Command` in PowerShell 7) and Probe 2 (`command -v` in Git for Windows `bash.exe`) on a Windows host that has both runtimes, then pack `SUCCESS` only after those live probes exit 0 and bash paths differ (WSL vs MSYS). Do not hand-flip `state=SUCCESS` on this Linux worktree.
+
+Written:
+
+- `command-center/p2-wave/probes/AUD-0028/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0028/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; LF sha256 `dd2d56f14c49310ceeff233e3f2fd344440571d3fb0ecb191bb915e4ff84819b` matches the live 26299-byte receipt)
+- `command-center/audit/AUD-0028-external-cli-tool-census.json` (`state=BLOCKED`)

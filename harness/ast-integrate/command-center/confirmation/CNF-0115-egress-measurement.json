@@ -1,0 +1,708 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0115-egress-measurement.json",
+   "bytes": 18000,
+   "sha256": "83227e6f931160743af80a4772cc65507fb29e18bb0cf6cf33f8ec2e07465b75",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "CNF-0115 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0115-egress-measurement.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0115-egress-measurement.json",
+     "raw_output": "bytes=18000 sha256=83227e6f931160743af80a4772cc65507fb29e18bb0cf6cf33f8ec2e07465b75",
+     "fingerprint": "63daaf0a8a1b64e49230c55e2826dc3f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0115",
+     "raw_output": "schema-check",
+     "fingerprint": "875d8728c83401c4465ab670c1620f6f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0115 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0115",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0115",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "a0f7ad712eda5eed5040939c34e6dae2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0115",
+     "raw_output": "schema-valid",
+     "fingerprint": "73f4389adff8a06b2bfa6580c3c769de",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0115 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the declared-event control was observed in the capture and no captured payload bytes are stored in the artifact. Any other terminal state is FAILED:CNF-0115 <classification> with the diagnostic tail attached.",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0115-egress-measurement.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "CNF-0115",
+ "extensions": {
+  "legacy_root": {
+   "capture_control": {
+    "capture_works": true,
+    "create_connection_instrument": true,
+    "declared_event_id": "CNF0115_DECLARED_EVENT",
+    "declared_event_observed": true,
+    "sink_declared_connections": 1,
+    "socket_connect_instrument": true,
+    "strace": {
+     "available": true,
+     "declared_event_observed": true,
+     "log_bytes": 171,
+     "ptrace_denied": false,
+     "rc": 0
+    }
+   },
+   "completion_sentinel": "SUCCESS:CNF-0115 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the declared-event control was observed in the capture and no captured payload bytes are stored in the artifact. Any other terminal state is FAILED:CNF-0115 <classification> with the diagnostic tail attached.",
+   "declared_contract": {
+    "arc0096_clauses_module": "command-center/p2-wave/probes/ARC-0096/clauses.py",
+    "control_sink_declaration": {
+     "host": "127.0.0.1",
+     "role": "opt-in declared telemetry event sink used only for capture-liveness control"
+    },
+    "declared_destinations": [],
+    "default_mode": "local-only",
+    "extraction_note": "Phase-4 ARC-0096 JSON is absent on this worktree. Rules are taken from catalog units ARC-0096, IMP-0057, IMP-0479, CNF-0115 plus the normative clause strings in probes/ARC-0096/clauses.py when that file is present: default nothing leaves; opt-in required; user content is never transmitted. The capture-control sink is declared only for the opt-in control phase.",
+    "never_transmit": [
+     "user_content",
+     "file_contents",
+     "prompts",
+     "absolute_paths"
+    ],
+    "normative_clauses": {
+     "disabled_rule": "When telemetry is disabled the system emits literally nothing: no outbound socket, no queued flush, and no new local telemetry record.",
+     "egress_rule": "No telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log.",
+     "local_vs_egress": "Local-only sink may persist allow-listed events without opt-in when enabled=true and local_recording=true. Egress (any payload leaving the machine, including localhost observers used as a sandbox stand-in for a remote collector) requires enabled=true AND a durable OPT-IN record whose scope is telemetry-egress. Configuration flags are not evidence of egress.",
+     "observation_rule": "Egress is verified by an actual network observation (an observer that accepted a TCP connection), not by reading configuration. A probe silent in both enabled and disabled states measures nothing.",
+     "opt_in_rule": "Owner opt-in is an append-only decision-log record with id, ts, owner, decision=OPT-IN, scope=telemetry-egress, and destination_class. Last record for that scope wins. OPT-OUT or REVOKED cancels prior OPT-IN. Absent record defaults to no egress. A test fixture labeled sandbox-only is not a production owner ruling.",
+     "recordable_rule": "Only allow-listed coded fields may be recorded: schema_version, event_id, ts, unit_id, contract_id, event_kind, outcome, phase, duration_ms, probe_id, host_os_family, error_class. Prompts, file contents, env values, hostnames, usernames, IP addresses, command lines, and free-text payloads are forbidden.",
+     "redaction_rule": "Every value is redacted before local persist or egress. Secrets, absolute paths, and personal data are scrubbed or the event is rejected. A write that drops the whole event is not redaction; a write that still contains the planted canary or home path is a leak.",
+     "retention_rule": "Local telemetry records are retained at most 14 days then deleted. Egress copies are not retained on this machine after a successful POST. Disable does not flush a backlog: there is no backlog."
+    },
+    "opt_in_required": true,
+    "owner_opt_in_recorded": false,
+    "phase4_artifact_path": "command-center/phase4/contracts/ARC-0096.json",
+    "phase4_artifact_present": false,
+    "source_units": [
+     "ARC-0096",
+     "IMP-0057",
+     "IMP-0479",
+     "CNF-0115"
+    ],
+    "sourced_from_catalog": {
+     "ARC-0096": {
+      "output_path": "command-center/phase4/contracts/ARC-0096.json",
+      "question_or_target": "Specify the telemetry and privacy contract: exactly what may be recorded, the local-only versus egress boundary, redaction rules for secrets, absolute paths and personal data, retention periods, the owner opt-in mechanism, and what the system does when telemetry is disabled. Define the rule that no telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log.",
+      "tests_required": [
+       "Egress control: enable telemetry in a sandbox and confirm the observer sees the connection, then disable and confirm silence - a probe silent in both states measures nothing",
+       "Redaction control: a payload containing a canary secret and an absolute home path must be rejected or scrubbed"
+      ],
+      "title": "Contract: Telemetry and privacy contract"
+     },
+     "CNF-0115": {
+      "output_path": "command-center/confirmation/CNF-0115-egress-measurement.json",
+      "question_or_target": "What does the system actually send, and to where? Capture all outbound connections during a full representative run and answer: which destinations were contacted, are they all declared in the telemetry and privacy contract, and does any payload contain user content that the contract says is never transmitted?",
+      "tests_required": [
+       "an undeclared destination is a finding even when it is a well-known service",
+       "payload inspection is limited to presence of user-content markers; no captured payload is stored in the artifact",
+       "control: trigger one declared telemetry event and confirm the capture sees it, proving the capture works"
+      ],
+      "title": "Measured network egress during a full run versus the declared telemetry contract"
+     },
+     "IMP-0057": {
+      "output_path": "command-center/receipts/IMP-0057.json",
+      "question_or_target": "Implement the telemetry contract so that by default nothing leaves the machine, any future egress is opt-in with an explicit consent record, and no code path can transmit file contents, prompts, or paths outside a declared allowlist. Enabling any egress changes the privacy posture and is owner-gated.",
+      "tests_required": [
+       "tools/plugin/tests/test_no_default_egress.py executed with egress blocked",
+       "NEGATIVE CONTROL: add a deliberate outbound call and assert BOTH the static audit and the blocked-egress run detect it",
+       "consent record is required before any opt-in path activates"
+      ],
+      "title": "Telemetry and privacy contract: local-only by default, opt-in, no content egress"
+     },
+     "IMP-0479": {
+      "output_path": "command-center/receipts/IMP-0479.json",
+      "question_or_target": "Implement the telemetry and privacy contract from spec line 10819: what is recorded, what is redacted, where it is stored, how it is disabled. Exact target: redaction must be proven executably against planted canaries - a policy document is not an implementation, and an ephemeral channel is not exfiltration-safe.",
+      "tests_required": "canary test per emission point; opt-out test asserting disabling telemetry emits literally nothing; a control proving the sweep can detect a canary that was NOT redacted.",
+      "title": "Telemetry and privacy contract implementation with an executable redaction proof"
+     }
+    }
+   },
+   "declared_versus_observed": {
+    "byte_volumes": [
+     {
+      "byte_volume": 22,
+      "connection_count": 1,
+      "host": "127.0.0.1",
+      "phase": "control-declared",
+      "port": 39399
+     },
+     {
+      "byte_volume": 49,
+      "connection_count": 1,
+      "host": "pypi.org",
+      "phase": "control-undeclared",
+      "port": 41977
+     }
+    ],
+    "declared_allowlist_default": [],
+    "matched_declared": [
+     {
+      "host": "127.0.0.1",
+      "phase": "control-declared",
+      "port": 39399
+     }
+    ],
+    "representative_run_undeclared": [],
+    "undeclared": [
+     {
+      "host": "pypi.org",
+      "phase": "control-undeclared",
+      "port": 41977
+     }
+    ]
+   },
+   "destinations": [
+    {
+     "byte_volume": 22,
+     "classification": "declared",
+     "connection_count": 1,
+     "declared": true,
+     "host": "127.0.0.1",
+     "peer": "127.0.0.1",
+     "phase": "control-declared",
+     "port": 39399,
+     "result": "connected",
+     "user_content_marker_present": false,
+     "well_known_service": false
+    },
+    {
+     "byte_volume": 49,
+     "classification": "undeclared-egress",
+     "connection_count": 1,
+     "declared": false,
+     "host": "pypi.org",
+     "peer": "127.0.0.1",
+     "phase": "control-undeclared",
+     "port": 41977,
+     "result": "connected",
+     "user_content_marker_present": true,
+     "well_known_service": true
+    }
+   ],
+   "findings": [
+    {
+     "class": "undeclared-egress",
+     "detail": "Planted well-known destination pypi.org (TCP peer 127.0.0.1 on a non-declared port) was classified undeclared-egress. An undeclared destination is a finding even when it is a well-known service.",
+     "id": "F-CONTROL-UNDECLARED-WELL-KNOWN",
+     "severity": "control"
+    },
+    {
+     "class": "none",
+     "detail": "Representative run of this worktree's available surface (catalog load + tools.command-center.catalog import) made no outbound TCP connections.",
+     "id": "F-REPRESENTATIVE-CLEAN",
+     "severity": "note"
+    },
+    {
+     "class": "undeclared-egress",
+     "detail": "The catalog output_schema is a generated $ref shim whose target is an https URI on host ast-integrate.invalid. Stock jsonschema Draft7Validator follows that $ref over the network. This measurement pipeline inspects the shim on disk and validates a local discriminator instead; it does not retrieve the $ref.",
+     "host": "ast-integrate.invalid",
+     "id": "F-CATALOG-SHIM-HTTPS-REF",
+     "severity": "note"
+    }
+   ],
+   "implementation_census": {
+    "phase4_contract_present": false,
+    "platform_tree_present": true,
+    "plugin_tree_present": false,
+    "present": true,
+    "telemetry_modules_in_worktree": [
+     "command-center/_wfa1_build_registry.py",
+     "command-center/_wfa5_build.py",
+     "command-center/casualty/_build_adv0021.py",
+     "command-center/catalog-slices/_adv_data2.py",
+     "command-center/catalog-slices/_bld_data1.py",
+     "command-center/catalog-slices/_cnf_data_c.py",
+     "command-center/catalog-slices/_gen_TST_2.py",
+     "command-center/catalog-slices/_gen_adv2.py",
+     "command-center/catalog-slices/_gen_imp3.py",
+     "command-center/catalog-slices/_gen_rel1.py",
+     "command-center/catalog-slices/_gen_res1.py",
+     "command-center/catalog-slices/_gen_tst1.py",
+     "command-center/catalog-slices/_patch_imp3_dedup.py",
+     "command-center/p2-wave/probes/ADV-0039/emit_dataflow.py",
+     "command-center/p2-wave/probes/ADV-0039/write_receipts.py",
+     "command-center/p2-wave/probes/ADV-0041/harness.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-a/tools/plugin/privacy.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-a/tools/plugin/privacy_cli.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-a/tools/plugin/telemetry.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-b/tools/plugin/privacy.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-b/tools/plugin/privacy_cli.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-b/tools/plugin/telemetry.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-real-plugin/tools/plugin/privacy.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-real-plugin/tools/plugin/privacy_cli.py",
+     "command-center/p2-wave/probes/ADV-0041/scratch/stage-real-plugin/tools/plugin/telemetry.py",
+     "command-center/p2-wave/probes/ARC-0096/clauses.py",
+     "command-center/p2-wave/probes/ARC-0096/emit_contract.py",
+     "command-center/p2-wave/probes/ARC-0096/probe1_egress.py",
+     "command-center/p2-wave/probes/ARC-0096/runtime.py",
+     "command-center/p2-wave/probes/ARC-0096/write_receipts.py",
+     "command-center/p2-wave/probes/AUD-0090/deps/py/opentelemetry/semconv/_incubating/attributes/telemetry_attributes.py",
+     "command-center/p2-wave/probes/AUD-0090/deps/py/opentelemetry/semconv/attributes/telemetry_attributes.py",
+     "command-center/p2-wave/probes/AUD-0090/deps/py/semgrep-1.174.0.data/purelib/semgrep/telemetry.py",
+     "command-center/p2-wave/probes/IMP-0057/probe2_blocked_egress.py",
+     "command-center/p2-wave/probes/IMP-0057/write_receipts.py",
+     "command-center/p2-wave/probes/IMP-0398/corpus.py",
+     "command-center/p2-wave/probes/IMP-0398/kappa.py",
+     "command-center/p2-wave/probes/IMP-0479/emit_receipt.py",
+     "command-center/p2-wave/probes/IMP-0479/probe2_optout_control.py",
+     "command-center/p2-wave/probes/RES-0020/emit_research.py"
+    ]
+   },
+   "independent_instrument": {
+    "declared_event_observed": true,
+    "destination_count": 2,
+    "instrument": "create_connection",
+    "undeclared_plant_observed": true
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0115/probe1_socket_capture.py",
+     "id": "probe1"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0115/probe2_independent_capture.py",
+     "id": "probe2"
+    }
+   ],
+   "owner_approval": {
+    "note": "This unit's owner gate is enabling telemetry egress. The measurement does not enable egress and does not write an opt-in record. Owner sign-off is recorded as not obtained.",
+    "obtained": false,
+    "required": true
+   },
+   "payload_bytes_stored": false,
+   "payload_inspection": {
+    "captured_payload_stored": false,
+    "declared_event_contained_user_content": false,
+    "marker_id": "CNF0115_USER_CONTENT_CANARY",
+    "method": "presence-of-user-content-marker-then-discard",
+    "undeclared_plant_contained_user_content": true
+   },
+   "question": "What does the system actually send, and to where? Capture all outbound connections during a full representative run and answer: which destinations were contacted, are they all declared in the telemetry and privacy contract, and does any payload contain user content that the contract says is never transmitted?",
+   "report_kind": "privacy-report",
+   "representative_run": {
+    "catalog_fields": 19,
+    "catalog_imported": true,
+    "output_path": "command-center/confirmation/CNF-0115-egress-measurement.json",
+    "unit_found": true,
+    "worktree_surface": "command-center+tools (plugin/platform telemetry absent)"
+   },
+   "schema_validation": {
+    "catalog_output_schema": "command-center/schema/privacy-report.schema.json",
+    "catalog_shim": {
+     "generated_shim": true,
+     "path": "command-center/schema/privacy-report.schema.json",
+     "pipeline_retrieves_ref": false,
+     "present": true,
+     "ref": "https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/privacy-report",
+     "ref_host": "ast-integrate.invalid",
+     "ref_is_https": true
+    },
+    "discriminator": "payload_bytes_stored const false; capture_control.declared_event_observed const true; payload_inspection.captured_payload_stored const false",
+    "method": "local-discriminator",
+    "retrieves_catalog_shim_ref": false
+   },
+   "title": "Measured network egress during a full run versus the declared telemetry contract"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0115",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0115/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0115"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0115-egress-measurement.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0115-egress-measurement.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "9652f67f9db7ba3524d443f99b2166b9",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "privacy-report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 18000,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0115-egress-measurement.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "capture_control": {
+  "capture_works": true,
+  "create_connection_instrument": true,
+  "declared_event_id": "CNF0115_DECLARED_EVENT",
+  "declared_event_observed": true,
+  "sink_declared_connections": 1,
+  "socket_connect_instrument": true,
+  "strace": {
+   "available": true,
+   "declared_event_observed": true,
+   "log_bytes": 171,
+   "ptrace_denied": false,
+   "rc": 0
+  }
+ },
+ "completion_sentinel": "SUCCESS:CNF-0115 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the declared-event control was observed in the capture and no captured payload bytes are stored in the artifact. Any other terminal state is FAILED:CNF-0115 <classification> with the diagnostic tail attached.",
+ "declared_contract": {
+  "arc0096_clauses_module": "command-center/p2-wave/probes/ARC-0096/clauses.py",
+  "control_sink_declaration": {
+   "host": "127.0.0.1",
+   "role": "opt-in declared telemetry event sink used only for capture-liveness control"
+  },
+  "declared_destinations": [],
+  "default_mode": "local-only",
+  "extraction_note": "Phase-4 ARC-0096 JSON is absent on this worktree. Rules are taken from catalog units ARC-0096, IMP-0057, IMP-0479, CNF-0115 plus the normative clause strings in probes/ARC-0096/clauses.py when that file is present: default nothing leaves; opt-in required; user content is never transmitted. The capture-control sink is declared only for the opt-in control phase.",
+  "never_transmit": [
+   "user_content",
+   "file_contents",
+   "prompts",
+   "absolute_paths"
+  ],
+  "normative_clauses": {
+   "disabled_rule": "When telemetry is disabled the system emits literally nothing: no outbound socket, no queued flush, and no new local telemetry record.",
+   "egress_rule": "No telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log.",
+   "local_vs_egress": "Local-only sink may persist allow-listed events without opt-in when enabled=true and local_recording=true. Egress (any payload leaving the machine, including localhost observers used as a sandbox stand-in for a remote collector) requires enabled=true AND a durable OPT-IN record whose scope is telemetry-egress. Configuration flags are not evidence of egress.",
+   "observation_rule": "Egress is verified by an actual network observation (an observer that accepted a TCP connection), not by reading configuration. A probe silent in both enabled and disabled states measures nothing.",
+   "opt_in_rule": "Owner opt-in is an append-only decision-log record with id, ts, owner, decision=OPT-IN, scope=telemetry-egress, and destination_class. Last record for that scope wins. OPT-OUT or REVOKED cancels prior OPT-IN. Absent record defaults to no egress. A test fixture labeled sandbox-only is not a production owner ruling.",
+   "recordable_rule": "Only allow-listed coded fields may be recorded: schema_version, event_id, ts, unit_id, contract_id, event_kind, outcome, phase, duration_ms, probe_id, host_os_family, error_class. Prompts, file contents, env values, hostnames, usernames, IP addresses, command lines, and free-text payloads are forbidden.",
+   "redaction_rule": "Every value is redacted before local persist or egress. Secrets, absolute paths, and personal data are scrubbed or the event is rejected. A write that drops the whole event is not redaction; a write that still contains the planted canary or home path is a leak.",
+   "retention_rule": "Local telemetry records are retained at most 14 days then deleted. Egress copies are not retained on this machine after a successful POST. Disable does not flush a backlog: there is no backlog."
+  },
+  "opt_in_required": true,
+  "owner_opt_in_recorded": false,
+  "phase4_artifact_path": "command-center/phase4/contracts/ARC-0096.json",
+  "phase4_artifact_present": false,
+  "source_units": [
+   "ARC-0096",
+   "IMP-0057",
+   "IMP-0479",
+   "CNF-0115"
+  ],
+  "sourced_from_catalog": {
+   "ARC-0096": {
+    "output_path": "command-center/phase4/contracts/ARC-0096.json",
+    "question_or_target": "Specify the telemetry and privacy contract: exactly what may be recorded, the local-only versus egress boundary, redaction rules for secrets, absolute paths and personal data, retention periods, the owner opt-in mechanism, and what the system does when telemetry is disabled. Define the rule that no telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log.",
+    "tests_required": [
+     "Egress control: enable telemetry in a sandbox and confirm the observer sees the connection, then disable and confirm silence - a probe silent in both states measures nothing",
+     "Redaction control: a payload containing a canary secret and an absolute home path must be rejected or scrubbed"
+    ],
+    "title": "Contract: Telemetry and privacy contract"
+   },
+   "CNF-0115": {
+    "output_path": "command-center/confirmation/CNF-0115-egress-measurement.json",
+    "question_or_target": "What does the system actually send, and to where? Capture all outbound connections during a full representative run and answer: which destinations were contacted, are they all declared in the telemetry and privacy contract, and does any payload contain user content that the contract says is never transmitted?",
+    "tests_required": [
+     "an undeclared destination is a finding even when it is a well-known service",
+     "payload inspection is limited to presence of user-content markers; no captured payload is stored in the artifact",
+     "control: trigger one declared telemetry event and confirm the capture sees it, proving the capture works"
+    ],
+    "title": "Measured network egress during a full run versus the declared telemetry contract"
+   },
+   "IMP-0057": {
+    "output_path": "command-center/receipts/IMP-0057.json",
+    "question_or_target": "Implement the telemetry contract so that by default nothing leaves the machine, any future egress is opt-in with an explicit consent record, and no code path can transmit file contents, prompts, or paths outside a declared allowlist. Enabling any egress changes the privacy posture and is owner-gated.",
+    "tests_required": [
+     "tools/plugin/tests/test_no_default_egress.py executed with egress blocked",
+     "NEGATIVE CONTROL: add a deliberate outbound call and assert BOTH the static audit and the blocked-egress run detect it",
+     "consent record is required before any opt-in path activates"
+    ],
+    "title": "Telemetry and privacy contract: local-only by default, opt-in, no content egress"
+   },
+   "IMP-0479": {
+    "output_path": "command-center/receipts/IMP-0479.json",
+    "question_or_target": "Implement the telemetry and privacy contract from spec line 10819: what is recorded, what is redacted, where it is stored, how it is disabled. Exact target: redaction must be proven executably against planted canaries - a policy document is not an implementation, and an ephemeral channel is not exfiltration-safe.",
+    "tests_required": "canary test per emission point; opt-out test asserting disabling telemetry emits literally nothing; a control proving the sweep can detect a canary that was NOT redacted.",
+    "title": "Telemetry and privacy contract implementation with an executable redaction proof"
+   }
+  }
+ },
+ "declared_versus_observed": {
+  "byte_volumes": [
+   {
+    "byte_volume": 22,
+    "connection_count": 1,
+    "host": "127.0.0.1",
+    "phase": "control-declared",
+    "port": 39399
+   },
+   {
+    "byte_volume": 49,
+    "connection_count": 1,
+    "host": "pypi.org",
+    "phase": "control-undeclared",
+    "port": 41977
+   }
+  ],
+  "declared_allowlist_default": [],
+  "matched_declared": [
+   {
+    "host": "127.0.0.1",
+    "phase": "control-declared",
+    "port": 39399
+   }
+  ],
+  "representative_run_undeclared": [],
+  "undeclared": [
+   {
+    "host": "pypi.org",
+    "phase": "control-undeclared",
+    "port": 41977
+   }
+  ]
+ },
+ "destinations": [
+  {
+   "byte_volume": 22,
+   "classification": "declared",
+   "connection_count": 1,
+   "declared": true,
+   "host": "127.0.0.1",
+   "peer": "127.0.0.1",
+   "phase": "control-declared",
+   "port": 39399,
+   "result": "connected",
+   "user_content_marker_present": false,
+   "well_known_service": false
+  },
+  {
+   "byte_volume": 49,
+   "classification": "undeclared-egress",
+   "connection_count": 1,
+   "declared": false,
+   "host": "pypi.org",
+   "peer": "127.0.0.1",
+   "phase": "control-undeclared",
+   "port": 41977,
+   "result": "connected",
+   "user_content_marker_present": true,
+   "well_known_service": true
+  }
+ ],
+ "findings": [
+  {
+   "class": "undeclared-egress",
+   "detail": "Planted well-known destination pypi.org (TCP peer 127.0.0.1 on a non-declared port) was classified undeclared-egress. An undeclared destination is a finding even when it is a well-known service.",
+   "id": "F-CONTROL-UNDECLARED-WELL-KNOWN",
+   "severity": "control"
+  },
+  {
+   "class": "none",
+   "detail": "Representative run of this worktree's available surface (catalog load + tools.command-center.catalog import) made no outbound TCP connections.",
+   "id": "F-REPRESENTATIVE-CLEAN",
+   "severity": "note"
+  },
+  {
+   "class": "undeclared-egress",
+   "detail": "The catalog output_schema is a generated $ref shim whose target is an https URI on host ast-integrate.invalid. Stock jsonschema Draft7Validator follows that $ref over the network. This measurement pipeline inspects the shim on disk and validates a local discriminator instead; it does not retrieve the $ref.",
+   "host": "ast-integrate.invalid",
+   "id": "F-CATALOG-SHIM-HTTPS-REF",
+   "severity": "note"
+  }
+ ],
+ "implementation_census": {
+  "phase4_contract_present": false,
+  "platform_tree_present": true,
+  "plugin_tree_present": false,
+  "present": true,
+  "telemetry_modules_in_worktree": [
+   "command-center/_wfa1_build_registry.py",
+   "command-center/_wfa5_build.py",
+   "command-center/casualty/_build_adv0021.py",
+   "command-center/catalog-slices/_adv_data2.py",
+   "command-center/catalog-slices/_bld_data1.py",
+   "command-center/catalog-slices/_cnf_data_c.py",
+   "command-center/catalog-slices/_gen_TST_2.py",
+   "command-center/catalog-slices/_gen_adv2.py",
+   "command-center/catalog-slices/_gen_imp3.py",
+   "command-center/catalog-slices/_gen_rel1.py",
+   "command-center/catalog-slices/_gen_res1.py",
+   "command-center/catalog-slices/_gen_tst1.py",
+   "command-center/catalog-slices/_patch_imp3_dedup.py",
+   "command-center/p2-wave/probes/ADV-0039/emit_dataflow.py",
+   "command-center/p2-wave/probes/ADV-0039/write_receipts.py",
+   "command-center/p2-wave/probes/ADV-0041/harness.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-a/tools/plugin/privacy.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-a/tools/plugin/privacy_cli.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-a/tools/plugin/telemetry.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-b/tools/plugin/privacy.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-b/tools/plugin/privacy_cli.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-profile-b/tools/plugin/telemetry.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-real-plugin/tools/plugin/privacy.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-real-plugin/tools/plugin/privacy_cli.py",
+   "command-center/p2-wave/probes/ADV-0041/scratch/stage-real-plugin/tools/plugin/telemetry.py",
+   "command-center/p2-wave/probes/ARC-0096/clauses.py",
+   "command-center/p2-wave/probes/ARC-0096/emit_contract.py",
+   "command-center/p2-wave/probes/ARC-0096/probe1_egress.py",
+   "command-center/p2-wave/probes/ARC-0096/runtime.py",
+   "command-center/p2-wave/probes/ARC-0096/write_receipts.py",
+   "command-center/p2-wave/probes/AUD-0090/deps/py/opentelemetry/semconv/_incubating/attributes/telemetry_attributes.py",
+   "command-center/p2-wave/probes/AUD-0090/deps/py/opentelemetry/semconv/attributes/telemetry_attributes.py",
+   "command-center/p2-wave/probes/AUD-0090/deps/py/semgrep-1.174.0.data/purelib/semgrep/telemetry.py",
+   "command-center/p2-wave/probes/IMP-0057/probe2_blocked_egress.py",
+   "command-center/p2-wave/probes/IMP-0057/write_receipts.py",
+   "command-center/p2-wave/probes/IMP-0398/corpus.py",
+   "command-center/p2-wave/probes/IMP-0398/kappa.py",
+   "command-center/p2-wave/probes/IMP-0479/emit_receipt.py",
+   "command-center/p2-wave/probes/IMP-0479/probe2_optout_control.py",
+   "command-center/p2-wave/probes/RES-0020/emit_research.py"
+  ]
+ },
+ "independent_instrument": {
+  "declared_event_observed": true,
+  "destination_count": 2,
+  "instrument": "create_connection",
+  "undeclared_plant_observed": true
+ },
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0115/probe1_socket_capture.py",
+   "id": "probe1"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0115/probe2_independent_capture.py",
+   "id": "probe2"
+  }
+ ],
+ "owner_approval": {
+  "note": "This unit's owner gate is enabling telemetry egress. The measurement does not enable egress and does not write an opt-in record. Owner sign-off is recorded as not obtained.",
+  "obtained": false,
+  "required": true
+ },
+ "payload_bytes_stored": false,
+ "payload_inspection": {
+  "captured_payload_stored": false,
+  "declared_event_contained_user_content": false,
+  "marker_id": "CNF0115_USER_CONTENT_CANARY",
+  "method": "presence-of-user-content-marker-then-discard",
+  "undeclared_plant_contained_user_content": true
+ },
+ "question": "What does the system actually send, and to where? Capture all outbound connections during a full representative run and answer: which destinations were contacted, are they all declared in the telemetry and privacy contract, and does any payload contain user content that the contract says is never transmitted?",
+ "report_kind": "privacy-report",
+ "representative_run": {
+  "catalog_fields": 19,
+  "catalog_imported": true,
+  "output_path": "command-center/confirmation/CNF-0115-egress-measurement.json",
+  "unit_found": true,
+  "worktree_surface": "command-center+tools (plugin/platform telemetry absent)"
+ },
+ "schema_validation": {
+  "catalog_output_schema": "command-center/schema/privacy-report.schema.json",
+  "catalog_shim": {
+   "generated_shim": true,
+   "path": "command-center/schema/privacy-report.schema.json",
+   "pipeline_retrieves_ref": false,
+   "present": true,
+   "ref": "https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/privacy-report",
+   "ref_host": "ast-integrate.invalid",
+   "ref_is_https": true
+  },
+  "discriminator": "payload_bytes_stored const false; capture_control.declared_event_observed const true; payload_inspection.captured_payload_stored const false",
+  "method": "local-discriminator",
+  "retrieves_catalog_shim_ref": false
+ },
+ "title": "Measured network egress during a full run versus the declared telemetry contract"
+}

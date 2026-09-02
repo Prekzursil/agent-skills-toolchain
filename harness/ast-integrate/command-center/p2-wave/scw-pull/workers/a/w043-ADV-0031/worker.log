@@ -1,0 +1,26 @@
+I'll start from the existing ADV-0031 probe tree, read the return artifact if it's there, and resume rather than rebuild.The probe tree is already populated. Next I’ll read the return/handoff files and the unit contract so I can resume from what’s actually there.Previous return is BLOCKED on c9/c11; I’ll check the catalog contract and how a delivered unit actually looks under G-1.G-1 needs live re-runnable probes, an honest non-BLOCKED artifact, and a per-unit manifest row. I’ll inspect the existing harness, schema, and a delivered unit as the template.Linux oracles work: A3B/A9B/A7 fire canaries, argv adapters stay silent. Next I’ll add live named probes, keep the old Windows helpers, and pack an honest non-BLOCKED artifact.**SUCCESS:delivered ADV-0031** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+Resumed the existing BLOCKED probe tree (Windows 2026-08-16, blocked on two-vendor review and global manifest write). Re-ran both catalog oracles live on this Linux worktree instead of copying that receipt.
+
+**Live named probes**
+- Probe 1 (`probe1_canary.py`): canary *file* side effect, not stdout. Exit 0.
+- Probe 2 (`probe2_ostable.py`): `/proc` argv vs intended parameter. Exit 0.
+- 11 adapters × 21 payloads = 231 runs. Watcher warmup captured a decoy. Benign control PASS. Six both-states controls fired on bad and stayed silent on good.
+
+**Per-adapter (this host)**
+
+| Adapters | Verdict |
+|---|---|
+| A3, A3B, A4, A7, A9B | CONFIRMED execution injection |
+| A1, A2, A5, A8 | REFUTED (argv-array, metacharacters inert) |
+| A9 quoted IEX | PARTIAL (argv divergence, no canary) |
+| A6 arithmetic | NOT-CHECKED (no sleeper; canary silent under `set -u`) |
+
+A5 is SAFE here; the old Windows git-bash `/sdcard` rewrite does not apply on Linux.
+
+**G-1 artifacts**
+- Catalog output: `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json` — `state=SUCCESS`, schema 0 errors, LF sha256 `e39a08a319753be146bacc4d7bc4ea06e9cd3755b60035c0571c10471905d3a6`
+- Per-unit manifest: `command-center/p2-wave/probes/ADV-0031/UNIT-ARTIFACT-MANIFEST.json` (matches live hash)
+- Return: `command-center/p2-wave/probes/ADV-0031/SUBAGENT-RETURN.json`
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch wave jobs. Prior helper scripts are under `_legacy/`.

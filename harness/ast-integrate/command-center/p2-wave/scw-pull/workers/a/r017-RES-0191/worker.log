@@ -1,0 +1,23 @@
+I'll start from the existing RES-0191 probe tree and the claim-verify gate, then resume whatever is already built instead of starting over.The probe tree is only the cloud-ok handoff so far — no `SUBAGENT-RETURN.json`. Next I’ll read that handoff and the deliver-measure contract so we resume from what’s already there.Cloud-ok left this unit BLOCKED with no on-disk named probes. I’ll read the live artifact, a delivered sibling, and the ready-units predicate so we know what G-1 actually requires.The harvest receipt is still BLOCKED and the named probe scripts are missing. I’ll read the rest of the artifact, the schema, and a delivered sibling so we can rebuild probes instead of flipping SUCCESS.The G-1 gate is local: runnable probes, `state=SUCCESS`, and a per-unit manifest. I’ll pull the design-spec schema and a delivered RES sibling so we rebuild the missing kill/resume probes instead of hand-flipping.I’ll inspect the design-spec contract and a delivered RES sibling next, so SUCCESS only lands if schema, probes, and the reviewer actually hold.I have the SUCCESS contract and a delivered packer pattern. Next I’ll read the remaining schema fields and condition-11 route, then implement the runtime and named probes.I have the schema and packer contract. Next I’ll add the runtime and named probes under the existing RES-0191 tree, keeping the cloud-ok files.Writing the protocol runtime, fixtures, and named probes next so we can re-run a real mid-flight kill and resume.Probe 1 passed the kill/resume control. Running the independent audit and reviewer next.Probes are green. Next I’ll pack a live SUCCESS receipt and the per-unit manifest from those outputs.The receipt packed with zero schema errors. Measuring delivery next, which re-runs the named probes.**SUCCESS:delivered** for RES-0191.
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0191` printed:
+
+`SUCCESS:delivered RES-0191 predicate=delivered state=SUCCESS probes=3 raws=4 notes=probe1_kill_resume.py:0,probe2_independent_audit.py:0,reviewer_both_states.py:0`
+
+Cloud-ok had left this unit BLOCKED: the harvest tarball had only the primary JSON, the named kill/resume scripts were missing, and the receipt stayed `state=BLOCKED`. This pass resumed that tree (cloud-ok files kept) and actually ran the catalog both-states control.
+
+**What was measured**
+- Live local HTTP backend, SIGKILL mid-q2 after durable partial bytes (`INTERRUPTED_RUN_EXIT=75`, backend exit `-9`)
+- Resume reproduced the uninterrupted control claim set
+- HTTP/billable pattern `1,2,1` / `1,1,1` (q2 retried, not re-billed)
+- Corrupted state (stale digest) refused with exit `78`
+- Claim-drop mutant went red; good-state resume stayed silent
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/research/deep-research-design/RES-0191-mid-run-backend-outage-resume.json` | receipt `state=SUCCESS`, 51908 B |
+| `command-center/p2-wave/probes/RES-0191/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, LF sha256 `d2fce5c9c98611cfd0f525a4528a616a5f851318c81da0d032a35f0ff8bdc02e` |
+| `command-center/p2-wave/probes/RES-0191/SUBAGENT-RETURN.json` | this handoff |
+
+Global `unit_manifest.py --write` was not run. Condition 11 for this unit is the per-unit manifest (`STRUCTURAL-CONDITION-11` option 1). Sibling `CC-0010` still makes global `--check` red; that is recorded as a residual, not this unit’s G-1 gate.

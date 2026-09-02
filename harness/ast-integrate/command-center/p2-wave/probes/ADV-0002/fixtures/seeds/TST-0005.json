@@ -1,0 +1,298 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/TST-0005.json",
+  "tools/fan_in/barrier.py",
+  "tools/fan_in/__init__.py",
+  "command-center/p2-wave/probes/TST-0005/probe1_digest_both_states.py",
+  "command-center/p2-wave/probes/TST-0005/probe2_order_and_named_path.py",
+  "command-center/p2-wave/probes/TST-0005/fixtures/convincing-absent.digest.txt"
+ ],
+ "artifacts": [
+  {
+   "bytes": 1,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/TST-0005.json",
+   "role": "primary",
+   "sha256_note": "self-hash omitted; live digest is UNIT-ARTIFACT-MANIFEST.json"
+  },
+  {
+   "bytes": 6340,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/fan_in/barrier.py",
+   "role": "implementation",
+   "sha256": "fff8e4afce4ebb34754f56567755b9d14dd0cb7a823b304ad31e08c733f9f0f8"
+  }
+ ],
+ "barrier": {
+  "ast_existence_line": 125,
+  "ast_parse_line": 140,
+  "existence_check_line": "tools/fan_in/barrier.py:5",
+  "parse_gate_line": "tools/fan_in/barrier.py:66",
+  "reject_message_line": "tools/fan_in/barrier.py:135",
+  "test_path_leaf_line": "tools/fan_in/barrier.py:42"
+ },
+ "completion_sentinel": "SUCCESS:TST-0005",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0005.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "measure runs after this receipt and the per-unit manifest exist",
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0005",
+    "method": "command",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/fan_in/barrier.py:5",
+   "claim": "Fan-in Test-Path-checks every contracted output before parsing any digest (tools/fan_in/barrier.py:5); AST existence call line 125 precedes parse line 140.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe2_order_and_named_path.py",
+     "exit_code": 0,
+     "fingerprint": "69effd2aba89efd1fcec8b2dfba74b55",
+     "method": "command",
+     "raw_output": "real digest_parsed=False reason=absent-artifact message_has_path=True\nnaive digest_parsed=True admitted=False sha=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\nast_ok=True exist_line=125 parse_line=140 named_path=True naive_parsed=True real_parsed=False\nSUCCESS:TST-0005-probe2 order-and-named-path",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c recompute-admit-absent-oracle",
+     "exit_code": 0,
+     "fingerprint": "efbc0c40eba790cc1aa46adfd06e71b4",
+     "method": "command",
+     "raw_output": "{\"admitted\": false, \"reason_id\": \"absent-artifact\", \"digest_parsed\": false, \"message\": \"fan-in rejected: contracted output absent: command-center/receipts/TST-0005-ABSENT-ORACLE.json\", \"phases\": [\"existence_check\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/fan_in/barrier.py:135",
+   "claim": "Hand-written convincing digest for absent path command-center/receipts/TST-0005-ABSENT-ORACLE.json was rejected with reason_id=absent-artifact and digest_parsed=false. Message: fan-in rejected: contracted output absent: command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe1_digest_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "e03b42a8b99540ec5be4a93367f1578d",
+     "method": "command",
+     "raw_output": "without_artifact status=REJECT reason=absent-artifact parsed=False phases=['existence_check']\nwith_artifact status=ACCEPT reason=ok parsed=True phases=['existence_check', 'digest_parse']\nboth-states reject-absent/accept-present\nSUCCESS:TST-0005-probe1 digest both-states",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c recompute-admit-absent-oracle",
+     "exit_code": 0,
+     "fingerprint": "efbc0c40eba790cc1aa46adfd06e71b4",
+     "method": "command",
+     "raw_output": "{\"admitted\": false, \"reason_id\": \"absent-artifact\", \"digest_parsed\": false, \"message\": \"fan-in rejected: contracted output absent: command-center/receipts/TST-0005-ABSENT-ORACLE.json\", \"phases\": [\"existence_check\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/fan_in/barrier.py:42",
+   "claim": "Both-states: digest without artifact REJECT; matching digest with a live artifact ACCEPT after existence-then-parse.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe1_digest_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "e03b42a8b99540ec5be4a93367f1578d",
+     "method": "command",
+     "raw_output": "without_artifact status=REJECT reason=absent-artifact parsed=False phases=['existence_check']\nwith_artifact status=ACCEPT reason=ok parsed=True phases=['existence_check', 'digest_parse']\nboth-states reject-absent/accept-present\nSUCCESS:TST-0005-probe1 digest both-states",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/fan_in/barrier.py:66",
+   "claim": "A parse-first mutant extracts sha256 from the same prose on an absent path; the real barrier does not parse. Rejection message names the contracted absent path.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe2_order_and_named_path.py",
+     "exit_code": 0,
+     "fingerprint": "69effd2aba89efd1fcec8b2dfba74b55",
+     "method": "command",
+     "raw_output": "real digest_parsed=False reason=absent-artifact message_has_path=True\nnaive digest_parsed=True admitted=False sha=9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08\nast_ok=True exist_line=125 parse_line=140 named_path=True naive_parsed=True real_parsed=False\nSUCCESS:TST-0005-probe2 order-and-named-path",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "fault_injection": {
+  "absent_path": "command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+  "digest_parsed_on_reject": false,
+  "hand_written_digest": "command-center/p2-wave/probes/TST-0005/fixtures/convincing-absent.digest.txt",
+  "kind": "plausible-digest-without-artifact",
+  "message": "fan-in rejected: contracted output absent: command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+  "rejected": true
+ },
+ "inputs_note": "Catalog inputs _USER-PROMPTS.md:10646 and rules/common/fan-out-contract.md#B1 are not in this worktree. The barrier encodes the stated rule: Test-Path every contracted output before parsing any digest.",
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0005/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_control_ids": [
+  "digest-without-artifact-rejected",
+  "parse-first-mutant-parses-absent"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "fan-in rejected: contracted output absent: command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+   "description": "Hand-written convincing digest for an absent path is REJECTED",
+   "fired_on_bad_state": true,
+   "good_state_output": "present matching digest ACCEPT",
+   "id": "digest-without-artifact-rejected",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive digest_parsed=True",
+   "description": "Naive parse-first mutant parses sha256 on absent path; real barrier does not",
+   "fired_on_bad_state": true,
+   "good_state_output": "real digest_parsed=False",
+   "id": "parse-first-mutant-parses-absent",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/fault-injection-receipt.schema.json",
+ "probe1_raw": {
+  "absent_digest_parsed": false,
+  "absent_path": "command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+  "digest_with_artifact_accepted": true,
+  "digest_without_artifact_rejected": true,
+  "hand_written_digest_well_formed": true,
+  "pass": true,
+  "present_digest_parsed": true,
+  "probe": "probe1-digest-both-states",
+  "unit_id": "TST-0005",
+  "with_artifact": {
+   "digest_parsed": true,
+   "phases": [
+    "existence_check",
+    "digest_parse"
+   ],
+   "reason_id": "ok",
+   "status": "ACCEPT"
+  },
+  "without_artifact": {
+   "digest_parsed": false,
+   "phases": [
+    "existence_check"
+   ],
+   "reason_id": "absent-artifact",
+   "status": "REJECT"
+  }
+ },
+ "probe2_raw": {
+  "absent_path": "command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+  "ast_existence_before_parse": true,
+  "ast_existence_line": 125,
+  "ast_parse_line": 140,
+  "naive_digest_parsed_on_absent": true,
+  "pass": true,
+  "probe": "probe2-order-and-named-path",
+  "real_digest_parsed_on_absent": false,
+  "rejection_message": "fan-in rejected: contracted output absent: command-center/receipts/TST-0005-ABSENT-ORACLE.json",
+  "rejection_names_absent_path": true,
+  "unit_id": "TST-0005"
+ },
+ "produced_by": {
+  "execution_substrate": "linux-headless",
+  "model": "grok-4.6",
+  "role": "p2-deliver-worker",
+  "vendor": "xai"
+ },
+ "question": "Spec: 'A plausible digest is not a receipt' (:10646); measured on this estate, 3/3 Codex agents returned plausible digests for files that do not exist. Target: the fan-in barrier Test-Path-checks every contracted output BEFORE parsing any digest, and rejects a well-formed prose digest whose artifact is absent.",
+ "report": {
+  "control_ids": [
+   "digest-without-artifact-rejected",
+   "parse-first-mutant-parses-absent"
+  ],
+  "kind": "fault-injection-receipt",
+  "observations": [
+   {
+    "anchor": "tools/fan_in/barrier.py:135",
+    "measured": true,
+    "method": "admit-absent-oracle",
+    "name": "convincing-digest-without-artifact-rejected"
+   },
+   {
+    "anchor": "tools/fan_in/barrier.py:5",
+    "measured": true,
+    "method": "admit-present-control",
+    "name": "matching-digest-with-artifact-accepted"
+   },
+   {
+    "anchor": "tools/fan_in/barrier.py:66",
+    "measured": true,
+    "method": "ast-call-order",
+    "name": "existence-before-parse"
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Production runners are not yet wired to import tools.fan_in.admit; this unit delivers the barrier and the both-states/order probes.",
+   "settling_experiment": "CNF-0159 / IMP shared-reducer wiring should call admit() at every fan-in.",
+   "verdict": "DISCLOSED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "TST-0005-probe2-order-and-named-path",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0005",
+ "spec_anchor": "_USER-PROMPTS.md:10646",
+ "state": "SUCCESS",
+ "test_ids": [
+  "test_digest_without_artifact_rejected",
+  "test_digest_with_artifact_accepted",
+  "test_rejection_message_names_the_absent_path"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe1_digest_both_states.py",
+   "id": "test_digest_without_artifact_rejected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe1_digest_both_states.py",
+   "id": "test_digest_with_artifact_accepted",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0005/probe2_order_and_named_path.py",
+   "id": "test_rejection_message_names_the_absent_path",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:05:11Z",
+  "started_at": "2026-08-25T01:05:11Z"
+ },
+ "title": "A plausible digest must not satisfy a fan-in barrier",
+ "unit_id": "TST-0005"
+}

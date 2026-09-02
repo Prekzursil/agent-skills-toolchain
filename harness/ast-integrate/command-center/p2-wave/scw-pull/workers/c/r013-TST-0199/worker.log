@@ -1,0 +1,17 @@
+I'll start from the existing TST-0199 probe tree and measure what already exists before writing anything.The TST-0199 tree only has cloud-ok leftovers. Next I’ll read the unit spec, the measure script, and a delivered unit’s artifacts so we resume against the real contract.The receipt is still BLOCKED and the live probes are missing. I’ll read the delivery predicate, a successful sibling unit, and the publisher surface next.The measure gate is clear. I’ll inspect the receipt schema, `artifact_delivered`, and how a similar TST unit actually went green.Successful G-1 units register against a per-unit manifest, not the global catalog. I’ll recover the original probe design and inspect production publish next.The prior scoped candidate already proved the 40-name gate. I’ll inspect how `publish()` is invoked in tests, then land that gate in production.I have the production hole and the prior 40-name corpus. Next I’ll add the pre-write publish gate and restore the live probes against it.The production gate is in place. I’ll restore the 40-name corpus and the two named probes next.All four probes passed. Next I’ll run the marketplace tests, then write the SUCCESS receipt and per-unit manifest.Probes are green. I’ll write a schema-valid SUCCESS receipt from the live outputs, then the per-unit manifest.Measure printed `SUCCESS:delivered`. I’ll stamp that line into `SUBAGENT-RETURN.json` and confirm the per-unit manifest hash still matches.**SUCCESS:delivered TST-0199** `predicate=delivered state=SUCCESS probes=4 raws=3 notes=negative_control.py:0,probe_common.py:0,probe_portability_linter.py:0,probe_publisher.py:0`
+
+G-1 is green for this unit. Cloud `ok=true` was not treated as delivery.
+
+What made it real:
+- Production `mkt.publish.publish` now runs a pre-write gate (`scan_filename_portability` → one handled `PublishRefused` **MKT-P13**) that quotes every offending name and rule: `PORT-TRAILING-DOT`, `PORT-TRAILING-SPACE`, `PORT-CONTROL-CHARACTER`, `PORT-TURKISH-DOTLESS-I`.
+- `common.schema.json` `relative_path` now also refuses a trailing-dot component (`foo.txt.` fails; `.agents/SKILL.md` still passes).
+- Live named probes were restored and re-ran exit 0: portable set publishes (10/10); 40/40 corpus names are refused with name + rule before any registry write; dropping `PORT-TRAILING-DOT` makes the corpus go red.
+
+Artifacts:
+- `command-center/receipts/TST-0199.json` — `state=SUCCESS`, sentinel `SUCCESS:TST-0199 …`
+- `command-center/p2-wave/probes/TST-0199/UNIT-ARTIFACT-MANIFEST.json` — catalog `output_path` row, LF sha256 `aed8708e5632c6b5413eb4f7b1770c799fd653ba342eb99a6c86863a1e91516f`
+- `command-center/p2-wave/probes/TST-0199/SUBAGENT-RETURN.json`
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no global catalog rewrite, no key rotation, no wave relaunch.
+
+Residual: the catalog’s second Windows shell (pwsh7 + Git Bash) was not available on this Linux worktree and is recorded as `NOT-CHECKED`.

@@ -1,0 +1,121 @@
+{
+ "id": "IMP-0162",
+ "unit_id": "IMP-0162",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "completion_sentinel": "SUCCESS:IMP-0162",
+ "sentinel": "SUCCESS:IMP-0162",
+ "title": "Build the import adapter for generic declarative DAGs (YAML/JSON)",
+ "output_path": "command-center/receipts/IMP-0162.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "adapter": {
+  "id": "generic-declarative-dag",
+  "class": "GenericDeclarativeDagAdapter",
+  "path": "tools/agentspec/agentspec/import_generic_dag.py",
+  "strict_parser": "tools/agentspec/agentspec/strict_parse.py",
+  "validate": "tools/agentspec/agentspec/validate.py"
+ },
+ "evidence": {
+  "adapter_id": "generic-declarative-dag",
+  "adapter_module": "tools/agentspec/agentspec/import_generic_dag.py",
+  "case_distinct": {
+   "ok": true,
+   "node_ids": [
+    "Build",
+    "build"
+   ],
+   "param_keys": [
+    "Name",
+    "name"
+   ],
+   "two_in_two_out": true
+  },
+  "unknown_field": {
+   "ok": false,
+   "rejection_ids": [
+    "AS-DAG-UNKNOWN-FIELD"
+   ],
+   "named_field": [
+    "mystery_field"
+   ]
+  },
+  "duplicate_key": {
+   "ok": false,
+   "rejection_ids": [
+    "AS-DAG-DUPLICATE-KEY"
+   ]
+  },
+  "duplicate_node_id": {
+   "ok": false,
+   "rejection_ids": [
+    "AS-DAG-DUPLICATE-NODE-ID"
+   ]
+  },
+  "valid_twin": {
+   "ok": true,
+   "id": "minimal"
+  },
+  "imported_workflow": {
+   "id": "case-distinct-dag",
+   "source_kind": "generic-declarative-dag",
+   "version": null,
+   "description": "Case-distinct node ids and param keys must both survive import.",
+   "params": {},
+   "units": [
+    {
+     "id": "Build",
+     "kind": "task",
+     "params": {
+      "Name": "alpha",
+      "name": "beta"
+     },
+     "depends_on": [],
+     "timeout_seconds": null,
+     "prompt": null,
+     "description": null,
+     "routing": null
+    },
+    {
+     "id": "build",
+     "kind": "task",
+     "params": {},
+     "depends_on": [],
+     "timeout_seconds": null,
+     "prompt": null,
+     "description": null,
+     "routing": null
+    }
+   ],
+   "edges": [
+    {
+     "from": "Build",
+     "to": "build",
+     "kind": "depends"
+    }
+   ]
+  }
+ },
+ "tests": [
+  {
+   "id": "case-distinct-keys-survive-as-distinct",
+   "result": "PASS",
+   "both_states": "true duplicate rejected as AS-DAG-DUPLICATE-KEY / AS-DAG-DUPLICATE-NODE-ID"
+  },
+  {
+   "id": "unknown-field-rejected-not-ignored",
+   "result": "PASS",
+   "rejection_id": "AS-DAG-UNKNOWN-FIELD"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "IMP-0162-probe2-unknown-field",
+  "verdict": "PASS",
+  "independent": true
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0162/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "ts": "2026-08-24T18:51:51Z",
+ "notes": "Generic YAML/JSON DAG import adapter: case-distinct keys preserved (two in, two out), unknown fields rejected with AS-DAG-UNKNOWN-FIELD, duplicate node id is AS-DAG-DUPLICATE-NODE-ID. SUCCESS:IMP-0162"
+}

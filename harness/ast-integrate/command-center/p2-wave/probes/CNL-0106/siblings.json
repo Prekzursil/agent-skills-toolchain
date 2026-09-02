@@ -1,0 +1,151 @@
+{
+  "disclaimer": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json is absent on this worktree (Path.is_file false). These records reconstruct catalog-cited ENGINEERING-REVIEW protocols from WORK-UNIT-CATALOG.json CNL-0045 (P45–P51) plus the ARC-0003 transcribed catalog-class.editable preset. They are not byte copies of the missing library.",
+  "source": "catalog-cited reconstruction",
+  "presets": [
+    {
+      "id": "C-cited:P46-architecture-review-board",
+      "title": "Architecture review board (catalog-cited P46)",
+      "family": "ENGINEERING-REVIEW",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P46", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Architect", "title": "Architect", "voting": true},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true},
+        {"id": "Pragmatist", "title": "Pragmatist", "voting": true},
+        {"id": "Critic", "title": "Critic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P46", "purpose": "architecture review board deliberation against a rubric"}
+      ],
+      "voting": {"rule": "majority", "quorum": 3, "on_tie": "NOT-YES"},
+      "stopping": {
+        "max_rounds": 8,
+        "expression": "max_rounds<=8 && unresolved→BLOCKED",
+        "on_timeout": "halt",
+        "on_oracle_fail": "ignore"
+      },
+      "oracle": {
+        "kind": "none",
+        "fail_overrides_majority": false
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2", "base_spec_version": "catalog-cited"},
+      "editable_dials": ["stopping.max_rounds", "voting.quorum"]
+    },
+    {
+      "id": "C-cited:P45-scientific-peer-review",
+      "title": "Scientific peer review (catalog-cited P45)",
+      "family": "ENGINEERING-REVIEW",
+      "anonymity": true,
+      "rebuttal": true,
+      "extends": [
+        {"id": "P45", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Author", "title": "Author", "voting": false},
+        {"id": "Reviewer", "title": "Anonymous reviewer", "voting": true},
+        {"id": "Editor", "title": "Editor", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P45", "purpose": "anonymous peer review with a bounded author rebuttal"}
+      ],
+      "voting": {"rule": "editor-after-reviews", "quorum": 2, "on_tie": "revise"},
+      "stopping": {
+        "max_rounds": 4,
+        "expression": "rebuttal_round<=1 && editor_decision∈{accept,reject,revise}",
+        "on_timeout": "halt"
+      },
+      "oracle": {"kind": "none", "fail_overrides_majority": false},
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2"},
+      "editable_dials": ["anonymity", "rebuttal"]
+    },
+    {
+      "id": "C-cited:P50-evidence-clerk-led",
+      "title": "Evidence-clerk-led review (catalog-cited P50)",
+      "family": "ENGINEERING-REVIEW",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P50", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "EvidenceClerk", "title": "Evidence clerk", "voting": false},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true},
+        {"id": "Critic", "title": "Critic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P50", "purpose": "clerk hashes exhibits before any vote is recorded"}
+      ],
+      "voting": {"rule": "majority-after-exhibits", "quorum": 2, "on_tie": "NOT-YES"},
+      "stopping": {
+        "max_rounds": 6,
+        "expression": "no vote until exhibits hashed; unresolved→BLOCKED",
+        "on_timeout": "halt"
+      },
+      "oracle": {"kind": "exhibit-hash", "fail_overrides_majority": false},
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2"},
+      "editable_dials": ["stopping.max_rounds"]
+    },
+    {
+      "id": "C-cited:P51-timeboxed-spike-council",
+      "title": "Timeboxed spike council (catalog-cited P51)",
+      "family": "ENGINEERING-REVIEW",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P51", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Architect", "title": "Architect", "voting": true},
+        {"id": "Pragmatist", "title": "Pragmatist", "voting": true},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P51", "purpose": "timeboxed spike; clock stops the council, not a test gate"}
+      ],
+      "voting": {"rule": "majority", "quorum": 2, "on_tie": "NOT-YES"},
+      "stopping": {
+        "max_rounds": 2,
+        "expression": "wall_clock_spike_elapsed→halt",
+        "on_timeout": "halt"
+      },
+      "oracle": {"kind": "none", "fail_overrides_majority": false},
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2"},
+      "editable_dials": ["stopping.max_rounds"]
+    },
+    {
+      "id": "council.preset.catalog-class.editable",
+      "title": "Catalog-class editable preset (ARC-0003 transcription)",
+      "family": "catalog-class",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json#presets", "kind": "catalog-class", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Architect", "title": "Architect", "voting": true},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true},
+        {"id": "Pragmatist", "title": "Pragmatist", "voting": true},
+        {"id": "Critic", "title": "Critic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "catalog-class.generic", "purpose": "four-voice editable council; no executable oracle"}
+      ],
+      "voting": {
+        "rule": "unanimous-or-record-dissent",
+        "quorum": 4,
+        "on_tie": "record-dissent"
+      },
+      "stopping": {
+        "max_rounds": 8,
+        "expression": "max_rounds<=8 && unresolved→BLOCKED",
+        "on_timeout": "halt"
+      },
+      "oracle": {"kind": "none", "fail_overrides_majority": false},
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2"},
+      "editable_dials": ["stopping.max_rounds", "voting.rule"]
+    }
+  ]
+}

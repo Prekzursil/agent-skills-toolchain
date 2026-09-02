@@ -1,0 +1,27 @@
+I'll start from the existing AUD-0036 probe tree, read the return artifact if it's there, and resume rather than rebuilding.The probe tree is already there. Next I’ll read the return artifacts, handoff, and the G-1 measure script so I know what “delivered” actually requires.CLOUD-OK already parked this as BLOCKED; G-1 still needs live probes, a non-BLOCKED receipt, and a matching per-unit manifest. I’ll inspect the existing probe scripts and a delivered unit for the contract shape.The restat already shows `state=SUCCESS` and a 29KB artifact. I’ll check whether that is honest, then read the catalog contract and a delivered unit for the required shape.Measure re-runs every non-skipped `*.py` in the probe dir, including `_extract_rest.py` and `_handoff_restat.py`. I’ll inspect those next and then run the live probes.Predicate already looks green: `state=SUCCESS`, matching per-unit hash, `artifact_delivered=True`. I’ll re-run the named probes and the official measure next, and locate the schema resolver if packing is needed.Named probes failed on `git rev-parse` — this worktree may not have a usable `.git`. I’ll locate the repo and fix the probe git binding.This worktree has no `.git`, so `git cat-file` cannot run. I’ll look for a sibling object store that still has the pinned HEAD before deciding whether to bind the probes or park.AUD-0010 already recorded this worktree has no `.git`. I’ll check its imported toolchain clone and the public remote for commit `f7fac7b` so Probe 1 can still hash committed blobs.The sibling store has commit `f7fac7b` and the expected blob hashes. I’ll bind the existing named probes to that object store and re-run them instead of rebuilding.Control is green: blob matches, worktree is the known-red mutant. Next I’ll re-run the full reconcile walk and pack the receipt.Measure printed `SUCCESS:delivered`. I’ll write the G-1 `SUBAGENT-RETURN.json` and confirm the per-unit manifest still matches the live receipt.**SUCCESS:delivered AUD-0036**
+
+```
+SUCCESS:delivered AUD-0036 predicate=delivered state=SUCCESS probes=4 raws=3 notes=_extract_rest.py:0,_handoff_restat.py:0,control_known_file.py:0,run_reconcile.py:0
+```
+
+G-1 for this unit is green: live named probes re-ran to exit 0, the receipt is honest `SUCCESS` (not BLOCKED), and the per-unit manifest row matches the live file.
+
+What was already on disk was resumed, not scrapped. CLOUD-OK had parked the unit because the official probe scripts were missing; those scripts were already in the probe tree. The blocker on this box was different: `/opt/p2/ast-integrate` has no `.git`, so `git cat-file -p` against local HEAD cannot run. Probe 1 still needs committed blobs, so the existing probes were bound to a sibling object store already present here:
+
+`command-center/p2-wave/probes/AUD-0010/_work/sources/agent-skills-toolchain/.git`
+
+that contains harvest pin `f7fac7b448340399e73b68b39e09dd570cff043b`. That is the specified detector (`git cat-file -p`), not a worktree-hash substitute.
+
+Live measurement:
+
+| Check | Result |
+|---|---|
+| ARTIFACT-MANIFEST rows on disk | 14 present, 0 missing |
+| Hex hashes matching committed blob | 12 match, 1 mismatch (`RELEASE-CHECKLIST.md`), 1 `(self)` |
+| Two-route control | manifest matches blob `98eebae2…`, rejects worktree `912a0b99…` |
+| REACH-6 | not reproduced |
+| Harvest “12 missing” headline | refuted on this estate |
+
+Receipt `command-center/audit/AUD-0036-artifact-manifest-reconcile.json` is 29834 bytes, `state=SUCCESS`, set only after those probes exited 0. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `9d19ecbfea73037a47966047faef6cec5d74f7297783c199724963f5fac344d3`. `ready_units.artifact_delivered` is `(True, delivered)`.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok is not this delivery.

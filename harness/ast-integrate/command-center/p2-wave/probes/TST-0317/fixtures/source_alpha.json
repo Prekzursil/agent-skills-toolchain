@@ -1,0 +1,37 @@
+{
+  "id": "wf.source.alpha-retriever",
+  "description": "Alpha pipeline: stronger retrieve and synthesize, weaker rank. Unique Glob on retrieve.",
+  "license": "Apache-2.0",
+  "tools": ["Read", "Grep", "Glob"],
+  "timeout_seconds": 300,
+  "stop_rule": {
+    "max_stages": 4,
+    "on_error": "halt"
+  },
+  "stages": [
+    {
+      "id": "retrieve",
+      "type": "task",
+      "tools": ["Read", "Grep", "Glob"],
+      "timeout_seconds": 90,
+      "inputs": ["query", "corpus"],
+      "outputs": ["hits.json"]
+    },
+    {
+      "id": "rank",
+      "type": "task",
+      "tools": ["Read"],
+      "timeout_seconds": 60,
+      "inputs": ["hits.json"],
+      "outputs": ["ranked.json"]
+    },
+    {
+      "id": "synthesize",
+      "type": "task",
+      "tools": ["Read"],
+      "timeout_seconds": 90,
+      "inputs": ["ranked.json", "query"],
+      "outputs": ["answer.md"]
+    }
+  ]
+}

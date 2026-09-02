@@ -1,0 +1,1344 @@
+{
+  "schema_version": 1,
+  "unit_id": "RES-0040",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0040 in the receipt AND a per-client encoding attempt for one real tool_permissions list with an explicit can/cannot verdict",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:RES-0040",
+  "min_bytes_threshold": 2048,
+  "profile": "compatibility-matrix",
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "permission-analyst",
+    "execution_substrate": "local-parallel"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/schema/compatibility-matrix.schema.json",
+      "bytes": 1123,
+      "sha256": "fc9aac9e7dd91c4ec85b35aa9b87e158a26bb2a40840d908624ceeb63648a4ea",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0040/encoder.py",
+      "bytes": 12523,
+      "sha256": "ab3947cb4531718cdc9f6141ff51d848a387c85b527f96e0c8cfc23ce5d6629e",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0040/evidence.py",
+      "bytes": 2453,
+      "sha256": "87f0c007e729d6a56da495068568067ac74ccf9bd0b0b9b7ead783023ef38c71",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0040/schema_lib.py",
+      "bytes": 3582,
+      "sha256": "60daf3387a9b6a86172fc94688e44178837387a8e26a086097f9364182943131",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0040/probe1_real_list.py",
+      "bytes": 4522,
+      "sha256": "5c6eed4592a802868cc23fe2e358738ada8d75502d2e7c6e11354c4c094493e5",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0040/probe2_overbroad_schema.py",
+      "bytes": 5096,
+      "sha256": "4e8637326a11c77584b68ec8fb308b3d614e9b0916bbcaf0081169e5b5437cfb",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The RES-0040 catalog tool_permissions list encodes losslessly on claude-code (8/8) and cannot on codex (4 gaps). encodings_real {\"antigravity\": \"cannot\", \"claude-code\": \"can\", \"codex\": \"cannot\", \"cursor\": \"cannot\"}",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0040/encoder.py:encode_all",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/encoder.py",
+          "raw_output": "encodings_real {\"antigravity\": \"cannot\", \"claude-code\": \"can\", \"codex\": \"cannot\", \"cursor\": \"cannot\"}",
+          "fingerprint": "res0040:source:real-list-encode",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/probe1_real_list.py",
+          "raw_output": "named probe1 re-encodes the live catalog list and diffs can/cannot against report.encodings_real",
+          "fingerprint": "res0040:verifier:probe1-real-list",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Intentionally over-broad list ['*'] encodes as can on every client in this matrix, so real-list cannot verdicts are not a vacuous encoder failure. encodings_overbroad {\"antigravity\": \"can\", \"claude-code\": \"can\", \"codex\": \"can\", \"cursor\": \"can\"}",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0040/encoder.py:overbroad_list",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/encoder.py",
+          "raw_output": "encodings_overbroad {\"antigravity\": \"can\", \"claude-code\": \"can\", \"codex\": \"can\", \"cursor\": \"can\"}",
+          "fingerprint": "res0040:source:overbroad-encode",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/probe2_overbroad_schema.py",
+          "raw_output": "named probe2 re-encodes ['*'], schema-validates the receipt, and rejects adjective verdicts",
+          "fingerprint": "res0040:verifier:probe2-overbroad-schema",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "encode-real-list",
+      "name": "Encode one real tool_permissions list per client with can/cannot",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/probe1_real_list.py",
+      "result": "PASS"
+    },
+    {
+      "id": "overbroad-control",
+      "name": "Intentionally over-broad list encodes on every client",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/probe2_overbroad_schema.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "overbroad-star-encodes-everywhere",
+      "kind": "mutation",
+      "description": "If the encoder were vacuously cannot, ['*'] would fail too. Over-broad must be can on every client.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "always-cannot encoder would fail probe2",
+      "good_state_output": "encodings_overbroad {\"antigravity\": \"can\", \"claude-code\": \"can\", \"codex\": \"can\", \"cursor\": \"can\"}"
+    },
+    {
+      "id": "adjective-verdict-expressive-rejected",
+      "kind": "malformed-input",
+      "description": "Mutating report.encodings_real[0].verdict to 'expressive' must fail the bound can/cannot schema.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "expressive is not one of ['can', 'cannot']",
+      "good_state_output": "bound schema accepts live can/cannot rows"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0040-probe2-overbroad-schema",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 re-encodes the over-broad list, schema-validates the artifact against the catalog shim with an offline $ref store, rejects adjective verdicts via a local bind, and checks two-rail evidence. It does not author the per-client mappings."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/RES-0040/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "RES-0040"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/RES-0040/schema_lib.py Draft202012Validator compatibility-matrix shim",
+      "artifact_path": "command-center/research/RES-0040.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0040/schema_lib.py",
+        "raw_output": "catalog-schema errors=0",
+        "fingerprint": "res0040:consumer:catalog-schema",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:08:22Z",
+    "ended_at": "2026-08-25T01:08:22Z",
+    "duration_seconds": 0.072193
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after 2 failed attempts on the same source route, switch source class before a third"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Gating descriptions are from official docs and source captures, not from instrumenting live Claude Code / Codex / Cursor / Antigravity binaries on this host.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Run each client against a fixture MCP server and record whether the call is prompted, allowlisted, or auto-allowed."
+    }
+  ],
+  "report": {
+    "kind": "compatibility-matrix",
+    "observations": [
+      {
+        "name": "claude-code-real-list-lossless",
+        "measured": true,
+        "method": "encoder-encode_all",
+        "anchor": "command-center/p2-wave/probes/RES-0040/encoder.py:encode_claude"
+      },
+      {
+        "name": "codex-real-list-lossy",
+        "measured": true,
+        "method": "encoder-encode_all",
+        "anchor": "command-center/p2-wave/probes/RES-0040/encoder.py:encode_codex"
+      },
+      {
+        "name": "overbroad-star-encodes-everywhere",
+        "measured": true,
+        "method": "encoder-overbroad_list",
+        "anchor": "command-center/p2-wave/probes/RES-0040/encoder.py:overbroad_list"
+      },
+      {
+        "name": "captured-evidence-rails",
+        "measured": 10,
+        "method": "captures-INDEX",
+        "anchor": "command-center/p2-wave/probes/RES-0040/captures/INDEX.json"
+      }
+    ],
+    "control_ids": [
+      "overbroad-star-encodes-everywhere",
+      "adjective-verdict-expressive-rejected"
+    ],
+    "title": "Compare MCP permission and consent models across the clients this program supports",
+    "question": "How does each supported client gate an MCP tool call (per-call prompt, allowlist, trust-on-first-use, none), and which model can express the least-privilege tool_permissions this catalog assigns to its own work units?",
+    "completion_sentinel": "SUCCESS:RES-0040 in the receipt AND a per-client encoding attempt for one real tool_permissions list with an explicit can/cannot verdict",
+    "fetched_at": "2026-08-25T01:08:22Z",
+    "scope": {
+      "plugin_declared": [
+        "claude-code",
+        "codex"
+      ],
+      "live_delivery_host": "cursor",
+      "catalog_named_host": "antigravity",
+      "not_tofu": "None of the four clients uses classic per-tool trust-on-first-use for MCP calls. Claude workspace trust is folder-level, not per-tool TOFU."
+    },
+    "clients": [
+      {
+        "id": "claude-code",
+        "display": "Claude Code",
+        "declared_by": "plugin.json supported_clients",
+        "notes": "Default: prompt per tool call. permissions.allow / ask / deny are allowlists (deny, then ask, then allow). Project allow rules wait on workspace trust (folder trust-on-first-open, not per-tool TOFU). bypassPermissions skips prompts. File path checks consult Edit(path)/Read(path), not Write(path)."
+      },
+      {
+        "id": "codex",
+        "display": "Codex CLI",
+        "declared_by": "plugin.json supported_clients",
+        "notes": "approval_policy (untrusted / on-request / never) plus sandbox_mode (read-only / workspace-write / danger-full-access). MCP servers expose enabled_tools / disabled_tools. No catalog-shaped Write(path), Read, WebSearch, or WebFetch permission tokens."
+      },
+      {
+        "id": "cursor",
+        "display": "Cursor",
+        "declared_by": "live-delivery-host",
+        "notes": "IDE permissions.json mcpAllowlist is server:tool only. CLI cli-config.json tokens: Mcp(server:tool), Write(path), Read(path), WebFetch(domain), Shell(cmd). No WebSearch token. Auto-review classifies leftover Shell/MCP/Fetch calls."
+      },
+      {
+        "id": "antigravity",
+        "display": "Google Antigravity / agy",
+        "declared_by": "catalog-named-host (TST-0049)",
+        "notes": "Unconfigured MCP defaults to Ask. Native rules: mcp(server/tool), mcp(server/*), mcp(*), write_file(path), read_file(path), read_url(domain), execute_url(domain), command(prefix). Workspace file read/write is auto-allowed. No WebSearch / WebFetch names."
+      }
+    ],
+    "gate_models": [
+      {
+        "client_id": "claude-code",
+        "mcp_gate": "per-call-prompt",
+        "also": [
+          "allowlist",
+          "workspace-trust"
+        ],
+        "notes": "Default: prompt per tool call. permissions.allow / ask / deny are allowlists (deny, then ask, then allow). Project allow rules wait on workspace trust (folder trust-on-first-open, not per-tool TOFU). bypassPermissions skips prompts. File path checks consult Edit(path)/Read(path), not Write(path)."
+      },
+      {
+        "client_id": "codex",
+        "mcp_gate": "allowlist",
+        "also": [
+          "per-call-prompt",
+          "sandbox"
+        ],
+        "notes": "approval_policy (untrusted / on-request / never) plus sandbox_mode (read-only / workspace-write / danger-full-access). MCP servers expose enabled_tools / disabled_tools. No catalog-shaped Write(path), Read, WebSearch, or WebFetch permission tokens."
+      },
+      {
+        "client_id": "cursor",
+        "mcp_gate": "allowlist",
+        "also": [
+          "per-call-prompt",
+          "auto-review-classifier"
+        ],
+        "notes": "IDE permissions.json mcpAllowlist is server:tool only. CLI cli-config.json tokens: Mcp(server:tool), Write(path), Read(path), WebFetch(domain), Shell(cmd). No WebSearch token. Auto-review classifies leftover Shell/MCP/Fetch calls."
+      },
+      {
+        "client_id": "antigravity",
+        "mcp_gate": "per-call-prompt",
+        "also": [
+          "allowlist"
+        ],
+        "notes": "Unconfigured MCP defaults to Ask. Native rules: mcp(server/tool), mcp(server/*), mcp(*), write_file(path), read_file(path), read_url(domain), execute_url(domain), command(prefix). Workspace file read/write is auto-allowed. No WebSearch / WebFetch names."
+      }
+    ],
+    "real_list": {
+      "source_unit": "RES-0040",
+      "source_path": "command-center/WORK-UNIT-CATALOG.json",
+      "entries": [
+        "WebSearch",
+        "WebFetch",
+        "mcp__search-hub__web_search_exa",
+        "mcp__search-hub__firecrawl_scrape",
+        "Read",
+        "Write(command-center/research/**)",
+        "mcp__github__search_code",
+        "mcp__github__get_file_contents"
+      ]
+    },
+    "encodings_real": [
+      {
+        "client_id": "claude-code",
+        "verdict": "can",
+        "per_entry": [
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "WebSearch"
+                ]
+              }
+            },
+            "native_form": "WebSearch",
+            "gaps": [],
+            "catalog_entry": "WebSearch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebSearch"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "WebFetch"
+                ]
+              }
+            },
+            "native_form": "WebFetch",
+            "gaps": [],
+            "catalog_entry": "WebFetch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebFetch"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp__search-hub__web_search_exa"
+                ]
+              }
+            },
+            "native_form": "mcp__search-hub__web_search_exa",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__web_search_exa",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "web_search_exa"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp__search-hub__firecrawl_scrape"
+                ]
+              }
+            },
+            "native_form": "mcp__search-hub__firecrawl_scrape",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__firecrawl_scrape",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "firecrawl_scrape"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Read"
+                ]
+              }
+            },
+            "native_form": "Read",
+            "gaps": [],
+            "catalog_entry": "Read",
+            "parsed": {
+              "kind": "tool",
+              "tool": "Read"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Write(command-center/research/**)"
+                ]
+              }
+            },
+            "native_form": "Write(command-center/research/**)",
+            "gaps": [],
+            "caveat": "DECLARED: Write(path) is a valid allow token. ENFORCED path checks consult Edit(path)/Read(path) only; Write(path) is accepted but not consulted. Least-privilege path enforcement requires Edit(command-center/research/**).",
+            "catalog_entry": "Write(command-center/research/**)",
+            "parsed": {
+              "kind": "tool-arg",
+              "tool": "Write",
+              "arg": "command-center/research/**"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp__github__search_code"
+                ]
+              }
+            },
+            "native_form": "mcp__github__search_code",
+            "gaps": [],
+            "catalog_entry": "mcp__github__search_code",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "search_code"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp__github__get_file_contents"
+                ]
+              }
+            },
+            "native_form": "mcp__github__get_file_contents",
+            "gaps": [],
+            "catalog_entry": "mcp__github__get_file_contents",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "get_file_contents"
+            }
+          }
+        ],
+        "can_count": 8,
+        "cannot_count": 0,
+        "entry_count": 8
+      },
+      {
+        "client_id": "codex",
+        "verdict": "cannot",
+        "per_entry": [
+          {
+            "verdict": "cannot",
+            "encoding": {
+              "lossy_superset": {
+                "approval_policy": "never"
+              }
+            },
+            "native_form": null,
+            "gaps": [
+              "Codex has no permission token named WebSearch; approval_policy/sandbox are coarser"
+            ],
+            "catalog_entry": "WebSearch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebSearch"
+            }
+          },
+          {
+            "verdict": "cannot",
+            "encoding": {
+              "lossy_superset": {
+                "approval_policy": "never"
+              }
+            },
+            "native_form": null,
+            "gaps": [
+              "Codex has no permission token named WebFetch; approval_policy/sandbox are coarser"
+            ],
+            "catalog_entry": "WebFetch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebFetch"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "mcp_servers": {
+                "search-hub": {
+                  "enabled_tools": [
+                    "web_search_exa"
+                  ]
+                }
+              }
+            },
+            "native_form": "mcp_servers.search-hub.enabled_tools=[web_search_exa]",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__web_search_exa",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "web_search_exa"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "mcp_servers": {
+                "search-hub": {
+                  "enabled_tools": [
+                    "firecrawl_scrape"
+                  ]
+                }
+              }
+            },
+            "native_form": "mcp_servers.search-hub.enabled_tools=[firecrawl_scrape]",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__firecrawl_scrape",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "firecrawl_scrape"
+            }
+          },
+          {
+            "verdict": "cannot",
+            "encoding": {
+              "lossy_superset": {
+                "approval_policy": "never"
+              }
+            },
+            "native_form": null,
+            "gaps": [
+              "Codex has no permission token named Read; approval_policy/sandbox are coarser"
+            ],
+            "catalog_entry": "Read",
+            "parsed": {
+              "kind": "tool",
+              "tool": "Read"
+            }
+          },
+          {
+            "verdict": "cannot",
+            "encoding": {
+              "lossy_superset": {
+                "sandbox_mode": "workspace-write"
+              }
+            },
+            "native_form": null,
+            "gaps": [
+              "no path-scoped Write(path); sandbox_mode=workspace-write is a lossy superset"
+            ],
+            "catalog_entry": "Write(command-center/research/**)",
+            "parsed": {
+              "kind": "tool-arg",
+              "tool": "Write",
+              "arg": "command-center/research/**"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "mcp_servers": {
+                "github": {
+                  "enabled_tools": [
+                    "search_code"
+                  ]
+                }
+              }
+            },
+            "native_form": "mcp_servers.github.enabled_tools=[search_code]",
+            "gaps": [],
+            "catalog_entry": "mcp__github__search_code",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "search_code"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "mcp_servers": {
+                "github": {
+                  "enabled_tools": [
+                    "get_file_contents"
+                  ]
+                }
+              }
+            },
+            "native_form": "mcp_servers.github.enabled_tools=[get_file_contents]",
+            "gaps": [],
+            "catalog_entry": "mcp__github__get_file_contents",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "get_file_contents"
+            }
+          }
+        ],
+        "can_count": 4,
+        "cannot_count": 4,
+        "entry_count": 8
+      },
+      {
+        "client_id": "cursor",
+        "verdict": "cannot",
+        "per_entry": [
+          {
+            "verdict": "cannot",
+            "encoding": null,
+            "native_form": null,
+            "gaps": [
+              "Cursor CLI has WebFetch(domain) and Mcp(server:tool) but no WebSearch token"
+            ],
+            "catalog_entry": "WebSearch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebSearch"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "WebFetch(*)"
+                ]
+              }
+            },
+            "native_form": "WebFetch(*)",
+            "gaps": [],
+            "caveat": "CLI WebFetch is domain-scoped; WebFetch(*) is unrestricted domains.",
+            "catalog_entry": "WebFetch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebFetch"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Mcp(search-hub:web_search_exa)"
+                ]
+              },
+              "ide_permissions_json": {
+                "mcpAllowlist": [
+                  "search-hub:web_search_exa"
+                ]
+              }
+            },
+            "native_form": "Mcp(search-hub:web_search_exa)",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__web_search_exa",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "web_search_exa"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Mcp(search-hub:firecrawl_scrape)"
+                ]
+              },
+              "ide_permissions_json": {
+                "mcpAllowlist": [
+                  "search-hub:firecrawl_scrape"
+                ]
+              }
+            },
+            "native_form": "Mcp(search-hub:firecrawl_scrape)",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__firecrawl_scrape",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "firecrawl_scrape"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Read(**)"
+                ]
+              }
+            },
+            "native_form": "Read(**)",
+            "gaps": [],
+            "caveat": "CLI requires a path glob; Read(**) is the unrestricted-workspace form.",
+            "catalog_entry": "Read",
+            "parsed": {
+              "kind": "tool",
+              "tool": "Read"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Write(command-center/research/**)"
+                ]
+              }
+            },
+            "native_form": "Write(command-center/research/**)",
+            "gaps": [],
+            "caveat": "CLI Write(path) only. IDE mcpAllowlist cannot path-scope file writes.",
+            "catalog_entry": "Write(command-center/research/**)",
+            "parsed": {
+              "kind": "tool-arg",
+              "tool": "Write",
+              "arg": "command-center/research/**"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Mcp(github:search_code)"
+                ]
+              },
+              "ide_permissions_json": {
+                "mcpAllowlist": [
+                  "github:search_code"
+                ]
+              }
+            },
+            "native_form": "Mcp(github:search_code)",
+            "gaps": [],
+            "catalog_entry": "mcp__github__search_code",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "search_code"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Mcp(github:get_file_contents)"
+                ]
+              },
+              "ide_permissions_json": {
+                "mcpAllowlist": [
+                  "github:get_file_contents"
+                ]
+              }
+            },
+            "native_form": "Mcp(github:get_file_contents)",
+            "gaps": [],
+            "catalog_entry": "mcp__github__get_file_contents",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "get_file_contents"
+            }
+          }
+        ],
+        "can_count": 7,
+        "cannot_count": 1,
+        "entry_count": 8
+      },
+      {
+        "client_id": "antigravity",
+        "verdict": "cannot",
+        "per_entry": [
+          {
+            "verdict": "cannot",
+            "encoding": {
+              "lossy_superset": "read_url(*)"
+            },
+            "native_form": null,
+            "gaps": [
+              "WebSearch is not native; read_url(domain)/execute_url(domain) are a different surface"
+            ],
+            "catalog_entry": "WebSearch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebSearch"
+            }
+          },
+          {
+            "verdict": "cannot",
+            "encoding": {
+              "lossy_superset": "read_url(*)"
+            },
+            "native_form": null,
+            "gaps": [
+              "WebFetch is not native; read_url(domain)/execute_url(domain) are a different surface"
+            ],
+            "catalog_entry": "WebFetch",
+            "parsed": {
+              "kind": "tool",
+              "tool": "WebFetch"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp(search-hub/web_search_exa)"
+                ]
+              }
+            },
+            "native_form": "mcp(search-hub/web_search_exa)",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__web_search_exa",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "web_search_exa"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp(search-hub/firecrawl_scrape)"
+                ]
+              }
+            },
+            "native_form": "mcp(search-hub/firecrawl_scrape)",
+            "gaps": [],
+            "catalog_entry": "mcp__search-hub__firecrawl_scrape",
+            "parsed": {
+              "kind": "mcp",
+              "server": "search-hub",
+              "tool": "firecrawl_scrape"
+            }
+          },
+          {
+            "verdict": "cannot",
+            "encoding": null,
+            "native_form": null,
+            "gaps": [
+              "no catalog Read token; workspace files auto-allow. read_file(*) would widen to the whole filesystem"
+            ],
+            "catalog_entry": "Read",
+            "parsed": {
+              "kind": "tool",
+              "tool": "Read"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "write_file(command-center/research/**)"
+                ]
+              }
+            },
+            "native_form": "write_file(command-center/research/**)",
+            "gaps": [],
+            "catalog_entry": "Write(command-center/research/**)",
+            "parsed": {
+              "kind": "tool-arg",
+              "tool": "Write",
+              "arg": "command-center/research/**"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp(github/search_code)"
+                ]
+              }
+            },
+            "native_form": "mcp(github/search_code)",
+            "gaps": [],
+            "catalog_entry": "mcp__github__search_code",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "search_code"
+            }
+          },
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp(github/get_file_contents)"
+                ]
+              }
+            },
+            "native_form": "mcp(github/get_file_contents)",
+            "gaps": [],
+            "catalog_entry": "mcp__github__get_file_contents",
+            "parsed": {
+              "kind": "mcp",
+              "server": "github",
+              "tool": "get_file_contents"
+            }
+          }
+        ],
+        "can_count": 5,
+        "cannot_count": 3,
+        "entry_count": 8
+      }
+    ],
+    "encodings_overbroad": [
+      {
+        "client_id": "claude-code",
+        "verdict": "can",
+        "per_entry": [
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "defaultMode": "bypassPermissions"
+              }
+            },
+            "native_form": "permissions.defaultMode=bypassPermissions",
+            "gaps": [],
+            "caveat": "An unanchored allow glob '*' is skipped and does not auto-approve. Unrestricted intent maps to bypassPermissions.",
+            "catalog_entry": "*",
+            "parsed": {
+              "kind": "unrestricted"
+            }
+          }
+        ],
+        "can_count": 1,
+        "cannot_count": 0,
+        "entry_count": 1
+      },
+      {
+        "client_id": "codex",
+        "verdict": "can",
+        "per_entry": [
+          {
+            "verdict": "can",
+            "encoding": {
+              "approval_policy": "never",
+              "sandbox_mode": "danger-full-access"
+            },
+            "native_form": "approval_policy=never + sandbox_mode=danger-full-access",
+            "gaps": [],
+            "catalog_entry": "*",
+            "parsed": {
+              "kind": "unrestricted"
+            }
+          }
+        ],
+        "can_count": 1,
+        "cannot_count": 0,
+        "entry_count": 1
+      },
+      {
+        "client_id": "cursor",
+        "verdict": "can",
+        "per_entry": [
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "Mcp(*:*)",
+                  "WebFetch(*)",
+                  "Write(**)",
+                  "Read(**)",
+                  "Shell(*)"
+                ]
+              },
+              "ide_permissions_json": {
+                "mcpAllowlist": [
+                  "*:*"
+                ]
+              }
+            },
+            "native_form": "Mcp(*:*) + WebFetch(*) + Write(**) + Read(**) + Shell(*)",
+            "gaps": [],
+            "catalog_entry": "*",
+            "parsed": {
+              "kind": "unrestricted"
+            }
+          }
+        ],
+        "can_count": 1,
+        "cannot_count": 0,
+        "entry_count": 1
+      },
+      {
+        "client_id": "antigravity",
+        "verdict": "can",
+        "per_entry": [
+          {
+            "verdict": "can",
+            "encoding": {
+              "permissions": {
+                "allow": [
+                  "mcp(*)",
+                  "write_file(*)",
+                  "read_file(*)",
+                  "read_url(*)",
+                  "execute_url(*)",
+                  "command(*)"
+                ]
+              }
+            },
+            "native_form": "mcp(*) + write_file(*) + read_file(*) + read_url(*) + command(*)",
+            "gaps": [],
+            "catalog_entry": "*",
+            "parsed": {
+              "kind": "unrestricted"
+            }
+          }
+        ],
+        "can_count": 1,
+        "cannot_count": 0,
+        "entry_count": 1
+      }
+    ],
+    "least_privilege_ranking": [
+      {
+        "rank": 1,
+        "client_id": "claude-code",
+        "reason": "8/8 catalog entries encode losslessly; overall can"
+      },
+      {
+        "rank": 2,
+        "client_id": "cursor",
+        "reason": "7/8 catalog entries encode losslessly; overall cannot"
+      },
+      {
+        "rank": 3,
+        "client_id": "antigravity",
+        "reason": "5/8 catalog entries encode losslessly; overall cannot"
+      },
+      {
+        "rank": 4,
+        "client_id": "codex",
+        "reason": "4/8 catalog entries encode losslessly; overall cannot"
+      }
+    ],
+    "captured_rails": [
+      {
+        "id": "claude-permissions-prose",
+        "client_id": "claude-code",
+        "rail": "R2-prose",
+        "permalink": "https://code.claude.com/docs/en/permissions",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "b9da3cc452a40e4929b92ac983becf834d61b589cf0884edefae1d36fcb18c5e",
+        "bytes": 644487
+      },
+      {
+        "id": "claude-mcp-prose",
+        "client_id": "claude-code",
+        "rail": "R2-prose",
+        "permalink": "https://code.claude.com/docs/en/mcp",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "1ce0574d261a1b5391303119d5f263520a3097412d3298d2b59315bc80137a02",
+        "bytes": 1349076
+      },
+      {
+        "id": "codex-config-reference",
+        "client_id": "codex",
+        "rail": "R1-structured",
+        "permalink": "https://learn.chatgpt.com/docs/config-file/config-reference",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "af9742cb3d1de82b8374e7552f5540ca345099fb70a89aab8363cd8770403990",
+        "bytes": 1234884
+      },
+      {
+        "id": "codex-approvals-prose",
+        "client_id": "codex",
+        "rail": "R2-prose",
+        "permalink": "https://learn.chatgpt.com/docs/agent-approvals-security",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "c0c9471c06449968214dfb08b82acab3574b125ccb8eae9fda54829a1759d4a1",
+        "bytes": 410276
+      },
+      {
+        "id": "codex-github-config-rs",
+        "client_id": "codex",
+        "rail": "R1-structured",
+        "permalink": "https://raw.githubusercontent.com/openai/codex/main/codex-rs/core/src/config/mod.rs",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "c4f17f9e0c3d4a6789251d74130e85dab6baaf9e53244549a1bc3b27b20a0e71",
+        "bytes": 189998
+      },
+      {
+        "id": "cursor-permissions-prose",
+        "client_id": "cursor",
+        "rail": "R2-prose",
+        "permalink": "https://cursor.com/docs/reference/permissions",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "4fda6fee36fbbc94b8665c46a38da57f81d0b747fab625c07932aeb382c97be6",
+        "bytes": 10755
+      },
+      {
+        "id": "antigravity-permissions-prose",
+        "client_id": "antigravity",
+        "rail": "R2-prose",
+        "permalink": "https://www.antigravity.google/docs/permissions",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "41d08a79a7a343a5c8c99b95658e0e0dcde286b093c14b9c581c9a97ee0e189b",
+        "bytes": 80869
+      },
+      {
+        "id": "antigravity-mcp-prose",
+        "client_id": "antigravity",
+        "rail": "R2-prose",
+        "permalink": "https://antigravity.google/docs/mcp/",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "b770d01cf323378d6c1154d32c03661643eb2a5442b440a3274efa8b771f6b04",
+        "bytes": 19725
+      },
+      {
+        "id": "antigravity-cli-permissions",
+        "client_id": "antigravity",
+        "rail": "R1-structured",
+        "permalink": "https://antigravity.google/docs/cli/permissions/",
+        "fetched_at": "2026-08-24T18:55:27Z",
+        "http_status": 200,
+        "sha256": "aceef064f4b7343fad90c15a0cd12fe509ed11705fcd323a175bc85b18fbc3e3",
+        "bytes": 16690
+      },
+      {
+        "id": "cursor-cli-permissions",
+        "client_id": "cursor",
+        "rail": "R1-structured",
+        "permalink": "https://cursor.com/docs/cli/reference/permissions.md",
+        "fetched_at": "2026-08-24T18:57:02Z",
+        "http_status": 200,
+        "sha256": "9f8264f5d8136496f008e0949cdad81760b8fa7784e3d6a2a04757c13c960f15",
+        "bytes": 4430
+      }
+    ],
+    "claims": [
+      {
+        "id": "C1-claude-default-prompt",
+        "text": "Claude Code gates MCP tool calls with a per-call permission prompt unless a permissions.allow rule matches; project allow rules further wait on workspace trust. This is not per-tool TOFU.",
+        "grade": "E2",
+        "cited_as_measured_fact": false,
+        "strongest_caveat": "Observed from official HTML docs, not from instrumenting a live Claude Code binary on this host.",
+        "rails": [
+          {
+            "id": "claude-permissions-prose",
+            "rail": "R2-prose",
+            "permalink": "https://code.claude.com/docs/en/permissions",
+            "url": "https://code.claude.com/docs/en/permissions",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "b9da3cc452a40e4929b92ac983becf834d61b589cf0884edefae1d36fcb18c5e",
+            "bytes": 644487
+          },
+          {
+            "id": "claude-mcp-prose",
+            "rail": "R2-prose",
+            "permalink": "https://code.claude.com/docs/en/mcp",
+            "url": "https://code.claude.com/docs/en/mcp",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "1ce0574d261a1b5391303119d5f263520a3097412d3298d2b59315bc80137a02",
+            "bytes": 1349076
+          }
+        ]
+      },
+      {
+        "id": "C2-write-declared-vs-enforced",
+        "text": "A catalog Write(path) allow rule is DECLARED in Claude Code permission syntax but ENFORCED path checks consult Edit(path) and Read(path) only; Write(path) is accepted and not consulted.",
+        "grade": "E2",
+        "cited_as_measured_fact": false,
+        "strongest_caveat": "Enforcement claim is from vendor documentation, not a local bypass experiment against a running Claude Code process.",
+        "rails": [
+          {
+            "id": "claude-permissions-prose",
+            "rail": "R2-prose",
+            "permalink": "https://code.claude.com/docs/en/permissions",
+            "url": "https://code.claude.com/docs/en/permissions",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "b9da3cc452a40e4929b92ac983becf834d61b589cf0884edefae1d36fcb18c5e",
+            "bytes": 644487
+          },
+          {
+            "id": "claude-mcp-prose",
+            "rail": "R2-prose",
+            "permalink": "https://code.claude.com/docs/en/mcp",
+            "url": "https://code.claude.com/docs/en/mcp",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "1ce0574d261a1b5391303119d5f263520a3097412d3298d2b59315bc80137a02",
+            "bytes": 1349076
+          }
+        ]
+      },
+      {
+        "id": "C3-codex-cannot-write-path",
+        "text": "Codex CLI cannot losslessly encode Write(command-center/research/**): config exposes approval_policy and sandbox_mode plus MCP enabled_tools, not a path-scoped Write token.",
+        "grade": "E2",
+        "cited_as_measured_fact": false,
+        "strongest_caveat": "sandbox_mode=workspace-write is a lossy superset of the catalog path.",
+        "rails": [
+          {
+            "id": "codex-config-reference",
+            "rail": "R1-structured",
+            "permalink": "https://learn.chatgpt.com/docs/config-file/config-reference",
+            "url": "https://developers.openai.com/codex/config-reference",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "af9742cb3d1de82b8374e7552f5540ca345099fb70a89aab8363cd8770403990",
+            "bytes": 1234884
+          },
+          {
+            "id": "codex-approvals-prose",
+            "rail": "R2-prose",
+            "permalink": "https://learn.chatgpt.com/docs/agent-approvals-security",
+            "url": "https://developers.openai.com/codex/agent-approvals-security",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "c0c9471c06449968214dfb08b82acab3574b125ccb8eae9fda54829a1759d4a1",
+            "bytes": 410276
+          }
+        ]
+      },
+      {
+        "id": "C4-cursor-no-websearch-token",
+        "text": "Cursor CLI can encode MCP tools as Mcp(server:tool) and path-scoped writes as Write(glob), but has no WebSearch permission token (WebFetch(domain) is a different surface).",
+        "grade": "E2",
+        "cited_as_measured_fact": false,
+        "strongest_caveat": "IDE permissions.json is MCP-allowlist-only; CLI tokens are the richer encoding used here.",
+        "rails": [
+          {
+            "id": "cursor-cli-permissions",
+            "rail": "R1-structured",
+            "permalink": "https://cursor.com/docs/cli/reference/permissions.md",
+            "url": "https://cursor.com/docs/cli/reference/permissions.md",
+            "fetched_at": "2026-08-24T18:57:02Z",
+            "http_status": 200,
+            "sha256": "9f8264f5d8136496f008e0949cdad81760b8fa7784e3d6a2a04757c13c960f15",
+            "bytes": 4430
+          },
+          {
+            "id": "cursor-permissions-prose",
+            "rail": "R2-prose",
+            "permalink": "https://cursor.com/docs/reference/permissions",
+            "url": "https://cursor.com/docs/reference/permissions",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "4fda6fee36fbbc94b8665c46a38da57f81d0b747fab625c07932aeb382c97be6",
+            "bytes": 10755
+          }
+        ]
+      },
+      {
+        "id": "C5-overbroad-everywhere",
+        "text": "An intentionally over-broad catalog list ['*'] has a documented unrestricted encoding on every client in this matrix, so the cannot verdicts on the real list are not a vacuous encoder failure.",
+        "grade": "E2",
+        "cited_as_measured_fact": false,
+        "strongest_caveat": "Unrestricted encodings disable or skip prompts; they are not least-privilege and are the control, not the recommendation.",
+        "rails": [
+          {
+            "id": "claude-permissions-prose",
+            "rail": "R2-prose",
+            "permalink": "https://code.claude.com/docs/en/permissions",
+            "url": "https://code.claude.com/docs/en/permissions",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "b9da3cc452a40e4929b92ac983becf834d61b589cf0884edefae1d36fcb18c5e",
+            "bytes": 644487
+          },
+          {
+            "id": "claude-mcp-prose",
+            "rail": "R2-prose",
+            "permalink": "https://code.claude.com/docs/en/mcp",
+            "url": "https://code.claude.com/docs/en/mcp",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "1ce0574d261a1b5391303119d5f263520a3097412d3298d2b59315bc80137a02",
+            "bytes": 1349076
+          },
+          {
+            "id": "codex-config-reference",
+            "rail": "R1-structured",
+            "permalink": "https://learn.chatgpt.com/docs/config-file/config-reference",
+            "url": "https://developers.openai.com/codex/config-reference",
+            "fetched_at": "2026-08-24T18:55:27Z",
+            "http_status": 200,
+            "sha256": "af9742cb3d1de82b8374e7552f5540ca345099fb70a89aab8363cd8770403990",
+            "bytes": 1234884
+          }
+        ]
+      }
+    ],
+    "answer": {
+      "least_privilege_client": "claude-code",
+      "why": "The catalog tool_permissions list is Claude Code's native grammar (tool names, Write(path), mcp__server__tool). Only claude-code encodes every entry losslessly. Cursor CLI encodes MCP and Write(path) but not WebSearch. Antigravity encodes MCP and write_file(path) but not WebSearch/WebFetch/Read names. Codex encodes MCP enabled_tools only.",
+      "mcp_gating_summary": "claude-code: per-call-prompt + allowlist + workspace trust. codex: allowlist (enabled_tools) + approval_policy prompts + sandbox. cursor: allowlist (mcpAllowlist / Mcp()) + Auto-review classifier. antigravity: per-call-prompt default Ask + mcp(server/tool) allow/deny."
+    },
+    "overclaim_refused": "Did not claim live binary enforcement on this host. Did not treat Write(path) as an enforced Claude path check. Did not map WebSearch to WebFetch or read_url. Did not count cloud ok=true as delivery."
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "output_path": "command-center/research/RES-0040.json",
+    "output_schema": "command-center/schema/compatibility-matrix.schema.json"
+  }
+}

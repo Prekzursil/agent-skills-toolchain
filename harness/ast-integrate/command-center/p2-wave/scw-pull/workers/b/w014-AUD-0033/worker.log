@@ -1,0 +1,18 @@
+I'll start from the existing AUD-0033 probe tree, resume from SUBAGENT-RETURN if it's there, and only treat this unit as delivered once `_measure_one_delivered.py` prints SUCCESS.The probe tree is already there. Next I’ll read the return file, the measure script, and the unit contract so I resume instead of rebuilding.The older CLOUD-OK return is BLOCKED; the per-unit manifest already points at a smaller artifact. I’ll inspect that receipt and the live probe scripts next.The packed SUCCESS receipt still embeds a Windows remasure. I’ll run the live measure and inspect `artifact_delivered` before rewriting anything.Measure failed on Probe 2: no git metadata. I’ll check whether this checkout is a usable git worktree and how sibling units handled the same gate.This checkout has no `.git`, so Probe 2 cannot classify history here. I’ll see how AUD-0008 ran git on the same box, and whether a second independent checkout can supply history without mutating this tree.Live remasure matches the earlier refute: this checkout has no `.git`, and the resolver-control files are unmounted. I’ll park the unit with an honest BLOCKED receipt instead of weakening the probes.**FAILED:AUD-0033** — parked. `_measure_one_delivered.py AUD-0033` printed `FAILED:delivered AUD-0033 predicate:self-declared:BLOCKED`.
+
+Two independent remasures share the same structural reason: **this checkout is not a usable git repository, so Probe 2 cannot classify MISSING paths as DELETED vs NEVER-EXISTED.** The hard park rule applies; the named probes were not weakened to force a green measure.
+
+| Remasure | Evidence |
+|---|---|
+| 1. `CLOUD-OK-REFUTE.json` | git metadata absent; history `HISTORY-UNAVAILABLE` |
+| 2. This Linux remasure | `.git` missing; `git rev-parse --is-inside-work-tree` exit 128 (`fatal: not a git repository`) |
+
+Live named probes were re-run, not scrapped:
+
+- `path_reference_probe.py` exit 3 — fenced-vs-prose control still discriminates; `CHANGELOG.md` / `cs-doctor.ps1` / `.agents/skills` are unmounted (`605 EXISTS / 1563 MISSING` of 2168 identities from 391 files)
+- `git_history_probe.py` exit 1 — `FAILED:AUD-0033-probe2 no git metadata`
+- `refute_resolver_control.py` exit 2 — mutant still goes red; good-state cannot be silent because those trees are absent
+
+The prior Windows `state=SUCCESS` receipt was replaced with an honest `BLOCKED` artifact. Per-unit manifest matches live LF sha256 `138a2dcc96ca91a05f8b98c7bf4f373f2f7062adaaf36af7d2f73408a5bdd817` (23186 bytes).
+
+**required_fix:** remount on a checkout that is a usable git worktree *and* contains `docs/agentic-perfection/CHANGELOG.md`, `scripts/claude-science/cs-doctor.ps1`, and `.agents/skills`. Re-run the three existing probes until they exit 0. Do not hand-flip `SUCCESS`. Do not run `unit_manifest.py --write`.

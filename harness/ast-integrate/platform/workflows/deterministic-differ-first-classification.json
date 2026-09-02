@@ -1,0 +1,660 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "deterministic-differ-first-classification",
+  "name": "Deterministic-differ-first classification with an error-direction verdict",
+  "description": "BP-DAT-01 (card 72). Defining mechanism: a ROUTING decision followed by a TWO-ARM error-direction measurement. Stage zero asks whether the question is answerable by an exact algorithm; if it is, the algorithm is written and run over the FULL set and agents are confined to the residue that genuinely needs judgement. The verdict this blueprint emits is not accuracy but error DIRECTION: the measured precedent is six Opus agents at 86% accuracy on 338 files whose 47 disagreements were 31 dangerous (said safe, was two-directionally diverged) and 0 over-cautious, against a 40-line differ that was exact in seconds. A classification whose errors all point toward data loss is unusable no matter what its accuracy is.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": ["data-science-knowledge-and-creative", "collective-intelligence-and-meta"],
+  "tags": ["bp-dat-01", "differ-first", "error-direction", "two-arm-control"],
+  "flagship": true,
+
+  "params": {
+    "question": {
+      "type": "string",
+      "required": true,
+      "min_length": 10,
+      "description": "The classification question, stated precisely enough that its exactness can be tested"
+    },
+    "dataset_root": {
+      "type": "path",
+      "required": true,
+      "description": "The full set to classify. The algorithm runs over ALL of it, not a sample."
+    },
+    "verdict_vocabulary": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 2,
+      "max_items": 16,
+      "required": true,
+      "description": "The closed verdict set. An enumerated vocabulary is what makes a disagreement countable."
+    },
+    "dangerous_verdicts": {
+      "type": "array",
+      "items": { "type": "string" },
+      "min_items": 1,
+      "required": true,
+      "description": "The verdicts whose FALSE assertion causes loss (e.g. 'safe-to-overwrite'). Error direction is measured against this set."
+    },
+    "hand_checked_sample": {
+      "type": "path",
+      "required": true,
+      "description": "A human-labelled subset. The algorithm is validated against it BEFORE it is trusted over the full set."
+    },
+    "agent_arm_size": {
+      "type": "integer",
+      "default": 40,
+      "minimum": 5,
+      "maximum": 500,
+      "description": "How many labelled items the agent arm classifies, so the two arms are comparable on the same items"
+    }
+  },
+
+  "roles": {
+    "exactness-triager": {
+      "description": "Decides whether the question is algorithmically decidable; must not force an algorithm onto a judgement question",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "judge",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Glob", "Write(command-center/classify/**)"],
+      "write_paths": ["command-center/classify/**"],
+      "speaking_rights": "always"
+    },
+    "algorithm-author": {
+      "description": "Writes and runs the exact algorithm; its output is code plus a full-set result, never an opinion",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/classify/**)"],
+      "speaking_rights": "always"
+    },
+    "agent-arm-classifier": {
+      "description": "The control arm: classifies the labelled subset by judgement, deliberately, so its error DIRECTION can be measured",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": ["Read", "Grep", "Write(command-center/classify/**)"],
+      "speaking_rights": "always"
+    },
+    "residue-judge": {
+      "description": "Judges only the residue the algorithm flags as judgement-bearing - does this divergence MATTER",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "voting",
+      "independence": "informed",
+      "tool_permissions": ["Read", "Grep", "Write(command-center/classify/**)"],
+      "speaking_rights": "always"
+    }
+  },
+
+  "tool_policy": {
+    "default": "deny",
+    "allow": ["Read", "Glob", "Grep", "Bash:python", "Write(command-center/classify/**)"],
+    "deny": ["Bash", "WebFetch", "WebSearch"],
+    "network": "none",
+    "write_paths": ["command-center/classify/**"],
+    "forbid_write_paths": ["command-center/WORK-UNIT-CATALOG.json", "platform/schema/**"],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+
+  "model_routing": {
+    "strategy": "capability",
+    "default": { "model": "opus", "vendor": "anthropic", "effort": "high" },
+    "routes": [
+      {
+        "when": "question_is_algorithmically_decidable == true",
+        "target": { "model": "opus", "vendor": "anthropic", "effort": "medium" },
+        "reason": "when the answer comes from code, the model's job is to write the code, not to out-reason it"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+
+  "gates": {
+    "algorithm-agrees-with-hand-checked-sample": {
+      "predicate": "custom-expression",
+      "expression": "algorithm_disagreements_with_sample == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "full-set-covered": {
+      "predicate": "custom-expression",
+      "expression": "items_classified == items_in_dataset AND items_skipped == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    },
+    "no-dangerous-direction-error": {
+      "predicate": "custom-expression",
+      "expression": "dangerous_direction_errors == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "escalate-to-human"
+    },
+    "residue-is-genuinely-judgement": {
+      "predicate": "custom-expression",
+      "expression": "residue_items_mechanically_decidable == 0",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    }
+  },
+
+  "stages": [
+    {
+      "id": "exactness-triage",
+      "title": "Stage zero: is this question answerable by an exact algorithm",
+      "kind": "task",
+      "role": "exactness-triager",
+      "timeout_seconds": 1200,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "RES-7201",
+        "title": "Decide whether the question is algorithmically decidable and record the test used",
+        "phase": "2",
+        "question_or_target": "Test the question against the exactness criteria - is it counting, set membership, hashing, byte or line comparison, or schema validation - and emit ALGORITHMIC or JUDGEMENT with the reason; a JUDGEMENT verdict is a legitimate answer and routes the work to agents rather than forcing code onto it.",
+        "inputs": ["params.question", "params.verdict_vocabulary", "params.dataset_root"],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "exactness-triager",
+          "basis": "the routing decision is the highest-leverage judgement in the workflow"
+        },
+        "tool_permissions": ["Read", "Glob", "Write(command-center/classify/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1200,
+        "output_path": "command-center/classify/exactness-verdict.json",
+        "output_schema": "command-center/schema/decision-record.schema.json",
+        "evidence_requirement": "the verdict plus the specific exactness criterion it matched or failed, and for an ALGORITHMIC verdict the shape of the comparison the algorithm would perform",
+        "tests_required": [
+          "a two-directional content comparison must be classified ALGORITHMIC",
+          "a question of the form 'does this divergence matter' must be classified JUDGEMENT - the triager must not force an algorithm onto everything"
+        ],
+        "reviewer_requirement": "an independent reviewer must attempt to state the algorithm; failure to state one is evidence for a JUDGEMENT verdict",
+        "completion_sentinel": "SUCCESS:RES-7201 when the verdict and its matched criterion are recorded; otherwise FAILED:RES-7201 <reason>",
+        "retry_policy": "two strikes then pivot to splitting the question into an algorithmic part and a judgement part",
+        "failure_classification": ["exactness-undecided", "question-underspecified"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/classify/exactness-verdict.json",
+          "schema_ref": "command-center/schema/decision-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:RES-7201",
+          "consumers": ["write-the-algorithm", "judge-residue"]
+        }
+      ]
+    },
+    {
+      "id": "write-the-algorithm",
+      "title": "Write the algorithm and validate it against the hand-checked sample first",
+      "kind": "task",
+      "depends_on": ["exactness-triage"],
+      "when": "question_is_algorithmically_decidable == true",
+      "role": "algorithm-author",
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "RES-7202",
+        "title": "Write the exact algorithm and validate it against the hand-checked sample",
+        "phase": "2",
+        "question_or_target": "Write the deterministic classifier and run it over the hand-checked sample ONLY; report every disagreement with the human labels, and where they disagree fix the ALGORITHM - falling back to agents is explicitly not the remedy, because the agent arm is the thing being controlled.",
+        "inputs": ["command-center/classify/exactness-verdict.json", "params.hand_checked_sample", "params.verdict_vocabulary"],
+        "dependencies": ["RES-7201"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "algorithm-author",
+          "basis": "the algorithm is the deliverable; writing it is substantive even though running it is not"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/classify/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/classify/algorithm-validation.json",
+        "output_schema": "command-center/schema/detector-control.schema.json",
+        "evidence_requirement": "the sample size, the disagreement count, and each disagreement with both labels - so a green validation is a number against a known denominator rather than an assertion",
+        "tests_required": [
+          "the algorithm must detect the two-directional case where BOTH sides hold unique content - a one-directional check must be shown to miss it",
+          "a deliberately broken algorithm must disagree with the sample, proving the validation can fail"
+        ],
+        "reviewer_requirement": "an independent reviewer re-runs the algorithm on the sample from a clean checkout of the script",
+        "completion_sentinel": "SUCCESS:RES-7202 when the sample disagreement count is zero and the two-directional case is covered; otherwise FAILED:RES-7202 <reason>",
+        "retry_policy": "two strikes then pivot to a different comparison primitive; never pivot to agent classification",
+        "failure_classification": ["algorithm-disagrees-with-sample", "one-directional-check", "detector-failure"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/classify/algorithm-validation.json",
+          "schema_ref": "command-center/schema/detector-control.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:RES-7202",
+          "consumers": ["sample-validation-gate", "run-over-full-set"]
+        }
+      ]
+    },
+    {
+      "id": "sample-validation-gate",
+      "title": "An unvalidated algorithm is not trusted over the full set",
+      "kind": "gate",
+      "depends_on": ["write-the-algorithm"],
+      "gate_ref": "algorithm-agrees-with-hand-checked-sample"
+    },
+    {
+      "id": "run-over-full-set",
+      "title": "Run the algorithm over the FULL set - not a sample",
+      "kind": "task",
+      "depends_on": ["sample-validation-gate"],
+      "role": "algorithm-author",
+      "timeout_seconds": 3600,
+      "work_unit": {
+        "id": "RES-7203",
+        "title": "Classify every item in the dataset with the validated algorithm",
+        "phase": "2",
+        "question_or_target": "Run the validated algorithm over every item under dataset_root, emit one verdict per item from the closed vocabulary, and report items_in_dataset against items_classified plus an explicit skipped list; a skipped item is a gap, never an implicit pass.",
+        "inputs": ["command-center/classify/algorithm-validation.json", "params.dataset_root"],
+        "dependencies": ["RES-7202"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "algorithm-author",
+          "basis": "the run is mechanical; the role owns the coverage accounting"
+        },
+        "tool_permissions": ["Read", "Glob", "Bash:python", "Write(command-center/classify/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 3600,
+        "output_path": "command-center/classify/algorithmic-verdicts.json",
+        "output_schema": "command-center/schema/divergence-report.schema.json",
+        "evidence_requirement": "items_in_dataset, items_classified, the skipped list, and a per-verdict histogram - four numbers that must reconcile against the walk",
+        "tests_required": [
+          "the walk root and its depth must be recorded, because a depth-limited walk under-counts the denominator",
+          "every emitted verdict must be a member of verdict_vocabulary (closed-set control)"
+        ],
+        "reviewer_requirement": "the coverage identity is recomputed from the walk independently of the classifier",
+        "completion_sentinel": "SUCCESS:RES-7203 when items_classified equals items_in_dataset with an explicit skipped list; otherwise FAILED:RES-7203 <reason>",
+        "retry_policy": "no retry - a coverage shortfall is fixed in the walk, not by re-running",
+        "failure_classification": ["coverage-shortfall", "verdict-outside-vocabulary"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/classify/algorithmic-verdicts.json",
+          "schema_ref": "command-center/schema/divergence-report.schema.json",
+          "min_bytes": 512,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:RES-7203",
+          "consumers": ["coverage-gate", "run-agent-control-arm", "judge-residue"]
+        }
+      ]
+    },
+    {
+      "id": "coverage-gate",
+      "title": "Full-set means full set",
+      "kind": "gate",
+      "depends_on": ["run-over-full-set"],
+      "gate_ref": "full-set-covered"
+    },
+    {
+      "id": "run-agent-control-arm",
+      "title": "The control arm: agents classify the SAME labelled items, on purpose",
+      "kind": "fanout",
+      "depends_on": ["coverage-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/classify/algorithmic-verdicts.json#/labelled_subset",
+        "item_var": "labelled_item",
+        "key_field": "item_id"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 200,
+      "max_items": 500,
+      "on_item_failure": "continue",
+      "body": [
+        {
+          "id": "agent-classify-one",
+          "title": "One agent verdict on one labelled item, with no sight of the algorithm's answer",
+          "kind": "task",
+          "role": "agent-arm-classifier",
+          "timeout_seconds": 900,
+          "work_unit": {
+            "id": "RES-7204",
+            "title": "Classify one labelled item by judgement, blind to the algorithm's verdict",
+            "phase": "2",
+            "question_or_target": "Classify the fan-out item using the same closed vocabulary WITHOUT receiving the algorithm's verdict as context, so the two arms are independent and the disagreement count means something.",
+            "inputs": ["command-center/classify/algorithmic-verdicts.json", "fanout.item.item_id", "params.verdict_vocabulary"],
+            "dependencies": ["RES-7203"],
+            "assigned_model_vendor_role": {
+              "model": "opus",
+              "vendor": "anthropic",
+              "role": "agent-arm-classifier",
+              "basis": "the control arm must be the strongest available model, or the comparison understates agent capability"
+            },
+            "tool_permissions": ["Read", "Grep", "Write(command-center/classify/**)"],
+            "execution_substrate": "local-parallel",
+            "timeout_seconds": 900,
+            "output_path": "command-center/classify/agent-arm-verdicts",
+            "output_schema": "command-center/schema/divergence-report.schema.json",
+            "evidence_requirement": "the verdict plus the evidence the agent read; the record must show the algorithm's verdict was NOT supplied",
+            "tests_required": [
+              "an item where both sides hold unique content must be present in the subset, because that is the case the agent arm historically misses",
+              "supplying the algorithm's verdict to this unit must invalidate the arm (independence control)"
+            ],
+            "reviewer_requirement": "the error-direction stage checks the independence record before counting any disagreement",
+            "completion_sentinel": "SUCCESS:RES-7204 when a vocabulary verdict and the independence record are present; otherwise FAILED:RES-7204 <reason>",
+            "retry_policy": "two strikes then quarantine this item from the arm and report the reduced arm size",
+            "failure_classification": ["arm-not-independent", "verdict-outside-vocabulary"],
+            "owner_approval_required": false
+          }
+        }
+      ],
+      "barrier": {
+        "mode": "quorum",
+        "quorum": 0.9,
+        "on_partial": "proceed-degraded",
+        "reject_result_matching": ["started in the background"],
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "measure-error-direction",
+      "title": "Report DIRECTION, not accuracy",
+      "kind": "task",
+      "depends_on": ["run-agent-control-arm"],
+      "role": "exactness-triager",
+      "timeout_seconds": 1800,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "RES-7205",
+        "title": "Classify every arm disagreement by direction and report direction as the headline",
+        "phase": "2",
+        "question_or_target": "For every disagreement between the two arms, classify the direction: DANGEROUS when the agent asserted a member of dangerous_verdicts and the algorithm did not, OVER-CAUTIOUS when the reverse; report both counts and make the dangerous count the headline, because accuracy alone hides a systematic direction.",
+        "inputs": ["command-center/classify/algorithmic-verdicts.json", "command-center/classify/agent-arm-verdicts", "params.dangerous_verdicts"],
+        "dependencies": ["RES-7204"],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "exactness-triager",
+          "basis": "the direction verdict is what a downstream destructive action would be authorised by"
+        },
+        "tool_permissions": ["Read", "Bash:python", "Write(command-center/classify/**)"],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 1800,
+        "output_path": "command-center/classify/error-direction.json",
+        "output_schema": "command-center/schema/disposition-table.schema.json",
+        "evidence_requirement": "arm size, agreement count, dangerous-direction count, over-cautious count, and each dangerous disagreement listed with both verdicts - accuracy may be reported but never as the headline",
+        "tests_required": [
+          "an arm that says safe where the algorithm says diverged must be counted DANGEROUS, not merely as a disagreement",
+          "a report whose headline is accuracy rather than direction must fail review"
+        ],
+        "reviewer_requirement": "the owner reads the dangerous list before any verdict authorises an overwrite or a delete",
+        "completion_sentinel": "SUCCESS:RES-7205 when both direction counts and the dangerous list are recorded; otherwise FAILED:RES-7205 <reason>",
+        "retry_policy": "no retry - the counts are arithmetic over two fixed arms",
+        "failure_classification": ["direction-not-measured", "accuracy-reported-as-headline"],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/classify/error-direction.json",
+          "schema_ref": "command-center/schema/disposition-table.schema.json",
+          "min_bytes": 256,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:RES-7205",
+          "consumers": ["direction-gate", "owner"]
+        }
+      ]
+    },
+    {
+      "id": "direction-gate",
+      "title": "Errors that all point at data loss disqualify the arm regardless of accuracy",
+      "kind": "gate",
+      "depends_on": ["measure-error-direction"],
+      "gate_ref": "no-dangerous-direction-error"
+    },
+    {
+      "id": "judge-residue",
+      "title": "Agents now judge ONLY the residue the algorithm flagged",
+      "kind": "fanout",
+      "depends_on": ["direction-gate"],
+      "over": {
+        "source": "artifact",
+        "ref": "command-center/classify/algorithmic-verdicts.json#/residue_requiring_judgement",
+        "item_var": "residue_item",
+        "key_field": "item_id"
+      },
+      "max_concurrency": 6,
+      "arrival_stagger_ms": 200,
+      "max_items": 500,
+      "on_item_failure": "quarantine",
+      "body": [
+        {
+          "id": "judge-one-residue-item",
+          "title": "Does this divergence MATTER - the question code cannot answer",
+          "kind": "task",
+          "role": "residue-judge",
+          "timeout_seconds": 1800,
+          "work_unit_ref": "AUD-0003"
+        }
+      ],
+      "barrier": {
+        "mode": "all",
+        "on_partial": "proceed-with-quarantine",
+        "verify_artifact_exists": true
+      }
+    },
+    {
+      "id": "residue-purity-gate",
+      "title": "Nothing mechanically decidable may sit in the residue",
+      "kind": "gate",
+      "depends_on": ["judge-residue"],
+      "gate_ref": "residue-is-genuinely-judgement"
+    }
+  ],
+
+  "stopping_rules": [
+    {
+      "id": "full-set-classified-and-residue-delegated",
+      "expression": "items_classified == items_in_dataset AND residue_items_judged == residue_items_found",
+      "applies_to": "workflow",
+      "minimum_conditions": "algorithm_disagreements_with_sample == 0",
+      "on_stop": "complete"
+    },
+    {
+      "id": "question-is-judgement-not-algorithm",
+      "expression": "question_is_algorithmically_decidable == false",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    },
+    {
+      "id": "agent-arm-points-at-data-loss",
+      "expression": "dangerous_direction_errors >= 1",
+      "applies_to": "workflow",
+      "on_stop": "escalate"
+    }
+  ],
+
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 3,
+    "backoff_seconds": 10,
+    "jitter": false,
+    "retry_on": ["arm-not-independent"],
+    "no_retry_on": ["one-directional-check", "coverage-shortfall"],
+    "pivot": {
+      "after_attempts": 2,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "measure-error-direction"
+    }
+  },
+
+  "failure_policy": {
+    "on_failure": "degrade-loudly",
+    "classify_as": ["one-directional-check", "coverage-shortfall", "direction-not-measured"],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "quarantine_path": "command-center/classify/quarantine"
+  },
+
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/classify",
+    "granularity": "fanout-item",
+    "idempotency_key_from": ["workflow_id", "workflow_version", "stage_id", "item_key", "inputs_hash"],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+
+  "replay": {
+    "deterministic": true,
+    "seed": 338,
+    "journal_path": "command-center/replay/classify.jsonl",
+    "record": ["params", "inputs", "tool_calls", "tool_results", "model_outputs"],
+    "forbid_nondeterministic_sources": ["clock", "random", "network", "filesystem-order", "process-id"],
+    "replay_source": "recorded-journal",
+    "verify": "hash-equal",
+    "hash_algorithm": "sha256",
+    "on_divergence": "record-discrepancy"
+  },
+
+  "cache": {
+    "enabled": true,
+    "scope": "stage",
+    "key_from": ["stage_id", "item_key", "inputs_hash", "tool_versions"],
+    "store": "command-center/cache/classify",
+    "ttl_seconds": 86400,
+    "verify_integrity": true,
+    "invalidate_on": ["algorithm-change", "dataset-change"],
+    "read_only": false
+  },
+
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": ["plan", "estimate", "graph"],
+    "plan_artifact": "command-center/dry-run/classify-plan.json",
+    "forbid_tools": ["Bash:python", "Write(command-center/classify/**)"]
+  },
+
+  "estimate": {
+    "basis": "historical-measured",
+    "confidence": "almost-certain",
+    "measurement_source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DAT-01 and rules/common/fan-out-contract.md C4 - the 338-file, six-agent measurement: 86% accuracy, 47 disagreements, 31 dangerous, 0 over-cautious, versus a 40-line differ exact in seconds",
+    "cost": { "currency": "USD", "min": 0.3, "expected": 2.0, "max": 9.0 },
+    "wallclock_seconds": { "min": 120, "expected": 1800, "max": 10800 },
+    "tokens": { "expected": 300000, "max": 1500000 },
+    "tool_calls": { "expected": 90, "max": 700 },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "read-only over the dataset; writes only under command-center/classify/**. The point of the blueprint is that its VERDICTS may later authorise destructive action, which is why the direction gate exists.",
+      "requires_owner_approval": false
+    }
+  },
+
+  "portability": {
+    "export": {
+      "format": "bundle",
+      "includes": ["definition", "tests", "examples", "lineage", "replay-journal"],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/deterministic-differ-first.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "reject",
+      "trust": { "require_signature": false, "allow_publishers": ["prekzursil"] }
+    }
+  },
+
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DAT-01",
+        "relation": "REBUILD-FROM-SPEC",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "rules/common/fan-out-contract.md#C4",
+        "relation": "TRANSLATE",
+        "credit": "owner"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": ["rules/common/fan-out-contract.md#C4"]
+  },
+
+  "outputs": {
+    "algorithmic-verdicts": {
+      "path": "command-center/classify/algorithmic-verdicts.json",
+      "schema_ref": "command-center/schema/divergence-report.schema.json",
+      "min_bytes": 512,
+      "register_in_manifest": true,
+      "consumers": ["owner", "command-center/classify/error-direction.json"]
+    },
+    "error-direction": {
+      "path": "command-center/classify/error-direction.json",
+      "schema_ref": "command-center/schema/disposition-table.schema.json",
+      "min_bytes": 256,
+      "register_in_manifest": true,
+      "consumers": ["owner"]
+    }
+  },
+
+  "x_extensions": {
+    "mechanism_fingerprint": {
+      "primary": "algorithm-vs-agent-two-arm-comparison-scored-on-error-direction-not-accuracy",
+      "distinguishing_stage": "measure-error-direction",
+      "distinguishing_gate": "no-dangerous-direction-error",
+      "not_a_duplicate_because": "BP-INC-03 also refuses model judgement, but it already knows the answer is code and asserts an accounting identity against a dispatched-agent denominator. This one DECIDES whether code is the right instrument, and its unique output is a signed error-direction comparison between two arms - a measurement BP-INC-03 has no arm to make."
+    },
+    "worked_example": {
+      "name": "338 files where both sides hold unique content",
+      "params": {
+        "question": "for each file present in both the repo tree and the live tree, is the repo copy safe to deploy over the live copy",
+        "dataset_root": "command-center/classify/fixtures/repo-vs-live",
+        "verdict_vocabulary": ["deploy-safe", "live-ahead", "diverged", "noise-only"],
+        "dangerous_verdicts": ["deploy-safe", "noise-only"],
+        "hand_checked_sample": "command-center/classify/fixtures/labelled-40.json",
+        "agent_arm_size": 40
+      },
+      "expected_stage_path": [
+        "exactness-triage",
+        "write-the-algorithm",
+        "sample-validation-gate",
+        "run-over-full-set",
+        "coverage-gate",
+        "run-agent-control-arm",
+        "agent-classify-one",
+        "measure-error-direction",
+        "direction-gate",
+        "judge-residue",
+        "judge-one-residue-item",
+        "residue-purity-gate"
+      ],
+      "expected_artifacts": [
+        "command-center/classify/exactness-verdict.json",
+        "command-center/classify/algorithm-validation.json",
+        "command-center/classify/algorithmic-verdicts.json",
+        "command-center/classify/error-direction.json"
+      ],
+      "expected_terminal": "SUCCESS:RES-7205",
+      "narrative": "Triage returns ALGORITHMIC: the question is a two-directional line-set comparison. The differ is 40 lines, agrees with all 40 hand labels, and classifies all 338 files with zero skipped. The agent arm classifies the same 40 items blind and disagrees on 6 - and every one of the 6 is the DIVERGED case read as deploy-safe, so dangerous_direction_errors is 6 and over_cautious_errors is 0. The direction gate blocks and escalates: the arm's 85% accuracy is irrelevant because 100% of its errors point at overwriting content that only exists in the live tree. Ten files carry behaviour-bearing divergence and are the residue the agents are then asked about - not 'are these diverged', which the differ settled, but 'does this divergence matter'."
+    }
+  }
+}

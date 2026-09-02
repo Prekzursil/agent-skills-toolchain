@@ -1,0 +1,18 @@
+I'll start from the existing TST-0220 probe tree and resume from whatever SUBAGENT-RETURN already records, rather than rebuilding from scratch.Existing probe files are in place; next I’ll read the unit catalog, measurement contract, and those probes so we resume instead of rebuilding.The receipt is still BLOCKED and the named probes are missing. I’ll inspect a delivered unit, the receipt schema, and the strike scripts so we resume the existing tree instead of circling.The strike scripts would be re-run by measure-one, so I’ll inspect them and a delivered security_report unit before writing probes.Cloud-ok left the unit BLOCKED because the named probes were missing. I’ll preserve those strike scripts, restore the two catalog probes, then pack an honest SUCCESS receipt from live re-runs.Both named probes exited 0 with matching ACCEPT/REJECT matrices and a one-byte mutation. Next I’ll pack the receipt from those live logs.**SUCCESS:delivered TST-0220**
+
+`python command-center/p2-wave/_measure_one_delivered.py TST-0220` printed:
+
+`SUCCESS:delivered TST-0220 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe_independent_cryptography.py:0,probe_verifier_cases.py:0`
+
+Cloud-ok had left the unit **BLOCKED**: harvest `UNIT-COMPLETE` is not G-1, and the nine hashed sidecars (including the two named probes) were absent. This pass resumed that tree instead of scrapping it.
+
+**What shipped**
+- Restored catalog probes `probe_verifier_cases.py` (production `verify_document`) and `probe_independent_cryptography.py` (OpenSSL Ed25519 via `cryptography`, no `mkt` import). Both re-run to exit 0.
+- Packed an honest `state=SUCCESS` receipt at `command-center/receipts/TST-0220.json` (23625 bytes, LF sha256 `67f8a8dcfb25f16e3cb9cca8cf47bf4cb8831d686c2ffb3b737b07bd55e65b79`).
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with a matching hash. Global catalog was not written.
+- Cloud-ok strike scripts kept under `_legacy/`.
+
+**Science (live on this tree)**  
+Valid twin **ACCEPT**; unsigned / untrusted-key / one-byte mutation **REJECT** (byte_diff=1); negative control went red and stayed silent on the good state. Keys were synthetic in-memory only.
+
+**Not done (constraints kept):** no git mutations, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Harvest `ok=true` is still not delivery.

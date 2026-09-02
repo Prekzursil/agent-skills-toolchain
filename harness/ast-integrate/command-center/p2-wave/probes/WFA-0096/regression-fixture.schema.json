@@ -1,0 +1,262 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "WFA-0096 planted-mutant RegressionFixture",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "threshold",
+    "threshold_version",
+    "differ_id",
+    "differ_path",
+    "differ_sha256",
+    "corpus",
+    "mutants",
+    "decoys",
+    "mutants_caught",
+    "decoys_silent",
+    "both_states",
+    "control_binding",
+    "claims",
+    "tests",
+    "reviewer",
+    "artifacts",
+    "evidence_requirement",
+    "named_probes",
+    "ts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "WFA-0096" },
+    "id": { "type": "string", "const": "WFA-0096" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:WFA-0096" },
+    "completion_sentinel": { "type": "string", "const": "SUCCESS:WFA-0096" },
+    "report_kind": { "type": "string", "const": "RegressionFixture" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "phase": { "type": "string" },
+    "registered": { "type": "boolean" },
+    "cloud_ok": { "type": "boolean", "const": false },
+    "threshold": { "type": "number", "minimum": 0, "maximum": 1 },
+    "threshold_version": { "type": "string", "minLength": 8 },
+    "differ_id": { "type": "string", "minLength": 8 },
+    "differ_path": { "type": "string", "minLength": 8 },
+    "differ_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+    "output_path": { "type": "string" },
+    "output_schema": { "type": "string" },
+    "notes": { "type": "string" },
+    "headline": { "type": "string" },
+    "ts": { "type": "string", "minLength": 20 },
+    "corpus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "source",
+        "record_count",
+        "augmented_count",
+        "planted_into_real_corpus",
+        "toy_fixture"
+      ],
+      "properties": {
+        "source": { "type": "string", "minLength": 16 },
+        "record_count": { "type": "integer", "minimum": 100 },
+        "augmented_count": { "type": "integer", "minimum": 106 },
+        "planted_into_real_corpus": { "type": "boolean", "const": true },
+        "toy_fixture": { "type": "boolean", "const": false }
+      }
+    },
+    "mutants": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/plant_row" }
+    },
+    "decoys": {
+      "type": "array",
+      "minItems": 3,
+      "maxItems": 3,
+      "items": { "$ref": "#/$defs/decoy_row" }
+    },
+    "mutants_caught": { "type": "boolean", "const": true },
+    "decoys_silent": { "type": "boolean", "const": true },
+    "hosts": { "type": "object" },
+    "shapes": {
+      "type": "array",
+      "minItems": 3,
+      "items": { "type": "string" }
+    },
+    "both_states": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "mutants_detected",
+        "decoys_silent",
+        "self_diff_empty",
+        "absent_versus_different",
+        "always_fire_would_flag_decoys",
+        "never_fire_would_miss_mutants"
+      ],
+      "properties": {
+        "mutants_detected": { "type": "boolean", "const": true },
+        "decoys_silent": { "type": "boolean", "const": true },
+        "self_diff_empty": { "type": "boolean", "const": true },
+        "absent_versus_different": { "type": "object" },
+        "always_fire_would_flag_decoys": { "type": "boolean", "const": true },
+        "never_fire_would_miss_mutants": { "type": "boolean", "const": true }
+      }
+    },
+    "control_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["differ_path", "differ_sha256", "threshold", "threshold_version"],
+      "properties": {
+        "differ_path": { "type": "string" },
+        "differ_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "threshold": { "type": "number" },
+        "threshold_version": { "type": "string" },
+        "rerun_policy": { "type": "string", "minLength": 16 }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "verdict", "anchor"],
+        "properties": {
+          "id": { "type": "string" },
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": { "type": "string", "enum": ["CONFIRMED", "REFUTED", "PARTIAL"] },
+          "anchor": { "type": "string", "minLength": 8 }
+        },
+        "additionalProperties": true
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        },
+        "additionalProperties": true
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent", "executed_both_states_control"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 8 },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true },
+        "executed_both_states_control": { "type": "boolean", "const": true },
+        "method": { "type": "string" }
+      },
+      "additionalProperties": true
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "role": { "type": "string" },
+          "exists": { "type": "boolean" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "evidence_requirement": { "type": "string", "minLength": 40 },
+    "named_probes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "role": { "type": "string" }
+        },
+        "additionalProperties": true
+      }
+    },
+    "defects": { "type": "array" }
+  },
+  "$defs": {
+    "plant_row": {
+      "type": "object",
+      "required": [
+        "plant_id",
+        "shape",
+        "host_id",
+        "nearest_id",
+        "nearest_score",
+        "detected",
+        "threshold"
+      ],
+      "properties": {
+        "plant_id": { "type": "string" },
+        "shape": {
+          "type": "string",
+          "enum": ["exact-rename", "one-parameter-fork", "reworded-paraphrase"]
+        },
+        "host_id": { "type": "string" },
+        "nearest_id": { "type": "string" },
+        "nearest_score": { "type": "number" },
+        "host_score": { "type": ["number", "null"] },
+        "exclusive_vs_host": { "type": ["integer", "null"] },
+        "exclusive_vs_nearest": { "type": ["integer", "null"] },
+        "detected": { "type": "boolean", "const": true },
+        "independent_duplicate_vs_host": { "type": ["boolean", "null"] },
+        "independent_duplicate_vs_nearest": { "type": ["boolean", "null"] },
+        "threshold": { "type": "number" },
+        "silent": { "type": "boolean" }
+      },
+      "additionalProperties": true
+    },
+    "decoy_row": {
+      "type": "object",
+      "required": [
+        "plant_id",
+        "host_id",
+        "nearest_id",
+        "nearest_score",
+        "detected",
+        "silent",
+        "threshold"
+      ],
+      "properties": {
+        "plant_id": { "type": "string" },
+        "shape": { "type": "string" },
+        "host_id": { "type": "string" },
+        "nearest_id": { "type": "string" },
+        "nearest_score": { "type": "number" },
+        "host_score": { "type": ["number", "null"] },
+        "exclusive_vs_host": { "type": ["integer", "null"] },
+        "exclusive_vs_nearest": { "type": "integer", "minimum": 3 },
+        "detected": { "type": "boolean", "const": false },
+        "silent": { "type": "boolean", "const": true },
+        "independent_duplicate_vs_host": { "type": ["boolean", "null"] },
+        "independent_duplicate_vs_nearest": { "type": "boolean", "const": false },
+        "threshold": { "type": "number" }
+      },
+      "additionalProperties": true
+    }
+  }
+}

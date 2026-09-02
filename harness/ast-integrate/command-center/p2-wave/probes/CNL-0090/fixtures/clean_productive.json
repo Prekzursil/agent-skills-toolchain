@@ -1,0 +1,84 @@
+{
+  "id": "clean-productive-counterexamples",
+  "expected": "SILENT",
+  "pathology": "absent",
+  "notes": "Each round introduces a genuinely distinct claim and a new evidence node. The detector must remain SILENT; this is the known-good state and the negative control for 'G_t is just a round counter'.",
+  "rounds": [
+    {
+      "round": 1,
+      "utterances": [
+        {
+          "seat": "proposer",
+          "claim_id": "C-ring",
+          "claim_text": "Use a lock-free ring buffer for the event bus",
+          "evidence_ids": ["E-trace-1"],
+          "position_id": "ring-buffer"
+        },
+        {
+          "seat": "critic",
+          "claim_id": "C-mutex",
+          "claim_text": "A mutexed queue is simpler and correct enough",
+          "evidence_ids": ["E-lat-1"],
+          "position_id": "mutex-queue"
+        }
+      ]
+    },
+    {
+      "round": 2,
+      "utterances": [
+        {
+          "seat": "proposer",
+          "claim_id": "C-drop",
+          "claim_text": "Drop oldest events when the bounded queue is full",
+          "evidence_ids": ["E-overflow-2"],
+          "position_id": "drop-oldest"
+        },
+        {
+          "seat": "critic",
+          "claim_id": "C-backpressure",
+          "claim_text": "Apply sender backpressure instead of dropping events",
+          "evidence_ids": ["E-block-2"],
+          "position_id": "backpressure"
+        }
+      ]
+    },
+    {
+      "round": 3,
+      "utterances": [
+        {
+          "seat": "proposer",
+          "claim_id": "C-single-writer",
+          "claim_text": "Restrict the bus to a single writer thread to avoid ABA",
+          "evidence_ids": ["E-aba-3"],
+          "position_id": "single-writer"
+        },
+        {
+          "seat": "critic",
+          "claim_id": "C-shard",
+          "claim_text": "Shard the bus by tenant id so writers never share a slot",
+          "evidence_ids": ["E-shard-3"],
+          "position_id": "sharded"
+        }
+      ]
+    },
+    {
+      "round": 4,
+      "utterances": [
+        {
+          "seat": "proposer",
+          "claim_id": "C-model-check",
+          "claim_text": "Prove memory-order with a model checker on the handshake",
+          "evidence_ids": ["E-tla-4"],
+          "position_id": "model-checked"
+        },
+        {
+          "seat": "critic",
+          "claim_id": "C-litmus",
+          "claim_text": "Run architecture litmus tests on the store-load pair instead",
+          "evidence_ids": ["E-litmus-4"],
+          "position_id": "litmus"
+        }
+      ]
+    }
+  ]
+}

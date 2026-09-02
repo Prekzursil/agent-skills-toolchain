@@ -1,0 +1,210 @@
+{
+  "disclaimer": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json is absent on this worktree (Path.is_file false). These records reconstruct catalog-cited protocols from WORK-UNIT-CATALOG.json CNL-0045 (P47, P51) and CNL-0046 (P53, P55) plus the ARC-0003 transcribed catalog-class.editable preset. They are not byte copies of the missing library.",
+  "source": "catalog-cited reconstruction",
+  "presets": [
+    {
+      "id": "C-cited:P51-timeboxed-spike-council",
+      "title": "Timeboxed spike council (catalog-cited P51)",
+      "family": "ENGINEERING-REVIEW",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P51", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Architect", "title": "Architect", "voting": true},
+        {"id": "Pragmatist", "title": "Pragmatist", "voting": true},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P51", "purpose": "timeboxed spike; clock stops the council, not a settled ledger"}
+      ],
+      "voting": {"rule": "majority", "quorum": 2, "on_tie": "NOT-YES"},
+      "stopping": {
+        "max_rounds": 2,
+        "expression": "wall_clock_spike_elapsed→halt",
+        "on_timeout": "halt"
+      },
+      "watch": {
+        "kind": "none",
+        "trigger_woken": false,
+        "sleep_default": false,
+        "settled_ledger_blocks_relitigation": false,
+        "intensity": "low"
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2", "protocol": "P51"},
+      "editable_dials": ["stopping.max_rounds"]
+    },
+    {
+      "id": "C-cited:P47-incident-war-room",
+      "title": "Incident war room (catalog-cited P47)",
+      "family": "ENGINEERING-REVIEW",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P47", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "IncidentCommander", "title": "Incident commander", "voting": true},
+        {"id": "Responder", "title": "Responder", "voting": true},
+        {"id": "Scribe", "title": "Scribe", "voting": false},
+        {"id": "Communicator", "title": "Communicator", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P47", "purpose": "live war-room; act now, evidence later; stays up until incident_closed"}
+      ],
+      "voting": {"rule": "majority", "quorum": 2, "on_tie": "commander-breaks"},
+      "stopping": {
+        "max_rounds": 12,
+        "expression": "incident_closed→halt",
+        "on_timeout": "keep-open"
+      },
+      "watch": {
+        "kind": "incident",
+        "trigger_woken": true,
+        "sleep_default": false,
+        "settled_ledger_blocks_relitigation": false,
+        "intensity": "high"
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2", "protocol": "P47"},
+      "editable_dials": ["stopping.max_rounds", "voting.quorum"]
+    },
+    {
+      "id": "C-cited:P55-shadow-council",
+      "title": "Shadow council (catalog-cited P55)",
+      "family": "META-COMPOSITION",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P55", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "ShadowChair", "title": "Shadow chair", "voting": true},
+        {"id": "ShadowSkeptic", "title": "Shadow skeptic", "voting": true},
+        {"id": "PrimaryLiaison", "title": "Primary liaison", "voting": false}
+      ],
+      "protocol_schedule": [
+        {"id": "P55", "purpose": "parallel always-on shadow; does not sleep and does not skip settled questions"}
+      ],
+      "voting": {"rule": "majority", "quorum": 2, "on_tie": "record-dissent"},
+      "stopping": {
+        "max_rounds": 8,
+        "expression": "primary_halt→shadow_halt",
+        "on_timeout": "halt"
+      },
+      "watch": {
+        "kind": "shadow",
+        "trigger_woken": false,
+        "sleep_default": false,
+        "settled_ledger_blocks_relitigation": false,
+        "intensity": "medium"
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2", "protocol": "P55"},
+      "editable_dials": ["stopping.max_rounds"]
+    },
+    {
+      "id": "C-cited:P53-escalation-ladder",
+      "title": "Escalation ladder (catalog-cited P53)",
+      "family": "META-COMPOSITION",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "P53", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Tier1", "title": "Tier-1", "voting": true},
+        {"id": "Tier2", "title": "Tier-2", "voting": true},
+        {"id": "Owner", "title": "Owner", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P53", "purpose": "compose protocols by escalating; not a sleeping watch"}
+      ],
+      "voting": {"rule": "escalate-on-unresolved", "quorum": 1, "on_tie": "escalate"},
+      "stopping": {
+        "max_rounds": 6,
+        "expression": "owner_decision∈{accept,reject} || top-tier-unresolved→BLOCKED",
+        "on_timeout": "escalate"
+      },
+      "watch": {
+        "kind": "ladder",
+        "trigger_woken": true,
+        "sleep_default": false,
+        "settled_ledger_blocks_relitigation": false,
+        "intensity": "high"
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2", "protocol": "P53"},
+      "editable_dials": ["stopping.max_rounds"]
+    },
+    {
+      "id": "C-cited:P04-consensus-conference",
+      "title": "Consensus conference (catalog-cited P04)",
+      "family": "DELIBERATIVE",
+      "anonymity": false,
+      "rebuttal": true,
+      "extends": [
+        {"id": "P04", "kind": "protocol", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Chair", "title": "Chair", "voting": true},
+        {"id": "Member", "title": "Member", "voting": true},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "P04", "purpose": "session-scoped consensus conference; starts when convened, ends when it stops"}
+      ],
+      "voting": {"rule": "consensus-or-record-dissent", "quorum": 3, "on_tie": "record-dissent"},
+      "stopping": {
+        "max_rounds": 8,
+        "expression": "consensus || max_rounds<=8 && unresolved→BLOCKED",
+        "on_timeout": "halt"
+      },
+      "watch": {
+        "kind": "none",
+        "trigger_woken": false,
+        "sleep_default": false,
+        "settled_ledger_blocks_relitigation": false,
+        "intensity": "medium"
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2", "protocol": "P04"},
+      "editable_dials": ["stopping.max_rounds", "voting.rule"]
+    },
+    {
+      "id": "council.preset.catalog-class.editable",
+      "title": "Catalog-class editable preset (ARC-0003 transcription)",
+      "family": "catalog-class",
+      "anonymity": false,
+      "rebuttal": false,
+      "extends": [
+        {"id": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json#presets", "kind": "catalog-class", "relation": "binds"}
+      ],
+      "roles": [
+        {"id": "Architect", "title": "Architect", "voting": true},
+        {"id": "Skeptic", "title": "Skeptic", "voting": true},
+        {"id": "Pragmatist", "title": "Pragmatist", "voting": true},
+        {"id": "Critic", "title": "Critic", "voting": true}
+      ],
+      "protocol_schedule": [
+        {"id": "catalog-class.generic", "purpose": "four-voice editable council; no standing sleep or trigger gate"}
+      ],
+      "voting": {
+        "rule": "unanimous-or-record-dissent",
+        "quorum": 4,
+        "on_tie": "record-dissent"
+      },
+      "stopping": {
+        "max_rounds": 8,
+        "expression": "max_rounds<=8 && unresolved→BLOCKED",
+        "on_timeout": "halt"
+      },
+      "watch": {
+        "kind": "none",
+        "trigger_woken": false,
+        "sleep_default": false,
+        "settled_ledger_blocks_relitigation": false,
+        "intensity": "medium"
+      },
+      "default_binding": {"base_spec_ref": "CouncilSpec.v2"},
+      "editable_dials": ["stopping.max_rounds", "voting.rule"]
+    }
+  ]
+}

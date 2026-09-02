@@ -1,0 +1,3844 @@
+<!DOCTYPE html>
+<html lang="en" dir="ltr">
+  <head>
+  <meta charset="utf-8">
+  <title>Archive metadata &mdash; reproducible-builds.org</title>
+
+  
+  <link rel="stylesheet" href="/assets/styles/main.css?1787422169">
+
+  <link rel="shortcut icon" type="image/png" href="/assets/images/favicon.png"/>
+
+  <link href="/assets/fonts/overpass.css" rel="stylesheet">
+  <link href="/assets/fonts/overpass-mono.css" rel="stylesheet">
+  <link rel="stylesheet" href="/assets/static/open-iconic-bootstrap.css" />
+  <link rel="stylesheet" href="/assets/static/bootstrap.min.css">
+
+  <link rel="alternate" type="application/rss+xml" title="Reproducible Builds - Posts" href="https://reproducible-builds.org/feed.xml" />
+  <link rel="alternate" type="application/rss+xml" title="Reproducible Builds - All News" href="https://reproducible-builds.org/blog/index.rss" />
+
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  
+
+</head>
+
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-light sticky-top rb-navbar__top">
+  <a class="navbar-brand mr-5" href="/">
+    <img src="/assets/images/logo-text-white.png" height="30" width="auto" alt=""></img>
+  </a>
+  <button class="navbar-toggler" type="button" data-toggle="collapse" data-target="#navbarSupportedContent" aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+    <span class="navbar-toggler-icon"></span>
+  </button>
+
+  <div class="collapse navbar-collapse" id="navbarSupportedContent">
+    <ul class="navbar-nav mr-auto">
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/news/">News</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/docs/">Docs</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/success-stories/">Success stories</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/tools/">Tools</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/who/">Who is involved?</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/resources/">Talks</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/events/">Events</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/citests/">CI tests</a>
+      </li>
+      
+      
+      
+      <li class="nav-item">
+        <a class="nav-link" href="/contribute/">Contribute</a>
+      </li>
+      
+      
+    </ul>
+
+  </div>
+</nav>
+
+
+    <main role="main" class="content-scroll p-3">
+      
+
+
+<p class="d-lg-none">&larr; <a href="/docs/">Documentation index</a></p>
+
+
+<div class="row justify-content-end">
+  <div class="col-md-12 col-lg-6">
+    <h1>Archive metadata</h1>
+
+    <p>Most archive formats record metadata that will capture details about the
+build environment if no care is taken. File last modification time is
+obvious, but file ordering, users, groups, numeric ids, and permissions
+can also be of concern. Tar will be used as the main example but these tips
+apply to other archive formats as well.</p>
+
+<h2 id="file-modification-times">File modification times</h2>
+
+<p>Most archive formats will, by default, record file last modification
+times, while some will also record file creation times.</p>
+
+<p>Tar has a way to specify the modification time that is used for all
+archive members:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">tar</span> <span class="nt">--mtime</span><span class="o">=</span><span class="s1">'2015-10-21 00:00Z'</span> <span class="nt">-cf</span> product.tar build</code></pre></figure>
+
+<p>(Notice how <code class="language-plaintext highlighter-rouge">Z</code> is used to specify that time is in the UTC
+<a href="/docs/timezones/">timezone</a>.)</p>
+
+<p>For other archive formats, it is always possible to use <code class="language-plaintext highlighter-rouge">touch</code> to reset
+the modification times to a <a href="/docs/timestamps/">predefined value</a>
+before creating the archive:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$ </span>find build <span class="nt">-print0</span> |
+    xargs <span class="nt">-0r</span> <span class="nb">touch</span> <span class="nt">--no-dereference</span> <span class="nt">--date</span><span class="o">=</span><span class="s2">"@</span><span class="k">${</span><span class="nv">SOURCE_DATE_EPOCH</span><span class="k">}</span><span class="s2">"</span>
+<span class="nv">$ </span>zip <span class="nt">-r</span> product.zip build</code></pre></figure>
+
+<p>In some cases, it is preferable to keep the original times for files
+that have not been created or modified during the build process:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$ </span>find build <span class="nt">-newermt</span> <span class="s2">"@</span><span class="k">${</span><span class="nv">SOURCE_DATE_EPOCH</span><span class="k">}</span><span class="s2">"</span> <span class="nt">-print0</span> |
+    xargs <span class="nt">-0r</span> <span class="nb">touch</span> <span class="nt">--no-dereference</span> <span class="nt">--date</span><span class="o">=</span><span class="s2">"@</span><span class="k">${</span><span class="nv">SOURCE_DATE_EPOCH</span><span class="k">}</span><span class="s2">"</span>
+<span class="nv">$ </span>zip <span class="nt">-r</span> product.zip build</code></pre></figure>
+
+<p>In <code class="language-plaintext highlighter-rouge">tar</code> &gt;= 1.29, the <code class="language-plaintext highlighter-rouge">--clamp-mtime</code> flag can be used to only set the
+time when the file is more recent than the value specified with <code class="language-plaintext highlighter-rouge">--mtime</code>:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">tar</span> <span class="nt">--mtime</span><span class="o">=</span><span class="s1">'2015-10-21 00:00Z'</span> <span class="nt">--clamp-mtime</span> <span class="nt">-cf</span> product.tar build</code></pre></figure>
+
+<p>This has the benefit of leaving the original file modification time
+untouched.</p>
+
+<h2 id="file-ordering">File ordering</h2>
+
+<p>When asked to record directories, most archive formats will read their
+content in the order returned by the filesystem which is <a href="/docs/stable-inputs/">likely to be
+different on every run</a>.</p>
+
+<p>With version 1.28, GNU Tar has gained the <code class="language-plaintext highlighter-rouge">--sort=name</code> option which will
+sort filenames in a locale independent manner:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="c"># Works with GNU Tar 1.28</span>
+<span class="nv">$ </span><span class="nb">tar</span> <span class="nt">--sort</span><span class="o">=</span>name <span class="nt">-cf</span> product.tar build</code></pre></figure>
+
+<p>For older versions or other archive formats, it is possible to use
+<code class="language-plaintext highlighter-rouge">find</code> and <code class="language-plaintext highlighter-rouge">sort</code> to achieve the same effect:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$ </span>find build <span class="nt">-print0</span> | <span class="nv">LC_ALL</span><span class="o">=</span>C <span class="nb">sort</span> <span class="nt">-z</span> |
+    <span class="nb">tar</span> <span class="nt">--no-recursion</span> <span class="nt">--null</span> <span class="nt">-T</span> - <span class="nt">-cf</span> product.tar</code></pre></figure>
+
+<p>Care must be taken to ensure that <code class="language-plaintext highlighter-rouge">sort</code> is called in the context of the
+C locale to avoid any surprises related to collation order.</p>
+
+<h2 id="users-groups-and-numeric-ids">Users, groups and numeric ids</h2>
+
+<p>Depending on the archive format, the user and group owning the file
+can be recorded. Sometimes it will be using a string, sometimes using
+the associated numeric ids.</p>
+
+<p>When files belong to predefined system groups, this is not a problem,
+but builds are often performed with regular users. Recording of the
+account name or its associated ids might be a source of reproducibility
+issues.</p>
+
+<p>Tar offers a way to specify the user and group owning the file. Using
+<code class="language-plaintext highlighter-rouge">0</code>/<code class="language-plaintext highlighter-rouge">0</code> and <code class="language-plaintext highlighter-rouge">--numeric-owner</code> is a safe bet, as it will effectively
+record 0 as values:</p>
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="nv">$ </span><span class="nb">tar</span> <span class="nt">--owner</span><span class="o">=</span>0 <span class="nt">--group</span><span class="o">=</span>0 <span class="nt">--numeric-owner</span> <span class="nt">-cf</span> product.tar build</code></pre></figure>
+
+<h2 id="pax-headers">PAX headers</h2>
+
+<p>If GNU tar outputs the pax format (which is the default on some distributions), it adds files’ ctime and atime. If, in addition, <code class="language-plaintext highlighter-rouge">POSIXLY_CORRECT</code> is set, it adds the PID of the tar process.</p>
+
+<p>To avoid this, add to the tar call <code class="language-plaintext highlighter-rouge">--pax-option=exthdr.name=%d/PaxHeaders/%f,delete=atime,delete=ctime</code> or <code class="language-plaintext highlighter-rouge">--format=gnu</code> (both only available in GNU tar),
+or use <code class="language-plaintext highlighter-rouge">--format=ustar</code> if the limitations in that format are not a problem. Use the latter if possible and <a href="https://mgorny.pl/articles/portability-of-tar-features.html">portability</a> is a concern.</p>
+
+<h2 id="file-permissions">File permissions</h2>
+
+<p>Permissions on build artifacts may vary, for example due to differing <code class="language-plaintext highlighter-rouge">umask</code> settings. The resulting permission differences may be reflected when archive files containing them are created.</p>
+
+<p>When possible, it is preferable to create build artifacts using deterministic permissions so that variance does not arise.  However, sometimes it may be easier or more practical to configure static permissions later in the build, when the archive files are created.</p>
+
+<p>To configure file permissions when creating a <code class="language-plaintext highlighter-rouge">tar</code> archive, you can use the <code class="language-plaintext highlighter-rouge">--mode</code> argument.  For example, to request that, by default, unpacked files should be readable by everyone by default, writable only by their owner, and to allow everyone to list directory/folder contents, add: <code class="language-plaintext highlighter-rouge">--mode=a=rX,u+w</code></p>
+
+<h2 id="full-example">Full example</h2>
+
+<p>The recommended way to create a Tar archive is thus:</p>
+
+<div class="correct">
+
+<figure class="highlight"><pre><code class="language-sh" data-lang="sh"><span class="c"># requires GNU Tar 1.28+</span>
+<span class="nv">$ </span><span class="nb">tar</span> <span class="nt">--sort</span><span class="o">=</span>name <span class="se">\</span>
+      <span class="nt">--mtime</span><span class="o">=</span><span class="s2">"@</span><span class="k">${</span><span class="nv">SOURCE_DATE_EPOCH</span><span class="k">}</span><span class="s2">"</span> <span class="se">\</span>
+      <span class="nt">--owner</span><span class="o">=</span>0 <span class="nt">--group</span><span class="o">=</span>0 <span class="nt">--numeric-owner</span> <span class="se">\</span>
+      <span class="nt">--pax-option</span><span class="o">=</span>exthdr.name<span class="o">=</span>%d/PaxHeaders/%f,delete<span class="o">=</span>atime,delete<span class="o">=</span>ctime <span class="se">\</span>
+      <span class="nt">-cf</span> product.tar build</code></pre></figure>
+
+</div>
+
+<h2 id="zip-files">Zip files</h2>
+
+<p>Zip files can additionally store metadata in “extra file attributes”. We believe these were intended as a cross-platform means of storing, say,  Extended Attributes on OS/2 as well as user/group information. Crucially, it can store multiple file timestamps on Unix, including creation, modification <em>and</em> access time. (NB. You may not see access time changes under Linux system is your filesystems are mounted with <code class="language-plaintext highlighter-rouge">noatime</code> or <code class="language-plaintext highlighter-rouge">norelatime</code>).</p>
+
+<p>When creating <code class="language-plaintext highlighter-rouge">.zip</code> files, it is <a href="https://lists.reproducible-builds.org/pipermail/rb-general/2024-March/003283.html">recommended to use the <code class="language-plaintext highlighter-rouge">--no-extra</code> / <code class="language-plaintext highlighter-rouge">-X</code></a> argument to not save these fields. It is also recommended that <a href="https://lists.reproducible-builds.org/pipermail/rb-general/2023-April/002927.html">developers unzip archives with <code class="language-plaintext highlighter-rouge">TZ=UTC</code></a>.</p>
+
+<h2 id="git-archive"><code class="language-plaintext highlighter-rouge">git archive</code></h2>
+
+<p><a href="https://git-scm.com/docs/git-archive"><code class="language-plaintext highlighter-rouge">git archive</code></a> does
+<a href="https://lists.reproducible-builds.org/pipermail/rb-general/2022-October/002712.html">not guarantee</a>
+deterministic output. It uses the commit time as recorded in the
+referenced commit object when used with a commit ID or tag ID (but
+not when given a tree ID). In practice, the <code class="language-plaintext highlighter-rouge">tar</code> output is typically
+stable, but the internal <code class="language-plaintext highlighter-rouge">gzip</code> implementation is not. Using
+<code class="language-plaintext highlighter-rouge">git archive --format=tar TAG | gzip -6 -n</code> is more reliable.</p>
+
+<h2 id="post-processing">Post-processing</h2>
+
+<p>If tools do not support options to create reproducible archives, it is
+always possible to perform post-processing.</p>
+
+<p><a href="https://packages.debian.org/sid/strip-nondeterminism">strip-nondeterminism</a>
+already has support to normalize Zip and Jar archives (with <a href="https://bugs.debian.org/859103">limitations</a>). Custom scripts
+like Tor Browser’s
+<a href="https://gitweb.torproject.org/builders/tor-browser-bundle.git/tree/gitian/build-helpers/re-dzip.sh">re-dzip.sh</a>
+might also be an option.</p>
+
+<h2 id="static-libraries">Static libraries</h2>
+
+<p>Static libraries (<code class="language-plaintext highlighter-rouge">.a</code>) on Unix-like systems are <em>ar</em> archives. Like
+other archive formats, they contain metadata, namely timestamps, UIDs,
+GIDs, and permissions. None are actually required for using them as
+libraries.</p>
+
+<p>GNU <code class="language-plaintext highlighter-rouge">ar</code> and other tools from
+<a href="https://www.gnu.org/software/binutils/">binutils</a> have a <em>deterministic
+mode</em> which will use zero for UIDs, GIDs, timestamps, and use consistent
+file modes for all files. It can be made the default by passing the
+<code class="language-plaintext highlighter-rouge">--enable-deterministic-archives</code> option to <code class="language-plaintext highlighter-rouge">./configure</code>. It is already
+enabled by default for some distributions<sup id="fnref:distros-with-default"><a href="#fn:distros-with-default" class="footnote" rel="footnote" role="doc-noteref">1</a></sup> and so
+far it seems to be pretty safe <a href="https://bugs.debian.org/798804">except for
+Makefiles</a> using targets like
+<code class="language-plaintext highlighter-rouge">archive.a(foo.o)</code>.</p>
+
+<p>When binutils is not built with deterministic archives by default, build
+systems have to be changed to pass the right options to <code class="language-plaintext highlighter-rouge">ar</code> and
+friends. <code class="language-plaintext highlighter-rouge">ARFLAGS</code> can be set to <code class="language-plaintext highlighter-rouge">Dcvr</code> with many build systems to turn on the
+deterministic mode. Care must also be taken to pass <code class="language-plaintext highlighter-rouge">-D</code> if <code class="language-plaintext highlighter-rouge">ranlib</code> is
+used to create the function index.</p>
+
+<p>Another option is post-processing with
+<a href="https://packages.debian.org/sid/strip-nondeterminism">strip-nondeterminism</a>
+or <code class="language-plaintext highlighter-rouge">objcopy</code>:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>objcopy --enable-deterministic-archives libfoo.a
+</code></pre></div></div>
+
+<p>The above does not fix <a href="/docs/stable-inputs/">file ordering</a>.</p>
+
+<h2 id="initramfs-images">Initramfs images</h2>
+
+<p><em>cpio</em> archives are commonly used for initramfs images. The <em>cpio</em> header
+format (see <code class="language-plaintext highlighter-rouge">man 5 cpio</code>) can contain device and inode numbers, which whilst
+deterministic, can vary from system to system.</p>
+
+<p>One way to filter these is by piping through bsdtar.</p>
+
+<p>Example of non-deterministic code:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>echo ucode.bin |
+    bsdcpio -o -H newc -R 0:0 &gt; ucode.img
+</code></pre></div></div>
+
+<p>Example of deterministic code:</p>
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>echo ucode.bin |
+    bsdtar --uid 0 --gid 0 -cnf - -T - |
+    bsdtar --null -cf - --format=newc @- &gt; ucode.img
+</code></pre></div></div>
+
+<p>Note that other issues such as timestamps may still require rectification prior
+to archival.</p>
+
+<h2 id="gnu-libtool">GNU Libtool</h2>
+
+<p><a href="https://www.gnu.org/software/libtool/">GNU Libtool</a> prior to <code class="language-plaintext highlighter-rouge">74c8993c</code> (first
+included in version 2.2.7b) did not sort the find output. It appears that many
+packages are bootstrapped with a version prior to this.</p>
+
+<p>Confusingly, although <a href="https://gcc.gnu.org/">GNU GCC</a>’s <code class="language-plaintext highlighter-rouge">ltmain.sh</code> claims to
+have been generated by libtool 2.2.7a, GNU GCC actually maintains their own
+version of <code class="language-plaintext highlighter-rouge">libtool.m4</code> and <code class="language-plaintext highlighter-rouge">ltmain.sh</code>, which fixed this issue independently
+in <code class="language-plaintext highlighter-rouge">d41cd173e23</code>. This aforementioned change was first included in version
+9.1.0, meaning that the reproducibility issue remains in GCC versions below
+that.</p>
+
+<h2 id="gradle">Gradle</h2>
+
+<p>See <a href="../jvm/#gradle">Gradle reproducible archives</a> for more information.</p>
+<div class="footnotes" role="doc-endnotes">
+  <ol>
+    <li id="fn:distros-with-default">
+      <p>Debian since <a href="https://tracker.debian.org/news/675691">version 2.25-6</a>/stretch, Ubuntu since version 2.25-8ubuntu1/artful 17.10. <a href="#fnref:distros-with-default" class="reversefootnote" role="doc-backlink">&#8617;</a></p>
+    </li>
+  </ol>
+</div>
+
+
+    
+      <hr class="my-5">
+
+      <p class="d-none">&larr; <a href="/docs/">Documentation index</a></p>
+    
+  </div>
+
+  <div class="col-xl-2 col-lg-3 offset-lg-1 d-none d-lg-block">
+    
+    <p class="mt-5"><a href="/docs/">Documentation home</a></p>
+    
+
+    
+    <h5>Introduction</h5>
+
+    <ul class="list-unstyled">
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/which-problems-do-reproducible-builds-solve/">Which problems do Reproducible Builds Solve?</a>
+          
+        </li>
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/definition/">Definitions</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/history/">History</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/why/">Why reproducible builds?</a>
+          
+        </li>
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/plans/">Making plans</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/publications/">Academic publications</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    </ul>
+    
+    <h5>Achieve deterministic builds</h5>
+
+    <ul class="list-unstyled">
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/commandments/">Commandments of reproducible builds</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/getting-started/">Reproducibility Quickstart Guide</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    </ul>
+    
+    <h5>Managing variance</h5>
+
+    <ul class="list-unstyled">
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/env-variations/">Variations in the build environment</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/source-date-epoch/">SOURCE_DATE_EPOCH</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/deterministic-build-systems/">Deterministic build systems</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/volatile-inputs/">Volatile inputs can disappear</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/stable-inputs/">Stable order for inputs</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/stripping-unreproducible-information/">Stripping of unreproducible information</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/value-initialization/">Value initialization</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/version-information/">Version information</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/timestamps/">Timestamps</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/timezones/">Timezones</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/locales/">Locales</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+        <li>
+          
+          <strong>Archive metadata</strong>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/stable-outputs/">Stable order for outputs</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/randomness/">Randomness</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/build-path/">Build path</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/system-images/">System images</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/rust/">Rust</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/jvm/">JVM</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/helm/">Helm</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    </ul>
+    
+    <h5>Define a build environment</h5>
+
+    <ul class="list-unstyled">
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/perimeter/">What's in a build environment?</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/recording/">Recording the build environment</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/definition-strategies/">Definition strategies</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/proprietary-os/">Proprietary operating systems</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    </ul>
+    
+    <h5>Distribute the environment</h5>
+
+    <ul class="list-unstyled">
+    
+      
+
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/build-toolchain-from-source/">Building from source</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/virtual-machine-drivers/">Virtual machine drivers</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/formal-definition/">Formal definition</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    </ul>
+    
+    <h5>Verification</h5>
+
+    <ul class="list-unstyled">
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/checksums/">Cryptographic checksums</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/embedded-signatures/">Embedded signatures</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+      
+
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+        <li>
+          
+          <a href="/docs/sharing-certifications/">Sharing certifications</a>
+          
+        </li>
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+        
+      
+    
+    </ul>
+    
+
+    <h5>Specifications</h5>
+
+    <ul class="list-unstyled">
+      <li>
+        <a href="https://reproducible-builds.org/specs/source-date-epoch/"><tt>SOURCE_DATE_EPOCH</tt></a>
+      </li>
+      <li>
+        <a href="https://reproducible-builds.org/specs/build-path-prefix-map/"><tt>BUILD_PATH_PREFIX_MAP</tt> (WIP)</a>
+      </li>
+    </ul>
+  </div>
+</div>
+
+    </main>
+    <div class="row footer mb-5 mx-4">
+
+  
+  
+  <div class="col-lg-3 px-lg-5  col-md-12 d-none d-sm-block sponsors">
+    <p class="text-muted small">
+      We are proud to be <a href="/sponsors/">sponsored by</a>
+    </p>
+
+    <div class="d-flex justify-content-between align-items-center flex-row flex-lg-column flex-xl-row">
+      
+      <a href="https://www.sovereign.tech/" name="Sovereign Tech Agency">
+        <img class="pt-lg-2" src="/assets/images/sponsors/STF-black.svg" height="auto" width="100" alt="Sovereign Tech Agency"/>
+      </a>
+      
+    </div>
+  </div>
+  
+
+  <div class="col-lg-6 col-md-12 py-3 py-lg-0 colophon">
+    <span class="text-muted small d-none d-sm-inline align-bottom">
+      Follow us on Mastodon <a href="https://fosstodon.org/@reproducible_builds">@reproducible_builds@fosstodon.org</a> or
+      <a href="https://reddit.com/r/reproduciblebuilds">Reddit</a> and
+      please consider <a href="/sponsor/">making a donation</a>.
+      &bull;
+      Content licensed under <a href="https://creativecommons.org/licenses/by-sa/4.0/" class="rb-link" target="_blank">CC BY-SA 4.0</a>,
+      style licensed under <a href="https://opensource.org/licenses/MIT" class="rb-link" title="MIT" target="_blank">MIT</a>.
+      Templates and styles based on the <a href="https://styleguide.torproject.org/" target="_blank">Tor Styleguide</a>.
+      Logos and trademarks belong to their respective owners.
+      &bull;
+      Patches for this website welcome <a href="https://salsa.debian.org/reproducible-builds/reproducible-website">via our Git repository</a>
+      (<a href="/contribute/salsa/">instructions</a>) or via <a href="https://lists.reproducible-builds.org/listinfo/rb-general">our mailing list</a>.
+      &bull;
+      <a href="/who/">Full contact info</a>
+    </span>
+  </div>
+
+  <div class="col-lg-3 px-lg-5 col-md-12 d-flex justify-content-between align-items-center flex-row flex-lg-column flex-xl-row">
+    <a href="https://sfconservancy.org">
+      <img src="/assets/images/footer/conservancy.png" height="45" width="auto" alt="software freedom conservancy"/>
+    </a>
+    <a href="/" class="rb-logo">
+      <img src="/images/logos/rb.svg" height="45" width="auto" alt="Reproducible Builds"/>
+    </a>
+  </div>
+
+</div>
+
+
+    <script src="/assets/javascript/jquery-3.3.1.slim.min.js"></script>
+<script src="/assets/javascript/bootstrap.min.js"></script>
+<script type="text/javascript" src="/assets/javascript/index.js"></script>
+
+  </body>
+</html>

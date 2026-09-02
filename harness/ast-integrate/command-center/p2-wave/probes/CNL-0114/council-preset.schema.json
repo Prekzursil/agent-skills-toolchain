@@ -1,0 +1,201 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/p2/cnl-0114/council-preset.schema.json",
+  "title": "CNL-0114 working typed-delta council preset",
+  "description": "Working schema for this unit's family records. It does not claim to be the CNL-0101 canonical 20-key type over the absent 72-record library.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "name",
+    "family",
+    "base_spec",
+    "base_spec_version",
+    "delta",
+    "default_binding",
+    "editable_dials",
+    "on_base_version_bump",
+    "supersedes_or_extends",
+    "meta"
+  ],
+  "properties": {
+    "id": { "type": "string", "minLength": 8, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]+$" },
+    "name": { "type": "string", "minLength": 8 },
+    "family": { "type": "string", "minLength": 4 },
+    "base_spec": { "type": "string", "minLength": 4 },
+    "base_spec_version": { "type": "string", "minLength": 1 },
+    "delta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "protocol_bindings",
+        "roles",
+        "voting",
+        "stopping",
+        "third_party",
+        "franchise_rule",
+        "anonymity",
+        "recruitment",
+        "evidence",
+        "integrity",
+        "outcomes",
+        "budgets"
+      ],
+      "properties": {
+        "protocol_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 4 }
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "template", "votes"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "template": { "type": "string", "minLength": 2 },
+              "votes": { "type": "boolean" },
+              "count": { "type": "integer", "minimum": 1 },
+              "authority": { "type": "string", "minLength": 3 }
+            }
+          }
+        },
+        "voting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["method", "quorum"],
+          "properties": {
+            "method": { "type": "string", "minLength": 4 },
+            "quorum": { "type": "integer", "minimum": 0 },
+            "author_votes": { "type": "boolean" },
+            "certifier": { "type": "string", "minLength": 3 }
+          }
+        },
+        "stopping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["expression", "max_rounds"],
+          "properties": {
+            "expression": { "type": "string", "minLength": 8 },
+            "max_rounds": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "third_party": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["kind"],
+          "properties": {
+            "kind": {
+              "type": "string",
+              "enum": ["none", "mediator", "registrar", "evidence-clerk"]
+            },
+            "votes": { "type": "boolean" },
+            "may_reframe_interests": { "type": "boolean" },
+            "may_lock_prereg": { "type": "boolean" },
+            "may_strip_recommendations": { "type": "boolean" }
+          }
+        },
+        "franchise_rule": {
+          "type": "string",
+          "enum": [
+            "parties-only",
+            "parties-only-mediator-certifies",
+            "no-outcome-vote-advocates-sign-test",
+            "lay-only-secret-ballot"
+          ]
+        },
+        "anonymity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["level"],
+          "properties": {
+            "level": { "type": "string", "minLength": 3 },
+            "lift_phase": { "type": "string" }
+          }
+        },
+        "recruitment": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["mode"],
+          "properties": {
+            "mode": { "type": "string", "minLength": 4 },
+            "min_reviewers": { "type": "integer", "minimum": 0 }
+          }
+        },
+        "evidence": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["tier"],
+          "properties": {
+            "tier": { "type": "string", "minLength": 3 },
+            "clerk_gate": { "type": "boolean" },
+            "prereg_hash_required": { "type": "boolean" }
+          }
+        },
+        "integrity": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["split_verdict_is_fault", "presenter_disenfranchised"],
+          "properties": {
+            "split_verdict_is_fault": { "type": "boolean" },
+            "presenter_disenfranchised": { "type": "boolean" },
+            "ballot_forbids_expert_default": { "type": "boolean" },
+            "mediator_cannot_vote": { "type": "boolean" },
+            "batna_is_first_class_outcome": { "type": "boolean" }
+          }
+        },
+        "outcomes": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "budgets": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["turns"],
+          "properties": {
+            "turns": { "type": "integer", "minimum": 1 },
+            "caucus_turns": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    },
+    "default_binding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["protocol"],
+      "properties": {
+        "protocol": { "type": "string", "minLength": 4 },
+        "family": { "type": "string" }
+      }
+    },
+    "editable_dials": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "on_base_version_bump": {
+      "type": "string",
+      "enum": ["migrate-listed-dials-or-park"]
+    },
+    "supersedes_or_extends": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 4 }
+    },
+    "meta": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["unit_id", "library_c_id", "not_a_rename_of_sibling"],
+      "properties": {
+        "unit_id": { "type": "string", "const": "CNL-0114" },
+        "library_c_id": { "type": "string", "minLength": 3 },
+        "not_a_rename_of_sibling": { "type": "boolean", "const": true },
+        "reconstruction_note": { "type": "string" }
+      }
+    }
+  }
+}

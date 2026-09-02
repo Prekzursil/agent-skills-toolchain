@@ -1,0 +1,301 @@
+{
+ "answer": "Shadow on vs shadow off over two identical sessions left injected context byte-identical (sha256=6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4, delta_bytes=0) while the would-be payload was 87 bytes (sha256=34613b69846bba9265643331a4a2c5a765012342484d3eaafdf36758e59b1c61, selected=['cap.lint.ruff']). The arming criterion is the JSON number 0.9 at tools/router/shadow_config.json:2 for metric held_out_selection_precision; calibration 0.5 was refused (CALIBRATION_BELOW_CRITERION). A prose scrape of 0.1 would have armed. SENTINEL:IMP-0406:ROUTER-SHADOW-ZERO-EFFECT",
+ "arming_gate": {
+  "arming_criterion": 0.9,
+  "arming_criterion_type": "float",
+  "arming_metric": "held_out_selection_precision",
+  "arming_sample_size_min": 100,
+  "below_armed": false,
+  "below_calibration_value": 0.5,
+  "below_reason": "CALIBRATION_BELOW_CRITERION",
+  "below_still_shadow": true,
+  "bool_criterion_error": "arming_criterion must be a JSON number, got bool",
+  "bool_criterion_refused": true,
+  "config_path": "/opt/p2/ast-integrate/tools/router/shadow_config.json",
+  "criterion_fingerprint": "0889b97cc639588f4aef09ae4a8f6c1eca8d46cb863f17838203c5081a5bee0d",
+  "expected_below_reason": "CALIBRATION_BELOW_CRITERION",
+  "expected_missing_reason": "ARMING_WITHOUT_CRITERION",
+  "gate_uses_json_number": true,
+  "missing_criterion_error": "arming_criterion must be a JSON number, got NoneType",
+  "missing_criterion_refused": true,
+  "no_signoff_armed": false,
+  "no_signoff_reason": "OWNER_SIGNOFF_REQUIRED",
+  "prose": "Arm when precision looks like 0.10 or whenever the owner feels ready. This sentence is not the gate.",
+  "prose_extracted_criterion": 0.1,
+  "prose_mutant_would_arm": true
+ },
+ "artifacts": [
+  {
+   "bytes": 12007,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/router/shadow.py",
+   "role": "supporting",
+   "sha256": "d1b4daae2e70d3b720db637ee1cf986d57de6a558fabf4b91cf7be8ca2f5eda7"
+  },
+  {
+   "bytes": 261,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/router/shadow_config.json",
+   "role": "supporting",
+   "sha256": "c747f140af6a6bc43cda747db97e6e4661570732f6bd6aa82ba80e87c2271361"
+  },
+  {
+   "bytes": 351,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/router/shadow_catalog.json",
+   "role": "supporting",
+   "sha256": "554e991362e2889e8c1edb104dc23a0911e0d5a814e03ee3e94dedc21897c322"
+  },
+  {
+   "bytes": 1105,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/router/__init__.py",
+   "role": "supporting",
+   "sha256": "2d669c5da5a9f844453028bbfdab031f57bcb34395e2837203574f9d52179e95"
+  },
+  {
+   "bytes": 156,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0406/fixtures/session-ab.json",
+   "role": "supporting",
+   "sha256": "73525fb645804a085b5ddc5f6269109a5eb31f7d1457b5d1812cc89765c74680"
+  },
+  {
+   "bytes": 6647,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0406/scenario.py",
+   "role": "supporting",
+   "sha256": "4e6f1594f62c69608995316d97234faedfa9198487cb4db48e8c2bc1ff37ba52"
+  },
+  {
+   "bytes": 3475,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0406/probe1_zero_effect.py",
+   "role": "supporting",
+   "sha256": "4bcea706083937fcff56535d643415dbdb8771b419d0f49f23550f4501d3199c"
+  },
+  {
+   "bytes": 3865,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0406/probe2_arming_gate.py",
+   "role": "supporting",
+   "sha256": "0c55a51a0fc8d1a94ca3db110ca1d7dc7f9e8641781305117aed4e5a5f87fc5d"
+  }
+ ],
+ "catalog_present": true,
+ "cloud_ok": false,
+ "completion_sentinel": "SENTINEL:IMP-0406:ROUTER-SHADOW-ZERO-EFFECT",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0406.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0406",
+   "executed": false,
+   "note": "Measure runs after this receipt and the per-unit manifest are on disk.",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/router/shadow.py:317",
+   "claim": "A/B of two identical sessions (shadow on vs shadow off) produced byte-identical injected context 6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4 matching the baseline; the router logged a non-empty would-be payload of 87 bytes. A leaky mutant that appends that payload diverges, and an armed copy appends baseline+payload, so the zero-effect is not a stub selector.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0406/probe1_zero_effect.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"byte_identical\": true, \"would_inject_bytes\": 87, \"zero_delta_bytes\": 0}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/router/shadow.py:161",
+   "claim": "Arming criterion 0.9 is the JSON number at tools/router/shadow_config.json:2, fingerprint 0889b97cc639588f4aef09ae4a8f6c1eca8d46cb863f17838203c5081a5bee0d. Calibration 0.5 n=200 was refused (CALIBRATION_BELOW_CRITERION). Missing-criterion and boolean-true configs raise ArmingWithoutCriterion. The prose trap number 0.1 is not the gate.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0406/probe2_arming_gate.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"arming_criterion\": 0.9, \"below_reason\": \"CALIBRATION_BELOW_CRITERION\", \"prose_mutant_would_arm\": true}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0406",
+ "implementation": {
+  "apply_anchor": "tools/router/shadow.py:317",
+  "catalog": "tools/router/shadow_catalog.json",
+  "config": "tools/router/shadow_config.json",
+  "criterion_loader_anchor": "tools/router/shadow.py:161",
+  "default_mode": "shadow",
+  "inject_enabled_only_via_try_arm": true,
+  "router": "tools/router/shadow.py"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0406/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "86222cd4cb54f7134f21e832866426827c62208aa62c6c73f8a02d3e21535151",
+   "description": "Leaky shadow apply concatenates the would-be payload into injected_context. Production A/B stays byte-identical; the mutant must diverge.",
+   "fired_on_bad_state": true,
+   "good_state_output": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+   "id": "IMP0406-C1",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "0.1",
+   "description": "Parse the first decimal out of arming_criterion_prose and use it as the gate. That number is 0.10, so calibration 0.50 would arm. Production reads only the JSON number 0.9.",
+   "fired_on_bad_state": true,
+   "good_state_output": "0.9",
+   "id": "IMP0406-C2",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0406: live named probes re-run the A/B and arming gate. Did not run tools/command-center/unit_manifest.py --write. cloud ok=true is not delivery. Catalog owner_approval_required gates leaving shadow, not shipping shadow.",
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "systems-implementer",
+  "vendor": "cursor"
+ },
+ "profile": "selfimprove-measure-artifact",
+ "question_or_target": "Ship the router in SHADOW mode first: it computes and logs what it WOULD have injected, and injects nothing, until calibration data justifies arming it. Exact target: a documented arming criterion expressed as a number, plus proof that shadow mode has zero effect on session behavior.",
+ "report": {
+  "arming_gate": {
+   "arming_criterion": 0.9,
+   "arming_criterion_type": "float",
+   "arming_metric": "held_out_selection_precision",
+   "arming_sample_size_min": 100,
+   "below_armed": false,
+   "below_calibration_value": 0.5,
+   "below_reason": "CALIBRATION_BELOW_CRITERION",
+   "below_still_shadow": true,
+   "bool_criterion_error": "arming_criterion must be a JSON number, got bool",
+   "bool_criterion_refused": true,
+   "config_path": "/opt/p2/ast-integrate/tools/router/shadow_config.json",
+   "criterion_fingerprint": "0889b97cc639588f4aef09ae4a8f6c1eca8d46cb863f17838203c5081a5bee0d",
+   "expected_below_reason": "CALIBRATION_BELOW_CRITERION",
+   "expected_missing_reason": "ARMING_WITHOUT_CRITERION",
+   "gate_uses_json_number": true,
+   "missing_criterion_error": "arming_criterion must be a JSON number, got NoneType",
+   "missing_criterion_refused": true,
+   "no_signoff_armed": false,
+   "no_signoff_reason": "OWNER_SIGNOFF_REQUIRED",
+   "prose": "Arm when precision looks like 0.10 or whenever the owner feels ready. This sentence is not the gate.",
+   "prose_extracted_criterion": 0.1,
+   "prose_mutant_would_arm": true
+  },
+  "kind": "router-shadow-mode",
+  "zero_effect": {
+   "armed_differs": true,
+   "armed_injected": true,
+   "armed_payload_appended": true,
+   "armed_reason": "ARMED",
+   "armed_sha256": "86222cd4cb54f7134f21e832866426827c62208aa62c6c73f8a02d3e21535151",
+   "baseline_bytes": 27,
+   "baseline_sha256": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+   "byte_identical": true,
+   "leak_differs": true,
+   "leak_sha256": "86222cd4cb54f7134f21e832866426827c62208aa62c6c73f8a02d3e21535151",
+   "off_injected": false,
+   "selected_ids": [
+    "cap.lint.ruff"
+   ],
+   "shadow_injected": false,
+   "shadow_log_len": 1,
+   "shadow_off_bytes": 27,
+   "shadow_off_sha256": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+   "shadow_on_bytes": 27,
+   "shadow_on_sha256": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+   "would_inject_bytes": 87,
+   "would_inject_sha256": "34613b69846bba9265643331a4a2c5a765012342484d3eaafdf36758e59b1c61",
+   "zero_delta_bytes": 0
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0397 (scrubbed telemetry) and IMP-0404 (hook fail-open) receipts are unbuilt on this worktree. ShadowRouter.apply is the injection seam those units would call; this receipt does not claim hook wiring or telemetry join.",
+   "settling_experiment": "After IMP-0404 delivers, re-run the A/B through the hook surface and confirm injected context is still byte-identical.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry; arming the router is an owner decision, not a retry outcome"
+ },
+ "reviewer": {
+  "independent": true,
+  "note": "Catalog reviewer_requirement names independent-claude-reviewer plus owner sign-off before leaving shadow. G-1 for this unit is live named probes plus an honest non-BLOCKED artifact. Production remains in shadow; try_arm still requires owner sign-off. Waiting on an ADV rebuild is the circle the dispatch prompt forbids.",
+  "reviewer_id": "IMP-0406-probe2-arming-gate",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0406:ROUTER-SHADOW-ZERO-EFFECT",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:59586",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0406/probe1_zero_effect.py",
+   "id": "zero-effect-shadow-on-vs-off",
+   "result": "PASS"
+  },
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0406/probe2_arming_gate.py",
+   "id": "arming-gate-below-criterion",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:06:04Z",
+  "started_at": "2026-08-25T01:06:04Z"
+ },
+ "title": "Router shadow mode: log the would-be selection without injecting",
+ "unit_id": "IMP-0406",
+ "zero_effect": {
+  "armed_differs": true,
+  "armed_injected": true,
+  "armed_payload_appended": true,
+  "armed_reason": "ARMED",
+  "armed_sha256": "86222cd4cb54f7134f21e832866426827c62208aa62c6c73f8a02d3e21535151",
+  "baseline_bytes": 27,
+  "baseline_sha256": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+  "byte_identical": true,
+  "leak_differs": true,
+  "leak_sha256": "86222cd4cb54f7134f21e832866426827c62208aa62c6c73f8a02d3e21535151",
+  "off_injected": false,
+  "selected_ids": [
+   "cap.lint.ruff"
+  ],
+  "shadow_injected": false,
+  "shadow_log_len": 1,
+  "shadow_off_bytes": 27,
+  "shadow_off_sha256": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+  "shadow_on_bytes": 27,
+  "shadow_on_sha256": "6704d3c38fda6fe88ebc8e73abfe29979972ec3c5564c3a1fb615f01c88c4dd4",
+  "would_inject_bytes": 87,
+  "would_inject_sha256": "34613b69846bba9265643331a4a2c5a765012342484d3eaafdf36758e59b1c61",
+  "zero_delta_bytes": 0
+ }
+}

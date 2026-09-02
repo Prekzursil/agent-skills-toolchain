@@ -1,0 +1,446 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p38-analysis-of-competing-hypotheses",
+  "preset": "root_cause_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Diagnose a cause by disconfirmation: score an evidence x hypothesis matrix and keep the hypothesis with the fewest inconsistencies.",
+    "charter": "Heuer ACH. Support is not the selector - inconsistency is. Non-diagnostic evidence is discarded, not tallied.",
+    "risk_tier": "high",
+    "desired_output": "root_cause",
+    "success_criteria": [
+      "an evidence x hypothesis consistency matrix",
+      "at least one hypothesis nobody believes and one measuring-it-wrong hypothesis",
+      "the surviving hypothesis named with its inconsistency count"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.75,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked",
+        "adversarial"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "matrix-clerk",
+        "role": "custom:evidence_clerk",
+        "expertise": [
+          "evidence audit"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "contributor",
+        "tools": [
+          "council_eval.ach_matrix"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "hyp-owner-1",
+        "role": "domain_expert",
+        "expertise": [
+          "harness internals"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "hyp-owner-2",
+        "role": "domain_expert",
+        "expertise": [
+          "operating environment"
+        ],
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "null-hypothesis-owner",
+        "role": "devils_advocate",
+        "expertise": [
+          "measurement error",
+          "instrumentation"
+        ],
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "authority": "voter",
+        "context": {
+          "briefing": "You own the 'we are measuring it wrong' hypothesis and the hypothesis nobody believes. You may not abandon them for social reasons."
+        }
+      },
+      {
+        "participant_id": "statistician",
+        "role": "statistician",
+        "expertise": [
+          "diagnosticity",
+          "base rates"
+        ],
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "authority": "voter"
+      }
+    ],
+    "information_partition": {
+      "enabled": true,
+      "strategy": "disjoint_evidence",
+      "partitions": [
+        {
+          "partition_id": "artifact-side",
+          "visible_to": [
+            "hyp-owner-1",
+            "statistician"
+          ],
+          "sources": [
+            "repo",
+            "event ledger"
+          ]
+        },
+        {
+          "partition_id": "environment-side",
+          "visible_to": [
+            "hyp-owner-2",
+            "null-hypothesis-owner"
+          ],
+          "sources": [
+            "host telemetry",
+            "process table"
+          ]
+        }
+      ]
+    },
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "role_collapse",
+        "hallucinated_expertise",
+        "inactivity"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "topology": {
+    "kind": "committee",
+    "committees": [
+      {
+        "committee_id": "hypothesis-bench",
+        "mandate": "Own and defend one hypothesis each.",
+        "members": [
+          "hyp-owner-1",
+          "hyp-owner-2",
+          "null-hypothesis-owner"
+        ]
+      },
+      {
+        "committee_id": "diagnosticity-bench",
+        "mandate": "Score diagnosticity and discard non-diagnostic evidence.",
+        "members": [
+          "matrix-clerk",
+          "statistician"
+        ]
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "nominal_group",
+        "stage_id": "enumerate",
+        "rounds": 2,
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 3,
+          "novel_ideas_per_round": 2
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "matrix",
+        "custom_name": "evidence-by-hypothesis-consistency-matrix",
+        "rounds": 2,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:diagnostic_evidence_items",
+              "op": ">=",
+              "value": 8,
+              "value_type": "number",
+              "producer": "council_eval.ach_matrix",
+              "note": "Only evidence that DISCRIMINATES between hypotheses counts."
+            },
+            {
+              "metric": "custom:non_diagnostic_discarded",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "council_eval.ach_matrix"
+            },
+            {
+              "metric": "custom:unattractive_hypothesis_present",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "council_eval.ach_matrix",
+              "note": "Card failure mode: the hypothesis list omits the true one. A hypothesis nobody believes is mandatory."
+            }
+          ]
+        }
+      },
+      {
+        "kind": "cross_examination",
+        "stage_id": "grill",
+        "rounds": 2,
+        "quotas": {
+          "objections_per_participant": 2
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "verdict"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": true
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 5,
+      "runner": "sandbox"
+    }
+  },
+  "budgets": {
+    "effort": "xhigh",
+    "turns": 40,
+    "sources": 20,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 3,
+    "max_inactivity_rounds": 2
+  },
+  "targets": {
+    "unique_ideas": 8,
+    "categories": 3,
+    "evidence_items": 12,
+    "objections": 8,
+    "novelty_ratio": 0.5,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": {
+      "min": -2,
+      "max": 2
+    },
+    "belief_aggregation": {
+      "method": "median",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "unique_ideas >= 6 AND evidence_items >= 12 AND every_objection_addressed == true AND confidence >= 0.75",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unique_ideas",
+          "op": ">=",
+          "value": 6
+        },
+        {
+          "metric": "evidence_items",
+          "op": ">=",
+          "value": 12
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "confidence",
+          "op": ">=",
+          "value": 0.75
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 4,
+      "min_evidence_items": 8,
+      "min_objections_addressed": 4,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the surviving hypothesis confirmed by one executable probe"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "circular_citation_check": true
+    },
+    "resolution": [
+      "run_experiment",
+      "split_question",
+      "recruit_independent_critic",
+      "strongest_counterexample",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "echo_chamber",
+      "premature_convergence",
+      "missing_expertise",
+      "evidence_free_majority",
+      "circular_citation",
+      "instant_unanimity",
+      "sycophancy",
+      "weak_synthesis",
+      "hallucinated_expertise",
+      "consensus_failing_executable_tests"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "strongest_counterexample",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "idea_ledger",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "experiments",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P38 analysis-of-competing-hypotheses",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:720-734",
+      "_USER-PROMPTS.md:10927",
+      "_USER-PROMPTS.md:11198"
+    ],
+    "lineage": [
+      "P38 analysis-of-competing-hypotheses",
+      "Heuer ACH (CIA tradecraft)"
+    ],
+    "notes": "Disconfirmation-first: score_scale is -2..+2 (INCONSISTENT..CONSISTENT) so a cell can vote AGAINST a hypothesis, which a 0..n support scale cannot. The card's failure mode (list omits the true hypothesis) is a stage exit condition, not advice. receipt_schema points at platform/schema/receipt.schema.json (the file that exists). The catalog's own output_schema for these units says command-center/schema/receipt.schema.json, which does NOT exist and has no deploy mapping. UNVERIFIED which path the runtime will load; settled by whichever unit lands the deploy mapping."
+  }
+}

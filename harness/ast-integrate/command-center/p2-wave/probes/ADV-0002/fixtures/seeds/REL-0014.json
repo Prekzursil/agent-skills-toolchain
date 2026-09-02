@@ -1,0 +1,261 @@
+{
+  "unit_id": "REL-0014",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:REL-0014",
+  "receipt_kind": "advisory-rescan",
+  "schema_version": 1,
+  "title": "Advisory re-scan at the promotion moment with an enforced freshness window",
+  "question": "Implementation target: make the vulnerability gate decay-aware. A scan result is a query against a live advisory database, so last week's green says nothing about today's advisory set. Implement three properties: re-run the scanner against the exact artifact hash at the moment of promotion, record the advisory-database snapshot identifier and timestamp inside the receipt, and refuse to consume any stored result older than the declared window rather than reusing it.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:REL-0014 _USER-PROMPTS.md:11112 (vulnerability scan) and 11129",
+  "min_bytes_threshold": 1200,
+  "artifact": {
+    "path": "command-center/p2-wave/probes/REL-0014/fixtures/lockfile-clean.json",
+    "sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+    "bytes": 240
+  },
+  "scanner": {
+    "name": "rel-0014-advisory-scanner",
+    "pin": "rel-0014-advisory-scanner@1.0.0",
+    "backend": "fixture-advisory-mirror"
+  },
+  "advisory_database": {
+    "snapshot_id": "38e0f2749ea2ebe15cc66444b3deb44c9b9510a12793a05492dfa85c7a505e60",
+    "pulled_at": "2026-08-24T18:00:00Z",
+    "source": "fixture-advisory-mirror",
+    "content_sha256": "0e8e5a7027e078aa5e68df137ec4ccef923eeccbdc235edfab1bc2dba0842118",
+    "advisory_count": 2
+  },
+  "report": {
+    "kind": "supply-chain-receipt",
+    "observations": [
+      {
+        "name": "stale_green_refused",
+        "measured": true,
+        "method": "promotion-log-REFUSED-stale-green",
+        "anchor": "tests.stale_stored_result.promotion_log"
+      },
+      {
+        "name": "detector_cve_2021_23337",
+        "measured": "CVE-2021-23337",
+        "method": "pinned-lodash-4.17.20",
+        "anchor": "tests.detector_known_advisory.vulnerable_findings"
+      },
+      {
+        "name": "tooling_exit_127",
+        "measured": "NOT-CHECKED",
+        "method": "missing-scanner-exit-127",
+        "anchor": "tests.tooling_exit_not_checked.honest_classification"
+      },
+      {
+        "name": "snapshot_ids_distinct",
+        "measured": true,
+        "method": "two-pulls-seven-minutes-apart",
+        "anchor": "tests.distinct_snapshot_ids"
+      }
+    ],
+    "control_ids": [
+      "stale_stored_result",
+      "detector_known_advisory",
+      "tooling_exit_not_checked",
+      "distinct_snapshot_ids"
+    ]
+  },
+  "scan": {
+    "timestamp": "2026-08-24T18:00:00Z",
+    "window_length_seconds": 86400,
+    "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+    "exit_code": 0,
+    "classification": "PASS",
+    "findings": [],
+    "snapshot_id": "38e0f2749ea2ebe15cc66444b3deb44c9b9510a12793a05492dfa85c7a505e60"
+  },
+  "promotion_log": [
+    {
+      "event": "stored-result-presented",
+      "stored_timestamp": "2026-08-22T18:00:00Z",
+      "now": "2026-08-24T18:00:00Z",
+      "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+      "window_length_seconds": 86400
+    },
+    {
+      "event": "REFUSED",
+      "reason": "stale-green",
+      "classification": "stale-green",
+      "age_seconds": 172800,
+      "window_length_seconds": 86400,
+      "stored_timestamp": "2026-08-22T18:00:00Z",
+      "now": "2026-08-24T18:00:00Z",
+      "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53"
+    },
+    {
+      "event": "forced-rescan",
+      "reason": "stale-green",
+      "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53"
+    },
+    {
+      "event": "scan-complete",
+      "exit_code": 0,
+      "snapshot_id": "38e0f2749ea2ebe15cc66444b3deb44c9b9510a12793a05492dfa85c7a505e60",
+      "timestamp": "2026-08-24T18:00:00Z",
+      "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+      "findings_count": 0
+    }
+  ],
+  "findings": [],
+  "failure_classes_exercised": [
+    "stale-green",
+    "tool-error-as-pass",
+    "detector-failure"
+  ],
+  "tests": {
+    "stale_stored_result": {
+      "pass": true,
+      "summary": "stored green aged 172800s against window 86400s; refusal logged; live re-scan of 396b4eef326d",
+      "refused": true,
+      "forced_rescan": true,
+      "consumed_stored": false,
+      "age_seconds": 172800,
+      "window_length_seconds": 86400,
+      "promotion_log": [
+        {
+          "event": "stored-result-presented",
+          "stored_timestamp": "2026-08-22T18:00:00Z",
+          "now": "2026-08-24T18:00:00Z",
+          "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+          "window_length_seconds": 86400
+        },
+        {
+          "event": "REFUSED",
+          "reason": "stale-green",
+          "classification": "stale-green",
+          "age_seconds": 172800,
+          "window_length_seconds": 86400,
+          "stored_timestamp": "2026-08-22T18:00:00Z",
+          "now": "2026-08-24T18:00:00Z",
+          "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53"
+        },
+        {
+          "event": "forced-rescan",
+          "reason": "stale-green",
+          "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53"
+        },
+        {
+          "event": "scan-complete",
+          "exit_code": 0,
+          "snapshot_id": "38e0f2749ea2ebe15cc66444b3deb44c9b9510a12793a05492dfa85c7a505e60",
+          "timestamp": "2026-08-24T18:00:00Z",
+          "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+          "findings_count": 0
+        }
+      ],
+      "artifact_sha256": "396b4eef326d7017b6ff9a95edfe3bc65b827bbdbae7a022c22eca8409f4ae53",
+      "snapshot_id": "38e0f2749ea2ebe15cc66444b3deb44c9b9510a12793a05492dfa85c7a505e60",
+      "scan_timestamp": "2026-08-24T18:00:00Z"
+    },
+    "detector_known_advisory": {
+      "pass": true,
+      "summary": "lodash@4.17.20 reports CVE-2021-23337; lodash@4.17.21 is clean; CVE-2017-16021 does not fire",
+      "vulnerable_findings": [
+        {
+          "id": "CVE-2021-23337",
+          "package": "lodash",
+          "version": "4.17.20",
+          "severity": "HIGH",
+          "summary": "Command injection in lodash template",
+          "fixed": "4.17.21"
+        }
+      ],
+      "vulnerable_verdict": "FAIL",
+      "clean_verdict": "PASS",
+      "clean_findings": [],
+      "advisory_id": "CVE-2021-23337",
+      "pinned": "lodash@4.17.20"
+    },
+    "tooling_exit_not_checked": {
+      "pass": true,
+      "summary": "exit 127 classifies NOT-CHECKED; buggy estate classifier would have called it PASS",
+      "exit_code": 127,
+      "honest_classification": "NOT-CHECKED",
+      "buggy_classification": "PASS",
+      "verdict": "NOT-CHECKED",
+      "error": "scanner-not-installed",
+      "estate_defect": "a measured case read exit 127 as a clean scan; this gate classifies it NOT-CHECKED"
+    },
+    "distinct_snapshot_ids": {
+      "pass": true,
+      "summary": "pull at T and T+7m record distinct snapshot ids; reusing T's id fails the freshness check",
+      "snapshot_id_a": "38e0f2749ea2ebe15cc66444b3deb44c9b9510a12793a05492dfa85c7a505e60",
+      "snapshot_id_b": "8afb5f272a53319662b88e09062969a058c0df86bec0f8305e3ff8068b800465",
+      "scan_timestamp_a": "2026-08-24T18:00:00Z",
+      "scan_timestamp_b": "2026-08-24T18:07:00Z",
+      "reuse_freshness_ok": false,
+      "reuse_verdict": "REFUSED",
+      "minutes_apart": 7
+    }
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "claim": "Stale stored green is refused in the promotion log, then re-scanned",
+      "anchor": "tests.stale_stored_result.promotion_log"
+    },
+    {
+      "id": "E2",
+      "claim": "Receipt records artifact sha256, snapshot id, scan timestamp, window",
+      "anchor": "scan.timestamp+scan.window_length_seconds+advisory_database.snapshot_id"
+    },
+    {
+      "id": "E3",
+      "claim": "lodash@4.17.20 detector control reports CVE-2021-23337",
+      "anchor": "tests.detector_known_advisory.vulnerable_findings"
+    },
+    {
+      "id": "E4",
+      "claim": "Scanner exit 127 classifies NOT-CHECKED, not PASS",
+      "anchor": "tests.tooling_exit_not_checked.honest_classification"
+    },
+    {
+      "id": "E5",
+      "claim": "Two pulls minutes apart record distinct snapshot ids; reuse fails",
+      "anchor": "tests.distinct_snapshot_ids"
+    }
+  ],
+  "scope": {
+    "backend": "fixture-advisory-mirror",
+    "live_osv_query": false,
+    "proof_surface": "fixture advisory mirror planted with CVE-2021-23337 against lodash@4.17.20; decay, snapshot, and exit-code properties are executed, not asserted. This is not a claim that api.osv.dev was queried.",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "osv-scanner binary was invoked",
+      "the product lockfile on this worktree is vulnerability-free"
+    ]
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "vulnerability-analyst",
+    "execution_substrate": "linux-local"
+  },
+  "reviewer": {
+    "reviewer_id": "REL-0014-probe2-detector-tooling",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 2 re-runs the mutation controls (known-advisory pin and exit 127). A reviewer who only re-reads this receipt has verified nothing."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "stale-window-and-snapshot-freshness",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0014/probe1_stale_window.py"
+    },
+    {
+      "id": "probe2",
+      "role": "detector-and-tooling-exit",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0014/probe2_detector_tooling.py"
+    }
+  ],
+  "cloud_ok": false,
+  "registered": true,
+  "notes": "G-1 for REL-0014: decay-aware promotion gate with visible stale refusal, snapshot ids per pull, detector control, and exit-127 NOT-CHECKED. Did not run global unit_manifest.py --write."
+}

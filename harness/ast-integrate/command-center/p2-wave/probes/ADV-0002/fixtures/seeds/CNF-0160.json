@@ -1,0 +1,823 @@
+{
+ "unit_id": "CNF-0160",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0160",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/CNF-0160.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CNF-0160.json",
+   "bytes": 23568,
+   "sha256": "11c08f4a120fc9d3027a8399f31fd2b1c74e276dcd6540be435c426ae69bed75",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "min_bytes_threshold": 2000,
+ "extensions": {
+  "legacy_root": {
+   "claim_id": "CNF-0160-recruitment-rule",
+   "verdict": "CONFIRMED",
+   "title": "Cost-aware third-model triangulation, recruited only where the two vendors disagree",
+   "question": "Implementation target: a documented recruitment rule that brings in a third model or vendor ONLY for claims where CNF-0154 and the Anthropic side disagree and CNF-0155 could not settle them executably. The rule must state its trigger, its budget, and what it does when the third model agrees with neither - which is a signal about the CLAIM's ambiguity, not a casting vote.",
+   "confirmer": {
+    "identity": "CNF-0160-local-serialized-confirmer",
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "cross-vendor-confirmer"
+   },
+   "blinding_attestation_hash": "58f4d56cb93f7fb01bf5d4bc68dd90940d7c38d969a88b6416ce99ae083c065f",
+   "baseline_repro": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0160/recruit.py is not a CLI; apply_rule(load_ledger(), load_thirds(), rail_available=True, cap=3) against the fixture ledger.",
+   "corrected_repro": "Same apply_rule invocation. The recruitment rule is the implementation; there is no prior broken detector to patch.",
+   "rollback_repro": "Remove command-center/receipts/CNF-0160.json. The executable rule remains in command-center/p2-wave/probes/CNF-0160/rule.py and recruit.py.",
+   "regression_diff": "No prior CNF-0160 receipt on this worktree; first emission. Fixture ledger sha256=58f4d56cb93f7fb01bf5d4bc68dd90940d7c38d969a88b6416ce99ae083c065f bytes=2816.",
+   "discrepancies": [
+    {
+     "claim_id": "C-IRRED-SPLIT-007",
+     "kind": "three-way-split",
+     "detail": "Anthropic, Codex and the third model all differ. Recorded as AMBIGUOUS-CLAIM, not a majority verdict.",
+     "outcome": "AMBIGUOUS-CLAIM"
+    },
+    {
+     "claim_id": "C-IRRED-BUDGET-008",
+     "kind": "unresolved-after-rule",
+     "detail": "budget-exhausted",
+     "outcome": "held"
+    },
+    {
+     "claim_id": "C-IRRED-BUDGET-009",
+     "kind": "unresolved-after-rule",
+     "detail": "budget-exhausted",
+     "outcome": "held"
+    }
+   ],
+   "source_probe": {
+    "id": "probe1_trigger_budget_split",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0160/probe1_trigger_budget_split.py",
+    "fingerprint": "60a9e165226ad29a32d04b7ddcec3176f3a012bebd9e301504e1130867deea96"
+   },
+   "verifier_probe": {
+    "id": "probe2_auth_reviewer",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0160/probe2_auth_reviewer.py",
+    "fingerprint": "13610bc981a86893d3ed903ee9070df365c6c89b714b5b03ba15f9a99eedecc4"
+   },
+   "residual_caveat": "Live command-center/receipts/CNF-0155.json is absent; the rule is proven on fixtures/disagreement-ledger.json. Live third-vendor API keys (Gemini, xAI, Groq) are absent on this host, so live third-model dispatch is NOT-CHECKED with missing prerequisite third-vendor-rail-unauthenticated — never a two-way vote. Cursor session whoami may authenticate this confirmer; Cursor is not an independent third vendor versus Anthropic/Codex. Catalog flags owner_approval_required; this artifact confirms the recruitment rule, not an owner sign-off.",
+   "recruitment_rule": {
+    "id": "CNF-0160-third-model-recruitment",
+    "title": "Cost-aware third-model triangulation, recruited only where the two vendors disagree",
+    "trigger": {
+     "all_of": [
+      "anthropic_verdict != codex_verdict",
+      "cnf0155_outcome == IRREDUCIBLE",
+      "escalated_count < budget.cap"
+     ],
+     "does_not_fire_when": [
+      "vendors agree",
+      "CNF-0155 already settled the pair by an executable tiebreak",
+      "budget cap already consumed by prior recruitments this run"
+     ]
+    },
+    "budget": {
+     "cap": 3,
+     "unit": "third-model recruitments per run",
+     "consumes_on": "actual recruitment while a third rail is available",
+     "does_not_consume_on": "missing-rail NOT-CHECKED (no model call)",
+     "rationale": "Third-model calls are the scarce resource. Cap=3 bounds cost on a disagreement ledger; remaining IRREDUCIBLE claims stay visible as budget-exhausted, never silently dropped."
+    },
+    "when_third_agrees_with_neither": {
+     "outcome": "AMBIGUOUS-CLAIM",
+     "meaning": "signal about the CLAIM's ambiguity, not a casting vote",
+     "forbids": [
+      "majority vote among the three verdicts",
+      "treating the third model as a tie-breaking caster",
+      "collapsing to either two-vendor verdict"
+     ]
+    },
+    "when_third_rail_unavailable": {
+     "outcome": "NOT-CHECKED",
+     "emit": "named missing prerequisite",
+     "forbids": [
+      "silent two-way vote fallback"
+     ]
+    }
+   },
+   "trigger_evaluations": [
+    {
+     "claim_id": "C-AGREE-001",
+     "anthropic_verdict": "CONFIRMED",
+     "codex_verdict": "CONFIRMED",
+     "cnf0155_outcome": "NO-DISAGREEMENT",
+     "tiebreak_test_id": null,
+     "clauses": {
+      "vendors_disagree": false,
+      "cnf0155_unsettled_irreducible": false,
+      "budget_remaining": true
+     },
+     "trigger_fired": false,
+     "inhibit_reasons": [
+      "vendors-agree"
+     ],
+     "budget_remaining_before": 3,
+     "planted_third_verdict": "REFUTED",
+     "recruited": false,
+     "rail_available": true,
+     "triangulation_outcome": null,
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "not-escalated"
+    },
+    {
+     "claim_id": "C-AGREE-002",
+     "anthropic_verdict": "REFUTED",
+     "codex_verdict": "REFUTED",
+     "cnf0155_outcome": "NO-DISAGREEMENT",
+     "tiebreak_test_id": null,
+     "clauses": {
+      "vendors_disagree": false,
+      "cnf0155_unsettled_irreducible": false,
+      "budget_remaining": true
+     },
+     "trigger_fired": false,
+     "inhibit_reasons": [
+      "vendors-agree"
+     ],
+     "budget_remaining_before": 3,
+     "planted_third_verdict": "PARTIAL",
+     "recruited": false,
+     "rail_available": true,
+     "triangulation_outcome": null,
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "not-escalated"
+    },
+    {
+     "claim_id": "C-SETTLED-003",
+     "anthropic_verdict": "CONFIRMED",
+     "codex_verdict": "REFUTED",
+     "cnf0155_outcome": "CODEX-WRONG",
+     "tiebreak_test_id": "TB-SETTLED-003",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": false,
+      "budget_remaining": true
+     },
+     "trigger_fired": false,
+     "inhibit_reasons": [
+      "cnf0155-settled-executably"
+     ],
+     "budget_remaining_before": 3,
+     "planted_third_verdict": "PARTIAL",
+     "recruited": false,
+     "rail_available": true,
+     "triangulation_outcome": null,
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "not-escalated"
+    },
+    {
+     "claim_id": "C-SETTLED-004",
+     "anthropic_verdict": "REFUTED",
+     "codex_verdict": "CONFIRMED",
+     "cnf0155_outcome": "ANTHROPIC-WRONG",
+     "tiebreak_test_id": "TB-SETTLED-004",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": false,
+      "budget_remaining": true
+     },
+     "trigger_fired": false,
+     "inhibit_reasons": [
+      "cnf0155-settled-executably"
+     ],
+     "budget_remaining_before": 3,
+     "planted_third_verdict": "CONFIRMED",
+     "recruited": false,
+     "rail_available": true,
+     "triangulation_outcome": null,
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "not-escalated"
+    },
+    {
+     "claim_id": "C-IRRED-CONVERGE-A-005",
+     "anthropic_verdict": "CONFIRMED",
+     "codex_verdict": "REFUTED",
+     "cnf0155_outcome": "IRREDUCIBLE",
+     "tiebreak_test_id": "TB-IRRED-005",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": true,
+      "budget_remaining": true
+     },
+     "trigger_fired": true,
+     "inhibit_reasons": [],
+     "budget_remaining_before": 3,
+     "planted_third_verdict": "CONFIRMED",
+     "recruited": true,
+     "rail_available": true,
+     "triangulation_outcome": "CONVERGENT-ANTHROPIC",
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "recruited"
+    },
+    {
+     "claim_id": "C-IRRED-CONVERGE-C-006",
+     "anthropic_verdict": "CONFIRMED",
+     "codex_verdict": "REFUTED",
+     "cnf0155_outcome": "IRREDUCIBLE",
+     "tiebreak_test_id": "TB-IRRED-006",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": true,
+      "budget_remaining": true
+     },
+     "trigger_fired": true,
+     "inhibit_reasons": [],
+     "budget_remaining_before": 2,
+     "planted_third_verdict": "REFUTED",
+     "recruited": true,
+     "rail_available": true,
+     "triangulation_outcome": "CONVERGENT-CODEX",
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "recruited"
+    },
+    {
+     "claim_id": "C-IRRED-SPLIT-007",
+     "anthropic_verdict": "CONFIRMED",
+     "codex_verdict": "REFUTED",
+     "cnf0155_outcome": "IRREDUCIBLE",
+     "tiebreak_test_id": "TB-IRRED-007",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": true,
+      "budget_remaining": true
+     },
+     "trigger_fired": true,
+     "inhibit_reasons": [],
+     "budget_remaining_before": 1,
+     "planted_third_verdict": "PARTIAL",
+     "recruited": true,
+     "rail_available": true,
+     "triangulation_outcome": "AMBIGUOUS-CLAIM",
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "recruited"
+    },
+    {
+     "claim_id": "C-IRRED-BUDGET-008",
+     "anthropic_verdict": "PARTIAL",
+     "codex_verdict": "CONFIRMED",
+     "cnf0155_outcome": "IRREDUCIBLE",
+     "tiebreak_test_id": "TB-IRRED-008",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": true,
+      "budget_remaining": false
+     },
+     "trigger_fired": false,
+     "inhibit_reasons": [
+      "budget-exhausted"
+     ],
+     "budget_remaining_before": 0,
+     "planted_third_verdict": "BLOCKED",
+     "recruited": false,
+     "rail_available": true,
+     "triangulation_outcome": null,
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "not-escalated"
+    },
+    {
+     "claim_id": "C-IRRED-BUDGET-009",
+     "anthropic_verdict": "REFUTED",
+     "codex_verdict": "PARTIAL",
+     "cnf0155_outcome": "IRREDUCIBLE",
+     "tiebreak_test_id": "TB-IRRED-009",
+     "clauses": {
+      "vendors_disagree": true,
+      "cnf0155_unsettled_irreducible": true,
+      "budget_remaining": false
+     },
+     "trigger_fired": false,
+     "inhibit_reasons": [
+      "budget-exhausted"
+     ],
+     "budget_remaining_before": 0,
+     "planted_third_verdict": "NOT-CHECKED",
+     "recruited": false,
+     "rail_available": true,
+     "triangulation_outcome": null,
+     "missing_prerequisite": null,
+     "two_way_fallback_used": false,
+     "casting_vote_used": false,
+     "disposition": "not-escalated"
+    }
+   ],
+   "with_rail_run": {
+    "escalated_count": 3,
+    "budget_cap": 3,
+    "escalated_within_cap": true,
+    "recruited_claim_ids": [
+     "C-IRRED-CONVERGE-A-005",
+     "C-IRRED-CONVERGE-C-006",
+     "C-IRRED-SPLIT-007"
+    ],
+    "not_escalated_claim_ids": [
+     "C-AGREE-001",
+     "C-AGREE-002",
+     "C-SETTLED-003",
+     "C-SETTLED-004",
+     "C-IRRED-BUDGET-008",
+     "C-IRRED-BUDGET-009"
+    ],
+    "ambiguous_claim_count": 1,
+    "claims_considered": 9
+   },
+   "missing_rail_run": {
+    "rail_available": false,
+    "not_checked_count": 5,
+    "escalated_count": 0,
+    "two_way_fallback_anywhere": false,
+    "missing_prerequisite": "third-vendor-rail-unauthenticated",
+    "evaluations": [
+     {
+      "claim_id": "C-AGREE-001",
+      "anthropic_verdict": "CONFIRMED",
+      "codex_verdict": "CONFIRMED",
+      "cnf0155_outcome": "NO-DISAGREEMENT",
+      "tiebreak_test_id": null,
+      "clauses": {
+       "vendors_disagree": false,
+       "cnf0155_unsettled_irreducible": false,
+       "budget_remaining": true
+      },
+      "trigger_fired": false,
+      "inhibit_reasons": [
+       "vendors-agree"
+      ],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "REFUTED",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": null,
+      "missing_prerequisite": null,
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "not-escalated"
+     },
+     {
+      "claim_id": "C-AGREE-002",
+      "anthropic_verdict": "REFUTED",
+      "codex_verdict": "REFUTED",
+      "cnf0155_outcome": "NO-DISAGREEMENT",
+      "tiebreak_test_id": null,
+      "clauses": {
+       "vendors_disagree": false,
+       "cnf0155_unsettled_irreducible": false,
+       "budget_remaining": true
+      },
+      "trigger_fired": false,
+      "inhibit_reasons": [
+       "vendors-agree"
+      ],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "PARTIAL",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": null,
+      "missing_prerequisite": null,
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "not-escalated"
+     },
+     {
+      "claim_id": "C-SETTLED-003",
+      "anthropic_verdict": "CONFIRMED",
+      "codex_verdict": "REFUTED",
+      "cnf0155_outcome": "CODEX-WRONG",
+      "tiebreak_test_id": "TB-SETTLED-003",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": false,
+       "budget_remaining": true
+      },
+      "trigger_fired": false,
+      "inhibit_reasons": [
+       "cnf0155-settled-executably"
+      ],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "PARTIAL",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": null,
+      "missing_prerequisite": null,
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "not-escalated"
+     },
+     {
+      "claim_id": "C-SETTLED-004",
+      "anthropic_verdict": "REFUTED",
+      "codex_verdict": "CONFIRMED",
+      "cnf0155_outcome": "ANTHROPIC-WRONG",
+      "tiebreak_test_id": "TB-SETTLED-004",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": false,
+       "budget_remaining": true
+      },
+      "trigger_fired": false,
+      "inhibit_reasons": [
+       "cnf0155-settled-executably"
+      ],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "CONFIRMED",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": null,
+      "missing_prerequisite": null,
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "not-escalated"
+     },
+     {
+      "claim_id": "C-IRRED-CONVERGE-A-005",
+      "anthropic_verdict": "CONFIRMED",
+      "codex_verdict": "REFUTED",
+      "cnf0155_outcome": "IRREDUCIBLE",
+      "tiebreak_test_id": "TB-IRRED-005",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": true,
+       "budget_remaining": true
+      },
+      "trigger_fired": true,
+      "inhibit_reasons": [],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "CONFIRMED",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": "NOT-CHECKED",
+      "missing_prerequisite": "third-vendor-rail-unauthenticated",
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "qualified-but-rail-missing"
+     },
+     {
+      "claim_id": "C-IRRED-CONVERGE-C-006",
+      "anthropic_verdict": "CONFIRMED",
+      "codex_verdict": "REFUTED",
+      "cnf0155_outcome": "IRREDUCIBLE",
+      "tiebreak_test_id": "TB-IRRED-006",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": true,
+       "budget_remaining": true
+      },
+      "trigger_fired": true,
+      "inhibit_reasons": [],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "REFUTED",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": "NOT-CHECKED",
+      "missing_prerequisite": "third-vendor-rail-unauthenticated",
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "qualified-but-rail-missing"
+     },
+     {
+      "claim_id": "C-IRRED-SPLIT-007",
+      "anthropic_verdict": "CONFIRMED",
+      "codex_verdict": "REFUTED",
+      "cnf0155_outcome": "IRREDUCIBLE",
+      "tiebreak_test_id": "TB-IRRED-007",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": true,
+       "budget_remaining": true
+      },
+      "trigger_fired": true,
+      "inhibit_reasons": [],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "PARTIAL",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": "NOT-CHECKED",
+      "missing_prerequisite": "third-vendor-rail-unauthenticated",
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "qualified-but-rail-missing"
+     },
+     {
+      "claim_id": "C-IRRED-BUDGET-008",
+      "anthropic_verdict": "PARTIAL",
+      "codex_verdict": "CONFIRMED",
+      "cnf0155_outcome": "IRREDUCIBLE",
+      "tiebreak_test_id": "TB-IRRED-008",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": true,
+       "budget_remaining": true
+      },
+      "trigger_fired": true,
+      "inhibit_reasons": [],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "BLOCKED",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": "NOT-CHECKED",
+      "missing_prerequisite": "third-vendor-rail-unauthenticated",
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "qualified-but-rail-missing"
+     },
+     {
+      "claim_id": "C-IRRED-BUDGET-009",
+      "anthropic_verdict": "REFUTED",
+      "codex_verdict": "PARTIAL",
+      "cnf0155_outcome": "IRREDUCIBLE",
+      "tiebreak_test_id": "TB-IRRED-009",
+      "clauses": {
+       "vendors_disagree": true,
+       "cnf0155_unsettled_irreducible": true,
+       "budget_remaining": true
+      },
+      "trigger_fired": true,
+      "inhibit_reasons": [],
+      "budget_remaining_before": 3,
+      "planted_third_verdict": "NOT-CHECKED",
+      "recruited": false,
+      "rail_available": false,
+      "triangulation_outcome": "NOT-CHECKED",
+      "missing_prerequisite": "third-vendor-rail-unauthenticated",
+      "two_way_fallback_used": false,
+      "casting_vote_used": false,
+      "disposition": "qualified-but-rail-missing"
+     }
+    ]
+   },
+   "auth_posture": {
+    "read_only": true,
+    "credential_mutated": false,
+    "credential_created": false,
+    "credential_rotated": false,
+    "credential_unset": false,
+    "pair_rails": {
+     "anthropic": {
+      "present": false,
+      "variables": [
+       {
+        "name": "ANTHROPIC_API_KEY",
+        "present": false,
+        "bytes": 0
+       }
+      ]
+     },
+     "openai-codex": {
+      "present": false,
+      "variables": [
+       {
+        "name": "OPENAI_API_KEY",
+        "present": false,
+        "bytes": 0
+       }
+      ]
+     }
+    },
+    "third_rails": {
+     "google-gemini": {
+      "present": false,
+      "variables": [
+       {
+        "name": "GEMINI_API_KEY",
+        "present": false,
+        "bytes": 0
+       },
+       {
+        "name": "GOOGLE_API_KEY",
+        "present": false,
+        "bytes": 0
+       }
+      ]
+     },
+     "xai": {
+      "present": false,
+      "variables": [
+       {
+        "name": "XAI_API_KEY",
+        "present": false,
+        "bytes": 0
+       }
+      ]
+     },
+     "groq": {
+      "present": false,
+      "variables": [
+       {
+        "name": "GROQ_API_KEY",
+        "present": false,
+        "bytes": 0
+       }
+      ]
+     }
+    },
+    "session_rails_present": {
+     "cursor": {
+      "present": true,
+      "variable_count": 1
+     }
+    },
+    "cursor_whoami": {
+     "ran": true,
+     "authenticated": true,
+     "has_access_token": true,
+     "argv": [
+      "cursor-agent",
+      "whoami",
+      "--format",
+      "json"
+     ]
+    },
+    "third_rail_available": false,
+    "missing_third_rails": [
+     "google-gemini",
+     "xai",
+     "groq"
+    ],
+    "missing_prerequisite": "third-vendor-rail-unauthenticated",
+    "note": "Cursor session whoami may confirm THIS confirmer authenticates. Cursor is not an independent third vendor vs Anthropic/Codex."
+   },
+   "ledger_fixture": {
+    "path": "command-center/p2-wave/probes/CNF-0160/fixtures/disagreement-ledger.json",
+    "sha256": "58f4d56cb93f7fb01bf5d4bc68dd90940d7c38d969a88b6416ce99ae083c065f",
+    "bytes": 2816,
+    "live_cnf0155_present": false
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "trigger-budget-split",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0160/probe1_trigger_budget_split.py"
+    },
+    {
+     "id": "probe2",
+     "role": "auth-reviewer",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0160/probe2_auth_reviewer.py"
+    }
+   ],
+   "cloud_ok": false,
+   "owner_approval_required_in_catalog": true,
+   "output_schema": "command-center/schema/confirmation-record.schema.json",
+   "output_schema_note": "Global confirmation-record.schema.json is CNF-0129 and is absent on this tree. This receipt is validated against the unit-local schema at probes/CNF-0160/confirmation-record.local.schema.json."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0160",
+ "evidence": [
+  {
+   "claim": "CNF-0160 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/CNF-0160.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/CNF-0160.json",
+     "raw_output": "bytes=23568 sha256=11c08f4a120fc9d3027a8399f31fd2b1c74e276dcd6540be435c426ae69bed75",
+     "fingerprint": "bedf65c6963ec27c26d2333467901d3c",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0160",
+     "raw_output": "schema-check",
+     "fingerprint": "59fbeb2644e053f7f8dd9e1e9ae280ec",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0160 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0160",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0160",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "333308707a47d007f6939fbf438c4f89",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0160",
+     "raw_output": "schema-valid",
+     "fingerprint": "6e3359c120810d5e0a04a912d2a582b9",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0160/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0160"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/CNF-0160.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CNF-0160.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "9d571b671d5b67e6315860758f20a78a",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "confirmation-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 23568,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/CNF-0160.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

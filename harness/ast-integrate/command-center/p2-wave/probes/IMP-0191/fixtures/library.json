@@ -1,0 +1,190 @@
+{
+  "taxonomy_version": "imp-0191.1",
+  "admitted_fusion_ids": [
+    "fusion.keep-all",
+    "fusion.splice-cite",
+    "fusion.plus-explain",
+    "fusion.redundant-scout"
+  ],
+  "note": "Stand-in library for IMP-0177 capability vectors and IMP-0182 stage-splice. Those receipts are absent on this worktree; vectors here are computed from typed stages, not copied from a missing artifact.",
+  "workflows": [
+    {
+      "id": "wf.research",
+      "kind": "source",
+      "stages": [
+        {
+          "id": "scout",
+          "capabilities": ["cap.discover"],
+          "tools": ["web.search"]
+        },
+        {
+          "id": "cite",
+          "capabilities": ["cap.cite"],
+          "gates": ["citation.required"]
+        },
+        {
+          "id": "budget-stop",
+          "stop_rules": ["budget.exhausted"]
+        }
+      ]
+    },
+    {
+      "id": "wf.validate",
+      "kind": "source",
+      "stages": [
+        {
+          "id": "schema",
+          "capabilities": ["cap.schema_check"],
+          "gates": ["schema.valid"]
+        },
+        {
+          "id": "both-states",
+          "capabilities": ["cap.both_states"]
+        },
+        {
+          "id": "retry",
+          "recovery": ["retry.once"]
+        }
+      ]
+    },
+    {
+      "id": "wf.cite-v2",
+      "kind": "source",
+      "stages": [
+        {
+          "id": "cite-v2",
+          "capabilities": ["cap.cite"],
+          "gates": ["citation.required"],
+          "tools": ["doi.lookup"]
+        }
+      ]
+    },
+    {
+      "id": "fusion.keep-all",
+      "kind": "fusion",
+      "admitted": true,
+      "sources": ["wf.research", "wf.validate"],
+      "stages": [
+        {
+          "id": "scout",
+          "capabilities": ["cap.discover"],
+          "tools": ["web.search"]
+        },
+        {
+          "id": "cite",
+          "capabilities": ["cap.cite"],
+          "gates": ["citation.required"]
+        },
+        {
+          "id": "budget-stop",
+          "stop_rules": ["budget.exhausted"]
+        },
+        {
+          "id": "schema",
+          "capabilities": ["cap.schema_check"],
+          "gates": ["schema.valid"]
+        },
+        {
+          "id": "both-states",
+          "capabilities": ["cap.both_states"]
+        },
+        {
+          "id": "retry",
+          "recovery": ["retry.once"]
+        }
+      ]
+    },
+    {
+      "id": "fusion.splice-cite",
+      "kind": "fusion",
+      "admitted": true,
+      "note": "IMP-0182-shaped splice: cite replaced by cite-v2 which still provides cap.cite and gate:citation.required (plus tool:doi.lookup).",
+      "sources": ["wf.research", "wf.cite-v2"],
+      "stages": [
+        {
+          "id": "scout",
+          "capabilities": ["cap.discover"],
+          "tools": ["web.search"]
+        },
+        {
+          "id": "cite-v2",
+          "capabilities": ["cap.cite"],
+          "gates": ["citation.required"],
+          "tools": ["doi.lookup"]
+        },
+        {
+          "id": "budget-stop",
+          "stop_rules": ["budget.exhausted"]
+        }
+      ]
+    },
+    {
+      "id": "fusion.plus-explain",
+      "kind": "fusion",
+      "admitted": true,
+      "note": "Complementary fusion: retains every source capability and adds cap.explain. New capabilities are not a loss.",
+      "sources": ["wf.research", "wf.validate"],
+      "stages": [
+        {
+          "id": "scout",
+          "capabilities": ["cap.discover"],
+          "tools": ["web.search"]
+        },
+        {
+          "id": "cite",
+          "capabilities": ["cap.cite"],
+          "gates": ["citation.required"]
+        },
+        {
+          "id": "budget-stop",
+          "stop_rules": ["budget.exhausted"]
+        },
+        {
+          "id": "schema",
+          "capabilities": ["cap.schema_check"],
+          "gates": ["schema.valid"]
+        },
+        {
+          "id": "both-states",
+          "capabilities": ["cap.both_states"]
+        },
+        {
+          "id": "retry",
+          "recovery": ["retry.once"]
+        },
+        {
+          "id": "explain",
+          "capabilities": ["cap.explain"]
+        }
+      ]
+    },
+    {
+      "id": "fusion.redundant-scout",
+      "kind": "fusion",
+      "admitted": true,
+      "note": "Duplicate scout stage. Dropping scout-dup must stay silent because scout still provides the same tokens.",
+      "sources": ["wf.research"],
+      "stages": [
+        {
+          "id": "scout",
+          "capabilities": ["cap.discover"],
+          "tools": ["web.search"]
+        },
+        {
+          "id": "scout-dup",
+          "capabilities": ["cap.discover"],
+          "tools": ["web.search"]
+        },
+        {
+          "id": "cite",
+          "capabilities": ["cap.cite"],
+          "gates": ["citation.required"]
+        },
+        {
+          "id": "budget-stop",
+          "stop_rules": ["budget.exhausted"]
+        }
+      ]
+    }
+  ]
+}

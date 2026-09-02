@@ -1,0 +1,143 @@
+{
+  "measured_on": "2026-08-24T17:35:00Z",
+  "libraries": {
+    "09-WORKFLOW-BLUEPRINT-LIBRARY.json": {
+      "catalog_input": "C:/Users/Prekzursil/.claude/harness-restore-20260806/09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+      "on_this_tree": false,
+      "catalog_cited_count": 108,
+      "catalog_cited_shape": "discovery_only:true",
+      "target_floor_in_question": 96,
+      "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A08].evidence"
+    },
+    "12-COUNCIL-PROTOCOLS-AND-PRESETS.json": {
+      "catalog_input": "C:/Users/Prekzursil/.claude/harness-restore-20260806/12-COUNCIL-PROTOCOLS-AND-PRESETS.json",
+      "on_this_tree": false,
+      "catalog_cited_protocols": 58,
+      "catalog_cited_presets": 72,
+      "r_a09_disposition_protocols": 48,
+      "r_a09_disposition_presets": 69,
+      "target_floors_in_question": {"protocols": 48, "presets": 64},
+      "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence"
+    },
+    "skills/council/SKILL.md": {
+      "on_this_tree": false,
+      "catalog_cited_bytes": 6346,
+      "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence"
+    }
+  },
+  "samples": [
+    {
+      "kind": "skill",
+      "id": "skill.council",
+      "source_id": "skills/council/SKILL.md",
+      "source_citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+      "transcription_basis": "catalog-cited fields only; file absent on this worktree",
+      "body": {
+        "path": "skills/council/SKILL.md",
+        "measured_bytes_catalog": 6346,
+        "origin": "ECC",
+        "roles": ["Architect", "Skeptic", "Pragmatist", "Critic"],
+        "councilspec": false,
+        "schema": false,
+        "runtime": false,
+        "frontmatter": {
+          "name": "council",
+          "description": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler."
+        },
+        "instructions": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree."
+      }
+    },
+    {
+      "kind": "workflow_blueprint",
+      "id": "wf.catalog-class.discovery-only",
+      "source_id": "09-WORKFLOW-BLUEPRINT-LIBRARY.json#discovery_only",
+      "source_citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A08].evidence",
+      "transcription_basis": "library absent; body is the catalog-cited discovery_only class plus a finite declarative stage list used to demonstrate the config form, not a byte copy of a library record",
+      "body": {
+        "discovery_only": true,
+        "library": "09-WORKFLOW-BLUEPRINT-LIBRARY.json",
+        "catalog_cited_count": 108,
+        "target_floor": 96,
+        "stages": [
+          {
+            "id": "discover",
+            "kind": "static-scan",
+            "inputs": ["repo"],
+            "outputs": ["candidates.json"]
+          },
+          {
+            "id": "record",
+            "kind": "write-config",
+            "inputs": ["candidates.json"],
+            "outputs": ["blueprint.json"]
+          }
+        ],
+        "roles": ["scanner"],
+        "gates": [
+          {
+            "id": "human-ack",
+            "when": "before-publish",
+            "type": "checkpoint"
+          }
+        ],
+        "tool_policy": {
+          "allow": ["Read", "Grep", "Glob"]
+        },
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        }
+      }
+    },
+    {
+      "kind": "council_preset",
+      "id": "council.preset.catalog-class.editable",
+      "source_id": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json#presets",
+      "source_citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence+disposition_evidence",
+      "transcription_basis": "library absent; body transcribes catalog-cited axes (anti_failure/audit/voting/consensus/stopping) as static JSON. stopping here is declarative max_rounds, not a runtime predicate",
+      "body": {
+        "editable": true,
+        "library": "12-COUNCIL-PROTOCOLS-AND-PRESETS.json",
+        "catalog_cited_preset_count": 69,
+        "target_floor": 64,
+        "protocol_count_cited": 48,
+        "roles": ["Architect", "Skeptic", "Pragmatist", "Critic"],
+        "anti_failure": {
+          "on_split": "surface-disagreement",
+          "no_silent_average": true
+        },
+        "audit": {
+          "persist_transcript": true,
+          "hash_inputs": true
+        },
+        "voting": {
+          "rule": "unanimous-or-record-dissent",
+          "quorum": 4
+        },
+        "consensus": {
+          "reducer": "shared-completion-predicate-name",
+          "local_completion_forbidden": true
+        },
+        "stopping": {
+          "max_rounds": 8,
+          "on_timeout": "halt",
+          "on_unresolved": "BLOCKED"
+        }
+      }
+    }
+  ],
+  "negative_control": {
+    "kind": "council_preset",
+    "id": "NEG.runtime-stopping-over-prior-rounds",
+    "source_id": "ARC-0003.tests_required[negative-control]",
+    "source_citation": "command-center/WORK-UNIT-CATALOG.json work_units[id=ARC-0003].tests_required",
+    "body": {
+      "roles": ["Architect", "Skeptic"],
+      "stopping": {
+        "rule": "runtime_predicate",
+        "over": "prior_rounds",
+        "predicate": "prior_rounds[-1].consensus == true && score(prior_rounds) > threshold"
+      }
+    }
+  }
+}

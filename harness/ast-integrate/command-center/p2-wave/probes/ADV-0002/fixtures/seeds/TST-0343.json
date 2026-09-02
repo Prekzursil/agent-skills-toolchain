@@ -1,0 +1,528 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0343",
+  "id": "TST-0343",
+  "title": "Register every random seed and flag tests that pass on only one of them",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:TST-0343",
+  "completion_sentinel": "SUCCESS:TST-0343",
+  "profile": "seed-registry-sweep",
+  "spec_anchor": "WORK-UNIT-CATALOG.json TST-0343; a test that quietly depends on a fixed seed passes forever and protects nothing outside that seed",
+  "output_schema": "command-center/schema/receipt.schema.json (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "min_bytes_threshold": 2048,
+  "question_or_target": "Implementation target: a test that quietly depends on a fixed seed passes forever and protects nothing outside that seed. Introduce a seed registry (every test declares whether it is seed-sensitive and why), then run the suite across a set of seeds and report every test whose outcome varies. Seed-varying tests split into two classes that must be handled differently: a genuinely flaky test (C11) and a test whose ASSERTION is too narrow for the behaviour it claims to cover.",
+  "produced_by": {
+    "vendor": "spacexai-cursor",
+    "model": "Cursor Grok 4.6",
+    "role": "test-engineer",
+    "execution_substrate": "worktree-isolated",
+    "worktree": "/opt/p2/ast-integrate"
+  },
+  "artifact_paths": [
+    "command-center/receipts/TST-0343.json",
+    "tools/command-center/seed_registry.py",
+    "command-center/SEED-REGISTRY.json",
+    "command-center/TEST-REGISTRY.json",
+    "command-center/p2-wave/probes/TST-0343/suite.py",
+    "command-center/p2-wave/probes/TST-0343/probe1_seed_matrix.py",
+    "command-center/p2-wave/probes/TST-0343/probe2_classify_varying.py",
+    "command-center/p2-wave/probes/TST-0343/emit_receipt.py"
+  ],
+  "artifacts": [
+    {
+      "path": "tools/command-center/seed_registry.py",
+      "bytes": 11998,
+      "sha256": "3a782adcdd6b45f4d1ba4bc6d566bf193a9b4369fa72a33ee71272dd4fc63abf",
+      "exists": true,
+      "role": "primary-module"
+    },
+    {
+      "path": "command-center/SEED-REGISTRY.json",
+      "bytes": 3036,
+      "sha256": "23d0bacde470e3210d7ffd7fc347d163e51c46b4855ddbc299f10381a358e7af",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/TEST-REGISTRY.json",
+      "bytes": 8486,
+      "sha256": "e41cdf4d34a558c1b1a4a22fe1bb2628a10306310cd52d6576a706ab862ad8d9",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0343/suite.py",
+      "bytes": 3871,
+      "sha256": "6f2d44db0100de44250ef9ebfd84b596b41f5f15db47133f8ec06dcfe2b45323",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0343/probe1_seed_matrix.py",
+      "bytes": 4719,
+      "sha256": "dfba5309562de1c5dff8e398e5a798831e1e3732ef08418da50a622801024ff8",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0343/probe2_classify_varying.py",
+      "bytes": 6771,
+      "sha256": "f3f186a15e8db510ce19d4236cf3a8f22282f40c91a108f4aef2779d7a70cdf1",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0343/emit_receipt.py",
+      "bytes": 15214,
+      "sha256": "18a0a3040ce9045b76d7ad6ab28649b55fb2112efc5ddb7daa86cf055d44c8f2",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E-TEN-SEED-MATRIX",
+      "claim": "Suite run across 10 recorded seeds [101, 107, 109, 113, 127, 131, 137, 139, 149, 151]. Per-test outcome matrix published for 6 tests. Varying tests: ['test_planted_narrow_shuffle', 'test_planted_hidden_counter_flake']. Narrow-assertion: ['test_planted_narrow_shuffle']. Flaky-C11: ['test_planted_hidden_counter_flake'].",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/command-center/seed_registry.py:run_sweep",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "E-PLANTED-NARROW-DETECTED",
+      "claim": "Planted seed-dependent test test_planted_narrow_shuffle detected: PASS only on seed 127 (pass_count=1/10), class=narrow-assertion, undeclared_sensitivity=True. Same-seed repeats at the lucky seed are ['PASS', 'PASS', 'PASS'].",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0343/suite.py:test_planted_narrow_shuffle",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "E-PLANTED-FLAKE-C11",
+      "claim": "Planted C11 flake test_planted_hidden_counter_flake detected: class=flaky-C11, same_seed_reproducible=False, flake_seeds=['101', '107', '109', '113', '127', '131', '137', '139', '149', '151']. Re-running the same seed changed the outcome; that is a detector failure, not a retry.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0343/suite.py:test_planted_hidden_counter_flake",
+      "confidence": "almost-certain"
+    },
+    {
+      "id": "E-STATS-FROM-RAW-MATRIX",
+      "claim": "For every test, pass-rate p, Wilson 95% interval, and Cohen's h vs always-pass (p0=1) were computed from the raw per-seed vector. test_arithmetic_stable: p=1.0 CI=[0.72245983,1.0] h=0.0 class=stable; test_string_roundtrip: p=1.0 CI=[0.72245983,1.0] h=0.0 class=stable; test_unit_interval: p=1.0 CI=[0.72245983,1.0] h=0.0 class=stable; test_shuffle_preserves_multiset: p=1.0 CI=[0.72245983,1.0] h=0.0 class=stable; test_planted_narrow_shuffle: p=0.1 CI=[0.01787575,0.40415639] h=-2.49809154 class=narrow-assertion; test_planted_hidden_counter_flake: p=0.5 CI=[0.23658959,0.76341041] h=-1.57079633 class=flaky-C11",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/command-center/seed_registry.py:wilson_interval",
+      "confidence": "almost-certain"
+    }
+  ],
+  "test_ids": [
+    "T-TEN-SEED-MATRIX",
+    "T-PLANTED-NARROW-DETECTED",
+    "T-VARYING-CLASSIFIED",
+    "T-SAME-SEED-RETRY-IS-DETECTOR-FAILURE"
+  ],
+  "negative_control_ids": [
+    "NC-STABLE-NOT-CLASSIFIED-VARYING",
+    "NC-NARROW-SAME-SEED-REPRODUCIBLE",
+    "NC-FLAKE-SAME-SEED-DISAGREES"
+  ],
+  "tests": [
+    {
+      "id": "T-TEN-SEED-MATRIX",
+      "result": "PASS",
+      "assertions": 60,
+      "output_tail": "n_seeds=10 n_tests=6 matrix_cells=60"
+    },
+    {
+      "id": "T-PLANTED-NARROW-DETECTED",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "id=test_planted_narrow_shuffle class=narrow-assertion pass_count=1 lucky=127"
+    },
+    {
+      "id": "T-VARYING-CLASSIFIED",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "narrow=['test_planted_narrow_shuffle'] flaky=['test_planted_hidden_counter_flake']"
+    },
+    {
+      "id": "T-SAME-SEED-RETRY-IS-DETECTOR-FAILURE",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "narrow_same_seed_reproducible=True flake_same_seed_reproducible=False"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-STABLE-NOT-CLASSIFIED-VARYING",
+      "kind": "known-good-fixture",
+      "description": "Arithmetic/string/unit-interval/multiset tests must stay STABLE across all 10 seeds. Classifier silent on the good state.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "good_state_output": "stable_ids=['test_arithmetic_stable', 'test_string_roundtrip', 'test_unit_interval', 'test_shuffle_preserves_multiset']",
+      "bad_state_output": "varying_ids=['test_planted_narrow_shuffle', 'test_planted_hidden_counter_flake']"
+    },
+    {
+      "id": "NC-NARROW-SAME-SEED-REPRODUCIBLE",
+      "kind": "known-broken-fixture",
+      "description": "Planted narrow assertion fails on 9/10 seeds but is bit-stable on a given seed. Must be narrow-assertion, not C11 flake.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "NC-FLAKE-SAME-SEED-DISAGREES",
+      "kind": "known-broken-fixture",
+      "description": "Planted hidden-counter test disagrees with itself at the same seed. Must be flaky-C11, never absorbed as a retry.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer": {
+    "reviewer_id": "TST-0343-probe2-classify-varying",
+    "verdict": "PASS",
+    "independent": true,
+    "mandate": "statistics: re-derive pass-rate, Wilson interval, and Cohen's h from the raw per-seed matrix",
+    "starts_from": "raw per-seed outcome vectors, not the author summary"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "command-center/TEST-REGISTRY.json is scoped to the TST-0343 seed-sweep suite. Estate-wide discovery of every collectible test is TST-0326 and is not claimed here.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Deliver TST-0326 walker and join this seed registry to the full collected set."
+    },
+    {
+      "claim": "Flake rows are recorded on this unit. TST-0336's quarantine ledger (owner + deadline, still-runs) is not on this tree, so C11 routing stops at classification.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "When TST-0336 exists, push flaky-C11 ids into that ledger without dropping them from reports."
+    },
+    {
+      "claim": "The harness injects random.Random(seed). Tests that use numpy, hash randomisation, or wall-clock entropy other than the planted counter are not in this suite.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Add numpy/hashlib planted controls and require the same split (narrow vs same-seed flake)."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:03:27+00:00",
+    "ended_at": "2026-08-25T01:03:27+00:00"
+  },
+  "report": {
+    "kind": "seed-registry-sweep",
+    "module": "tools/command-center/seed_registry.py",
+    "sweep": {
+      "seeds": [
+        101,
+        107,
+        109,
+        113,
+        127,
+        131,
+        137,
+        139,
+        149,
+        151
+      ],
+      "n_seeds": 10,
+      "n_tests": 6,
+      "matrix": {
+        "test_arithmetic_stable": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "test_string_roundtrip": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "test_unit_interval": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "test_shuffle_preserves_multiset": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "test_planted_narrow_shuffle": {
+          "101": "FAIL",
+          "107": "FAIL",
+          "109": "FAIL",
+          "113": "FAIL",
+          "127": "PASS",
+          "131": "FAIL",
+          "137": "FAIL",
+          "139": "FAIL",
+          "149": "FAIL",
+          "151": "FAIL"
+        },
+        "test_planted_hidden_counter_flake": {
+          "101": "PASS",
+          "107": "FAIL",
+          "109": "PASS",
+          "113": "FAIL",
+          "127": "PASS",
+          "131": "FAIL",
+          "137": "PASS",
+          "139": "FAIL",
+          "149": "PASS",
+          "151": "FAIL"
+        }
+      },
+      "varying_ids": [
+        "test_planted_narrow_shuffle",
+        "test_planted_hidden_counter_flake"
+      ],
+      "narrow_assertion_ids": [
+        "test_planted_narrow_shuffle"
+      ],
+      "flaky_c11_ids": [
+        "test_planted_hidden_counter_flake"
+      ],
+      "undeclared_ids": [
+        "test_planted_narrow_shuffle",
+        "test_planted_hidden_counter_flake"
+      ],
+      "planted_narrow_detected": true,
+      "planted_flake_detected": true,
+      "retry_policy": "Re-run is permitted only with a NEW recorded seed; re-running the same seed to get a different answer is a detector failure and must be reported as one."
+    },
+    "rows": [
+      {
+        "id": "test_arithmetic_stable",
+        "class": "stable",
+        "seed_sensitive_declared": false,
+        "why": "Integer arithmetic; does not consume RNG.",
+        "planted": null,
+        "undeclared_sensitivity": false,
+        "per_seed": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "pass_count": 10,
+        "n_seeds": 10,
+        "stats": {
+          "k": 10,
+          "n": 10,
+          "p": 1.0,
+          "lo": 0.72245983,
+          "hi": 1.0,
+          "z": 1.96,
+          "cohens_h_vs_always_pass": 0.0
+        },
+        "same_seed_reproducible": true,
+        "flake_seeds": []
+      },
+      {
+        "id": "test_string_roundtrip",
+        "class": "stable",
+        "seed_sensitive_declared": false,
+        "why": "UTF-8 round-trip; does not consume RNG.",
+        "planted": null,
+        "undeclared_sensitivity": false,
+        "per_seed": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "pass_count": 10,
+        "n_seeds": 10,
+        "stats": {
+          "k": 10,
+          "n": 10,
+          "p": 1.0,
+          "lo": 0.72245983,
+          "hi": 1.0,
+          "z": 1.96,
+          "cohens_h_vs_always_pass": 0.0
+        },
+        "same_seed_reproducible": true,
+        "flake_seeds": []
+      },
+      {
+        "id": "test_unit_interval",
+        "class": "stable",
+        "seed_sensitive_declared": true,
+        "why": "Draws from the injected RNG; assertion is the unit-interval property, which must hold for every seed.",
+        "planted": null,
+        "undeclared_sensitivity": false,
+        "per_seed": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "pass_count": 10,
+        "n_seeds": 10,
+        "stats": {
+          "k": 10,
+          "n": 10,
+          "p": 1.0,
+          "lo": 0.72245983,
+          "hi": 1.0,
+          "z": 1.96,
+          "cohens_h_vs_always_pass": 0.0
+        },
+        "same_seed_reproducible": true,
+        "flake_seeds": []
+      },
+      {
+        "id": "test_shuffle_preserves_multiset",
+        "class": "stable",
+        "seed_sensitive_declared": true,
+        "why": "Shuffles via the injected RNG; assertion is multiset equality, which must hold for every seed.",
+        "planted": null,
+        "undeclared_sensitivity": false,
+        "per_seed": {
+          "101": "PASS",
+          "107": "PASS",
+          "109": "PASS",
+          "113": "PASS",
+          "127": "PASS",
+          "131": "PASS",
+          "137": "PASS",
+          "139": "PASS",
+          "149": "PASS",
+          "151": "PASS"
+        },
+        "pass_count": 10,
+        "n_seeds": 10,
+        "stats": {
+          "k": 10,
+          "n": 10,
+          "p": 1.0,
+          "lo": 0.72245983,
+          "hi": 1.0,
+          "z": 1.96,
+          "cohens_h_vs_always_pass": 0.0
+        },
+        "same_seed_reproducible": true,
+        "flake_seeds": []
+      },
+      {
+        "id": "test_planted_narrow_shuffle",
+        "class": "narrow-assertion",
+        "seed_sensitive_declared": false,
+        "why": "Falsely declared insensitive. Planted control: assertion pins one permutation.",
+        "planted": "narrow-assertion",
+        "undeclared_sensitivity": true,
+        "per_seed": {
+          "101": "FAIL",
+          "107": "FAIL",
+          "109": "FAIL",
+          "113": "FAIL",
+          "127": "PASS",
+          "131": "FAIL",
+          "137": "FAIL",
+          "139": "FAIL",
+          "149": "FAIL",
+          "151": "FAIL"
+        },
+        "pass_count": 1,
+        "n_seeds": 10,
+        "stats": {
+          "k": 1,
+          "n": 10,
+          "p": 0.1,
+          "lo": 0.01787575,
+          "hi": 0.40415639,
+          "z": 1.96,
+          "cohens_h_vs_always_pass": -2.49809154
+        },
+        "same_seed_reproducible": true,
+        "flake_seeds": []
+      },
+      {
+        "id": "test_planted_hidden_counter_flake",
+        "class": "flaky-C11",
+        "seed_sensitive_declared": false,
+        "why": "Falsely declared insensitive. Planted C11 control: hidden call counter, not the seed.",
+        "planted": "flaky-C11",
+        "undeclared_sensitivity": true,
+        "per_seed": {
+          "101": "PASS",
+          "107": "FAIL",
+          "109": "PASS",
+          "113": "FAIL",
+          "127": "PASS",
+          "131": "FAIL",
+          "137": "PASS",
+          "139": "FAIL",
+          "149": "PASS",
+          "151": "FAIL"
+        },
+        "pass_count": 5,
+        "n_seeds": 10,
+        "stats": {
+          "k": 5,
+          "n": 10,
+          "p": 0.5,
+          "lo": 0.23658959,
+          "hi": 0.76341041,
+          "z": 1.96,
+          "cohens_h_vs_always_pass": -1.57079633
+        },
+        "same_seed_reproducible": false,
+        "flake_seeds": [
+          "101",
+          "107",
+          "109",
+          "113",
+          "127",
+          "131",
+          "137",
+          "139",
+          "149",
+          "151"
+        ]
+      }
+    ],
+    "c11_note": "C11 = TST-3 flake class (TST-0336). Same-seed outcome change is a detector failure. Completion-predicate C11 (manifest registration) is a different identifier and is not this classification."
+  },
+  "notes": "G-1 delivery for TST-0343: live named probes exit 0, receipt state=SUCCESS, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run tools/command-center/unit_manifest.py --write. Did not relaunch finish-everything-close or p2-cloud-ok-deliver. cloud ok=true is not this unit's delivery predicate."
+}

@@ -1,0 +1,1049 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/command-center/phase4/contracts/ARC-0081.json",
+  "$comment": "SUCCESS:ARC-0081 \u2014 typed permission vocabulary and evaluation semantics. decision_table outcomes are computed by evaluate_request, not authored.",
+  "title": "Permission model: vocabulary, evaluation semantics and least-privilege statement",
+  "unit_id": "ARC-0081",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0081",
+  "completion_sentinel": "SUCCESS:ARC-0081",
+  "phase": "4",
+  "owner_approval_required": true,
+  "question": "Specify the typed permission vocabulary and its evaluation semantics: the grant and deny forms, precedence when both match, wildcard expansion rules, escalation and delegation, the single location where evaluation occurs, and the machine-checkable statement of least privilege (declared permissions must be a superset of observed use and nothing more). Define what a permission means for each capability class: tool call, file path, network egress, subprocess, and credential read.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "subject",
+    "permissions"
+  ],
+  "properties": {
+    "subject": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "description": "Component, plugin, workflow, or principal the set binds to."
+    },
+    "permissions": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/permission_statement"
+      }
+    }
+  },
+  "$defs": {
+    "permission_statement": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "effect",
+        "class",
+        "selector"
+      ],
+      "properties": {
+        "effect": {
+          "type": "string",
+          "enum": [
+            "grant",
+            "deny"
+          ]
+        },
+        "class": {
+          "type": "string",
+          "enum": [
+            "tool",
+            "path",
+            "egress",
+            "subprocess",
+            "credential"
+          ]
+        },
+        "action": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 32
+        },
+        "selector": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 4096
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "type": "object",
+            "required": [
+              "effect",
+              "class"
+            ],
+            "properties": {
+              "effect": {
+                "const": "grant"
+              },
+              "class": {
+                "const": "credential"
+              }
+            }
+          },
+          "then": {
+            "properties": {
+              "selector": {
+                "type": "string",
+                "minLength": 1,
+                "pattern": "^[^*?]+$",
+                "description": "Named credential id only. A wildcard here would grant credential read and is rejected at validation time."
+              },
+              "action": {
+                "type": "string",
+                "enum": [
+                  "read"
+                ]
+              }
+            }
+          }
+        }
+      ]
+    },
+    "capability_class": {
+      "type": "string",
+      "enum": [
+        "tool",
+        "path",
+        "egress",
+        "subprocess",
+        "credential"
+      ]
+    },
+    "effect": {
+      "type": "string",
+      "enum": [
+        "grant",
+        "deny"
+      ]
+    }
+  },
+  "vocabulary": {
+    "effects": [
+      "grant",
+      "deny"
+    ],
+    "classes": [
+      "tool",
+      "path",
+      "egress",
+      "subprocess",
+      "credential"
+    ],
+    "actions_by_class": {
+      "tool": [
+        "invoke"
+      ],
+      "path": [
+        "read",
+        "write",
+        "delete",
+        "exec"
+      ],
+      "egress": [
+        "connect"
+      ],
+      "subprocess": [
+        "spawn"
+      ],
+      "credential": [
+        "read"
+      ]
+    },
+    "default_action_by_class": {
+      "tool": "invoke",
+      "path": "read",
+      "egress": "connect",
+      "subprocess": "spawn",
+      "credential": "read"
+    },
+    "forms": {
+      "grant": {
+        "shape": {
+          "effect": "grant",
+          "class": "<class>",
+          "action": "<optional; defaults per class>",
+          "selector": "<concrete or glob except credential>"
+        },
+        "means": "If this statement matches a request and no deny matches, the request is GRANT."
+      },
+      "deny": {
+        "shape": {
+          "effect": "deny",
+          "class": "<class>",
+          "action": "<optional>",
+          "selector": "<concrete or glob>"
+        },
+        "means": "If this statement matches a request, the request is DENY even when a grant also matches."
+      }
+    }
+  },
+  "capability_class_meanings": {
+    "tool": {
+      "request": "invoke a named tool (catalog examples: Read, Grep, Glob, Bash, Write, Edit).",
+      "selector": "tool name or glob inside this class only",
+      "does_not_imply": [
+        "file path access",
+        "network egress",
+        "subprocess spawn",
+        "credential read"
+      ]
+    },
+    "path": {
+      "request": "filesystem action (read|write|delete|exec) on a concrete POSIX path.",
+      "selector": "path glob; * is one segment, ** crosses slashes",
+      "does_not_imply": [
+        "credential-class read of the secret VALUE",
+        "tool invoke",
+        "subprocess",
+        "egress"
+      ],
+      "residual": "A path grant whose glob happens to include a secrets file is still a path grant, not a credential grant. Credential values require class=credential. A sibling deny-credential-reads control may still block secret-shaped paths; that control is not this contract."
+    },
+    "egress": {
+      "request": "connect to host:port (or URL authority).",
+      "selector": "host[:port] or glob inside this class",
+      "does_not_imply": [
+        "credential read",
+        "tool invoke",
+        "path write"
+      ]
+    },
+    "subprocess": {
+      "request": "spawn a named executable.",
+      "selector": "executable path or name",
+      "child_permissions": "empty unless separately granted; spawn does not inherit a superset",
+      "does_not_imply": [
+        "the child's network, path, or credential rights"
+      ]
+    },
+    "credential": {
+      "request": "read a named secret id (env:NAME, file:PATH, keyring:ID).",
+      "selector": "must be concrete on grant; wildcards are validation errors",
+      "value_handling": "Evaluation returns GRANT or DENY only. It never returns, logs, or prints the secret value. Presence of the id is enough.",
+      "does_not_imply": [
+        "rotation",
+        "revocation",
+        "printing the value"
+      ]
+    }
+  },
+  "wildcard_expansion": {
+    "token_classes": [
+      "tool",
+      "egress",
+      "subprocess",
+      "credential"
+    ],
+    "path_class": "path",
+    "rules": [
+      "* on a path matches zero or more characters except / (one segment).",
+      "** on a path matches across slashes.",
+      "* on a token class matches any string in that class (re .*).",
+      "Matching is class-scoped: a match never crosses capability class.",
+      "Requests MUST be concrete; a wildcard in a request is DENY (invalid-request)."
+    ],
+    "forbidden": [
+      "grant + class=credential + wildcard selector or action=*"
+    ]
+  },
+  "precedence": {
+    "rule": "deny-overrides, then grant, else closed-world deny",
+    "when_both_match": "DENY",
+    "tie_break": "effect, not specificity: any matching deny beats any matching grant",
+    "default": "DENY",
+    "steps": [
+      "Normalize the request. Wildcard or unknown-class requests DENY as invalid-request.",
+      "A statement matches iff class equal, action equal (or statement default, or non-credential *), and selector glob-matches.",
+      "If any matching statement has effect=deny -> DENY reason=deny-overrides.",
+      "Else if any matching statement has effect=grant -> GRANT reason=grant-match.",
+      "Else DENY reason=closed-world-default."
+    ]
+  },
+  "choke_point": {
+    "id": "ARC-0081-evaluate_request",
+    "module": "command-center/p2-wave/probes/ARC-0081/model.py",
+    "function": "evaluate_request",
+    "rule": "This function is the single location where grant vs deny is decided for every capability class. No other path may authorize a tool call, path action, egress connect, subprocess spawn, or credential read.",
+    "validation_entry": "validate_permission_set",
+    "load_time": "A permission set is frozen only after validate_permission_set returns no errors. Credential-read wildcards die at that gate."
+  },
+  "escalation_and_delegation": {
+    "escalation": "S' escalates S iff there exists a concrete request r such that evaluate(S,r)=DENY and evaluate(S',r)=GRANT. Adding a grant, widening a selector, or removing a matching deny are the usual forms.",
+    "delegation": "Principal A may delegate set D to B only if every grant in D is covered by A (evaluate(A, concretized grant)=GRANT for exact grants; wildcard child grants require an equal or * /** parent grant of the same class). Credential grants delegate only as the same named selector.",
+    "forbidden_delegation": [
+      "delegating a credential the parent does not hold by name",
+      "delegating class=credential with a wildcard (already unvalidatable)"
+    ]
+  },
+  "least_privilege": {
+    "statement": "Declared grants must be a superset of observed use and nothing more: every observed request evaluates to GRANT, and every declared grant matches at least one observed request.",
+    "predicate": "holds <=> unused_grants=[] and undeclared_use=[]",
+    "function": "least_privilege",
+    "wildcard_residual": "A wildcard grant that matched one observed request passes unused detection but still permits unobserved invocations in its expansion. Tightness of wildcards beyond 'at least one use' is NOT-CHECKED. Credential wildcards cannot appear (validation reject), so that residual does not apply to credential read."
+  },
+  "evaluation_semantics_source": "command-center/p2-wave/probes/ARC-0081/model.py",
+  "missing_inputs": {
+    "command-center/phase3/WINNING-ARCHITECTURE.json": false,
+    "command-center/phase3/ARCHITECTURE-RATIFICATION.json": false,
+    "command-center/RISK-REGISTER.md": false,
+    "14-NO-REGRESSION-CONTRACT.md": false,
+    "note": "ARC-0077 (owner ratification) is not on this worktree. This contract is specified from the catalog question, A1/A2 permission-escalation failure class, and catalog tool_permissions names. It is not a claim that the owner has ratified a winning architecture."
+  },
+  "negative_controls": [
+    {
+      "id": "NC-wildcard-credential-grant",
+      "input": {
+        "subject": "bad",
+        "permissions": [
+          {
+            "effect": "grant",
+            "class": "credential",
+            "selector": "*"
+          }
+        ]
+      },
+      "must": "fail validate_permission_set with rule wildcard-credential-escalation"
+    },
+    {
+      "id": "NC-deny-overrides-both-states",
+      "setup": "grant Bash plus deny Bash vs grant Bash alone",
+      "must": "first DENY, second GRANT \u2014 the deny is what changes the outcome"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-precedence-table",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0081/probe1_precedence.py",
+      "result": "PASS",
+      "name": "Every decision_table row is asserted by recomputing evaluate_request"
+    },
+    {
+      "id": "T2-wildcard-credential-validation",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0081/probe2_wildcard_escalation.py",
+      "result": "PASS",
+      "name": "Credential-read wildcards rejected at validation time; named grant accepted"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "ARC-0081-probe1-precedence-table",
+    "verdict": "PASS",
+    "independent": true,
+    "role": "consumer-call-site",
+    "notes": "Probes are the consumer-side call site against this draft. An independent human contract reviewer and owner ratification are residual (catalog owner_approval_required=true)."
+  },
+  "artifacts": [
+    {
+      "path": "command-center/phase4/contracts/ARC-0081.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0081/model.py",
+      "exists": true,
+      "role": "choke-point"
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "contract-author",
+    "execution_substrate": "linux-local"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "owner ratification (ARC-0077) exists",
+      "a production runtime already wires every path through evaluate_request",
+      "secret values were read or printed"
+    ]
+  },
+  "decision_table": [
+    {
+      "id": "exact-grant-tool",
+      "family": "grant",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "Read"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "Read"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "Read"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "Named tool grant matches an identical invoke request."
+    },
+    {
+      "id": "closed-world-unlisted-tool",
+      "family": "closed-world",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "Read"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "Write"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "Unlisted tool is denied; default is closed-world."
+    },
+    {
+      "id": "deny-overrides-same-selector",
+      "family": "precedence",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "Bash"
+        },
+        {
+          "effect": "deny",
+          "class": "tool",
+          "selector": "Bash"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "Bash"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "deny-overrides",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "Bash"
+        }
+      ],
+      "matched_denies": [
+        {
+          "effect": "deny",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "Bash"
+        }
+      ],
+      "notes": "When grant and deny both match, deny wins."
+    },
+    {
+      "id": "deny-overrides-broader-grant",
+      "family": "precedence",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "selector": "/tmp/**"
+        },
+        {
+          "effect": "deny",
+          "class": "path",
+          "selector": "/tmp/secret"
+        }
+      ],
+      "request": {
+        "class": "path",
+        "selector": "/tmp/secret"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "deny-overrides",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "action": "read",
+          "selector": "/tmp/**"
+        }
+      ],
+      "matched_denies": [
+        {
+          "effect": "deny",
+          "class": "path",
+          "action": "read",
+          "selector": "/tmp/secret"
+        }
+      ],
+      "notes": "A specific deny beats a broader grant that also matches."
+    },
+    {
+      "id": "tool-wildcard-grant",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "*"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "Grep"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "*"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "Tool wildcard expands to a named catalog tool."
+    },
+    {
+      "id": "tool-wildcard-does-not-cross-class",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "*"
+        }
+      ],
+      "request": {
+        "class": "credential",
+        "selector": "env:GITHUB_TOKEN"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "A tool wildcard never grants credential read."
+    },
+    {
+      "id": "path-double-star-descends",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "selector": "/tmp/**"
+        }
+      ],
+      "request": {
+        "class": "path",
+        "selector": "/tmp/a/b.txt"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "action": "read",
+          "selector": "/tmp/**"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "** crosses path segments."
+    },
+    {
+      "id": "path-single-star-one-segment",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "selector": "/tmp/*"
+        }
+      ],
+      "request": {
+        "class": "path",
+        "selector": "/tmp/a/b.txt"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "Single-segment * does not cross a slash."
+    },
+    {
+      "id": "egress-exact",
+      "family": "grant",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "egress",
+          "selector": "api.github.com:443"
+        }
+      ],
+      "request": {
+        "class": "egress",
+        "selector": "api.github.com:443"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "egress",
+          "action": "connect",
+          "selector": "api.github.com:443"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "Named egress grant matches the same host:port."
+    },
+    {
+      "id": "egress-unlisted-host",
+      "family": "closed-world",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "egress",
+          "selector": "api.github.com:443"
+        }
+      ],
+      "request": {
+        "class": "egress",
+        "selector": "evil.example:443"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "Unlisted egress target is denied."
+    },
+    {
+      "id": "subprocess-exact",
+      "family": "grant",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "subprocess",
+          "selector": "/usr/bin/git"
+        }
+      ],
+      "request": {
+        "class": "subprocess",
+        "selector": "/usr/bin/git"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "subprocess",
+          "action": "spawn",
+          "selector": "/usr/bin/git"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "Named subprocess grant matches the same executable."
+    },
+    {
+      "id": "subprocess-other-bin",
+      "family": "closed-world",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "subprocess",
+          "selector": "/usr/bin/git"
+        }
+      ],
+      "request": {
+        "class": "subprocess",
+        "selector": "/usr/bin/python3"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "A subprocess grant does not imply a different executable."
+    },
+    {
+      "id": "credential-named-grant",
+      "family": "grant",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "credential",
+          "selector": "env:GITHUB_TOKEN"
+        }
+      ],
+      "request": {
+        "class": "credential",
+        "selector": "env:GITHUB_TOKEN"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "credential",
+          "action": "read",
+          "selector": "env:GITHUB_TOKEN"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "Named credential grant (no wildcard) matches that id only."
+    },
+    {
+      "id": "credential-other-name",
+      "family": "closed-world",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "credential",
+          "selector": "env:GITHUB_TOKEN"
+        }
+      ],
+      "request": {
+        "class": "credential",
+        "selector": "env:AWS_SECRET_ACCESS_KEY"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "A named credential grant does not cover a different secret id."
+    },
+    {
+      "id": "unrelated-deny-does-not-block",
+      "family": "precedence",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "selector": "/var/log/**"
+        },
+        {
+          "effect": "deny",
+          "class": "path",
+          "selector": "/tmp/**"
+        }
+      ],
+      "request": {
+        "class": "path",
+        "selector": "/var/log/app.log"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "action": "read",
+          "selector": "/var/log/**"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "A deny that does not match leaves a matching grant intact."
+    },
+    {
+      "id": "empty-set-closed",
+      "family": "closed-world",
+      "permissions": [],
+      "request": {
+        "class": "tool",
+        "selector": "Read"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "Empty declaration denies every request."
+    },
+    {
+      "id": "path-star-does-not-grant-credential",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "selector": "**"
+        }
+      ],
+      "request": {
+        "class": "credential",
+        "selector": "env:GITHUB_TOKEN"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "A path wildcard never grants credential read."
+    },
+    {
+      "id": "tool-prefix-wildcard",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "mcp__*"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "mcp__cloud-hub__modal_sandbox_exec"
+      },
+      "computed_outcome": "GRANT",
+      "computed_reason": "grant-match",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "mcp__*"
+        }
+      ],
+      "matched_denies": [],
+      "notes": "Prefix wildcard expands inside the tool class only."
+    },
+    {
+      "id": "tool-prefix-wildcard-nonmatch",
+      "family": "wildcard",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "mcp__*"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "Bash"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "Prefix wildcard does not match a name outside the prefix."
+    },
+    {
+      "id": "deny-wildcard-overrides-exact-grant",
+      "family": "precedence",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "selector": "Bash"
+        },
+        {
+          "effect": "deny",
+          "class": "tool",
+          "selector": "*"
+        }
+      ],
+      "request": {
+        "class": "tool",
+        "selector": "Bash"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "deny-overrides",
+      "matched_grants": [
+        {
+          "effect": "grant",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "Bash"
+        }
+      ],
+      "matched_denies": [
+        {
+          "effect": "deny",
+          "class": "tool",
+          "action": "invoke",
+          "selector": "*"
+        }
+      ],
+      "notes": "A matching deny wildcard still overrides an exact grant."
+    },
+    {
+      "id": "path-action-mismatch",
+      "family": "closed-world",
+      "permissions": [
+        {
+          "effect": "grant",
+          "class": "path",
+          "selector": "/tmp/**",
+          "action": "read"
+        }
+      ],
+      "request": {
+        "class": "path",
+        "selector": "/tmp/a",
+        "action": "write"
+      },
+      "computed_outcome": "DENY",
+      "computed_reason": "closed-world-default",
+      "matched_grants": [],
+      "matched_denies": [],
+      "notes": "A read grant does not authorize write on the same path."
+    }
+  ],
+  "decision_table_row_count": 21,
+  "least_privilege_examples": [
+    {
+      "id": "lp-exact-equality",
+      "declared": {
+        "subject": "comp.a",
+        "permissions": [
+          {
+            "effect": "grant",
+            "class": "tool",
+            "selector": "Read"
+          },
+          {
+            "effect": "grant",
+            "class": "tool",
+            "selector": "Grep"
+          }
+        ]
+      },
+      "observed": [
+        {
+          "class": "tool",
+          "selector": "Read"
+        },
+        {
+          "class": "tool",
+          "selector": "Grep"
+        }
+      ],
+      "holds": true,
+      "unused_grants": [],
+      "undeclared_use": []
+    },
+    {
+      "id": "lp-unused-grant",
+      "declared": {
+        "subject": "comp.b",
+        "permissions": [
+          {
+            "effect": "grant",
+            "class": "tool",
+            "selector": "Read"
+          },
+          {
+            "effect": "grant",
+            "class": "tool",
+            "selector": "Write"
+          }
+        ]
+      },
+      "observed": [
+        {
+          "class": "tool",
+          "selector": "Read"
+        }
+      ],
+      "holds": false,
+      "unused_grants": [
+        {
+          "class": "tool",
+          "action": "invoke",
+          "selector": "Write"
+        }
+      ],
+      "undeclared_use": []
+    },
+    {
+      "id": "lp-undeclared-use",
+      "declared": {
+        "subject": "comp.c",
+        "permissions": [
+          {
+            "effect": "grant",
+            "class": "tool",
+            "selector": "Read"
+          }
+        ]
+      },
+      "observed": [
+        {
+          "class": "tool",
+          "selector": "Read"
+        },
+        {
+          "class": "tool",
+          "selector": "Write"
+        }
+      ],
+      "holds": false,
+      "unused_grants": [],
+      "undeclared_use": [
+        {
+          "request": {
+            "class": "tool",
+            "selector": "Write"
+          },
+          "reason": "closed-world-default"
+        }
+      ]
+    }
+  ],
+  "escalation_example": {
+    "escalates": true,
+    "witnesses": [
+      {
+        "request": {
+          "class": "tool",
+          "selector": "Write"
+        },
+        "old": "DENY",
+        "new": "GRANT",
+        "widened": true
+      },
+      {
+        "request": {
+          "class": "credential",
+          "selector": "env:GITHUB_TOKEN"
+        },
+        "old": "DENY",
+        "new": "DENY",
+        "widened": false
+      }
+    ]
+  },
+  "delegation_examples": {
+    "subset_allowed": {
+      "allowed": true,
+      "errors": []
+    },
+    "widening_refused": {
+      "allowed": false,
+      "errors": [
+        "delegatee grant tool:Write is not held by the delegator"
+      ]
+    }
+  },
+  "validation_controls": {
+    "wildcard_credential_grant_errors": [
+      {
+        "rule": "wildcard-credential-escalation",
+        "path": "$.permissions[0]",
+        "message": "a grant of class credential must name a concrete selector; wildcards that would grant credential read are rejected at validation time, not at evaluation time"
+      }
+    ],
+    "named_credential_grant_errors": [],
+    "tool_star_errors": []
+  }
+}

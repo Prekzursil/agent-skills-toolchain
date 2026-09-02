@@ -1,0 +1,18 @@
+I'll start from the existing ADV-0006 probe tree and resume from `SUBAGENT-RETURN.json` rather than rebuilding. First I'll inspect the unit's current artifacts and the delivery contract.The probe tree is already populated; next I’ll read the measurement script, catalog entry, and existing return artifacts so we resume from the real contract.G-1 is the per-unit measure, not the global catalog. I’ll inspect `artifact_delivered`, a delivered sibling unit, and ADV-0006’s catalog row next.Named probes already exist; next I’ll inspect their scripts, the current artifact, and the schema so helpers don’t get re-run instead of the live probes.I’ll check the schema constraints for `state=SUCCESS` and a delivered sibling receipt so the packed artifact stays honest.Probes stay; helpers that would re-run `--write` or force `BLOCKED` get skipped. Next I’ll adapt the walker for this sparse tree, then re-run the named probes.Writing the G-1 packer next, then I’ll re-run the named probes on this tree.**SUCCESS:delivered ADV-0006** `predicate=delivered state=SUCCESS probes=4 raws=5 notes=control_negative.py:0,lib_classify.py:0,probe1_quantifier.py:0,probe2_counterexample.py:0`
+
+G-1 is green for this unit. Existing probes were resumed, not scrapped.
+
+| Gate | Result |
+|---|---|
+| Named probes re-run | `probe1_quantifier.py`, `probe2_counterexample.py`, `control_negative.py` all exit 0 |
+| Artifact | `command-center/adversarial/ADV-0006-confirmed-claim-overclaim-audit.json` `state=SUCCESS`, schema errors 0, 43815 B |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0006/UNIT-ARTIFACT-MANIFEST.json` sha256 `300a9107c53c181ebbfcaadc9ca938804d4e71e247cb43370da82c02189ac2a0` matches live LF hash |
+| Return | `command-center/p2-wave/probes/ADV-0006/SUBAGENT-RETURN.json` `survived=true` |
+
+Science on this worktree:
+- Probe 1 still discriminates (CLAIM-REGISTRY walker agrees; multiple nonzero classes; SCOPED-OK left standing).
+- Probe 2: T1 schema-dir REFUTED; W2-01 `103/103` still PARTIAL (103 in the claim, 97 in evidence); T7/T9/T10 stay CONFIRMED.
+- T8 `48/48` protocols is **NOT-CHECKED** (`platform/council/protocols` is not mounted). T9 is the third known-scoped control.
+- Negative control 5/5 PASS.
+
+Not done (and not required for G-1): global `unit_manifest.py --write`, git mutations, API-key rotation, relaunch of finish-everything-close / p2-cloud-ok-deliver.

@@ -1,0 +1,256 @@
+{
+ "schema_version": 1,
+ "id": "TST-0302",
+ "unit_id": "TST-0302",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0302",
+ "completion_sentinel": "SUCCESS:TST-0302",
+ "title": "Capture the Phase-0 benchmark baseline as an immutable record anchored to a commit SHA",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0302; _USER-PROMPTS.md:10657 (capture benchmark baselines before changing behavior) \u2014 file absent on this sparse worktree",
+ "question_or_target": "Implementation target: spec :10657 requires capturing benchmark baselines before changing behaviour. The Phase-0 ground lane measured that the working tree was mutating under the snapshot and concluded only the commit SHA is a valid rollback anchor. Apply the same discipline here: every baseline record binds to a commit SHA plus the captured environment, is written append-only, and is rejected if the tree was dirty at capture time.",
+ "min_bytes_threshold": 2048,
+ "implementation": {
+  "store": "tools/bench/sha_anchor/baseline.py",
+  "metrics": "tools/bench/sha_anchor/metrics.py",
+  "cli": "tools/bench/sha_anchor/cli.py",
+  "schema": "tools/bench/schema/baseline-record.schema.json",
+  "ledger": "command-center/bench/baselines/ledger.jsonl",
+  "snapshot_pointer": "command-center/BASELINE-SNAPSHOT.json",
+  "rule": "Metrics are git cat-file at the SHA. Dirty trees are refused unless accept_dirty=True, in which case status=PROVISIONAL is written on the record. A second write of the same baseline_id raises BaselineImmutableError."
+ },
+ "inputs_on_this_worktree": {
+  "tools/bench/": "absent at start; authored this unit",
+  "command-center/BASELINE-SNAPSHOT.json": "absent at start; wrote pointer after first ledger append",
+  "command-center/bench/cases/": "absent; Phase-0 cases live in isolated fixture repos",
+  "_USER-PROMPTS.md:10657": "absent on this sparse worktree",
+  "this_worktree_git": {
+   "is_git": false,
+   "dirty": false,
+   "commit_sha": null,
+   "reason": "no-git-anchor",
+   "porcelain": ""
+  }
+ },
+ "phase0_capture": {
+  "baseline_id": "phase0",
+  "status": "IMMUTABLE",
+  "tree_state": "clean",
+  "dirty": false,
+  "commit_sha": "5c15202c1351e30e30b544a093fd5a37f5b017c4",
+  "environment": {
+   "byteorder": "little",
+   "captured_at": "2026-08-25T01:10:35Z",
+   "cpu_count": 16,
+   "default_encoding": "utf-8",
+   "filesystem_encoding": "utf-8",
+   "locale": "C",
+   "machine": "x86_64",
+   "os_name": "posix",
+   "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+   "python_implementation": "CPython",
+   "python_version": "3.12.3",
+   "release": "6.8.0-136-generic",
+   "sys_platform": "linux",
+   "system": "Linux",
+   "tz": "UTC"
+  },
+  "metrics": {
+   "payload_sha256": "107bfb828977c5b93150e5c5593e64aed9a5bfe64b4f22908a8b0caacad5a6cb",
+   "payload_bytes": 167,
+   "input_cardinality": 4,
+   "fanout_throughput_ops": 100.0,
+   "hook_overhead_ms": 3.0,
+   "router_latency_ms": 12.5,
+   "suite_wall_clock_ms": 40.0,
+   "measure_source": "git-cat-file-at-sha"
+  },
+  "variance_floor": {
+   "fanout_throughput_ops": 1.0,
+   "hook_overhead_ms": 5.0,
+   "input_cardinality": 0.0,
+   "payload_bytes": 0.0,
+   "router_latency_ms": 5.0,
+   "suite_wall_clock_ms": 10.0
+  },
+  "captured_at": "2026-08-25T01:10:35Z",
+  "measure_source": "git-cat-file-at-sha"
+ },
+ "evidence": [
+  {
+   "claim": "Deliberately dirty tree: default capture raised DirtyTreeRejected; accept_dirty wrote status=PROVISIONAL on the record itself (field_in_record=True). Emitter re-run: default=DirtyTreeRejected provisional=PROVISIONAL.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/bench/sha_anchor/baseline.py:capture_baseline",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe1_dirty_tree.py",
+     "raw_output": "{\"clean\": {\"commit_sha\": \"4c3d28c4038a4c671913bcde922258aa6133270a\", \"env_keys\": [\"byteorder\", \"captured_at\", \"cpu_count\", \"default_encoding\", \"filesystem_encoding\", \"locale\", \"machine\", \"os_name\", \"platform\", \"python_implementation\", \"python_version\", \"release\", \"sys_platform\", \"system\", \"tz\"], \"input_cardinality\": 4, \"status\": \"IMMUTABLE\", \"tree_state\": \"clean\"}, \"cli_rc\": 1, \"cli_rejected\": true, \"dirty_default_rejected\": true, \"empty_refused\": true, \"mutant_fires\": true, \"mutant_ignore_dirty_status\": \"IMMUTABLE\", \"pass\": true, \"probe\": \"probe1-dirty-tree\", \"provisional\": {\"commit_sha\": \"4c3d28c4038a4c671913bcde922258aa6133270a\", \"dirty\": true, \"field_in_record\": true, \"status\": \"PROVISIONAL\", \"tree_state\": \"dirty\"}, \"reject_class\": \"DirtyTreeRejected\", \"schema_flags_dirty_immutable\": true, \"this_worktree_capture_refused\": true, \"this_worktree_no_git\": true, \"unit_id\": \"TST-0302\", \"worktree_diverges\": true}\nclean=IMMUTABLE dirty_rejected=True provisional=PROVISIONAL mutant_fires=True wt_div=True cli_rc=1\nSUCCESS:TST-0302-probe1 dirty capture rejected or PROVISIONAL",
+     "exit_code": 0,
+     "fingerprint": "30ec00b5efb18f6a226654bbaa83c369"
+    },
+    {
+     "role": "verifier",
+     "method": "mutant-ignore-dirty-and-cli-reject",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe1_dirty_tree.py",
+     "raw_output": "{\"clean\": {\"commit_sha\": \"4c3d28c4038a4c671913bcde922258aa6133270a\", \"env_keys\": [\"byteorder\", \"captured_at\", \"cpu_count\", \"default_encoding\", \"filesystem_encoding\", \"locale\", \"machine\", \"os_name\", \"platform\", \"python_implementation\", \"python_version\", \"release\", \"sys_platform\", \"system\", \"tz\"], \"input_cardinality\": 4, \"status\": \"IMMUTABLE\", \"tree_state\": \"clean\"}, \"cli_rc\": 1, \"cli_rejected\": true, \"dirty_default_rejected\": true, \"empty_refused\": true, \"mutant_fires\": true, \"mutant_ignore_dirty_status\": \"IMMUTABLE\", \"pass\": true, \"probe\": \"probe1-dirty-tree\", \"provisional\": {\"commit_sha\": \"4c3d28c4038a4c671913bcde922258aa6133270a\", \"dirty\": true, \"field_in_record\": true, \"status\": \"PROVISIONAL\", \"tree_state\": \"dirty\"}, \"reject_class\": \"DirtyTreeRejected\", \"schema_flags_dirty_immutable\": true, \"this_worktree_capture_refused\": true, \"this_worktree_no_git\": true, \"unit_id\": \"TST-0302\", \"worktree_diverges\": true}\nclean=IMMUTABLE dirty_rejected=True provisional=PROVISIONAL mutant_fires=True wt_div=True cli_rc=1\nSUCCESS:TST-0302-probe1 dirty capture rejected or PROVISIONAL",
+     "exit_code": 0,
+     "fingerprint": "0a226e481f530f24bab7a537178c2447"
+    }
+   ]
+  },
+  {
+   "claim": "Second write of baseline_id=phase0 raised BaselineImmutableError; unsafe_overwrite mutated bytes (True). SHA rematerialize via git cat-file stayed inside the B03 variance floor (roundtrip_ok=True, after worktree mutation True); worktree walk left the floor (True). Independent payload digest matched True.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/bench/sha_anchor/baseline.py:rematerialize_from_sha",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe2_immutability_and_roundtrip.py",
+     "raw_output": "{\"ast_raises\": {\"BaselineImmutableError\": true, \"DirtyTreeRejected\": true, \"EmptyInputRefused\": true, \"NoCommitAnchorError\": true}, \"cli_rc\": 0, \"commit_sha\": \"4c3d28c4038a4c671913bcde922258aa6133270a\", \"independent_payload_match\": true, \"independent_schema_errs\": [], \"input_cardinality\": 4, \"kind\": \"bench-baseline-v1\", \"live_schema_errs\": [], \"pass\": true, \"probe\": \"probe2-immutability-roundtrip\", \"rebaseline_ok\": true, \"roundtrip_ok\": true, \"roundtrip_source\": \"git-cat-file-at-sha\", \"second_class\": \"BaselineImmutableError\", \"second_write_refused\": true, \"sha_holds_after_worktree_mutation\": true, \"status\": \"IMMUTABLE\", \"unit_id\": \"TST-0302\", \"unsafe_overwrite_mutated_bytes\": true, \"variance_floor_keys\": [\"fanout_throughput_ops\", \"hook_overhead_ms\", \"input_cardinality\", \"payload_bytes\", \"router_latency_ms\", \"suite_wall_clock_ms\"], \"worktree_outside_floor\": true}\nimmutable=True overwrite_fires=True roundtrip=True ind_match=True sha_after_dirty=True wt_out=True cli_rc=0\nSUCCESS:TST-0302-probe2 second write refused; SHA rematerialize in floor",
+     "exit_code": 0,
+     "fingerprint": "844926e5aa271134fae65f49cb16b5a5"
+    },
+    {
+     "role": "verifier",
+     "method": "independent-cat-file-digest-and-unsafe-overwrite",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe2_immutability_and_roundtrip.py",
+     "raw_output": "{\"ast_raises\": {\"BaselineImmutableError\": true, \"DirtyTreeRejected\": true, \"EmptyInputRefused\": true, \"NoCommitAnchorError\": true}, \"cli_rc\": 0, \"commit_sha\": \"4c3d28c4038a4c671913bcde922258aa6133270a\", \"independent_payload_match\": true, \"independent_schema_errs\": [], \"input_cardinality\": 4, \"kind\": \"bench-baseline-v1\", \"live_schema_errs\": [], \"pass\": true, \"probe\": \"probe2-immutability-roundtrip\", \"rebaseline_ok\": true, \"roundtrip_ok\": true, \"roundtrip_source\": \"git-cat-file-at-sha\", \"second_class\": \"BaselineImmutableError\", \"second_write_refused\": true, \"sha_holds_after_worktree_mutation\": true, \"status\": \"IMMUTABLE\", \"unit_id\": \"TST-0302\", \"unsafe_overwrite_mutated_bytes\": true, \"variance_floor_keys\": [\"fanout_throughput_ops\", \"hook_overhead_ms\", \"input_cardinality\", \"payload_bytes\", \"router_latency_ms\", \"suite_wall_clock_ms\"], \"worktree_outside_floor\": true}\nimmutable=True overwrite_fires=True roundtrip=True ind_match=True sha_after_dirty=True wt_out=True cli_rc=0\nSUCCESS:TST-0302-probe2 second write refused; SHA rematerialize in floor",
+     "exit_code": 0,
+     "fingerprint": "fd1bc42bd515e3a7b5341c476c9f5aba"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "dirty-tree-capture-rejected-or-provisional",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe1_dirty_tree.py",
+   "result": "PASS",
+   "requirement": "Dirty-tree capture is rejected or marked PROVISIONAL, proven by capturing against a deliberately dirty tree."
+  },
+  {
+   "id": "second-write-same-id-fails",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe2_immutability_and_roundtrip.py",
+   "result": "PASS",
+   "requirement": "Immutability: a second write to the same baseline id must fail."
+  },
+  {
+   "id": "sha-rematerialize-within-b03-floor",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe2_immutability_and_roundtrip.py",
+   "result": "PASS",
+   "requirement": "Round-trip: the baseline can be re-materialised from the SHA and reproduces the recorded metrics within the B03 variance floor."
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "mutant-ignore-dirty-stamps-immutable",
+   "kind": "both-states",
+   "description": "A mutant that stamps IMMUTABLE on a dirty tree must fire; live capture writes PROVISIONAL.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "mutant_ignore_dirty_status=IMMUTABLE",
+   "good_state_output": "live dirty status=PROVISIONAL"
+  },
+  {
+   "id": "unsafe-overwrite-mutates-bytes",
+   "kind": "mutation-replace-append-only-with-in-place-rewrite",
+   "description": "unsafe_overwrite rewrites an existing baseline_id; live append refuses the second write.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "unsafe_overwrite changed ledger bytes",
+   "good_state_output": "second_class=BaselineImmutableError"
+  },
+  {
+   "id": "worktree-walk-is-not-sha-rematerialize",
+   "kind": "both-states",
+   "description": "After mutating cases/router.json, git cat-file at the recorded SHA stays inside the B03 floor; a worktree walk does not.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "worktree walk outside B03 floor",
+   "good_state_output": "SHA rematerialize still ok"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "TST-0302-probe2-cat-file-digest",
+  "verdict": "PASS",
+  "independent": true,
+  "scope_not_agreement": true,
+  "notes": "Probe 2 rebuilds payload_sha256 from git cat-file without calling bench.metrics hashing helpers, schema-checks with a duplicated required-field list, and uses unsafe_overwrite as the silent-rewrite detector. Catalog reviewer_requirement asks for a second Windows shell (pwsh7 and Git Bash); this Linux worktree cannot run that pair. Residual, not claimed."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0302/UNIT-ARTIFACT-MANIFEST.json",
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "artifact_path": "command-center/receipts/TST-0302.json",
+   "executed": false,
+   "read_ok": true,
+   "notes": "G-1 measure is run after this receipt is written"
+  }
+ ],
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "dirty-tree-rejected-or-provisional",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe1_dirty_tree.py"
+  },
+  {
+   "id": "probe2",
+   "role": "immutability-and-sha-roundtrip",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0302/probe2_immutability_and_roundtrip.py"
+  }
+ ],
+ "cloud_ok": false,
+ "persist": {
+  "wrote_ledger": true,
+  "ledger": "command-center/bench/baselines/ledger.jsonl",
+  "snapshot": "command-center/BASELINE-SNAPSHOT.json"
+ },
+ "b03_variance_floor": {
+  "fanout_throughput_ops": 1.0,
+  "hook_overhead_ms": 5.0,
+  "input_cardinality": 0.0,
+  "payload_bytes": 0.0,
+  "router_latency_ms": 5.0,
+  "suite_wall_clock_ms": 10.0
+ },
+ "timestamps": {
+  "started_at": "2026-08-25T01:10:35Z",
+  "ended_at": "2026-08-25T01:10:35Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "No automatic retry: a failure here is a finding, not a transient. Re-run only after a named change to the harness or the fixture."
+ },
+ "residual_unknowns": [
+  {
+   "id": "windows-second-shell",
+   "text": "Reviewer_requirement asks for a second Windows shell (pwsh7 and Git Bash). This delivery ran on Linux. Not claimed."
+  },
+  {
+   "id": "this-worktree-has-no-git",
+   "text": "This delivery worktree has no .git, so a Phase-0 baseline of THIS tree has no SHA anchor and is refused (NoCommitAnchorError). Evidence is from isolated fixture repositories. SUCCESS:TST-0302"
+  },
+  {
+   "id": "tst-0297-floor-not-measured",
+   "text": "TST-0297 (null-delta distribution) is not delivered on this tree. tools/bench/sha_anchor/variance.py publishes the named B03 floor used for rematerialization; content-derived metrics have a zero floor."
+  }
+ ],
+ "does_not_claim": [
+  "cloud ok=true is delivery",
+  "global unit_manifest.py --write was run",
+  "this worktree HEAD is a valid rollback SHA (there is no .git)",
+  "pwsh7 versus Git Bash divergence was measured",
+  "TST-0297 null-delta distribution was re-run here"
+ ],
+ "defects": [],
+ "ts": "2026-08-25T01:10:35Z",
+ "notes": "G-1 for TST-0302: live named probes exit 0, receipt state=SUCCESS with SUCCESS:TST-0302, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:TST-0302"
+}

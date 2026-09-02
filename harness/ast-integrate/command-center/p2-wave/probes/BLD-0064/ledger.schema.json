@@ -1,0 +1,157 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/BLD-0064/ledger.schema.json",
+  "title": "BLD-0064 residual-risk acceptance ledger (domain constraints)",
+  "$comment": "The catalog output_schema path is a generated $ref shim and must not be the live validator: jsonschema follows the $ref onto the network. This file is the unit's actual constraints. Do not treat the generated shim as a no-op pass.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "findings",
+    "counts",
+    "unassigned_finding_ids",
+    "receipt_census",
+    "owner_signoff"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "BLD-0064" },
+    "state": { "type": "string", "minLength": 1 },
+    "sentinel": { "type": "string", "const": "SUCCESS:BLD-0064" },
+    "question": { "type": "string", "minLength": 8 },
+    "extraction_rule": { "type": "string", "minLength": 8 },
+    "findings": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/finding" }
+    },
+    "counts": {
+      "type": "object",
+      "required": [
+        "findings",
+        "NEW-WORK-UNIT",
+        "ACCEPTED-RESIDUAL-RISK",
+        "RESOLVED",
+        "unassigned"
+      ],
+      "properties": {
+        "findings": { "type": "integer", "minimum": 0 },
+        "NEW-WORK-UNIT": { "type": "integer", "minimum": 0 },
+        "ACCEPTED-RESIDUAL-RISK": { "type": "integer", "minimum": 0 },
+        "RESOLVED": { "type": "integer", "minimum": 0 },
+        "unassigned": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "unassigned_finding_ids": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "receipt_census": {
+      "type": "object",
+      "required": [
+        "expected_count",
+        "present_count",
+        "absent_count",
+        "present_ids",
+        "absent_ids",
+        "finding_count_from_receipts",
+        "derived_from_disk"
+      ],
+      "properties": {
+        "expected_count": { "type": "integer", "const": 63 },
+        "present_count": { "type": "integer", "minimum": 0 },
+        "absent_count": { "type": "integer", "minimum": 0 },
+        "present_ids": { "type": "array", "items": { "type": "string" } },
+        "absent_ids": { "type": "array", "items": { "type": "string" } },
+        "finding_count_from_receipts": { "type": "integer", "minimum": 0 },
+        "derived_from_disk": { "type": "boolean", "const": true }
+      }
+    },
+    "owner_signoff": {
+      "type": "object",
+      "required": ["present", "forged_by_agent"],
+      "properties": {
+        "present": { "type": "boolean" },
+        "forged_by_agent": { "type": "boolean", "const": false },
+        "required_for_accepted_residual_risk": { "type": "boolean" },
+        "accepted_residual_risk_count": { "type": "integer", "minimum": 0 },
+        "note": { "type": "string" }
+      }
+    }
+  },
+  "definitions": {
+    "finding": {
+      "type": "object",
+      "required": [
+        "id",
+        "source_unit_id",
+        "source_path",
+        "source_key",
+        "summary",
+        "disposition"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "source_unit_id": { "type": "string", "minLength": 1 },
+        "source_path": { "type": "string", "minLength": 1 },
+        "source_key": { "type": "string", "minLength": 1 },
+        "summary": { "type": "string", "minLength": 8 },
+        "kind": { "type": "string" },
+        "disposition": {
+          "type": "string",
+          "enum": ["NEW-WORK-UNIT", "ACCEPTED-RESIDUAL-RISK", "RESOLVED"]
+        },
+        "allocated_unit_id": {
+          "type": "string",
+          "pattern": "^[A-Z]{2,5}-[0-9]{4}$"
+        },
+        "settling_experiment": { "type": "string", "minLength": 8 },
+        "impact_statement": { "type": "string", "minLength": 8 },
+        "evidence": { "type": "string", "minLength": 8 },
+        "acceptance": { "$ref": "#/definitions/acceptance" }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["disposition"],
+            "properties": { "disposition": { "const": "NEW-WORK-UNIT" } }
+          },
+          "then": { "required": ["allocated_unit_id"] }
+        },
+        {
+          "if": {
+            "required": ["disposition"],
+            "properties": {
+              "disposition": { "const": "ACCEPTED-RESIDUAL-RISK" }
+            }
+          },
+          "then": {
+            "required": [
+              "settling_experiment",
+              "impact_statement",
+              "acceptance"
+            ]
+          }
+        },
+        {
+          "if": {
+            "required": ["disposition"],
+            "properties": { "disposition": { "const": "RESOLVED" } }
+          },
+          "then": { "required": ["evidence"] }
+        }
+      ]
+    },
+    "acceptance": {
+      "type": "object",
+      "required": ["owner_id", "attribution_kind", "agent_signed"],
+      "properties": {
+        "owner_id": { "type": "string", "minLength": 1 },
+        "attribution_kind": {
+          "type": "string",
+          "enum": ["owner-signature", "owner-decision-record"]
+        },
+        "agent_signed": { "const": false }
+      }
+    }
+  }
+}

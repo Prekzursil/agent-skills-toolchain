@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0102/measurement-run.schema.json",
+  "title": "RES-0102 skill-description ablation measurement run",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "ablation_delta_table",
+    "approximately_zero_control",
+    "gold_task_set",
+    "tests",
+    "reviewer",
+    "artifacts",
+    "evidence"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "RES-0102" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "minLength": 20 },
+    "report_kind": { "type": "string", "const": "measurement-run" },
+    "question": { "type": "string", "minLength": 40 },
+    "ablation_delta_table": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "component",
+          "accuracy",
+          "delta_from_baseline",
+          "approximately_zero",
+          "is_control"
+        ],
+        "properties": {
+          "component": { "type": "string" },
+          "accuracy": { "type": "number" },
+          "delta_from_baseline": { "type": "number" },
+          "approximately_zero": { "type": "boolean" },
+          "is_control": { "type": "boolean" }
+        }
+      }
+    },
+    "approximately_zero_control": {
+      "type": "object",
+      "required": ["component", "approximately_zero", "is_control"],
+      "properties": {
+        "component": { "type": "string" },
+        "approximately_zero": { "type": "boolean", "const": true },
+        "is_control": { "type": "boolean", "const": true }
+      }
+    },
+    "gold_task_set": {
+      "type": "object",
+      "required": ["id", "sha256", "n_tasks", "published_before_measurement"],
+      "properties": {
+        "id": { "type": "string" },
+        "sha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "n_tasks": { "type": "integer", "minimum": 12 },
+        "published_before_measurement": { "type": "boolean", "const": true }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["path", "kind"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "kind": { "type": "string" }
+        }
+      }
+    }
+  }
+}

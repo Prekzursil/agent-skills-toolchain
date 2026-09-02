@@ -1,0 +1,451 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p03-fishbowl",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Let a wide panel review a proposal without producing an unreadable transcript, by keeping only a small inner circle live at any moment.",
+    "charter": "Fishbowl. k active inner seats debate; outer seats observe silently and may only enter by swapping out an inner seat with a stated reason.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "at least one swap request was filed with a stated reason",
+      "the chair read every observer note into the record before the vote",
+      "live transcript width never exceeded the inner-circle cap"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.7,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 8,
+      "min": 8,
+      "max": 8
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 6
+    },
+    "roster": [
+      {
+        "participant_id": "fishbowl-chair",
+        "display_name": "Chair (reads observer notes into the record)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "facilitation"
+        ],
+        "role": "chair",
+        "authority": "chair",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "inner-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "system architecture"
+        ],
+        "role": "architect",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "inner-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "threat modeling"
+        ],
+        "role": "security_reviewer",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "inner-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "data modeling"
+        ],
+        "role": "domain_expert",
+        "authority": "voter",
+        "vote_weight": 1.0
+      },
+      {
+        "participant_id": "observer-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "performance engineering"
+        ],
+        "role": "observer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": false,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "observer-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "release engineering"
+        ],
+        "role": "observer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": false,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "observer-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "accessibility"
+        ],
+        "role": "user_advocate",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": false,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "swap-clerk",
+        "display_name": "Swap clerk (records swap requests and reasons)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "seat-state tracking"
+        ],
+        "role": "scribe",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "inactivity",
+        "dominance"
+      ]
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "position_memo",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "caucus",
+    "caucuses": [
+      {
+        "caucus_id": "inner-circle",
+        "members": [
+          "inner-1",
+          "inner-2",
+          "inner-3",
+          "fishbowl-chair"
+        ],
+        "private_rounds": 0
+      },
+      {
+        "caucus_id": "outer-circle",
+        "members": [
+          "observer-1",
+          "observer-2",
+          "observer-3"
+        ],
+        "private_rounds": 1
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "all-seats-read",
+        "independent": true
+      },
+      {
+        "kind": "fishbowl",
+        "stage_id": "fishbowl",
+        "rounds": 3,
+        "quotas": {
+          "ideas_per_participant": 2,
+          "novel_ideas_per_round": 1,
+          "objections_per_participant": 1
+        },
+        "exit_when": {
+          "any_of": [
+            {
+              "metric": "custom:seat_swap_requests",
+              "op": ">=",
+              "value": 1,
+              "value_type": "number",
+              "producer": "swap-clerk seat-state log"
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 3
+            }
+          ]
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "notes-read-in",
+        "custom_name": "observer_notes_read_into_record",
+        "participants": [
+          "fishbowl-chair"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "synthesis"
+      }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": {
+      "min": 2,
+      "max": 6,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 450
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": false,
+      "declare_confidence": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 120,
+    "tool_calls": 150,
+    "sources": 24,
+    "turns": 40,
+    "speaking_quota_per_participant": 8,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 20,
+    "novelty_ratio": 0.5,
+    "diversity_index": 0.7,
+    "objections": 8,
+    "counterexamples": 3,
+    "evidence_items": 14,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.82,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "delegation",
+    "delegation": {
+      "allowed": true,
+      "max_chain_length": 2,
+      "cycles_forbidden": true,
+      "map": {
+        "observer-1": "inner-1",
+        "observer-2": "inner-2"
+      }
+    },
+    "quorum": {
+      "min_voters": 5,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:observer_notes_read_before_vote",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "fishbowl-chair notes-read-in stage"
+        },
+        {
+          "metric": "consensus",
+          "op": ">=",
+          "value": 0.7
+        },
+        {
+          "metric": "no_new_objection_rounds",
+          "op": ">=",
+          "value": 1
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 6,
+      "min_evidence_items": 10
+    },
+    "hard_caps": {
+      "max_rounds": 6,
+      "max_minutes": 120,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.88
+    },
+    "resolution": [
+      "rotate_roles",
+      "recruit_independent_critic",
+      "chair_ruling",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "silence",
+      "participant_dominance",
+      "lost_dissent",
+      "weak_synthesis",
+      "premature_convergence"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "role_rotation",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "transcript",
+      "argument_ledger",
+      "evidence_map",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P03 fishbowl",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:147",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:160"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P03"
+    ],
+    "notes": "DELIBERATIVE. The only protocol where a seat's PRIMARY act is deciding whether to speak at all. Outer seats vote (optionally by delegation to an inner seat) and file written notes; the design card's inertness tell - zero swap requests - is wired as the fishbowl stage exit_when, not left as prose.\n\nanti-failure controls, each mapped to the field implementing it:\n  silence -> the fishbowl stage cannot exit until custom:seat_swap_requests >= 1 (or 3 rounds elapse); zero swap requests means a 4-seat council wearing a 12-seat costume and the stage exit_when refuses to certify it\n  participant_dominance -> topology.caucuses caps the inner circle at 4 members and an entering observer must swap OUT an inner seat, so live transcript width is fixed\n  lost_dissent -> outer-circle seats file written notes the chair must read before the vote - stopping.expression requires custom:observer_notes_read_before_vote == true\n  weak_synthesis -> outputs.required includes argument_ledger and evidence_map; the synthesis must account for observer notes as well as the inner transcript\n  premature_convergence -> stopping.minimum_deliberation.min_rounds=2 plus divergence_before_convergence"
+  }
+}

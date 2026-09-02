@@ -1,0 +1,160 @@
+{
+  "artifact_type": "council_preset",
+  "id": "council.preset.security-red-blue",
+  "kind": "typed_delta",
+  "title": "Security red/blue council preset",
+  "unit_origin": "CNL-0107",
+  "base_ref": {
+    "spec_kind": "CouncilSpec",
+    "protocol_id": "P08",
+    "on_base_version_bump": "list-unmigratable"
+  },
+  "roles": [
+    {
+      "id": "red_operator",
+      "mandate": "attack-in-scope-surfaces",
+      "team": "red",
+      "produces": "search-notes"
+    },
+    {
+      "id": "red_scribe",
+      "mandate": "emit-qualifying-finding-artifact",
+      "team": "red",
+      "produces": "finding.repro"
+    },
+    {
+      "id": "blue_defender",
+      "mandate": "rebut-with-counter-artifact",
+      "team": "blue",
+      "produces": "close.counter-artifact"
+    },
+    {
+      "id": "blue_reproducer",
+      "mandate": "reproduce-or-fail-to-reproduce",
+      "team": "blue",
+      "produces": "repro.verdict"
+    },
+    {
+      "id": "scope_referee",
+      "mandate": "scope-only-no-security-verdict",
+      "team": "neutral",
+      "produces": "scope.bound"
+    },
+    {
+      "id": "coverage_clerk",
+      "mandate": "record-red-signed-coverage-ack-only",
+      "team": "neutral",
+      "produces": "coverage.ack"
+    }
+  ],
+  "protocol_binding": {
+    "protocol_id": "P08",
+    "family": "ADVERSARIAL",
+    "name": "red-blue-team"
+  },
+  "protocol_schedule": [
+    {
+      "id": "scope-freeze",
+      "actor_role": "scope_referee",
+      "artifact": "scope.bound",
+      "notes": "In/out of scope only. Referee cannot declare the system secure."
+    },
+    {
+      "id": "red-search",
+      "actor_role": "red_operator",
+      "artifact": "search-notes",
+      "notes": "Consumes red_search_rounds. Exhaustion is a clock event, not a blue win."
+    },
+    {
+      "id": "finding-emission",
+      "actor_role": "red_scribe",
+      "artifact": "finding.repro",
+      "notes": "Qualifying finding must carry surface, repro steps, observable effect, blast-radius class. Cooperative paraphrase is not this artifact."
+    },
+    {
+      "id": "blue-reproduce",
+      "actor_role": "blue_reproducer",
+      "artifact": "repro.verdict",
+      "notes": "Must reproduce or record fail-to-reproduce. Silence is not a close."
+    },
+    {
+      "id": "blue-close",
+      "actor_role": "blue_defender",
+      "artifact": "close.counter-artifact",
+      "notes": "Patch, compensating control, or scoped exclusion with a named bound."
+    },
+    {
+      "id": "coverage-ack",
+      "actor_role": "coverage_clerk",
+      "artifact": "coverage.ack",
+      "notes": "Records a red-signed remaining-surface ack. Blue cannot author this artifact."
+    },
+    {
+      "id": "stop-eval",
+      "actor_role": "coverage_clerk",
+      "artifact": "stop.outcome",
+      "notes": "Evaluate the stopping expression. Timeout without coverage_ack is INCONCLUSIVE."
+    }
+  ],
+  "voting": {
+    "rule": "evidence-gated-classification",
+    "quorum": 4,
+    "security_poll_forbidden": true
+  },
+  "stopping": {
+    "expression": "RED_WINS if unrebutted_qualifying>=1; BLUE_WINS if all_qualifying_closed AND coverage_ack_from_red; else if red_budget_exhausted then INCONCLUSIVE else CONTINUE",
+    "max_red_rounds": 6,
+    "timeout_outcome": "INCONCLUSIVE",
+    "timeout_may_not_map_to_blue_win": true
+  },
+  "budgets": {
+    "red_search_rounds": 6,
+    "blue_rebuttal_per_finding": 2,
+    "neutral_fixed": 2,
+    "notes": "Red has a larger search budget. Blue's budget is per qualifying finding, not a wait-out-the-clock pool. Neutral budget cannot be starved into a security verdict."
+  },
+  "evidence_standards": {
+    "red_qualifying_finding": [
+      "surface",
+      "repro_steps",
+      "observable_effect",
+      "blast_radius_class",
+      "scribe_signature"
+    ],
+    "blue_close": [
+      "finding_id",
+      "counter_artifact_kind",
+      "bound",
+      "reproducer_verdict"
+    ],
+    "coverage_ack": "red-signed remaining-surface enumeration recorded by coverage_clerk; blue cannot write it"
+  },
+  "win_conditions": {
+    "RED_WINS": "at least one unrebutted qualifying finding.repro",
+    "BLUE_WINS": "every qualifying finding closed with a counter-artifact AND red-signed coverage.ack",
+    "INCONCLUSIVE": "red budget exhausted without RED_WINS and without BLUE_WINS",
+    "illegal": [
+      "map red_budget_exhausted to BLUE_WINS",
+      "majority poll on 'is it secure'",
+      "blue-authored coverage.ack",
+      "referee security verdict"
+    ]
+  },
+  "editable_dials": [
+    "budgets.red_search_rounds",
+    "budgets.blue_rebuttal_per_finding",
+    "protocol_schedule length is not an editable dial"
+  ],
+  "default_binding": {
+    "protocol_id": "P08",
+    "task_class": "security-review"
+  },
+  "anti_failure": {
+    "on_split": "surface-unrebutted-findings",
+    "no_silent_secure": true
+  },
+  "audit": {
+    "persist_transcript": true,
+    "hash_findings": true
+  }
+}

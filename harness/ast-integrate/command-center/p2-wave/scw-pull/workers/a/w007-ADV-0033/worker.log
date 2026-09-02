@@ -1,0 +1,23 @@
+I'll start from the existing ADV-0033 probe tree, read any prior return artifact, and resume from what's already built.The probe tree is already populated. Next I’ll read the return artifacts and the measurement contract so I resume from what’s there.Prior return claimed Windows delivery; this is Linux, so I’ll inspect the probes, catalog contract, and a known-good SUBAGENT-RETURN before re-running.Probes already exist from a Windows pass. I’ll confirm G-1 and `ready_units`, then re-run the named probes on this Linux tree.The tree is sparse and has no `.git`. I’ll check whether schema validation and the named probes can still run here.I'll re-run the four named probes the measure gate actually executes, then pack from those live results.Refute passed. I’ll look for an existing linked worktree so the worktree cell can be measured without any git writes.No git repo exists on this host, so the worktree cell stays honestly BLOCKED. I’ll update the packer for that and rebuild the receipt from the live Linux raws.The receipt `bytes` field is off by one from the file size. I’ll fix the packer so those match, then re-pack.**SUCCESS:delivered ADV-0033** `predicate=delivered state=SUCCESS probes=4 raws=11 notes=probe1_control.py:0,probe2_router.py:0,probe2_verifier.py:0,probe_payload.py:0`
+
+ADV-0033 is G-1 contract-green on this Linux tree. Existing named probes were resumed, not replaced. Harvest / cloud `ok=true` was not treated as delivery.
+
+### What was measured on this host
+| Substrate | Verdict | Why |
+|---|---|---|
+| local process | **CONFIRMED** 4/4 | credential canary, outside-cwd write, `1.1.1.1:443`, `/proc` sibling |
+| worktree | **BLOCKED** | this checkout has no `.git` (no git init/commit/worktree-add) |
+| WSL2 | **BLOCKED** | `wsl.exe` absent |
+| docker | **BLOCKED** | `docker` absent |
+| cloud sandbox | **BLOCKED** | `modal` absent |
+
+Probe 2 still holds: `r2e_loop.py` (`sha256=449ed58aa1a05a05751a1d41abd52952efbb536b0e69f34fe06bf85934f3a39f`) forces `danger-full-access` + sandbox bypass, never reads `execution_substrate` or `owner_approval_required`, and routes untrusted ADV-0026 to the ambient local cell.
+
+### Artifacts
+- Receipt: `command-center/adversarial/ADV-0033-substrate-isolation-boundary-matrix.json` — `state=SUCCESS`, 43736 B, LF sha256 `15bd9c246dec774fec6ff5dea0317e64f1704bfc60e4e3d809088c7b3958c9b2`
+- Per-unit manifest: `command-center/p2-wave/probes/ADV-0033/UNIT-ARTIFACT-MANIFEST.json` (sha256 matches live file)
+- Return: `command-center/p2-wave/probes/ADV-0033/SUBAGENT-RETURN.json`
+
+Launcher-absent cells stay BLOCKED-per-target residuals. They are not a park: the earlier harvest refute (`named probes absent` / `state=BLOCKED`) is closed, and the required unisolated 4/4 plus router join are live and green.
+
+Constraints honored: no git writes, no `unit_manifest.py --write`, no global catalog manifest edit, no key rotation, no wave relaunch.

@@ -1,0 +1,50 @@
+{
+  "unit_id": "RES-0133",
+  "metric_id": "per-plant-scanner-detection-indicator",
+  "recorded_at": "2026-08-24T20:45:00Z",
+  "recorded_before_any_replay_or_control": true,
+  "window": 5,
+  "floor": 0.6,
+  "min_sources": 5,
+  "early_max_index": 10,
+  "early_max_index": 10,
+  "distinctness": "plant-id-file-match",
+  "not_used_for_distinctness": [
+    "string-equality-on-secret-bytes",
+    "token-count",
+    "embedding-cosine",
+    "lexical-jaccard-alone"
+  ],
+  "fire_rule": "Let y_t be 1 if planted credential t is detected by the named scanner (file-path match; secret values never used) and 0 otherwise. Fire at the smallest t >= min_sources such that mean(y_{t-window+1} .. y_t) >= floor. Silent if no such t exists. This is a coverage-attained detector, not a novelty-drop stopper.",
+  "miss_rate_definition": "If the detector fires at t*, miss_count is the number of plants with y_t=0 at any index (undetected plants). miss_rate = miss_count / n_plants. If the detector never fires, miss_count is still the undetected count (coverage never attained) and miss_rate is reported, not null.",
+  "early_definition": "fired AND fire_index <= early_max_index",
+  "n_plants": 40,
+  "n_formats": 10,
+  "n_surfaces": 3,
+  "n_decoys": 5,
+  "scanners": [
+    "gitleaks-8.30.1-filesystem-no-git",
+    "trufflehog-3.96.0-filesystem-no-verification",
+    "github-docs-prefix-regex-local-not-hosted"
+  ],
+  "surfaces": [
+    "markdown-prose",
+    "jsonl-transcript",
+    "fenced-code-block"
+  ],
+  "formats": [
+    "aws-access-key-id",
+    "github-pat",
+    "slack-bot-token",
+    "stripe-secret",
+    "gcp-api-key",
+    "npm-access-token",
+    "gitlab-pat",
+    "huggingface-token",
+    "sendgrid-api-key",
+    "rsa-private-key"
+  ],
+  "citation": "Catalog RES-0133: detection rate of gitleaks, trufflehog, and GitHub secret scanning over 40 planted format-valid synthetic credentials across 10 provider formats in markdown prose, JSONL transcripts, and fenced code blocks; 5 credential-shaped non-credentials for precision. Floor 0.6 is rolling mean detection >= 60% over a window of 5 plants. Numbers frozen before any scanner was invoked on this worktree.",
+  "github_hosted_secret_scanning": "not-invoked; local regex engine from published GitHub secret-scanning token types only",
+  "report_prints": "counts-and-plant-ids-only-never-secret-values"
+}

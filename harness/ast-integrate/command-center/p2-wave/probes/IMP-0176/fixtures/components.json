@@ -1,0 +1,177 @@
+{
+  "components": [
+    {
+      "id": "stop-unanimity-required",
+      "description": "A quiet council. No mention of the real stop contract in this sentence.",
+      "stop_tree": {
+        "op": "ALL",
+        "children": [
+          {
+            "op": "ATOM",
+            "axis": "stop.quorum",
+            "symbol": "unanimity",
+            "polarity": "require"
+          },
+          {
+            "op": "ATOM",
+            "axis": "stop.min_rounds",
+            "symbol": "two",
+            "polarity": "require"
+          }
+        ]
+      },
+      "tool_tree": {
+        "op": "ATOM",
+        "axis": "tool.network",
+        "symbol": "local-cache",
+        "polarity": "require"
+      }
+    },
+    {
+      "id": "stop-unanimity-forbidden",
+      "description": "Another quiet council. Compatible-looking wording, still no contract tokens.",
+      "stop_tree": {
+        "op": "NOT",
+        "child": {
+          "op": "ATOM",
+          "axis": "stop.quorum",
+          "symbol": "unanimity",
+          "polarity": "require"
+        }
+      },
+      "tool_tree": {
+        "op": "ATOM",
+        "axis": "tool.network",
+        "symbol": "local-cache",
+        "polarity": "require"
+      }
+    },
+    {
+      "id": "tool-egress-required",
+      "description": "Needs outbound access described without naming the axis.",
+      "stop_tree": {
+        "op": "WEIGHTED",
+        "threshold": 1.0,
+        "children": [
+          {
+            "weight": 1.0,
+            "tree": {
+              "op": "ATOM",
+              "axis": "stop.quorum",
+              "symbol": "majority",
+              "polarity": "require"
+            }
+          },
+          {
+            "weight": 0.2,
+            "tree": {
+              "op": "ATOM",
+              "axis": "stop.evidence",
+              "symbol": "citation",
+              "polarity": "require"
+            }
+          }
+        ]
+      },
+      "tool_tree": {
+        "op": "ALL",
+        "children": [
+          {
+            "op": "ATOM",
+            "axis": "tool.network",
+            "symbol": "egress",
+            "polarity": "require"
+          }
+        ]
+      }
+    },
+    {
+      "id": "tool-airgap-declared",
+      "description": "Isolated execution described without naming the axis.",
+      "stop_tree": {
+        "op": "ATOM",
+        "axis": "stop.quorum",
+        "symbol": "majority",
+        "polarity": "require"
+      },
+      "tool_tree": {
+        "op": "ATOM",
+        "axis": "tool.network",
+        "symbol": "airgap",
+        "polarity": "require"
+      }
+    },
+    {
+      "id": "lookalike-prose-unanimity-egress",
+      "description": "Requires unanimity of every seat and forbids an air-gapped policy; needs egress for citations.",
+      "stop_tree": {
+        "op": "ALL",
+        "children": [
+          {
+            "op": "ATOM",
+            "axis": "stop.quorum",
+            "symbol": "majority",
+            "polarity": "require"
+          },
+          {
+            "op": "ANY",
+            "children": [
+              {
+                "op": "ATOM",
+                "axis": "stop.evidence",
+                "symbol": "citation",
+                "polarity": "require"
+              },
+              {
+                "op": "ATOM",
+                "axis": "stop.evidence",
+                "symbol": "fixture",
+                "polarity": "require"
+              }
+            ]
+          }
+        ]
+      },
+      "tool_tree": {
+        "op": "ATOM",
+        "axis": "tool.network",
+        "symbol": "local-cache",
+        "polarity": "require"
+      }
+    },
+    {
+      "id": "lookalike-prose-forbid-airgap",
+      "description": "This twin forbids unanimity and declares an air-gapped policy; egress is refused.",
+      "stop_tree": {
+        "op": "ALL",
+        "children": [
+          {
+            "op": "ATOM",
+            "axis": "stop.quorum",
+            "symbol": "majority",
+            "polarity": "require"
+          },
+          {
+            "op": "ATOM",
+            "axis": "stop.min_rounds",
+            "symbol": "two",
+            "polarity": "require"
+          }
+        ]
+      },
+      "tool_tree": {
+        "op": "ATOM",
+        "axis": "tool.network",
+        "symbol": "local-cache",
+        "polarity": "require"
+      }
+    }
+  ],
+  "expected_conflicts": [
+    ["stop-unanimity-required", "stop-unanimity-forbidden"],
+    ["tool-egress-required", "tool-airgap-declared"]
+  ],
+  "expected_compatible": [
+    ["lookalike-prose-unanimity-egress", "lookalike-prose-forbid-airgap"]
+  ]
+}

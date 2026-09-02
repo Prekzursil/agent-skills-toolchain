@@ -1,0 +1,173 @@
+> ## Documentation Index
+> Fetch the complete documentation index at: https://smithery.ai/docs/llms.txt
+> Use this file to discover all available pages before exploring further.
+
+# Publish
+
+> Publish your MCP server on Smithery for distribution and analytics.
+
+Publish your MCP server to Smithery for distribution, analytics, and configuration UI.
+
+<Tabs>
+  <Tab title="URL" icon="globe">
+    **Bring your own hosting** — Smithery Gateway proxies to your upstream server.
+
+    1. Go to [smithery.ai/new](https://smithery.ai/new)
+    2. Enter your server's public HTTPS URL
+    3. Complete the publishing flow
+
+    ### Requirements
+
+    * Streamable HTTP transport
+    * OAuth support (if auth required)
+
+    <Tip>
+      **No client registration needed.** Smithery handles client registration automatically via [Client ID Metadata Documents](https://modelcontextprotocol.io/specification/draft/basic/authorization#client-id-metadata-documents).
+    </Tip>
+
+    <Tip>
+      **Need a framework or hosting?** Build MCP servers with [xmcp](https://xmcp.dev) or host them on [Gram](https://www.getgram.ai/) — both work with Smithery's URL publishing.
+    </Tip>
+
+    ### Server Scanning
+
+    Smithery scans your server to extract metadata (tools, prompts, resources) for your server page.
+
+    * **Public servers**: Scan completes automatically
+    * **Auth-required servers**: You'll be prompted to authenticate so we can complete the scan
+
+    <Accordion title="Static Server Card (manual metadata)">
+      If automatic scanning can't complete (auth wall, required configuration, or other issues), you can provide server metadata manually via a static server card at `/.well-known/mcp/server-card.json`:
+
+      ```json theme={null}
+      {
+        "serverInfo": {
+          "name": "Your Server Name",
+          "version": "1.0.0"
+        },
+        "authentication": {
+          "required": true,
+          "schemes": ["oauth2"]
+        },
+        "tools": [
+          {
+            "name": "search",
+            "description": "Search for information",
+            "inputSchema": {
+              "type": "object",
+              "properties": {
+                "query": { "type": "string" }
+              },
+              "required": ["query"]
+            }
+          }
+        ],
+        "resources": [],
+        "prompts": []
+      }
+      ```
+
+      **Fields:**
+
+      * `serverInfo` (required): Server name and version
+      * `authentication` (optional): Auth requirements and supported schemes
+      * `tools`, `resources`, `prompts` (optional): Capability definitions per MCP spec
+
+      The schema follows types from [`@modelcontextprotocol/sdk/types.js`](https://github.com/modelcontextprotocol/typescript-sdk). See [SEP-1649](https://github.com/modelcontextprotocol/modelcontextprotocol/issues/1649) for the spec proposal.
+    </Accordion>
+
+    <Accordion title="CLI (Advanced)">
+      You can also publish a URL-based server via CLI with a custom config schema:
+
+      ```bash theme={null}
+      smithery mcp publish "https://your-server.com/mcp" -n @your-org/your-server
+      ```
+
+      To specify a config schema, pass it as a JSON string:
+
+      ```bash theme={null}
+      smithery mcp publish "https://your-server.com/mcp" -n @your-org/your-server --config-schema '{"type":"object","properties":{"apiKey":{"type":"string"}}}'
+      ```
+
+      See [Session Configuration](/docs/build/session-config) for JSON Schema format with `x-from` extension.
+    </Accordion>
+  </Tab>
+
+  <Tab title="Local (MCPB Bundle)" icon="package">
+    **For local stdio servers** — Smithery distributes a pre-built MCPB bundle that clients download and run locally.
+
+    1. Prepare your `.mcpb` bundle
+    2. Publish the bundle to Smithery
+    3. Complete the publishing flow
+
+    <Tip>
+      For MCPB authoring guidance, see Anthropic's [Build a desktop extension with MCPB](https://claude.com/docs/connectors/building/mcpb) guide and the [MCPB specification](https://github.com/modelcontextprotocol/mcpb).
+    </Tip>
+
+    ### What gets published
+
+    * `server.mcpb` — the MCPB bundle distributed to clients
+    * Configuration schema and metadata used to render your Smithery server page
+    * The latest downloadable stdio artifact for local installation
+
+    <Accordion title="API">
+      Smithery accepts multipart `bundle` uploads for stdio releases. See [Publish a server](/docs/api-reference/servers/publish-a-server).
+    </Accordion>
+
+    <Accordion title="CLI (Advanced)">
+      Publish a bundle with:
+
+      ```bash theme={null}
+      smithery mcp publish ./server.mcpb -n your-org/your-server
+      ```
+    </Accordion>
+  </Tab>
+</Tabs>
+
+## Troubleshooting
+
+### 403 Forbidden during scan
+
+If your deployment fails with **"Initialization failed with status 403"**, it means your server rejected Smithery's scan request. Common causes:
+
+* **WAF or bot protection** (e.g. Cloudflare Bot Fight Mode) blocking automated requests
+* **Server returning 403 for unauthenticated requests** instead of 401 — per the [MCP auth spec](https://modelcontextprotocol.io/specification/2025-11-25/basic/authorization), servers should return 401 to trigger OAuth discovery
+* **IP-based access restrictions** or allowlists that don't include Smithery's IP range
+
+Smithery sends requests with User-Agent `SmitheryBot/1.0 (+https://smithery.ai)`. These requests originate from Cloudflare Workers, which some WAF configurations block by default.
+
+#### Option 1: Ensure your server returns 401 (not 403) for OAuth
+
+If your server requires OAuth, make sure it returns **401 Unauthorized** (not 403 Forbidden) for unauthenticated requests. Smithery uses the 401 response to detect OAuth support per [RFC 9728](https://www.rfc-editor.org/rfc/rfc9728.html).
+
+#### Option 2: Whitelist Smithery requests
+
+<AccordionGroup>
+  <Accordion title="Cloudflare (Free plan / Bot Fight Mode)">
+    Bot Fight Mode on the free plan cannot be bypassed with WAF custom rules. Your options:
+
+    1. **IP Access Rules**: Go to **Security > WAF > Tools > IP Access Rules** and add an Allow rule for Smithery's IP range
+    2. **Disable Bot Fight Mode**: Go to **Security > Bots > Bot Fight Mode** and toggle it off (this disables bot protection for all traffic)
+    3. **Upgrade to Pro**: Pro plan (\$20/mo) unlocks Super Bot Fight Mode with WAF skip rules (see below)
+  </Accordion>
+
+  <Accordion title="Cloudflare (Pro+ / Super Bot Fight Mode)">
+    Create a WAF skip rule to bypass bot protection for Smithery:
+
+    1. Go to **Security > WAF > Custom Rules**
+    2. Create a rule with expression: `(http.user_agent contains "SmitheryBot")`
+    3. Action: **Skip** > select **Super Bot Fight Mode**
+  </Accordion>
+
+  <Accordion title="Other CDN / WAF providers">
+    Add an allow rule for requests matching User-Agent `SmitheryBot/1.0`. The exact steps vary by provider — consult your CDN/WAF documentation for configuring User-Agent-based allow rules.
+  </Accordion>
+</AccordionGroup>
+
+#### Option 3: Publish a static server card
+
+Bypass scanning entirely by serving a `/.well-known/mcp/server-card.json` endpoint on your server. See [Static Server Card](#server-scanning) above.
+
+## Get verified
+
+Once your server is published, open the server's **Settings → Verification** page to complete the automatic official-vendor verification checklist.

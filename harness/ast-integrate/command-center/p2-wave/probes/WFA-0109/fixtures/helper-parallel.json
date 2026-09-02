@@ -1,0 +1,40 @@
+{
+  "fusion_id": "fx-helper-parallel",
+  "kind": "fused_workflow_ir",
+  "sources": [
+    {"id": "wf-src-a", "capabilities": ["ingest", "transform"]},
+    {"id": "wf-src-b", "capabilities": ["emit"]}
+  ],
+  "capabilities": ["ingest", "transform", "emit"],
+  "declared": {
+    "schedulers": [{"id": "sched-primary"}],
+    "state_stores": [{"id": "store-primary", "snapshot": "snap-ok"}],
+    "execution_order_owners": [{"id": "sched-primary"}]
+  },
+  "components": [
+    {
+      "id": "sched-primary",
+      "role": "scheduler",
+      "owns_execution_order": true
+    },
+    {"id": "store-primary", "role": "state_store"},
+    {
+      "id": "helper-west",
+      "role": "parallel_helper",
+      "owns_execution_order": false
+    },
+    {
+      "id": "helper-east",
+      "role": "fanout_worker",
+      "owns_execution_order": false
+    }
+  ],
+  "runtime_script": [
+    {"process": "sched-primary", "op": "run_loop"},
+    {"process": "sched-primary", "op": "schedule_step", "target": "step-ingest"},
+    {"process": "helper-west", "op": "compute", "target": "shard-w"},
+    {"process": "helper-east", "op": "fanout_work", "target": "shard-e"},
+    {"process": "helper-east", "op": "reduce_item", "target": "join"},
+    {"process": "store-primary", "op": "commit_state", "target": "store-primary"}
+  ]
+}

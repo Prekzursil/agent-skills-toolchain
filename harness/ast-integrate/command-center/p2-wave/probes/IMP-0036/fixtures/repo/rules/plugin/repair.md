@@ -1,0 +1,27 @@
+# rules/plugin/repair.md
+shared:rules/plugin/repair.md
+repo-unique:rules/plugin/repair.md
+repo-pad:rules/plugin/repair.md:0
+repo-pad:rules/plugin/repair.md:1
+repo-pad:rules/plugin/repair.md:2
+repo-pad:rules/plugin/repair.md:3
+repo-pad:rules/plugin/repair.md:4
+repo-pad:rules/plugin/repair.md:5
+repo-pad:rules/plugin/repair.md:6
+repo-pad:rules/plugin/repair.md:7
+repo-pad:rules/plugin/repair.md:8
+repo-pad:rules/plugin/repair.md:9
+repo-pad:rules/plugin/repair.md:10
+repo-pad:rules/plugin/repair.md:11
+repo-pad:rules/plugin/repair.md:12
+repo-pad:rules/plugin/repair.md:13
+repo-pad:rules/plugin/repair.md:14
+repo-pad:rules/plugin/repair.md:15
+repo-pad:rules/plugin/repair.md:16
+repo-pad:rules/plugin/repair.md:17
+repo-pad:rules/plugin/repair.md:18
+repo-pad:rules/plugin/repair.md:19
+repo-pad:rules/plugin/repair.md:20
+repo-pad:rules/plugin/repair.md:21
+repo-pad:rules/plugin/repair.md:22
+repo-pad:rules/plugin/repair.md:23

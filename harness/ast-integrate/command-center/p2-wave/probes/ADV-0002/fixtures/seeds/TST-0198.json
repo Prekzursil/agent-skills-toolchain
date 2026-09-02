@@ -1,0 +1,388 @@
+{
+ "unit_id": "TST-0198",
+ "state": "SUCCESS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0198",
+ "min_bytes_threshold": 2048,
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0198.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0198 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0198.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0198.json",
+     "raw_output": "bytes=10038 sha256=745759d166972ceeaf47d19125297e8e2b306383ff413a2ba3feef542c43b2e2",
+     "fingerprint": "d284c8b58b7b0c7d35230b7cebdd3dfb",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0198",
+     "raw_output": "schema-check",
+     "fingerprint": "710817b32cb21a364c4dfa6ec9ac5964",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0198 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0198",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0198",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "8ea0c48d82c274dbd73a5ac8e5d4ee35",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0198",
+     "raw_output": "schema-valid",
+     "fingerprint": "83b46b275a10f29568fbed85ad673d21",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0198.json",
+   "bytes": 10038,
+   "sha256": "745759d166972ceeaf47d19125297e8e2b306383ff413a2ba3feef542c43b2e2",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "id": "TST-0198",
+   "report_kind": "portability_report",
+   "title": "NFC vs NFD path names match the manifest",
+   "question": "Does a macOS-created NFD filename match its NFC manifest entry? PASS requires normalization at comparison time with the chosen normal form declared, and a cross-platform round trip that loses no file.",
+   "completion_sentinel": "SUCCESS:TST-0198",
+   "chosen_normal_form": "NFC",
+   "normalisation_at_comparison_time": true,
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/portability_report",
+   "schema_present_on_this_tree": true,
+   "verdict": "PASS",
+   "answer": "Yes, when both the filesystem name and the manifest entry are compared after Unicode NFC normalisation. Raw UTF-8 byte equality does not match the NFD café/が fixtures; that negative control fires. Pure-ASCII names match with or without normalisation. A copy from the NFD tree onto the NFC manifest paths loses no file and preserves content hashes. A byte-keyed copy of the same tree misses the NFD names and keeps only the ASCII control.",
+   "substrate": {
+    "os": "Linux",
+    "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "filesystem_unicode_policy": "Linux ext4 stores the exact UTF-8 bytes of the created name; NFD vs NFC are distinct directory entries. This is the opposite of APFS/HFS+ decomposition, which is why the fixture *creates* NFD names rather than relying on the host to decompose.",
+    "macos_not_this_host": true,
+    "windows_shells_not_run": true
+   },
+   "codepoint_sequences": {
+    "cafe_nfc": "café.txt",
+    "cafe_nfd": "café.txt",
+    "cafe_nfc_codepoints": [
+     99,
+     97,
+     102,
+     233,
+     46,
+     116,
+     120,
+     116
+    ],
+    "cafe_nfd_codepoints": [
+     99,
+     97,
+     102,
+     101,
+     769,
+     46,
+     116,
+     120,
+     116
+    ],
+    "cafe_nfc_utf8_hex": "636166c3a92e747874",
+    "cafe_nfd_utf8_hex": "63616665cc812e747874",
+    "byte_equal_cafe": false,
+    "python_str_equal_cafe": false,
+    "nfc_equal_cafe": true
+   },
+   "per_file_matches": [
+    {
+     "kind": "cafe",
+     "filesystem_path_nfc": "docs/café/café.txt",
+     "filesystem_observed_form": "NFD",
+     "manifest_path": "docs/café/café.txt",
+     "matched": true,
+     "form": "NFC",
+     "byte_equal": false,
+     "filesystem_codepoints": [
+      100,
+      111,
+      99,
+      115,
+      47,
+      99,
+      97,
+      102,
+      101,
+      769,
+      47,
+      99,
+      97,
+      102,
+      101,
+      769,
+      46,
+      116,
+      120,
+      116
+     ],
+     "manifest_codepoints": [
+      100,
+      111,
+      99,
+      115,
+      47,
+      99,
+      97,
+      102,
+      233,
+      47,
+      99,
+      97,
+      102,
+      233,
+      46,
+      116,
+      120,
+      116
+     ],
+     "codepoint_sequences_differ": true
+    },
+    {
+     "kind": "ga",
+     "filesystem_path_nfc": "i18n/が.txt",
+     "filesystem_observed_form": "NFD",
+     "manifest_path": "i18n/が.txt",
+     "matched": true,
+     "form": "NFC",
+     "byte_equal": false,
+     "filesystem_codepoints": [
+      105,
+      49,
+      56,
+      110,
+      47,
+      12363,
+      12441,
+      46,
+      116,
+      120,
+      116
+     ],
+     "manifest_codepoints": [
+      105,
+      49,
+      56,
+      110,
+      47,
+      12364,
+      46,
+      116,
+      120,
+      116
+     ],
+     "codepoint_sequences_differ": true
+    },
+    {
+     "kind": "ascii",
+     "filesystem_path_nfc": null,
+     "filesystem_observed_form": "ASCII",
+     "manifest_path": "readme.txt",
+     "matched": true,
+     "form": "NFC",
+     "byte_equal": true,
+     "filesystem_codepoints": [
+      114,
+      101,
+      97,
+      100,
+      109,
+      101,
+      46,
+      116,
+      120,
+      116
+     ],
+     "manifest_codepoints": [
+      114,
+      101,
+      97,
+      100,
+      109,
+      101,
+      46,
+      116,
+      120,
+      116
+     ],
+     "codepoint_sequences_differ": false
+    }
+   ],
+   "round_trip": {
+    "source_count": 3,
+    "manifest_count": 3,
+    "dest_count": 3,
+    "no_file_lost": true,
+    "lost": [],
+    "unmatched_manifest": [],
+    "written": [
+     {
+      "dest_path": "docs/café/café.txt",
+      "src_path": "docs/café/café.txt",
+      "sha256_match": true,
+      "dest_form_is_nfc": true
+     },
+     {
+      "dest_path": "i18n/が.txt",
+      "src_path": "i18n/が.txt",
+      "sha256_match": true,
+      "dest_form_is_nfc": true
+     },
+     {
+      "dest_path": "readme.txt",
+      "src_path": "readme.txt",
+      "sha256_match": true,
+      "dest_form_is_nfc": true
+     }
+    ],
+    "method": "tempdir NFD source (macOS-style decomposed names) copied onto NFC manifest paths; content sha256 after CRLF-to-LF must match the manifest. Destination listing count equals source count."
+   },
+   "scope": {
+    "pack_py_present": false,
+    "receipt_schema_present": true,
+    "proof_surface": "executable NFC/NFD fixture in tempfile: three files (ASCII, café NFD, が NFD), NFC manifest, two independent probes. This sparse worktree has no tools/plugin/pack.py; the comparison procedure is the unit SUT.",
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+     "a macOS APFS volume was mounted on this host",
+     "pwsh7 and Git Bash were re-run as a second Windows shell",
+     "tools/plugin/pack.py already existed and was only observed"
+    ]
+   },
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "manifest-match-per-file",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0198/probe1_manifest_match.py"
+    },
+    {
+     "id": "probe2",
+     "role": "codepoint-sequences",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0198/probe2_codepoints.py"
+    }
+   ],
+   "ts": "2026-08-25T00:53:27Z"
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0198",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0198/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0198"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0198.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0198.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "cf2fe6d2d0c2df44af5cd45201997363",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "portability_report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 10038,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0198.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ }
+}

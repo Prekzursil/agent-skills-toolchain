@@ -1,0 +1,28 @@
+docs(slop): round 6's verification, measured at the commit rather than before it
+
+Round 5 shipped its report before its own post-commit checks existed, which is the shape
+that let round 3 ship a commit its own gate then flagged. Adding them here, all run against
+committed bytes:
+
+  commit surface        6 paths, 1 M + 5 A, 0 file deletions, 0 foreign paths
+  published-cmds gate   rc 0 at HEAD -- 383 commands / 343 docs, 0 NEW, 0 stale
+  gate self-test        rc 0, both example-marker controls included
+  blob-level ruff       @ b2df8f6b check rc 0, format rc 0, 0 would-reformat, 6/6 controls
+  transcription gate    rc 0 at HEAD -- TRANSCRIPTION-CLEAN, 38 claims, 0 violations
+  frozen evidence       FROZEN-UNTOUCHED-PROVEN at lane END, 9/9 hash-identical
+
+The ruff line reads the stored LF blobs rather than the CRLF worktree, so it is the reading
+CI would get. The pre-commit self-check predicted exactly one unresolved command
+(_r6_transcript.py, untracked at the time and named by the corrected round-5 line); the real
+gate now reports 0 NEW. Predicted and observed agree.
+
+Receipt stability: re-running the gate at HEAD changed exactly one field, `head`. Verdict,
+claim count, the three adjudicated rows and the single preserved refutation were identical,
+so the green is not an artifact of when it was taken. That refreshed receipt is committed
+here rather than restored, so the committed reading matches the committed code.
+
+Also disclosed rather than quietly reverted: running round 5's frozen prober and the ruff
+replica overwrote _r5_frozen.out.json and _r2_gate_now.out.json. Both were committed AND
+clean beforehand, so unlike round 5's equivalent disclosure nothing uncommitted was lost;
+both restored with git checkout --. The three _r2_/_r3_ receipts already dirty at lane start
+were never opened.

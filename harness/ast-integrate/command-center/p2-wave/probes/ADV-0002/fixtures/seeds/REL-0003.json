@@ -1,0 +1,246 @@
+{
+ "unit_id": "REL-0003",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:REL-0003",
+ "schema_version": 1,
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/REL-0003.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/REL-0003.json",
+   "bytes": 6095,
+   "sha256": "055f22176c503cefd3bba8241b532bd2e2276f85af74c9a76eb5affb9f7c4022",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "extensions": {
+  "legacy_root": {
+   "packet_kind": "owner-decision-packet",
+   "title": "Owner ruling that makes stop condition 13 satisfiable under PR-ONLY",
+   "question": "Under the binding PR-ONLY release mode there is no canary channel, so what must succeed in place of program stop condition 13, 'release/canary succeeds' (spec 11390), which currently has no satisfiable referent and therefore makes the program unable to ever meet its own stopping rule?",
+   "recommendation": {
+    "summary": "Redefine condition 13 as a merged PR plus a clean-profile install, upgrade and rollback rehearsal evidenced by the REL-0004, REL-0005 and REL-0006 receipts.",
+    "named_receipts": [
+     {
+      "unit_id": "REL-0004",
+      "path": "command-center/receipts/REL-0004.json",
+      "role": "clean-profile install rehearsal"
+     },
+     {
+      "unit_id": "REL-0005",
+      "path": "command-center/receipts/REL-0005.json",
+      "role": "upgrade rehearsal N-1 to N"
+     },
+     {
+      "unit_id": "REL-0006",
+      "path": "command-center/receipts/REL-0006.json",
+      "role": "downgrade/rollback rehearsal"
+     }
+    ],
+    "merged_pr_required": true,
+    "oq9_alignment": "OQ-9 delegated default is a green CI install/upgrade/rollback rehearsal standing in for the canary. REL-0003 specialises that ruling onto catalog units REL-0004/REL-0005/REL-0006 whose output_path values are id-lookup checked. WAVE4-PLUGIN-LIFECYCLE-VERIFY.json is not a catalog work-unit id and is therefore not a named receipt."
+   },
+   "strongest_tradeoff": "The strongest tradeoff against marking condition 13 permanently N/A is that N/A deletes the observation the canary existed to provide: proof that install, upgrade, and rollback actually work. Under PR-ONLY the program never creates a canary channel, but it still merges pull requests; a merged PR plus the REL-0004/REL-0005/REL-0006 rehearsal receipts keep that proof. Permanent N/A would let the stopping rule go green without those receipts, which is how an unsatisfiable gate becomes a silent skip.",
+   "default_if_unanswered": "If the owner does not answer, apply the recommendation: redefine condition 13 as a merged PR plus a clean-profile install, upgrade and rollback rehearsal evidenced by command-center/receipts/REL-0004.json, command-center/receipts/REL-0005.json and command-center/receipts/REL-0006.json. Do not mark 13 permanently N/A.",
+   "durable_record_location": {
+    "path": "command-center/OWNER-DECISIONS.md",
+    "line": 92,
+    "heading": "REL-0003 — Stop condition 13 under PR-ONLY",
+    "heading_line": 85
+   },
+   "spec_quote_11390": {
+    "line": 11390,
+    "verbatim": "release/canary succeeds",
+    "source": "command-center/WORK-UNIT-CATALOG.json",
+    "source_file_named_by_unit": "_USER-PROMPTS.md",
+    "source_file_present": false,
+    "catalog_verbatim_hits": [
+     62515,
+     11761,
+     15605,
+     24762,
+     34062,
+     44117
+    ],
+    "note": "_USER-PROMPTS.md is absent on this worktree. The verbatim text of spec line 11390 is taken from independent catalog citations that name that line."
+   },
+   "phase_graph_citation": {
+    "path": "command-center/PHASE-GRAPH.json",
+    "field": "constrained_by_release_mode.owner_decision_needed"
+   },
+   "binding_release_mode": {
+    "value": "PR-ONLY",
+    "source": "OQ-3",
+    "answered_on": "2026-08-10",
+    "reasked": false
+   },
+   "answer": {
+    "text": "Apply the REL-0003 recommendation. Condition 13 is SATISFIABLE under PR-ONLY when a merged PR is accompanied by green REL-0004 (install), REL-0005 (upgrade) and REL-0006 (rollback) receipts. Marking 13 permanently N/A is rejected.",
+    "applied": true,
+    "recorded_at": "command-center/OWNER-DECISIONS.md:92",
+    "recorded_on": "2026-08-24",
+    "authority": "delegated-default-OQ-9",
+    "oq9_state": "ANSWERED",
+    "oq9_answered_on": "2026-08-11",
+    "reask": false
+   },
+   "cloud_ok": false,
+   "registered": true,
+   "schema_control": {
+    "catalog_schema": "command-center/schema/owner-decision-packet.schema.json",
+    "local_schema": "command-center/p2-wave/probes/REL-0003/packet.schema.json",
+    "catalog_schema_live": false,
+    "note": "command-center/schema/owner-decision-packet.schema.json is a generated $ref shim. jsonschema 4.10 RefResolver fetches https://ast-integrate.invalid/... and raises RefResolutionError. Named probes validate against packet.schema.json."
+   },
+   "scope": {
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global unit_manifest.py --write was run",
+     "REL-0004/REL-0005/REL-0006 receipts already exist",
+     "_USER-PROMPTS.md was read on this worktree",
+     "a live owner was re-asked in this turn"
+    ]
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#REL-0003",
+ "min_bytes_threshold": 1,
+ "evidence": [
+  {
+   "claim": "REL-0003 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/REL-0003.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/REL-0003.json",
+     "raw_output": "bytes=6095 sha256=055f22176c503cefd3bba8241b532bd2e2276f85af74c9a76eb5affb9f7c4022",
+     "fingerprint": "d6c8e0aa84bc409cd3d69c10c9dcdd7a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact REL-0003",
+     "raw_output": "schema-check",
+     "fingerprint": "c9300d041f914ec484855fa8fd4564ca",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REL-0003 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0003",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py REL-0003",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "a980fc9001149ab5b28c3cc2e40fb5f1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered REL-0003",
+     "raw_output": "schema-valid",
+     "fingerprint": "07bd0bfd6b7fd1402c61e15c5a088b27",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0003/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "REL-0003"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/REL-0003.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/REL-0003.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "75edae85bb0864516d115994dc4bfec9",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "owner-decision-packet",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 6095,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/REL-0003.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ }
+}

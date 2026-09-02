@@ -1,0 +1,27 @@
+# rules/project/naming.md
+shared:rules/project/naming.md
+repo-unique:rules/project/naming.md
+repo-pad:rules/project/naming.md:0
+repo-pad:rules/project/naming.md:1
+repo-pad:rules/project/naming.md:2
+repo-pad:rules/project/naming.md:3
+repo-pad:rules/project/naming.md:4
+repo-pad:rules/project/naming.md:5
+repo-pad:rules/project/naming.md:6
+repo-pad:rules/project/naming.md:7
+repo-pad:rules/project/naming.md:8
+repo-pad:rules/project/naming.md:9
+repo-pad:rules/project/naming.md:10
+repo-pad:rules/project/naming.md:11
+repo-pad:rules/project/naming.md:12
+repo-pad:rules/project/naming.md:13
+repo-pad:rules/project/naming.md:14
+repo-pad:rules/project/naming.md:15
+repo-pad:rules/project/naming.md:16
+repo-pad:rules/project/naming.md:17
+repo-pad:rules/project/naming.md:18
+repo-pad:rules/project/naming.md:19
+repo-pad:rules/project/naming.md:20
+repo-pad:rules/project/naming.md:21
+repo-pad:rules/project/naming.md:22
+repo-pad:rules/project/naming.md:23

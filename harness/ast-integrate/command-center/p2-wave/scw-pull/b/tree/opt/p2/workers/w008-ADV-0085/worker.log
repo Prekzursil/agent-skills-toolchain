@@ -1,0 +1,17 @@
+I'll start from the existing ADV-0085 probe tree, resume whatever is already built, and only treat this unit as delivered if the measure script prints SUCCESS.Existing probe tree is present. Next I’ll read the return artifact, the catalog unit, and the measure script so I resume instead of rebuilding.The cloud-ok refute is stale; probes and a per-unit manifest already exist. I’ll read the measure script, current artifact, and a delivered sibling so we resume from that tree.The artifact already claims SUCCESS, but hashes look stale. I’ll inspect the probes, ready_units predicate, and a delivered sibling before re-running.I'll check how the named probes behave when run without args (the measure script does that) and look at a delivered sibling's return format.Probes look runnable. I’ll re-run the named scripts, pack the receipt from live raws, then hit the official measure gate.Probes fail because `foundry` isn’t importable here. I’ll locate the library on this box and wire the probe path to the real tree.This tree has no git metadata and no `platform/` tree. I’ll search other checkouts for `foundry` so the probes can import it.Foundry isn’t on this sparse seed. I’ll pull the production `foundry` sources from the public remote so the existing probes can import them, without using git checkout on this tree.GitHub has the production foundry tree. I’ll vendor it under the ADV-0085 probe dir so measure can re-run without restoring the whole `platform/` tree.I’ll vendor production foundry, wfdsl, and the DSL schemas under the probe tree, then install `referencing` so the real DSL gate can run.User-site packages aren’t on `sys.path` here, so I’ll install jsonschema into the probe vendor dir and point the probes at it.**SUCCESS:delivered ADV-0085** `predicate=delivered state=SUCCESS probes=4 raws=4 notes=control_ordering.py:0,probe1_rank.py:0,probe2_ablate.py:0,probe_common.py:0`
+
+This is G-1 for ADV-0085 only: live named probes re-ran to exit 0, the receipt is honest `state=SUCCESS` (not a harvest/`cloud ok=true` flip), and the per-unit manifest row matches the live file.
+
+Resumed the existing probe tree. The previous cloud-ok return was `STILL-OPEN` because scripts were missing; this seed already had `probe1_rank.py`, `probe2_ablate.py`, `control_ordering.py`, and `probe_common.py`, but they died on `ModuleNotFoundError: foundry` (no repo-root `platform/`). Production foundry, wfdsl, and the workflow-dsl schemas were vendored under `command-center/p2-wave/probes/ADV-0085/vendor/` from the public `agent-skills-toolchain` tarball, **not** installed at repo-root `platform/lib` (that would turn on a global schema resolver).
+
+Live reruns reproduced the finding: three constant/no-read degenerates score **2.916667** over the good reference **2.833333**; ablation localises `correctness.artifacts_declare_a_min_size`; clean ordering control exits 0; inverted-metadata control goes RED and exits 1.
+
+| Item | Value |
+|---|---|
+| Receipt | `command-center/adversarial/ADV-0085-degenerate-strategy-metric-attack.json` |
+| State | `SUCCESS` |
+| Live LF sha256 | `107b2c97a2e4d4d42178ef925470e2b201d609350377e60941ef7cac05ff0eda` (37184 B) |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0085/UNIT-ARTIFACT-MANIFEST.json` (hash match) |
+| Return | `command-center/p2-wave/probes/ADV-0085/SUBAGENT-RETURN.json` |
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver.

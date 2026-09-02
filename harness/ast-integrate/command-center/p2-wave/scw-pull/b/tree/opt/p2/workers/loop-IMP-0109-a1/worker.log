@@ -1,0 +1,30 @@
+
+===== launch 2026-08-20T09:02:02Z attempt=1 =====
+I'll start from the existing IMP-0109 probe tree, resume whatever is already there, and only then implement and measure until the unit is contract-green.The probe listing is huge, so next I’ll open IMP-0109 specifically and pull the unit catalog plus the measure contract.IMP-0109 has no probe tree yet, so I’ll read the catalog row and a delivered IMP unit to copy the G-1 contract shape.Marketplace code already exists; I’ll read the bundle/trust/import path and the IMP-0108/0078/0107 catalog rows next.I have the contract and the current import holes; next I’ll harden re-verification and collision handling in `bundle.py`, then add probes and tests.Dest-file drift was raising “tampered blob” instead of a collision; I’ll hash local bytes independently so a digest mismatch surfaces as `CollisionError`.The package-dir symlink is already refused as a containment escape; I’ll detect the symlink before `resolve()` so the error names it.**SUCCESS:delivered IMP-0109** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0109` printed:
+
+`SUCCESS:delivered IMP-0109 predicate=delivered state=SUCCESS probes=4 raws=5 notes=hostile_review.py:0,probe_census.py:0,probe_tampered.py:0,test_offline_import.py:0`
+
+The unit had never been started (`probes/IMP-0109/` was missing). It is implemented, not parked.
+
+**What landed**
+
+Offline import now re-verifies against the **consumer** trust policy, not the bundle’s own claims:
+
+- Every payload digest is recomputed from on-disk bytes.
+- Every signature is checked against local maintainer/publisher keys.
+- A `trust-policy.json` sidecar in the bundle is ignored.
+- Same `name@version` with a **different** digest raises `CollisionError` (both digests named) and does not overwrite.
+- Verification and collision checks run **before** any destination write; a reject leaves the dest census unchanged.
+
+**Named probes (all re-run exit 0)**
+
+| Probe | Result |
+|---|---|
+| Tampered blob | Refused, names `hello-skill@1.0.0` |
+| Independent dest census | Zero entries / files changed on reject |
+| Catalog suite | Valid, tampered, unsigned, collision, negative control, unearned trust |
+| Hostile review | Symlink, path traversal, rogue-trust sidecar all refused |
+
+Receipt: `command-center/receipts/IMP-0109.json` (`state=SUCCESS`). Per-unit manifest hash matches live LF sha256 `5c3e5dd006756351f285e59c333a0dcd6ce1243577e18c1b6acca4246387302b`.
+
+No git write, no `unit_manifest.py --write`, no global catalog manifest, no key rotation, no workflow relaunch. Cloud `ok=true` was not treated as delivery.

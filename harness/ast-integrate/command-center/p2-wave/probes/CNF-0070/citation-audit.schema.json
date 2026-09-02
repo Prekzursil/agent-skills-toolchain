@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/CNF-0070/citation-audit.schema.json",
+  "title": "CNF-0070 archival-corroboration citation audit",
+  "$comment": "Unit-local control plane. command-center/schema/citation-audit.schema.json is a generated $ref shim whose target is https://ast-integrate.invalid/...; Draft7Validator against that path raises RefResolutionError. This file carries the verdict enum the named probes require (was-true-then-changed vs never-supported must not merge).",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "citations",
+    "summary",
+    "tests",
+    "reviewer",
+    "evidence_requirement"
+  ],
+  "properties": {
+    "unit_id": { "const": "CNF-0070" },
+    "state": { "enum": ["SUCCESS"] },
+    "sentinel": { "type": "string", "pattern": "^SUCCESS:CNF-0070" },
+    "completion_sentinel": { "type": "string", "minLength": 80 },
+    "audit_kind": { "const": "archival-corroboration" },
+    "evidence_requirement": { "type": "string", "minLength": 16 },
+    "citations": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "url",
+          "citation_date",
+          "quoted_span",
+          "verdict",
+          "live",
+          "archived_content_executed"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "url": { "type": "string", "minLength": 1 },
+          "citation_date": { "type": "string", "minLength": 8 },
+          "quoted_span": { "type": "string", "minLength": 1 },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "was-true-then-changed",
+              "never-supported",
+              "no-snapshot-available",
+              "live-match",
+              "mention-only",
+              "assertion",
+              "single-sourced",
+              "independently-corroborated",
+              "translation-drift",
+              "unresolved"
+            ]
+          },
+          "archived_content_executed": { "const": false },
+          "live": {
+            "type": "object",
+            "required": ["reachable", "quote_present"],
+            "properties": {
+              "reachable": { "type": "boolean" },
+              "quote_present": { "type": "boolean" }
+            }
+          },
+          "archived_corroboration": {
+            "type": ["object", "null"],
+            "properties": {
+              "snapshot_url": { "type": "string", "minLength": 1 },
+              "capture_timestamp": { "type": "string", "minLength": 8 },
+              "located_quote": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "summary": {
+      "type": "object",
+      "required": [
+        "every_archived_corroboration_timely",
+        "was_true_then_changed_count",
+        "never_supported_count",
+        "no_snapshot_available_count"
+      ],
+      "properties": {
+        "every_archived_corroboration_timely": { "const": true },
+        "was_true_then_changed_count": { "type": "integer", "minimum": 1 },
+        "never_supported_count": { "type": "integer", "minimum": 1 },
+        "no_snapshot_available_count": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "tests": { "type": "array", "minItems": 3 },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "reviewer_id",
+        "verdict",
+        "independent",
+        "read_conclusion_first"
+      ],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 1 },
+        "verdict": { "const": "PASS" },
+        "independent": { "const": true },
+        "read_conclusion_first": { "const": false }
+      }
+    }
+  }
+}

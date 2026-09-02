@@ -1,0 +1,363 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s27-kill-the-company-5",
+  "preset": "risk_committee",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Produce a ranked risk register for the harness by enumerating at least eight concrete attacks on it, each naming a real file, task or config.",
+    "charter": "Kill-the-company review, quarterly cadence. An attack that does not name a concrete file, scheduled task or config key is not an attack, it is a worry. Ranking is by CHEAPNESS of the attack, not by severity - a cheap attack is the one that happens.",
+    "risk_tier": "moderate",
+    "desired_output": "risk_register",
+    "success_criteria": [
+      "at least eight attacks, each naming a concrete file, task or config key",
+      "at least one attack maps to a real incident that already happened on this estate",
+      "attacks are ranked by cheapness of execution, not by imagined severity"
+    ],
+    "consensus_intent": "surface_disagreement",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "adversarial",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 3
+    },
+    "roster": [
+      {
+        "participant_id": "red-1",
+        "display_name": "Red 1 (harness config and hooks)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "red_team",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "hooks",
+          "settings and scopes"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "red-2",
+        "display_name": "Red 2 (scheduled tasks and daemons)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "red_team",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "scheduled tasks",
+          "daemons"
+        ],
+        "source_access": [
+          "repo"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "red-3",
+        "display_name": "Red 3 (supply chain and untrusted checkouts)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "red_team",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "supply chain",
+          "untrusted repo admission"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "SRE (which attacks are cheap in practice)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:sre",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "operations",
+          "recovery cost"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner representative (human)",
+        "kind": "human",
+        "vendor": "human",
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "expertise": [
+          "owner intent",
+          "real incident history"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "risk_list",
+      "prior_art_scan"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "brainstorm",
+        "stage_id": "attack-enumeration",
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 3,
+          "objections_per_participant": 3
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "cheapness-ranking",
+        "custom_name": "rank each attack by cost to execute, cheapest first"
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "risk-register"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_cite_evidence": true,
+      "declare_confidence": true
+    },
+    "critique_intensity": "adversarial"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 45,
+    "tool_calls": 150,
+    "sources": 25,
+    "turns": 24
+  },
+  "targets": {
+    "counterexamples": 8,
+    "objections": 12,
+    "unique_ideas": 12,
+    "evidence_items": 12
+  },
+  "voting": {
+    "method": "ranked_choice",
+    "quorum": {
+      "min_voters": 3,
+      "on_failure": "extend_rounds"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true
+    },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "pairwise_agreement",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true
+    }
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "counterexamples_found",
+          "op": ">=",
+          "value": 8,
+          "note": "eight ATTACKS, each naming a concrete file, task or config key"
+        },
+        {
+          "metric": "custom:attacks_mapped_to_real_incident",
+          "op": ">=",
+          "value": 1,
+          "value_type": "number",
+          "producer": "the owner representative, cross-checking the attack list against the event ledger and basic-memory incident notes",
+          "note": "at least one attack must map to something that ALREADY happened here; a register of hypotheticals has never predicted an incident on this estate"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_evidence_items": 8,
+      "min_independent_positions": 4
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 45,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "no_decision",
+      "conditional_decision"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85
+    },
+    "resolution": [
+      "recruit_independent_critic",
+      "narrow_scope",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "evidence_free_majority",
+      "echo_chamber",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "idea_catalog",
+      "option_cards",
+      "evidence_map",
+      "votes_by_round",
+      "action_plan",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 365
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Kill-the-company risk committee (5 seats, quarterly)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S27 kill-the-company-5",
+      "P48 kill-the-company"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1529-1543"
+    ],
+    "notes": "DESIGN LINEAGE: C-S27 kill-the-company-5 in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: red_team_x3,sre,owner_rep).\nPRESET LABEL: risk_committee - the card's desired output IS a ranked risk register, which is what the risk_committee archetype produces. The kill-the-company framing is the METHOD, not a different archetype.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.stopping.expression counterexamples_found + $.targets.counterexamples : attack_floor dial (card default 8)\n  - $.stopping.expression custom:attacks_mapped_to_real_incident : raise to demand more attacks grounded in real history\n  - $.protocol.sequence[0].quotas.ideas_per_participant : attacks demanded per red seat\nNO source_expression HERE, AND THIS IS A SUBSTRATE LIMIT, NOT AN OVERSIGHT: this is the only preset in the lane that uses a custom: metric with a declared producer. councilspec.expression.parse() cannot emit a 'producer' key, so SEM-001 (source_expression must parse to the IDENTICAL tree) fails for any expression carrying one. The human form is: counterexamples_found >= 8 AND custom:attacks_mapped_to_real_incident >= 1. Dropping 'producer' would restore source_expression but trade a SEM-012 warning (nothing in the run computes the metric) for it. Measured both ways; see LANE-2-STATUS.json finding F-P2-01.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

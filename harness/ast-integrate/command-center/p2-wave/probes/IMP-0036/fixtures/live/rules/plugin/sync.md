@@ -1,0 +1,27 @@
+# rules/plugin/sync.md
+shared:rules/plugin/sync.md
+live-unique:rules/plugin/sync.md
+live-pad:rules/plugin/sync.md:0
+live-pad:rules/plugin/sync.md:1
+live-pad:rules/plugin/sync.md:2
+live-pad:rules/plugin/sync.md:3
+live-pad:rules/plugin/sync.md:4
+live-pad:rules/plugin/sync.md:5
+live-pad:rules/plugin/sync.md:6
+live-pad:rules/plugin/sync.md:7
+live-pad:rules/plugin/sync.md:8
+live-pad:rules/plugin/sync.md:9
+live-pad:rules/plugin/sync.md:10
+live-pad:rules/plugin/sync.md:11
+live-pad:rules/plugin/sync.md:12
+live-pad:rules/plugin/sync.md:13
+live-pad:rules/plugin/sync.md:14
+live-pad:rules/plugin/sync.md:15
+live-pad:rules/plugin/sync.md:16
+live-pad:rules/plugin/sync.md:17
+live-pad:rules/plugin/sync.md:18
+live-pad:rules/plugin/sync.md:19
+live-pad:rules/plugin/sync.md:20
+live-pad:rules/plugin/sync.md:21
+live-pad:rules/plugin/sync.md:22
+live-pad:rules/plugin/sync.md:23

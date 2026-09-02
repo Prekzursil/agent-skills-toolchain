@@ -1,0 +1,217 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0061/council-design-note.schema.json",
+  "title": "CNL-0061 ranked-choice pathology design note (per-unit; catalog schema is a $ref shim)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "kind",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "title",
+    "question",
+    "answer",
+    "procedure",
+    "worked_examples",
+    "pathologies",
+    "both_states",
+    "negative_controls",
+    "tests",
+    "evidence",
+    "reviewer",
+    "report",
+    "artifacts",
+    "min_bytes_threshold"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0061" },
+    "kind": { "type": "string", "const": "council-design-note" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0061" },
+    "completion_sentinel": { "type": "string", "const": "SUCCESS:CNL-0061" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 80 },
+    "min_bytes_threshold": { "type": "integer", "minimum": 1 },
+    "procedure": {
+      "type": "object",
+      "required": ["id", "tie_policy", "majority_rule", "steps"],
+      "properties": {
+        "id": { "type": "string", "const": "IRV-COUNCIL-v1" },
+        "tie_policy": {
+          "type": "string",
+          "const": "lookback-then-lex-min-elim"
+        },
+        "majority_rule": {
+          "type": "string",
+          "const": "strict-majority-of-continuing-weight"
+        },
+        "steps": { "type": "array", "minItems": 5 }
+      }
+    },
+    "worked_examples": {
+      "type": "object",
+      "required": ["nm7x3", "nm7x4"],
+      "properties": {
+        "nm7x3": {
+          "type": "object",
+          "required": [
+            "roster_size",
+            "before_winner",
+            "after_winner",
+            "fired",
+            "ballots_original",
+            "ballots_raised",
+            "narrative"
+          ],
+          "properties": {
+            "roster_size": { "type": "integer", "const": 7 },
+            "before_winner": { "type": "string", "const": "C" },
+            "after_winner": { "type": "string", "const": "B" },
+            "fired": { "type": "boolean", "const": true },
+            "narrative": { "type": "string", "minLength": 40 }
+          }
+        },
+        "nm7x4": {
+          "type": "object",
+          "required": ["fired", "before_winner", "after_winner"],
+          "properties": {
+            "fired": { "type": "boolean", "const": true },
+            "before_winner": { "type": "string", "const": "D" },
+            "after_winner": { "type": "string", "const": "B" }
+          }
+        }
+      }
+    },
+    "pathologies": {
+      "type": "object",
+      "required": ["non_monotonicity", "later_no_harm"],
+      "properties": {
+        "non_monotonicity": {
+          "type": "object",
+          "required": ["occurs_at_roster_3_to_15"],
+          "properties": {
+            "occurs_at_roster_3_to_15": { "type": "boolean", "const": true }
+          }
+        },
+        "later_no_harm": {
+          "type": "object",
+          "required": ["occurs_at_roster_3_to_15"],
+          "properties": {
+            "occurs_at_roster_3_to_15": { "type": "boolean", "const": false }
+          }
+        }
+      }
+    },
+    "both_states": {
+      "type": "object",
+      "required": [
+        "nonmonotonicity_fires_on_nm7x3",
+        "nonmonotonicity_silent_on_majority7",
+        "lnh_silent_on_irv",
+        "lnh_fires_on_second_place_bait"
+      ],
+      "properties": {
+        "nonmonotonicity_fires_on_nm7x3": { "type": "boolean", "const": true },
+        "nonmonotonicity_silent_on_majority7": { "type": "boolean", "const": true },
+        "lnh_silent_on_irv": { "type": "boolean", "const": true },
+        "lnh_fires_on_second_place_bait": { "type": "boolean", "const": true }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "on_state", "observed"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "on_state": { "type": "string", "minLength": 8 },
+          "observed": { "type": "string", "minLength": 24 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "report": {
+      "type": "object",
+      "required": ["kind", "observations", "control_ids"],
+      "properties": {
+        "kind": { "type": "string", "const": "council-design-note" },
+        "observations": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["name", "measured", "method", "anchor"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "measured": { "type": ["string", "number", "boolean"] },
+              "method": { "type": "string", "minLength": 1 },
+              "anchor": { "type": "string", "minLength": 1 }
+            }
+          }
+        },
+        "control_ids": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

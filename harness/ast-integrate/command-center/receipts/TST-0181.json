@@ -1,0 +1,309 @@
+{
+ "answer": "NO: the allow-schema client loads the same three hooks and two skills with and without `$schema` (count=3). Removing post-tool.py drops the live count by one and names the missing file. The deny-unknown silent mutant still loads ZERO hooks when `$schema` is present, which is the Codex regression this unit refuses.",
+ "artifacts": [
+  {
+   "bytes": 9092,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0181/hooks_client.py",
+   "role": "supporting",
+   "sha256": "911a9366fec5a62d4169a727e062ebd960b391f0914cea0c35fced05380730d0"
+  },
+  {
+   "bytes": 2272,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0181/scenario.py",
+   "role": "supporting",
+   "sha256": "6d0f5e25004910cfbdcb05764983aaf76aed6ef7ce4ecafdfa7e5fada8c3f7f1"
+  },
+  {
+   "bytes": 4195,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0181/probe1_schema_parity.py",
+   "role": "supporting",
+   "sha256": "d2b0eb421c19e2bc540a4fe58e6ddc6e21912762aeb3dd4ea4801db4c31c1245"
+  },
+  {
+   "bytes": 5111,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0181/probe2_detector_drop.py",
+   "role": "supporting",
+   "sha256": "e0d1e78055f163a9e8b8e4dd905f58c0e17f69fdaae4ac7854893753d93132bd"
+  }
+ ],
+ "checks": [
+  {
+   "id": "schema-parity",
+   "verdict": "PASS"
+  },
+  {
+   "id": "detector-drop",
+   "verdict": "PASS"
+  },
+  {
+   "id": "codex-silent-zero-mutant",
+   "observed_count": 0,
+   "verdict": "PASS"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:TST-0181",
+ "defects": [],
+ "detector": {
+  "after_unlink_count": 2,
+  "after_unlink_errors": [
+   "hook post-tool failed to load: missing file hooks/post-tool.py"
+  ],
+  "baseline_count": 3,
+  "declared_only_count": 3,
+  "deny_unknown_silent_count": 0,
+  "unknown_field_error": "unknown top-level field(s) notARealField (only $schema is reserved as annotation)"
+ },
+ "detector_count_drops_when_hook_file_removed": true,
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0181.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py TST-0181",
+   "executed": false,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0181",
+    "exit_code": 0,
+    "fingerprint": "c65a2158c35e9f5c48069601d6cad57f",
+    "method": "command",
+    "raw_output": "deferred to post-write measure",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0181/hooks_client.py:load",
+   "claim": "Signal (a): client inventory count is identical with and without `$schema` (3 hooks, 2 skills).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0181/probe1_schema_parity.py",
+     "exit_code": 0,
+     "fingerprint": "02fa794bd7642ecbb4135e4504526627",
+     "method": "command",
+     "raw_output": "{\n  \"probe\": \"probe1-schema-parity\",\n  \"with_schema\": {\n    \"declared_hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"declared_skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 3,\n    \"hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"loud\": false,\n    \"mode\": \"allow-schema\",\n    \"schema_present\": true,\n    \"skill_count\": 2,\n    \"skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"unknown_keys\": []\n  },\n  \"without_schema\": {\n    \"declared_hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"declared_skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 3,\n    \"hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"loud\": false,\n    \"mode\": \"allow-schema\",\n    \"schema_present\": false,\n    \"skill_count\": 2,\n    \"skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"unknown_keys\": []\n  }\n}\nschema_parity hooks=3 skills=2 fired=3 identical=true\nSUCCESS:TST-0181-probe1 $schema does not change loaded hooks/skills\n",
+     "role": "source"
+    },
+    {
+     "command": "load(with $schema) vs load(without $schema) + fire_each",
+     "exit_code": 0,
+     "fingerprint": "f859b0da03866b6e2affe8b561f54cf3",
+     "method": "in-process-load",
+     "raw_output": "{\"with_count\": 3, \"without_count\": 3, \"fired\": [\"post-tool\", \"pre-tool\", \"session-start\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0181/hooks_client.py:fire_each",
+   "claim": "Signal (b): firing each resolved hook wrote a unique marker ['post-tool', 'pre-tool', 'session-start']; inventory ids match the fire-probe set.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0181/probe1_schema_parity.py",
+     "exit_code": 0,
+     "fingerprint": "02fa794bd7642ecbb4135e4504526627",
+     "method": "command",
+     "raw_output": "{\n  \"probe\": \"probe1-schema-parity\",\n  \"with_schema\": {\n    \"declared_hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"declared_skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 3,\n    \"hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"loud\": false,\n    \"mode\": \"allow-schema\",\n    \"schema_present\": true,\n    \"skill_count\": 2,\n    \"skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"unknown_keys\": []\n  },\n  \"without_schema\": {\n    \"declared_hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"declared_skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 3,\n    \"hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"loud\": false,\n    \"mode\": \"allow-schema\",\n    \"schema_present\": false,\n    \"skill_count\": 2,\n    \"skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"unknown_keys\": []\n  }\n}\nschema_parity hooks=3 skills=2 fired=3 identical=true\nSUCCESS:TST-0181-probe1 $schema does not change loaded hooks/skills\n",
+     "role": "source"
+    },
+    {
+     "command": "load(with $schema) vs load(without $schema) + fire_each",
+     "exit_code": 0,
+     "fingerprint": "f859b0da03866b6e2affe8b561f54cf3",
+     "method": "in-process-load",
+     "raw_output": "{\"with_count\": 3, \"without_count\": 3, \"fired\": [\"post-tool\", \"pre-tool\", \"session-start\"]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "hooks_client.py:load",
+   "claim": "Loaded-hook count from the client is equal across $schema forms.",
+   "kind": "inventory-count",
+   "path": "command-center/p2-wave/probes/TST-0181/hooks_client.py"
+  },
+  {
+   "anchor": "hooks_client.py:fire_each",
+   "claim": "Independent fire probe observed a marker per hook; registration was not inferred from file presence alone.",
+   "kind": "hook-fire-side-effect",
+   "path": "command-center/p2-wave/probes/TST-0181/hooks_client.py"
+  }
+ ],
+ "loaded_sets": {
+  "fired_side_effects": {
+   "post-tool": "FIRED:post-tool:PostToolUse",
+   "pre-tool": "FIRED:pre-tool:PreToolUse",
+   "session-start": "FIRED:session-start:SessionStart"
+  },
+  "identical": true,
+  "with_schema": {
+   "declared_hook_ids": [
+    "pre-tool",
+    "post-tool",
+    "session-start"
+   ],
+   "declared_skill_ids": [
+    "skill.alpha",
+    "skill.beta"
+   ],
+   "errors": [],
+   "fired": {},
+   "hook_count": 3,
+   "hook_ids": [
+    "pre-tool",
+    "post-tool",
+    "session-start"
+   ],
+   "loud": false,
+   "mode": "allow-schema",
+   "schema_present": true,
+   "skill_count": 2,
+   "skill_ids": [
+    "skill.alpha",
+    "skill.beta"
+   ],
+   "unknown_keys": []
+  },
+  "without_schema": {
+   "declared_hook_ids": [
+    "pre-tool",
+    "post-tool",
+    "session-start"
+   ],
+   "declared_skill_ids": [
+    "skill.alpha",
+    "skill.beta"
+   ],
+   "errors": [],
+   "fired": {},
+   "hook_count": 3,
+   "hook_ids": [
+    "pre-tool",
+    "post-tool",
+    "session-start"
+   ],
+   "loud": false,
+   "mode": "allow-schema",
+   "schema_present": false,
+   "skill_count": 2,
+   "skill_ids": [
+    "skill.alpha",
+    "skill.beta"
+   ],
+   "unknown_keys": []
+  }
+ },
+ "loud_error_on_missing_hook": true,
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/TST-0181/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "count=2 errors=['hook post-tool failed to load: missing file hooks/post-tool.py']",
+   "description": "Delete hooks/post-tool.py. Live resolve count must drop by one and the error must name the hook. Declared-only counting stays at baseline.",
+   "fired_on_bad_state": true,
+   "good_state_output": "count=3",
+   "id": "unlink-post-tool",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "silent_count=0",
+   "description": "Codex-shaped deny_unknown_fields client swallows `$schema` into a silent zero. Production allow-schema client must not match it.",
+   "fired_on_bad_state": true,
+   "good_state_output": "allow_schema_count=3",
+   "id": "deny-unknown-silent-schema",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "unknown top-level field(s) notARealField (only $schema is reserved as annotation)",
+   "description": "A non-$schema extra key is a loud named reject, not a silent zero.",
+   "fired_on_bad_state": true,
+   "good_state_output": "hooks.json with only $schema+hooks+skills loads",
+   "id": "unknown-top-level-field",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json#/$defs/parser_report",
+ "parser": {
+  "client": "command-center/p2-wave/probes/TST-0181/hooks_client.py",
+  "codex_deny_unknown_silent_reproduced": true,
+  "missing_hook_policy": "drop-from-count-and-name-in-errors",
+  "reserved_annotation_keys": [
+   "$schema"
+  ],
+  "unknown_top_level_policy": "loud-reject-named-field"
+ },
+ "question": "Does the presence or absence of a `$schema` key alter how many hooks/skills a client loads? PASS requires an identical loaded set across both forms, and a loud error if any hook fails to load rather than a silent zero.",
+ "report_kind": "parser_report",
+ "residual_unknowns": [
+  {
+   "claim": "Installed Codex CLI HooksFile serde(deny_unknown_fields) was not invoked as a binary on this Linux worktree; the silent-zero behaviour is reproduced by the deny-unknown-silent mutant that matches the recorded estate failure class.",
+   "settling_experiment": "Feed the same fixtures to a live `codex` hooks loader and compare inventory counts.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "_USER-PROMPTS.md:11014 / 11302 / 11309 are not on this worktree; the unit question is taken from WORK-UNIT-CATALOG.json TST-0181.",
+   "settling_experiment": "Diff the catalog question against the prompts file if restored.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot - same-fingerprint structural refute parks BLOCKED"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Adversarial control is probe2: it unlinks a hook file to prove the count probe can see a change, and it runs the deny-unknown silent mutant that reproduces the Codex `$schema` zero-load seed. Not a second-human review.",
+  "reviewer_id": "TST-0181-probe2-detector-drop",
+  "verdict": "PASS"
+ },
+ "schema_key_does_not_change_loaded_set": true,
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0181",
+ "silent_zero_refuted": true,
+ "spec_anchor": "_USER-PROMPTS.md:11014,11302,11309; MEMORY:hooks.json $schema",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 2,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0181/probe1_schema_parity.py",
+   "id": "TST-0181-T1-both-states-schema",
+   "name": "both-states control: the counts must be equal with and without `$schema`",
+   "output_tail": "{\n  \"probe\": \"probe1-schema-parity\",\n  \"with_schema\": {\n    \"declared_hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"declared_skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 3,\n    \"hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"loud\": false,\n    \"mode\": \"allow-schema\",\n    \"schema_present\": true,\n    \"skill_count\": 2,\n    \"skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"unknown_keys\": []\n  },\n  \"without_schema\": {\n    \"declared_hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"declared_skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 3,\n    \"hook_ids\": [\n      \"pre-tool\",\n      \"post-tool\",\n      \"session-start\"\n    ],\n    \"loud\": false,\n    \"mode\": \"allow-schema\",\n    \"schema_present\": false,\n    \"skill_count\": 2,\n    \"skill_ids\": [\n      \"skill.alpha\",\n      \"skill.beta\"\n    ],\n    \"unknown_keys\": []\n  }\n}\nschema_parity hooks=3 skills=2 fired=3 identical=true\nSUCCESS:TST-0181-probe1 $schema does not change loaded hooks/skills\n",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0181/probe2_detector_drop.py",
+   "id": "TST-0181-T2-detector-drop",
+   "name": "detector control: remove one hook file and confirm the count probe drops (regression seed: hooks.json $schema silent zero)",
+   "output_tail": "{\n  \"after_unlink_count\": 2,\n  \"after_unlink_errors\": [\n    \"hook post-tool failed to load: missing file hooks/post-tool.py\"\n  ],\n  \"baseline_count\": 3,\n  \"declared_only_count\": 3,\n  \"deny_unknown_silent_with_schema\": {\n    \"declared_hook_ids\": [],\n    \"declared_skill_ids\": [],\n    \"errors\": [],\n    \"fired\": {},\n    \"hook_count\": 0,\n    \"hook_ids\": [],\n    \"loud\": false,\n    \"mode\": \"deny-unknown-silent\",\n    \"schema_present\": true,\n    \"skill_count\": 0,\n    \"skill_ids\": [],\n    \"unknown_keys\": [\n      \"$schema\"\n    ]\n  },\n  \"probe\": \"probe2-detector-drop\",\n  \"restored_count\": 3,\n  \"unknown_field_error\": \"unknown top-level field(s) notARealField (only $schema is reserved as annotation)\"\n}\ndetector baseline=3 after_unlink=2 declared_only=3 codex_silent_zero=0 loud_missing=true\nSUCCESS:TST-0181-probe2 count drops on missing hook; $schema is not silent-zero\n",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:00:19Z",
+  "started_at": "2026-08-25T01:00:19Z"
+ },
+ "title": "A `$schema` key must not change which hooks load",
+ "unit_id": "TST-0181"
+}

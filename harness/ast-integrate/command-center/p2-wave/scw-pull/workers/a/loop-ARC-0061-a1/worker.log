@@ -1,0 +1,23 @@
+
+===== launch 2026-08-20T07:42:51Z attempt=1 =====
+I'll start from the ARC-0061 probe tree and the claim-verify-gate skill, then implement or resume until the unit measure prints `SUCCESS:delivered`.ARC-0061 has no probe tree yet, so I’ll look up the unit contract and a delivered neighbor as the template.Catalog entry and a delivered ARC unit next — those define the contract I have to implement.A9 isn't on disk yet. I'll pull the architecture-review schema, sibling ARC units, and any existing failure-mode receipts.The AUD-0005 worktree has `maximal-hybrid.md`; I’ll use that as the composed-design source.I have the A9 hybrid design and the receipt contract. Next I’ll add the detector, both-states probes, and pack `FAILURE-MODES.json`.Probes are in place. I’ll run them, pack the receipt, then measure.ARC-0061 is G-1 contract-green on this worktree. `python command-center/p2-wave/_measure_one_delivered.py ARC-0061` printed:
+
+`SUCCESS:delivered ARC-0061 predicate=delivered state=SUCCESS probes=4 raws=4 notes=detector.py:0,probe_ordering.py:0,reviewer_missed_mode.py:0,verify_receipt.py:0`
+
+The probe tree did not exist, so it was created and implemented rather than parked on a first `predicate:absent`.
+
+**What landed**
+- Catalog output: `command-center/phase3/A9/FAILURE-MODES.json` (`state=SUCCESS`, architecture-review, 28268 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0061/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 match `f2a83b4cf5ea3ea197bf4805f5d8fdcfa530c0484b6ff09687e5fdd5ba463042`)
+- Handoff: `command-center/p2-wave/probes/ARC-0061/SUBAGENT-RETURN.json`
+
+**Live science**
+- Duplicate-control-plane detector is silent on the clean hybrid table (0 findings) and fires when a second authority is planted (`receipt-contract` → 3 findings) and when install gets a second permission check (3 findings); revert returns to 0.
+- Ten cross-plane ordering constraints, each with `failure_if_violated`; a markdown witness independently lists P1–P6 and the same 10 order tokens.
+- Independent reviewer added `FM-HEAL-WITHOUT-REPORT` (writer and checker collapsed into one process).
+- Schema: platform-resolver 0 errors; deleting `report.kind` produces 2 errors.
+
+**Honest residual (not a park)**
+`command-center/phase3/A9/DESIGN.json` is still absent (ARC-0059). The detector prefers that path when present and otherwise runs against `composed-design.json`. The original 47-class list at `_USER-PROMPTS.md:11300-11347` is not mounted; completeness against that file is `NOT-CHECKED`.
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok is not this delivery.

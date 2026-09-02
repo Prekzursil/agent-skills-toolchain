@@ -1,0 +1,157 @@
+{
+  "id": "harness.mcp.schema-heavy",
+  "origin": "harness-fixture",
+  "kind": "mcp_server",
+  "transport": "stdio-schema-fixture",
+  "title": "Wide JSON-schema tool surface (dominating set)",
+  "tools": [
+    {
+      "name": "search_code",
+      "description": "Search a remote code host for matching blobs. Returns ranked hits with repository, path, commit SHA, and a snippet. This description is intentionally long because real MCP search tools ship multi-paragraph contracts covering pagination, rate limits, authentication scopes, and the difference between filename search and content search.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Search expression. Supports path:, language:, and org: qualifiers."
+          },
+          "language": {
+            "type": "string",
+            "enum": ["python", "typescript", "go", "rust", "java", "c", "cpp", "json", "markdown"]
+          },
+          "org": {"type": "string"},
+          "repo": {"type": "string"},
+          "path_prefix": {"type": "string"},
+          "max_results": {"type": "integer", "minimum": 1, "maximum": 100, "default": 20},
+          "sort": {"type": "string", "enum": ["best_match", "indexed", "recent"], "default": "best_match"},
+          "include_forks": {"type": "boolean", "default": false}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "get_file_contents",
+      "description": "Fetch a file at a ref. Records redirect vs direct; does not silently follow a renamed repository as if it were the original URL.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "path": {"type": "string"},
+          "ref": {"type": "string", "description": "Branch, tag, or commit SHA."},
+          "encoding": {"type": "string", "enum": ["utf-8", "base64"], "default": "utf-8"}
+        },
+        "required": ["owner", "repo", "path"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_commits",
+      "description": "List commits for a path with author, timestamp, and SHA. Snapshot-dated because last-commit dates decay.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "sha": {"type": "string"},
+          "path": {"type": "string"},
+          "since": {"type": "string", "format": "date-time"},
+          "until": {"type": "string", "format": "date-time"},
+          "per_page": {"type": "integer", "minimum": 1, "maximum": 100, "default": 30},
+          "page": {"type": "integer", "minimum": 1, "default": 1}
+        },
+        "required": ["owner", "repo"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "web_search",
+      "description": "Web search rail. Returns title, URL, published date if present, and a snippet. Does not treat a snippet as a measured fact.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "query": {"type": "string", "minLength": 2},
+          "num_results": {"type": "integer", "minimum": 1, "maximum": 25, "default": 8},
+          "freshness_days": {"type": "integer", "minimum": 1, "maximum": 3650},
+          "site": {"type": "string"},
+          "language": {"type": "string"}
+        },
+        "required": ["query"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "scrape_url",
+      "description": "Fetch a URL and return extracted markdown plus HTTP status, final URL, redirect chain, and sha256 of captured bytes.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {"type": "string", "format": "uri"},
+          "formats": {
+            "type": "array",
+            "items": {"type": "string", "enum": ["markdown", "html", "links", "screenshot"]},
+            "default": ["markdown"]
+          },
+          "wait_for_ms": {"type": "integer", "minimum": 0, "maximum": 30000, "default": 0},
+          "include_tags": {"type": "array", "items": {"type": "string"}},
+          "exclude_tags": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "pack_repository",
+      "description": "Pack a remote repository into a single text blob with per-file path headers. Token-expensive; used as a worst-case schema-and-body analogue.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "url": {"type": "string", "format": "uri"},
+          "ref": {"type": "string"},
+          "include_globs": {"type": "array", "items": {"type": "string"}},
+          "exclude_globs": {"type": "array", "items": {"type": "string"}},
+          "max_file_bytes": {"type": "integer", "minimum": 1024, "maximum": 1048576, "default": 131072},
+          "max_files": {"type": "integer", "minimum": 1, "maximum": 5000, "default": 400}
+        },
+        "required": ["url"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "ask_wiki",
+      "description": "Ask a documentation wiki about a repository. Answers are prose, not measured facts, and must be paired with a code-level rail.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "repo": {"type": "string"},
+          "question": {"type": "string", "minLength": 8},
+          "context_paths": {"type": "array", "items": {"type": "string"}}
+        },
+        "required": ["repo", "question"],
+        "additionalProperties": false
+      }
+    },
+    {
+      "name": "list_issues",
+      "description": "List issues or pull requests with filters. Includes state, labels, author, and updated-at.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "owner": {"type": "string"},
+          "repo": {"type": "string"},
+          "state": {"type": "string", "enum": ["open", "closed", "all"], "default": "open"},
+          "labels": {"type": "array", "items": {"type": "string"}},
+          "assignee": {"type": "string"},
+          "since": {"type": "string", "format": "date-time"},
+          "sort": {"type": "string", "enum": ["created", "updated", "comments"], "default": "updated"},
+          "direction": {"type": "string", "enum": ["asc", "desc"], "default": "desc"},
+          "per_page": {"type": "integer", "minimum": 1, "maximum": 100, "default": 30}
+        },
+        "required": ["owner", "repo"],
+        "additionalProperties": false
+      }
+    }
+  ]
+}

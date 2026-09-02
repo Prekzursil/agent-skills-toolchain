@@ -1,0 +1,39 @@
+
+===== launch 2026-08-19T18:03:54Z attempt=2 =====
+I'll start from the existing WFA-0003 probe tree and the unit's current artifacts, then measure what still blocks G-1.The probe tree already exists and is marked blocked on missing pinned artifacts. I'll read the return file, measure script, and unit spec next.The unit is parked on missing pinned corpus files. I’ll search this machine for those five hash-pinned artifacts before treating the block as final.The required fix is mounting the five pinned files. I’ll search the box and other checkouts for those names and hashes.The five files are not under the expected roots. I’ll check other WFA units, in-repo copies, and git objects for the pinned hashes.The named files aren’t on disk. I’ll search git objects, AUD-0005, and other WFA probe trees for the same bytes.WFA-0005 delivered from extracts; WFA-0011 parked on the same missing files. I’ll check whether reconstructable copies exist and what `_pack_receipt.py` requires for SUCCESS.There's a frozen harvest tree under `cloud-ok-2026-08-17`. I'll search that for the five pinned files.The five pinned files are not on this host. I’ll re-run the existing probes, pack an honest BLOCKED receipt, and measure — no third rebuild on the same missing-input fingerprint.Probes are green and the receipt is honestly BLOCKED. Next I’ll write the return file and run the delivery measure.**FAILED:WFA-0003** — `predicate:self-declared:BLOCKED`
+
+`python command-center/p2-wave/_measure_one_delivered.py WFA-0003` printed:
+
+`FAILED:delivered WFA-0003 predicate:self-declared:BLOCKED`
+
+G-1 is not delivered. The five catalog-pinned `harness-restore-20260806` files are still absent on this Linux worktree. Two independent remesures share that same structural reason, so the unit is parked rather than rebuilt.
+
+**What was remesured**
+
+Existing named probes were resumed, not replaced. All three re-ran exit 0:
+
+| Probe | Exit | Result |
+|---|---|---|
+| `probe_a_set_intersection.py` | 0 | `PRESENT_COUNT=0`, `REAL_VERDICT=BLOCKED_MISSING_ALL_OR_SOME_PINNED_INPUTS` |
+| `probe_b_reverse_lookup.py` | 0 | historic 31/0/7 control green; current intersection `NOT_MEASURED` |
+| `test_controls.py` | 0 | `SUCCESS:WFA-0003-controls` |
+
+This pass also searched beyond the resolver roots (`/opt/p2`, `/root`, `/home`, `/mnt`, `/tmp`, the 2026-08-17 harvest tarball, AUD-0005 toolchain git, WFA-0005 extracts). Only the AUD-0067 ~376 B stubs exist; those stay rejected (`MIN_REAL_BYTES=10000`).
+
+**Honest artifacts**
+
+- Receipt `command-center/wfa/WFA-0003-id-namespace-audit.json`: `state=BLOCKED`, 80287 B, LF sha256 `28fdf9960b0e2ca2d05c292124fb52e7f28cb4c41b4537a325bad3bfc26dc116`
+- Per-unit `command-center/p2-wave/probes/WFA-0003/UNIT-ARTIFACT-MANIFEST.json` names that path with the matching hash
+- `command-center/p2-wave/probes/WFA-0003/SUBAGENT-RETURN.json`: `status=BLOCKED`, `parked=true`, `strikes=2`
+
+**required_fix**
+
+Mount or copy these five hash-pinned files, then rerun probe A, probe B, and `_pack_receipt.py`:
+
+- `08-WORKFLOW-CANDIDATE-REGISTRY.json` 261589 B `4791c7a6…`
+- `09-WORKFLOW-BLUEPRINT-LIBRARY.json` 440719 B `78c5f4c5…`
+- `10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json` 161920 B `af7ff9ac…`
+- `07-OPTION-UNIVERSE.json` 351317 B `33fd7c23…`
+- `13-ARCHITECTURE-CANDIDATES.md` 98838 B `a5935763…`
+
+Constraints kept: no git mutation, no `unit_manifest.py --write`, no key rotation, no wave relaunch, no SUCCESS hand-flip from Windows `_cloud_ok_validate.out.json` or `OPTION-ID-RESOLUTION.json`.

@@ -1,0 +1,32 @@
+
+===== launch 2026-08-20T07:42:05Z attempt=1 =====
+I'll start by reading the unit's probe tree and the delivery contract so I can resume any existing work instead of rebuilding from scratch.The probe tree is missing, so I’ll load the unit catalog, the measure script, and a delivered ARC unit as the implementation template.Next I’ll pull the A6 design, the test-plan schema, a delivered ARC probe, and how `artifact_delivered` decides SUCCESS.The unit was never started, so I’m implementing the conformance matrix, the two catalog tests, and the probe tree from scratch.Named probes are in place. Next I’ll run them, then pack the receipt from the live outputs.Two probe assertions were wrong: capability flags already make silent-degrade a MISMATCH, and inferred cells were still marked unrun. I’m correcting both.**SUCCESS:delivered ARC-0043** — G-1 contract-green on this worktree.
+
+The unit had never been started (`probes/ARC-0043/` was missing). That was an implement signal, not a park. The probe tree, the two catalog tests, and the receipt are now live.
+
+**Measure**
+```
+SUCCESS:delivered ARC-0043 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_loud_failure.py:0,probe_schema_parity.py:0,probe_unrun_cells.py:0,review_uncaught_mutation.py:0
+```
+
+**What ran**
+- **Loud-failure:** disable `schema_emit` on one vendor → differential is `MISMATCH`, and that adapter does not emit `SUCCESS`.
+- **Schema-parity:** both adapters validate against the same file, by path (`canary-artifact.schema.json`). A byte-identical copy at another path is `MISMATCH`.
+- **Unrun honesty:** an unrun cell stays `NOT-CHECKED` and is never filled from the other vendor.
+- **Reviewer hole (named, not a fail):** `payload.echo` can change while schema and sentinel stay green. The matrix does not pretend full interchangeability.
+
+**Matrix (honest)**
+
+| Lane | anthropic | openai | differential |
+|---|---|---|---|
+| adapter-local (actually run) | SUCCESS | SUCCESS | MATCH |
+| live LLM API | NOT-CHECKED | NOT-CHECKED | NOT-CHECKED |
+
+`command-center/phase3/A6/DESIGN.json` is absent (ARC-0038). Tiers come from the catalog text and that gap is recorded `NOT-CHECKED`, not invented.
+
+**Artifacts**
+- Receipt: `command-center/phase3/A6/TEST-PLAN.json` (`state=SUCCESS`, 24691 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0043/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 match `654e4daa27bb790f4cf6fd8ed23484e765d77f5918b5712f3aae9f96d1472aa7`)
+- Handoff: `command-center/p2-wave/probes/ARC-0043/SUBAGENT-RETURN.json`
+
+No git writes, no global `unit_manifest.py --write`, no wave relaunch. cloud `ok=true` is not this delivery.

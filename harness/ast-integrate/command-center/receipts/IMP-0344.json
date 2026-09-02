@@ -1,0 +1,253 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0344.json",
+  "tools/council/bridge.py",
+  "tools/council/__init__.py",
+  "command-center/p2-wave/probes/IMP-0344/scenario.py",
+  "command-center/p2-wave/probes/IMP-0344/probe1_integration.py",
+  "command-center/p2-wave/probes/IMP-0344/probe2_swallowed_failure.py"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0344.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/bridge.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/council/__init__.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0344/scenario.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0344/probe1_integration.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0344/probe2_swallowed_failure.py",
+   "role": "supporting"
+  }
+ ],
+ "ast_invariant": {
+  "hits": [],
+  "ok": true
+ },
+ "completion_sentinel": "SUCCESS:IMP-0344",
+ "control_plane_census": {
+  "event_log_count": 1,
+  "event_log_ids": [
+   "log-75051554dcec"
+  ],
+  "plane_count": 1,
+  "plane_ids": [
+   "plane-77c811e92872"
+  ],
+  "scheduler_count": 1,
+  "scheduler_ids": [
+   "sched-cfeed21d171b"
+  ],
+  "single_control_plane": true
+ },
+ "evidence": [
+  {
+   "anchor": "tools/council/bridge.py:CensusWindow+WorkflowRunner.run",
+   "claim": "A composed workflow run that invokes a council as a stage and consumes the typed decision downstream uses exactly one scheduler and one event log.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.run_integration",
+     "exit_code": 0,
+     "method": "in-process",
+     "raw_output": "{\"event_log_count\": 1, \"event_log_ids\": [\"log-75051554dcec\"], \"plane_count\": 1, \"plane_ids\": [\"plane-77c811e92872\"], \"scheduler_count\": 1, \"scheduler_ids\": [\"sched-cfeed21d171b\"], \"single_control_plane\": true}",
+     "role": "source"
+    },
+    {
+     "command": "ControlPlaneCensus.single_control_plane",
+     "exit_code": 0,
+     "method": "construction-log",
+     "raw_output": "event_log_count=1 scheduler_count=1 plane_count=1 single=True",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/bridge.py:CouncilBridge._classify",
+   "claim": "A council failure inside a workflow is classified by reading the workflow node's failure policy (family=model-error, action=abort, source=workflow.failure_policy), not by a council-local policy.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.run_honest_failure",
+     "exit_code": 0,
+     "method": "in-process",
+     "raw_output": "{\"action\": \"abort\", \"family\": \"model-error\", \"message\": \"vendor 500\", \"ref_seq\": 4, \"source\": \"workflow.failure_policy\", \"stage_id\": \"deliberate\"}",
+     "role": "source"
+    },
+    {
+     "command": "detect_swallowed_council_failure on honest run",
+     "exit_code": 0,
+     "method": "event-log",
+     "raw_output": "swallowed_count=0",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_fixture": {
+  "action": "abort",
+  "family": "model-error",
+  "message": "vendor 500",
+  "ref_seq": 4,
+  "source": "workflow.failure_policy",
+  "stage_id": "deliberate"
+ },
+ "falsifiable_answers": {
+  "council_failure_classification": "Classified under the workflow failure policy ({'action': 'abort', 'family': 'model-error', 'message': 'vendor 500', 'ref_seq': 4, 'source': 'workflow.failure_policy', 'stage_id': 'deliberate'}). A swallowed failure is not a silent pass ({'action': 'abort', 'family': 'swallowed-failure', 'message': 'unclassified council.turn.failed seq=8 (inner family model-error)', 'ref_seq': 8, 'source': 'workflow.failure_policy', 'stage_id': 'deliberate'}).",
+  "second_scheduler_or_event_log": "No on the happy path: event_log_count=1 scheduler_count=1. A planted second EventLog is detected (event_log_count=2)."
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0344/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "module_path": "tools/council/bridge.py",
+ "negative_control_ids": [
+  "IMP-0344-C1-swallowed-failure-fixture",
+  "IMP-0344-C2-planted-second-event-log",
+  "IMP-0344-C3-out-of-taxonomy-policy"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "bad_count=1 kind=council.turn.failed",
+   "description": "A council.turn.failed event with no workflow.failure.classified must fire detect_swallowed_council_failure. The same failure with a policy classification must be silent. A SwallowingInvoker through the live bridge must not silently pass.",
+   "fired_on_bad_state": true,
+   "good_state_output": "good_count=0 bridge_silent_pass=False bridge_family=swallowed-failure",
+   "id": "IMP-0344-C1-swallowed-failure-fixture",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\"event_log_count\": 2, \"event_log_ids\": [\"log-9b792f9ded6d\", \"log-e62289b77755\"], \"plane_count\": 1, \"plane_ids\": [\"plane-2f317ab7aa2a\", \"rival-plane\"], \"scheduler_count\": 1, \"scheduler_ids\": [\"sched-0bd2ca4d8685\"], \"single_control_plane\": false}",
+   "description": "An invoker that constructs a second EventLog during a council stage must make ControlPlaneCensus.single_control_plane false and classify duplicate-control-plane under the workflow policy.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"event_log_count\": 1, \"event_log_ids\": [\"log-75051554dcec\"], \"plane_count\": 1, \"plane_ids\": [\"plane-77c811e92872\"], \"scheduler_count\": 1, \"scheduler_ids\": [\"sched-cfeed21d171b\"], \"single_control_plane\": true}",
+   "id": "IMP-0344-C2-planted-second-event-log",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "out-of-taxonomy families ['not-a-family']; closed set is ['cancelled', 'council-internal', 'duplicate-control-plane', 'model-error', 'policy-violation', 'resource-exhausted', 'schema-invalid', 'swallowed-failure', 'timeout', 'tool-error']",
+   "description": "A policy naming a family outside the closed set fails validation.",
+   "fired_on_bad_state": true,
+   "good_state_output": "complete_policy() validates",
+   "id": "IMP-0344-C3-out-of-taxonomy-policy",
+   "kind": "schema-invalid",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0344: live named probes, honest SUCCESS receipt, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0344",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-bridge-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+ "planted_second_plane": {
+  "event_log_count": 2,
+  "event_log_ids": [
+   "log-9b792f9ded6d",
+   "log-e62289b77755"
+  ],
+  "plane_count": 1,
+  "plane_ids": [
+   "plane-2f317ab7aa2a",
+   "rival-plane"
+  ],
+  "scheduler_count": 1,
+  "scheduler_ids": [
+   "sched-0bd2ca4d8685"
+  ],
+  "single_control_plane": false
+ },
+ "residual_unknowns": [
+  {
+   "claim": "tools/council/kernel.py (IMP-0264) is not on this worktree. The bridge binds a CouncilInvoker; InProcessDeliberation is the stand-in that still submits every seat through the host scheduler.",
+   "settling_experiment": "Deliver IMP-0264 KernelInvoker and re-run probe1 against it.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "tools/agentspec/agentspec/taxonomy.py (IMP-0138) is not on this worktree. Bridge-local FAMILIES is the closed set used here; remap when the agentspec taxonomy lands.",
+   "settling_experiment": "Import agentspec.taxonomy families and assert set(FAMILIES) is a subset, then re-run out-of-taxonomy validation.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "No live vendor council was seated. Votes are deterministic from the brief string.",
+   "settling_experiment": "Bind a vendor-backed invoker and re-run the integration workflow with recorded sampling parameters.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Adversarial review started from the named probes and scenario fixtures, not from this receipt. Probe 1 re-runs the census and the planted second-log control. Probe 2 re-runs the swallowed-failure fixture both-states and the live SwallowingInvoker.",
+  "reviewer_id": "IMP-0344-named-probes",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0344",
+ "spec_anchor": "_USER-PROMPTS.md:10727 (do not import a second orchestration runtime); _USER-PROMPTS.md:10483 (do not create duplicate control planes); catalog IMP-0344 council-as-a-workflow-stage bridge",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "swallowed_bridge": {
+  "action": "abort",
+  "family": "swallowed-failure",
+  "message": "unclassified council.turn.failed seq=8 (inner family model-error)",
+  "ref_seq": 8,
+  "source": "workflow.failure_policy",
+  "stage_id": "deliberate"
+ },
+ "test_ids": [
+  "IMP-0344-T1-integration",
+  "IMP-0344-T2-invariant-single-plane",
+  "IMP-0344-T3-negative-swallowed-failure"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0344/probe1_integration.py",
+   "id": "IMP-0344-T1-integration",
+   "name": "Council invoked as a stage; typed decision consumed downstream",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0344/probe1_integration.py",
+   "id": "IMP-0344-T2-invariant-single-plane",
+   "name": "Census is one scheduler and one event log; planted second log is detected",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0344/probe2_swallowed_failure.py",
+   "id": "IMP-0344-T3-negative-swallowed-failure",
+   "name": "Swallowed council failure is detected and classified; honest failure is silent for the detector",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:01:29Z",
+  "started_at": "2026-08-25T01:01:29Z"
+ },
+ "title": "Council-as-a-workflow-stage bridge",
+ "unit_id": "IMP-0344"
+}

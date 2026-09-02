@@ -1,0 +1,37 @@
+{
+  "fusion_id": "fx-two-scheduler",
+  "kind": "fused_workflow_ir",
+  "sources": [
+    {"id": "wf-src-a", "capabilities": ["ingest", "transform"]},
+    {"id": "wf-src-b", "capabilities": ["emit"]}
+  ],
+  "capabilities": ["ingest", "transform", "emit"],
+  "declared": {
+    "schedulers": [{"id": "sched-primary"}, {"id": "sched-imported"}],
+    "state_stores": [{"id": "store-primary", "snapshot": "snap-ok"}],
+    "execution_order_owners": [
+      {"id": "sched-primary"},
+      {"id": "sched-imported"}
+    ]
+  },
+  "components": [
+    {
+      "id": "sched-primary",
+      "role": "scheduler",
+      "owns_execution_order": true
+    },
+    {
+      "id": "sched-imported",
+      "role": "scheduler",
+      "owns_execution_order": true
+    },
+    {"id": "store-primary", "role": "state_store"}
+  ],
+  "runtime_script": [
+    {"process": "sched-primary", "op": "run_loop"},
+    {"process": "sched-primary", "op": "schedule_step", "target": "step-ingest"},
+    {"process": "sched-imported", "op": "run_loop"},
+    {"process": "sched-imported", "op": "schedule_step", "target": "step-emit"},
+    {"process": "store-primary", "op": "commit_state", "target": "store-primary"}
+  ]
+}

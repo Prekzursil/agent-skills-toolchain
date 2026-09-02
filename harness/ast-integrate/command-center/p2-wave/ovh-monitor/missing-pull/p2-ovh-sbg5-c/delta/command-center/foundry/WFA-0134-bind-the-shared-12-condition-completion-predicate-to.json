@@ -1,0 +1,2184 @@
+{
+  "unit_id": "WFA-0134",
+  "id": "WFA-0134",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:WFA-0134",
+  "completion_sentinel": "SUCCESS:WFA-0134",
+  "title": "Bind the shared 12-condition completion predicate to a workflow artifact",
+  "artifact_kind": "certification-predicate",
+  "mechanism": "single-reducer binding of the program completion predicate to the workflow type",
+  "question": "Instantiate the program's single completion predicate (spec conditions 1-12) for the workflow-artifact type and emit a per-workflow CERTIFIED / PROVISIONAL / REJECTED record naming which of the 12 conditions passed, failed, or are not-applicable with a reason. Question: which of the 12 conditions are genuinely inapplicable to a workflow blueprint (versus quietly skipped), and does the same reducer run in the local runner, the tournament runner, and the certification gate?",
+  "answer": "None of the 12 spec conditions are genuinely inapplicable to a workflow blueprint. Quiet skip is forbidden: a missing test, reviewer, mutation control, sentinel, manifest row, or downstream read is FAIL, not N/A. The reducer can still render N/A when unit_class is not workflow-artifact and the caller supplies applicability=false WITH a reason; N/A is never counted as a pass (golden-with-N/A on C9 yields CERTIFIED with pass_count=11 na_count=1). Unreasoned N/A fail-closes. The same reducer tools.foundry.completion_predicate.evaluate is imported by the local runner, the tournament runner, and the certification gate; the import graph is computed from AST (not asserted) and a planted rival predicate at the gate makes the detector fire.",
+  "answers": {
+    "inapplicable_to_workflow_blueprint": "None. All 12 conditions are applicable to workflow-artifact certification. Treating any as N/A would be a quiet skip of the spec. The applicability table records applicable=true and quietly_skipped=false for every condition.",
+    "same_reducer_three_sites": "Yes. AST import graph shows tools.foundry.completion_predicate imported and evaluate() called from tools/foundry/local_runner.py, tools/foundry/tournament_runner.py, and tools/foundry/certification_gate.py. The three sites return identical per-condition statuses on the same subject; only locus differs."
+  },
+  "binding": {
+    "unit_class": "workflow-artifact",
+    "policy": "all-12-applicable",
+    "reducer_module": "tools.foundry.completion_predicate",
+    "reducer_path": "tools/foundry/completion_predicate.py",
+    "evaluate_line": 438,
+    "anti_patterns": {
+      "exit_code_zero_alone_never_success": true,
+      "plausible_digest_is_not_a_receipt": true,
+      "path_in_text_is_not_proof_file_exists": true
+    }
+  },
+  "applicability": [
+    {
+      "id": 1,
+      "name": "process/task reached a valid terminal state",
+      "spec": 10633,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "Certification of a blueprint is a process; a non-terminal run is not a certified workflow.",
+      "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+    },
+    {
+      "id": 2,
+      "name": "expected artifact exists",
+      "spec": 10634,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "The blueprint file must exist on disk; a path in the subject is not proof.",
+      "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+    },
+    {
+      "id": 3,
+      "name": "artifact is non-empty and exceeds a meaningful minimum size",
+      "spec": 10635,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "An empty or stub blueprint is not a workflow artifact; size is a real floor.",
+      "impl": "tools/foundry/completion_predicate.py:_c3_size"
+    },
+    {
+      "id": 4,
+      "name": "artifact parses against its schema",
+      "spec": 10636,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "The blueprint must parse against the workflow schema; invalid JSON is not certified.",
+      "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+    },
+    {
+      "id": 5,
+      "name": "required sentinel is present",
+      "spec": 10637,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "The certification sentinel is the stamp on the artifact, not a work-unit decoration.",
+      "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+    },
+    {
+      "id": 6,
+      "name": "required evidence anchors exist",
+      "spec": 10638,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "Two independent evidence anchors (file:line and a rerunnable command) are required.",
+      "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+    },
+    {
+      "id": 7,
+      "name": "required tests ran and passed",
+      "spec": 10639,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "Required tests must have run and passed; missing tests fail closed.",
+      "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+    },
+    {
+      "id": 8,
+      "name": "negative controls or mutations fail as expected",
+      "spec": 10640,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "Mutation controls must fire; a silent control is not evidence the gate is wired.",
+      "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+    },
+    {
+      "id": 9,
+      "name": "independent reviewer status is PASS",
+      "spec": 10641,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "Independent reviewer PASS is required; absence is FAIL, not a quiet N/A skip.",
+      "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+    },
+    {
+      "id": 10,
+      "name": "no unresolved P0/P1 defect is attached",
+      "spec": 10642,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "An unresolved P0/P1 attached to the workflow blocks certification.",
+      "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+    },
+    {
+      "id": 11,
+      "name": "output was registered in the artifact manifest",
+      "spec": 10643,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "The live sha256 must appear in the manifest; a plausible digest is not a receipt.",
+      "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+    },
+    {
+      "id": 12,
+      "name": "downstream consumers can read it",
+      "spec": 10644,
+      "applicable": true,
+      "quietly_skipped": false,
+      "reason": "A foundry consumer must actually read the blueprint; schema-ok is not enough.",
+      "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+    }
+  ],
+  "records": [
+    {
+      "workflow_id": "wf-golden",
+      "record": "CERTIFIED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 12,
+        "fail_count": 0,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c01",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "FAIL",
+          "reason": "non-terminal:RUNNING",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c02",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "FAIL",
+          "reason": "absent",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "FAIL",
+          "reason": "below-min:0<64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "FAIL",
+          "reason": "schema:absent",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "FAIL",
+          "reason": "sentinel-absent:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "FAIL",
+          "reason": "manifest:artifact-absent",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "FAIL",
+          "reason": "consumer:artifact-absent",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 6,
+        "fail_count": 6,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c03",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "FAIL",
+          "reason": "below-min:2<64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "FAIL",
+          "reason": "schema:unparseable:Expecting value",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "FAIL",
+          "reason": "sentinel-absent:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "FAIL",
+          "reason": "unparseable:Expecting value",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 8,
+        "fail_count": 4,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c04",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:236>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "FAIL",
+          "reason": "schema:<root>:'stages' is a required property",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "FAIL",
+          "reason": "no-stages",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 10,
+        "fail_count": 2,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c05",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "FAIL",
+          "reason": "sentinel-absent:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c06",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "FAIL",
+          "reason": "need-two-anchors:n=0",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c07",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "FAIL",
+          "reason": "failed:schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c08",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "FAIL",
+          "reason": "silent:c2-absent-file",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c09",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "FAIL",
+          "reason": "reviewer:FAIL",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c10",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "FAIL",
+          "reason": "open:DEF-P0-1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c11",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "FAIL",
+          "reason": "sha256-mismatch",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-mutant-c12",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:381>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "FAIL",
+          "reason": "action-not-consumable:'not-a-foundry-action'",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 1,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-provisional",
+      "record": "PROVISIONAL",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "PASS",
+          "reason": "present",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "PASS",
+          "reason": "size:378>=64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "PASS",
+          "reason": "schema-ok",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "PASS",
+          "reason": "sentinel:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "UNKNOWN",
+          "reason": "reviewer:NOT-CHECKED",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "PASS",
+          "reason": "registered",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "PASS",
+          "reason": "consumed",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 11,
+        "fail_count": 0,
+        "na_count": 0,
+        "unknown_count": 1,
+        "exit_only_rejected": false,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    },
+    {
+      "workflow_id": "wf-exit-zero",
+      "record": "REJECTED",
+      "locus": "certification-gate",
+      "reducer": "tools.foundry.completion_predicate",
+      "conditions": [
+        {
+          "id": 1,
+          "name": "process/task reached a valid terminal state",
+          "spec": 10633,
+          "status": "PASS",
+          "reason": "terminal:SUCCESS",
+          "impl": "tools/foundry/completion_predicate.py:_c1_terminal"
+        },
+        {
+          "id": 2,
+          "name": "expected artifact exists",
+          "spec": 10634,
+          "status": "FAIL",
+          "reason": "absent",
+          "impl": "tools/foundry/completion_predicate.py:_c2_exists"
+        },
+        {
+          "id": 3,
+          "name": "artifact is non-empty and exceeds a meaningful minimum size",
+          "spec": 10635,
+          "status": "FAIL",
+          "reason": "below-min:0<64",
+          "impl": "tools/foundry/completion_predicate.py:_c3_size"
+        },
+        {
+          "id": 4,
+          "name": "artifact parses against its schema",
+          "spec": 10636,
+          "status": "FAIL",
+          "reason": "schema:absent",
+          "impl": "tools/foundry/completion_predicate.py:_c4_schema"
+        },
+        {
+          "id": 5,
+          "name": "required sentinel is present",
+          "spec": 10637,
+          "status": "FAIL",
+          "reason": "sentinel-absent:SUCCESS:wf-golden",
+          "impl": "tools/foundry/completion_predicate.py:_c5_sentinel"
+        },
+        {
+          "id": 6,
+          "name": "required evidence anchors exist",
+          "spec": 10638,
+          "status": "PASS",
+          "reason": "anchors:2",
+          "impl": "tools/foundry/completion_predicate.py:_c6_evidence"
+        },
+        {
+          "id": 7,
+          "name": "required tests ran and passed",
+          "spec": 10639,
+          "status": "PASS",
+          "reason": "tests-passed",
+          "impl": "tools/foundry/completion_predicate.py:_c7_tests"
+        },
+        {
+          "id": 8,
+          "name": "negative controls or mutations fail as expected",
+          "spec": 10640,
+          "status": "PASS",
+          "reason": "mutations-fired",
+          "impl": "tools/foundry/completion_predicate.py:_c8_mutations"
+        },
+        {
+          "id": 9,
+          "name": "independent reviewer status is PASS",
+          "spec": 10641,
+          "status": "PASS",
+          "reason": "reviewer:PASS",
+          "impl": "tools/foundry/completion_predicate.py:_c9_reviewer"
+        },
+        {
+          "id": 10,
+          "name": "no unresolved P0/P1 defect is attached",
+          "spec": 10642,
+          "status": "PASS",
+          "reason": "no-open-p0-p1",
+          "impl": "tools/foundry/completion_predicate.py:_c10_defects"
+        },
+        {
+          "id": 11,
+          "name": "output was registered in the artifact manifest",
+          "spec": 10643,
+          "status": "FAIL",
+          "reason": "manifest:artifact-absent",
+          "impl": "tools/foundry/completion_predicate.py:_c11_manifest"
+        },
+        {
+          "id": 12,
+          "name": "downstream consumers can read it",
+          "spec": 10644,
+          "status": "FAIL",
+          "reason": "consumer:artifact-absent",
+          "impl": "tools/foundry/completion_predicate.py:_c12_consumer"
+        }
+      ],
+      "notes": {
+        "pass_count": 6,
+        "fail_count": 6,
+        "na_count": 0,
+        "unknown_count": 0,
+        "exit_only_rejected": true,
+        "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10631-10644",
+        "min_bytes": 64,
+        "pair_id": null,
+        "unit_class": "workflow-artifact"
+      }
+    }
+  ],
+  "call_sites": [
+    {
+      "locus": "local-runner",
+      "path": "tools/foundry/local_runner.py",
+      "function": "certify_workflow",
+      "evaluate_call_line": 11
+    },
+    {
+      "locus": "tournament-runner",
+      "path": "tools/foundry/tournament_runner.py",
+      "function": "certify_workflow",
+      "evaluate_call_line": 13
+    },
+    {
+      "locus": "certification-gate",
+      "path": "tools/foundry/certification_gate.py",
+      "function": "certify_workflow",
+      "evaluate_call_line": 11
+    }
+  ],
+  "import_graph": {
+    "ok": true,
+    "reducer_module": "tools.foundry.completion_predicate",
+    "imported_modules": [
+      "tools.foundry.completion_predicate"
+    ],
+    "same_module": true,
+    "sites": [
+      {
+        "ok": true,
+        "path": "tools/foundry/local_runner.py",
+        "function": "certify_workflow",
+        "function_lineno": 10,
+        "reason": "shared-reducer-imported-and-called",
+        "import_ok": true,
+        "imports": [
+          {
+            "module": "tools.foundry.completion_predicate",
+            "names": [
+              "evaluate"
+            ],
+            "lineno": 7,
+            "has_evaluate": true
+          }
+        ],
+        "calls": [
+          "evaluate"
+        ],
+        "calls_evaluate": true,
+        "reducer_module": "tools.foundry.completion_predicate",
+        "locus": "local-runner"
+      },
+      {
+        "ok": true,
+        "path": "tools/foundry/tournament_runner.py",
+        "function": "certify_workflow",
+        "function_lineno": 10,
+        "reason": "shared-reducer-imported-and-called",
+        "import_ok": true,
+        "imports": [
+          {
+            "module": "tools.foundry.completion_predicate",
+            "names": [
+              "evaluate"
+            ],
+            "lineno": 7,
+            "has_evaluate": true
+          }
+        ],
+        "calls": [
+          "evaluate"
+        ],
+        "calls_evaluate": true,
+        "reducer_module": "tools.foundry.completion_predicate",
+        "locus": "tournament-runner"
+      },
+      {
+        "ok": true,
+        "path": "tools/foundry/certification_gate.py",
+        "function": "certify_workflow",
+        "function_lineno": 10,
+        "reason": "shared-reducer-imported-and-called",
+        "import_ok": true,
+        "imports": [
+          {
+            "module": "tools.foundry.completion_predicate",
+            "names": [
+              "evaluate"
+            ],
+            "lineno": 7,
+            "has_evaluate": true
+          }
+        ],
+        "calls": [
+          "evaluate"
+        ],
+        "calls_evaluate": true,
+        "reducer_module": "tools.foundry.completion_predicate",
+        "locus": "certification-gate"
+      }
+    ],
+    "reason": "three-sites-one-reducer"
+  },
+  "planted_rival": {
+    "ok": true,
+    "live_ok": true,
+    "planted_ok": false,
+    "planted_reason": "evaluate-not-called",
+    "reason": "detector-fires-on-rival-predicate"
+  },
+  "mutation_control": {
+    "rule": "Break each of the 12 conditions in turn; the record must flip to REJECTED and that condition's status must be FAIL.",
+    "golden_record": "CERTIFIED",
+    "provisional_record": "PROVISIONAL",
+    "exit_zero_missing_record": "REJECTED",
+    "per_condition": [
+      {
+        "id": 1,
+        "name": "process/task reached a valid terminal state",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "non-terminal:RUNNING",
+        "impl": "tools/foundry/completion_predicate.py:_c1_terminal",
+        "wired": true
+      },
+      {
+        "id": 2,
+        "name": "expected artifact exists",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "absent",
+        "impl": "tools/foundry/completion_predicate.py:_c2_exists",
+        "wired": true
+      },
+      {
+        "id": 3,
+        "name": "artifact is non-empty and exceeds a meaningful minimum size",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "below-min:2<64",
+        "impl": "tools/foundry/completion_predicate.py:_c3_size",
+        "wired": true
+      },
+      {
+        "id": 4,
+        "name": "artifact parses against its schema",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "schema:<root>:'stages' is a required property",
+        "impl": "tools/foundry/completion_predicate.py:_c4_schema",
+        "wired": true
+      },
+      {
+        "id": 5,
+        "name": "required sentinel is present",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "sentinel-absent:SUCCESS:wf-golden",
+        "impl": "tools/foundry/completion_predicate.py:_c5_sentinel",
+        "wired": true
+      },
+      {
+        "id": 6,
+        "name": "required evidence anchors exist",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "need-two-anchors:n=0",
+        "impl": "tools/foundry/completion_predicate.py:_c6_evidence",
+        "wired": true
+      },
+      {
+        "id": 7,
+        "name": "required tests ran and passed",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "failed:schema-ok",
+        "impl": "tools/foundry/completion_predicate.py:_c7_tests",
+        "wired": true
+      },
+      {
+        "id": 8,
+        "name": "negative controls or mutations fail as expected",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "silent:c2-absent-file",
+        "impl": "tools/foundry/completion_predicate.py:_c8_mutations",
+        "wired": true
+      },
+      {
+        "id": 9,
+        "name": "independent reviewer status is PASS",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "reviewer:FAIL",
+        "impl": "tools/foundry/completion_predicate.py:_c9_reviewer",
+        "wired": true
+      },
+      {
+        "id": 10,
+        "name": "no unresolved P0/P1 defect is attached",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "open:DEF-P0-1",
+        "impl": "tools/foundry/completion_predicate.py:_c10_defects",
+        "wired": true
+      },
+      {
+        "id": 11,
+        "name": "output was registered in the artifact manifest",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "sha256-mismatch",
+        "impl": "tools/foundry/completion_predicate.py:_c11_manifest",
+        "wired": true
+      },
+      {
+        "id": 12,
+        "name": "downstream consumers can read it",
+        "record": "REJECTED",
+        "status": "FAIL",
+        "reason": "action-not-consumable:'not-a-foundry-action'",
+        "impl": "tools/foundry/completion_predicate.py:_c12_consumer",
+        "wired": true
+      }
+    ],
+    "wired": 12,
+    "survived": 0
+  },
+  "na_honesty": {
+    "na_with_reason_status": "NA",
+    "na_with_reason_record": "CERTIFIED",
+    "na_never_counts_as_pass": true,
+    "unreasoned_na_record": "REJECTED",
+    "unreasoned_na_c9": "FAIL"
+  },
+  "tests": [
+    {
+      "id": "T-mutation-12",
+      "name": "Break each of 12 conditions; each mutant is REJECTED for that condition",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0134/probe1_mutation.py"
+    },
+    {
+      "id": "T-import-graph",
+      "name": "AST import graph: one reducer at three call sites; planted rival fires",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0134/probe2_import_graph.py"
+    },
+    {
+      "id": "T-provisional",
+      "name": "Reviewer NOT-CHECKED yields PROVISIONAL not CERTIFIED",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0134/probe1_mutation.py"
+    },
+    {
+      "id": "T-exit-zero",
+      "name": "Exit code 0 with missing artifact is REJECTED (C2 FAIL)",
+      "result": "PASS",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0134/probe1_mutation.py"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "planted-rival-predicate",
+      "fires": true,
+      "reason": "detector-fires-on-rival-predicate"
+    },
+    {
+      "id": "unreasoned-na",
+      "fires": true,
+      "reason": "na-without-reason"
+    }
+  ],
+  "evidence": [
+    {
+      "id": "E1",
+      "kind": "rerunnable-command",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0134/probe1_mutation.py",
+      "claim": "12/12 condition mutants REJECTED with that condition FAIL; golden CERTIFIED"
+    },
+    {
+      "id": "E2",
+      "kind": "file:line",
+      "path": "tools/foundry/completion_predicate.py",
+      "line": 438,
+      "needle": "def evaluate(",
+      "claim": "Single shared reducer evaluate() imported by all three call sites"
+    },
+    {
+      "id": "E3",
+      "kind": "rerunnable-command",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0134/probe2_import_graph.py",
+      "claim": "AST import graph shown; planted rival at certification gate fires"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "WFA-0134-probe2-import-graph",
+    "verdict": "PASS",
+    "independent": true,
+    "method": "Re-parses the three call-site sources with AST and re-runs all three certify_workflow entry points on the same subjects without reading this artifact's conclusion."
+  },
+  "source_inputs_on_this_tree": {
+    "_USER-PROMPTS.md": false,
+    "09-WORKFLOW-BLUEPRINT-LIBRARY.json": false,
+    "10-WORKFLOW-FUSION-AND-CERTIFICATION-PLAN.md": false,
+    "command-center/schema/foundry-artifact.schema.json": true,
+    "note": "Catalog inputs are Windows harness-restore paths absent on this worktree. The 12-condition list is the catalog-quoted spec (CC-0003 / IMP-0415 / WFA-0042 extract of lines 10631-10644). CC-0003 / agentspec.oracle.judge is not on this tree; this module is the workflow-artifact instantiation, not a second program-wide oracle."
+  },
+  "tests_required_from_catalog": [
+    "mutation: break each of the 12 conditions in turn and confirm the record flips to REJECTED for that condition - a condition whose mutation survives is not wired"
+  ],
+  "ts": "2026-08-25T01:07:07Z",
+  "artifacts": [
+    {
+      "path": "command-center/foundry/WFA-0134-bind-the-shared-12-condition-completion-predicate-to.json",
+      "role": "primary",
+      "exists": true
+    }
+  ]
+}

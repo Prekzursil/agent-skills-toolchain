@@ -1,0 +1,176 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file:///C:/Users/Prekzursil/source/ast-integrate/command-center/schema/baseline-snapshot.schema.json",
+  "title": "Pinned-SHA baseline snapshot",
+  "description": "Typed snapshot of repo, branches, worktrees, live deployments, caches, plugin settings, marketplaces, hooks, skills, and MCPs. Every captured field declares x-anchoring SHA-ANCHORED or SAMPLED-AT-TIME. A SHA-ANCHORED count is read from git ls-tree / cat-file at pinned_sha so the artifact can be a rollback anchor. A field that cannot be recovered from the commit is SAMPLED-AT-TIME and must carry sampled_at. kind is itself a sample: BASELINE only when HEAD equals pinned_sha and the worktree is porcelain-clean.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "kind",
+    "captured_at",
+    "pinned_sha",
+    "tree_sha",
+    "files",
+    "repo",
+    "hooks_tree",
+    "skills_tree",
+    "mcps_tree",
+    "plugin_settings_tree",
+    "marketplaces_tree",
+    "branches",
+    "worktrees",
+    "live_deployments",
+    "caches",
+    "plugin_settings_live",
+    "marketplaces_live",
+    "hooks_live",
+    "skills_live",
+    "mcps_live"
+  ],
+  "properties": {
+    "kind": {
+      "type": "string",
+      "enum": ["BASELINE", "SAMPLE"],
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Quiescence label, not a git-tree fact. BASELINE means HEAD==pinned_sha and git status --porcelain is empty. Concurrent dirt, extra untracked files, or a detached/mismatched HEAD force SAMPLE."
+    },
+    "captured_at": {
+      "type": "string",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "UTC timestamp of this capture wall-clock. Identical SHA recaptures may differ here without changing SHA-ANCHORED fields."
+    },
+    "pinned_sha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Commit object id the SHA-ANCHORED counts were read at. Null when the worktree has no git database (NOT-CHECKED)."
+    },
+    "tree_sha": {
+      "type": ["string", "null"],
+      "pattern": "^[0-9a-f]{40}$",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "git rev-parse <pinned_sha>^{tree}. Identifies the tree object independently of the commit wrapper."
+    },
+    "files": {
+      "type": "object",
+      "additionalProperties": { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Map of tracked posix path to blob SHA from git ls-tree -r --full-tree at pinned_sha. Working-tree bytes are never the oracle."
+    },
+    "repo": {
+      "$ref": "#/$defs/anchoredObject",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Whole-tree tracked file census at pinned_sha (ls-tree blob count + blob map)."
+    },
+    "hooks_tree": {
+      "$ref": "#/$defs/anchoredObject",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Tracked paths under hooks/ at pinned_sha. An untracked hook must not change this count."
+    },
+    "skills_tree": {
+      "$ref": "#/$defs/anchoredObject",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Tracked paths under skills/ at pinned_sha."
+    },
+    "mcps_tree": {
+      "$ref": "#/$defs/anchoredObject",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Tracked paths under mcp/ plus .mcp.json at pinned_sha."
+    },
+    "plugin_settings_tree": {
+      "$ref": "#/$defs/anchoredObject",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Tracked paths under plugins/ at pinned_sha."
+    },
+    "marketplaces_tree": {
+      "$ref": "#/$defs/anchoredObject",
+      "x-anchoring": "SHA-ANCHORED",
+      "description": "Tracked paths under marketplaces/ at pinned_sha."
+    },
+    "branches": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Local branch refs (git for-each-ref refs/heads). Extra branches at the same commit are live-state, not tree facts."
+    },
+    "worktrees": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "git worktree list --porcelain. Linked worktrees are host state."
+    },
+    "live_deployments": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Files under top-level dist/build/deploy/.deploy/site. Deploy artifacts are not recovered from the commit tree by this enumerator."
+    },
+    "caches": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Files under cache-named directories (.cache, __pycache__, node_modules, ...). Untracked cache blobs must not move SHA-ANCHORED counts."
+    },
+    "plugin_settings_live": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Worktree walk of plugins/, including untracked files."
+    },
+    "marketplaces_live": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Worktree walk of marketplaces/, including untracked files."
+    },
+    "hooks_live": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Worktree walk of hooks/. This is the control that moves when an untracked hook is planted; hooks_tree must not."
+    },
+    "skills_live": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Worktree walk of skills/, including untracked files."
+    },
+    "mcps_live": {
+      "$ref": "#/$defs/sampledObject",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "description": "Worktree walk of mcp/ plus .mcp.json if present."
+    }
+  },
+  "$defs": {
+    "anchoredObject": {
+      "type": "object",
+      "x-anchoring": "SHA-ANCHORED",
+      "required": ["class", "anchoring_kind", "reader", "count"],
+      "properties": {
+        "class": { "type": "string", "minLength": 1 },
+        "anchoring_kind": { "type": "string", "const": "SHA-ANCHORED" },
+        "reader": { "type": "string", "const": "git-ls-tree-and-cat-file" },
+        "pinned_sha": { "type": ["string", "null"] },
+        "tree_sha": { "type": ["string", "null"] },
+        "count": { "type": ["integer", "null"], "minimum": 0 },
+        "paths": { "type": "array", "items": { "type": "string" } },
+        "blobs": {
+          "type": "object",
+          "additionalProperties": { "type": "string" }
+        },
+        "status": { "type": "string", "enum": ["MEASURED", "NOT-CHECKED"] },
+        "not_checked_reason": { "type": "string" }
+      },
+      "description": "Count object whose count/paths/blobs come from git ls-tree at pinned_sha. sampled_at is forbidden: a timestamp would pretend a tree fact was a sample."
+    },
+    "sampledObject": {
+      "type": "object",
+      "x-anchoring": "SAMPLED-AT-TIME",
+      "required": ["class", "anchoring_kind", "reader", "count", "sampled_at"],
+      "properties": {
+        "class": { "type": "string", "minLength": 1 },
+        "anchoring_kind": { "type": "string", "const": "SAMPLED-AT-TIME" },
+        "reader": { "type": "string", "minLength": 1 },
+        "count": { "type": "integer", "minimum": 0 },
+        "sampled_at": {
+          "type": "string",
+          "minLength": 1,
+          "description": "UTC sample timestamp required because this count cannot be SHA-anchored."
+        },
+        "paths": { "type": "array", "items": { "type": "string" } }
+      }
+    }
+  }
+}

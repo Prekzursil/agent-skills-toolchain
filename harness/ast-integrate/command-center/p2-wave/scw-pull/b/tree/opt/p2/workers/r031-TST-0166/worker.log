@@ -1,0 +1,14 @@
+I'll start from the existing TST-0166 probe tree, resume whatever is already there, and drive this unit to contract-green without touching git or the global catalog.The probe tree is already there; next I’ll read the measurement contract, catalog row, and existing TST-0166 artifacts so I can resume rather than rebuild.I’ll look at a delivered sibling unit and the receipt/schema gates so TST-0166 can match the same contract instead of the cloud-ok fake SUCCESS.ADV-0002 shows the delivery shape. Next I’ll inspect the resume_report schema, the live resume surface, and any sibling TST that already went contract-green.The cloud-ok refute is real: the launcher kept going on a SHA mismatch. I’ll add a pre-work SHA decision on the live resume path, then rebuild the named probes against that surface.Catalog units have no checkpoint fields, so the gate stays off for the wave. Next I’ll add the decision module and wire it into `process_unit`.Fixture SHAs will drift with commit timestamps; I’ll pin author/committer dates so re-runs stay deterministic, then pack the receipt.**SUCCESS:delivered TST-0166** `predicate=delivered state=SUCCESS probes=2 raws=4 notes=probe_git_diff.py:0,probe_resume_record.py:0`
+
+Cloud-ok was right that harvest `UNIT-COMPLETE` was not delivery: the live launcher kept going across a pinned/HEAD mismatch, and the named probe scripts were missing. This pass implemented the missing decision on the live resume path and re-ran the probes.
+
+**Science.** `r2e_loop.process_unit` now calls `checkpoint_sha_decision.py` before any work. On a moved HEAD it names both SHAs, lists `git diff --name-only` files, and stops (`work_prompt_count=0`). Unchanged HEAD resumes with no decision prompt. Auto-accepting the new HEAD fails the oracle at exit 23.
+
+**Artifacts**
+- Receipt `command-center/receipts/TST-0166.json` — `state=SUCCESS`, 32426 bytes, LF sha256 `83ec14a6d9556ec84d638a21f409a8168913cc3af5da4322feda5ed4b441e83f`
+- Per-unit `command-center/p2-wave/probes/TST-0166/UNIT-ARTIFACT-MANIFEST.json` (hash matches)
+- `command-center/p2-wave/probes/TST-0166/SUBAGENT-RETURN.json`
+
+**Constraints kept:** no git add/commit/push/stash/checkout/rebase; no global `unit_manifest.py --write`; no key rotation; no wave relaunch.
+
+Residual: catalog `_USER-PROMPTS.md` / B07 handled-ledger are still absent (P2, `NOT-CHECKED`). The measured surface is the live launcher.

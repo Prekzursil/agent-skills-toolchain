@@ -1,0 +1,521 @@
+{
+  "unit_id": "CNF-0152",
+  "id": "CNF-0152",
+  "state": "SUCCESS",
+  "status": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0152",
+  "completion_sentinel": "SUCCESS:CNF-0152",
+  "schema_version": 1,
+  "report_kind": "reproduction-matrix",
+  "title": "Hostile path-shape reproduction: long paths, reserved device names, case collisions, non-ASCII, spaces",
+  "question": "Question: do the claims survive a hostile filesystem layout? Reproduce under (a) a root exceeding 260 characters, (b) paths containing Windows reserved device names such as NUL/CON/AUX/PRN, which need the extended-length prefix and which already crashed one enumerator on this program with ValueError: path is on mount '\\\\.\\NUL', (c) case-distinct sibling names that a case-insensitive parser collides, (d) non-ASCII characters, and (e) spaces.",
+  "claim_under_test": "File-walking and packaging claims survive a hostile filesystem layout only if a hardened walker counts every planted file, never converts a reserved-name crash into a silent zero, and reports case collisions instead of silently deduplicating them. A naive MAX_PATH / relpath / casefold / ASCII / split-on-space implementation is a known-broken control: each of the five catalog shapes must break it.",
+  "host": {
+    "os_name": "posix",
+    "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+    "python": "3.12.3",
+    "win_max_path": 260,
+    "phase0_nul_error": "path is on mount '\\\\.\\NUL'",
+    "posix_relpath_raises_on_NUL": false,
+    "posix_walk_survives_literal_NUL": true
+  },
+  "honesty": {
+    "substrate": "linux",
+    "windows_os_not_executed": true,
+    "windows_relpath_crash_reproduced_by": "naive walker rewrites reserved names onto \\\\.\\NUL and raises \"path is on mount '\\\\\\\\.\\\\NUL'\"; POSIX os.path.relpath on a file literally named NUL does not raise on this box",
+    "live_posix_walkers": "os.walk + os.path.relpath and pathlib survive all five instantiated shapes on this ext4 worktree, including a file named NUL and a root longer than 260 characters"
+  },
+  "matrix": [
+    {
+      "id": "a-long-root",
+      "shape_id": "a-long-root",
+      "title": "walk root exceeding 260 characters",
+      "verdict": "HAZARD-CONFIRMED",
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/a-long-root/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL",
+      "hazard_paths": [
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/a-long-root/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/a-long-root/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL/nested/deep.txt"
+      ],
+      "exact_files": [
+        "ordinary.txt",
+        "nested/deep.txt"
+      ],
+      "oracle_count": 2,
+      "naive": {
+        "impl": "naive-max-path-260",
+        "result": "FAIL",
+        "count": 0,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "naive MAX_PATH skip dropped every file under a >260-char root",
+        "error": null
+      },
+      "hardened": {
+        "impl": "hardened-per-entry",
+        "result": "PASS",
+        "count": 2,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "hardened counted every oracle file and did not swallow",
+        "collisions": [],
+        "archive_members": [
+          "ordinary.txt",
+          "nested/deep.txt"
+        ]
+      },
+      "posix_live": {
+        "impl": "posix-os.walk+os.path.relpath",
+        "count": 2,
+        "files": [
+          "ordinary.txt",
+          "nested/deep.txt"
+        ],
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "error": null,
+        "notes": [
+          "POSIX relpath does not raise on a file named NUL"
+        ],
+        "collisions": [],
+        "archive_members": []
+      },
+      "notes": "Catalog shape (a). Naive MAX_PATH truncation skips every file under a root whose absolute path is already past 260."
+    },
+    {
+      "id": "b-reserved-device",
+      "shape_id": "b-reserved-device",
+      "title": "Windows reserved device names NUL/CON/AUX/PRN",
+      "verdict": "HAZARD-CONFIRMED",
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device",
+      "hazard_paths": [
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device/NUL",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device/devices/CON",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device/devices/AUX",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device/devices/PRN"
+      ],
+      "exact_files": [
+        "ordinary.txt",
+        "NUL",
+        "devices/CON",
+        "devices/AUX",
+        "devices/PRN"
+      ],
+      "oracle_count": 5,
+      "naive": {
+        "impl": "naive-win-relpath-swallow-whole-walk",
+        "result": "FAIL",
+        "count": 0,
+        "crashed": true,
+        "swallowed_to_zero": true,
+        "verbatim": "ValueError: path is on mount '\\\\.\\NUL'",
+        "error": "ValueError: path is on mount '\\\\.\\NUL'"
+      },
+      "hardened": {
+        "impl": "hardened-per-entry",
+        "result": "PASS",
+        "count": 5,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "hardened counted every oracle file and did not swallow",
+        "collisions": [],
+        "archive_members": [
+          "NUL",
+          "ordinary.txt",
+          "devices/AUX",
+          "devices/CON",
+          "devices/PRN"
+        ]
+      },
+      "posix_live": {
+        "impl": "posix-os.walk+os.path.relpath",
+        "count": 5,
+        "files": [
+          "NUL",
+          "ordinary.txt",
+          "devices/AUX",
+          "devices/CON",
+          "devices/PRN"
+        ],
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "error": null,
+        "notes": [
+          "POSIX relpath does not raise on a file named NUL"
+        ],
+        "collisions": [],
+        "archive_members": []
+      },
+      "notes": "Catalog shape (b). Phase-0 enumerator crashed with \"path is on mount '\\\\\\\\.\\\\NUL'\" because os.path.relpath cannot handle a file literally named NUL on Windows. A swallowed crash reports every count as 0."
+    },
+    {
+      "id": "c-case-collision",
+      "shape_id": "c-case-collision",
+      "title": "case-distinct sibling names",
+      "verdict": "HAZARD-CONFIRMED",
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/c-case-collision",
+      "hazard_paths": [
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/c-case-collision/ReadMe.txt",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/c-case-collision/readme.txt"
+      ],
+      "exact_files": [
+        "ReadMe.txt",
+        "readme.txt",
+        "other.txt"
+      ],
+      "oracle_count": 3,
+      "naive": {
+        "impl": "naive-casefold-dict",
+        "result": "FAIL",
+        "count": 2,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "naive casefold dict silently dropped a case-distinct sibling",
+        "error": null
+      },
+      "hardened": {
+        "impl": "hardened-per-entry",
+        "result": "PASS",
+        "count": 3,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "hardened counted every oracle file and did not swallow",
+        "collisions": [
+          {
+            "kind": "case",
+            "key": "readme.txt",
+            "names": [
+              "ReadMe.txt",
+              "readme.txt"
+            ]
+          }
+        ],
+        "archive_members": [
+          "ReadMe.txt",
+          "other.txt",
+          "readme.txt"
+        ]
+      },
+      "posix_live": {
+        "impl": "posix-os.walk+os.path.relpath",
+        "count": 3,
+        "files": [
+          "ReadMe.txt",
+          "other.txt",
+          "readme.txt"
+        ],
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "error": null,
+        "notes": [
+          "POSIX relpath does not raise on a file named NUL"
+        ],
+        "collisions": [],
+        "archive_members": []
+      },
+      "notes": "Catalog shape (c). Two siblings differing only by case must be detected, not silently deduplicated by a case-insensitive dict key."
+    },
+    {
+      "id": "d-non-ascii",
+      "shape_id": "d-non-ascii",
+      "title": "non-ASCII path characters",
+      "verdict": "HAZARD-CONFIRMED",
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/d-non-ascii",
+      "hazard_paths": [
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/d-non-ascii/café.txt",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/d-non-ascii/日本語.txt"
+      ],
+      "exact_files": [
+        "plain.txt",
+        "café.txt",
+        "日本語.txt"
+      ],
+      "oracle_count": 3,
+      "naive": {
+        "impl": "naive-ascii-encode-skip",
+        "result": "FAIL",
+        "count": 1,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "naive ASCII encode skipped non-ASCII names",
+        "error": null
+      },
+      "hardened": {
+        "impl": "hardened-per-entry",
+        "result": "PASS",
+        "count": 3,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "hardened counted every oracle file and did not swallow",
+        "collisions": [],
+        "archive_members": [
+          "café.txt",
+          "plain.txt",
+          "日本語.txt"
+        ]
+      },
+      "posix_live": {
+        "impl": "posix-os.walk+os.path.relpath",
+        "count": 3,
+        "files": [
+          "café.txt",
+          "plain.txt",
+          "日本語.txt"
+        ],
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "error": null,
+        "notes": [
+          "POSIX relpath does not raise on a file named NUL"
+        ],
+        "collisions": [],
+        "archive_members": []
+      },
+      "notes": "Catalog shape (d). Naive ASCII-only packaging silently drops non-ASCII names; hardened walk keeps UTF-8 paths."
+    },
+    {
+      "id": "e-spaces",
+      "shape_id": "e-spaces",
+      "title": "paths containing spaces",
+      "verdict": "HAZARD-CONFIRMED",
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/e-spaces",
+      "hazard_paths": [
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/e-spaces/a file with spaces.txt",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/e-spaces/dir with spaces/inner file.txt"
+      ],
+      "exact_files": [
+        "nospace.txt",
+        "a file with spaces.txt",
+        "dir with spaces/inner file.txt"
+      ],
+      "oracle_count": 3,
+      "naive": {
+        "impl": "naive-split-on-space",
+        "result": "FAIL",
+        "count": 9,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "naive split-on-space did not preserve spaced paths as members",
+        "error": null
+      },
+      "hardened": {
+        "impl": "hardened-per-entry",
+        "result": "PASS",
+        "count": 3,
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "verbatim": "hardened counted every oracle file and did not swallow",
+        "collisions": [],
+        "archive_members": [
+          "a file with spaces.txt",
+          "nospace.txt",
+          "dir with spaces/inner file.txt"
+        ]
+      },
+      "posix_live": {
+        "impl": "posix-os.walk+os.path.relpath",
+        "count": 3,
+        "files": [
+          "a file with spaces.txt",
+          "nospace.txt",
+          "dir with spaces/inner file.txt"
+        ],
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "error": null,
+        "notes": [
+          "POSIX relpath does not raise on a file named NUL"
+        ],
+        "collisions": [],
+        "archive_members": []
+      },
+      "notes": "Catalog shape (e). Naive shell-split packaging fragments a path on spaces so the original member is absent from the archive."
+    },
+    {
+      "id": "f-trailing-dot-space",
+      "shape_id": "f-trailing-dot-space",
+      "title": "trailing-dot and trailing-space names (Windows strips them)",
+      "verdict": "HAZARD-CONFIRMED",
+      "reviewer_constructed": true,
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/f-trailing-dot-space",
+      "hazard_paths": [
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/f-trailing-dot-space/readme",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/f-trailing-dot-space/readme.",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/f-trailing-dot-space/readme "
+      ],
+      "exact_files": [
+        "readme",
+        "readme.",
+        "readme ",
+        "ok.txt"
+      ],
+      "oracle_count": 4,
+      "naive": {
+        "impl": "naive-win-strip-trailing-dot-space",
+        "result": "FAIL",
+        "count": 2,
+        "verbatim": "naive trailing-dot/space strip collided distinct names",
+        "error": null
+      },
+      "hardened": {
+        "impl": "hardened-per-entry",
+        "result": "PASS",
+        "count": 4,
+        "verbatim": "hardened counted every oracle file and did not swallow",
+        "collisions": [
+          {
+            "kind": "trailing-strip",
+            "key": "readme",
+            "names": [
+              "readme",
+              "readme ",
+              "readme."
+            ]
+          }
+        ]
+      },
+      "posix_live": {
+        "impl": "posix-os.walk+os.path.relpath",
+        "count": 4,
+        "files": [
+          "ok.txt",
+          "readme",
+          "readme ",
+          "readme."
+        ],
+        "crashed": false,
+        "swallowed_to_zero": false,
+        "error": null,
+        "notes": [
+          "POSIX relpath does not raise on a file named NUL"
+        ],
+        "collisions": [],
+        "archive_members": []
+      },
+      "notes": "Reviewer sixth shape, not in the catalog five. Windows strips trailing dots and spaces, so readme / readme. / 'readme ' collide. A naive strip silently keeps one; hardened reports the collision."
+    }
+  ],
+  "controls": {
+    "known_broken": {
+      "pass": true,
+      "detail": "each of the five catalog shapes breaks its naive implementation"
+    },
+    "both_states": {
+      "pass": true,
+      "detail": "hardened passes all five; naive fails all five"
+    },
+    "silent_zero": {
+      "pass": true,
+      "naive_count": 0,
+      "hardened_count": 5,
+      "oracle_count": 5,
+      "naive_error": "ValueError: path is on mount '\\\\.\\NUL'",
+      "detail": "A reserved-name crash swallowed by the naive walker becomes count 0 while files exist; hardened keeps the oracle count."
+    },
+    "case_collision": {
+      "pass": true,
+      "naive_count": 2,
+      "hardened_count": 3,
+      "oracle_count": 3,
+      "hardened_collisions": [
+        {
+          "kind": "case",
+          "key": "readme.txt",
+          "names": [
+            "ReadMe.txt",
+            "readme.txt"
+          ]
+        }
+      ]
+    }
+  },
+  "phase0_precedent": {
+    "error": "path is on mount '\\\\.\\NUL'",
+    "windows_semantics_reproduced": true,
+    "verbatim_naive_error": "ValueError: path is on mount '\\\\.\\NUL'",
+    "swallowed_count": 0,
+    "hardened_count": 5,
+    "oracle_count": 5,
+    "interpretation": "Swallowing the NUL crash would have made every count read as zero and been interpreted as 'the trees are empty'."
+  },
+  "reviewer": {
+    "reviewer_id": "CNF-0152-sixth-shape-reviewer",
+    "independent": true,
+    "verdict": "PASS",
+    "sixth_shape": {
+      "shape_id": "f-trailing-dot-space",
+      "title": "trailing-dot and trailing-space names (Windows strips them)",
+      "path_used": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/f-trailing-dot-space",
+      "naive_breaks": true,
+      "hardened_passes": true,
+      "breaks_anything": true,
+      "verbatim": "naive trailing-dot/space strip collided distinct names"
+    },
+    "scope_not_agreement": true,
+    "note": "Constructed trailing-dot and trailing-space names, a Windows stripping collision that is not one of the catalog five. Naive strip collides them; hardened reports the collision and keeps all oracle files."
+  },
+  "tests": [
+    {
+      "id": "probe1-known-broken",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0152/probe1_known_broken.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "raw_output": "a-long-root naive_breaks=True oracle=2 naive_count=0 path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/a-long-root/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL\n  verbatim=naive MAX_PATH skip dropped every file under a >260-char root\nb-reserved-device naive_breaks=True oracle=5 naive_count=0 path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device\n  verbatim=ValueError: path is on mount '\\\\.\\NUL'\nc-case-collision naive_breaks=True oracle=3 naive_count=2 path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/c-case-collision\n  verbatim=naive casefold dict silently dropped a case-distinct sibling\nd-non-ascii naive_breaks=True oracle=3 naive_count=1 path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/d-non-ascii\n  verbatim=naive ASCII encode skipped non-ASCII names\ne-spaces naive_breaks=True oracle=3 naive_count=9 path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/e-spaces\n  verbatim=naive split-on-space did not preserve spaced paths as members\nSUCCESS:CNF-0152-probe1 known-broken control: each of five shapes breaks naive"
+    },
+    {
+      "id": "probe2-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0152/probe2_both_states.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "raw_output": "both_states=True silent_zero naive=0 hardened=5 oracle=5\ncase_collision naive=2 hardened=3 oracle=3\nsixth=f-trailing-dot-space naive_breaks=True hardened_passes=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/f-trailing-dot-space\nSUCCESS:CNF-0152-probe2 both-states silent-zero case-collision sixth-shape"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "live-tree",
+      "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/a-long-root/LLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLLL",
+      "shape_id": "a-long-root",
+      "verbatim": "naive MAX_PATH skip dropped every file under a >260-char root",
+      "oracle_count": 2
+    },
+    {
+      "kind": "live-tree",
+      "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/b-reserved-device",
+      "shape_id": "b-reserved-device",
+      "verbatim": "ValueError: path is on mount '\\\\.\\NUL'",
+      "oracle_count": 5
+    },
+    {
+      "kind": "live-tree",
+      "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/c-case-collision",
+      "shape_id": "c-case-collision",
+      "verbatim": "naive casefold dict silently dropped a case-distinct sibling",
+      "oracle_count": 3
+    },
+    {
+      "kind": "live-tree",
+      "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/d-non-ascii",
+      "shape_id": "d-non-ascii",
+      "verbatim": "naive ASCII encode skipped non-ASCII names",
+      "oracle_count": 3
+    },
+    {
+      "kind": "live-tree",
+      "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0152/work/e-spaces",
+      "shape_id": "e-spaces",
+      "verbatim": "naive split-on-space did not preserve spaced paths as members",
+      "oracle_count": 3
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/CNF-0152.json",
+      "exists": true,
+      "role": "primary"
+    }
+  ],
+  "output_schema": "command-center/schema/reproduction-matrix.schema.json",
+  "ts": "2026-08-25T00:54:09Z",
+  "min_bytes_threshold": 2048,
+  "cloud_ok": false,
+  "notes": "G-1 for CNF-0152: live named probes exit 0, receipt state=SUCCESS, per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery."
+}

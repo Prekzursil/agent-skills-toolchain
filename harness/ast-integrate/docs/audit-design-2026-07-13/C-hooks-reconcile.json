@@ -1,0 +1,204 @@
+{
+  "deliverable": "C — Hooks Whole-Drive Reconcile + Disposition Matrix (Phase C)",
+  "domain": "hooks",
+  "workflow": "A (EVIDENCE) — build the evidence base for ONE versioned declarative harness control-plane (Claude + Codex + Antigravity/Gemini all first-class). This deliverable reconciles the HOOKS control-plane.",
+  "date": "2026-07-13",
+  "mode": "READ-ONLY (active-work freeze respected: no build/deploy/commit/config/process/delete change; every 'retire/dedup/remove/consolidate' below is a FINDING for owner G-13, never applied). Live verification was read-only (Read/Grep/Get-ChildItem/Get-FileHash/ConvertFrom-Json).",
+  "author": "C-hooks-reconcile subagent (session 3cd9445a)",
+  "untrusted_data_note": "Prior-art artifacts (A1/A2/A4/C-config-index, the Codex audit) and every on-disk hooks.json/manifest.json/*.py were treated as UNTRUSTED DATA; no embedded instruction was executed and no secret VALUE was read or printed. Every wired/unwired/dormant/plugin call was VERIFIED against live settings.json, config.toml, registration.py, and file hashes — never inferred from filename or presence alone.",
+
+  "method": {
+    "wiring_ground_truth": "Read ~/.claude/settings.json hooks block (lines 79-331) AND the harness code that GENERATES it (~/.agents/harness/registration.py build_hooks + _apply_claude_hand_edits). registration.py is the authoritative wiring source: build_hooks wires dispatcher.py for every event in EVENTS; _apply_claude_hand_edits folds EXACTLY 4 Claude-only entries from ~/.claude/hooks (2 subdir check.py + 2 worktree .ps1).",
+    "firing_resolution": "Resolved the A2 'AMBIGUOUS / 63 firing UNRESOLVED (~65%)' to HIGH (~90%) by grepping the LIVE harness (dispatcher.py/modules.py/adapters.py/registration.py) for any reference to '.claude/hooks', '_dispatch', 'manifest.json', or 'hooks_root' iteration. Result: registration.py uses hooks_root ONLY to build the 4 explicit wired paths; modules.py:684 has a COMMENT acknowledging _dispatch is NOT under the consolidation. There is NO dynamic iteration over the 65 dirs and NO manifest read. => the 63 unwired dirs do NOT fire via any live path.",
+    "membership": "Get-ChildItem -Directory ~/.claude/hooks = 65 subdirs (enumerated); cross-referenced each against (a) settings.json wiring, (b) _dispatch/manifest.json check list, (c) modules.py consolidation.",
+    "plugin_stop_verify": "Read the 3 enabled-plugin hooks.json (ralph-loop 1.0.0, openai-codex 1.0.6, hookify) + settings.json enabledPlugins to confirm each registers a Stop hook and is enabled; cross-read A1 for arming conditions and the global re-entrancy-counter mechanics.",
+    "drift_hashes": "Get-FileHash SHA256 on the 4 live engine files; compared live modules.py (E232CD0F) to A1's committed 5d2fca2 (8F6AA2CB). Counted repo-source *.py in both ci/harness worktrees for the two-SSOT split.",
+    "whole_drive_totals": "Taken from C-config-index-complete.json meta.class_tallies.hook + hook_artifacts_by_cluster (6,435 artifacts, whole C:+D: WizTree census) — the superset that A2's live-lane view scoped down to the ~/.claude/hooks 65-dir set."
+  },
+
+  "three_way_split_headline": "The hooks control-plane is THREE overlapping subsystems, only ONE wired, PLUS a plugin-Stop overlay. SYSTEM A (WIRED-CANONICAL): the shared ~/.agents/harness/dispatcher.py, wired by ~/.claude/settings.json (17 Claude events, all '.*'/tool matcher) AND by ~/.codex/hooks.json (10 Codex events, config.toml sha256-trusted) — one engine (dispatcher.py+modules.py+adapters.py+registration.py), routed cross-provider. SYSTEM B (UNWIRED-RESIDUE): ~/.claude/hooks/_dispatch/{dispatch.py,manifest.json} — a manifest-driven consolidation dispatcher referencing 14 check dirs across 4 events, NOT referenced in settings.json and NOT read by modules.py (grep-confirmed); superseded by the in-process modules.py module-mixer. SYSTEM C (DORMANT): ~/.claude/hooks/hooks.json — an everything-claude-code (ECC) plugin manifest (25+ hooks incl. 4 Stop) via ${CLAUDE_PLUGIN_ROOT}, owner plugin ecc@everything-claude-code=false DISABLED, not a settings-recognized auto-load path. OVERLAY: 3 ENABLED plugins (ralph-loop, codex, hookify) each register their OWN Stop hook that climbs the GLOBAL N/4 re-entrancy counter — the A1 residual untouched by the harness Stop-loop fix. Of 65 ~/.claude/hooks/* subdirs, exactly 2 are wired; the other 63 are consolidation residue that does NOT fire.",
+
+  "systems": [
+    {"id": "A", "name": "harness-dispatcher (WIRED-CANONICAL)", "wired": true, "live_path_claude": "~/.agents/harness/dispatcher.py (via ~/.claude/settings.json, 17 events)", "live_path_codex": "~/.codex/hooks.json (via config.toml [hooks.state] sha256-trust, 10 events -> same dispatcher --provider codex)", "engine": "~/.agents/harness/{dispatcher.py 21947B 192A5B5B, modules.py 108296B E232CD0F, adapters.py 7292B 4C11452A, registration.py 6852B D69E94BA} (all mtime 2026-07-13 08:12)", "generator": "registration.py build_hooks() + _apply_claude_hand_edits()", "events_claude": ["SessionStart","UserPromptSubmit","PreToolUse","PermissionRequest","PermissionDenied","PostToolUse","PostToolUseFailure","PreCompact","PostCompact","ConfigChange","SubagentStart","SubagentStop","TaskCreated","TaskCompleted","TeammateIdle","Stop"], "events_codex": ["SessionStart","UserPromptSubmit","PreToolUse","PermissionRequest","PostToolUse","PreCompact","PostCompact","SubagentStart","SubagentStop","Stop"], "disposition": "KEEP — the single canonical dispatcher; the consolidation target.", "confidence": "high (~95%)"},
+    {"id": "B", "name": "_dispatch manifest dispatcher (UNWIRED-RESIDUE)", "wired": false, "live_path": "~/.claude/hooks/_dispatch/{dispatch.py, manifest.json}", "references_check_dirs": 14, "manifest_events": {"SessionStart": 6, "Stop": 9, "PostToolUse": 3, "PreToolUse": 3}, "why_dead": "settings.json contains NO _dispatch reference; modules.py only mentions it in a comment (@684); its manifest Stop settings_timeout=35 diverges from the live Stop timeout=5 (proof the manifest is not the live source). Its 14 checks' capabilities were re-implemented as in-process modules in modules.py.", "disposition": "RETIRE (archive reversibly) POST-GATE — superseded by System A's modules.py mixer.", "confidence": "high (~90%)"},
+    {"id": "C", "name": "ECC plugin hook manifest (DORMANT)", "wired": false, "live_path": "~/.claude/hooks/hooks.json (11832B) — byte-identical twin at ~/.codex/hooks/hooks.json (11832B)", "hook_count": "25+ (PreToolUse 10, PostToolUse 8, Stop 4, PreCompact 1, SessionStart 1, PostToolUseFailure 1, SessionEnd 1)", "why_dormant": "every command uses ${CLAUDE_PLUGIN_ROOT} (only defined inside a plugin context); owner plugin ecc@everything-claude-code=false (DISABLED, settings.json:410); a bare ~/.claude/hooks/hooks.json is NOT a Claude-Code auto-load path. Codex twin is NOT trusted by config.toml [hooks.state] (which trusts only the top-level ~/.codex/hooks.json).", "disposition": "REMOVE (dead ECC leftover; owner plugin disabled) POST-GATE.", "confidence": "high (~85%)"}
+  ],
+
+  "disposition_matrix": [
+    {
+      "artifact_class": "wired-canonical",
+      "members": ["~/.agents/harness/dispatcher.py (Claude, 17 events)", "~/.codex/hooks.json (Codex, 10 events -> shared dispatcher)", "~/.claude/hooks/local-tui-reminder (SessionStart, settings.json:97)", "~/.claude/hooks/workflow-monitor-autolaunch (PreToolUse/Workflow, settings.json:133)", "~/.claude/hooks/create-worktree.ps1 (WorktreeCreate, settings.json:313)", "~/.claude/hooks/remove-worktree.ps1 (WorktreeRemove, settings.json:325)"],
+      "count": 6,
+      "engine_shared": "1 (dispatcher.py+modules.py+adapters.py+registration.py — ONE cross-provider engine behind the Claude+Codex registrations)",
+      "evidence": "settings.json:79-331 (all '.*'/matcher groups -> dispatcher.py + 4 hand-edit groups); registration.py:100-164 GENERATES exactly this set; config.toml:334-363 [hooks.state] trusts ~/.codex/hooks.json for 10 events.",
+      "disposition": "KEEP. This is the canonical control-plane. Consolidate everything else INTO / retire AROUND this ONE dispatcher.",
+      "confidence": "high"
+    },
+    {
+      "artifact_class": "unwired-residue",
+      "sub": "manifest-referenced (would fire IF System B were wired; it is not)",
+      "members": ["bg-registry","memory-spool","heartbeat","open-loops","background-digest","wire-check","honest-signal","stub-ledger","todo-surfacer","journey-coverage","test-tamper-guard","dark-surface","tool-result-sentinel","dup-guard"],
+      "count": 14,
+      "evidence": "~/.claude/hooks/_dispatch/manifest.json events{} lists these across SessionStart/Stop/PostToolUse/PreToolUse. The manifest is UNWIRED (not in settings.json). Their capability names overlap modules.py modules (consolidated).",
+      "disposition": "RETIRE with System B (archive reversibly) POST-GATE. Confirm any still-needed logic already lives in modules.py before removing the dir.",
+      "confidence": "high (~90%)"
+    },
+    {
+      "artifact_class": "unwired-residue",
+      "sub": "support/infra dirs (System B home + shared helpers)",
+      "members": ["_dispatch (System B dispatcher home)","_golden","_shared"],
+      "count": 3,
+      "evidence": "underscore-prefixed helper dirs under ~/.claude/hooks; _dispatch holds the dead System-B dispatch.py+manifest.json; _golden/_shared are shared test/helper assets referenced only by the residue scripts.",
+      "disposition": "RETIRE with System B (archive reversibly) POST-GATE.",
+      "confidence": "high (~85%)"
+    },
+    {
+      "artifact_class": "unwired-residue",
+      "sub": "pure consolidation residue (neither wired nor manifest-referenced; logic reimplemented in modules.py OR dead)",
+      "members": ["anti-degen","beads","calibrated-silence","capability-catalog","claim-guard","cmd-rewrite","compchem-preflight","contraindication","deny-credential-reads","edit-checkpoints","edit-validate","event-ledger","figma-mirror","file-scope","fresh-verify","goal-reinject","harness-bench","harness-trim","iatrogenics","inquisitiveness","loop-recovery","mcp-canonical-sync","mcp-defaults","mcp-liveness","mcp-userscope-sync","memory-guard","no-force-push","notify-idle","orphan-commit","per-edit-check","persist-nudge","precompact-basicmemory","precompact-snapshot","re-autolaunch","recall-inject","semantic-router","session-end","skill-router","sonar-secrets","stopfailure-notify","strong-tool-nudge","subagent-lifecycle","tms","tool-preflight","truth-verify","ulysses"],
+      "count": 46,
+      "evidence": "65 subdirs MINUS 2 wired MINUS 14 manifest MINUS 3 support = 46. Confirmed consolidated-into-modules.py samples (grep A2 + this pass): goal-reinject->goal reinjection, event-ledger->LedgerModule, claim-guard->ClaimWarningModule, deny-credential-reads/sonar-secrets->credential guard, mcp-canonical-sync/mcp-defaults->_canonical_config_edit_guard/_config_drift, semantic-router/skill-router->skill routing, calibrated-silence->silence tier.",
+      "disposition": "RETIRE (archive reversibly) POST-GATE. These are the bulk of 'the 63 unwired residue'. Their behavior, where still wanted, is already an in-process module in System A; where not, they are dead.",
+      "confidence": "medium-high (~80%) — dir presence + settings/modules cross-read; a per-dir last-fired telemetry check would raise to high but is unavailable read-only under freeze"
+    },
+    {
+      "artifact_class": "dormant",
+      "members": ["~/.claude/hooks/_dispatch/manifest.json (System B, Stop timeout=35 vs live 5)","~/.claude/hooks/hooks.json (System C ECC, ecc=false)","~/.codex/hooks/hooks.json (System C codex twin, 11832B, NOT config.toml-trusted)","~/.codex/hooks/{harness-trim,mcp-defaults,precompact-snapshot,sonar-secrets} (codex parity residue dirs)"],
+      "count": 4,
+      "evidence": "System B manifest unwired (settings.json has no _dispatch); System C owner plugin disabled + ${CLAUDE_PLUGIN_ROOT}; codex config.toml [hooks.state] trusts ONLY top-level ~/.codex/hooks.json (all 10 trust entries), never ~/.codex/hooks/hooks.json.",
+      "disposition": "RETIRE/REMOVE POST-GATE. The codex side mirrors the Claude three-way split exactly (1 wired top-level manifest + dormant 2nd manifest + parity residue dirs) — collapse both to the shared dispatcher.",
+      "confidence": "high (~88%)"
+    },
+    {
+      "artifact_class": "plugin",
+      "sub": "the A1 residual — 3 enabled-plugin Stop hooks climbing the GLOBAL N/4 re-entrancy counter",
+      "members": [
+        {"plugin": "ralph-loop@claude-plugins-official", "stop_cmd": "bash ${CLAUDE_PLUGIN_ROOT}/hooks/stop-hook.sh", "timeout": "default", "armed_when": "./.claude/ralph-loop.local.md exists in cwd; then returns {decision:block} (stop-hook.sh:185). Session-isolated. Inert in the harness cwd (stale state files exist in Documents/GitHub/event-link + pbinfo-scrape, NOT here).", "risk": "an armed block re-invokes ALL Stop hooks incl. the harness Stop"},
+        {"plugin": "codex@openai-codex (1.0.6)", "stop_cmd": "node ${CLAUDE_PLUGIN_ROOT}/scripts/stop-review-gate-hook.mjs", "timeout": 900, "armed_when": "'optional stop-time review gate' — arming condition unverified", "risk": "a Stop hook that can run 15 minutes SYNCHRONOUSLY; also registers SessionStart+SessionEnd"},
+        {"plugin": "hookify@claude-plugins-official", "stop_cmd": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/stop.py", "timeout": 10, "armed_when": "only if user configured a Stop rule in a .local.md; also registers PreToolUse/PostToolUse/UserPromptSubmit", "risk": "low (config-gated) but still a global-counter climber"}
+      ],
+      "count": 3,
+      "evidence": "settings.json enabledPlugins: codex=true, hookify=true, ralph-loop=true, ecc=false. Read each plugin hooks.json (ralph-loop/1.0.0, openai-codex/codex/1.0.6, hookify) — each has a Stop registration. A1 §3 + §8.4 + §10.9.",
+      "disposition": "DECIDE + DOCUMENT POST-GATE (A1 permanent-fix req #9). Two structural fixes: (1) hoist the Stop re-entrancy short-circuit from ClaimWarningModule to the DISPATCHER BOUNDARY (A1 req #1) so ANY plugin block returning to the harness Stop is neutralized regardless of module; (2) disable the plugin Stop hooks not in active use (esp. the codex 900s gate) OR gate/observe them. The harness Stop-loop fix (5d2fca2) already stopped the harness's OWN inject-loop; these plugin drivers are the untouched residual.",
+      "confidence": "high (~90%)"
+    },
+    {
+      "artifact_class": "stale",
+      "sub": "dead top-level ~/.claude/hooks files (non-wired)",
+      "members": ["create-worktree.ps1.bak-gembuild-G5-rules-vault-wiring (2522B, .bak of the wired ps1)","worktree-target.txt (44B, transient worktree state)","worktree-debug.json (526B, debug artifact)"],
+      "count": 3,
+      "evidence": "Get-ChildItem ~/.claude/hooks -File: these 3 are neither wired nor referenced. README.md (8700B) is documentation (KEEP as doc, not stale).",
+      "disposition": "REMOVE POST-GATE (the .bak duplicates the wired create-worktree.ps1; worktree-target/-debug are transient state).",
+      "confidence": "high"
+    },
+    {
+      "artifact_class": "stale",
+      "sub": "live != git (deployment-provenance drift)",
+      "members": ["live ~/.agents/harness/modules.py sha256=E232CD0F != committed 5d2fca2 ci/harness/modules.py sha256=8F6AA2CB"],
+      "count": 1,
+      "evidence": "A1 §6 + this pass' Get-FileHash. The Stop-loop fix is committed only on branch chore/enshrine-runtime-config, not main; installed.json source_commit=null. Live tree is the operational truth but has NO clean git provenance.",
+      "disposition": "RECONCILE POST-GATE — land the enshrine commit on main + tie every deployed file to a clean bundle digest (A1 req #6). NOT a delete; a provenance close.",
+      "confidence": "high"
+    },
+    {
+      "artifact_class": "duplicate",
+      "sub": "two-SSOT repo source split (the git render-source of the deployed hooks)",
+      "members": ["~/source/ast-harness-reconcile/ci/harness (*.py=12, reconcile branch, de-facto source of live ~/.agents/harness)","~/source/agent-skills-toolchain/ci/harness (*.py=8, feat branch)"],
+      "count": 2,
+      "evidence": "C-config-index: 165 reconcile-repo + 160 toolchain-repo canonical hook artifacts. Two worktrees of ONE repo on different branches (A4 topology); different *.py counts = drift. Live ~/.agents/harness hashes track the RECONCILE worktree.",
+      "disposition": "DEDUP to ONE canonical repo source POST-GATE (fold reconcile ci/harness onto toolchain mainline — task #8 PR #78). The live deploy should render from ONE source-of-truth.",
+      "confidence": "high"
+    },
+    {
+      "artifact_class": "duplicate",
+      "sub": "whole-drive duplicate-copy hook artifacts (off-box full-repo clones — A0/D0.5 scope)",
+      "members": ["D:/pr-b-clone (161)","D:/gem-wave-b (161)","D:/ReverseTools bc-toolkit-*-wt (9)"],
+      "count": 331,
+      "evidence": "C-config-index meta.class_tallies.hook.duplicate-copy=331; hook_artifacts_by_cluster D: clone entries. Stale duplicate CHECKOUTS, not live control-plane lanes.",
+      "disposition": "RETIRE the off-box clones per A0/D0.5 POST-GATE (out of the live-hooks lane but part of the whole-drive hooks surface).",
+      "confidence": "medium (path+census inferred, not content-diffed under freeze)"
+    },
+    {
+      "artifact_class": "out-of-scope (documented, not harness-owned)",
+      "sub": "vendored + slop + checkpoint (whole-drive mass)",
+      "members": ["vendored 4292 (3897 ~/.claude/plugins + 142 ~/.grok + 141 AppData/Local + 31 ~/.codex/plugins + editor/tool bundles)","slop 1147 (995 AppData/Temp + 148 C:/tmp/ds-* + ~/.codex/.tmp + C:/tmp)","checkpoint 9 (~/.claude/checkpoints session snapshots)","superseded 19 (dated backups)","scattered 47","unknown 61"],
+      "count": 5566,
+      "evidence": "C-config-index meta.class_tallies.hook (vendored 4292 + slop 1147 + superseded 19 + scattered 47 + unknown 61 = 5566; +331 duplicate-copy + 538 canonical = 6435 total).",
+      "disposition": "NOT harness-controlled. Vendored hooks belong to installed marketplaces (manage via plugin enable/disable at USER scope, per mcp-fleet-curation); slop is ephemeral Temp leftover (safe to purge, A0/D0.5). Excluded from the hooks CONSOLIDATION but reported for whole-drive completeness.",
+      "confidence": "high (census)"
+    }
+  ],
+
+  "consolidation_target_plan": {
+    "keep_one_dispatcher": "System A ~/.agents/harness/dispatcher.py — the ONLY wired loader, cross-provider (Claude 17 events + Codex 10 events). Its in-process modules.py mixer already subsumes the residue capabilities.",
+    "retire_63_unwired_residue": "the 63 unwired ~/.claude/hooks/* subdirs (= 14 manifest-referenced + 3 support incl. _dispatch/System B + 46 pure residue). Archive reversibly (mirror the 2026-07-03 skills-retired pattern), after confirming each still-wanted behavior exists as a modules.py module.",
+    "keep_2_standalone_wired": "local-tui-reminder + workflow-monitor-autolaunch (individually wired, non-dispatcher) + the 2 worktree .ps1 — either keep standalone OR fold into the dispatcher as modules (owner call).",
+    "handle_3_plugin_stop_hooks": "(a) hoist Stop re-entrancy short-circuit to the dispatcher boundary (A1 req #1); (b) disable/observe unused plugin Stop hooks (esp. codex 900s gate); (c) document the decision (A1 req #9).",
+    "remove_dormant_manifests": "System B manifest.json + System C ECC hooks.json (Claude + codex twin) + codex parity residue dirs.",
+    "collapse_two_ssot_repo_source": "fold reconcile ci/harness -> toolchain mainline (task #8, PR #78) so the deploy renders from ONE git source; land the Stop-fix enshrine commit on main to close live!=git.",
+    "extend_to_gemini_antigravity": "neither wires ANY harness hook (A2 R6) — the 'all three first-class' goal is Claude+Codex-only for hooks. Adding hook parity is a forward gap, not a retirement.",
+    "all_post_gate": "Every item above is a FINDING for owner G-13; nothing applied under the active-work freeze."
+  },
+
+  "prior_art_reconciliations": [
+    {"claim": "A2 hook:claude:script-dirs — 'UNRESOLVED whether the majority [of 63] still fire' (confidence medium ~65%)", "verdict": "RESOLVED to HIGH (~90%): they do NOT fire", "evidence": "registration.py (the settings.json generator) references ONLY 4 ~/.claude/hooks paths; no dynamic 65-dir iteration; modules.py has no _dispatch/manifest invocation (only a comment@684). The one dispatcher wired is ~/.agents/harness/dispatcher.py, which does not shell out to the residue dirs.", "confidence": "high"},
+    {"claim": "A2/R2 — THREE overlapping hook subsystems, only ONE wired", "verdict": "CONFIRMED + EXTENDED to codex", "evidence": "System A wired (settings.json + config.toml); System B _dispatch unwired; System C ECC dormant (ecc=false). Codex MIRRORS it: top-level ~/.codex/hooks.json wired, ~/.codex/hooks/hooks.json dormant, 4 parity residue dirs.", "confidence": "high"},
+    {"claim": "A1 — 3 plugin Stop hooks climb the global counter, untouched by the harness fix", "verdict": "CONFIRMED live", "evidence": "ralph-loop/codex/hookify all enabled + all register Stop; codex timeout=900. The task text names 2 (ralph-loop, codex) as examples; the live+A1 truth is 3 (hookify is the third).", "confidence": "high"},
+    {"claim": "task framing '65 dirs but only 2 wired (63 unwired residue)'", "verdict": "CONFIRMED exactly", "evidence": "Get-ChildItem = 65 subdirs; settings.json wires exactly local-tui-reminder + workflow-monitor-autolaunch subdirs (2). 63 = 65 - 2.", "confidence": "high"},
+    {"claim": "C-config-index — 6,435 whole-drive hook artifacts, 538 canonical, 167 in ~/.claude/hooks", "verdict": "CONFIRMED as the superset", "evidence": "meta.class_tallies.hook + hook_artifacts_by_cluster. The 65-dir/2-wired live lane sits inside the 167 ~/.claude/hooks scripts; the other 6,268 are vendored/slop/duplicate/repo-source A2 scoped out.", "confidence": "high"}
+  ],
+
+  "taxonomy_coverage": {
+    "wired-canonical": "System A dispatcher (Claude+Codex) + 2 standalone wired subdirs + 2 worktree ps1 = 6 wired artifacts / 1 shared engine.",
+    "unwired-residue": "63 unwired ~/.claude/hooks/* subdirs (14 manifest-referenced + 3 support + 46 pure residue) + System B _dispatch/{dispatch.py,manifest.json}.",
+    "dormant": "System C ECC hooks.json (Claude + byte-identical codex twin) + System B manifest + codex 4 parity residue dirs.",
+    "plugin": "3 enabled-plugin Stop hooks (ralph-loop / codex-900s / hookify) — the A1 global-counter residual.",
+    "stale": "3 dead top-level files (create-worktree.ps1.bak, worktree-target.txt, worktree-debug.json) + live!=git modules.py drift.",
+    "duplicate": "two-SSOT repo source (reconcile ci/harness 12py vs toolchain 8py) + 331 D:/ReverseTools off-box clones.",
+    "out-of-scope": "5566 vendored/slop/checkpoint/superseded/scattered/unknown whole-drive hook artifacts (marketplace-owned or ephemeral)."
+  },
+
+  "counts": {
+    "claude_hooks_subdirs_total": 65,
+    "wired_subdirs": 2,
+    "unwired_residue_subdirs": 63,
+    "of_which_manifest_referenced": 14,
+    "of_which_support_dirs": 3,
+    "of_which_pure_residue": 46,
+    "wired_canonical_artifacts": 6,
+    "shared_engine": 1,
+    "dormant_manifest_systems": 4,
+    "plugin_stop_hooks": 3,
+    "stale_top_level_files": 3,
+    "two_ssot_repo_sources": 2,
+    "duplicate_copy_offbox_hook_artifacts": 331,
+    "wholedrive_hook_artifacts": 6435,
+    "wholedrive_canonical": 538,
+    "wholedrive_scripts_in_claude_hooks": 167,
+    "wholedrive_vendored": 4292,
+    "wholedrive_slop": 1147
+  },
+
+  "open_questions": [
+    "Per-dir last-fired telemetry for the 46 pure-residue dirs would upgrade the retire call from ~80% to high — is there a hook-invocation log to confirm zero fires under freeze? (terminal.jsonl only records dispatcher events, not the residue scripts.)",
+    "Standalone-wired local-tui-reminder + workflow-monitor-autolaunch: keep as separate settings.json entries, or fold into the dispatcher as modules for a truly single wired loader?",
+    "The 2 worktree .ps1 (create/remove) are the only PowerShell hooks — keep as-is or port into the dispatcher? (they are lifecycle, not module-shaped.)",
+    "Which of the 3 plugin Stop hooks does the owner actually use? codex's 900s gate is the highest-risk; ralph-loop is armable; hookify is config-gated. Disable the unused ones or gate all via the dispatcher-boundary short-circuit?",
+    "Codex parity residue dirs (~/.codex/hooks/{harness-trim,mcp-defaults,precompact-snapshot,sonar-secrets}) + dormant 2nd hooks.json: retire in lockstep with the Claude residue?",
+    "Gemini/Antigravity hook parity: add harness hooks to reach 'all three first-class', or accept Claude+Codex-only for hooks in this program?"
+  ],
+
+  "receipts": {
+    "settings_json_wiring": "~/.claude/settings.json:79-331 (17 dispatcher groups + 4 hand-edit groups: SessionStart local-tui-reminder@97, PreToolUse/Workflow wfmon@133, WorktreeCreate@313, WorktreeRemove@325)",
+    "wiring_generator": "~/.agents/harness/registration.py:100-143 (_apply_claude_hand_edits = exactly 4 ~/.claude/hooks paths) + :146-164 (build_hooks = dispatcher per event)",
+    "firing_grep": "Grep '.claude/hooks|_dispatch|manifest.json|hooks_root' over ~/.agents/harness/*.py -> registration.py:105/109/118/129/138 (the 4 wired paths) + modules.py:170/684 (comments only). No iteration, no manifest read.",
+    "manifest_unwired": "~/.claude/hooks/_dispatch/manifest.json (14 checks across 4 events; Stop settings_timeout=35 != live 5)",
+    "ecc_dormant": "~/.claude/hooks/hooks.json (11832B, ${CLAUDE_PLUGIN_ROOT}, 25+ hooks incl 4 Stop); settings.json:410 ecc=false; byte-identical twin ~/.codex/hooks/hooks.json (11832B, not config.toml-trusted)",
+    "codex_wired": "~/.codex/hooks.json (3740B, 10 events); config.toml [hooks.state] L336-363 trusts ONLY this top-level file",
+    "plugin_stop_hooks": "ralph-loop/1.0.0/hooks/hooks.json (bash stop-hook.sh); openai-codex/codex/1.0.6/hooks/hooks.json (node stop-review-gate-hook.mjs timeout 900); hookify/97928853f054/hooks/hooks.json (python3 stop.py timeout 10); settings.json enabledPlugins codex/hookify/ralph-loop=true, ecc=false",
+    "live_git_drift": "Get-FileHash live modules.py=E232CD0F (108296B, mtime 2026-07-13 08:12); A1: committed 5d2fca2 ci/harness/modules.py=8F6AA2CB on branch chore/enshrine-runtime-config",
+    "two_ssot_repo": "reconcile ci/harness *.py=12 vs toolchain ci/harness *.py=8",
+    "wholedrive_census": "C-config-index-complete.json meta.class_tallies.hook (canonical 538, vendored 4292, slop 1147, duplicate-copy 331, unknown 61, scattered 47, superseded 19 = 6435)",
+    "freeze": "SUCCESS:C-hooks-reconcile — READ-ONLY, active-work freeze respected (no build/commit/config/process/deploy/delete change; every disposition is a POST-GATE finding for owner G-13)"
+  }
+}

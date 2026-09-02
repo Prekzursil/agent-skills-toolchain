@@ -1,0 +1,228 @@
+{
+ "answer": "A PreToolUse hook (hooks/deployed_copy_edit.py) looks up IMP-0033 provenance records. A live path with a record pointing at a repo blob injects an advisory naming CANONICAL_REPO_PATH=skills/known/SKILL.md. A live-only path in the same tree with no record stays silent, as does an edit of the repo source. Removing the record (negative control) removes the warning, proving the record \u2014 not a path prefix \u2014 is the trigger. The hook always continues with permissionDecision=allow (inject, never block). Forced internal errors exit 0 and fail open. SUCCESS:IMP-0037",
+ "artifacts": [
+  {
+   "exists": true,
+   "note": "self; sha256 is in the per-unit UNIT-ARTIFACT-MANIFEST.json row",
+   "path": "command-center/receipts/IMP-0037.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 9044,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/deployed_copy_guard.py",
+   "role": "supporting",
+   "sha256": "caf0f5a0ae6234df3d920b94ad070ec313edfc12dd557a82957ed5b9c33b5443"
+  },
+  {
+   "bytes": 1559,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/plugin/schema/deploy-provenance.schema.json",
+   "role": "supporting",
+   "sha256": "b5133192b4a85c9056f81d61c86a8ae84e8056a9f6aaf7b26686c0f2b2400fd3"
+  },
+  {
+   "bytes": 1083,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/schema/deployed-copy-advisory.schema.json",
+   "role": "supporting",
+   "sha256": "2f43898b4550674e19f6f1ff97e24e4120688b5a0ba8dffc8a66ff2d4a920ecd"
+  },
+  {
+   "bytes": 11245,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/plugin/tests/test_deployed_copy_guard.py",
+   "role": "supporting",
+   "sha256": "62dda0c47b7c9e12c6170445fdab62af7e87cebb23b917a3e210e05c945d6160"
+  },
+  {
+   "bytes": 709,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "hooks/deployed_copy_edit.py",
+   "role": "supporting",
+   "sha256": "c3f8c4dca02960d2439f9507faf50dcb5e91e8c7751b9dd31bbc58541b4e7a89"
+  },
+  {
+   "bytes": 14505,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "hooks/_dispatch/manifest.json",
+   "role": "supporting",
+   "sha256": "b865c7bc4bc95697ba1bbf7890d3355fb320b61ca5fc815843b5b9101145ce99"
+  },
+  {
+   "bytes": 3631,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "rules/common/harness-vcs-hygiene.md",
+   "role": "supporting",
+   "sha256": "5b2e339e448f80b97a63aaf6af38c8ff34f8c9fb9e14a20192859d8336fa913a"
+  },
+  {
+   "bytes": 1149,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0037/probe1_hook_cases.py",
+   "role": "supporting",
+   "sha256": "777140ff3db4235a2fc5a14227a92f8956df011f087f9ff7b609018dbda7f050"
+  },
+  {
+   "bytes": 4750,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0037/probe2_hook_subprocess.py",
+   "role": "supporting",
+   "sha256": "5ca3c62d201a6310be02cf54d223ff2486f1035af0b3fe6d024d3c3956d63084"
+  }
+ ],
+ "canonical_module": "deployed_copy_guard",
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:IMP-0037",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/p2-wave/probes/IMP-0037/probe1_hook_cases.py",
+   "consumer": "named-probe1",
+   "executed": true,
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/p2-wave/probes/IMP-0037/probe2_hook_subprocess.py",
+   "consumer": "named-probe2",
+   "executed": true,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "hooks/deployed_copy_edit.py",
+   "claim": "An Edit PreToolUse event against a live path with an IMP-0033 provenance record injects an advisory naming the canonical repo path.",
+   "detail": "rc=0 mark=True names_canonical=True canonical=skills/known/SKILL.md",
+   "id": "signal-1-deployed-path-advisory",
+   "kind": "hook-subprocess",
+   "snippet": "IMP-0037-ADVISORY: this edit targets a deployed copy at /tmp/tmpblnx7c4b/live/skills/known/SKILL.md. Edit the repository source CANONICAL_REPO_PATH=skills/known/SKILL.md instead (source blob aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa). A deployed-copy edit is invisible to git and is overwritten by the next deploy.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "hooks/deployed_copy_edit.py",
+   "claim": "In the same run, an Edit of a live-only path (same prefix, no provenance record) produces no advisory.",
+   "detail": "rc=0 silent=True advisory=''",
+   "id": "signal-2-live-only-silent",
+   "kind": "hook-subprocess",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_requirement": "TWO independent signals: (1) an edit attempt on a known deployed path produces the advisory naming the correct repo path; (2) an edit on a live-only path (no provenance record) produces NO advisory in the same run.",
+ "host": {
+  "machine": "x86_64",
+  "system": "linux"
+ },
+ "id": "IMP-0037",
+ "inputs": [
+  "rules/common/harness-vcs-hygiene.md",
+  "IMP-0033 provenance records",
+  "hooks/_dispatch/manifest.json"
+ ],
+ "library_path": "tools/plugin/deployed_copy_guard.py",
+ "manifest_registration": {
+  "global_unit_manifest_write": false,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0037/UNIT-ARTIFACT-MANIFEST.json",
+  "note": "per-unit manifest only; did not run tools/command-center/unit_manifest.py --write",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "no IMP-0037-ADVISORY after records=[]",
+   "description": "Delete the provenance record for the deployed live path. The same path then produces no advisory, proving the record is the trigger rather than a path prefix.",
+   "fired_on_bad_state": true,
+   "good_state_output": "IMP-0037-ADVISORY: this edit targets a deployed copy at /tmp/tmpblnx7c4b/live/skills/known/SKILL.md. Edit the repository source CANONICAL_REPO_PATH=skills/known/SKILL.md instead (source blob aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa). A depl",
+   "id": "remove-provenance-record",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "rc=0 continue=True decision=allow",
+   "description": "IMP0037_FORCE_ERROR=1 raises inside the hook; exit remains 0, continue=true, permissionDecision=allow.",
+   "fired_on_bad_state": true,
+   "good_state_output": "advisory injected on healthy deployed path",
+   "id": "forced-internal-error-fail-open",
+   "kind": "fault-injection",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0037: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud_ok=true is not delivery. SUCCESS:IMP-0037",
+ "output_path": "command-center/receipts/IMP-0037.json",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "phase": "5",
+ "probe_results": {
+  "any_block": false,
+  "canonical_repo_path": "skills/known/SKILL.md",
+  "deployed_advisory": "IMP-0037-ADVISORY: this edit targets a deployed copy at /tmp/tmpblnx7c4b/live/skills/known/SKILL.md. Edit the repository source CANONICAL_REPO_PATH=skills/known/SKILL.md instead (source blob aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa). A deployed-copy edit is invisible to git and is overwritten by the next deploy.",
+  "deployed_has_mark": true,
+  "deployed_names_canonical": true,
+  "deployed_rc": 0,
+  "forced_continue": true,
+  "forced_decision": "allow",
+  "forced_rc": 0,
+  "live_only_advisory": "",
+  "live_only_rc": 0,
+  "live_only_silent": true,
+  "repo_advisory": "",
+  "repo_rc": 0,
+  "repo_silent": true
+ },
+ "question_or_target": "Detect when an edit targets a deployed copy (a live path that has a provenance record pointing at a repo blob) and surface the canonical repo path instead, because a deployed-copy edit is invisible to git and is overwritten by the next deploy.",
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0033 has not yet written a production ledger on this worktree; the hook consumes the documented record shape via DEPLOY_PROVENANCE_LEDGER or a .deploy-provenance.json walk.",
+   "verdict": "RECORDED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 drives the registered hook as a subprocess (JSON stdin/stdout), independent of probe 1's unittest import. Confirmed fail-open: forced exception rc=0 continue=True decision=allow. Inject never block: any_block=False.",
+  "reviewer_id": "IMP-0037-probe2-hook-subprocess",
+  "verdict": "PASS"
+ },
+ "reviewer_requirement": "Reviewer must confirm the hook fails open on any internal error.",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0037",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0037",
+ "spec_inputs_present": {
+  "IMP-0033_ledger_consumer": "tools/plugin/deployed_copy_guard.py reads records with live_path, source_path, source_blob_sha",
+  "hooks/_dispatch/manifest.json": true,
+  "hooks/deployed_copy_edit.py": true,
+  "rules/common/harness-vcs-hygiene.md": true
+ },
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_deployed_copy_guard.py",
+   "exit_code": 0,
+   "id": "tools/plugin/tests/test_deployed_copy_guard.py",
+   "name": "deployed warns; live-only silent; repo silent; record-not-prefix; fail-open",
+   "output_tail": "test_deployed_path_warns (__main__.DeployedCopyGuardTests.test_deployed_path_warns) ... ok\ntest_fail_open_on_corrupt_ledger (__main__.DeployedCopyGuardTests.test_fail_open_on_corrupt_ledger) ... ok\ntest_fail_open_on_forced_exception (__main__.DeployedCopyGuardTests.test_fail_open_on_forced_exception) ... ok\ntest_fail_open_on_unparseable_stdin (__main__.DeployedCopyGuardTests.test_fail_open_on_unparseable_stdin) ... ok\ntest_incomplete_record_without_blob_is_silent (__main__.DeployedCopyGuardTests.test_incomplete_record_without_blob_is_silent) ... ok\ntest_inject_never_block (__main__.DeployedCopyGuardTests.test_inject_never_block) ... ok\ntest_live_only_path_silent (__main__.DeployedCopyGuardTests.test_live_only_path_silent) ... ok\ntest_negative_control_record_not_prefix (__main__.DeployedCopyGuardTests.test_negative_control_record_not_prefix)\nRemove the provenance record; same live path must go silent. ... ok\ntest_non_edit_tool_silent (__main__.DeployedCopyGuardTests.test_non_edit_tool_silent) ... ok\ntest_repo_path_silent (__main__.DeployedCopyGuardTests.test_repo_path_silent) ... ok\ntest_write_tool_warns_on_deployed (__main__.DeployedCopyGuardTests.test_write_tool_warns_on_deployed) ... ok\ntest_hook_fail_open_forced_error (__main__.HookProcessTests.test_hook_fail_open_forced_error) ... ok\ntest_hook_file_is_registered_and_executable (__main__.HookProcessTests.test_hook_file_is_registered_and_executable) ... ok\ntest_hook_subprocess_deployed_and_live_only_same_run (__main__.HookProcessTests.test_hook_subprocess_deployed_and_live_only_same_run) ... ok\n\n----------------------------------------------------------------------\nRan 14 tests in 0.179s\n\nOK",
+   "result": "PASS"
+  }
+ ],
+ "tests_required": "hooks tests: deployed path warns; live-only path silent; repo path silent; NEGATIVE CONTROL: remove the provenance record and the warning disappears; the hook must inject, never block; fail-open on internal error",
+ "timestamps": {
+  "ended_at": "2026-08-25T01:00:04Z",
+  "started_at": "2026-08-25T01:00:04Z"
+ },
+ "title": "Deployed-copy edit interception routing changes back to repo source",
+ "ts": "2026-08-25T01:00:04Z",
+ "unit_id": "IMP-0037"
+}

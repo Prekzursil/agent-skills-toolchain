@@ -1,0 +1,27 @@
+
+===== launch 2026-08-20T08:57:32Z attempt=1 =====
+I'll start from the existing IMP-0006 probe tree and the unit's contract, then implement whatever is still missing until the measure script reports delivered.The probe list is huge, so I’ll pin IMP-0006’s catalog row, measure script, and any existing probe files next.IMP-0006 has no probe tree yet. I’ll pull the catalog contract and a delivered IMP unit as the template.I’ll inspect the existing plugin manifest, receipt schema, and a delivered IMP unit so the new probes match the real contract.The catalog wants a live `plugin.json` plus schema and two validators. I’ll locate those files and a delivered receipt that already passed the same gate.I’ll check the receipt contract, existing plugin.json fixtures, and how dual-schema validation is resolved.I’ll recover the original plugin.json if a clean clone still has it, then install a second JSON Schema engine so both named probes can run.HEAD’s plugin.json is the six-key 0.3.0 blob; I’ll extend that same file, add the two-engine validator, and wire the named probes.Probes are green. Next I’ll pack the receipt, then run the delivery measure.IMP-0006 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0006` printed:
+
+`SUCCESS:delivered IMP-0006 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe1_live_jsonschema.py:0,probe2_fastjsonschema.py:0,run_required_tests.py:0`
+
+The unit had never been started (`probes/IMP-0006/` was missing). It is implemented, not parked.
+
+**What landed**
+
+- Restored the HEAD Claude Code identity (`.claude-plugin/plugin.json`, `agent-skills-toolchain` 0.3.0, six keys) and **extended that same file** with Phase-4 `compatibility` / `interpreters` / `entrypoints` / `payload` / `deploy`. No second manifest file.
+- Schema is `.claude-plugin/plugin.schema.json`, sourced from `platform/plugin/schemas.py` (`keywords.minItems = 1` so the empty-keywords mutant is real).
+- Validator is two engines on the same bytes: python-jsonschema Draft 2020-12 and fastjsonschema 2.22.2, wired as `astplugin validate-manifest`.
+- Required tests: `tools/plugin/tests/test_manifest_schema.py` (live file green, six distinct mutant errors, `additionalProperties` relaxation proves the unknown-key case).
+
+**Receipt / manifest**
+
+| Item | Value |
+|---|---|
+| Receipt | `command-center/receipts/IMP-0006.json` (`state=SUCCESS`) |
+| Per-unit manifest | `command-center/p2-wave/probes/IMP-0006/UNIT-ARTIFACT-MANIFEST.json` |
+| Live LF sha256 | `08792aa2c7e186c6a9c573edbcf333479f503f12c7b4ee9f1f98281f89dce649` |
+| Handoff | `command-center/p2-wave/probes/IMP-0006/SUBAGENT-RETURN.json` |
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no global `unit_manifest.py --write`, no key rotation, no finish-everything-close / p2-cloud-ok-deliver relaunch. `cloud ok=true` was not treated as delivery.

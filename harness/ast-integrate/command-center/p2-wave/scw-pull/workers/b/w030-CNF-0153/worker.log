@@ -1,0 +1,29 @@
+I'll start from the existing CNF-0153 probe tree and measure what's already there before changing anything.The probe tree is nearly empty (only `CLOUD-OK-REFUTE.json`). Next I’ll read the catalog contract, the measure script, and nearby delivered units so I can resume from the real G-1 bar.The catalog question is a live OSV re-probe; next I’ll read the schema, the blocked receipt, and a delivered G-1 unit so we can resume without inventing a new protocol.I’ll read `artifact_delivered`, the physical program-gate-report schema, and a delivered CNF unit so the receipt and probes match the live G-1 bar.I’ll pull the physical schema, stored OSV baseline, lockfiles, and whether `osv-scanner` is on this box so the probes can be rebuilt instead of hand-flipped.Schema validation is skipped here because `platform/` is absent. I’ll inspect the receipt contract, stored lockfiles, and whether GitHub/OSV are reachable so the probes can be live rather than invented.Main has moved since the stored green. I’ll fetch today’s lockfiles and `osv-scanner`, then read the pinned gate definition so the re-probe diffs the same inputs.Network, the pinned scanner, and both lockfile snapshots are in place. Next I’ll write the two named probes, fixtures, and the packer so a re-run can go green.Both named probes passed and the stored gate-deps green is still true. Next I’ll pack the receipt and run the delivery measure.**SUCCESS:delivered CNF-0153** — `python command-center/p2-wave/_measure_one_delivered.py CNF-0153` printed:
+
+`SUCCESS:delivered CNF-0153 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_gate_census.py:0,probe2_live_reprobe.py:0`
+
+The stored **gate-deps (osv-scanner 2.3.8)** clean-zero is still true today. Live re-probe on 2026-08-19:
+
+| Check | Result |
+|---|---|
+| Pinned scanner on stored lockfiles | exit 0, no issues |
+| Independent OSV `/v1/querybatch` | version-pinned ids `[]` |
+| Added / removed vs stored `[]` | empty / empty |
+| Any-version advisory count | still 110 (delta 0) |
+| Detector (lodash@4.17.11) | scanner exit 1 |
+| Both-states (bytes@3.1.2) | scanner exit 0, API ids `[]` |
+| Exit-code discipline | 127 (not installed) ≠ 1 (findings) ≠ 0 (clean) |
+| Current main lockfiles (HEAD `2d655b64…`) | also clean-zero |
+
+The prior CLOUD-OK-REFUTE left the unit **BLOCKED** because 26 sidecars were missing and SUCCESS was not to be hand-flipped. This pass restored the named probes and re-ran them. Scanner pin `2.3.8` checksum `bc98e15319ed0d515e3f9235287ba53cdc5535d576d24fd573978ecfe9ab92dc` matches the original.
+
+**Wrote**
+- `command-center/p2-wave/probes/CNF-0153/probe1_gate_census.py` + `probe1-gate-inventory.raw.txt`
+- `command-center/p2-wave/probes/CNF-0153/probe2_live_reprobe.py` + `probe2-live-reprobe-and-diff.raw.txt`
+- `command-center/receipts/CNF-0153.json` — `state=SUCCESS`, 28410 B, LF sha256 `46300db19d19eb5837eeb0362eb0b0e91b21a5c30771f09fc61dc6e1191a7bf3`
+- `command-center/p2-wave/probes/CNF-0153/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; hash matches)
+- `command-center/p2-wave/probes/CNF-0153/SUBAGENT-RETURN.json`
+
+**Constraints kept:** no git mutations, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+**Residual:** catalog reviewer asked for a **different network egress**. This session repeated the scan on the same worker. That is recorded as NOT-CHECKED (`CNF0153-D2`), not claimed done. This worktree is sparse (no `.git` / root lockfile / `quality.yml`); probes bound GitHub bytes at stored SHA `f7fac7b4…` and current main instead.

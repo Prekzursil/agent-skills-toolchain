@@ -1,0 +1,131 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.local/command-center/p2-wave/probes/TST-0159/concurrency_report.schema.json",
+  "title": "TST-0159 write-once receipt concurrency report",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "schema_version",
+    "report_kind",
+    "title",
+    "question",
+    "engine",
+    "both_states",
+    "negative_control",
+    "evidence",
+    "tests",
+    "reviewer",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "TST-0159" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:TST-0159" },
+    "completion_sentinel": { "type": "string", "const": "SUCCESS:TST-0159" },
+    "schema_version": { "type": "integer", "minimum": 1 },
+    "report_kind": { "type": "string", "const": "concurrency_report" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "catalog_schema": { "type": "string" },
+    "min_bytes_threshold": { "type": "integer", "minimum": 1024 },
+    "engine": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["path", "catalog_named_path", "catalog_named_present", "api"],
+      "properties": {
+        "path": {
+          "type": "string",
+          "const": "command-center/p2-wave/probes/TST-0159/write_once_store.py"
+        },
+        "catalog_named_path": {
+          "type": "string",
+          "const": "tools/lib/handled-ledger.mjs"
+        },
+        "catalog_named_present": { "type": "boolean", "const": false },
+        "api": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "both_states": {
+      "type": "object",
+      "required": ["ok", "false_negative_timeout", "genuine_failure_retry"],
+      "properties": {
+        "ok": { "type": "boolean", "const": true },
+        "false_negative_timeout": { "type": "object" },
+        "genuine_failure_retry": { "type": "object" },
+        "stale_cas": { "type": "object" }
+      }
+    },
+    "negative_control": {
+      "type": "object",
+      "required": ["ok", "last_write_wins"],
+      "properties": {
+        "ok": { "type": "boolean", "const": true },
+        "last_write_wins": { "type": "object" }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["signal", "claim", "verdict"],
+        "properties": {
+          "signal": { "type": "string" },
+          "claim": { "type": "string" },
+          "verdict": { "type": "string", "enum": ["CONFIRMED", "REFUTED"] },
+          "anchor": { "type": "string" }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL"] },
+          "command": { "type": "string" }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string" },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true },
+        "notes": { "type": "string" }
+      }
+    },
+    "named_probes": { "type": "array" },
+    "cloud_ok": { "type": "boolean" },
+    "registered": { "type": "boolean" },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean" },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

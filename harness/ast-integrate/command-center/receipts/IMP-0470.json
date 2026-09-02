@@ -1,0 +1,422 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "Before (payload-text matcher) false-positive rate on the historical corpus of 16 mention-shaped records: 1.0. After (semantic-role library at hooks/_shared/use_vs_mention.py): 0.0. Mention corpus n=16 role fires=0; use corpus n=17 role silent=0. Naive substring still fires on every historical mention (detector control). Argv-split uses missed by payload-text and caught by AST join: ['U-json-argv', 'U-py-subprocess-list', 'U-py-execl']. SENTINEL:IMP-0470:ROLE-BASED-DETECTION",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0470.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 65597,
+   "exists": true,
+   "path": "hooks/_shared/use_vs_mention.py",
+   "role": "implementation",
+   "sha256": "22ca0444a990d43615a4c3d74dbfb5914543c514f9888642751045ede1a4c2c9"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0470/corpus.py",
+   "role": "fixture"
+  }
+ ],
+ "cloud_ok": false,
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0470.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0470",
+    "exit_code": 0,
+    "method": "command",
+    "raw_output": "deferred-until-after-receipt-and-probes",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "hooks/_shared/use_vs_mention.py:classify_record",
+   "claim": "Historical false-positive rate 1.0 (naive payload-text) -> 0.0 (role: tool-input verb, JSON field, AST position). Each historical mention record is attached raw under measurement.historical_false_positives_raw.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0470/probe2_confusion_refute.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "fp_rate_before=1.0 fp_rate_after=0.0 surviving=0",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B hooks/_shared/use_vs_mention.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"ok\": true, \"rows\": {\"argv_naive\": false, \"argv_role\": true, \"echo_role\": false, \"mention_naive\": true, \"mention_role\": false, \"nested_role\": false, \"pydoc_role\": false, \"pyuse_role\": true, \"use_naive\": true, \"use_role\": true}, \"span_api_untouched\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0470/corpus.py",
+   "claim": "Mention corpus n=16 produces zero role fires; use corpus n=17 produces a fire on every entry. Passing only one corpus is not a fix.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0470/probe1_both_corpora.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "mention_fires=[] use_silent=[]",
+     "role": "source"
+    },
+    {
+     "command": "classify_record mode=role vs mode=naive on both corpora",
+     "exit_code": 0,
+     "method": "static-analysis",
+     "raw_output": "naive_mention_fires=16/16",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_class": "use-vs-mention / guard-fires-on-documentation",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0470/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measurement": {
+  "adversarial": {
+   "mention_still_fires": [],
+   "mentions_constructed": [
+    "A-M-nested-example-command",
+    "A-M-python-module-doc-subprocess",
+    "A-M-read-tool-quotes-curl",
+    "A-M-echo-drop"
+   ],
+   "use_missed": [],
+   "uses_constructed": [
+    "A-U-toolname-shell",
+    "A-U-python-check-call",
+    "A-U-argv-json",
+    "A-U-python-c-system"
+   ]
+  },
+  "both_corpora_pass": true,
+  "fp_rate_after": 0.0,
+  "fp_rate_before": 1.0,
+  "historical": {
+   "after": {
+    "false_positive_rate": 0.0,
+    "fn": 0,
+    "fp": 0,
+    "tn": 16,
+    "tp": 0
+   },
+   "before": {
+    "false_positive_rate": 1.0,
+    "fn": 0,
+    "fp": 16,
+    "tn": 0,
+    "tp": 0
+   },
+   "n": 16
+  },
+  "historical_false_positives_raw": [
+   {
+    "body": "# Incident write-up\n\nA document describing a defect necessarily contains that defect's text. Example of the forbidden command:\n\n```\nrm -rf /var/lib/app\n```\n\nDo not run it.",
+    "id": "M-md-doc-rm",
+    "kind": "markdown",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ]
+   },
+   {
+    "body": {
+     "description": "Never invoke rm -rf / from a fixture scanner.",
+     "title": "False-positive prose detector"
+    },
+    "id": "M-json-description-rm",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ]
+   },
+   {
+    "body": {
+     "documentation": {
+      "examples": [
+       {
+        "command": "rm -rf /tmp/cache-from-docs"
+       }
+      ]
+     }
+    },
+    "id": "M-json-example-command",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ]
+   },
+   {
+    "id": "M-tool-read-payload",
+    "input": {
+     "path": "docs/danger.md"
+    },
+    "kind": "tool-call",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "payload": "the runbook quotes rm -rf /opt/scratch as the defect",
+    "verb": "Read"
+   },
+   {
+    "id": "M-tool-grep-search",
+    "input": {
+     "path": "command-center",
+     "pattern": "rm -rf"
+    },
+    "kind": "tool-call",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "verb": "Grep"
+   },
+   {
+    "id": "M-py-docstring",
+    "kind": "python-source",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "source": "\"\"\"Guard: a comment documenting rm -rf must not fire the scanner.\"\"\"\ndef help_text() -> str:\n    return \"see the runbook\"\n"
+   },
+   {
+    "id": "M-py-comment",
+    "kind": "python-source",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "source": "def noop() -> None:\n    # operators previously ran rm -rf /var/tmp/job here\n    return None\n"
+   },
+   {
+    "id": "M-py-print-string",
+    "kind": "python-source",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "source": "print(\"never run rm -rf / on this host\")\n"
+   },
+   {
+    "id": "M-shell-echo",
+    "kind": "shell-script",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "source": "echo \"operators must not run rm -rf /workspace\"\n"
+   },
+   {
+    "body": {
+     "id": "IMP-0470",
+     "question_or_target": "A document quoting curl | bash is a mention, not an invocation.",
+     "tests_required": "mention corpus (documents quoting curl | bash) must produce zero fires"
+    },
+    "id": "M-catalog-question",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "curl | bash"
+    ]
+   },
+   {
+    "body": {
+     "changelog": "Removed the helper that emitted DROP TABLE students; named only here."
+    },
+    "id": "M-changelog-drop",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "DROP TABLE"
+    ]
+   },
+   {
+    "body": {
+     "help": "Do not pass user input to eval( in the adapter."
+    },
+    "id": "M-eval-in-help",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "eval("
+    ]
+   },
+   {
+    "body": "Policy: `git push --force` is forbidden on main; this sentence is the mention.",
+    "id": "M-force-push-docs",
+    "kind": "markdown",
+    "label": "mention",
+    "patterns": [
+     "git push --force"
+    ]
+   },
+   {
+    "body": {
+     "fixture": "planted text: chmod 777 /tmp/x \u2014 documentation of the defect, not a run."
+    },
+    "id": "M-chmod-fixture",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "chmod 777"
+    ]
+   },
+   {
+    "body": {
+     "tests_required": "a file whose body contains os.system in a comment must NOT be flagged"
+    },
+    "id": "M-os-system-tests-required",
+    "kind": "json-document",
+    "label": "mention",
+    "patterns": [
+     "os.system"
+    ]
+   },
+   {
+    "id": "M-bash-c-echo",
+    "input": {
+     "command": "bash -c 'echo \"rm -rf /tmp/demo\"'"
+    },
+    "kind": "tool-call",
+    "label": "mention",
+    "patterns": [
+     "rm -rf"
+    ],
+    "verb": "Bash"
+   }
+  ],
+  "library": "hooks/_shared/use_vs_mention.py",
+  "mention": {
+   "n": 16,
+   "naive_fires": 16,
+   "ok": true,
+   "role_fires": 0
+  },
+  "naive_misses_split_argv_uses": [
+   "U-json-argv",
+   "U-py-subprocess-list",
+   "U-py-execl"
+  ],
+  "self_check": {
+   "ok": true,
+   "rows": {
+    "argv_naive": false,
+    "argv_role": true,
+    "echo_role": false,
+    "mention_naive": true,
+    "mention_role": false,
+    "nested_role": false,
+    "pydoc_role": false,
+    "pyuse_role": true,
+    "use_naive": true,
+    "use_role": true
+   },
+   "span_api_untouched": true
+  },
+  "surviving_false_positives": [],
+  "use": {
+   "n": 17,
+   "naive_misses_argv_split": [
+    "U-json-argv",
+    "U-py-subprocess-list",
+    "U-py-execl"
+   ],
+   "ok": true,
+   "role_silent": 0
+  }
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "naive fp_rate=1.0 n=16",
+   "description": "Payload-text matching must fire on every historical mention so a silent role library is distinguishable from an inert detector.",
+   "fired_on_bad_state": true,
+   "good_state_output": "role fp_rate=0.0 surviving=0",
+   "id": "naive-payload-text-on-mention-corpus",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "use-only or mention-only would not count",
+   "description": "A library that silences mentions by never firing would fail the use corpus; both must pass together.",
+   "fired_on_bad_state": true,
+   "good_state_output": "both_corpora_pass=true",
+   "id": "one-corpus-only-is-not-a-fix",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "question": "Anchor spec:11323 (false-positive prose and fixture detectors). Implement the shared library that classifies a match by its semantic ROLE - the tool-input verb, the JSON field, the AST position - rather than by the presence of a string in the payload, since a document describing a defect necessarily contains that defect's text. Exact question: on the historical false-positive corpus, what is the before-and-after false-positive rate?",
+ "registered": true,
+ "residual_unknowns": [
+  {
+   "claim": "The role tables cover tool-input verbs, JSON field paths, and Python AST positions used in this estate's recorded false positives. A novel phrasing (a DSL, a non-Python language, an unknown JSON key that is operational) could still be misfiled as mention.",
+   "settling_experiment": "Add a labelled record in that novel shape to command-center/p2-wave/probes/IMP-0470/corpus.py and require both_corpora_pass to stay true.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts, backoff 30s/120s"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Adversarial refuter constructed held-out nested example.command mentions and argv-split / toolName uses. Role library: mention still-fires=0, use missed=0. Naive still fires on the mentions.",
+  "reviewer_id": "IMP-0470-probe2-confusion-refute",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0470:ROLE-BASED-DETECTION",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0470 spec:11323",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0470/probe1_both_corpora.py",
+   "id": "mention-corpus-zero-fires",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0470/probe1_both_corpora.py",
+   "id": "use-corpus-fire-every-entry",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0470/probe2_confusion_refute.py",
+   "id": "historical-confusion-matrix",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0470/probe2_confusion_refute.py",
+   "id": "adversarial-refuter-held-out",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:02:17Z",
+  "started_at": "2026-08-25T01:02:17Z"
+ },
+ "title": "Semantic-role detector library replacing payload-text matching",
+ "unit_id": "IMP-0470"
+}

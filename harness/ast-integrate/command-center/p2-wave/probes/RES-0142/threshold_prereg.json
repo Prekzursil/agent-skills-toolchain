@@ -1,0 +1,49 @@
+{
+  "unit_id": "RES-0142",
+  "metric_id": "preregistered-additive-observable-tracker-field-score",
+  "recorded_at": "2026-08-24T20:45:00Z",
+  "recorded_before_any_replay_or_control": true,
+  "window": 2,
+  "floor": 0.0,
+  "min_sources": 2,
+  "early_max_index": 4,
+  "token_counter_foil_budget_tokens": 40,
+  "predict_blocked_if_score_gte": 4,
+  "weights": {
+    "has_bug_label": 2,
+    "reactions_ge_1": 1,
+    "maintainer_responded": 1,
+    "is_pull_request": 2,
+    "has_milestone": 1,
+    "has_duplicate_label": -3,
+    "has_stale_label": -1
+  },
+  "holdout_ids": [
+    "anthropics/claude-code#12164",
+    "anthropics/claude-code#17653",
+    "anthropics/claude-code#33251",
+    "anthropics/claude-code#45857",
+    "anthropics/claude-code#5241",
+    "anthropics/claude-code#44074",
+    "anthropics/claude-code#47635",
+    "modelcontextprotocol/inspector#1859"
+  ],
+  "distinctness": "observable-tracker-field-tuple",
+  "not_used_for_distinctness": [
+    "issue-title",
+    "issue-body",
+    "estate-label-prose",
+    "string-equality",
+    "token-count"
+  ],
+  "fire_rule": "Let y_t be the number of observable field-tuples first seen at 1-based source index t. Fire at the smallest t >= min_sources such that mean(y_{t-window+1} .. y_t) <= floor. Silent if no such t exists.",
+  "miss_rate_definition": "If the detector fires at t*, miss_count is the number of field-tuples whose first-seen index is > t*. miss_rate = miss_count / total_distinct_at_end. If the detector never fires, both are null.",
+  "early_definition": "fired AND fire_index <= early_max_index",
+  "classifier_rule": "score = 2*bug + 1*(reactions>=1) + 1*maintainer_responded + 2*is_pull_request + 1*has_milestone - 3*duplicate - 1*stale. Predict blocked_this_estate iff score >= 4. Title and body are not inputs.",
+  "citation": "Catalog RES-0142 asks which observable tracker fields (state, label, reaction count, maintainer response latency, linked-PR state, duplicate-count, milestone) predict that an open issue will actually block this estate. Weights and the decision threshold were frozen from that hypothesized field list before holdout metrics, historical replays, or control corpora were scored on this worktree. They were not fit on the 25 estate labels.",
+  "inputs_absent_named": [
+    "command-center/RISK-REGISTER.md",
+    "command-center/CLAIM-REGISTRY.json",
+    "command-center/sources/REGISTER.md"
+  ]
+}

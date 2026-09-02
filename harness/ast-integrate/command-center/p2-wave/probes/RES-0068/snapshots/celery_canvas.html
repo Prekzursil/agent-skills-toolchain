@@ -1,0 +1,1335 @@
+<!DOCTYPE html>
+
+<html lang="en" data-content_root="../">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" /><meta name="viewport" content="width=device-width, initial-scale=1" />
+
+    <title>Canvas: Designing Work-flows &#8212; Celery 5.6.3 documentation</title>
+    <link rel="stylesheet" type="text/css" href="../_static/pygments.css?v=3ee1c6c6" />
+    <link rel="stylesheet" type="text/css" href="../_static/celery.css?v=9ab87318" />
+    <script src="../_static/documentation_options.js?v=0602f75f"></script>
+    <script src="../_static/doctools.js?v=9a2dae69"></script>
+    <script src="../_static/sphinx_highlight.js?v=dc90522c"></script>
+    <link rel="icon" href="../_static/favicon.ico"/>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="copyright" title="Copyright" href="../copyright.html" />
+    <link rel="next" title="Workers Guide" href="workers.html" />
+    <link rel="prev" title="Calling Tasks" href="calling.html" /> 
+  <script async type="text/javascript" src="/_/static/javascript/readthedocs-addons.js"></script><meta name="readthedocs-project-slug" content="celery" /><meta name="readthedocs-version-slug" content="stable" /><meta name="readthedocs-resolver-filename" content="/userguide/canvas.html" /><meta name="readthedocs-http-status" content="200" /></head><body>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="workers.html" title="Workers Guide"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="calling.html" title="Calling Tasks"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Celery 5.6.3 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" accesskey="U">User Guide</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Canvas: Designing Work-flows</a></li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+<div class="deck">
+
+    
+        <p>
+        This document describes the current stable version of Celery (5.6).
+        For development docs,
+        <a href="https://docs.celeryq.dev/en/main/userguide/canvas.html">go here</a>.
+        </p>
+    
+
+</div>
+    <section id="canvas-designing-work-flows">
+<span id="guide-canvas"></span><h1>Canvas: Designing Work-flows<a class="headerlink" href="#canvas-designing-work-flows" title="Link to this heading">¶</a></h1>
+<nav class="contents local" id="contents">
+<ul class="simple">
+<li><p><a class="reference internal" href="#signatures" id="id4">Signatures</a></p>
+<ul>
+<li><p><a class="reference internal" href="#partials" id="id5">Partials</a></p></li>
+<li><p><a class="reference internal" href="#immutability" id="id6">Immutability</a></p></li>
+<li><p><a class="reference internal" href="#callbacks" id="id7">Callbacks</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#the-primitives" id="id8">The Primitives</a></p>
+<ul>
+<li><p><a class="reference internal" href="#chains" id="id9">Chains</a></p></li>
+<li><p><a class="reference internal" href="#groups" id="id10">Groups</a></p></li>
+<li><p><a class="reference internal" href="#chords" id="id11">Chords</a></p></li>
+<li><p><a class="reference internal" href="#map-starmap" id="id12">Map &amp; Starmap</a></p></li>
+<li><p><a class="reference internal" href="#chunks" id="id13">Chunks</a></p></li>
+</ul>
+</li>
+<li><p><a class="reference internal" href="#stamping" id="id14">Stamping</a></p>
+<ul>
+<li><p><a class="reference internal" href="#id3" id="id15">Canvas stamping</a></p></li>
+<li><p><a class="reference internal" href="#custom-stamping" id="id16">Custom stamping</a></p></li>
+<li><p><a class="reference internal" href="#callbacks-stamping" id="id17">Callbacks stamping</a></p></li>
+</ul>
+</li>
+</ul>
+</nav>
+<section id="signatures">
+<span id="canvas-signatures"></span><span id="canvas-subtasks"></span><h2><a class="toc-backref" href="#id4" role="doc-backlink">Signatures</a><a class="headerlink" href="#signatures" title="Link to this heading">¶</a></h2>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.0.</span></p>
+</div>
+<p>You just learned how to call a task using the tasks <code class="docutils literal notranslate"><span class="pre">delay</span></code> method
+in the <a class="reference internal" href="calling.html#guide-calling"><span class="std std-ref">calling</span></a> guide, and this is often all you need,
+but sometimes you may want to pass the signature of a task invocation to
+another process or as an argument to another function.</p>
+<p>A <a class="reference internal" href="../reference/celery.html#celery.signature" title="celery.signature"><code class="xref py py-func docutils literal notranslate"><span class="pre">signature()</span></code></a> wraps the arguments, keyword arguments, and execution options
+of a single task invocation in a way such that it can be passed to functions
+or even serialized and sent across the wire.</p>
+<ul>
+<li><p>You can create a signature for the <code class="docutils literal notranslate"><span class="pre">add</span></code> task using its name like this:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">signature</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">signature</span><span class="p">(</span><span class="s1">&#39;tasks.add&#39;</span><span class="p">,</span> <span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">tasks.add(2, 2)</span>
+</pre></div>
+</div>
+</div></blockquote>
+<p>This task has a signature of arity 2 (two arguments): <code class="docutils literal notranslate"><span class="pre">(2,</span> <span class="pre">2)</span></code>,
+and sets the countdown execution option to 10.</p>
+</li>
+<li><p>or you can create one using the task’s <code class="docutils literal notranslate"><span class="pre">signature</span></code> method:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">signature</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="go">tasks.add(2, 2)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>There’s also a shortcut using star arguments:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">tasks.add(2, 2)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Keyword arguments are also supported:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="go">tasks.add(2, 2, debug=True)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>From any signature instance you can inspect the different fields:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">signature</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="p">{</span><span class="s1">&#39;debug&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">},</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">args</span>
+<span class="go">(2, 2)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">kwargs</span>
+<span class="go">{&#39;debug&#39;: True}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;countdown&#39;: 10}</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>It supports the “Calling API” of <code class="docutils literal notranslate"><span class="pre">delay</span></code>,
+<code class="docutils literal notranslate"><span class="pre">apply_async</span></code>, etc., including being called directly (<code class="docutils literal notranslate"><span class="pre">__call__</span></code>).</p>
+<blockquote>
+<div><p>Calling the signature will execute the task inline in the current process:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="go">4</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)()</span>
+<span class="go">4</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">delay</span></code> is our beloved shortcut to <code class="docutils literal notranslate"><span class="pre">apply_async</span></code> taking star-arguments:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">4</span>
+</pre></div>
+</div>
+<p><code class="docutils literal notranslate"><span class="pre">apply_async</span></code> takes the same arguments as the
+<a class="reference internal" href="../reference/celery.app.task.html#celery.app.task.Task.apply_async" title="celery.app.task.Task.apply_async"><code class="xref py py-meth docutils literal notranslate"><span class="pre">app.Task.apply_async()</span></code></a> method:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">args</span><span class="p">,</span> <span class="n">kwargs</span><span class="p">,</span> <span class="o">**</span><span class="n">options</span><span class="p">)</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">signature</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>You can’t define options with <a class="reference internal" href="../reference/celery.app.task.html#celery.app.task.Task.s" title="celery.app.task.Task.s"><code class="xref py py-meth docutils literal notranslate"><span class="pre">s()</span></code></a>, but a chaining
+<code class="docutils literal notranslate"><span class="pre">set</span></code> call takes care of that:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">set</span><span class="p">(</span><span class="n">countdown</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">proj.tasks.add(2, 2)</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<section id="partials">
+<h3><a class="toc-backref" href="#id5" role="doc-backlink">Partials</a><a class="headerlink" href="#partials" title="Link to this heading">¶</a></h3>
+<p>With a signature, you can execute the task in a worker:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">countdown</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Or you can call it directly in the current process:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)()</span>
+<span class="go">4</span>
+</pre></div>
+</div>
+<p>Specifying additional args, kwargs, or options to <code class="docutils literal notranslate"><span class="pre">apply_async</span></code>/<code class="docutils literal notranslate"><span class="pre">delay</span></code>
+creates partials:</p>
+<ul>
+<li><p>Any arguments added will be prepended to the args in the signature:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">partial</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>          <span class="c1"># incomplete signature</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">partial</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span>            <span class="c1"># 4 + 2</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">partial</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">4</span><span class="p">,))</span>  <span class="c1"># same</span>
+</pre></div>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Additional args passed to <code class="docutils literal notranslate"><span class="pre">delay</span></code>/<code class="docutils literal notranslate"><span class="pre">apply_async</span></code> are <strong>prepended</strong>
+to the signature args. Since <code class="docutils literal notranslate"><span class="pre">add</span></code> is commutative, the ordering may
+not be obvious. A non-commutative task like
+<code class="docutils literal notranslate"><span class="pre">subtract(x,</span> <span class="pre">y)</span> <span class="pre">-&gt;</span> <span class="pre">x</span> <span class="pre">-</span> <span class="pre">y</span></code> makes this clear:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">subtract</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">-</span> <span class="n">y</span>
+
+<span class="n">partial</span> <span class="o">=</span> <span class="n">subtract</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>    <span class="c1"># incomplete: second arg only</span>
+<span class="n">partial</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="mi">30</span><span class="p">)</span>           <span class="c1"># -&gt; subtract(30, 10) = 20</span>
+</pre></div>
+</div>
+<p>Here <code class="docutils literal notranslate"><span class="pre">delay(30)</span></code> prepends <code class="docutils literal notranslate"><span class="pre">30</span></code> as the first argument, resulting
+in <code class="docutils literal notranslate"><span class="pre">subtract(30,</span> <span class="pre">10)</span></code> — not <code class="docutils literal notranslate"><span class="pre">subtract(10,</span> <span class="pre">30)</span></code>.</p>
+</div>
+</div></blockquote>
+</li>
+<li><p>Any keyword arguments added will be merged with the kwargs in the signature,
+with the new keyword arguments taking precedence:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">debug</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>                    <span class="c1"># -&gt; add(2, 2, debug=True)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;debug&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>  <span class="c1"># same</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Any options added will be merged with the options in the signature,
+with the new options taking precedence:</p>
+<blockquote>
+<div><div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">signature</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">countdown</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">countdown</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>  <span class="c1"># countdown is now 1</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<p>You can also clone signatures to create derivatives:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span>
+<span class="go">proj.tasks.add(2)</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">clone</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="mi">4</span><span class="p">,),</span> <span class="n">kwargs</span><span class="o">=</span><span class="p">{</span><span class="s1">&#39;debug&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">})</span>
+<span class="go">proj.tasks.add(4, 2, debug=True)</span>
+</pre></div>
+</div>
+</section>
+<section id="immutability">
+<h3><a class="toc-backref" href="#id6" role="doc-backlink">Immutability</a><a class="headerlink" href="#immutability" title="Link to this heading">¶</a></h3>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+<p>Partials are meant to be used with callbacks, any tasks linked, or chord
+callbacks will be applied with the result of the parent task.
+Sometimes you want to specify a callback that doesn’t take
+additional arguments, and in that case you can set the signature
+to be immutable:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">link</span><span class="o">=</span><span class="n">reset_buffers</span><span class="o">.</span><span class="n">signature</span><span class="p">(</span><span class="n">immutable</span><span class="o">=</span><span class="kc">True</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The <code class="docutils literal notranslate"><span class="pre">.si()</span></code> shortcut can also be used to create immutable signatures:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">link</span><span class="o">=</span><span class="n">reset_buffers</span><span class="o">.</span><span class="n">si</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Only the execution options can be set when a signature is immutable,
+so it’s not possible to call the signature with partial args/kwargs.</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>In this tutorial I sometimes use the prefix operator <cite>~</cite> to signatures.
+You probably shouldn’t use it in your production code, but it’s a handy shortcut
+when experimenting in the Python shell:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">~</span><span class="n">sig</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># is the same as</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sig</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+</div>
+</section>
+<section id="callbacks">
+<span id="canvas-callbacks"></span><h3><a class="toc-backref" href="#id7" role="doc-backlink">Callbacks</a><a class="headerlink" href="#callbacks" title="Link to this heading">¶</a></h3>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+<p>Callbacks can be added to any task using the <code class="docutils literal notranslate"><span class="pre">link</span></code> argument
+to <code class="docutils literal notranslate"><span class="pre">apply_async</span></code>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="go">add.apply_async((2, 2), link=other_task.s())</span>
+</pre></div>
+</div>
+<p>The callback will only be applied if the task exited successfully,
+and it will be applied with the return value of the parent task as argument.</p>
+<p>As I mentioned earlier, any arguments you add to a signature,
+will be prepended to the arguments specified by the signature itself!</p>
+<p>If you have the signature:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sig</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>then <cite>sig.delay(result)</cite> becomes:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">args</span><span class="o">=</span><span class="p">(</span><span class="n">result</span><span class="p">,</span> <span class="mi">10</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>…</p>
+<p>Now let’s call our <code class="docutils literal notranslate"><span class="pre">add</span></code> task with a callback using partial
+arguments:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">link</span><span class="o">=</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>As expected this will first launch one task calculating <img class="math" src="../_images/math/3c92a196461843c26825eb716980c76c131d3cfd.png" alt="2 + 2"/>, then
+another task calculating <img class="math" src="../_images/math/71761d65f6fe91dc46537e1d388b51ba92e9e5bc.png" alt="4 + 8"/>.</p>
+</section>
+</section>
+<section id="the-primitives">
+<h2><a class="toc-backref" href="#id8" role="doc-backlink">The Primitives</a><a class="headerlink" href="#the-primitives" title="Link to this heading">¶</a></h2>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+<aside class="topic">
+<p class="topic-title">Overview</p>
+<ul>
+<li><p><code class="docutils literal notranslate"><span class="pre">group</span></code></p>
+<blockquote>
+<div><p>The group primitive is a signature that takes a list of tasks that should
+be applied in parallel.</p>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chain</span></code></p>
+<blockquote>
+<div><p>The chain primitive lets us link together signatures so that one is called
+after the other, essentially forming a <em>chain</em> of callbacks.</p>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chord</span></code></p>
+<blockquote>
+<div><p>A chord is just like a group but with a callback. A chord consists
+of a header group and a body,  where the body is a task that should execute
+after all of the tasks in the header are complete.</p>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">map</span></code></p>
+<blockquote>
+<div><p>The map primitive works like the built-in <code class="docutils literal notranslate"><span class="pre">map</span></code> function, but creates
+a temporary task where a list of arguments is applied to the task.
+For example, <code class="docutils literal notranslate"><span class="pre">task.map([1,</span> <span class="pre">2])</span></code> – results in a single task
+being called, applying the arguments in order to the task function so
+that the result is:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">task</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">task</span><span class="p">(</span><span class="mi">2</span><span class="p">)]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">starmap</span></code></p>
+<blockquote>
+<div><p>Works exactly like map except the arguments are applied as <code class="docutils literal notranslate"><span class="pre">*args</span></code>.
+For example <code class="docutils literal notranslate"><span class="pre">add.starmap([(2,</span> <span class="pre">2),</span> <span class="pre">(4,</span> <span class="pre">4)])</span></code> results in a single
+task calling:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">res</span> <span class="o">=</span> <span class="p">[</span><span class="n">add</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">add</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p><code class="docutils literal notranslate"><span class="pre">chunks</span></code></p>
+<blockquote>
+<div><p>Chunking splits a long list of arguments into parts, for example
+the operation:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">items</span> <span class="o">=</span> <span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1000</span><span class="p">))</span>  <span class="c1"># 1000 items</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">chunks</span><span class="p">(</span><span class="n">items</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>will split the list of items into chunks of 10, resulting in 100
+tasks (each processing 10 items in sequence).</p>
+</div></blockquote>
+</li>
+</ul>
+</aside>
+<p>The primitives are also signature objects themselves, so that they can be combined
+in any number of ways to compose complex work-flows.</p>
+<p>Here’re some examples:</p>
+<ul>
+<li><p>Simple chain</p>
+<blockquote>
+<div><p>Here’s a simple chain, the first task executes passing its return value
+to the next task in the chain, and so on.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># 2 + 2 + 4 + 8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">))()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">16</span>
+</pre></div>
+</div>
+<p>This can also be written using pipes:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">))()</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">16</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Immutable signatures</p>
+<blockquote>
+<div><p>Signatures can be partial so arguments can be
+added to the existing arguments, but you may not always want that,
+for example if you don’t want the result of the previous task in a chain.</p>
+<p>In that case you can mark the signature as immutable, so that the arguments
+cannot be changed:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">signature</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">immutable</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>There’s also a <code class="docutils literal notranslate"><span class="pre">.si()</span></code> shortcut for this, and this is the preferred way of
+creating signatures:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now you can create a chain of independent tasks instead:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">))()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">16</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">8</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">4</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Simple group</p>
+<blockquote>
+<div><p>You can easily create a group of tasks to execute in parallel:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">group</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="go">[0, 2, 4, 6, 8, 10, 12, 14, 16, 18]</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+<li><p>Simple chord</p>
+<blockquote>
+<div><p>The chord primitive enables us to add a callback to be called when
+all of the tasks in a group have finished executing.  This is often
+required for algorithms that aren’t <em>embarrassingly parallel</em>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">chord</span><span class="p">((</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)),</span> <span class="n">tsum</span><span class="o">.</span><span class="n">s</span><span class="p">())()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">90</span>
+</pre></div>
+</div>
+<p>The above example creates 10 tasks that all start in parallel,
+and when all of them are complete the return values are combined
+into a list and sent to the <code class="docutils literal notranslate"><span class="pre">tsum</span></code> task.</p>
+<p>The body of a chord can also be immutable, so that the return value
+of the group isn’t passed on to the callback:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">chord</span><span class="p">((</span><span class="n">import_contact</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">c</span><span class="p">)</span> <span class="k">for</span> <span class="n">c</span> <span class="ow">in</span> <span class="n">contacts</span><span class="p">),</span>
+<span class="gp">... </span>      <span class="n">notify_complete</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="n">import_id</span><span class="p">))</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Note the use of <code class="docutils literal notranslate"><span class="pre">.si</span></code> above; this creates an immutable signature,
+meaning any new arguments passed (including to return value of the
+previous task) will be ignored.</p>
+</div></blockquote>
+</li>
+<li><p>Blow your mind by combining</p>
+<blockquote>
+<div><p>Chains can be partial too:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c1</span> <span class="o">=</span> <span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">))</span>
+
+<span class="go"># (16 + 4) * 8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">c1</span><span class="p">(</span><span class="mi">16</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">160</span>
+</pre></div>
+</div>
+<p>this means that you can combine chains:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="go"># ((4 + 16) * 2 + 4) * 8</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c2</span> <span class="o">=</span> <span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span> <span class="o">|</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">)))</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">c2</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">352</span>
+</pre></div>
+</div>
+<p>Chaining a group together with another task will automatically
+upgrade it to be a chord:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c3</span> <span class="o">=</span> <span class="p">(</span><span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span> <span class="o">|</span> <span class="n">tsum</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">c3</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">90</span>
+</pre></div>
+</div>
+<p>Groups and chords accepts partial arguments too, so in a chain
+the return value of the previous task is forwarded to all tasks in the group:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">new_user_workflow</span> <span class="o">=</span> <span class="p">(</span><span class="n">create_user</span><span class="o">.</span><span class="n">s</span><span class="p">()</span> <span class="o">|</span> <span class="n">group</span><span class="p">(</span>
+<span class="gp">... </span>                     <span class="n">import_contacts</span><span class="o">.</span><span class="n">s</span><span class="p">(),</span>
+<span class="gp">... </span>                     <span class="n">send_welcome_email</span><span class="o">.</span><span class="n">s</span><span class="p">()))</span>
+<span class="gp">... </span><span class="n">new_user_workflow</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">username</span><span class="o">=</span><span class="s1">&#39;artv&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                        <span class="n">first</span><span class="o">=</span><span class="s1">&#39;Art&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                        <span class="n">last</span><span class="o">=</span><span class="s1">&#39;Vandelay&#39;</span><span class="p">,</span>
+<span class="gp">... </span>                        <span class="n">email</span><span class="o">=</span><span class="s1">&#39;art@vandelay.com&#39;</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>If you don’t want to forward arguments to the group then
+you can make the signatures in the group immutable:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">)</span> <span class="o">|</span> <span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)))()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">[0, 2, 4, 6, 8, 10, 12, 14, 16, 18]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">8</span>
+</pre></div>
+</div>
+</div></blockquote>
+</li>
+</ul>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>With more complex workflows, the default JSON serializer has been observed to
+drastically inflate message sizes due to recursive references, leading to
+resource issues. The <em>pickle</em> serializer is not vulnerable to this and may
+therefore be preferable in such cases.</p>
+</div>
+<section id="chains">
+<span id="canvas-chain"></span><h3><a class="toc-backref" href="#id9" role="doc-backlink">Chains</a><a class="headerlink" href="#chains" title="Link to this heading">¶</a></h3>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+<p>Tasks can be linked together: the linked task is called when the task
+returns successfully:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">link</span><span class="o">=</span><span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">16</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">4</span>
+</pre></div>
+</div>
+<p>The linked task will be applied with the result of its parent
+task as the first argument. In the above case where the result was 4,
+this will result in <code class="docutils literal notranslate"><span class="pre">mul(4,</span> <span class="pre">16)</span></code>.</p>
+<p>The results will keep track of any subtasks called by the original task,
+and this can be accessed from the result instance:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">children</span>
+<span class="go">[&lt;AsyncResult: 8c350acf-519d-4553-8a53-4ad3a5c5aeb4&gt;]</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">children</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">64</span>
+</pre></div>
+</div>
+<p>The result instance also has a <a class="reference internal" href="../reference/celery.result.html#celery.result.AsyncResult.collect" title="celery.result.AsyncResult.collect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">collect()</span></code></a> method
+that treats the result as a graph, enabling you to iterate over
+the results:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">list</span><span class="p">(</span><span class="n">res</span><span class="o">.</span><span class="n">collect</span><span class="p">())</span>
+<span class="go">[(&lt;AsyncResult: 7b720856-dc5f-4415-9134-5c89def5664e&gt;, 4),</span>
+<span class="go"> (&lt;AsyncResult: 8c350acf-519d-4553-8a53-4ad3a5c5aeb4&gt;, 64)]</span>
+</pre></div>
+</div>
+<p>By default <a class="reference internal" href="../reference/celery.result.html#celery.result.AsyncResult.collect" title="celery.result.AsyncResult.collect"><code class="xref py py-meth docutils literal notranslate"><span class="pre">collect()</span></code></a> will raise an
+<a class="reference internal" href="../reference/celery.exceptions.html#celery.exceptions.IncompleteStream" title="celery.exceptions.IncompleteStream"><code class="xref py py-exc docutils literal notranslate"><span class="pre">IncompleteStream</span></code></a> exception if the graph isn’t fully
+formed (one of the tasks hasn’t completed yet),
+but you can get an intermediate representation of the graph
+too:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">for</span> <span class="n">result</span><span class="p">,</span> <span class="n">value</span> <span class="ow">in</span> <span class="n">res</span><span class="o">.</span><span class="n">collect</span><span class="p">(</span><span class="n">intermediate</span><span class="o">=</span><span class="kc">True</span><span class="p">):</span>
+<span class="go">....</span>
+</pre></div>
+</div>
+<p>You can link together as many tasks as you like,
+and signatures can be linked too:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">s</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">s</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">log_result</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>You can also add <em>error callbacks</em> using the <cite>on_error</cite> method:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span><span class="o">.</span><span class="n">on_error</span><span class="p">(</span><span class="n">log_error</span><span class="o">.</span><span class="n">s</span><span class="p">())</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>This will result in the following <code class="docutils literal notranslate"><span class="pre">.apply_async</span></code> call when the signature
+is applied:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">apply_async</span><span class="p">((</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">link_error</span><span class="o">=</span><span class="n">log_error</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>The worker won’t actually call the errback as a task, but will
+instead call the errback function directly so that the raw request, exception
+and traceback objects can be passed to it.</p>
+<p>Here’s an example errback:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">import</span><span class="w"> </span><span class="nn">os</span>
+
+<span class="kn">from</span><span class="w"> </span><span class="nn">proj.celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">app</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">log_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+    <span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="n">os</span><span class="o">.</span><span class="n">path</span><span class="o">.</span><span class="n">join</span><span class="p">(</span><span class="s1">&#39;/var/errors&#39;</span><span class="p">,</span> <span class="n">request</span><span class="o">.</span><span class="n">id</span><span class="p">),</span> <span class="s1">&#39;a&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;--</span><span class="se">\n\n</span><span class="si">{0}</span><span class="s1"> </span><span class="si">{1}</span><span class="s1"> </span><span class="si">{2}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span>
+            <span class="n">request</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">traceback</span><span class="p">),</span> <span class="n">file</span><span class="o">=</span><span class="n">fh</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>To make it even easier to link tasks together there’s
+a special signature called <a class="reference internal" href="../reference/celery.html#celery.chain" title="celery.chain"><code class="xref py py-class docutils literal notranslate"><span class="pre">chain</span></code></a> that lets
+you chain tasks together:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">proj.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span><span class="p">,</span> <span class="n">mul</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="c1"># (4 + 4) * 8 * 10</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span>
+<span class="go">proj.tasks.add(4, 4) | proj.tasks.mul(8) | proj.tasks.mul(10)</span>
+</pre></div>
+</div>
+<p>Calling the chain will call the tasks in the current process
+and return the result of the last task in the chain:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">10</span><span class="p">))()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">640</span>
+</pre></div>
+</div>
+<p>It also sets <code class="docutils literal notranslate"><span class="pre">parent</span></code> attributes so that you can
+work your way up the chain to get intermediate results:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">64</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">8</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span>
+<span class="go">&lt;AsyncResult: eeaad925-6778-4ad1-88c8-b2a63d017933&gt;</span>
+</pre></div>
+</div>
+<p>Chains can also be made using the <code class="docutils literal notranslate"><span class="pre">|</span></code> (pipe) operator:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span> <span class="o">|</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">)</span> <span class="o">|</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+</pre></div>
+</div>
+<section id="task-id">
+<h4>Task ID<a class="headerlink" href="#task-id" title="Link to this heading">¶</a></h4>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 5.4.</span></p>
+</div>
+<p>A chain will inherit the task id of the last task in the chain.</p>
+</section>
+<section id="graphs">
+<h4>Graphs<a class="headerlink" href="#graphs" title="Link to this heading">¶</a></h4>
+<p>In addition you can work with the result graph as a
+<a class="reference internal" href="../internals/reference/celery.utils.graph.html#celery.utils.graph.DependencyGraph" title="celery.utils.graph.DependencyGraph"><code class="xref py py-class docutils literal notranslate"><span class="pre">DependencyGraph</span></code></a>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">),</span> <span class="n">mul</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">10</span><span class="p">))()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">graph</span>
+<span class="go">285fa253-fcf8-42ef-8b95-0078897e83e6(1)</span>
+<span class="go">    463afec2-5ed4-4036-b22d-ba067ec64f52(0)</span>
+<span class="go">872c3995-6fa0-46ca-98c2-5a19155afcf0(2)</span>
+<span class="go">    285fa253-fcf8-42ef-8b95-0078897e83e6(1)</span>
+<span class="go">        463afec2-5ed4-4036-b22d-ba067ec64f52(0)</span>
+</pre></div>
+</div>
+<p>You can even convert these graphs to <em>dot</em> format:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="k">with</span> <span class="nb">open</span><span class="p">(</span><span class="s1">&#39;graph.dot&#39;</span><span class="p">,</span> <span class="s1">&#39;w&#39;</span><span class="p">)</span> <span class="k">as</span> <span class="n">fh</span><span class="p">:</span>
+<span class="gp">... </span>    <span class="n">res</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">parent</span><span class="o">.</span><span class="n">graph</span><span class="o">.</span><span class="n">to_dot</span><span class="p">(</span><span class="n">fh</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>and create images:</p>
+<div class="highlight-console notranslate"><div class="highlight"><pre><span></span><span class="gp">$ </span>dot<span class="w"> </span>-Tpng<span class="w"> </span>graph.dot<span class="w"> </span>-o<span class="w"> </span>graph.png
+</pre></div>
+</div>
+<img alt="../_images/result_graph.png" src="../_images/result_graph.png" />
+</section>
+</section>
+<section id="groups">
+<span id="canvas-group"></span><h3><a class="toc-backref" href="#id10" role="doc-backlink">Groups</a><a class="headerlink" href="#groups" title="Link to this heading">¶</a></h3>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 3.0.</span></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Similarly to chords, tasks used in a group must <em>not</em> ignore their results.
+See “<a class="reference internal" href="#chord-important-notes"><span class="std std-ref">Important Notes</span></a>” for more information.</p>
+</div>
+<p>A group can be used to execute several tasks in parallel.</p>
+<p>The <a class="reference internal" href="../reference/celery.html#celery.group" title="celery.group"><code class="xref py py-class docutils literal notranslate"><span class="pre">group</span></code></a> function takes a list of signatures:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">group</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">proj.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="go">(proj.tasks.add(2, 2), proj.tasks.add(4, 4))</span>
+</pre></div>
+</div>
+<p>If you <strong>call</strong> the group, the tasks will be applied
+one after another in the current process, and a <a class="reference internal" href="../reference/celery.result.html#celery.result.GroupResult" title="celery.result.GroupResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupResult</span></code></a>
+instance is returned that can be used to keep track of the results,
+or tell how many tasks are ready and so on:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">g</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">[4, 8]</span>
+</pre></div>
+</div>
+<p>Group also supports iterators:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))()</span>
+</pre></div>
+</div>
+<p>A group is a signature object, so it can be used in combination
+with other signatures.</p>
+<section id="group-callbacks-and-error-handling">
+<span id="group-callbacks"></span><h4>Group Callbacks and Error Handling<a class="headerlink" href="#group-callbacks-and-error-handling" title="Link to this heading">¶</a></h4>
+<p>Groups can have callback and errback signatures linked to them as well, however
+the behaviour can be somewhat surprising due to the fact that groups are not
+real tasks and simply pass linked tasks down to their encapsulated signatures.
+This means that the return values of a group are not collected to be passed to
+a linked callback signature.
+Additionally, linking the task will <em>not</em> guarantee that it will activate only
+when all group tasks have finished.
+As an example, the following snippet using a simple <cite>add(a, b)</cite> task is faulty
+since the linked <cite>add.s()</cite> signature will not receive the finalised group
+result as one might expect.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">g</span><span class="p">()</span>
+<span class="go">[4, 8]</span>
+</pre></div>
+</div>
+<p>Note that the finalised results of the first two tasks are returned, but the
+callback signature will have run in the background and raised an exception
+since it did not receive the two arguments it expects.</p>
+<p>Group errbacks are passed down to encapsulated signatures as well which opens
+the possibility for an errback linked only once to be called more than once if
+multiple tasks in a group were to fail.
+As an example, the following snippet using a <cite>fail()</cite> task which raises an
+exception can be expected to invoke the <cite>log_error()</cite> signature once for each
+failing task which gets run in the group.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">group</span><span class="p">(</span><span class="n">fail</span><span class="o">.</span><span class="n">s</span><span class="p">(),</span> <span class="n">fail</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">link_error</span><span class="p">(</span><span class="n">log_error</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">g</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>With this in mind, it’s generally advisable to create idempotent or counting
+tasks which are tolerant to being called repeatedly for use as errbacks.</p>
+<p>These use cases are better addressed by the <a class="reference internal" href="../reference/celery.html#celery.chord" title="celery.chord"><code class="xref py py-class docutils literal notranslate"><span class="pre">chord</span></code></a> class which
+is supported on certain backend implementations.</p>
+</section>
+<section id="group-results">
+<span id="id1"></span><h4>Group Results<a class="headerlink" href="#group-results" title="Link to this heading">¶</a></h4>
+<p>The group task returns a special result too,
+this result works just like normal task results, except
+that it works on the group as a whole:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">group</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">job</span> <span class="o">=</span> <span class="n">group</span><span class="p">([</span>
+<span class="gp">... </span>            <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">16</span><span class="p">,</span> <span class="mi">16</span><span class="p">),</span>
+<span class="gp">... </span>            <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">32</span><span class="p">,</span> <span class="mi">32</span><span class="p">),</span>
+<span class="gp">... </span><span class="p">])</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">job</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">ready</span><span class="p">()</span>  <span class="c1"># have all subtasks completed?</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">successful</span><span class="p">()</span> <span class="c1"># were all subtasks successful?</span>
+<span class="go">True</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">[4, 8, 16, 32, 64]</span>
+</pre></div>
+</div>
+<p>The <a class="reference internal" href="../reference/celery.result.html#celery.result.GroupResult" title="celery.result.GroupResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">GroupResult</span></code></a> takes a list of
+<a class="reference internal" href="../reference/celery.result.html#celery.result.AsyncResult" title="celery.result.AsyncResult"><code class="xref py py-class docutils literal notranslate"><span class="pre">AsyncResult</span></code></a> instances and operates on them as
+if it was a single task.</p>
+<p>It supports the following operations:</p>
+<ul>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">successful()</span></code></p>
+<blockquote>
+<div><p>Return <code class="xref py py-const docutils literal notranslate"><span class="pre">True</span></code> if all of the subtasks finished
+successfully (e.g., didn’t raise an exception).</p>
+</div></blockquote>
+</li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">failed()</span></code></p>
+<blockquote>
+<div><p>Return <code class="xref py py-const docutils literal notranslate"><span class="pre">True</span></code> if any of the subtasks failed.</p>
+</div></blockquote>
+</li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">waiting()</span></code></p>
+<blockquote>
+<div><p>Return <code class="xref py py-const docutils literal notranslate"><span class="pre">True</span></code> if any of the subtasks
+isn’t ready yet.</p>
+</div></blockquote>
+</li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">ready()</span></code></p>
+<blockquote>
+<div><p>Return <code class="xref py py-const docutils literal notranslate"><span class="pre">True</span></code> if all of the subtasks
+are ready.</p>
+</div></blockquote>
+</li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">completed_count()</span></code></p>
+<blockquote>
+<div><p>Return the number of completed subtasks. Note that <cite>complete</cite> means <cite>successful</cite> in
+this context. In other words, the return value of this method is the number of
+<code class="docutils literal notranslate"><span class="pre">successful</span></code> tasks.</p>
+</div></blockquote>
+</li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">revoke()</span></code></p>
+<blockquote>
+<div><p>Revoke all of the subtasks.</p>
+</div></blockquote>
+</li>
+<li><p><code class="xref py py-meth docutils literal notranslate"><span class="pre">join()</span></code></p>
+<blockquote>
+<div><p>Gather the results of all subtasks
+and return them in the same order as they were called (as a list).</p>
+</div></blockquote>
+</li>
+</ul>
+</section>
+<section id="group-unrolling">
+<span id="id2"></span><h4>Group Unrolling<a class="headerlink" href="#group-unrolling" title="Link to this heading">¶</a></h4>
+<p>A group with a single signature will be unrolled to a single signature when chained.
+This means that the following group may pass either a list of results or a single result to the chain
+depending on the number of items in the group.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">group</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">)),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<span class="go">add(2, 2) | add(1) | add(1)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">),</span> <span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">)),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">))</span>
+<span class="go">add(2, 2) | %add((add(1), add(2)), 1)</span>
+</pre></div>
+</div>
+<p>This means that you should be careful and make sure the <code class="docutils literal notranslate"><span class="pre">add</span></code> task can accept either a list or a single item as input
+if you plan to use it as part of a larger canvas.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>In Celery 4.x the following group below would not unroll into a chain due to a bug but instead the canvas would be
+upgraded into a chord.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">group</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="p">(</span><span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<span class="go">%add([add(1, 1)], 2)</span>
+</pre></div>
+</div>
+<p>In Celery 5.x this bug was fixed and the group is correctly unrolled into a single signature.</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chain</span><span class="p">,</span> <span class="n">group</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chain</span><span class="p">(</span><span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">)),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">))</span>
+<span class="go">add(1, 1) | add(2)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="chords">
+<span id="canvas-chord"></span><h3><a class="toc-backref" href="#id11" role="doc-backlink">Chords</a><a class="headerlink" href="#chords" title="Link to this heading">¶</a></h3>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 2.3.</span></p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Tasks used within a chord must <em>not</em> ignore their results. If the result
+backend is disabled for <em>any</em> task (header or body) in your chord you
+should read “<a class="reference internal" href="#chord-important-notes"><span class="std std-ref">Important Notes</span></a>”. Chords are not currently
+supported with the RPC result backend.</p>
+</div>
+<p>A chord is a task that only executes after all of the tasks in a group have
+finished executing.</p>
+<p>Let’s calculate the sum of the expression
+<img class="math" src="../_images/math/e0abf23a503127a1d8599dafa280120f05847d71.png" alt="1 + 1 + 2 + 2 + 3 + 3 ... n + n"/> up to a hundred digits.</p>
+<p>First you need two tasks, <code class="xref py py-func docutils literal notranslate"><span class="pre">add()</span></code> and <code class="xref py py-func docutils literal notranslate"><span class="pre">tsum()</span></code> (<a class="reference external" href="https://docs.python.org/dev/library/functions.html#sum" title="(in Python v3.15)"><code class="xref py py-func docutils literal notranslate"><span class="pre">sum()</span></code></a> is
+already a standard function):</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">add</span><span class="p">(</span><span class="n">x</span><span class="p">,</span> <span class="n">y</span><span class="p">):</span>
+    <span class="k">return</span> <span class="n">x</span> <span class="o">+</span> <span class="n">y</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">tsum</span><span class="p">(</span><span class="n">numbers</span><span class="p">):</span>
+    <span class="k">return</span> <span class="nb">sum</span><span class="p">(</span><span class="n">numbers</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>Now you can use a chord to calculate each addition step in parallel, and then
+get the sum of the resulting numbers:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">chord</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span><span class="p">,</span> <span class="n">tsum</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">chord</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span>
+<span class="gp">... </span>      <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))(</span><span class="n">tsum</span><span class="o">.</span><span class="n">s</span><span class="p">())</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">9900</span>
+</pre></div>
+</div>
+<p>This is obviously a very contrived example, the overhead of messaging and
+synchronization makes this a lot slower than its Python counterpart:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="nb">sum</span><span class="p">(</span><span class="n">i</span> <span class="o">+</span> <span class="n">i</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))</span>
+</pre></div>
+</div>
+<p>The synchronization step is costly, so you should avoid using chords as much
+as possible. Still, the chord is a powerful primitive to have in your toolbox
+as synchronization is a required step for many parallel algorithms.</p>
+<p>Let’s break the chord expression down:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">callback</span> <span class="o">=</span> <span class="n">tsum</span><span class="o">.</span><span class="n">s</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">header</span> <span class="o">=</span> <span class="p">[</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">chord</span><span class="p">(</span><span class="n">header</span><span class="p">)(</span><span class="n">callback</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">9900</span>
+</pre></div>
+</div>
+<p>Remember, the callback can only be executed after all of the tasks in the
+header have returned. Each step in the header is executed as a task, in
+parallel, possibly on different nodes. The callback is then applied with
+the return value of each task in the header. The task id returned by
+<code class="xref py py-meth docutils literal notranslate"><span class="pre">chord()</span></code> is the id of the callback, so you can wait for it to complete
+and get the final return value (but remember to <a class="reference internal" href="tasks.html#task-synchronous-subtasks"><span class="std std-ref">never have a task wait
+for other tasks</span></a>)</p>
+<section id="error-handling">
+<span id="chord-errors"></span><h4>Error handling<a class="headerlink" href="#error-handling" title="Link to this heading">¶</a></h4>
+<p>So what happens if one of the tasks raises an exception?</p>
+<p>The chord callback result will transition to the failure state, and the error is set
+to the <a class="reference internal" href="../reference/celery.exceptions.html#celery.exceptions.ChordError" title="celery.exceptions.ChordError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ChordError</span></code></a> exception:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="n">chord</span><span class="p">([</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">4</span><span class="p">,</span> <span class="mi">4</span><span class="p">),</span> <span class="n">raising_task</span><span class="o">.</span><span class="n">s</span><span class="p">(),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">8</span><span class="p">,</span> <span class="mi">8</span><span class="p">)])</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span> <span class="o">=</span> <span class="n">c</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">result</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+</pre></div>
+</div>
+<div class="highlight-pytb notranslate"><div class="highlight"><pre><span></span><span class="gt">Traceback (most recent call last):</span>
+  File <span class="nb">&quot;&lt;stdin&gt;&quot;</span>, line <span class="m">1</span>, in <span class="n">&lt;module&gt;</span>
+  File <span class="nb">&quot;*/celery/result.py&quot;</span>, line <span class="m">120</span>, in <span class="n">get</span>
+<span class="w">    </span><span class="n">interval</span><span class="o">=</span><span class="n">interval</span><span class="p">)</span>
+  File <span class="nb">&quot;*/celery/backends/amqp.py&quot;</span>, line <span class="m">150</span>, in <span class="n">wait_for</span>
+<span class="w">    </span><span class="k">raise</span> <span class="n">meta</span><span class="p">[</span><span class="s1">&#39;result&#39;</span><span class="p">]</span>
+<span class="gr">celery.exceptions.ChordError</span>: <span class="n">Dependency 97de6f3f-ea67-4517-a21c-d867c61fcb47</span>
+<span class="x">    raised ValueError(&#39;something something&#39;,)</span>
+</pre></div>
+</div>
+<p>While the traceback may be different depending on the result backend used,
+you can see that the error description includes the id of the task that failed
+and a string representation of the original exception. You can also
+find the original traceback in <code class="docutils literal notranslate"><span class="pre">result.traceback</span></code>.</p>
+<p>Note that the rest of the tasks will still execute, so the third task
+(<code class="docutils literal notranslate"><span class="pre">add.s(8,</span> <span class="pre">8)</span></code>) is still executed even though the middle task failed.
+Also the <a class="reference internal" href="../reference/celery.exceptions.html#celery.exceptions.ChordError" title="celery.exceptions.ChordError"><code class="xref py py-exc docutils literal notranslate"><span class="pre">ChordError</span></code></a> only shows the task that failed
+first (in time): it doesn’t respect the ordering of the header group.</p>
+<p>To perform an action when a chord fails you can therefore attach
+an errback to the chord callback:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_chord_error</span><span class="p">(</span><span class="n">request</span><span class="p">,</span> <span class="n">exc</span><span class="p">,</span> <span class="n">traceback</span><span class="p">):</span>
+    <span class="nb">print</span><span class="p">(</span><span class="s1">&#39;Task </span><span class="si">{0!r}</span><span class="s1"> raised error: </span><span class="si">{1!r}</span><span class="s1">&#39;</span><span class="o">.</span><span class="n">format</span><span class="p">(</span><span class="n">request</span><span class="o">.</span><span class="n">id</span><span class="p">,</span> <span class="n">exc</span><span class="p">))</span>
+</pre></div>
+</div>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span> <span class="o">=</span> <span class="p">(</span><span class="n">group</span><span class="p">(</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">))</span> <span class="o">|</span>
+<span class="gp">... </span>     <span class="n">tsum</span><span class="o">.</span><span class="n">s</span><span class="p">()</span><span class="o">.</span><span class="n">on_error</span><span class="p">(</span><span class="n">on_chord_error</span><span class="o">.</span><span class="n">s</span><span class="p">()))</span><span class="o">.</span><span class="n">delay</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>Chords may have callback and errback signatures linked to them, which addresses
+some of the issues with linking signatures to groups.
+Doing so will link the provided signature to the chord’s body which can be
+expected to gracefully invoke callbacks just once upon completion of the body,
+or errbacks just once if any task in the chord header or body fails.</p>
+<p>This behavior can be manipulated to allow error handling of the chord header using the <span class="xref std std-ref">task_allow_error_cb_on_chord_header</span> flag.
+Enabling this flag will cause the chord header to invoke the errback for the body (default behavior) <em>and</em> any task in the chord’s header that fails.</p>
+</section>
+<section id="important-notes">
+<span id="chord-important-notes"></span><h4>Important Notes<a class="headerlink" href="#important-notes" title="Link to this heading">¶</a></h4>
+<p>Tasks used within a chord must <em>not</em> ignore their results. In practice this
+means that you must enable a <code class="xref py py-const docutils literal notranslate"><span class="pre">result_backend</span></code> in order to use
+chords. Additionally, if <code class="xref py py-const docutils literal notranslate"><span class="pre">task_ignore_result</span></code> is set to <code class="xref py py-const docutils literal notranslate"><span class="pre">True</span></code>
+in your configuration, be sure that the individual tasks to be used within
+the chord are defined with <code class="xref py py-const docutils literal notranslate"><span class="pre">ignore_result=False</span></code>. This applies to both
+Task subclasses and decorated tasks.</p>
+<p>Example Task subclass:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MyTask</span><span class="p">(</span><span class="n">Task</span><span class="p">):</span>
+    <span class="n">ignore_result</span> <span class="o">=</span> <span class="kc">False</span>
+</pre></div>
+</div>
+<p>Example decorated task:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">ignore_result</span><span class="o">=</span><span class="kc">False</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">another_task</span><span class="p">(</span><span class="n">project</span><span class="p">):</span>
+    <span class="n">do_something</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>By default the synchronization step is implemented by having a recurring task
+poll the completion of the group every second, calling the signature when
+ready.</p>
+<p>Example implementation:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="kn">from</span><span class="w"> </span><span class="nn">celery</span><span class="w"> </span><span class="kn">import</span> <span class="n">maybe_signature</span>
+
+<span class="nd">@app</span><span class="o">.</span><span class="n">task</span><span class="p">(</span><span class="n">bind</span><span class="o">=</span><span class="kc">True</span><span class="p">)</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">unlock_chord</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="n">interval</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="kc">None</span><span class="p">):</span>
+    <span class="k">if</span> <span class="n">group</span><span class="o">.</span><span class="n">ready</span><span class="p">():</span>
+        <span class="k">return</span> <span class="n">maybe_signature</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span><span class="o">.</span><span class="n">delay</span><span class="p">(</span><span class="n">group</span><span class="o">.</span><span class="n">join</span><span class="p">())</span>
+    <span class="k">raise</span> <span class="bp">self</span><span class="o">.</span><span class="n">retry</span><span class="p">(</span><span class="n">countdown</span><span class="o">=</span><span class="n">interval</span><span class="p">,</span> <span class="n">max_retries</span><span class="o">=</span><span class="n">max_retries</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>This is used by all result backends except Redis, Memcached and DynamoDB: they
+increment a counter after each task in the header, then applies the callback
+when the counter exceeds the number of tasks in the set.</p>
+<p>The Redis, Memcached and DynamoDB approach is a much better solution, but not easily
+implemented in other backends (suggestions welcome!).</p>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>Chords don’t properly work with Redis before version 2.2; you’ll need to
+upgrade to at least redis-server 2.2 to use them.</p>
+</div>
+<div class="admonition note">
+<p class="admonition-title">Note</p>
+<p>If you’re using chords with the Redis result backend and also overriding
+the <code class="xref py py-meth docutils literal notranslate"><span class="pre">Task.after_return()</span></code> method, you need to make sure to call the
+super method or else the chord callback won’t be applied.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">def</span><span class="w"> </span><span class="nf">after_return</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">):</span>
+    <span class="n">do_something</span><span class="p">()</span>
+    <span class="nb">super</span><span class="p">()</span><span class="o">.</span><span class="n">after_return</span><span class="p">(</span><span class="o">*</span><span class="n">args</span><span class="p">,</span> <span class="o">**</span><span class="n">kwargs</span><span class="p">)</span>
+</pre></div>
+</div>
+</div>
+</section>
+</section>
+<section id="map-starmap">
+<span id="canvas-map"></span><h3><a class="toc-backref" href="#id12" role="doc-backlink">Map &amp; Starmap</a><a class="headerlink" href="#map-starmap" title="Link to this heading">¶</a></h3>
+<p><code class="xref py py-class docutils literal notranslate"><span class="pre">map</span></code> and <code class="xref py py-class docutils literal notranslate"><span class="pre">starmap</span></code> are built-in tasks
+that call the provided calling task for every element in a sequence.</p>
+<p>They differ from <a class="reference internal" href="../reference/celery.html#celery.group" title="celery.group"><code class="xref py py-class docutils literal notranslate"><span class="pre">group</span></code></a> in that:</p>
+<ul class="simple">
+<li><p>only one task message is sent.</p></li>
+<li><p>the operation is sequential.</p></li>
+</ul>
+<p>For example using <code class="docutils literal notranslate"><span class="pre">map</span></code>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">proj.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="o">~</span><span class="n">tsum</span><span class="o">.</span><span class="n">map</span><span class="p">([</span><span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)),</span> <span class="nb">list</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))])</span>
+<span class="go">[45, 4950]</span>
+</pre></div>
+</div>
+<p>is the same as having a task doing:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">temp</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">tsum</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)),</span> <span class="n">tsum</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">))]</span>
+</pre></div>
+</div>
+<p>and using <code class="docutils literal notranslate"><span class="pre">starmap</span></code>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="o">~</span><span class="n">add</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span>
+<span class="go">[0, 2, 4, 6, 8, 10, 12, 14, 16, 18]</span>
+</pre></div>
+</div>
+<p>is the same as having a task doing:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="nd">@app</span><span class="o">.</span><span class="n">task</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">temp</span><span class="p">():</span>
+    <span class="k">return</span> <span class="p">[</span><span class="n">add</span><span class="p">(</span><span class="n">i</span><span class="p">,</span> <span class="n">i</span><span class="p">)</span> <span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)]</span>
+</pre></div>
+</div>
+<p>Both <code class="docutils literal notranslate"><span class="pre">map</span></code> and <code class="docutils literal notranslate"><span class="pre">starmap</span></code> are signature objects, so they can be used as
+other signatures and combined in groups etc., for example
+to call the starmap after 10 seconds:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">starmap</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">10</span><span class="p">)))</span><span class="o">.</span><span class="n">apply_async</span><span class="p">(</span><span class="n">countdown</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+</section>
+<section id="chunks">
+<span id="canvas-chunks"></span><h3><a class="toc-backref" href="#id13" role="doc-backlink">Chunks</a><a class="headerlink" href="#chunks" title="Link to this heading">¶</a></h3>
+<p>Chunking lets you divide an iterable of work into pieces, so that if
+you have one million objects, you can create 10 tasks with a hundred
+thousand objects each.</p>
+<p>Some may worry that chunking your tasks results in a degradation
+of parallelism, but this is rarely true for a busy cluster
+and in practice since you’re avoiding the overhead  of messaging
+it may considerably increase performance.</p>
+<p>To create a chunks’ signature you can use <a class="reference internal" href="../reference/celery.app.task.html#celery.app.task.Task.chunks" title="celery.app.task.Task.chunks"><code class="xref py py-meth docutils literal notranslate"><span class="pre">app.Task.chunks()</span></code></a>:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">chunks</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)),</span> <span class="mi">10</span><span class="p">)</span>
+</pre></div>
+</div>
+<p>As with <a class="reference internal" href="../reference/celery.html#celery.group" title="celery.group"><code class="xref py py-class docutils literal notranslate"><span class="pre">group</span></code></a> the act of sending the messages for
+the chunks will happen in the current process when called:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="kn">from</span><span class="w"> </span><span class="nn">proj.tasks</span><span class="w"> </span><span class="kn">import</span> <span class="n">add</span>
+
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">chunks</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)),</span> <span class="mi">10</span><span class="p">)()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">()</span>
+<span class="go">[[0, 2, 4, 6, 8, 10, 12, 14, 16, 18],</span>
+<span class="go"> [20, 22, 24, 26, 28, 30, 32, 34, 36, 38],</span>
+<span class="go"> [40, 42, 44, 46, 48, 50, 52, 54, 56, 58],</span>
+<span class="go"> [60, 62, 64, 66, 68, 70, 72, 74, 76, 78],</span>
+<span class="go"> [80, 82, 84, 86, 88, 90, 92, 94, 96, 98],</span>
+<span class="go"> [100, 102, 104, 106, 108, 110, 112, 114, 116, 118],</span>
+<span class="go"> [120, 122, 124, 126, 128, 130, 132, 134, 136, 138],</span>
+<span class="go"> [140, 142, 144, 146, 148, 150, 152, 154, 156, 158],</span>
+<span class="go"> [160, 162, 164, 166, 168, 170, 172, 174, 176, 178],</span>
+<span class="go"> [180, 182, 184, 186, 188, 190, 192, 194, 196, 198]]</span>
+</pre></div>
+</div>
+<p>while calling <code class="docutils literal notranslate"><span class="pre">.apply_async</span></code> will create a dedicated
+task so that the individual tasks are applied in a worker
+instead:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">add</span><span class="o">.</span><span class="n">chunks</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)),</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>You can also convert chunks to a group:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">group</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">chunks</span><span class="p">(</span><span class="nb">zip</span><span class="p">(</span><span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">),</span> <span class="nb">range</span><span class="p">(</span><span class="mi">100</span><span class="p">)),</span> <span class="mi">10</span><span class="p">)</span><span class="o">.</span><span class="n">group</span><span class="p">()</span>
+</pre></div>
+</div>
+<p>and with the group skew the countdown of each task by increments
+of one:</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">group</span><span class="o">.</span><span class="n">skew</span><span class="p">(</span><span class="n">start</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">stop</span><span class="o">=</span><span class="mi">10</span><span class="p">)()</span>
+</pre></div>
+</div>
+<p>This means that the first task will have a countdown of one second, the second
+task a countdown of two seconds, and so on.</p>
+</section>
+</section>
+<section id="stamping">
+<span id="canvas-stamping"></span><h2><a class="toc-backref" href="#id14" role="doc-backlink">Stamping</a><a class="headerlink" href="#stamping" title="Link to this heading">¶</a></h2>
+<div class="versionadded">
+<p><span class="versionmodified added">Added in version 5.3.</span></p>
+</div>
+<p>The goal of the Stamping API is to give an ability to label
+the signature and its components for debugging information purposes.
+For example, when the canvas is a complex structure, it may be necessary to
+label some or all elements of the formed structure. The complexity
+increases even more when nested groups are rolled-out or chain
+elements are replaced. In such cases, it may be necessary to
+understand which group an element is a part of or on what nested
+level it is. This requires a mechanism that traverses the canvas
+elements and marks them with specific metadata. The stamping API
+allows doing that based on the Visitor pattern.</p>
+<p>For example,</p>
+<div class="highlight-pycon notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">sig1</span> <span class="o">=</span> <span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sig1_res</span> <span class="o">=</span> <span class="n">sig1</span><span class="o">.</span><span class="n">freeze</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span> <span class="o">=</span> <span class="n">group</span><span class="p">(</span><span class="n">sig1</span><span class="p">,</span> <span class="n">add</span><span class="o">.</span><span class="n">si</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="mi">3</span><span class="p">))</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">g</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="n">stamp</span><span class="o">=</span><span class="s1">&#39;your_custom_stamp&#39;</span><span class="p">)</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span> <span class="o">=</span> <span class="n">g</span><span class="o">.</span><span class="n">apply_async</span><span class="p">()</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">res</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="n">timeout</span><span class="o">=</span><span class="n">TIMEOUT</span><span class="p">)</span>
+<span class="go">[4, 6]</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">sig1_res</span><span class="o">.</span><span class="n">_get_task_meta</span><span class="p">()[</span><span class="s1">&#39;stamp&#39;</span><span class="p">]</span>
+<span class="go">[&#39;your_custom_stamp&#39;]</span>
+</pre></div>
+</div>
+<p>will initialize a group <code class="docutils literal notranslate"><span class="pre">g</span></code> and mark its components with stamp <code class="docutils literal notranslate"><span class="pre">your_custom_stamp</span></code>.</p>
+<p>For this feature to be useful, you need to set the <a class="reference internal" href="configuration.html#std-setting-result_extended"><code class="xref std std-setting docutils literal notranslate"><span class="pre">result_extended</span></code></a>
+configuration option to <code class="docutils literal notranslate"><span class="pre">True</span></code> or directive <code class="docutils literal notranslate"><span class="pre">result_extended</span> <span class="pre">=</span> <span class="pre">True</span></code>.</p>
+<section id="id3">
+<h3><a class="toc-backref" href="#id15" role="doc-backlink">Canvas stamping</a><a class="headerlink" href="#id3" title="Link to this heading">¶</a></h3>
+<p>We can also stamp the canvas with custom stamping logic, using the visitor class <code class="docutils literal notranslate"><span class="pre">StampingVisitor</span></code>
+as the base class for the custom stamping visitor.</p>
+</section>
+<section id="custom-stamping">
+<h3><a class="toc-backref" href="#id16" role="doc-backlink">Custom stamping</a><a class="headerlink" href="#custom-stamping" title="Link to this heading">¶</a></h3>
+<p>If more complex stamping logic is required, it is possible
+to implement custom stamping behavior based on the Visitor
+pattern. The class that implements this custom logic must
+inherit <code class="docutils literal notranslate"><span class="pre">StampingVisitor</span></code> and implement appropriate methods.</p>
+<p>For example, the following example <code class="docutils literal notranslate"><span class="pre">InGroupVisitor</span></code> will label
+tasks that are in side of some group by label <code class="docutils literal notranslate"><span class="pre">in_group</span></code>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">InGroupVisitor</span><span class="p">(</span><span class="n">StampingVisitor</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="fm">__init__</span><span class="p">(</span><span class="bp">self</span><span class="p">):</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_group</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_group_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_group</span> <span class="o">=</span> <span class="kc">True</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;in_group&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">in_group</span><span class="p">],</span> <span class="s2">&quot;stamped_headers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;in_group&quot;</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_group_end</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">group</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="bp">self</span><span class="o">.</span><span class="n">in_group</span> <span class="o">=</span> <span class="kc">False</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_chain_start</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">chain</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;in_group&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">in_group</span><span class="p">],</span> <span class="s2">&quot;stamped_headers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;in_group&quot;</span><span class="p">]}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s2">&quot;in_group&quot;</span><span class="p">:</span> <span class="p">[</span><span class="bp">self</span><span class="o">.</span><span class="n">in_group</span><span class="p">],</span> <span class="s2">&quot;stamped_headers&quot;</span><span class="p">:</span> <span class="p">[</span><span class="s2">&quot;in_group&quot;</span><span class="p">]}</span>
+</pre></div>
+</div>
+<p>The following example shows another custom stamping visitor, which labels all
+tasks with a custom <code class="docutils literal notranslate"><span class="pre">monitoring_id</span></code> which can represent a UUID value of an external monitoring system,
+that can be used to track the task execution by including the id with such a visitor implementation.
+This <code class="docutils literal notranslate"><span class="pre">monitoring_id</span></code> can be a randomly generated UUID, or a unique identifier of the span id used by
+the external monitoring system, etc.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">MonitoringIdStampingVisitor</span><span class="p">(</span><span class="n">StampingVisitor</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;monitoring_id&#39;</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">}</span>
+</pre></div>
+</div>
+<div class="admonition important">
+<p class="admonition-title">Important</p>
+<p>The <code class="docutils literal notranslate"><span class="pre">stamped_headers</span></code> key in the dictionary returned by <code class="docutils literal notranslate"><span class="pre">on_signature()</span></code> (or any other visitor method) is <strong>optional</strong>:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="c1"># Approach 1: Without stamped_headers - ALL keys are treated as stamps</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;monitoring_id&#39;</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">}</span>  <span class="c1"># monitoring_id becomes a stamp</span>
+
+<span class="c1"># Approach 2: With stamped_headers - ONLY listed keys are stamps</span>
+<span class="k">def</span><span class="w"> </span><span class="nf">on_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+    <span class="k">return</span> <span class="p">{</span>
+        <span class="s1">&#39;monitoring_id&#39;</span><span class="p">:</span> <span class="n">uuid4</span><span class="p">()</span><span class="o">.</span><span class="n">hex</span><span class="p">,</span>      <span class="c1"># This will be a stamp</span>
+        <span class="s1">&#39;other_data&#39;</span><span class="p">:</span> <span class="s1">&#39;value&#39;</span><span class="p">,</span>             <span class="c1"># This will NOT be a stamp</span>
+        <span class="s1">&#39;stamped_headers&#39;</span><span class="p">:</span> <span class="p">[</span><span class="s1">&#39;monitoring_id&#39;</span><span class="p">]</span>  <span class="c1"># Only monitoring_id is stamped</span>
+    <span class="p">}</span>
+</pre></div>
+</div>
+<p>If the <code class="docutils literal notranslate"><span class="pre">stamped_headers</span></code> key is not specified, the stamping visitor will assume all keys in the returned dictionary are stamped headers.</p>
+</div>
+<p>Next, let’s see how to use the <code class="docutils literal notranslate"><span class="pre">MonitoringIdStampingVisitor</span></code> example stamping visitor.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">sig_example</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t1&#39;</span><span class="p">)</span>
+<span class="n">sig_example</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="n">visitor</span><span class="o">=</span><span class="n">MonitoringIdStampingVisitor</span><span class="p">())</span>
+
+<span class="n">group_example</span> <span class="o">=</span> <span class="n">group</span><span class="p">([</span><span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t1&#39;</span><span class="p">),</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t2&#39;</span><span class="p">)])</span>
+<span class="n">group_example</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="n">visitor</span><span class="o">=</span><span class="n">MonitoringIdStampingVisitor</span><span class="p">())</span>
+
+<span class="n">chord_example</span> <span class="o">=</span> <span class="n">chord</span><span class="p">([</span><span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t1&#39;</span><span class="p">),</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t2&#39;</span><span class="p">)],</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t3&#39;</span><span class="p">))</span>
+<span class="n">chord_example</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="n">visitor</span><span class="o">=</span><span class="n">MonitoringIdStampingVisitor</span><span class="p">())</span>
+
+<span class="n">chain_example</span> <span class="o">=</span> <span class="n">chain</span><span class="p">(</span><span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t1&#39;</span><span class="p">),</span> <span class="n">group</span><span class="p">(</span><span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t2&#39;</span><span class="p">),</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t3&#39;</span><span class="p">)),</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;t4&#39;</span><span class="p">))</span>
+<span class="n">chain_example</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="n">visitor</span><span class="o">=</span><span class="n">MonitoringIdStampingVisitor</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>Lastly, it’s important to mention that each monitoring id stamp in the example above would be different from each other between tasks.</p>
+</section>
+<section id="callbacks-stamping">
+<h3><a class="toc-backref" href="#id17" role="doc-backlink">Callbacks stamping</a><a class="headerlink" href="#callbacks-stamping" title="Link to this heading">¶</a></h3>
+<p>The stamping API also supports stamping callbacks implicitly.
+This means that when a callback is added to a task, the stamping
+visitor will be applied to the callback as well.</p>
+<div class="admonition warning">
+<p class="admonition-title">Warning</p>
+<p>The callback must be linked to the signature before stamping.</p>
+</div>
+<p>For example, let’s examine the following custom stamping visitor that uses the
+implicit approach where all returned dictionary keys are automatically treated as
+stamped headers without explicitly specifying <cite>stamped_headers</cite>.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="k">class</span><span class="w"> </span><span class="nc">CustomStampingVisitor</span><span class="p">(</span><span class="n">StampingVisitor</span><span class="p">):</span>
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_signature</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">sig</span><span class="p">,</span> <span class="o">**</span><span class="n">headers</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="c1"># &#39;header&#39; will automatically be treated as a stamped header</span>
+        <span class="c1"># without needing to specify &#39;stamped_headers&#39;: [&#39;header&#39;]</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;header&#39;</span><span class="p">:</span> <span class="s1">&#39;value&#39;</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_callback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">callback</span><span class="p">,</span> <span class="o">**</span><span class="n">header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="c1"># &#39;on_callback&#39; will automatically be treated as a stamped header</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;on_callback&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+
+    <span class="k">def</span><span class="w"> </span><span class="nf">on_errback</span><span class="p">(</span><span class="bp">self</span><span class="p">,</span> <span class="n">errback</span><span class="p">,</span> <span class="o">**</span><span class="n">header</span><span class="p">)</span> <span class="o">-&gt;</span> <span class="nb">dict</span><span class="p">:</span>
+        <span class="c1"># &#39;on_errback&#39; will automatically be treated as a stamped header</span>
+        <span class="k">return</span> <span class="p">{</span><span class="s1">&#39;on_errback&#39;</span><span class="p">:</span> <span class="kc">True</span><span class="p">}</span>
+</pre></div>
+</div>
+<p>This custom stamping visitor will stamp the signature, callbacks, and errbacks with <code class="docutils literal notranslate"><span class="pre">{'header':</span> <span class="pre">'value'}</span></code>
+and stamp the callbacks and errbacks with <code class="docutils literal notranslate"><span class="pre">{'on_callback':</span> <span class="pre">True}</span></code> and <code class="docutils literal notranslate"><span class="pre">{'on_errback':</span> <span class="pre">True}</span></code> respectively as shown below.</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="n">c</span> <span class="o">=</span> <span class="n">chord</span><span class="p">([</span><span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="mi">1</span><span class="p">),</span> <span class="n">add</span><span class="o">.</span><span class="n">s</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">2</span><span class="p">)],</span> <span class="n">xsum</span><span class="o">.</span><span class="n">s</span><span class="p">())</span>
+<span class="n">callback</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;sig_link&#39;</span><span class="p">)</span>
+<span class="n">errback</span> <span class="o">=</span> <span class="n">signature</span><span class="p">(</span><span class="s1">&#39;sig_link_error&#39;</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">link</span><span class="p">(</span><span class="n">callback</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">link_error</span><span class="p">(</span><span class="n">errback</span><span class="p">)</span>
+<span class="n">c</span><span class="o">.</span><span class="n">stamp</span><span class="p">(</span><span class="n">visitor</span><span class="o">=</span><span class="n">CustomStampingVisitor</span><span class="p">())</span>
+</pre></div>
+</div>
+<p>This example will result in the following stamps:</p>
+<div class="highlight-python notranslate"><div class="highlight"><pre><span></span><span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;header&#39;: &#39;value&#39;, &#39;stamped_headers&#39;: [&#39;header&#39;]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;header&#39;: &#39;value&#39;, &#39;stamped_headers&#39;: [&#39;header&#39;]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">tasks</span><span class="o">.</span><span class="n">tasks</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;header&#39;: &#39;value&#39;, &#39;stamped_headers&#39;: [&#39;header&#39;]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;header&#39;: &#39;value&#39;, &#39;stamped_headers&#39;: [&#39;header&#39;]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;link&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;header&#39;: &#39;value&#39;, &#39;on_callback&#39;: True, &#39;stamped_headers&#39;: [&#39;header&#39;, &#39;on_callback&#39;]}</span>
+<span class="gp">&gt;&gt;&gt; </span><span class="n">c</span><span class="o">.</span><span class="n">body</span><span class="o">.</span><span class="n">options</span><span class="p">[</span><span class="s1">&#39;link_error&#39;</span><span class="p">][</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">options</span>
+<span class="go">{&#39;header&#39;: &#39;value&#39;, &#39;on_errback&#39;: True, &#39;stamped_headers&#39;: [&#39;header&#39;, &#39;on_errback&#39;]}</span>
+</pre></div>
+</div>
+</section>
+</section>
+</section>
+
+
+            <div class="clearer"></div>
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="Main">
+        <div class="sphinxsidebarwrapper">
+            <p class="logo"><a href="../index.html">
+              <img class="logo" src="../_static/celery_512.png" alt="Logo of Celery"/>
+            </a></p><iframe src="https://ghbtns.com/github-btn.html?user=celery&repo=celery&type=watch&count=true&size=large"
+  allowtransparency="true" frameborder="0" scrolling="0" width="200px" height="35px"></iframe>
+<div id="donate">
+    <h3>Donations</h3>
+    <p>Please help support this community project with a donation.</p>
+    <a href="https://opencollective.com/celery/donate" target="_blank">
+      <img src="https://opencollective.com/celery/donate/button@2x.png?color=blue"/>
+    </a>
+</div>
+  <div>
+    <h4>Previous topic</h4>
+    <p class="topless"><a href="calling.html"
+                          title="previous chapter">Calling Tasks</a></p>
+  </div>
+  <div>
+    <h4>Next topic</h4>
+    <p class="topless"><a href="workers.html"
+                          title="next chapter">Workers Guide</a></p>
+  </div>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/userguide/canvas.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<search id="searchbox" style="display: none" role="search">
+  <h3 id="searchlabel">Quick search</h3>
+    <div class="searchformwrapper">
+    <form class="search" action="../search.html" method="get">
+      <input type="text" name="q" aria-labelledby="searchlabel" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false"/>
+      <input type="submit" value="Go" />
+    </form>
+    </div>
+</search>
+<script>document.getElementById('searchbox').style.display = "block"</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="Related">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="../py-modindex.html" title="Python Module Index"
+             >modules</a> |</li>
+        <li class="right" >
+          <a href="workers.html" title="Workers Guide"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="calling.html" title="Calling Tasks"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Celery 5.6.3 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="index.html" >User Guide</a> &#187;</li>
+        <li class="nav-item nav-item-this"><a href="">Canvas: Designing Work-flows</a></li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+    &#169; <a href="../copyright.html">Copyright</a> 2009-2023, Ask Solem &amp; contributors.
+    </div>
+  </body>
+</html>

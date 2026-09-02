@@ -1,0 +1,2 @@
+# Agents
+Shared agent contract.

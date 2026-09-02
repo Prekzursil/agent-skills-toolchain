@@ -1,0 +1,388 @@
+<!DOCTYPE html><html lang="en"> <head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><title>Fix: MCP Server stdio Hang When Launched From Claude Code - Start Debugging</title><meta name="description" content="Why your Model Context Protocol server gets stuck in 'connecting' from Claude Code 2.x and never registers any tools. Covers stdout pollution, the npx install prompt, MCP_TIMEOUT, buffered output, and WSL pitfalls, with verifiable repros."><link rel="icon" type="image/jpeg" href="/brand-logo.ico"><link rel="canonical" href="https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/"><link rel="alternate" type="application/rss+xml" title="Start Debugging" href="https://startdebugging.net/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (es)" href="https://startdebugging.net/es/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (pt-BR)" href="https://startdebugging.net/pt-br/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (de)" href="https://startdebugging.net/de/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (ru)" href="https://startdebugging.net/ru/rss.xml"><link rel="alternate" type="application/rss+xml" title="Start Debugging (ja)" href="https://startdebugging.net/ja/rss.xml"><!-- Open Graph --><meta property="og:title" content="Fix: MCP Server stdio Hang When Launched From Claude Code - Start Debugging"><meta property="og:description" content="Why your Model Context Protocol server gets stuck in 'connecting' from Claude Code 2.x and never registers any tools. Covers stdout pollution, the npx install prompt, MCP_TIMEOUT, buffered output, and WSL pitfalls, with verifiable repros."><meta property="og:url" content="https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/"><meta property="og:type" content="article"><meta property="og:site_name" content="Start Debugging"><meta property="og:locale" content="en_US"><meta property="og:image" content="https://startdebugging.net/og/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code.png"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta property="og:image:alt" content="Fix: MCP Server stdio Hang When Launched From Claude Code - Start Debugging"><meta property="article:published_time" content="2026-05-15T00:00:00.000Z"><meta property="article:tag" content="mcp"><meta property="article:tag" content="claude-code"><meta property="article:tag" content="ai-agents"><meta property="article:tag" content="anthropic-sdk"><!-- Twitter Card --><meta name="twitter:card" content="summary_large_image"><meta name="twitter:site" content="@startdebugging_"><meta name="twitter:creator" content="@mariusbughiu"><meta name="twitter:title" content="Fix: MCP Server stdio Hang When Launched From Claude Code - Start Debugging"><meta name="twitter:description" content="Why your Model Context Protocol server gets stuck in 'connecting' from Claude Code 2.x and never registers any tools. Covers stdout pollution, the npx install prompt, MCP_TIMEOUT, buffered output, and WSL pitfalls, with verifiable repros."><meta name="twitter:image" content="https://startdebugging.net/og/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code.png"><meta name="twitter:image:alt" content="Fix: MCP Server stdio Hang When Launched From Claude Code - Start Debugging"><!-- JSON-LD --><script type="application/ld+json">{"@context":"https://schema.org","@type":"BlogPosting","headline":"Fix: MCP Server stdio Hang When Launched From Claude Code","description":"Why your Model Context Protocol server gets stuck in 'connecting' from Claude Code 2.x and never registers any tools. Covers stdout pollution, the npx install prompt, MCP_TIMEOUT, buffered output, and WSL pitfalls, with verifiable repros.","url":"https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/","mainEntityOfPage":{"@type":"WebPage","@id":"https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/"},"image":["https://startdebugging.net/og/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code.png"],"datePublished":"2026-05-15T00:00:00.000Z","keywords":"mcp, claude-code, ai-agents, anthropic-sdk","inLanguage":"en-US","author":{"@type":"Person","name":"Marius Bughiu","url":"https://startdebugging.net/about/","sameAs":["https://github.com/marius-bughiu","https://x.com/mariusbughiu","https://www.linkedin.com/in/mariusbughiu/"]},"publisher":{"@type":"Organization","name":"Start Debugging","url":"https://startdebugging.net","logo":{"@type":"ImageObject","url":"https://startdebugging.net/logo-512.png","width":512,"height":512}}}</script><script type="application/ld+json">{"@context":"https://schema.org","@type":"BreadcrumbList","itemListElement":[{"@type":"ListItem","position":1,"name":"Start Debugging","item":"https://startdebugging.net/"},{"@type":"ListItem","position":2,"name":"Fix: MCP Server stdio Hang When Launched From Claude Code","item":"https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/"}]}</script><!-- Google tag (gtag.js) --><script async src="https://www.googletagmanager.com/gtag/js?id=G-QFYE38MD6S"></script><script type="module">window.dataLayer=window.dataLayer||[];function a(){dataLayer.push(arguments)}a("js",new Date);a("config","G-QFYE38MD6S");</script><!-- Custom GA4 events: share clicks, scroll depth, outbound clicks,
+         newsletter subscribe. See TRAFFIC_ROADMAP.md task 5.1. --><script>
+      (function () {
+        function track(name, params) {
+          if (typeof window.gtag !== 'function') return;
+          window.gtag('event', name, params || {});
+        }
+
+        // Share row: any [data-share] anchor or the copy-link button.
+        document.addEventListener('click', function (e) {
+          var t = e.target instanceof Element ? e.target.closest('[data-share],[data-copy-link]') : null;
+          if (!t) return;
+          var network = t.getAttribute('data-share') || (t.hasAttribute('data-copy-link') ? 'copy' : null);
+          if (!network) return;
+          track('share_click', {
+            network: network,
+            page_path: location.pathname,
+          });
+        }, true);
+
+        // Newsletter subscribe: footer form + inline post-page form. We can't
+        // see the cross-origin Buttondown response so track on submit
+        // intent — close enough for funnel measurement.
+        document.addEventListener('submit', function (e) {
+          var f = e.target instanceof HTMLFormElement ? e.target : null;
+          if (!f) return;
+          var action = (f.getAttribute('action') || '').toLowerCase();
+          if (action.indexOf('buttondown.com') === -1) return;
+          var tagInput = f.querySelector('input[name="tag"]');
+          var placement = tagInput && tagInput.value ? tagInput.value : 'unknown';
+          track('newsletter_subscribe', {
+            placement: placement,
+            page_path: location.pathname,
+          });
+        }, true);
+
+        // Outbound clicks: any external <a> not on startdebugging.net.
+        document.addEventListener('click', function (e) {
+          var t = e.target instanceof Element ? e.target.closest('a[href]') : null;
+          if (!t) return;
+          var href = t.getAttribute('href') || '';
+          if (!/^https?:\/\//i.test(href)) return;
+          try {
+            var u = new URL(href);
+            if (u.hostname.endsWith('startdebugging.net')) return;
+            track('outbound_click', {
+              outbound_url: href,
+              outbound_domain: u.hostname,
+              page_path: location.pathname,
+            });
+          } catch (_err) { /* ignore */ }
+        }, true);
+
+        // Scroll depth: fire 25/50/75/100 once each per page.
+        var fired = { 25: false, 50: false, 75: false, 100: false };
+        var ticking = false;
+        function scrollDepthCheck() {
+          ticking = false;
+          var doc = document.documentElement;
+          var scrollTop = window.pageYOffset || doc.scrollTop || 0;
+          var viewport = window.innerHeight || doc.clientHeight || 0;
+          var fullHeight = Math.max(
+            doc.scrollHeight,
+            doc.offsetHeight,
+            document.body ? document.body.scrollHeight : 0,
+            document.body ? document.body.offsetHeight : 0,
+          );
+          var scrollable = Math.max(fullHeight - viewport, 1);
+          var pct = (scrollTop / scrollable) * 100;
+          [25, 50, 75, 100].forEach(function (mark) {
+            if (!fired[mark] && pct >= mark) {
+              fired[mark] = true;
+              track('scroll_depth', { percent: mark, page_path: location.pathname });
+            }
+          });
+        }
+        window.addEventListener('scroll', function () {
+          if (!ticking) {
+            window.requestAnimationFrame(scrollDepthCheck);
+            ticking = true;
+          }
+        }, { passive: true });
+        // Catch short pages where the user never scrolls (still hit 25%).
+        window.addEventListener('load', scrollDepthCheck);
+      })();
+    </script><script>
+          (function () {
+            // Page-level slot registration. Idempotent via a marker attribute
+            // so re-running (e.g. on Astro view-transition pageswap) only ever
+            // pushes once per <ins>.
+            function registerSlots() {
+              var slots = document.querySelectorAll('ins.adsbygoogle:not([data-adsbygoogle-registered])');
+              for (var i = 0; i < slots.length; i++) {
+                slots[i].setAttribute('data-adsbygoogle-registered', '1');
+                (window.adsbygoogle = window.adsbygoogle || []).push({});
+              }
+            }
+            if (document.readyState === 'loading') {
+              document.addEventListener('DOMContentLoaded', registerSlots);
+            } else {
+              registerSlots();
+            }
+
+            // Lazy-load the AdSense bundle on first user interaction or, failing
+            // that, when the browser is idle. Cap at 8s after `load` so
+            // headless / no-interaction sessions still bring it in (ad fill
+            // matters; abandonment matters less than CWV impact during the
+            // initial paint).
+            var loaded = false;
+            function loadAdsense() {
+              if (loaded) return;
+              loaded = true;
+              var s = document.createElement('script');
+              s.async = true;
+              s.crossOrigin = 'anonymous';
+              s.src = 'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-1537458730659685';
+              document.head.appendChild(s);
+            }
+            var events = ['scroll', 'pointerdown', 'keydown', 'touchstart'];
+            function once() {
+              events.forEach(function (e) { window.removeEventListener(e, once, { passive: true }); });
+              loadAdsense();
+            }
+            events.forEach(function (e) { window.addEventListener(e, once, { passive: true, once: true }); });
+            window.addEventListener('load', function () {
+              if ('requestIdleCallback' in window) {
+                window.requestIdleCallback(loadAdsense, { timeout: 8000 });
+              } else {
+                setTimeout(loadAdsense, 4000);
+              }
+            });
+          })();
+        </script><link rel="stylesheet" href="/_astro/_slug_.DwxOW4Vy.css"></head> <body> <header> <div class="row header-row"> <a class="pill" href="/" style="padding: 4px 12px 4px 6px; gap: 8px;"> <img src="/brand-logo.jpg" alt="" width="24" height="24" style="border-radius: 50%;"> <span style="line-height: 1; margin-bottom: -1px;">Start Debugging</span> </a> <div class="header-actions"> <div class="header-search"> <button type="button" class="pill header-search-trigger" data-search-open aria-label="Search posts"> <span aria-hidden="true">&#x1F50D;</span> <span class="header-search-label">Search</span> <kbd class="header-search-kbd" aria-hidden="true">/</kbd> </button> </div>  </div> </div> </header> <div class="search-overlay" data-search-overlay hidden role="dialog" aria-modal="true" aria-labelledby="search-overlay-title"> <div class="search-overlay-backdrop" data-search-close aria-hidden="true"></div> <div class="search-overlay-panel panel"> <div class="row search-overlay-header"> <h2 class="h2" id="search-overlay-title">Search</h2> <button type="button" class="pill search-overlay-close" data-search-close aria-label="Close search">Close</button> </div> <div id="pagefind-search"></div> </div> </div> <link rel="stylesheet" href="/pagefind/pagefind-ui.css"> <script>(function(){const baseUrl = "/";
+const devHint = "Search index not available in dev. Run <code>npm run build</code> to generate it.";
+
+      (function () {
+        const overlay = document.querySelector('[data-search-overlay]');
+        const opener = document.querySelector('[data-search-open]');
+        const closers = document.querySelectorAll('[data-search-close]');
+        if (!overlay || !opener) return;
+
+        let loaded = false;
+        function loadPagefind() {
+          if (loaded) return Promise.resolve();
+          loaded = true;
+          return new Promise(function (resolve, reject) {
+            const s = document.createElement('script');
+            s.src = baseUrl + 'pagefind/pagefind-ui.js';
+            s.onload = function () {
+              try {
+                // eslint-disable-next-line no-undef
+                new PagefindUI({
+                  element: '#pagefind-search',
+                  showSubResults: true,
+                  showImages: false,
+                  resetStyles: false,
+                });
+                resolve();
+              } catch (err) {
+                reject(err);
+              }
+            };
+            s.onerror = reject;
+            document.head.appendChild(s);
+          });
+        }
+
+        function openOverlay() {
+          overlay.hidden = false;
+          document.documentElement.style.overflow = 'hidden';
+          loadPagefind().then(function () {
+            const input = overlay.querySelector('input');
+            if (input) input.focus();
+          }).catch(function () {
+            const target = overlay.querySelector('#pagefind-search');
+            if (target && !target.dataset.devHint) {
+              target.dataset.devHint = '1';
+              target.innerHTML = '<p class="muted" style="padding:12px;">' + devHint + '</p>';
+            }
+          });
+        }
+        function closeOverlay() {
+          overlay.hidden = true;
+          document.documentElement.style.overflow = '';
+        }
+
+        opener.addEventListener('click', openOverlay);
+        closers.forEach(function (c) { c.addEventListener('click', closeOverlay); });
+        document.addEventListener('keydown', function (e) {
+          if (e.key === 'Escape' && !overlay.hidden) closeOverlay();
+          if (
+            e.key === '/' &&
+            overlay.hidden &&
+            !/^(input|textarea|select)$/i.test(document.activeElement && document.activeElement.tagName || '')
+          ) {
+            e.preventDefault();
+            openOverlay();
+          }
+        });
+      })();
+    })();</script> <main>  <article class="panel card stack prose" data-pagefind-body data-pagefind-meta="date:2026-05-15, tags:mcp, claude-code, ai-agents, anthropic-sdk"> <div class="stack"> <div class="row"> <span class="pill">2026-05-15</span>  <a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/claude-code/">claude-code</a><a class="pill" href="/tag/ai-agents/">ai-agents</a><a class="pill" href="/tag/anthropic-sdk/">anthropic-sdk</a> <a class="post-edit-link" href="https://github.com/marius-bughiu/start-debugging/edit/main/site/src/content/blog/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code.md" rel="noopener" target="_blank"> <svg class="post-edit-icon" viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" fill="currentColor"> <path d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0 0 16 8c0-4.42-3.58-8-8-8z"></path> </svg>
+Edit on GitHub
+</a> </div> <h1 class="h1">Fix: MCP Server stdio Hang When Launched From Claude Code</h1> <p class="muted">Why your Model Context Protocol server gets stuck in &#39;connecting&#39; from Claude Code 2.x and never registers any tools. Covers stdout pollution, the npx install prompt, MCP_TIMEOUT, buffered output, and WSL pitfalls, with verifiable repros.</p> <div class="byline"> <span>By <span class="byline-author">Marius Bughiu</span></span> <span class="byline-sep">&middot;</span> <span>9 min read</span> <span class="byline-sep">&middot;</span> <time datetime="2026-05-15T00:00:00.000Z">2026-05-15</time> </div> </div> <aside class="adslot adslot-top" aria-label="Advertisement"><span class="adslot-label muted">Advertisement</span><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-client="ca-pub-1537458730659685" data-ad-slot="1130774528" data-ad-format="auto" data-full-width-responsive="true"></ins></aside> <p>If <code>claude mcp list</code> shows your server stuck on <code>Connecting...</code> for ten seconds and then nothing happens, or <code>/mcp</code> inside Claude Code shows it as connected but with zero tools registered, the stdio transport is wedged. Claude Code 2.1.x (and earlier) does not surface a useful error in this state because, until very recently, the client had no timeout on the MCP initialization handshake at all — a misbehaving server could leave the host waiting indefinitely, as documented in <a href="https://github.com/anthropics/claude-code/issues/35287">anthropics/claude-code#35287</a>.</p>
+<p>This post walks through the five causes responsible for almost every stdio hang report and shows how to verify each one with the MCP Inspector or <code>claude --debug</code>. Tested against Claude Code 2.1.128, the MCP TypeScript SDK 1.29.0, the Python SDK 1.13.0, and the MCP spec dated <a href="https://modelcontextprotocol.io/specification/2026-03-26">2026-03-26</a>.</p>
+<h2 id="tldr">TL;DR</h2>
+<p>The stdio transport uses <code>stdout</code> exclusively for newline-delimited JSON-RPC. Anything else your process writes to stdout — a startup banner, a logger that defaulted to stdout, a stray <code>console.log</code>, a debugger prompt, an npx install line — silently corrupts the framing and the client gives up. The five fixes, in order of how often they hit production:</p>
+<ol>
+<li>Redirect every log line, banner, and dependency stdout write to <strong>stderr</strong>.</li>
+<li>Add <code>-y</code> to any <code>npx</code> invocation so the first-run install prompt does not block.</li>
+<li>Bump <code>MCP_TIMEOUT</code> if the server needs more than 30 seconds to come up.</li>
+<li>Use absolute paths in <code>command</code> and pass required environment variables via <code>env</code>, not your shell.</li>
+<li>Disable line buffering for Python servers running under a pipe (<code>-u</code> or <code>PYTHONUNBUFFERED=1</code>).</li>
+</ol>
+<aside class="adslot adslot-in-article" aria-label="Advertisement"><span class="adslot-label muted">Advertisement</span><ins class="adsbygoogle" style="display:block; text-align:center;" data-ad-client="ca-pub-1537458730659685" data-ad-slot="7504611185" data-ad-format="fluid" data-ad-layout="in-article"></ins></aside><h2 id="why-the-hang-is-silent">Why the hang is silent</h2>
+<p>The MCP stdio transport is defined in the <a href="https://modelcontextprotocol.io/specification/2026-03-26/basic/transports">transports section of the spec</a>: the client launches the server as a subprocess, writes JSON-RPC 2.0 messages to its stdin, and parses newline-delimited JSON-RPC messages from its stdout. stderr is reserved for free-form logging that the host can capture without parsing.</p>
+<p>That separation is strict. The official debugging guide spells it out:</p>
+<blockquote>
+<p>Local MCP servers should not log messages to stdout (standard out), as this will interfere with protocol operation.</p>
+</blockquote>
+<p>If your server writes a single non-JSON line to stdout before the <code>initialize</code> response, the client’s JSON-RPC reader either errors on the unparseable line and drops the connection, or treats the broken frame as a partial message and waits for the rest — forever. Either way, no tools register, and the only signal you get inside Claude Code is <code>0 tools</code> after the connection appears to succeed. That is the entire bug class.</p>
+<h2 id="scenario-a-typescript-server-that-hangs-on-first-launch">Scenario: a TypeScript server that hangs on first launch</h2>
+<p>Start with a server that “works on my machine” via <code>tsx server.ts</code> but hangs the moment Claude Code launches it. The <code>.mcp.json</code> entry looks innocuous:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "my-server"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"npx"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "args"</span><span style="color:#E1E4E8">: [</span><span style="color:#9ECBFF">"-y"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"my-mcp-server"</span><span style="color:#E1E4E8">],</span></span>
+<span class="line"><span style="color:#79B8FF">      "env"</span><span style="color:#E1E4E8">: {}</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>Run <code>claude --debug</code> from the project directory. The debug log will print every JSON-RPC frame it sends and every chunk it receives from the child process. If you see lines like:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="plaintext"><code><span class="line"><span>[MCP my-server] stderr: Welcome to my-mcp-server v0.4.1</span></span>
+<span class="line"><span>[MCP my-server] received non-JSON frame: "Welcome to my-mcp-server v0.4.1"</span></span></code></pre>
+<p>the second line is the problem — the welcome banner is going to <strong>stdout</strong>, not stderr, and the client dropped the connection. The fix is one-line in TypeScript:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="typescript"><code><span class="line"><span style="color:#6A737D">// MCP TypeScript SDK 1.29.0</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> { Server } </span><span style="color:#F97583">from</span><span style="color:#9ECBFF"> "@modelcontextprotocol/sdk/server/index.js"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"><span style="color:#F97583">import</span><span style="color:#E1E4E8"> { StdioServerTransport } </span><span style="color:#F97583">from</span><span style="color:#9ECBFF"> "@modelcontextprotocol/sdk/server/stdio.js"</span><span style="color:#E1E4E8">;</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#E1E4E8">console.</span><span style="color:#B392F0">error</span><span style="color:#E1E4E8">(</span><span style="color:#9ECBFF">"Welcome to my-mcp-server v0.4.1"</span><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">const</span><span style="color:#79B8FF"> server</span><span style="color:#F97583"> =</span><span style="color:#F97583"> new</span><span style="color:#B392F0"> Server</span><span style="color:#E1E4E8">(</span></span>
+<span class="line"><span style="color:#E1E4E8">  { name: </span><span style="color:#9ECBFF">"my-mcp-server"</span><span style="color:#E1E4E8">, version: </span><span style="color:#9ECBFF">"0.4.1"</span><span style="color:#E1E4E8"> },</span></span>
+<span class="line"><span style="color:#E1E4E8">  { capabilities: { tools: {} } }</span></span>
+<span class="line"><span style="color:#E1E4E8">);</span></span>
+<span class="line"></span>
+<span class="line"><span style="color:#F97583">await</span><span style="color:#E1E4E8"> server.</span><span style="color:#B392F0">connect</span><span style="color:#E1E4E8">(</span><span style="color:#F97583">new</span><span style="color:#B392F0"> StdioServerTransport</span><span style="color:#E1E4E8">());</span></span></code></pre>
+<p>Two rules to enforce in code review:</p>
+<ul>
+<li>Replace <strong>every</strong> <code>console.log</code>, <code>console.info</code>, and <code>console.debug</code> in server-side code with <code>console.error</code>. The Node SDK’s own examples use <code>console.error</code> for logging in stdio servers for exactly this reason.</li>
+<li>Audit dependencies. Any library that calls <code>process.stdout.write</code> directly — some progress-bar libraries, some auto-instrumenting OpenTelemetry exporters, anything that hooks <code>console</code> — will silently break the transport. The safest defensive pattern is to reassign <code>process.stdout.write</code> to <code>process.stderr.write</code> at the top of your entry point, before any imports.</li>
+</ul>
+<h2 id="the-npx-install-prompt-that-nobody-sees">The npx install prompt that nobody sees</h2>
+<p>Stdio servers configured via <code>npx</code> hang on first launch if the package is not already in the npx cache. <code>npx</code> prompts <code>"Need to install the following packages: ... Ok to proceed? (y)"</code>. That prompt is written to stdout, blocks waiting for input on stdin, and the MCP client never sees a JSON-RPC frame.</p>
+<p>The fix is in the official Claude Code MCP setup guide: pass <code>-y</code> to npx so the prompt auto-accepts:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "filesystem"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"npx"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "args"</span><span style="color:#E1E4E8">: [</span></span>
+<span class="line"><span style="color:#9ECBFF">        "-y"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">        "@modelcontextprotocol/server-filesystem"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#9ECBFF">        "/Users/me/data"</span></span>
+<span class="line"><span style="color:#E1E4E8">      ]</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The same pattern applies to <code>pnpm dlx</code> (use <code>--package-import</code>), <code>uvx</code> (already non-interactive), and <code>pipx run</code> (use <code>--spec</code>). On Windows specifically, the prompt also fires the first time SmartScreen sees the npx-installed binary — if you run Claude Code under a non-interactive service account, that prompt will never resolve.</p>
+<h2 id="mcp_timeout-and-the-30-second-default">MCP_TIMEOUT and the 30-second default</h2>
+<p>If your server reads a few hundred megabytes from disk on boot, downloads a model, or warms a cache before responding to <code>initialize</code>, the client will time out before the handshake finishes. As <a href="https://github.com/anthropics/claude-code/issues/16837">anthropics/claude-code#16837</a> records, Claude Code reads <code>MCP_TIMEOUT</code> from the environment with a default of 30 seconds:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="javascript"><code><span class="line"><span style="color:#6A737D">// equivalent of what the CLI does internally</span></span>
+<span class="line"><span style="color:#F97583">const</span><span style="color:#79B8FF"> timeout</span><span style="color:#F97583"> =</span><span style="color:#B392F0"> parseInt</span><span style="color:#E1E4E8">(process.env.</span><span style="color:#79B8FF">MCP_TIMEOUT</span><span style="color:#F97583"> ||</span><span style="color:#9ECBFF"> ""</span><span style="color:#E1E4E8">, </span><span style="color:#79B8FF">10</span><span style="color:#E1E4E8">) </span><span style="color:#F97583">||</span><span style="color:#79B8FF"> 30000</span><span style="color:#E1E4E8">;</span></span></code></pre>
+<p>Set it globally in <code>~/.claude/settings.json</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "env"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "MCP_TIMEOUT"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"120000"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">    "MCP_TOOL_TIMEOUT"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"300000"</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p><code>MCP_TIMEOUT</code> covers the initialization handshake; <code>MCP_TOOL_TIMEOUT</code> covers individual tool calls and defaults to a much longer value. Two known limitations to plan around:</p>
+<ul>
+<li>Some Claude Code builds clamp the effective initialization timeout at 60 seconds even when <code>MCP_TIMEOUT</code> is set higher — if a 120000 value still times out at exactly one minute, that is the bug, not your server.</li>
+<li><code>claude-code-action</code> (the GitHub Actions runner) does not propagate <code>MCP_TIMEOUT</code> to the spawned CLI subprocess. Tracked as <a href="https://github.com/anthropics/claude-code-action/issues/1152">anthropics/claude-code-action#1152</a>. The workaround is to set the env var on the workflow step, not on the runner.</li>
+</ul>
+<p>If you cannot avoid a long warm-up, defer it. Respond to <code>initialize</code> immediately and lazy-load resources on the first tool call. The protocol allows that; the timeout policy does not allow you to keep the handshake open.</p>
+<h2 id="working-directory-absolute-paths-and-missing-env-vars">Working directory, absolute paths, and missing env vars</h2>
+<p>The MCP debugging docs are explicit about this:</p>
+<blockquote>
+<p>The working directory for servers launched via the client’s config may be undefined (like <code>/</code> on macOS) since the client could be started from anywhere. Always use absolute paths in your configuration and <code>.env</code> files to ensure reliable operation.</p>
+</blockquote>
+<p>Three concrete consequences for a hanging server:</p>
+<ol>
+<li><strong>Relative path to the server script</strong>. <code>"command": "./bin/server.js"</code> from <code>.mcp.json</code> resolves against the host’s working directory, not the project root. On Claude Desktop that is typically <code>/</code> on macOS. The launch fails silently because Claude Code does not currently distinguish “process exited with code 127” from “process is still warming up” in the connecting state.</li>
+<li><strong><code>.env</code> files</strong>. A server that calls <code>dotenv.config()</code> with no path loads <code>./.env</code> from the current working directory — which, again, is not your project root. Missing API keys then surface as the server hanging at the first network call inside <code>initialize</code>. Pass the absolute path: <code>dotenv.config({ path: path.join(__dirname, ".env") })</code>.</li>
+<li><strong>Environment variables not inherited</strong>. stdio MCP servers inherit only a platform-dependent subset of the parent environment. If your server expects <code>DATABASE_URL</code> to be present, declare it explicitly in the config:</li>
+</ol>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "db-tools"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"/usr/local/bin/node"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "args"</span><span style="color:#E1E4E8">: [</span><span style="color:#9ECBFF">"/abs/path/to/server.js"</span><span style="color:#E1E4E8">],</span></span>
+<span class="line"><span style="color:#79B8FF">      "env"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">        "DATABASE_URL"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"postgres://localhost/dev"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">        "OPENAI_API_KEY"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"sk-..."</span></span>
+<span class="line"><span style="color:#E1E4E8">      }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>The same shape is documented in the <a href="https://modelcontextprotocol.io/docs/tools/debugging#environment-variables">MCP debugging guide</a>. For larger surfaces, point <code>command</code> at a launcher script that sources the right env file and <code>exec</code>s the real server — but the launcher itself must not print anything to stdout.</p>
+<h2 id="python-servers-and-buffered-stdout">Python servers and buffered stdout</h2>
+<p>Python’s stdout is line-buffered when attached to a TTY and block-buffered when attached to a pipe. Claude Code attaches a pipe. The result: your server writes the <code>initialize</code> response with <code>print(json.dumps(msg))</code>, the bytes sit in a 4 KB buffer, the client never sees the response, the handshake never completes.</p>
+<p>The official MCP Python SDK handles flushing correctly because it writes JSON-RPC frames through its own transport. The hang shows up when people roll their own stdio loop, or when a dependency captures <code>sys.stdout</code> and replaces the buffering policy. Two reliable fixes:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># launcher: force unbuffered Python</span></span>
+<span class="line"><span style="color:#B392F0">python</span><span style="color:#79B8FF"> -u</span><span style="color:#9ECBFF"> server.py</span></span></code></pre>
+<p>or in <code>.mcp.json</code>:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="json"><code><span class="line"><span style="color:#E1E4E8">{</span></span>
+<span class="line"><span style="color:#79B8FF">  "mcpServers"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">    "py-server"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">      "command"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"/abs/path/to/python"</span><span style="color:#E1E4E8">,</span></span>
+<span class="line"><span style="color:#79B8FF">      "args"</span><span style="color:#E1E4E8">: [</span><span style="color:#9ECBFF">"-u"</span><span style="color:#E1E4E8">, </span><span style="color:#9ECBFF">"/abs/path/to/server.py"</span><span style="color:#E1E4E8">],</span></span>
+<span class="line"><span style="color:#79B8FF">      "env"</span><span style="color:#E1E4E8">: {</span></span>
+<span class="line"><span style="color:#79B8FF">        "PYTHONUNBUFFERED"</span><span style="color:#E1E4E8">: </span><span style="color:#9ECBFF">"1"</span></span>
+<span class="line"><span style="color:#E1E4E8">      }</span></span>
+<span class="line"><span style="color:#E1E4E8">    }</span></span>
+<span class="line"><span style="color:#E1E4E8">  }</span></span>
+<span class="line"><span style="color:#E1E4E8">}</span></span></code></pre>
+<p>If you implement the protocol by hand, <code>sys.stdout.write(frame + "\n"); sys.stdout.flush()</code> after every message is mandatory. The same warning applies to Go (set <code>os.Stdout</code> to <code>bufio.NewWriter</code> only if you remember to <code>Flush()</code>) and to any language that defaults to block buffering on pipes.</p>
+<h2 id="wsl-npm-windows-and-path-mismatches">WSL, npm-Windows, and path mismatches</h2>
+<p>A specific failure mode that produces a confusing “0 tools registered” result on Windows: the MCP server is installed via <code>npm install -g</code> inside WSL, but Claude Code is running natively on Windows. The Windows-side <code>npx</code> finds a different package (or no package), the launched process exits, and Claude Code reports a clean connection that registered nothing. See <a href="https://github.com/anthropics/claude-code/issues/29443">anthropics/claude-code#29443</a> for the canonical report.</p>
+<p>Two ways out:</p>
+<ul>
+<li>Run Claude Code inside WSL too (<code>claude</code> from the same shell where <code>npx my-mcp-server</code> works on the command line).</li>
+<li>Or install the server natively on Windows and point <code>command</code> at the Windows binary. Do not cross the WSL boundary in the middle of a stdio transport — the path translation is fragile and the working directory rules in the previous section get worse.</li>
+</ul>
+<h2 id="verify-with-the-mcp-inspector-before-you-blame-the-client">Verify with the MCP Inspector before you blame the client</h2>
+<p>When in doubt, take Claude Code out of the loop and use the <a href="https://modelcontextprotocol.io/docs/tools/inspector">MCP Inspector</a> — the official testing UI for both stdio and Streamable HTTP transports:</p>
+<pre class="astro-code github-dark" style="background-color:#24292e;color:#e1e4e8; overflow-x: auto;" tabindex="0" data-language="bash"><code><span class="line"><span style="color:#6A737D"># MCP Inspector 0.18.x</span></span>
+<span class="line"><span style="color:#B392F0">npx</span><span style="color:#9ECBFF"> @modelcontextprotocol/inspector</span><span style="color:#9ECBFF"> npx</span><span style="color:#79B8FF"> -y</span><span style="color:#9ECBFF"> my-mcp-server</span></span></code></pre>
+<p>Inspector launches your server with the exact same stdio transport Claude Code uses, shows every frame in a message log, and surfaces non-JSON output as unparseable data with the raw bytes. If Inspector connects and lists tools, the bug is in your client configuration (paths, env, npx). If Inspector hangs, the bug is in your server — and you can iterate on the fix without restarting Claude Code each time.</p>
+<p>For a deeper investigation, combine Inspector with <code>claude --debug</code> in a second terminal. The two together give you the client side and the server side of the same handshake.</p>
+<h2 id="gotchas-that-look-like-stdio-hangs-but-are-not">Gotchas that look like stdio hangs but are not</h2>
+<p>A few failure modes look like the stdio hang but have different root causes. Worth ruling out before you start auditing logging code:</p>
+<ul>
+<li><strong>Capability mismatch returns JSON-RPC error <code>-32602</code></strong>. The server declared a capability the client did not negotiate (most commonly sampling or elicitation), and the client rejects the request. The connection looks alive but every tool call fails. The lifecycle and capability sections of the spec cover the <a href="https://modelcontextprotocol.io/specification/2026-03-26/basic/lifecycle">initialize exchange</a> that has to succeed before any tool registers.</li>
+<li><strong>Protocol version mismatch</strong>. An older Claude Code build (pre-2.0) speaks MCP <code>2025-03-26</code>; an SDK pinned to <code>2026-03-26</code> will refuse the handshake instead of negotiating down on some paths. Pin the SDK version that matches your client.</li>
+<li><strong>Server crash on import</strong>. If your server throws synchronously during module load, the process exits before it ever speaks JSON-RPC. This is not a hang — it is a crash that the client surfaces as a hang because of the missing timeout discussed earlier. <code>claude --debug</code> will show the exit code; without <code>--debug</code> you see only the spinner.</li>
+</ul>
+<h2 id="related">Related</h2>
+<ul>
+<li><a href="/2026/04/how-to-build-an-mcp-server-in-typescript-that-wraps-a-cli/">Build a custom MCP server in TypeScript that wraps a CLI</a> for the matching server-side blueprint that does logging the right way.</li>
+<li><a href="/2026/04/how-to-build-a-custom-mcp-server-in-python-with-the-official-sdk/">Custom MCP server in Python</a> for the buffered-stdout discussion in practice.</li>
+<li><a href="/2026/04/how-to-build-a-custom-mcp-server-in-csharp-on-net-11/">Custom MCP server in C# on .NET 11</a> for the <code>ILogger</code> to stderr pattern in the official .NET SDK.</li>
+<li><a href="/2026/04/how-to-schedule-a-recurring-claude-code-task-that-triages-github-issues/">Schedule a recurring Claude Code task</a> for the GitHub Actions environment where <code>MCP_TIMEOUT</code> propagation matters.</li>
+<li><a href="/2026/04/cowork-terminal-mcp-host-terminal-access-for-claude-cowork/">Cowork Terminal MCP host</a> for an example of a non-stdio MCP transport when stdio is the wrong choice for your workload.</li>
+</ul>
+<h2 id="sources">Sources</h2>
+<ul>
+<li><a href="https://modelcontextprotocol.io/docs/tools/debugging">MCP debugging guide — official docs</a></li>
+<li><a href="https://modelcontextprotocol.io/specification/2026-03-26/basic/transports">MCP stdio transport specification, 2026-03-26</a></li>
+<li><a href="https://code.claude.com/docs/en/troubleshooting">Claude Code troubleshooting page</a></li>
+<li><a href="https://code.claude.com/docs/en/mcp">Claude Code MCP setup docs</a></li>
+<li><a href="https://github.com/anthropics/claude-code/issues/35287">anthropics/claude-code#35287 — stdio servers hang on init failure</a></li>
+<li><a href="https://github.com/anthropics/claude-code/issues/16837">anthropics/claude-code#16837 — MCP_TIMEOUT 60-second clamp</a></li>
+<li><a href="https://github.com/anthropics/claude-code-action/issues/1152">anthropics/claude-code-action#1152 — MCP_TIMEOUT not propagated</a></li>
+<li><a href="https://github.com/anthropics/claude-code/issues/29443">anthropics/claude-code#29443 — Windows/WSL tool registration</a></li>
+</ul> <div class="share-row" data-share-row> <span class="share-label">Share:</span> <a class="share-btn" href="https://x.com/intent/post?text=Fix%3A%20MCP%20Server%20stdio%20Hang%20When%20Launched%20From%20Claude%20Code&url=https%3A%2F%2Fstartdebugging.net%2F2026%2F05%2Ffix-mcp-server-stdio-hang-when-launched-from-claude-code%2F&via=startdebugging_" rel="noopener" target="_blank" data-share="x">X</a> <a class="share-btn" href="https://news.ycombinator.com/submitlink?u=https%3A%2F%2Fstartdebugging.net%2F2026%2F05%2Ffix-mcp-server-stdio-hang-when-launched-from-claude-code%2F&t=Fix%3A%20MCP%20Server%20stdio%20Hang%20When%20Launched%20From%20Claude%20Code" rel="noopener" target="_blank" data-share="hn">Hacker News</a> <a class="share-btn" href="https://www.reddit.com/submit?url=https%3A%2F%2Fstartdebugging.net%2F2026%2F05%2Ffix-mcp-server-stdio-hang-when-launched-from-claude-code%2F&title=Fix%3A%20MCP%20Server%20stdio%20Hang%20When%20Launched%20From%20Claude%20Code" rel="noopener" target="_blank" data-share="reddit">Reddit</a> <a class="share-btn" href="https://www.linkedin.com/sharing/share-offsite/?url=https%3A%2F%2Fstartdebugging.net%2F2026%2F05%2Ffix-mcp-server-stdio-hang-when-launched-from-claude-code%2F" rel="noopener" target="_blank" data-share="linkedin">LinkedIn</a> <button class="share-btn" type="button" data-copy-link data-copy-url="https://startdebugging.net/2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code/">Copy link</button> </div> <aside class="inline-subscribe" aria-labelledby="inline-subscribe-heading"> <h2 id="inline-subscribe-heading" class="h2 inline-subscribe-heading">
+Enjoyed this post?
+</h2> <p class="muted inline-subscribe-copy">
+Get a short weekly digest of the best new .NET, C#, MAUI, and Flutter posts.
+        One email on Monday, no spam.
+</p> <form class="inline-subscribe-form row" action="https://buttondown.com/api/emails/embed-subscribe/startdebugging" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.com/startdebugging', 'popupwindow');"> <label class="sr-only" for="inline-subscribe-2026-05-fix-mcp-server-stdio-hang-when-launched-from-claude-code">Email address</label> <input id="inline-subscribe-2026-05-fix-mcp-server-stdio-hang-when-launched-from-claude-code" class="inline-subscribe-input" type="email" name="email" placeholder="you@domain.com" required autocomplete="email"> <input type="hidden" name="tag" value="post:2026/05/fix-mcp-server-stdio-hang-when-launched-from-claude-code"> <button class="pill inline-subscribe-submit" type="submit">Subscribe</button> </form> <p class="muted inline-subscribe-alt">
+Or <a href="/subscribe/">read what's in the newsletter first</a>.
+</p> </aside> </article> <nav class="prev-next" aria-label="Post navigation"> <a class="prev-next-item prev-next-prev" href="/2026/05/fix-possible-object-cycle-was-detected-system-text-json/" rel="prev"> <span class="prev-next-label">&lsaquo; Previous</span> <span class="prev-next-title">Fix: A possible object cycle was detected</span> </a> <a class="prev-next-item prev-next-next" href="/2026/05/fix-gradle-build-failed-to-produce-an-apk-file-in-maui-android/" rel="next"> <span class="prev-next-label">Next &rsaquo;</span> <span class="prev-next-title">Fix: Gradle build failed to produce an .apk file in MAUI Android</span> </a> </nav><section class="stack related-section" aria-labelledby="related-heading"> <h2 id="related-heading" class="h2 related-heading">Related posts</h2> <div class="stack"> <article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-07-02</span> <a class="pill" href="/tag/comparison/">comparison</a><a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/ai-agents/">ai-agents</a> </div> <a class="post-card-title-link stack" href="/2026/07/mcp-stdio-vs-http-vs-sse-transport-which-to-choose/"> <div class="h2">MCP stdio vs HTTP vs SSE Transport: Which Should You Choose in 2026?</div> <div class="muted">Use stdio for a local server one client launches, use Streamable HTTP for anything remote or multi-client, and do not build new HTTP+SSE servers -- that transport was deprecated in the 2025-03-26 MCP spec. Here is the decision, the wire-level differences, and the code for each.</div> </a> </article><article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-05-28</span> <a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/claude-code/">claude-code</a><a class="pill" href="/tag/ai-agents/">ai-agents</a> </div> <a class="post-card-title-link stack" href="/2026/05/fix-http-mcp-server-url-wont-connect-in-claude-desktop/"> <div class="h2">Fix: HTTP MCP Server URL Won&#39;t Connect in Claude Desktop (stdio vs HTTP Transport)</div> <div class="muted">Claude Desktop&#39;s claude_desktop_config.json only validates stdio servers. Drop a &#39;url&#39; field in and it silently strips the entry, crashes on startup, or boots with zero tools. Use a custom connector for remote URLs and mcp-remote as a stdio bridge for local HTTP servers.</div> </a> </article><article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-05-25</span> <a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/claude-code/">claude-code</a><a class="pill" href="/tag/ai-agents/">ai-agents</a> </div> <a class="post-card-title-link stack" href="/2026/05/how-to-reduce-the-number-of-mcp-tools-claude-loads/"> <div class="h2">How to Reduce the Number of MCP Tools Claude Loads to Avoid the Tool-Use Limit</div> <div class="muted">Five MCP servers can burn 55k tokens and wreck tool-selection accuracy before Claude does any work. How to fix it in Claude Code 2.1.x with ENABLE_TOOL_SEARCH and alwaysLoad, on the raw API with the tool search tool and defer_loading, and on the MCP connector with mcp_toolset. Anchored to claude-opus-4-7, claude-sonnet-4-6, and the 20251119 tool search variants.</div> </a> </article><article class="panel card stack post-card"> <div class="row"> <span class="pill">2026-05-23</span> <a class="pill" href="/tag/errors/">errors</a><a class="pill" href="/tag/mcp/">mcp</a><a class="pill" href="/tag/llm/">llm</a> </div> <a class="post-card-title-link stack" href="/2026/05/fix-extra-inputs-are-not-permitted-on-a-tool-call-with-a-structured-argument/"> <div class="h2">Fix: Extra Inputs Are Not Permitted on a Tool Call With a Structured Argument</div> <div class="muted">Your agent&#39;s tool call fails with Pydantic&#39;s &#39;Extra inputs are not permitted&#39;. The model added a field your structured argument forbids. Turn on strict tool use so the grammar blocks it, relax the validator, or recover in the loop.</div> </a> </article> </div> </section><section class="comments-section" aria-labelledby="comments-heading" data-pagefind-ignore><h2 id="comments-heading" class="h2">Comments</h2><p class="muted">
+Sign in with GitHub to comment. Reactions and replies thread back to
+<a href="https://github.com/marius-bughiu/start-debugging/discussions" rel="noopener">the comments repo</a>.
+</p><div class="giscus"></div><script src="https://giscus.app/client.js" data-repo="marius-bughiu/start-debugging" data-repo-id="R_kgDOQ3cH_A" data-category="Blog comments" data-category-id="DIC_kwDOQ3cH_M4C7sYA" data-mapping="pathname" data-strict="0" data-reactions-enabled="1" data-emit-metadata="0" data-input-position="bottom" data-theme="https://startdebugging.net/giscus.css" data-lang="en" data-loading="lazy" crossorigin="anonymous" async></script></section> <div class="row" style="margin-top: 14px;"> <a class="pill" href="/">&lt; Back</a> </div>  </main> <footer> <section class="footer-newsletter" aria-labelledby="footer-newsletter-heading"> <h2 id="footer-newsletter-heading" class="h2 footer-newsletter-heading"> Subscribe to the newsletter </h2> <p class="muted footer-newsletter-copy"> A weekly digest of the best .NET, C#, MAUI, and Flutter posts on Start Debugging. No spam, unsubscribe anytime. </p> <form class="footer-newsletter-form row" action="https://buttondown.com/api/emails/embed-subscribe/startdebugging" method="post" target="popupwindow" onsubmit="window.open('https://buttondown.com/startdebugging', 'popupwindow');"> <label class="sr-only" for="footer-newsletter-email">Email address</label> <input id="footer-newsletter-email" class="footer-newsletter-input" type="email" name="email" placeholder="you@domain.com" required autocomplete="email"> <input type="hidden" name="tag" value="footer"> <button class="pill footer-newsletter-submit" type="submit">Subscribe</button> </form> <p class="muted footer-newsletter-alt"> Prefer RSS? <a href="https://startdebugging.net/rss.xml">Subscribe via RSS</a> instead. </p> </section> <nav class="footer-nav row"> <a href="/about/">About</a> <a href="/start-here/">Start here</a> <a href="/pillars/">Pillars</a> <a href="/tags/">Tags</a> <a href="/archive/">Archive</a> <a href="/subscribe/">Subscribe</a> <a href="https://startdebugging.net/rss.xml">RSS</a> </nav> <p class="footer-copy muted">
+&copy; 2026 Marius Bughiu. Built with Astro. </p> </footer> <script>
+      document.addEventListener("mousemove", (e) => {
+        const cards = document.querySelectorAll(".post-card");
+        for (const card of cards) {
+          const rect = card.getBoundingClientRect();
+          const x = e.clientX - rect.left;
+          const y = e.clientY - rect.top;
+          card.style.setProperty("--mouse-x", `${x}px`);
+          card.style.setProperty("--mouse-y", `${y}px`);
+        }
+      });
+    </script> </body> </html> <script type="module">document.querySelectorAll("button[data-copy-link]").forEach(t=>{t.addEventListener("click",async()=>{const e=t.getAttribute("data-copy-url")??window.location.href,o=t.textContent;try{await navigator.clipboard.writeText(e),t.textContent="Copied!"}catch(r){t.textContent="Copy failed",console.error(r)}setTimeout(()=>{t.textContent=o},1500)})});</script>

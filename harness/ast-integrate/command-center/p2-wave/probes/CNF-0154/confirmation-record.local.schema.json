@@ -1,0 +1,68 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNF-0154/confirmation-record.local.schema.json",
+  "title": "CNF-0154 per-claim confirmation record (unit-local)",
+  "$comment": "command-center/schema/confirmation-record.schema.json is a generated $ref shim to https://ast-integrate.invalid/... (generic_report). Draft7Validator follows that URL onto the network. Nested per-claim records are the CNF-0129 field set, not receipt_core. G-1 does not require the remote hop.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["claim_id", "confirmer", "verdict"],
+  "properties": {
+    "claim_id": { "type": "string", "minLength": 1 },
+    "confirmer": {
+      "type": "object",
+      "required": ["identity", "vendor"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 1 },
+        "vendor": { "type": "string", "minLength": 1 }
+      }
+    },
+    "verdict": {
+      "type": "string",
+      "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "UNVERIFIED", "NOT-CHECKED", "BLOCKED"]
+    },
+    "blinding_attestation_hash": { "type": "string", "minLength": 16 },
+    "baseline_repro": { "type": ["string", "object"] },
+    "corrected_repro": { "type": ["string", "object"] },
+    "rollback_repro": { "type": ["string", "object"] },
+    "regression_diff": { "type": ["string", "object"] },
+    "discrepancies": { "type": "array" },
+    "source_probe": { "type": ["string", "object"] },
+    "verifier_probe": { "type": ["string", "object"] },
+    "residual_caveat": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "verdict": { "enum": ["CONFIRMED", "REFUTED"] } },
+        "required": ["verdict"]
+      },
+      "then": {
+        "required": [
+          "source_probe",
+          "verifier_probe",
+          "blinding_attestation_hash",
+          "baseline_repro",
+          "corrected_repro",
+          "rollback_repro",
+          "regression_diff",
+          "discrepancies",
+          "residual_caveat"
+        ],
+        "properties": {
+          "source_probe": {
+            "anyOf": [
+              { "type": "string", "minLength": 16, "pattern": "\\S" },
+              { "type": "object", "minProperties": 1 }
+            ]
+          },
+          "verifier_probe": {
+            "anyOf": [
+              { "type": "string", "minLength": 16, "pattern": "\\S" },
+              { "type": "object", "minProperties": 1 }
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

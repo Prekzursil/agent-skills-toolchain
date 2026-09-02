@@ -1,0 +1,22 @@
+
+===== launch 2026-08-20T08:57:45Z attempt=1 =====
+I'll start from the existing IMP-0015 probe tree, read the unit contract and any prior return artifact, then implement until the measure script prints SUCCESS:delivered.The IMP-0015 probe tree is missing, so I'll pull the catalog contract and a delivered IMP unit as the template, then build from that.Linux bash 5.1.16 is the real runner here (not Git Bash, no `/mnt/c`). I'll implement the launch adapter plus live probes, including a CRLF negative control that actually fails.Repo-root resolution was one directory too high (`/opt/p2` instead of the worktree). I'll correct `parents[3]` and re-run the probes.IMP-0015 is **G-1 contract-green** on this Linux worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0015` printed:
+
+`SUCCESS:delivered IMP-0015 predicate=delivered state=SUCCESS probes=4 raws=7 notes=launch_adapter.py:0,probe_imp0015.py:0,refute_oracle.py:0,test_launch_adapter.py:0`
+
+The probe tree was missing, so it was created and implemented rather than parked on `predicate:absent`.
+
+**What landed**
+- Linux launch adapter at `release/platforms/linux/launch.sh` (real Linux only, GNU bash, exec bit, shebang normalisation, CR refusal, explicit `bash script args` — never `./script`)
+- Catalog test `release/platforms/linux/tests/test_launch_adapter.sh` (26 PASS, 0 FAIL)
+- Live named probes: `bash -n`, trivial execution, CRLF negative control (went red), independent byte/`uname` oracle
+- Receipt `command-center/receipts/IMP-0015.json` (`state=SUCCESS`) packed after those runs
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 match); `SUBAGENT-RETURN.json`
+
+**Host proof:** `uname=Linux`, GNU bash 5.1.16 `x86_64-pc-linux-gnu`, `/proc/version` is not WSL, no `/mnt/c/Windows`.
+
+**Honesty notes (not blockers):** `scripts/longrun.sh` is absent here; `bin/longrun-stub.sh` is the in-tree analog. IMP-0012 / IMP-0017 are still undelivered; this unit still enforces explicit bash argv and zero CR at launch. `bash -n` is not a universal CRLF detector on one-liners, so the adapter also byte-scans for CR.
+
+Constraints kept: no git write, no global `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close / p2-cloud-ok-deliver. Cloud `ok=true` was not treated as delivery.

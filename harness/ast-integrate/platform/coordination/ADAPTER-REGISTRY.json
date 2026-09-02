@@ -1,0 +1,101 @@
+{
+  "schema_version": "1.0.0",
+  "registry_id": "platform/coordination/ADAPTER-REGISTRY.json@v1",
+  "title": "Vendor-specific adapter boundaries",
+  "spec_anchor": "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md:10980-10983",
+  "description": "One entry per concrete agent runtime this platform can dispatch a work unit to. `offers` is the MEASURED-TRUE set and `refuses` the MEASURED-FALSE set; a capability in NEITHER list is UNMEASURED and negotiation treats it as a refusal with reason capability-unmeasured. The three-state split is the mechanism behind the spec's 'do not pretend full interchangeability' - an adapter can only be trusted for what somebody actually measured.",
+  "how_to_extend": "Add the capability id to `offers` or `refuses` together with a provenance line in CAPABILITY-REGISTRY.json or in this entry's `notes`. Never add to `offers` on the strength of a vendor's documentation alone; the estate has measured three separate cases where the documented behaviour was inert (codex --sandbox, hooks.json $schema, MCP disable-scope).",
+  "adapters": [
+    {
+      "adapter_id": "claude-code",
+      "vendor": "anthropic",
+      "tool": "claude-code",
+      "status": "MEASURED-PARTIAL",
+      "offers": [
+        "fs.read",
+        "fs.write",
+        "proc.exec",
+        "prompt.file_argument",
+        "artifact.output_file",
+        "interactive.owner_approval",
+        "subagent.spawn",
+        "mcp.tools",
+        "review.independent_vendor",
+        "transport.detached_child"
+      ],
+      "refuses": [
+        "sandbox.enforced",
+        "schema.typed_output"
+      ],
+      "notes": [
+        "sandbox.enforced REFUSED: Windows has no native OS-level process sandbox for this runtime; risky execution is routed to WSL2, the docker MCP or a remote sandbox instead. Containment is a routing decision, not a runtime guarantee.",
+        "schema.typed_output REFUSED: a subagent can be ASKED for a shape but the runtime does not constrain the emission, so the caller must validate. The AND-gate's third limb is therefore always caller-side on this adapter.",
+        "transport.detached_child OFFERED via run_in_background/longrun - permitted only with an explicit barrier (see ADAPTER-CONTRACT.md)."
+      ]
+    },
+    {
+      "adapter_id": "codex-cli",
+      "vendor": "openai",
+      "tool": "codex-cli",
+      "status": "MEASURED-PARTIAL",
+      "offers": [
+        "fs.read",
+        "fs.write",
+        "proc.exec",
+        "stdin.prompt",
+        "prompt.file_argument",
+        "artifact.output_file",
+        "schema.typed_output",
+        "session.resume",
+        "review.independent_vendor",
+        "transport.detached_child"
+      ],
+      "refuses": [
+        "sandbox.enforced",
+        "interactive.owner_approval",
+        "subagent.spawn",
+        "mcp.tools"
+      ],
+      "notes": [
+        "Every value here is LEDGER-RECORDED from the 2026-07-18 rail smoke-test (~/.claude/agents/codex.md) and was NOT re-measured by this build unit.",
+        "fs.write OFFERED only under --dangerously-bypass-approvals-and-sandbox, because --sandbox workspace-write is inert on codex-cli 0.144.5 / Windows. That is why sandbox.enforced is REFUSED in the same breath: the write works, the confinement does not.",
+        "mcp.tools REFUSED by policy, not by absence: --ignore-user-config is mandatory (the active inventory blows the 32,767-char Windows arg limit and voids --output-schema per codex issue #15451). Declaring it refused is what makes the mcp.tools x schema.typed_output conflict visible to negotiation instead of silent.",
+        "interactive.owner_approval REFUSED: the invocation that works on this box bypasses approvals outright, so the runtime structurally cannot pause for the owner.",
+        "session.resume carries an inherited UNVERIFIED: its interaction with --ephemeral is untested."
+      ]
+    },
+    {
+      "adapter_id": "gemini-cli",
+      "vendor": "google",
+      "tool": "gemini-cli",
+      "status": "DECLARED-UNMEASURED",
+      "offers": [],
+      "refuses": [],
+      "notes": [
+        "Deliberately empty. This adapter is REACHABLE in principle (.metaswarm/external-tools.yaml can delegate to Gemini CLI) but no capability of it has been measured on this box by this unit or by any ledger entry it could cite.",
+        "Consequence, and the point of the entry: negotiation REFUSES every unit routed here with reason capability-unmeasured. An empty adapter that refuses loudly is correct; an empty adapter that inherits another vendor's capability list would be the exact 'pretend full interchangeability' failure the spec forbids.",
+        "The experiment that promotes any capability here: run the same probe used for codex-cli against gemini-cli and record the result in this file."
+      ]
+    },
+    {
+      "adapter_id": "human-owner",
+      "vendor": "human",
+      "tool": "human",
+      "status": "MEASURED-PARTIAL",
+      "offers": [
+        "fs.read",
+        "fs.write",
+        "interactive.owner_approval",
+        "review.independent_vendor"
+      ],
+      "refuses": [
+        "transport.detached_child",
+        "schema.typed_output",
+        "subagent.spawn"
+      ],
+      "notes": [
+        "Exists so a unit with owner_approval_required=true has a legal destination. `human` resolves in VENDOR-REGISTRY.json with establishes_distinctness=true, so an owner review is a genuine cross-vendor review."
+      ]
+    }
+  ]
+}

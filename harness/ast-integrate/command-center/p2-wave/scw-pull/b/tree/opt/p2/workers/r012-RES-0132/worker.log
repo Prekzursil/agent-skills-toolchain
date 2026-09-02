@@ -1,0 +1,18 @@
+I'll start from the existing RES-0132 probe tree, read any prior return artifact, and only then measure what still has to go green.The probe tree is partial (no SUBAGENT-RETURN yet). Next I’ll read the catalog, HANDOFF, and the G-1 measurement script so we resume instead of rebuilding.G-1 is a live re-run plus an honest artifact, not harvest `ok=true`. I’ll check the clock, similar delivered units, and `artifact_delivered` next.Schema resolver is absent on this tree, so delivery is “not self-BLOCKED + live probes.” Next I’ll restore the lockfiles and reconstruct the two named probes from the harvest traces.I'll restore the frozen lockfile and scanner, then reconstruct the 373-byte lodash control so the two named probes can re-run live.Both-states scans are live: frozen lockfile is green, lodash control is red. Next I’ll write the named probes and pack the receipt from those runs.Live OSV agrees with the scanner. I’m adding the two named probes plus a packer that seals an honest SUCCESS receipt from those raws.Both named probes exited 0. Next I’ll pack the SUCCESS receipt and the per-unit manifest from those live raws.**SUCCESS:delivered** for RES-0132.
+
+`python3 command-center/p2-wave/_measure_one_delivered.py RES-0132` printed:
+
+`SUCCESS:delivered RES-0132 predicate=delivered state=SUCCESS probes=3 raws=8 notes=probe1_osv_scanner.py:0,probe2_osv_api.py:0,validate_delivery.py:0`
+
+Harvest `ok=true` was not delivery. The earlier CLOUD-OK refute was right that the receipt was `state=BLOCKED` with no runnable probes. This pass restored the instruments and packed a live SUCCESS receipt.
+
+What was delivered:
+- **Probe 1** `probe1_osv_scanner.py`: pinned OSV Scanner 2.3.8. Frozen lockfile green (95 packages, no issues). `lodash@4.17.11` control red (7 GHSA IDs). Mutation control exited 1 as required.
+- **Probe 2** `probe2_osv_api.py`: direct OSV `querybatch`. Same T+0 green/red split. Independent `sha256sum` + OpenSSL hash of the frozen lockfile: `d38a7ef94dbf5f0a23c010cb88878df4ffb922d42c7295f6071172d196ccc431`.
+- **Horizon guard**: `--label T+7d` exits 3 (`horizon-not-reached`) until `2026-08-23T23:34:32.901096Z`.
+- Catalog output `command-center/research/supply-chain/RES-0132-advisory-green-decay-measurement.json` is `state=SUCCESS` (64798 bytes, LF sha256 `d34ca8ffdfd621c8763a0e0c7b17c77863f9032c120f52fa8b9a6b2eadd8afde`).
+- Per-unit `command-center/p2-wave/probes/RES-0132/UNIT-ARTIFACT-MANIFEST.json` matches that digest.
+
+Honest residuals (scientific target remains PARTIAL): T+7d and T+30d observations, and therefore the longitudinal flip rate and publication-to-flip median, are not yet estimable. A second different-vendor reviewer was not dispatched.
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

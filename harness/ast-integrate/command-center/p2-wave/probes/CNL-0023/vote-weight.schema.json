@@ -1,0 +1,125 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$defs": {
+    "seat": {
+      "additionalProperties": true,
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "vote_weight": {
+                "not": {
+                  "const": 1.0
+                }
+              }
+            },
+            "required": [
+              "vote_weight"
+            ]
+          },
+          "then": {
+            "required": [
+              "weight_provenance"
+            ]
+          }
+        }
+      ],
+      "properties": {
+        "role": {
+          "type": "string",
+          "minLength": 1
+        },
+        "seat_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "vote_weight": {
+          "$ref": "#/$defs/weight"
+        },
+        "weight_provenance": {
+          "$ref": "#/$defs/weight_provenance"
+        }
+      },
+      "required": [
+        "seat_id"
+      ],
+      "type": "object"
+    },
+    "weight": {
+      "exclusiveMinimum": 0,
+      "maximum": 4.0,
+      "type": "number"
+    },
+    "weight_provenance": {
+      "additionalProperties": false,
+      "properties": {
+        "challenge_path": {
+          "type": "string",
+          "minLength": 8
+        },
+        "expected_weight": {
+          "$ref": "#/$defs/weight"
+        },
+        "issued_by": {
+          "type": "string",
+          "minLength": 1
+        },
+        "justification_class": {
+          "enum": [
+            "charter_authority",
+            "conflict_discount",
+            "owner_decision"
+          ],
+          "type": "string"
+        },
+        "source_id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_kind": {
+          "type": "string",
+          "minLength": 1
+        },
+        "source_path": {
+          "type": "string",
+          "minLength": 8
+        },
+        "source_sha256": {
+          "pattern": "^[0-9a-f]{64}$",
+          "type": "string"
+        }
+      },
+      "required": [
+        "challenge_path",
+        "expected_weight",
+        "issued_by",
+        "justification_class",
+        "source_id",
+        "source_kind",
+        "source_path",
+        "source_sha256"
+      ],
+      "type": "object"
+    }
+  },
+  "additionalProperties": true,
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "seats": {
+      "items": {
+        "$ref": "#/$defs/seat"
+      },
+      "minItems": 1,
+      "type": "array"
+    }
+  },
+  "required": [
+    "id",
+    "seats"
+  ],
+  "title": "CouncilSpec v2 vote-weight provenance slice (CNL-0023)",
+  "type": "object"
+}

@@ -1,0 +1,1437 @@
+========================================================================
+ADV-0001
+title: Refute the shared completion predicate by constructing a passing-but-unusable unit
+out: command-center/adversarial/ADV-0001-predicate-passing-unusable-counterexample.json bytes=77894 sent=True state=SUCCESS
+py: ['consumer.py', 'emit.py', 'fixtures.py', 'probe1_reducer_verdicts.py', 'probe2_consumer_exits.py', 'reducer.py', 'write_receipts.py']
+imports: ['__future__', 'consumer', 'fixtures', 'json', 'jsonschema', 'pathlib', 'reducer', 'sys']
+-- probe1_reducer_verdicts.py froms=['__future__', 'pathlib', 'reducer'] --
+  T|    print(f"attack_reducer_pass={len(attacks)}/{len(attacks)}")
+  T|    print("control_reducer_pass=True")
+  T|    print("SUCCESS:ADV-0001-probe1 reducer PASS on six attacks and the readable control")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_consumer_exits.py froms=['__future__', 'consumer', 'pathlib', 'reducer'] --
+  T|        print("live_artifact_or_schema_absent_during_this_run=True")
+  T|
+  T|    print("SUCCESS:ADV-0001-probe2 consumer fails six attacks and reads the control")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+ADV-0035
+title: Least-privilege reconciliation of every declared permission set against observed usage
+out: command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json bytes=483826 sent=True state=SUCCESS
+py: ['emit_record.py', 'probe1_set_difference.py', 'probe2_removal_retest.py', 'reconcile.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'pathlib', 'plugin.permission_diff', 'reconcile', 'sys']
+-- probe1_set_difference.py froms=['__future__', 'pathlib', 'plugin.permission_diff'] --
+  T|        return _fail("live coverage_ok_n must stay 0 without recorded traces")
+  T|
+  T|    print("SUCCESS:ADV-0035-probe1 set-difference and coverage guard")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_removal_retest.py froms=['__future__', 'pathlib', 'plugin.permission_diff'] --
+  T|        return _fail("thin-trace Bash naive retest should still pass (guard lives in probe 1)")
+  T|
+  T|    print("SUCCESS:ADV-0035-probe2 removal-retest and live attempts")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+ADV-0074
+title: Injection through git metadata consumed by agents
+out: command-center/adversarial/ADV-0074-git-and-forge-metadata-injection.json bytes=81429 sent=True state=SUCCESS
+py: ['census.py', 'common.py', 'emit_artifact.py', 'fixture.py', 'follower.py', 'measure.py', 'probe1_review_beacon.py', 'probe2_field_census.py', 'stage.py', 'write_receipts.py']
+imports: ['__future__', 'common', 'json', 'measure', 'pathlib', 'sys']
+-- probe1_review_beacon.py froms=['__future__', 'common', 'measure', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:ADV-0074-probe1 scratch review-stage beacon/tool measurement")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_field_census.py froms=['__future__', 'common', 'measure', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:ADV-0074-probe2 production field census (unmeasured ≠ safe)")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+ADV-0095
+title: Silent free-riders counted toward consensus
+out: command-center/adversarial/ADV-0095-silent-freerider-consensus-inflation.json bytes=70375 sent=True state=SUCCESS
+py: ['probe1_consensus_differential.py', 'probe2_formula_input_audit.py']
+imports: ['__future__', 'hashlib', 'json', 'jsonschema', 'p2_jsonschema_hook', 'pathlib', 'sys']
+-- probe1_consensus_differential.py froms=['__future__', 'pathlib'] --
+  T|        print(f"schema_ok=True schema_rejects_garbage=True n_garbage={len(garbage_errors)}")
+  T|    print(f"artifact={REL} bytes={art.stat().st_size} sentinel_present={bool(SENT and SENT in text)}")
+  T|    print(f"SUCCESS:{UID}-probe1 envelope+schema both-states")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_formula_input_audit.py froms=['__future__', 'pathlib'] --
+  T|            return fail(f"self-declared:{st}")
+  T|    print(f"manifest_sha_ok=True live={live} rows={len(rows)}")
+  T|    print(f"SUCCESS:{UID}-probe2 independent manifest+envelope reviewer")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+ADV-0117
+title: Windows-hostile path matrix: reserved names, long paths, case collisions and Unicode
+out: command-center/adversarial/ADV-0117-windows-hostile-path-matrix.json bytes=248441 sent=True state=SUCCESS
+py: ['probe1_component_matrix.py', 'probe2_count_crosscheck.py', 'probe_common.py', 'write_receipts.py']
+imports: ['__future__', 'hashlib', 'io', 'json', 'os', 'pathlib', 'platform', 'probe_common', 'shutil', 'sys', 'tempfile', 'tools.layout', 'tools.marketplace', 'tools.plugin', 'tools.router.index_build', 'typing', 'zipfile']
+-- probe1_component_matrix.py froms=['__future__', 'pathlib', 'probe_common'] --
+  T|            f"{doc['reserved_relpath_control']['naive_went_red']}"
+  T|        )
+  T|        return 0
+  T|    return fail("protocol did not complete (ordinary/naive/long-path/casefold control)")
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_count_crosscheck.py froms=['__future__', 'pathlib', 'probe_common'] --
+  T|            f"silent_skips={skips}"
+  T|        )
+  T|        return 0
+  T|    return fail("count-gate protocol did not complete")
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe_common.py froms=['__future__', 'pathlib', 'tools.layout', 'tools.marketplace', 'tools.plugin', 'tools.router.index_build', 'typing'] --
+  T|        "windows_createfile_executed": False,
+  T|        "extended_length_prefix": "\\\\?\\",
+  T|        "max_path": MAX_PATH,
+  T|        "note": (
+  T|            "Linux substrate: reserved names are POSIX files. Win32 CreateFile "
+  T|            "and the \\\\?\\ prefix are recorded as path-shape, not executed."
+  T|        ),
+  T|    }
+========================================================================
+ARC-0001
+title: Tournament roster reconciliation: map Prompt One's 11 architecture candidates onto the 9 spec-mandated classes
+out: command-center/phase3/ROSTER.json bytes=24860 sent=True state=SUCCESS
+py: ['emit_roster.py', 'enumerator.py', 'mapper.py', 'probe1.py', 'probe1_both_states.py', 'probe2.py', 'probe2_reviewer_anchor.py', 'write_receipts.py']
+imports: ['__future__', 'enumerator', 'json', 'mapper', 'pathlib', 'probe1_both_states', 'probe2_reviewer_anchor', 'sys']
+-- probe1.py froms=['probe1_both_states'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so a measure that globs probe1*.py still hits the named probe."""
+  T|from probe1_both_states import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe1_both_states.py froms=['__future__', 'pathlib'] --
+  T|    }
+  T|    print(json.dumps(payload, sort_keys=True))
+  T|    print("SUCCESS:ARC-0001-probe1 both-states enumerator")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2.py froms=['probe2_reviewer_anchor'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so a measure that globs probe2*.py still hits the named probe."""
+  T|from probe2_reviewer_anchor import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_reviewer_anchor.py froms=['__future__', 'pathlib'] --
+  T|        print("roster absent during probe (emit not yet run); skipped roster check")
+  T|
+  T|    print("SUCCESS:ARC-0001-probe2 reviewer-anchor set-completeness")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+ARC-0055
+title: A8 (UX / product-first): Where usability fights safety: defaults, one-click install, and approval fatigue
+out: command-center/phase3/A8/SECURITY.json bytes=19837 sent=True state=SUCCESS
+py: ['anchors.py', 'catalog_stats.py', 'decisions.py', 'emit_security.py', 'fatigue.py', 'marketplace.py', 'overclaim.py', 'probe1.py', 'probe1_blast_radius.py', 'probe2.py', 'probe2_fatigue_overclaim.py', 'reviewer.py', 'run_probes.py', 'write_receipts.py']
+imports: ['__future__', 'anchors', 'copy', 'decisions', 'fatigue', 'json', 'overclaim', 'pathlib', 'probe1_blast_radius', 'probe2_fatigue_overclaim', 'sys']
+-- probe1.py froms=['probe1_blast_radius'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe1*.py still finds a short name."""
+  T|from probe1_blast_radius import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe1_blast_radius.py froms=['__future__', 'pathlib'] --
+  T|        f"detector_live={mkt['live_review_like_count']}"
+  T|    )
+  T|    print("SUCCESS:ARC-0055-probe1 blast-radius classification and reversal cost")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2.py froms=['probe2_fatigue_overclaim'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe2*.py still finds a short name."""
+  T|from probe2_fatigue_overclaim import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_fatigue_overclaim.py froms=['__future__', 'pathlib'] --
+  T|        f"after_pph_wall={summary['after_proposed_pph_wall']}"
+  T|    )
+  T|    print("SUCCESS:ARC-0055-probe2 fatigue overclaim reviewer-added-mode")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+ARC-0102
+title: Schema registry, reference resolution and pinned offline validation
+out: command-center/phase4/conformance/ARC-0102.json bytes=24745 sent=True state=SUCCESS
+py: ['emit_report.py', 'probe1_egress.py', 'probe2_pin.py', 'schema_resolver.py', 'write_receipts.py']
+imports: ['__future__', 'http.server', 'json', 'pathlib', 'schema_resolver', 'socket', 'sys', 'threading', 'urllib.error', 'urllib.request']
+-- probe1_egress.py froms=['__future__', 'http.server', 'pathlib'] --
+  T|        + str(catalog_identical)
+  T|    )
+  T|    print("SUCCESS:ARC-0102-probe1 egress control offline-equals-online")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_pin.py froms=['__future__', 'pathlib'] --
+  T|        + str(report_records_version)
+  T|    )
+  T|    print("SUCCESS:ARC-0102-probe2 pin gate both-states")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+AUD-0002
+title: Worktree inventory: repo identity, dirty surface, and content-preservation proof
+out: command-center/audit/AUD-0002-worktree-inventory.json bytes=32979 sent=True state=SUCCESS
+py: ['emit_inventory.py', 'inventory.py', 'probe1_dirty_surface.py', 'probe2_preservation.py', 'schema_local.py', 'write_receipts.py']
+imports: ['__future__', 'inventory', 'json', 'jsonschema', 'pathlib', 'sys']
+-- probe1_dirty_surface.py froms=['__future__', 'pathlib'] --
+  T|        "SUCCESS:AUD-0002-probe1 porcelain v2 dirty-surface per worktree; "
+  T|        "clean vs dirty discriminated; origin identity recorded"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_preservation.py froms=['__future__', 'pathlib'] --
+  T|        "SUCCESS:AUD-0002-probe2 sha256 preservation flips after copy; "
+  T|        "path-name match is not proof"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+AUD-0050
+title: Test-file inventory and gate-coverage map: which suites are in no gate at all
+out: command-center/audit/AUD-0050-test-gate-coverage-map.json bytes=1917055 sent=True state=SUCCESS
+py: ['emit_artifact.py', 'mapper.py', 'probe1_selector_map.py', 'probe2_collect_only.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'mapper', 'pathlib', 'sys']
+-- probe1_selector_map.py froms=['__future__', 'pathlib'] --
+  T|        f"orphan={live['n_orphan']} fixture_orphan=True known_gated=True"
+  T|    )
+  T|    print("SUCCESS:AUD-0050-probe1 live selector map matches artifact")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_collect_only.py froms=['__future__', 'pathlib'] --
+  T|        f"known_gated_in_union=True broken_direct=True"
+  T|    )
+  T|    print("SUCCESS:AUD-0050-probe2 live collect-only union matches artifact")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+AUD-0091
+title: Clean-room fresh-clone build and test baseline
+out: command-center/audit/AUD-0091-clean-room-clone-baseline.json bytes=24105 sent=True state=SUCCESS
+py: ['emit_artifact.py', 'engine.py', 'probe1_clean_clone_first_fail.py', 'probe2_inplace_compare_and_cache.py', 'schema_check.py', 'write_receipts.py']
+imports: ['__future__', 'engine', 'json', 'pathlib', 'schema_check', 'sys']
+-- probe1_clean_clone_first_fail.py froms=['__future__', 'pathlib'] --
+  T|        "SUCCESS:AUD-0091-probe1 first-fail: worktree clone red; "
+  T|        "good fixture silent; bad fixture exit 17"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_inplace_compare_and_cache.py froms=['__future__', 'pathlib'] --
+  T|        "SUCCESS:AUD-0091-probe2 env-only vs docs-defect distinguished; "
+  T|        "planted cache fires; headline stands"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+BLD-0035
+title: Deletion blast-radius: prove the executed DELETE-ALL retirement lost no unique behaviour
+out: command-center/receipts/BLD-0035.json bytes=157202 sent=True state=SUCCESS
+py: ['analyze.py', 'classify.py', 'emit_closure.py', 'probe1_controls.py', 'probe2_independent_sample.py', 'recover.py', 'scenario.py', 'surface.py']
+imports: ['__future__', 'analyze', 'classify', 'json', 'pathlib', 'recover', 'scenario', 'shutil', 'surface', 'sys', 'tempfile']
+-- probe1_controls.py froms=['__future__', 'analyze', 'classify', 'pathlib', 'recover', 'scenario'] --
+  T|        print("SUCCESS:BLD-0035-probe1 catalog controls and archive refusal")
+  T|        return 0
+  T|    finally:
+  T|        shutil.rmtree(scratch, ignore_errors=True)
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_independent_sample.py froms=['__future__', 'classify', 'pathlib', 'recover', 'scenario', 'surface'] --
+  T|        print("SUCCESS:BLD-0035-probe2 independent five-file sample")
+  T|        return 0
+  T|    finally:
+  T|        shutil.rmtree(scratch, ignore_errors=True)
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+BLD-0056
+title: Artifact and ledger growth model: which store degrades first
+out: command-center/receipts/BLD-0056.json bytes=39977 sent=True state=SUCCESS
+py: ['emit.py', 'engine.py', 'probe1_parse_budget.py', 'probe2_dir_consolidator.py', 'write_receipts.py']
+imports: ['__future__', 'engine', 'json', 'pathlib', 'sys']
+-- probe1_parse_budget.py froms=['__future__', 'engine', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:BLD-0056-probe1 parse-budget 1x+10x MEASURED")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_dir_consolidator.py froms=['__future__', 'engine', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:BLD-0056-probe2 dir-20480 + always-skip-774kb")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNF-0024
+title: Reproduce a CI-log-only defect on a matching runner image
+out: command-center/confirmation/CNF-0024-ci-image-repro.json bytes=23376 sent=True state=SUCCESS
+py: ['emit_report.py', 'lab.py', 'probe1_warm_cold.py', 'probe2_classify.py', 'schema_local.py']
+imports: ['__future__', 'copy', 'json', 'jsonschema', 'lab', 'pathlib', 'schema_local', 'sys']
+-- probe1_warm_cold.py froms=['__future__', 'pathlib'] --
+  T|        "live_matches_artifact": True,
+  T|    }, sort_keys=True))
+  T|    print("SUCCESS:CNF-0024-probe1 warm and cold cache runs completed")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_classify.py froms=['__future__', 'pathlib'] --
+  T|        "scope_not_agreement": True,
+  T|    }, sort_keys=True))
+  T|    print("SUCCESS:CNF-0024-probe2 classification image logs")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNF-0070
+title: Archival corroboration when the live source has changed since it was cited
+out: command-center/confirmation/CNF-0070-archival-corroboration.json bytes=36888 sent=True state=SUCCESS
+py: ['archive.py', 'auditor.py', 'emit_audit.py', 'probe1_timestamp_and_untrusted.py', 'probe2_verdict_split.py', 'schema_ctl.py', 'write_receipts.py']
+imports: ['__future__', 'archive', 'auditor', 'copy', 'json', 'jsonschema', 'pathlib', 'sys']
+-- probe1_timestamp_and_untrusted.py froms=['__future__', 'archive', 'pathlib'] --
+  T|
+  T|def SENTINEL_FRAGMENT_MISSING(doc: dict) -> bool:
+  T|    text = json.dumps(doc)
+  T|    return "SUCCESS:CNF-0070" not in text or "capture timestamp at or before the citation date" not in text
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_verdict_split.py froms=['__future__', 'pathlib'] --
+  T|        return fail(f"artifact missing distinct verdicts {kinds}")
+  T|    print(f"artifact_verdicts={sorted(kinds)}")
+  T|    print("SUCCESS:CNF-0070-probe2 independent-rederive verdict-split")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNF-0115
+title: Measured network egress during a full run versus the declared telemetry contract
+out: command-center/confirmation/CNF-0115-egress-measurement.json bytes=35369 sent=True state=SUCCESS
+py: ['emit_report.py', 'measure.py', 'probe1_socket_capture.py', 'probe2_independent_capture.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'measure', 'pathlib', 'sys']
+-- probe1_socket_capture.py froms=['__future__', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:CNF-0115-probe1 socket-capture control+undeclared-plant")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_independent_capture.py froms=['__future__', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:CNF-0115-probe2 independent-capture payload-not-stored")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNF-0159
+title: Dispatch-integrity gate: reject fire-and-forget receipts before any digest is read
+out: command-center/receipts/CNF-0159.json bytes=16256 sent=True state=SUCCESS
+py: ['__init__.py', '_boot.py', 'dispatch_integrity.py', 'emit_receipt.py', 'probe1_known_broken.py', 'probe2_both_states_order.py']
+imports: ['__future__', '_boot', 'ast', 'json', 'pathlib', 'sys', 'tempfile']
+-- probe1_known_broken.py froms=['__future__', '_boot', 'pathlib'] --
+  T|    print("empty_and_unparsable rejected=True reader_idle=True")
+  T|
+  T|    print("SUCCESS:CNF-0159-probe1 known-broken background/missing/ledger/empty")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_both_states_order.py froms=['__future__', '_boot', 'pathlib'] --
+  T|        )
+  T|
+  T|    print("SUCCESS:CNF-0159-probe2 both-states call-order reviewer-refuse")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNL-0019
+title: Adversarial selection without manufacturing fake disagreement
+out: command-center/design/council/CNL-0019-adversarial-selection-without-manufacturing-fake-disagreem.md bytes=14988 sent=True state=SUCCESS
+py: ['emit_note.py', 'priors.py', 'probe1_theatre.py', 'probe2_both_states.py', 'reviewer.py', 'seating.py', 'simulate.py', 'write_receipts.py']
+imports: ['__future__', 'copy', 'json', 'jsonschema', 'pathlib', 'priors', 'reviewer', 'seating', 'simulate', 'sys']
+-- probe1_theatre.py froms=['__future__', 'pathlib', 'priors'] --
+  T|        print("FAILED:CNL-0019-probe1 theatre and real-prior did not diverge")
+  T|        return 1
+  T|    print("SUCCESS:CNL-0019-probe1 assigned-position vs real-prior divergence")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_both_states.py froms=['__future__', 'pathlib', 'priors'] --
+  T|        print("schema_mutant_rejected=True")
+  T|
+  T|    print("SUCCESS:CNL-0019-probe2 both-states negative-control artifact")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNL-0078
+title: Executable stopping example: unique_ideas >= 100 AND completeness_score >= 0.90
+out: command-center/design/council/CNL-0078-executable-stopping-example-unique-ideas-100-and-completen.schema.json bytes=28161 sent=True state=SUCCESS
+py: ['a10_grammar.py', 'census.py', 'emit_artifact.py', 'evaluate.py', 'fixtures.py', 'metrics.py', 'probe1_fire_silent.py', 'probe2_parse_recount.py', 'recount.py', 'write_receipts.py']
+imports: ['__future__', 'a10_grammar', 'census', 'evaluate', 'fixtures', 'json', 'pathlib', 'recount', 'sys']
+-- probe1_fire_silent.py froms=['__future__', 'evaluate', 'fixtures', 'pathlib'] --
+  T|        print("FAILED:CNL-0078-probe1 fixture/artifact disagreement")
+  T|        return 1
+  T|    print("SUCCESS:CNL-0078-probe1 fire/silent/negative-control")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_parse_recount.py froms=['__future__', 'a10_grammar', 'census', 'evaluate', 'fixtures', 'pathlib', 'recount'] --
+  T|        print("FAILED:CNL-0078-probe2 parse/recount/disagree")
+  T|        return 1
+  T|    print("SUCCESS:CNL-0078-probe2 parse-unchanged independent-recount identity-bind")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+CNL-0125
+title: Council result against the shared 12-condition completion predicate
+out: command-center/design/council/CNL-0125-council-result-against-the-shared-12-condition-completion-.md bytes=13418 sent=True state=SUCCESS
+py: ['conditions.py', 'emit_note.py', 'fixtures.py', 'fixtures_lib.py', 'predicate.py', 'probe1_condition_table.py', 'probe2_missing_sentinel.py', 'table.py']
+imports: ['__future__', 'conditions', 'fixtures_lib', 'json', 'jsonschema', 'pathlib', 'predicate', 'sys', 'table']
+-- probe1_condition_table.py froms=['__future__', 'conditions', 'pathlib', 'table'] --
+  T|            return fail("schema accepted garbage (vacuous)")
+  T|
+  T|    print("SUCCESS:CNL-0125-probe1 independent 12-row recount")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_missing_sentinel.py froms=['__future__', 'fixtures_lib', 'pathlib', 'predicate'] --
+  T|
+  T|    print("SILENT on known-good; FIRES on missing-sentinel (C5)")
+  T|    print("SUCCESS:CNL-0125-probe2 missing-sentinel wiring live")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0022
+title: Path-casing normalisation and cross-filesystem collision detection
+out: command-center/receipts/IMP-0022.json bytes=7984 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_set_collision.py', 'probe2_extract_shortfall.py', 'write_receipts.py']
+imports: ['__future__', 'collections', 'io', 'json', 'os', 'pathlib', 'plugin.case_collision', 'plugin.pathnorm', 'plugin.payload_paths', 'sys', 'tempfile', 'unicodedata', 'zipfile']
+-- probe1_set_collision.py froms=['__future__', 'collections', 'pathlib', 'plugin.case_collision', 'plugin.pathnorm', 'plugin.payload_paths'] --
+  T|        "planted_readme_fired=True prod_agrees=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0022-probe1 casefold-collision count over payload path set")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_extract_shortfall.py froms=['__future__', 'pathlib', 'plugin.case_collision', 'plugin.pathnorm'] --
+  T|        "casefold_not_lower=True nfc_first=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0022-probe2 extract-count shortfall and reviewer NFC+casefold")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0048
+title: Legacy-layout fingerprint detectors
+out: command-center/receipts/IMP-0048.json bytes=49823 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_unique_layouts.py', 'probe2_negative_ambiguous.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'pathlib', 'plugin.layout_fingerprints', 'plugin.layout_fixtures', 'sys']
+-- probe1_unique_layouts.py froms=['__future__', 'pathlib', 'plugin.layout_fingerprints', 'plugin.layout_fixtures'] --
+  T|    }
+  T|    print(json.dumps(out, sort_keys=True))
+  T|    print("SUCCESS:IMP-0048-probe1 unique layouts and two-signal requirement")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_negative_ambiguous.py froms=['__future__', 'pathlib', 'plugin.layout_fingerprints', 'plugin.layout_fixtures'] --
+  T|    }
+  T|    print(json.dumps(out, sort_keys=True))
+  T|    print("SUCCESS:IMP-0048-probe2 current-zero and ambiguous-path")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0071
+title: Release channels and promotion rules under PR-ONLY release mode
+out: command-center/receipts/IMP-0071.json bytes=11744 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_promotion_pr_only.py', 'probe2_channel_pin_matrix.py']
+imports: ['__future__', 'channels', 'hashlib', 'index_model', 'json', 'pathlib', 'promotion', 'sys']
+-- probe1_promotion_pr_only.py froms=['__future__', 'index_model', 'pathlib', 'promotion'] --
+  T|        f"direct_writes=0 guard_fired=True"
+  T|    )
+  T|    print(f"SUCCESS:{UNIT}-probe1 promotion PR-diff and zero direct index writes")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_channel_pin_matrix.py froms=['__future__', 'pathlib'] --
+  T|    print(json.dumps(payload, sort_keys=True))
+  T|    print(f"matrix cases=10 passed=10 failed=0")
+  T|    print(f"SUCCESS:{UNIT}-probe2 channel-pin 10-case matrix")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0099
+title: Advisory record and affected-version-range model
+out: command-center/receipts/IMP-0099.json bytes=24609 sent=True state=SUCCESS
+py: ['probe1.py', 'probe1_matrix.py', 'probe2.py', 'probe2_independent_engine.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'marketplace.advisory', 'marketplace.version', 'pathlib', 'probe1_matrix', 'probe2_independent_engine', 'sys']
+-- probe1.py froms=['probe1_matrix'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe1*.py still finds a short name."""
+  T|from probe1_matrix import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe1_matrix.py froms=['__future__', 'marketplace.advisory', 'pathlib'] --
+  T|        print("FAILED:IMP-0099-probe1 matrix disagreement")
+  T|        return 1
+  T|    print("SUCCESS:IMP-0099-probe1 20-case advisory range matrix")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2.py froms=['probe2_independent_engine'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe2*.py still finds a short name."""
+  T|from probe2_independent_engine import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_independent_engine.py froms=['__future__', 'marketplace.advisory', 'marketplace.version', 'pathlib'] --
+  T|    }
+  T|    print(json.dumps(summary, sort_keys=True))
+  T|    print("SUCCESS:IMP-0099-probe2 independent range engine and controls")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0119
+title: Adversarial fixture set: the negative controls every gate must fire on
+out: command-center/receipts/IMP-0119.json bytes=10899 sent=True state=SUCCESS
+py: ['probe1_coverage_matrix.py', 'probe2_both_states.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'marketplace.corpus', 'marketplace.gates', 'pathlib', 'sys']
+-- probe1_coverage_matrix.py froms=['__future__', 'marketplace.corpus', 'marketplace.gates', 'pathlib'] --
+  T|        "exactly_one=True silent_bad=0"
+  T|    )
+  T|    print("SUCCESS:IMP-0119-probe1 coverage matrix both directions")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_both_states.py froms=['__future__', 'marketplace.corpus', 'marketplace.gates', 'pathlib'] --
+  T|        "reviewer_new_class=True canary_documented=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0119-probe2 both-states reviewer secret-honesty")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0147
+title: Implement spec_version migration rules and an executable migrator
+out: command-center/receipts/IMP-0147.json bytes=6471 sent=True state=SUCCESS
+py: ['probe1_plan_equality.py', 'probe2_silent_drop.py', 'write_receipts.py']
+imports: ['__future__', 'agentspec.migrate', 'agentspec.plan', 'agentspec.spec', 'agentspec.validate', 'json', 'pathlib', 'sys']
+-- probe1_plan_equality.py froms=['__future__', 'agentspec.migrate', 'agentspec.plan', 'agentspec.spec', 'agentspec.validate', 'pathlib'] --
+  T|    }
+  T|    print(json.dumps(payload, sort_keys=True))
+  T|    print("SUCCESS:IMP-0147-probe1 migrated-old plan equals hand-written-new plan")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_silent_drop.py froms=['__future__', 'agentspec.migrate', 'agentspec.spec', 'pathlib'] --
+  T|        "SUCCESS:IMP-0147-probe2 unmigratable fixture typed-refusal; "
+  T|        "silent-drop mutation makes refusal test go red"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0175
+title: Build the merge/compatibility map: which components may legally and technically compose
+out: command-center/receipts/IMP-0175.json bytes=29819 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_coverage.py', 'probe2_forbidden_vocab.py', 'write_receipts.py']
+imports: ['__future__', 'foundry.compat_map', 'json', 'pathlib', 'sys']
+-- probe1_coverage.py froms=['__future__', 'foundry.compat_map', 'pathlib'] --
+  T|        f"mutant_missing={cov_mutant['missing_pairs']}"
+  T|    )
+  T|    print("SUCCESS:IMP-0175-probe1 cell coverage == |components|^2 (computed)")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_forbidden_vocab.py froms=['__future__', 'foundry.compat_map', 'pathlib'] --
+  T|        f"all_allowed_rejected={wiped['vocab_ok'] is False}"
+  T|    )
+  T|    print("SUCCESS:IMP-0175-probe2 FORBIDDEN reasons are a closed vocabulary")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0213
+title: Implement the find-vs-repair-vs-merge-vs-build recommender with an explicit cost model
+out: command-center/receipts/IMP-0213.json bytes=38592 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_sensitivity_grid.py', 'probe2_recompute_scores.py']
+imports: ['__future__', 'json', 'pathlib', 'sys', 'the', 'workflows.path_recommender']
+-- probe1_sensitivity_grid.py froms=['__future__', 'pathlib', 'workflows.path_recommender'] --
+  T|        f"SUCCESS:IMP-0213-probe1 n_distinct={n} {distinct} "
+  T|        "constant-BUILD-mutant-detected one-factor-flip-ok"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_recompute_scores.py froms=['__future__', 'pathlib', 'workflows.path_recommender'] --
+  T|        f"SUCCESS:IMP-0213-probe2 recomputed {checked} eligible path scores "
+  T|        f"from {len(table)} recorded input rows; 0 mismatches"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0239
+title: Implement engineering blueprints 5-8: architecture tournament, planning, TDD implementation, code review
+out: command-center/receipts/IMP-0239.json bytes=11719 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1.py', 'probe1_red_phase.py', 'probe2.py', 'probe2_tournament_dissent.py', 'write_receipts.py']
+imports: ['__future__', 'blueprints.tdd', 'blueprints.tournament', 'json', 'pathlib', 'probe1_red_phase', 'probe2_tournament_dissent', 'sys']
+-- probe1.py froms=['probe1_red_phase'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe1*.py still finds a short name."""
+  T|from probe1_red_phase import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe1_red_phase.py froms=['__future__', 'blueprints.tdd', 'pathlib'] --
+  T|        "missing_receipt_rejected=True never_red_rejected=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0239-probe1 red-phase receipt required (both-states)")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2.py froms=['probe2_tournament_dissent'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe2*.py still finds a short name."""
+  T|from probe2_tournament_dissent import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_tournament_dissent.py froms=['__future__', 'blueprints.tournament', 'pathlib'] --
+  T|        "recorded_dissent_accepted=True majority_echo_rejected=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0239-probe2 architecture-tournament preserves dissent")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0264
+title: Council runtime kernel: round scheduler and turn state machine
+out: command-center/receipts/IMP-0264.json bytes=12657 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_turn_machine.py', 'probe2_callgraph_bypass.py']
+imports: ['__future__', 'council.kernel', 'council.topology.round_robin', 'json', 'pathlib', 'sys']
+-- probe1_turn_machine.py froms=['__future__', 'council.kernel', 'council.topology.round_robin', 'pathlib'] --
+  T|        print("FAILED:IMP-0264-probe1 turn machine")
+  T|        return 1
+  T|    print("SUCCESS:IMP-0264-probe1 turn ordering timeout obligation invariant")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_callgraph_bypass.py froms=['__future__', 'council.kernel', 'pathlib'] --
+  T|        print("FAILED:IMP-0264-probe2 call-graph bypass")
+  T|        return 1
+  T|    print("SUCCESS:IMP-0264-probe2 call-graph check fires on direct-write bypass")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0290
+title: Blind independent first pass with a submission barrier
+out: command-center/receipts/IMP-0290.json bytes=11811 sent=True state=SUCCESS
+py: ['probe1_barrier.py', 'probe2_early_open.py', 'scenario.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'pathlib', 'scenario', 'sys']
+-- probe1_barrier.py froms=['__future__', 'pathlib', 'scenario'] --
+  T|        "scan_zero=True event_order_ok=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0290-probe1 barrier semantics under slow participant and timeout")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_early_open.py froms=['__future__', 'pathlib', 'scenario'] --
+  T|        "mutant_actual_open_silent=True"
+  T|    )
+  T|    print("SUCCESS:IMP-0290-probe2 early-open negative control fires")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0314
+title: Evidence map, citation graph and circular-citation detector
+out: command-center/receipts/IMP-0314.json bytes=16946 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'fixtures.py', 'probe1_six_shapes.py', 'probe2_anchors_and_reviewer.py', 'write_receipts.py']
+imports: ['__future__', 'council.artifacts', 'fixtures', 'json', 'pathlib', 'sys']
+-- probe1_six_shapes.py froms=['__future__', 'council.artifacts', 'pathlib'] --
+  T|        return _fail(f"false-positive fires={silent_fire}")
+  T|
+  T|    print("SUCCESS:IMP-0314-probe1 six-shapes control-FIRE FPR-number")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_anchors_and_reviewer.py froms=['__future__', 'council.artifacts', 'pathlib'] --
+  T|        return _fail(f"expected parsed URLs on cyclic fixtures, got {len(url_rows)}")
+  T|
+  T|    print("SUCCESS:IMP-0314-probe2 anchors-stated reviewer-from-tests")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0339
+title: Idea-to-option-card promotion pipeline
+out: command-center/receipts/IMP-0339.json bytes=31700 sent=True state=SUCCESS
+py: ['probe1_promotion_schema.py', 'probe2_blind_quality.py', 'write_receipts.py']
+imports: ['__future__', 'ast', 'json', 'pathlib', 'planted', 'random', 'sys', 'tools.council.artifacts.option_cards', 'tools.council.artifacts.quality_rater']
+-- probe1_promotion_schema.py froms=['__future__', 'pathlib', 'planted', 'tools.council.artifacts.option_cards'] --
+  T|        f"completeness_fail={audit['n_incomplete']} drop_reasons={result.dropped_by_reason()}"
+  T|    )
+  T|    print("SUCCESS:IMP-0339-probe1 promotion criteria, card schema, field-completeness")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_blind_quality.py froms=['__future__', 'pathlib', 'planted', 'tools.council.artifacts.option_cards', 'tools.council.artifacts.quality_rater'] --
+  T|        f"decorative_mean={decorative_mean:.3f} perm_rate={perm_rate:.4f}"
+  T|    )
+  T|    print("SUCCESS:IMP-0339-probe2 promoted set beats random subset on blind rating")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0362
+title: Participant preparation and research-requirement enforcement
+out: command-center/receipts/IMP-0362.json bytes=10542 sent=True state=SUCCESS
+py: ['__init__.py', 'emit_receipt.py', 'prep.py', 'probe1_unprepared_gate.py', 'probe2_assert_without_fetch.py', 'scenario.py']
+imports: ['__future__', 'json', 'pathlib', 'prep', 'scenario', 'sys']
+-- probe1_unprepared_gate.py froms=['__future__', 'pathlib', 'prep'] --
+  T|
+  T|    print("unprepared_blocked=True alice_allowed=True eve_url_allowed=True")
+  T|    print("SUCCESS:IMP-0362-probe1 prep gate blocks an unprepared participant")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_assert_without_fetch.py froms=['__future__', 'pathlib', 'prep'] --
+  T|
+  T|    print("corroboration_fired=True asserted_tool_rejected=True good_state_silent=True")
+  T|    print("SUCCESS:IMP-0362-probe2 assert-without-fetch corroboration FIRES")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0391
+title: Rank fusion and confidence calibration across the two matcher stages
+out: command-center/receipts/IMP-0391.json bytes=35905 sent=True state=SUCCESS
+py: ['__init__.py', 'corpus.py', 'emit_receipt.py', 'probe1_calibration.py', 'probe2_miscalibrated_weight.py', 'write_receipts.py']
+imports: ['__future__', 'corpus', 'fusion', 'json', 'pathlib', 'sys']
+-- probe1_calibration.py froms=['__future__', 'corpus', 'fusion', 'pathlib'] --
+  T|        f"outliers={len(outliers)} band90_n={sum(int(b['n']) for b in band90)}"
+  T|    )
+  T|    print("SUCCESS:IMP-0391-probe1 reliability diagram within tolerance; Brier live")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_miscalibrated_weight.py froms=['__future__', 'corpus', 'pathlib'] --
+  T|        f"{report['mutant']['accuracy']:.3f}"
+  T|    )
+  T|    print("SUCCESS:IMP-0391-probe2 mutant fusion weight turns calibration red")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0426
+title: Per-unit output-schema validation at the vendor boundary
+out: command-center/receipts/IMP-0426.json bytes=17531 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_schema_invalid_no_retry.py', 'probe2_mcp_both_states.py', 'scenario.py', 'vendor_cli.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'output_schema_gate', 'pathlib', 'scenario', 'sys', 'tempfile']
+-- probe1_schema_invalid_no_retry.py froms=['__future__', 'pathlib', 'scenario'] --
+  T|        "SUCCESS:IMP-0426-probe1 valid payload accepted at adapter boundary; "
+  T|        "schema-invalid classified and not retried"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_mcp_both_states.py froms=['__future__', 'pathlib', 'scenario'] --
+  T|        "SUCCESS:IMP-0426-probe2 MCP-active hits typed-schema-mcp-interaction; "
+  T|        "--ignore-user-config typed path functions; one MCP retry only"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+IMP-0459
+title: Strict-parser unknown-field policy for every shipped manifest
+out: command-center/receipts/IMP-0459.json bytes=32657 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_per_field_matrix.py', 'probe2_emit_plant.py', 'write_g1.py']
+imports: ['__future__', 'copy', 'emit_policy', 'json', 'matrix', 'pathlib', 'read_shim', 'strict_parser', 'sys']
+-- probe1_per_field_matrix.py froms=['__future__', 'matrix', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:IMP-0459-probe1 per-field matrix re-run")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_emit_plant.py froms=['__future__', 'emit_policy', 'pathlib', 'read_shim', 'strict_parser'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:IMP-0459-probe2 emit policy and planted unknown control")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+REL-0012
+title: Tamper-evidence: provenance attestation and either a signature or a declared UNSIGNED gap
+out: command-center/receipts/REL-0012.json bytes=28643 sent=True state=SUCCESS
+py: ['common.py', 'emit_receipt.py', 'engine.py', 'probe1_tamper_and_untampered.py', 'probe2_commit_unsigned_schema.py', 'schema_local.py', 'verify.py', 'write_receipts.py']
+imports: ['__future__', 'common', 'engine', 'hashlib', 'json', 'jsonschema', 'pathlib', 're', 'schema_local', 'shutil', 'subprocess', 'sys', 'tempfile']
+-- probe1_tamper_and_untampered.py froms=['__future__', 'common', 'engine', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:REL-0012-probe1 both-states verify (untampered pass / tamper fail)")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_commit_unsigned_schema.py froms=['__future__', 'common', 'engine', 'pathlib', 'schema_local'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:REL-0012-probe2 independent recount schema-control")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+RES-0044
+title: Map the remote-MCP authorization profile and which clients actually implement it
+out: command-center/research/RES-0044.json bytes=56506 sent=True state=SUCCESS
+py: ['clients.py', 'emit.py', 'hops.py', 'local_census.py', 'probe1_hop_trace.py', 'probe2_credential_scan.py', 'rails.py', 'scan.py', 'write_receipts.py']
+imports: ['__future__', 'copy', 'hops', 'json', 'pathlib', 'rails', 'scan', 'sys']
+-- probe1_hop_trace.py froms=['__future__', 'copy', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print(f"SUCCESS:{UNIT}-probe1 hop-by-hop token-location trace rebuilt from spec")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_credential_scan.py froms=['__future__', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print(f"SUCCESS:{UNIT}-probe2 artifact credential-free; planted JWT fires; mitigations reviewed")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+RES-0111
+title: Transfer distributed-systems primitives to agent orchestration
+out: command-center/research/RES-0111.json bytes=44554 sent=True state=SUCCESS
+py: ['contract.py', 'emit.py', 'probe1.py', 'probe1_mapping.py', 'probe2.py', 'probe2_evidence.py', 'write_receipts.py']
+imports: ['__future__', 'contract', 'copy', 'json', 'jsonschema', 'pathlib', 'probe1_mapping', 'probe2_evidence', 'sys']
+-- probe1.py froms=['probe1_mapping'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe1*.py still finds a short name."""
+  T|from probe1_mapping import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe1_mapping.py froms=['__future__', 'pathlib'] --
+  T|        "SUCCESS:RES-0111-probe1 mapping totality, dropped-count control, "
+  T|        f"both-states n_drop={live_n}"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2.py froms=['probe2_evidence'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe2*.py still finds a short name."""
+  T|from probe2_evidence import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_evidence.py froms=['__future__', 'pathlib'] --
+  T|        return 1
+  T|
+  T|    print("SUCCESS:RES-0111-probe2 evidence gate, E3-cannot-promote, reviewer default REFUTED")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+RES-0158
+title: Transfer: intelligence-community structured analytic techniques to deliberation protocols
+out: command-center/research/gem-hunt/RES-0158-transfer-structured-analytic-techniques.json bytes=516741 sent=True state=SUCCESS
+py: ['capture.py', 'emit_artifact.py', 'engine.py', 'lib.py', 'probe1_source_coverage.py', 'probe2_protocol_crosscheck.py', 'sources.py', 'write_receipts.py']
+imports: ['__future__', 'copy', 'engine', 'json', 'lib', 'pathlib', 'sys']
+-- probe1_source_coverage.py froms=['__future__', 'engine', 'lib', 'pathlib'] --
+  T|            return fail(f"claim-lineage {c.get('claim_id')}")
+  T|
+  T|    print("SUCCESS:RES-0158-probe1 source-coverage two-rails ACH-critique")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_protocol_crosscheck.py froms=['__future__', 'engine', 'lib', 'pathlib'] --
+  T|        "ach_critique_discriminates=True icd203_not_protocol=True"
+  T|    )
+  T|    print("SUCCESS:RES-0158-probe2 protocol-crosscheck both-states")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+RES-0185
+title: Build the evidence map that shows which conclusions are load-bearing and thinly supported
+out: command-center/research/evidence-quality/RES-0185-evidence-map-coverage-holes.json bytes=84553 sent=True state=SUCCESS
+py: ['emit.py', 'harvest.py', 'lineage.py', 'mapper.py', 'plants.py', 'probe1_detector_control.py', 'probe2_independent_recount.py', 'vocabulary.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'lineage', 'mapper', 'pathlib', 'plants', 'sys']
+-- probe1_detector_control.py froms=['__future__', 'mapper', 'pathlib', 'plants'] --
+  T|        "four-class plant not single-source; empty lineage UNSUPPORTED on map."
+  T|    )
+  T|    print("SUCCESS:RES-0185-probe1 detector-control plants")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_independent_recount.py froms=['__future__', 'lineage', 'pathlib'] --
+  T|        "matches artifact; empty lineage remains UNSUPPORTED."
+  T|    )
+  T|    print("SUCCESS:RES-0185-probe2 independent lineage recount")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+SYN-0029
+title: Owner-requirement closure: exactly one disposition label per extracted requirement
+out: command-center/receipts/SYN-0029.json bytes=22722 sent=True state=SUCCESS
+py: ['closure.py', 'controls.py', 'emit_report.py', 'probe1_exactly_one_and_vocabulary.py', 'probe2_planted_omission.py', 'register.py', 'report.py', 'schema_local.py', 'write_receipts.py']
+imports: ['__future__', 'closure', 'controls', 'json', 'jsonschema', 'pathlib', 'register', 'report', 'schema_local', 'sys']
+-- probe1_exactly_one_and_vocabulary.py froms=['__future__', 'pathlib'] --
+  T|        f"vocab=five+DISAPPEARED double_labelled=0"
+  T|    )
+  T|    print("SUCCESS:SYN-0029-probe1 exactly-one label and declared-five vocabulary")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_planted_omission.py froms=['__future__', 'pathlib'] --
+  T|        f"register_size={size} disappeared={len(disappeared_ids)}"
+  T|    )
+  T|    print("SUCCESS:SYN-0029-probe2 planted omission reported unlabelled")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0020
+title: Self-contradicting-output detector: one run reporting two mutually exclusive facts
+out: command-center/receipts/TST-0020.json bytes=13486 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'invariants.py', 'naive.py', 'probe1.py', 'probe1_contradictory.py', 'probe2.py', 'probe2_consistent.py', 'reproduce.py', 'reviewer.py', 'tests.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'pathlib', 'probe1_contradictory', 'probe2_consistent', 'reproduce', 'reviewer', 'sys', 'tests']
+-- probe1.py froms=['probe1_contradictory'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe1*.py still finds a short name."""
+  T|from probe1_contradictory import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe1_contradictory.py froms=['__future__', 'pathlib', 'reproduce', 'tests'] --
+  T|        f"published={live.get('published_numbers')}"
+  T|    )
+  T|    print("SUCCESS:TST-0020-probe1 contradictory-counts-fail-the-run")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2.py froms=['probe2_consistent'] --
+  T|#!/usr/bin/env python3
+  T|"""Thin alias so glob probe2*.py still finds a short name."""
+  T|from probe2_consistent import main
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_consistent.py froms=['__future__', 'pathlib', 'reviewer', 'tests'] --
+  T|        + f" reviewer={rev.get('verdict')}"
+  T|    )
+  T|    print("SUCCESS:TST-0020-probe2 consistent-counts-and-named-invariant")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0058
+title: Lenient-versus-strict parser differential
+out: command-center/receipts/TST-0058.json bytes=33887 sent=True state=SUCCESS
+py: ['corpus.py', 'emit_receipt.py', 'matrix.py', 'probe1_agreement_matrix.py', 'probe2_adversarial_and_detector.py', 'write_receipts.py']
+imports: ['__future__', 'corpus', 'json', 'matrix', 'pathlib', 'sys', 'tools.json_ingest']
+-- probe1_agreement_matrix.py froms=['__future__', 'pathlib'] --
+  T|        "SUCCESS:TST-0058-probe1 no accept/reject split on "
+  T|        f"{live['real_count']}+{live['adversarial_count']} documents"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_adversarial_and_detector.py froms=['__future__', 'pathlib', 'tools.json_ingest'] --
+  T|        "SUCCESS:TST-0058-probe2 adversarial rejected by both; "
+  T|        "unaligned jsonc detector fires; aligned pair silent"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0101
+title: A stale branch would revert newer work
+out: command-center/receipts/TST-0101.json bytes=39119 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'fixtures.py', 'gate.py', 'probe1_stale_three_dot.py', 'probe2_squash_merged_ahead.py', 'sandbox.py', 'schema_local.py', 'tests.py', 'write_receipts.py']
+imports: ['__future__', 'fixtures', 'gate', 'json', 'jsonschema', 'pathlib', 'sys', 'tests']
+-- probe1_stale_three_dot.py froms=['__future__', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:TST-0101-probe1 stale-mass-deletion three-dot-not-two-dot")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_squash_merged_ahead.py froms=['__future__', 'pathlib'] --
+  T|        f"{indep['ahead']} trees_identical=True two_dot_empty=True unmerged=False"
+  T|    )
+  T|    print("SUCCESS:TST-0101-probe2 squash-merged-ahead schema independent-numstat")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0140
+title: Interactive lane keeps reserved headroom against a batch sweep
+out: command-center/receipts/TST-0140.json bytes=63797 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_reservation_both_states.py', 'probe2_comment_and_deferral_audit.py', 'write_receipts.py']
+imports: ['__future__', 'ast', 'b07_scheduler', 'json', 'pathlib', 'sys']
+-- probe1_reservation_both_states.py froms=['__future__', 'b07_scheduler', 'pathlib'] --
+  T|        "SUCCESS:TST-0140-probe1 reservation keeps interactive in budget; "
+  T|        "disabling it degrades wait under the sweep"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_comment_and_deferral_audit.py froms=['__future__', 'b07_scheduler', 'pathlib'] --
+  T|        "SUCCESS:TST-0140-probe2 comment-only fails; deferral log shows "
+  T|        "batch held at interactive arrival"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0167
+title: Council resume restores rounds, votes AND dissent
+out: command-center/receipts/TST-0167.json bytes=44390 sent=True state=SUCCESS
+py: ['council_fixture_runtime.py', 'emit_receipt.py', 'probe1_structural_state.py', 'probe2_minority_report.py', 'write_receipts.py']
+imports: ['__future__', 'council_fixture_runtime', 'json', 'pathlib', 'sys']
+-- probe1_structural_state.py froms=['__future__', 'pathlib'] --
+  T|        print("receipt structural hashes match live pair")
+  T|
+  T|    print("SUCCESS:TST-0167-probe1 structural pre-suspend vs post-restore identity")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_minority_report.py froms=['__future__', 'pathlib'] --
+  T|        print("receipt minority, both-states and drop-mutation match live")
+  T|
+  T|    print("SUCCESS:TST-0167-probe2 minority-report survival and dissent-drop detection")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0207
+title: The packer uses an allowlist and a size ceiling, so `.git` and caches cannot ship
+out: command-center/receipts/TST-0207.json bytes=18354 sent=True state=SUCCESS
+py: ['consume_receipt.py', 'emit_receipt.py', 'probe1_planted_git_and_junk.py', 'probe2_members_and_ceiling.py', 'staging.py']
+imports: ['__future__', 'json', 'pack', 'pathlib', 'staging', 'sys', 'tempfile']
+-- probe1_planted_git_and_junk.py froms=['__future__', 'pathlib', 'staging'] --
+  T|            f"junk_bytes={junk['bytes']} denylist_would_ship_junk=1"
+  T|        )
+  T|        print("SUCCESS:TST-0207-probe1 planted .git and 200MiB junk fail allowlist pack")
+  T|        return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_members_and_ceiling.py froms=['__future__', 'pathlib', 'staging'] --
+  T|            f"ceiling={ceiling} oversize=FAIL"
+  T|        )
+  T|        print("SUCCESS:TST-0207-probe2 independent zip listing matches allowlist; ceiling fails")
+  T|        return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0234
+title: Cross-vendor benchmarks are confound-checked before any vendor claim
+out: command-center/receipts/TST-0234.json bytes=40173 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_tier_downgrade.py', 'probe2_regression_seed.py']
+imports: ['__future__', 'json', 'pathlib', 'sys', 'testinfra.test_cross_vendor_confound']
+-- probe1_tier_downgrade.py froms=['__future__', 'pathlib', 'testinfra.test_cross_vendor_confound'] --
+  T|        "SUCCESS:TST-0234-probe1 matched pair is CONFOUND-CLEAR; "
+  T|        "sonnet downgrade blocks on MODEL-TIER-CONFOUND"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_regression_seed.py froms=['__future__', 'pathlib', 'testinfra.test_cross_vendor_confound'] --
+  T|        "SUCCESS:TST-0234-probe2 sonnet-driver vs opus-driver blocks; "
+  T|        "request-side checker falsely clears; recompute matches raw records"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0265
+title: Trivial-variant detector for the 100-idea brainstorm, with planted mutants as its control
+out: command-center/receipts/TST-0265.json bytes=14376 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'fixtures.py', 'ledger.py', 'measure.py', 'probe1_mutants_both_states.py', 'probe2_gaming_reviewer.py', 'write_receipts.py']
+imports: ['__future__', 'fixtures', 'json', 'measure', 'pathlib', 'sys']
+-- probe1_mutants_both_states.py froms=['__future__', 'pathlib'] --
+  T|        print("FAILED:TST-0265-probe1 threshold mismatch")
+  T|        return 1
+  T|    print("SUCCESS:TST-0265-probe1 mutants both-states three-runs")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_gaming_reviewer.py froms=['__future__', 'pathlib'] --
+  T|        print("FAILED:TST-0265-probe2 sentinel absent")
+  T|        return 1
+  T|    print("SUCCESS:TST-0265-probe2 independent both-states recount")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0296
+title: Matched-case pairing so a fusion is compared against its sources on identical inputs
+out: command-center/receipts/TST-0296.json bytes=39506 sent=True state=SUCCESS
+py: ['emit.py', 'probe1_intersection.py', 'probe2_asymmetric.py']
+imports: ['__future__', 'bench.matched_pairing', 'json', 'pathlib', 'sys']
+-- probe1_intersection.py froms=['__future__', 'bench.matched_pairing', 'pathlib'] --
+  T|        f"extra_in_union={extra}"
+  T|    )
+  T|    print("SUCCESS:TST-0296-probe1 mechanical intersection vs union")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_asymmetric.py froms=['__future__', 'bench.matched_pairing', 'pathlib'] --
+  T|        + " blocked=True"
+  T|    )
+  T|    print("SUCCESS:TST-0296-probe2 complementarity and below-minimum block")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+TST-0320
+title: Resume an interrupted tournament without recomputing or double-counting
+out: command-center/receipts/TST-0320.json bytes=15856 sent=True state=SUCCESS
+py: ['emit_receipt.py', 'probe1_kill_resume.py', 'probe2_idempotence_torn.py', 'write_receipts.py']
+imports: ['__future__', 'bench.cell', 'bench.evaluate', 'bench.ledger', 'bench.runner', 'json', 'os', 'pathlib', 're', 'signal', 'subprocess', 'sys', 'tempfile', 'time']
+-- probe1_kill_resume.py froms=['__future__', 'bench.cell', 'bench.evaluate', 'bench.ledger', 'bench.runner', 'pathlib'] --
+  T|            f"SUCCESS:{UNIT}-probe1 kill-at-40% resume matches uninterrupted "
+  T|            "per-cell values"
+  T|        )
+  T|        return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_idempotence_torn.py froms=['__future__', 'bench.cell', 'bench.evaluate', 'bench.ledger', 'bench.runner', 'pathlib'] --
+  T|        f"SUCCESS:{UNIT}-probe2 idempotent cell writes; torn rows discarded; "
+  T|        "naive/planted controls fire"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+WFA-0030
+title: Content-addressed acquisition cache with resume, staleness and corruption gates
+out: command-center/wfa/WFA-0030-acquisition-cache.json bytes=16627 sent=True state=SUCCESS
+py: ['cache.py', 'emit.py', 'probe1_warm_resume.py', 'probe2_empty_stale_corrupt.py', 'write_receipts.py']
+imports: ['__future__', 'cache', 'emit', 'json', 'jsonschema', 'pathlib', 'sys', 'tempfile']
+-- probe1_warm_resume.py froms=['__future__', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:WFA-0030-probe1 warm zero-network byte-identical query-keys")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_empty_stale_corrupt.py froms=['__future__', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:WFA-0030-probe2 empty-not-ok stale-refetch truncate-reject")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+WFA-0083
+title: Register every WFA artifact in the manifest and prove downstream consumers can read it
+out: command-center/wfa/WFA-0083-artifact-manifest-registration.json bytes=19989 sent=True state=SUCCESS
+py: ['consumer.py', 'emit.py', 'engine.py', 'probe1_hash_recompute.py', 'probe2_consumer_malformed.py', 'write_receipts.py']
+imports: ['__future__', 'consumer', 'engine', 'hashlib', 'json', 'pathlib', 'sys']
+-- probe1_hash_recompute.py froms=['__future__', 'engine', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:WFA-0083-probe1 committed-blob hash and ghost/orphan both-states")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_consumer_malformed.py froms=['__future__', 'consumer', 'engine', 'pathlib'] --
+  T|        )
+  T|    )
+  T|    print("SUCCESS:WFA-0083-probe2 consumer required-field smoke and malformed fail")
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+========================================================================
+WFA-0132
+title: Pairwise workflow tournament runner with a statistical stopping rule
+out: command-center/foundry/WFA-0132-pairwise-workflow-tournament-runner-with-a-statistic.json bytes=26430 sent=True state=SUCCESS
+py: ['emit_artifact.py', 'probe1_planted_superior.py', 'probe2_identical_and_cycle.py', 'write_receipts.py']
+imports: ['__future__', 'json', 'pathlib', 'sys', 'tools.foundry.tournament']
+-- probe1_planted_superior.py froms=['__future__', 'pathlib', 'tools.foundry.tournament'] --
+  T|    print(
+  T|        "SUCCESS:WFA-0132-probe1 planted superior converges; swapped labels follow the arm"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())
+-- probe2_identical_and_cycle.py froms=['__future__', 'pathlib', 'tools.foundry.tournament'] --
+  T|    print(
+  T|        "SUCCESS:WFA-0132-probe2 identical arms UNDECIDED; planted cycle reported"
+  T|    )
+  T|    return 0
+  T|
+  T|
+  T|if __name__ == "__main__":
+  T|    raise SystemExit(main())

@@ -1,0 +1,344 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:ast-integrate:wfa:HandoffContract:1.0.0",
+  "title": "HandoffContract",
+  "$comment": "Unit-local HandoffContract $def. The catalog pack path exists as a generated $ref shim to ast-integrate.invalid (not the 18-type WFA-0001 pack). additionalProperties:false. This is not a substitute for the 18-type pack.",
+  "$ref": "#/$defs/HandoffContract",
+  "$defs": {
+    "HandoffContract": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "state",
+        "sentinel",
+        "schema_version",
+        "bucket_id",
+        "question",
+        "output_schema",
+        "catalog_sha256",
+        "pack_status",
+        "live_counts",
+        "declared_artifacts",
+        "delivered_artifacts",
+        "downstream_buckets",
+        "residual_unknowns",
+        "bucket_did_not",
+        "consumer_bindings",
+        "owner_signoff",
+        "manifest_registration_check",
+        "evidence",
+        "reviewer",
+        "tests"
+      ],
+      "properties": {
+        "unit_id": { "type": "string", "const": "WFA-0126" },
+        "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+        "sentinel": { "type": "string", "const": "SUCCESS:WFA-0126" },
+        "schema_version": { "type": "string", "pattern": "^[0-9]+\\.[0-9]+\\.[0-9]+$" },
+        "bucket_id": { "type": "string", "const": "WFA" },
+        "question": { "type": "string", "minLength": 40 },
+        "output_schema": { "type": "string", "minLength": 8 },
+        "catalog_sha256": { "type": "string", "pattern": "^[a-f0-9]{64}$" },
+        "pack_status": { "$ref": "#/$defs/PackStatus" },
+        "live_counts": { "$ref": "#/$defs/LiveCounts" },
+        "declared_artifacts": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/ArtifactRow" }
+        },
+        "delivered_artifacts": {
+          "type": "array",
+          "items": { "$ref": "#/$defs/ArtifactRow" }
+        },
+        "downstream_buckets": { "$ref": "#/$defs/DownstreamBuckets" },
+        "residual_unknowns": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/ResidualUnknown" }
+        },
+        "bucket_did_not": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/DidNot" }
+        },
+        "consumer_bindings": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/ConsumerBinding" }
+        },
+        "owner_signoff": { "$ref": "#/$defs/OwnerSignoff" },
+        "manifest_registration_check": { "$ref": "#/$defs/ManifestCheck" },
+        "evidence": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "$ref": "#/$defs/EvidenceItem" }
+        },
+        "reviewer": { "$ref": "#/$defs/Reviewer" },
+        "tests": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "$ref": "#/$defs/TestItem" }
+        }
+      }
+    },
+    "PackStatus": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["catalog_path", "present", "validator_used", "eighteen_defs"],
+      "properties": {
+        "catalog_path": { "type": "string", "minLength": 8 },
+        "present": { "type": "boolean" },
+        "validator_used": { "type": "string", "minLength": 8 },
+        "eighteen_defs": {
+          "type": "array",
+          "minItems": 18,
+          "maxItems": 18,
+          "items": { "type": "string", "minLength": 4 }
+        }
+      }
+    },
+    "LiveCounts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "wfa_catalog_units",
+        "declared_artifacts",
+        "present_on_disk",
+        "parseable",
+        "schema_valid",
+        "manifest_registered",
+        "delivered"
+      ],
+      "properties": {
+        "wfa_catalog_units": { "type": "integer", "minimum": 1 },
+        "declared_artifacts": { "type": "integer", "minimum": 1 },
+        "present_on_disk": { "type": "integer", "minimum": 0 },
+        "parseable": { "type": "integer", "minimum": 0 },
+        "schema_valid": { "type": "integer", "minimum": 0 },
+        "manifest_registered": { "type": "integer", "minimum": 0 },
+        "delivered": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "ArtifactRow": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "path",
+        "schema",
+        "schema_def",
+        "schema_version",
+        "present",
+        "bytes",
+        "sha256",
+        "parseable",
+        "schema_valid",
+        "schema_valid_reason",
+        "manifest_registered",
+        "consumers",
+        "title"
+      ],
+      "properties": {
+        "unit_id": { "type": "string", "pattern": "^WFA-[0-9]{4}$" },
+        "path": { "type": "string", "minLength": 8 },
+        "schema": { "type": "string", "minLength": 4 },
+        "schema_def": { "type": "string", "minLength": 1 },
+        "schema_version": { "type": "string", "minLength": 1 },
+        "present": { "type": "boolean" },
+        "bytes": { "type": ["integer", "null"], "minimum": 0 },
+        "sha256": { "type": ["string", "null"] },
+        "parseable": { "type": "boolean" },
+        "schema_valid": { "type": "boolean" },
+        "schema_valid_reason": { "type": "string", "minLength": 4 },
+        "manifest_registered": { "type": "boolean" },
+        "consumers": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/BucketId" },
+          "uniqueItems": true
+        },
+        "title": { "type": "string", "minLength": 8 }
+      }
+    },
+    "BucketId": {
+      "type": "string",
+      "enum": ["implementation", "testing", "council"]
+    },
+    "DownstreamBuckets": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["implementation", "testing", "council"],
+      "properties": {
+        "implementation": { "$ref": "#/$defs/DownstreamBucket" },
+        "testing": { "$ref": "#/$defs/DownstreamBucket" },
+        "council": { "$ref": "#/$defs/DownstreamBucket" }
+      }
+    },
+    "DownstreamBucket": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "catalog_prefix",
+        "brief_unit_count",
+        "measured_unit_count",
+        "count_source",
+        "inherits_unknown_ids",
+        "named_consumer_unit_id"
+      ],
+      "properties": {
+        "catalog_prefix": { "type": "string", "minLength": 2 },
+        "brief_unit_count": { "type": "integer", "minimum": 0 },
+        "measured_unit_count": { "type": "integer", "minimum": 0 },
+        "count_source": { "type": "string", "minLength": 8 },
+        "inherits_unknown_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "named_consumer_unit_id": { "type": "string", "minLength": 7 }
+      }
+    },
+    "ResidualUnknown": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "statement",
+        "settling_experiment",
+        "owner_visible_impact",
+        "inherited_by"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "statement": { "type": "string", "minLength": 12 },
+        "settling_experiment": { "type": "string", "minLength": 12 },
+        "owner_visible_impact": { "type": "string", "minLength": 12 },
+        "inherited_by": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/BucketId" },
+          "uniqueItems": true
+        }
+      }
+    },
+    "DidNot": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "statement"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "statement": { "type": "string", "minLength": 12 }
+      }
+    },
+    "ConsumerBinding": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "unit_id",
+        "bucket",
+        "catalog_output_path",
+        "consumes_unit_ids",
+        "first_output_kind",
+        "inherits_unknown_ids"
+      ],
+      "properties": {
+        "unit_id": { "type": "string", "minLength": 7 },
+        "bucket": { "$ref": "#/$defs/BucketId" },
+        "catalog_output_path": { "type": "string", "minLength": 8 },
+        "consumes_unit_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "pattern": "^WFA-[0-9]{4}$" }
+        },
+        "first_output_kind": { "type": "string", "minLength": 8 },
+        "inherits_unknown_ids": {
+          "type": "array",
+          "items": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "OwnerSignoff": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "required",
+        "granted",
+        "signer",
+        "scope",
+        "this_artifact_self_certifies_completeness",
+        "note"
+      ],
+      "properties": {
+        "required": { "type": "boolean" },
+        "granted": { "type": "boolean" },
+        "signer": { "type": ["string", "null"] },
+        "scope": { "type": "string", "minLength": 8 },
+        "this_artifact_self_certifies_completeness": { "type": "boolean" },
+        "note": { "type": "string", "minLength": 12 }
+      }
+    },
+    "ManifestCheck": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "checker",
+        "wfa0083_artifact_present",
+        "global_artifact_manifest_present",
+        "declared_count",
+        "present_count",
+        "hash_matched_count",
+        "missing_file_count",
+        "orphan_file_count",
+        "this_unit_hash_recomputed",
+        "verdict"
+      ],
+      "properties": {
+        "checker": { "type": "string", "minLength": 8 },
+        "wfa0083_artifact_present": { "type": "boolean" },
+        "global_artifact_manifest_present": { "type": "boolean" },
+        "declared_count": { "type": "integer", "minimum": 0 },
+        "present_count": { "type": "integer", "minimum": 0 },
+        "hash_matched_count": { "type": "integer", "minimum": 0 },
+        "missing_file_count": { "type": "integer", "minimum": 0 },
+        "orphan_file_count": { "type": "integer", "minimum": 0 },
+        "this_unit_hash_recomputed": { "type": "boolean" },
+        "verdict": { "type": "string", "minLength": 4 }
+      }
+    },
+    "EvidenceItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "claim", "verdict", "anchor"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "claim": { "type": "string", "minLength": 8 },
+        "verdict": {
+          "type": "string",
+          "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+        },
+        "anchor": { "type": "string", "minLength": 3 }
+      }
+    },
+    "Reviewer": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["reviewer_id", "verdict", "independent", "both_states_control"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL"] },
+        "independent": { "type": "boolean" },
+        "both_states_control": { "type": "string", "minLength": 8 }
+      }
+    },
+    "TestItem": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "name", "result"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "name": { "type": "string", "minLength": 8 },
+        "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+      }
+    }
+  }
+}

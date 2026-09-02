@@ -1,0 +1,345 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8757,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/measure-guard/blobread.py",
+   "role": "primary",
+   "sha256": "5de0e25bccaef796703dcc2957afee8aadad9e8ea44f993d6df016f8a964ce75"
+  },
+  {
+   "bytes": 9424,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/measure-guard/tests/test_blobread.py",
+   "role": "control",
+   "sha256": "95f8547316eb688bdf9c6009b3c00cd00f768d7b43d99ef0839fddaf593a1875"
+  }
+ ],
+ "defects": [
+  {
+   "id": "TST-0334-D1",
+   "severity": "P2",
+   "status": "open",
+   "summary": "The carried independent-reviewer PASS was issued against blobread.py at 8,131 bytes; the artifact is now 8,757 bytes (sha256_12 5de0e25bccae) and test_blobread.py is 9,424 bytes. The reviewed content is a subset of the current content, and this pass re-ran the reviewer's own second-shell probe with identical results, so the risk is low -- but the PASS is not a current-revision approval and is not presented as one. P2 deliberately: it does not gate condition 10, and inflating it to P1 would manufacture a second blocker beside the real one."
+  },
+  {
+   "id": "TST-0334-D2",
+   "severity": "P3",
+   "status": "resolved",
+   "summary": "Detector failure caught and corrected inside this pass: the first independent verifier counted CRLF with `grep -c` and then `tr -cd` against a CR pattern, and the Bash tool transport stripped the CR before the shell saw it -- so the pattern degenerated and BOTH detectors reported the LINE COUNT (100) for every route, including the LF blob that has zero CR. Caught because the reading contradicted the byte arithmetic (3,837 - 3,737 = 100). Replaced with a PowerShell/.NET byte scan, which agrees with blobread exactly. Recorded so the shape is not re-walked."
+  },
+  {
+   "id": "TST-0334-D3",
+   "severity": "P3",
+   "status": "resolved",
+   "summary": "Second detector failure caught and corrected inside this pass: read_ok for the condition-12 consumer was first derived from the consumer's PROCESS EXIT CODE. unitgate.py exited 1 -- but for an UNRELATED artifact (command-center/adversarial/ADV-0041-...json, worktree/blob disagreement from a concurrent agent in this shared tree) AFTER successfully reading 53 blobs via blobread.read_blob. Recording read_ok=false would have been the exact inverse of this receipt's own hard rule that an exit code alone is never the verdict. read_ok is now derived from in-output evidence that the artifact was read, and a second consumer that exits 0 (vendordrift.py) was added."
+  }
+ ],
+ "delivery_status": "PARTIAL",
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/measure-guard/blobread.py",
+   "consumer": "tools/measure-guard/vendordrift.py (imports blobread.lf_normalised at :54)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "C:\\Python314\\python.exe tools/measure-guard/vendordrift.py",
+    "exit_code": 0,
+    "fingerprint": "3ee5fd77e46cd253",
+    "method": "command",
+    "raw_output": "SUCCESS:vendordrift 2 vendored copy/copies of 'monitorcore' match tools/monitorcore/monitorcore (37 files each)",
+    "role": "source"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "tools/measure-guard/blobread.py",
+   "consumer": "tools/measure-guard/unitgate.py (imports blobread; calls blobread.read_blob at :256). exit_code 1 is an UNRELATED finding about ADV-0041 raised by a concurrent edit in this shared worktree, NOT a failure to read this artifact: the same run reports predicate self-test PASS and grades artifacts=53 at rev=HEAD, which is only possible by reading blobs through this artifact.",
+   "executed": true,
+   "exit_code": 1,
+   "probe": {
+    "command": "C:\\Python314\\python.exe tools/measure-guard/unitgate.py",
+    "exit_code": 1,
+    "fingerprint": "8ca15dba74198484",
+    "method": "command",
+    "raw_output": "checker: LIT (known-vacuous rejected, known-discriminating accepted)\n  predicate self-test: PASS (every known-broken state still fires)\n  forged-completion control: FIRES on the known-forged artifact\n  units=2007  artifacts=53  rev=HEAD  vacuous-declarations=3  units-declaring-one=23\n  FINDING ADV-0041 worktree and blob disagree (command-center/adversarial/ADV-0041-path-and-identity-disclosure.json): worktree=True(delivered) blob=False(schema-invalid:31)\nFAILED:unitgate 1 finding(s) in the P2 delivery surface",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/measure-guard/blobread.py --compare hooks/todo-surfacer/test_marker_discrimination.py",
+   "claim": "For hooks/todo-surfacer/test_marker_discrimination.py at HEAD f7fac7b44834 the committed blob is 3,737 bytes / 0 CRLF (sha256_12 81ab76f4d39c) via BOTH git cat-file -p and git show, while the Windows working tree is 3,837 / 100 CRLF (sha256_12 0b1c7f3cefb9) -- and git archive returns 3,837 / 100 CRLF, byte-identical to the WORKING TREE, not to the blob. So git archive verifies the wrong bytes on this box.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "C:\\Python314\\python.exe tools/measure-guard/blobread.py hooks/todo-surfacer/test_marker_discrimination.py --compare",
+     "exit_code": 0,
+     "fingerprint": "ff4620b7fc3e0b46",
+     "method": "byte-compare",
+     "raw_output": "{\n  \"path\": \"hooks/todo-surfacer/test_marker_discrimination.py\",\n  \"rev\": \"HEAD\",\n  \"routes\": {\n    \"git_cat_file\": {\n      \"bytes\": 3737,\n      \"crlf\": 0,\n      \"sha256_12\": \"81ab76f4d39c\"\n    },\n    \"git_show\": {\n      \"bytes\": 3737,\n      \"crlf\": 0,\n      \"sha256_12\": \"81ab76f4d39c\"\n    },\n    \"working_tree\": {\n      \"bytes\": 3837,\n      \"crlf\": 100,\n      \"sha256_12\": \"0b1c7f3cefb9\"\n    },\n    \"git_archive\": {\n      \"bytes\": 3837,\n      \"crlf\": 100,\n      \"sha256_12\": \"0b1c7f3cefb9\"\n    }\n  },\n  \"control_identical_after_lf_normalisation\": true,\n  \"lf_normalised_digests\": {\n    \"git_cat_file\": \"81ab76f4d39c\",\n    \"git_show\": \"81ab76f4d39c\",\n    \"working_tree\": \"81ab76f4d39c\",\n    \"git_archive\": \"81ab76f4d39c\"\n  },\n  \"verdict\": \"the routes differ ONLY in line endings\"\n}\nSUCCESS:blobread three-route report for hooks/todo-surfacer/test_marker_discrimination.py",
+     "role": "source"
+    },
+    {
+     "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\claude\\C--Users-Prekzursil\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\scratchpad\\verify_routes.ps1",
+     "exit_code": 0,
+     "fingerprint": "0934e8a6ac1d3a71",
+     "method": "command",
+     "raw_output": "=== PowerShell 7 / .NET verifier - independent chain (cmd redirection, bsdtar, Get-FileHash) ===\nroute=catfile   bytes=3737   sha256_12=81ab76f4d39c crlf=0    cr=0    lf=100  lfnorm_sha256_12=81ab76f4d39c\nroute=show      bytes=3737   sha256_12=81ab76f4d39c crlf=0    cr=0    lf=100  lfnorm_sha256_12=81ab76f4d39c\nroute=worktree  bytes=3837   sha256_12=0b1c7f3cefb9 crlf=100  cr=100  lf=100  lfnorm_sha256_12=81ab76f4d39c\nroute=archive   bytes=3837   sha256_12=0b1c7f3cefb9 crlf=100  cr=100  lf=100  lfnorm_sha256_12=81ab76f4d39c\npwsh_version=7.6.4",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/measure-guard/tests/test_blobread.py::test_the_control_FIRES_when_the_content_genuinely_differs",
+   "claim": "The divergence is line endings and NOT content: all four routes share one LF-normalised sha256_12 (81ab76f4d39c). Two mechanically independent instruments: the pytest both-states control (source) and a PowerShell/.NET byte scan that recomputes the normalised digest itself (verifier). The control FLIPS to false when content genuinely differs, so it is not silent in both states.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "C:\\Python314\\python.exe -m pytest tools/measure-guard/tests/test_blobread.py::test_the_control_proves_the_difference_is_line_endings_not_content tools/measure-guard/tests/test_blobread.py::test_the_control_FIRES_when_the_content_genuinely_differs -v -p no:cacheprovider",
+     "exit_code": 0,
+     "fingerprint": "55382b6072302171",
+     "method": "test-run",
+     "raw_output": "============================= test session starts =============================\nplatform win32 -- Python 3.14.6, pytest-8.4.2, pluggy-1.6.0 -- C:\\Python314\\python.exe\nhypothesis profile 'default'\nPySide6 6.11.1 -- Qt runtime 6.11.1 -- Qt compiled 6.11.1\nrootdir: C:\\Users\\Prekzursil\\source\\ast-integrate\nplugins: anyio-4.13.0, Faker-40.12.0, hypothesis-6.155.7, asyncio-1.4.0, cov-7.1.0, qt-4.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 2 items\n\ntools/measure-guard/tests/test_blobread.py::test_the_control_proves_the_difference_is_line_endings_not_content PASSED [ 50%]\ntools/measure-guard/tests/test_blobread.py::test_the_control_FIRES_when_the_content_genuinely_differs PASSED [100%]\n\n============================== 2 passed in 3.36s ==============================",
+     "role": "source"
+    },
+    {
+     "command": "pwsh -NoProfile -ExecutionPolicy Bypass -File C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\claude\\C--Users-Prekzursil\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\scratchpad\\verify_routes.ps1",
+     "exit_code": 0,
+     "fingerprint": "0934e8a6ac1d3a71",
+     "method": "command",
+     "raw_output": "=== PowerShell 7 / .NET verifier - independent chain (cmd redirection, bsdtar, Get-FileHash) ===\nroute=catfile   bytes=3737   sha256_12=81ab76f4d39c crlf=0    cr=0    lf=100  lfnorm_sha256_12=81ab76f4d39c\nroute=show      bytes=3737   sha256_12=81ab76f4d39c crlf=0    cr=0    lf=100  lfnorm_sha256_12=81ab76f4d39c\nroute=worktree  bytes=3837   sha256_12=0b1c7f3cefb9 crlf=100  cr=100  lf=100  lfnorm_sha256_12=81ab76f4d39c\nroute=archive   bytes=3837   sha256_12=0b1c7f3cefb9 crlf=100  cr=100  lf=100  lfnorm_sha256_12=81ab76f4d39c\npwsh_version=7.6.4",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/command-center/render.py:220-280 (render_manifest / CONTRACTED_ARTIFACTS)",
+   "claim": "Completion condition 11 is STRUCTURALLY unsatisfiable for any unit receipt, not a clerical residual for TST-0334: render_manifest() iterates a fixed 14-entry CONTRACTED_ARTIFACTS tuple containing no receipt path, so a hand-added receipt entry is DRIFT that turns `render.py --check` red (control: fires on the bad state, silent on the good one). All 6 receipts on disk carry registered=false, and command-center/p13_emit_receipt.py:115 records an independent unit hitting the identical wall.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\claude\\C--Users-Prekzursil\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\scratchpad\\manifest_bothstates.py",
+     "exit_code": 0,
+     "fingerprint": "b495ae0c5a2b7eb2",
+     "method": "command",
+     "raw_output": "CONTRACTED_ARTIFACTS count = 14\n  entries = ['PROGRAM-CHARTER.md', 'OWNER-DECISIONS.md', 'WORK-UNIT-CATALOG.json', 'DEPENDENCY-GRAPH.json', 'ARTIFACT-MANIFEST.json', 'CLAIM-REGISTRY.json', 'TEST-REGISTRY.json', 'RISK-REGISTER.md', 'UNKNOWNS-REGISTER.md', 'RELEASE-CHECKLIST.md', 'ROLLBACK-MANIFEST.md', 'RUNBOOK.md', 'STATUS.md', 'events/EVENTS.jsonl']\nany receipt path in the contracted tuple? False\n\nGOOD STATE  : render_manifest(CC) == on-disk manifest -> drift=False\n              manifest lists 14 artifacts, expected=14\nBAD STATE   : manifest + a hand-added TST-0334 receipt entry -> drift=True\n\nCONTROL fired_on_bad_state=True  silent_on_good_state=True\nVERDICT: H2 CONFIRMED - the manifest is derived; a hand-registered receipt is DRIFT and turns `render.py --check` red.",
+     "role": "source"
+    },
+    {
+     "command": "git grep -n manifest_registration/registered True expected -- command-center/p13_emit_receipt.py",
+     "exit_code": 0,
+     "fingerprint": "90b862e209ca9c15",
+     "method": "file-read",
+     "raw_output": "command-center/p13_emit_receipt.py:115:                    \"FAILED:p13-receipt 7 validation error(s) - NOT writing the receipt. The 7 named exactly: the P0/P1-open defect clause, manifest_registration/registered True expected, two negative_controls clauses, reviewer/independent True expected, reviewer/verdict PASS expected, and the failing-test clause. An empirical refusal, not a reading of the schema.\",",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/measure-guard/unitgate.py:256 and tools/measure-guard/vendordrift.py:54",
+   "claim": "The condition-12 record in the previous revision of this receipt was STALE. An AST import census finds 5 real importers of blobread (4 non-test) against 16 grep mentions; tools/measure-guard/vendordrift.py imports blobread.lf_normalised and exits 0, and tools/measure-guard/unitgate.py calls blobread.read_blob at :256 and graded 53 committed artifacts at rev=HEAD.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "C:\\Python314\\python.exe tools/measure-guard/vendordrift.py",
+     "exit_code": 0,
+     "fingerprint": "3ee5fd77e46cd253",
+     "method": "command",
+     "raw_output": "SUCCESS:vendordrift 2 vendored copy/copies of 'monitorcore' match tools/monitorcore/monitorcore (37 files each)",
+     "role": "source"
+    },
+    {
+     "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\claude\\C--Users-Prekzursil\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\scratchpad\\ast_importers.py",
+     "exit_code": 0,
+     "fingerprint": "0976d0ef899c799c",
+     "method": "static-analysis",
+     "raw_output": "git grep candidates (MENTION): 16\nAST real IMPORTERS (USE): 5\n  NON-TEST command-center/eol_probe.py\n  NON-TEST command-center/p2-wave/_i4_percontract.py\n  TEST tools/measure-guard/tests/test_blobread.py\n  NON-TEST tools/measure-guard/unitgate.py\n  NON-TEST tools/measure-guard/vendordrift.py\nmention-only gap: 11",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "delivery_status": "PARTIAL",
+  "generating_commit": "f7fac7b448340399e73b68b39e09dd570cff043b",
+  "orchestrator_premise_review": {
+   "detail": "CONFIRMED: the old sentinel text was stale and is rewritten; ^SENTINEL: is indeed permitted under receipt_core allOf[0]. REFUTED: 'registration' is not a clerical step (NC3), and the 'state flip' is therefore schema-blocked. UNDISCLOSED BY SELECTION and found by running the repo's own gate: condition 3 was failing because the receipt declared blobread.py at 8,131 bytes while disk holds 8,757 (re-measured here), and condition 12 was failing on a stale 'no committed consumer' record (refuted here by executing two). The baseline gate reported 4 blocking conditions, not the 1 implied by the selection note.",
+   "premise": "Selection stated the residual was 'a truthful sentinel rewrite + registration + state flip', with reviewer.verdict=PASS already recorded.",
+   "verdict": "PARTIALLY REFUTED"
+  },
+  "shared_worktree_conditions": "This repo is edited concurrently by other agents. Two measurements moved under this pass and both are disclosed rather than smoothed: the NC3 good state briefly read drift=True, and unitgate.py returned rc=0 on a first run and rc=1 on a later one over ADV-0041. Every figure in this receipt is the one measured at the timestamp recorded here.",
+  "unsatisfied_delivery_conditions": [
+   "completion condition 11 (manifest registration) - UNSATISFIABLE, see failure.blocked_on and NC3",
+   "completion condition 1 (SUCCESS terminal state) - consequence of 11, schema-enforced",
+   "tests_required[2] gate parity local-vs-CI - NOT RUN, recorded as TST-0334-T7 = NOT-RUN",
+   "completion_sentinel SUCCESS:TST-0334 - deliberately NOT emitted; the truthful SENTINEL: form is used instead"
+  ],
+  "validator_negative_control": {
+   "bad_state_errors": 1,
+   "bad_state_first_error": "<root>: 'sentinel' is a required property",
+   "bad_state_input": "the same receipt with the required 'sentinel' property deleted",
+   "bad_state_outcome": "REJECTED",
+   "discriminates": true,
+   "good_state_errors": 0,
+   "good_state_input": "this receipt, unmutated",
+   "good_state_outcome": "ACCEPTED",
+   "instrument": "platform/lib/receipt_schema_gate.py::validate_receipt (jsonschema Draft202012Validator)"
+  }
+ },
+ "generating_commit": "f7fac7b448340399e73b68b39e09dd570cff043b",
+ "manifest_registration": {
+  "manifest_path": "command-center/ARTIFACT-MANIFEST.json",
+  "registered": false
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "description": "Overwrite the worktree copy with genuinely different content; the identical-after-LF control must flip to false and the verdict must name CONTENT. A control that reports identical in both states measures nothing.",
+   "fired_on_bad_state": true,
+   "good_state_output": "============================= test session starts =============================\nplatform win32 -- Python 3.14.6, pytest-8.4.2, pluggy-1.6.0 -- C:\\Python314\\python.exe\nhypothesis profile 'default'\nPySide6 6.11.1 -- Qt runtime 6.11.1 -- Qt compiled 6.11.1\nrootdir: C:\\Users\\Prekzursil\\source\\ast-integrate\nplugins: anyio-4.13.0, Faker-40.12.0, hypothesis-6.155.7, asyncio-1.4.0, cov-7.1.0, qt-4.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 2 items\n\ntools/measure-guard/tests/test_blobread.py::test_the_control_proves_the_difference_is_line_endings_not_content PASSED [ 50%]\ntools/measure-guard/tests/test_blobread.py::test_the_control_FIRES_when_the_content_genuinely_differs PASSED [100%]\n\n============================== 2 passed in 3.36s ==============================",
+   "id": "TST-0334-NC1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "read_blob on a path absent from the revision must raise BlobReadError; returning empty bytes would make every downstream content check trivially pass.",
+   "fired_on_bad_state": true,
+   "id": "TST-0334-NC2",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "CONTRACTED_ARTIFACTS count = 14\n  entries = ['PROGRAM-CHARTER.md', 'OWNER-DECISIONS.md', 'WORK-UNIT-CATALOG.json', 'DEPENDENCY-GRAPH.json', 'ARTIFACT-MANIFEST.json', 'CLAIM-REGISTRY.json', 'TEST-REGISTRY.json', 'RISK-REGISTER.md', 'UNKNOWNS-REGISTER.md', 'RELEASE-CHECKLIST.md', 'ROLLBACK-MANIFEST.md', 'RUNBOOK.md', 'STATUS.md', 'events/EVENTS.jsonl']\nany receipt path in the contracted tuple? False\n\nGOOD STATE  : render_manifest(CC) == on-disk manifest -> drift=False\n              manifest lists 14 artifacts, expected=14\nBAD STATE   : manifest + a hand-added TST-0334 receipt entry -> drift=True\n\nCONTROL fired_on_bad_state=True  silent_on_good_state=True\nVERDICT: H2 CONFIRMED - the manifest is derived; a hand-registered receipt is DRIFT and turns `render.py --check` red.",
+   "description": "Condition-11 both-states control. GOOD state: render_manifest(command-center) equals the on-disk ARTIFACT-MANIFEST.json -> drift=False. BAD state: the same manifest with one hand-added TST-0334 receipt entry -> drift=True. The control discriminates, so 'registration is a clerical edit' is refuted rather than assumed. DISCLOSED: an earlier run of this control read drift=True on the GOOD state too (non-discriminating) because another agent was mid-write in this shared worktree; the reading above is the one taken while `render.py --check` independently reported `SUCCESS:cc-render no drift`.",
+   "fired_on_bad_state": true,
+   "id": "TST-0334-NC3",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Validator detector control, required by the delivery contract: the repo's own receipt_schema_gate must REJECT a mutated copy of this receipt (sentinel deleted) and ACCEPT this receipt unmutated. A validator that rejected everything would prove nothing. Both halves are recorded in extensions.validator_negative_control.",
+   "fired_on_bad_state": true,
+   "id": "TST-0334-NC4",
+   "kind": "malformed-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "orchestrator_premise_review": {
+  "detail": "CONFIRMED: the old sentinel text was stale and is rewritten; ^SENTINEL: is indeed permitted under receipt_core allOf[0]. REFUTED: 'registration' is not a clerical step (NC3), and the 'state flip' is therefore schema-blocked. UNDISCLOSED BY SELECTION and found by running the repo's own gate: condition 3 was failing because the receipt declared blobread.py at 8,131 bytes while disk holds 8,757 (re-measured here), and condition 12 was failing on a stale 'no committed consumer' record (refuted here by executing two). The baseline gate reported 4 blocking conditions, not the 1 implied by the selection note.",
+  "premise": "Selection stated the residual was 'a truthful sentinel rewrite + registration + state flip', with reviewer.verdict=PASS already recorded.",
+  "verdict": "PARTIALLY REFUTED"
+ },
+ "profile": "portability-report",
+ "residual_unknowns": [
+  {
+   "claim": "tests_required[2] -- gate parity, that a content gate returns the same verdict LOCALLY and IN CI on the same commit -- is NOT satisfied by this pass. No CI run was triggered or observed, so no CI verdict is claimed. Recorded as test TST-0334-T7 with result NOT-RUN rather than folded into a pass.",
+   "settling_experiment": "Push this commit, then compare the `quality` workflow's ruff/gitleaks/opengrep verdicts against the same tools run locally over `git cat-file -p HEAD:<path>` output for the identical file set.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Only ONE real file was measured across the routes; whether every tracked text file diverges the same way is not established.",
+   "settling_experiment": "Run the three-route comparison over every tracked text file and report the CRLF distribution per route.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "The git-archive trap is Windows-scoped and config-dependent, not universal: blobread.py's own docstring records a stock Linux runner returning the blob unchanged (29 bytes / 0 CRLF against a 32-byte / 3-CRLF worktree). This pass measured only this Windows box, so the Linux half is carried forward from that module's record and was NOT re-measured here.",
+   "settling_experiment": "Re-run blobread.py --compare on a Linux runner with core.autocrlf unset and confirm git_archive matches git_cat_file there.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 1,
+  "policy": "one retry consumed on the original pass (pass 1 was schema-invalid in 57 places because probe evidence was transcribed rather than captured). This pass executes every probe and captures stdout verbatim. No new retry consumed: the remaining blocker is structural, and the unit's own retry_policy says a failure here is a finding, not a transient."
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh-context independent review (C5 wave, 2026-08-21). Falsification attempt: I tried to find a counter-example by validating the delivered artifact against its DECLARED output schema from the work-unit catalog, rather than trusting narrative text. Unit TST-0334 at command-center/receipts/TST-0334.json declares output_schema='command-center/schema/receipt.schema.json'; schema_errors=0. Receipt predicate both-states control: ran the 12-condition reader with filesystem checks on vs off; blocking(on)=['c1=UNSATISFIED', 'c7=UNSATISFIED', 'c11=UNSATISFIED']; blocking(off)=['c1=UNSATISFIED', 'c2=NOT-CHECKED', 'c3=NOT-CHECKED', 'c7=UNSATISFIED', 'c11=UNSATISFIED']. I also cross-checked the catalog reviewer requirement for vendor eligibility (required reviewer_vendor=any). Catalog reviewer_requirement (verbatim, normalized whitespace): One independent reviewer who re-runs the probe under a SECOND Windows shell (pwsh7 and Git Bash) and reports any divergence as a finding rather than a retry.",
+  "reviewed_at": "2026-08-21T01:10:17Z",
+  "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+  "vendor": "openai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:ZZZ-9999:BLOCKED-ON-MANIFEST-REGISTRATION three-route blob divergence is MEASURED and CONFIRMED with an LF-normalisation control and an independent pwsh7/.NET re-measurement; the single remaining blocker is completion condition 11, which no unit receipt in this program can satisfy today.",
+ "shared_worktree_conditions": "This repo is edited concurrently by other agents. Two measurements moved under this pass and both are disclosed rather than smoothed: the NC3 good state briefly read drift=True, and unitgate.py returned rc=0 on a first run and rc=1 on a later one over ADV-0041. Every figure in this receipt is the one measured at the timestamp recorded here.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0334",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "python -m pytest tools/measure-guard/tests/test_blobread.py -q -p no:cacheprovider",
+   "id": "TST-0334-T1",
+   "name": "full blobread suite (8 tests)",
+   "output_tail": "........                                                                 [100%]\n8 passed in 9.24s",
+   "result": "PASS"
+  },
+  {
+   "command": "python -m pytest tools/measure-guard/tests/test_blobread.py::test_three_route_comparison_reports_counts_and_crlf_for_each_route -q",
+   "id": "TST-0334-T2",
+   "name": "three-route comparison reports counts and CRLF per route",
+   "result": "PASS"
+  },
+  {
+   "command": "python -m pytest tools/measure-guard/tests/test_blobread.py::test_the_control_proves_the_difference_is_line_endings_not_content -v",
+   "id": "TST-0334-T3",
+   "name": "LF-normalisation control proves EOL-only divergence (good state)",
+   "output_tail": "============================= test session starts =============================\nplatform win32 -- Python 3.14.6, pytest-8.4.2, pluggy-1.6.0 -- C:\\Python314\\python.exe\nhypothesis profile 'default'\nPySide6 6.11.1 -- Qt runtime 6.11.1 -- Qt compiled 6.11.1\nrootdir: C:\\Users\\Prekzursil\\source\\ast-integrate\nplugins: anyio-4.13.0, Faker-40.12.0, hypothesis-6.155.7, asyncio-1.4.0, cov-7.1.0, qt-4.5.0\nasyncio: mode=Mode.STRICT, debug=False, asyncio_default_fixture_loop_scope=None, asyncio_default_test_loop_scope=function\ncollecting ... collected 2 items\n\ntools/measure-guard/tests/test_blobread.py::test_the_control_proves_the_difference_is_line_endings_not_content PASSED [ 50%]\ntools/measure-guard/tests/test_blobread.py::test_the_control_FIRES_when_the_content_genuinely_differs PASSED [100%]\n\n============================== 2 passed in 3.36s ==============================",
+   "result": "PASS"
+  },
+  {
+   "command": "python -m pytest tools/measure-guard/tests/test_blobread.py::test_the_control_FIRES_when_the_content_genuinely_differs -v",
+   "id": "TST-0334-T4",
+   "name": "control FIRES when content genuinely differs (bad state)",
+   "result": "PASS"
+  },
+  {
+   "command": "python -m pytest tools/measure-guard/tests/test_blobread.py::test_git_archive_payload_is_byte_identical_to_the_WORKTREE_not_the_blob -q",
+   "id": "TST-0334-T5",
+   "name": "git archive payload is byte-identical to the WORKTREE, not the blob",
+   "result": "PASS"
+  },
+  {
+   "command": "python -m pytest tools/measure-guard/tests/test_blobread.py::test_an_absent_path_raises_rather_than_returning_empty -q",
+   "id": "TST-0334-T6",
+   "name": "absent path raises rather than returning empty bytes",
+   "result": "PASS"
+  },
+  {
+   "command": "NOT RUN - requires a CI run on this commit; this unit has no CI trigger permission and must not claim a CI verdict it did not observe",
+   "id": "TST-0334-T7",
+   "name": "tests_required[2] gate parity: a content gate returns the same verdict LOCALLY and IN CI on the same commit",
+   "result": "NOT-RUN"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-15T16:43:31Z",
+  "started_at": "2026-08-15T16:05:00Z"
+ },
+ "unit_id": "ZZZ-9999",
+ "unsatisfied_delivery_conditions": [
+  "completion condition 11 (manifest registration) - UNSATISFIABLE, see failure.blocked_on and NC3",
+  "completion condition 1 (SUCCESS terminal state) - consequence of 11, schema-enforced",
+  "tests_required[2] gate parity local-vs-CI - NOT RUN, recorded as TST-0334-T7 = NOT-RUN",
+  "completion_sentinel SUCCESS:TST-0334 - deliberately NOT emitted; the truthful SENTINEL: form is used instead"
+ ],
+ "validator_negative_control": {
+  "bad_state_errors": 1,
+  "bad_state_first_error": "<root>: 'sentinel' is a required property",
+  "bad_state_input": "the same receipt with the required 'sentinel' property deleted",
+  "bad_state_outcome": "REJECTED",
+  "discriminates": true,
+  "good_state_errors": 0,
+  "good_state_input": "this receipt, unmutated",
+  "good_state_outcome": "ACCEPTED",
+  "instrument": "platform/lib/receipt_schema_gate.py::validate_receipt (jsonschema Draft202012Validator)"
+ }
+}

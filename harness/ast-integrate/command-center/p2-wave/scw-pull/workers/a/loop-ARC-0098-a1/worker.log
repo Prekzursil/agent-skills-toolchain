@@ -1,0 +1,27 @@
+
+===== launch 2026-08-20T07:44:29Z attempt=1 =====
+I'll start from the existing ARC-0098 probe tree and the G-1 contract, then implement or resume until the unit measure prints `SUCCESS:delivered`.ARC-0098 has no probe tree yet. I’ll read the catalog contract and a delivered ARC unit so we can implement from a known-good pattern.Next I’ll pull the conformance-report schema, a delivered unit’s artifacts, and the G-1 measure contract so we implement the right shape.I’ll implement the runner, three-state and skip-accounting probes, then pack the receipt and per-unit manifest.Probes are green. Next I’ll pack a schema-valid receipt from the live probe outputs.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from the live hashes and measure line.ARC-0098 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0098` printed:
+
+`SUCCESS:delivered ARC-0098 predicate=delivered state=SUCCESS probes=3 raws=2 notes=consume_receipt.py:0,probe1_three_state.py:0,probe2_skip_accounting.py:0`
+
+The probe tree did not exist. That was treated as work to do, not a park.
+
+**What was built**
+- Conformance runner: `command-center/phase4/conformance/runner.py`
+- Exit contract: PASS=0, FAIL=1, ERROR=2, PASS-WITH-SKIPS=3
+- FAIL is a structured FAIL plus exit 1. ERROR is a crash or protocol break (no structured result). SKIP is counted and itemized. A report with skips never prints an unqualified PASS.
+
+**Live probes (all exit 0)**
+- `probe1_three_state.py`: known-pass / known-fail / known-error → PASS / FAIL / ERROR with exits 0 / 1 / 2
+- `probe2_skip_accounting.py`: skip_count=4 (known-skip plus absent ARC-0083/0084/0087 contracts), `OVERALL=PASS-WITH-SKIPS`
+- `consume_receipt.py`: receipt `state=SUCCESS`, schema-valid, manifest sha256 matches
+
+**Artifacts**
+- Receipt: `command-center/phase4/conformance/ARC-0098.json` (`state=SUCCESS`, 21854 bytes)
+- Live LF sha256: `8e7660335414b724351d891581fcabe9ce6088f6b184a0b319053cc616108cdc`
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0098/UNIT-ARTIFACT-MANIFEST.json`
+- Handoff: `command-center/p2-wave/probes/ARC-0098/SUBAGENT-RETURN.json`
+
+Git was not mutated. Global `unit_manifest.py --write` was not run. Cloud-ok was not treated as delivery.

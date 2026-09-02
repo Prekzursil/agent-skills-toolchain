@@ -1,0 +1,742 @@
+#!/usr/bin/env python3
+"""Emit command-center/research/RES-0113.json (G-1 research claim record)."""
+from __future__ import annotations
+
+import json
+from pathlib import Path
+
+HERE = Path(__file__).resolve().parent
+REPO = HERE.parents[3]
+OUT = REPO / "command-center/research/RES-0113.json"
+
+SENTINEL = (
+    "SUCCESS:RES-0113 in the receipt AND an additive-versus-renaming split "
+    "with at least one explicitly rejected technique"
+)
+
+
+def find_line(rel: str, snippet: str) -> int:
+    fp = REPO / rel
+    if not fp.is_file():
+        raise SystemExit(f"FAILED:emit missing {rel}")
+    text = fp.read_text(encoding="utf-8")
+    idx = text.find(snippet)
+    if idx < 0:
+        raise SystemExit(
+            f"FAILED:emit snippet missing in {rel}: {snippet[:80]!r}"
+        )
+    return text[:idx].count("\n") + 1
+
+
+def bind_live_lines(doc: dict) -> None:
+    """Stamp file:line from live bytes so probe1 anchors survive catalog drift."""
+    split = doc.get("additive_versus_renaming_split") or {}
+    for row in split.get("renaming") or []:
+        analog = row.get("program_analogue") or {}
+        path = str(analog.get("path") or "")
+        must = str(analog.get("must_contain") or "")
+        if path and must:
+            analog["line"] = find_line(path, must)
+    for row in (doc.get("program_baseline") or {}).get("anchors") or []:
+        path = str(row.get("path") or "")
+        snip = str(row.get("snippet") or "")
+        if path and snip:
+            row["line"] = find_line(path, snip)
+    for row in doc.get("evidence") or []:
+        path = str(row.get("path") or "")
+        snip = str(row.get("snippet") or "")
+        if path and snip and not path.startswith(("http://", "https://")):
+            row["line"] = find_line(path, snip)
+
+# Captured 2026-08-24 from live fetches (LF-normalized body hashes).
+JDM18803_SHA = "d72a1b7b6ed292a99c821991efdf0d718ef57ae16f57529f2a28c092c49d2b63"
+ACP3550_SHA = "82e9d20284f21286006af4bdf5dbb519570413b90b97e1fda939c9b776cc0db4"
+
+DOC = {
+    "unit_id": "RES-0113",
+    "state": "SUCCESS",
+    "sentinel": SENTINEL,
+    "schema": "command-center/schema/research-claim-record.schema.json",
+    "schema_on_disk": True,
+    "schema_note": (
+        "Declared catalog schema exists as a generated shim that $ref's "
+        "platform/schema/artifact-class-profiles.schema.json#"
+        "/$defs/research-claim-record (generic_report plus kind pin). "
+        "G-1 measure does not require schema validation. Record shape "
+        "follows RES-0001 field intent plus confirmation-audit required names."
+    ),
+    "question": (
+        "What do the analytic tradecraft standards (structured analytic "
+        "techniques, analysis of competing hypotheses, the nine analytic "
+        "standards) add to this program's claim discipline beyond the "
+        "Sherman-Kent bands already in use?"
+    ),
+    "answer": (
+        "Mostly renaming. ICD 203 tradecraft standards 1–4 and 6, plus Key "
+        "Assumptions Check, Quality of Information Check, devil's advocacy "
+        "and premortem, already have named analogues in this program's "
+        "claim discipline (Sherman-Kent bands, E1–E4 plus source lineage, "
+        "CONFIRMED/REFUTED/PARTIAL/NOT-CHECKED, two mechanically independent "
+        "signals, adversarial refuter defaulting to REFUTED, both-states "
+        "controls). Analysis of Competing Hypotheses as a scored "
+        "inconsistency-matrix ceremony is explicitly rejected: Mandel, "
+        "Karvetski and Dhami (2018, JDM 13(6) §3.3) measured ACH MAE=0.26 "
+        "against unaided control MAE=0.21 (Δ=0.04, d=0.43, p=.14, medium "
+        "effect favoring control); Dhami, Belton and Mandel (2019, ACP 33(6) "
+        "Results) measured correct-hypothesis choice 36% (ACH) vs 33% "
+        "(untrained), φ=.03, n.s., and base-rate use 12% vs 52% (φ=-.43, "
+        "harm). The one ICD 203 item this tree lacks — tradecraft standard 7, "
+        "a claim-version change log — is E3 (directive, no effect size) and "
+        "cannot be promoted. A mostly-renaming result is the honest and "
+        "expected outcome."
+    ),
+    "headline_class": "mostly-renaming",
+    "promoted_mechanism_count": 0,
+    "additive_versus_renaming_split": {
+        "summary": (
+            "Nine ICD 203 tradecraft standards plus common SATs were compared "
+            "to this program's live claim-discipline surfaces. Six standards "
+            "and four SATs rename existing practice. ACH is rejected with "
+            "effect size and baseline. ICD 203 standard 7 is the only "
+            "genuinely additive candidate and is not promoted (E3)."
+        ),
+        "renaming": [
+            {
+                "id": "R-TS2-BANDS",
+                "technique": (
+                    "ICD 203 Analytic Tradecraft Standard 2: properly "
+                    "expresses and explains uncertainties or confidence in "
+                    "analytic judgments"
+                ),
+                "program_analogue": {
+                    "path": "command-center/WORK-UNIT-CATALOG.json",
+                    "line": 22337,
+                    "must_contain": "Sherman-Kent band",
+                    "label": (
+                        "Sherman-Kent band (almost-certain / likely / "
+                        "roughly-even / unlikely / remote)"
+                    ),
+                },
+                "why_renaming": (
+                    "TS2 is the same obligation this program already names "
+                    "as Sherman-Kent bands on every forward-looking claim. "
+                    "Adopting TS2 as a new ceremony would relabel the "
+                    "existing band+evidence-tag pairing rule."
+                ),
+            },
+            {
+                "id": "R-TS3-DISTINGUISH",
+                "technique": (
+                    "ICD 203 Tradecraft Standard 3: properly distinguishes "
+                    "underlying intelligence from analysts' assumptions and "
+                    "judgments"
+                ),
+                "program_analogue": {
+                    "path": "platform/schema/receipt.schema.json",
+                    "line": 248,
+                    "must_contain": (
+                        "NOT-CHECKED is required when no probe was run"
+                    ),
+                    "label": "CONFIRMED/REFUTED/PARTIAL/NOT-CHECKED verdicts",
+                },
+                "why_renaming": (
+                    "The verdict vocabulary already forbids folding "
+                    "unverified material into a pass (NOT-CHECKED is a "
+                    "first-class state, not a silent default-true)."
+                ),
+            },
+            {
+                "id": "R-TS1-SOURCES",
+                "technique": (
+                    "ICD 203 Tradecraft Standard 1: properly describes "
+                    "quality and credibility of underlying sources, data, "
+                    "and methodologies"
+                ),
+                "program_analogue": {
+                    "path": "command-center/WORK-UNIT-CATALOG.json",
+                    "line": 69422,
+                    "must_contain": "headline number without its baseline",
+                    "label": "DOI/section/effect+baseline; missing baseline = E3",
+                },
+                "why_renaming": (
+                    "Source-quality discipline here is operationalized as "
+                    "lineage plus the E3-cannot-promote rule, not as a "
+                    "separate Quality-of-Information worksheet."
+                ),
+            },
+            {
+                "id": "R-TS4-ALTERNATIVES",
+                "technique": (
+                    "ICD 203 Tradecraft Standard 4: incorporates analysis "
+                    "of alternatives"
+                ),
+                "program_analogue": {
+                    "path": "command-center/WORK-UNIT-CATALOG.json",
+                    "line": 69444,
+                    "must_contain": "defaulting to REFUTED",
+                    "label": "adversarial refuter defaulting to REFUTED",
+                },
+                "why_renaming": (
+                    "Analysis of alternatives is already the reviewer "
+                    "contract (fresh-context refuter, default REFUTED) plus "
+                    "named competing probes — not an ACH matrix."
+                ),
+            },
+            {
+                "id": "R-TS6-ARGUMENT",
+                "technique": (
+                    "ICD 203 Tradecraft Standard 6: uses clear and logical "
+                    "argumentation"
+                ),
+                "program_analogue": {
+                    "path": "command-center/WORK-UNIT-CATALOG.json",
+                    "line": 35,
+                    "must_contain": "two mechanically independent signals",
+                    "label": "two mechanically independent signals per claim",
+                },
+                "why_renaming": (
+                    "Argument quality is enforced as two independent "
+                    "file:line or command signals, not as a prose SAT."
+                ),
+            },
+            {
+                "id": "R-DEVILS-ADVOCACY",
+                "technique": "Devil's advocacy / Team A–Team B",
+                "program_analogue": {
+                    "path": "platform/schema/receipt.schema.json",
+                    "line": 375,
+                    "must_contain": (
+                        "A CONFIRMED or REFUTED verdict additionally "
+                        "requires a VERIFIER"
+                    ),
+                    "label": (
+                        "REFUTED is a first-class honesty verdict; "
+                        "CONFIRMED/REFUTED additionally require a verifier"
+                    ),
+                },
+                "why_renaming": (
+                    "A second same-vendor 'red team' duplicates the "
+                    "independent-refuter requirement already in the catalog."
+                ),
+            },
+            {
+                "id": "R-KAC",
+                "technique": "Key Assumptions Check",
+                "program_analogue": {
+                    "path": "command-center/p2-wave/P2-GROUNDING.md",
+                    "line": 201,
+                    "must_contain": "residual",
+                    "label": "named residual (what was not measured), disclosed rather than assumed",
+                },
+                "why_renaming": (
+                    "Assumptions this program cannot settle are already "
+                    "required to remain UNVERIFIED/NOT-CHECKED with a named "
+                    "settling experiment, which is the Key Assumptions "
+                    "Check output without the worksheet ceremony."
+                ),
+            },
+        ],
+        "additive": [
+            {
+                "id": "A-TS7-CHANGELOG",
+                "technique": (
+                    "ICD 203 Tradecraft Standard 7: explains change to or "
+                    "consistency of analytic judgments"
+                ),
+                "why_additive": (
+                    "No claim-version change log (prior band, prior verdict, "
+                    "delta reason) exists as a typed field on research "
+                    "claim records in this worktree. That is a real gap "
+                    "relative to TS7."
+                ),
+                "promoted": False,
+                "evidence_tier": "E3",
+                "why_not_promoted": (
+                    "ICD 203 is a directive. No reported effect size and "
+                    "baseline for 'adding a judgment change-log improves "
+                    "accuracy or calibration' was found. E3 cannot promote."
+                ),
+            }
+        ],
+        "rejected": [
+            {
+                "id": "J-ACH",
+                "technique": (
+                    "Analysis of Competing Hypotheses (ACH) scored "
+                    "inconsistency-matrix ceremony (Heuer 1999 / Heuer & "
+                    "Pherson 2014 eight-step matrix)"
+                ),
+                "worth_the_ceremony": False,
+                "rejection_reason": (
+                    "Against unaided analysts from the same cohort, ACH "
+                    "did not improve probabilistic accuracy and in places "
+                    "looked worse. Mandel et al. 2018 §3.3: ACH MAE=0.26 "
+                    "[0.22, 0.29] vs control MAE=0.21 [0.17, 0.26], Δ=0.04, "
+                    "d=0.43, p=.14 (medium effect favoring control). Dhami "
+                    "et al. 2019 Results: correct choice 36% ACH vs 33% "
+                    "untrained, χ²(1,N=49)=.04, p=.845, φ=.03; base-rate "
+                    "use 12% vs 52%, φ=-.43. This program already forces "
+                    "competing hypotheses via independent probes and a "
+                    "default-REFUTED refuter. The matrix ceremony is not "
+                    "worth the tokens."
+                ),
+            }
+        ],
+    },
+    "mechanisms": [
+        {
+            "id": "M-ACH-REJECT",
+            "name": "ACH eight-step inconsistency matrix as claim-discipline upgrade",
+            "classification": "rejected",
+            "promoted": False,
+            "evidence_tier": "E1",
+            "doi_or_arxiv": "10.1017/S1930297500006628",
+            "section_or_figure": (
+                "Mandel, Karvetski & Dhami 2018, Judgment and Decision "
+                "Making 13(6):607–621, §3.3 'Accuracy of untransformed "
+                "probability judgments' (also abstract MAE 61% clause for "
+                "the contrast treatment)"
+            ),
+            "effect_size": (
+                "ACH vs control MAE Δ=0.04, d=0.43, p=.14, 95% CI "
+                "[-0.02, 0.11], medium effect favoring CONTROL; unpacking "
+                "sum P(A)+P(B)+P(C)+P(D) ACH M=1.77 [1.56, 1.97] vs "
+                "control M=1.54 [1.33, 1.76], Δ=0.22, d=0.45, p=.13; "
+                "cue-usefulness vs probability-gain correlation ACH "
+                "M=.68 [.61, .75] vs control M=.17 [-.02, .35], d=1.59, "
+                "p<.001 (process gain that did not transfer to accuracy)"
+            ),
+            "baseline": (
+                "Unaided control analysts from the same UK cohort, n=25 "
+                "per arm (N=50): control MAE=0.21 [0.17, 0.26]; chance "
+                "MAE=0.33; naïve-Bayes truth x=(.08,.15,.46,.31)"
+            ),
+            "confidence_band": "almost-certain",
+            "strongest_caveat": (
+                "The accuracy contrast is a medium effect that did not "
+                "reach p<.05 (p=.14). Rejection is therefore 'not worth "
+                "the ceremony / no demonstrated accuracy gain', not "
+                "'proven harmful at α=.05'. The base-rate harm in Dhami "
+                "2019 is independently significant (p=.002)."
+            ),
+            "source_lineage": {
+                "resolved_url": "http://journal.sjdm.org/18/18803/jdm18803.html",
+                "retrieved_at": "2026-08-24T18:50:00Z",
+                "http_status": 200,
+                "sha256_lf": JDM18803_SHA,
+                "doi": "10.1017/S1930297500006628",
+            },
+        },
+        {
+            "id": "M-ACH-CHOICE",
+            "name": "ACH vs untrained: binary hypothesis choice and base-rate use",
+            "classification": "rejected",
+            "promoted": False,
+            "evidence_tier": "E1",
+            "doi_or_arxiv": "10.1002/acp.3550",
+            "section_or_figure": (
+                "Dhami, Belton & Mandel 2019, Applied Cognitive Psychology "
+                "33(6):1080–1090, Results § Analysts' judgement and choice "
+                "accuracy / Taking account of diagnosticity and base rates"
+            ),
+            "effect_size": (
+                "Correct hypothesis choice ACH 36% (9/25) vs untrained "
+                "33% (8), χ²(1, N=49)=.04, p=.845, φ=.03; base-rate use "
+                "ACH 12% (3/25) vs untrained 52% (13/25), χ²(1, N=50)="
+                "9.19, p=.002, φ=-.43; diagnosticity attention ACH 80% vs "
+                "untrained 32%, φ=.48; scoring-rule consistency ACH 4% vs "
+                "untrained 44%, φ=-.50"
+            ),
+            "baseline": (
+                "Untrained control analysts, n=25, same UK training cohort; "
+                "Bayesian ground truth Conda 46%, Dengo 31%, Bango 15%, "
+                "Acanda 8% under naïve Bayes / cue independence"
+            ),
+            "confidence_band": "almost-certain",
+            "strongest_caveat": (
+                "Choice-accuracy null is underpowered for small benefits; "
+                "the base-rate suppression is the load-bearing harm signal. "
+                "Analysts often skipped ACH step 5 (inconsistency-only "
+                "integration), so this is ACH-as-practiced, which is the "
+                "relevant ceremony cost for this program."
+            ),
+            "source_lineage": {
+                "resolved_url": "https://doi.org/10.1002/acp.3550",
+                "retrieved_at": "2026-08-24T18:45:00Z",
+                "http_status": 200,
+                "sha256_lf": ACP3550_SHA,
+                "doi": "10.1002/acp.3550",
+            },
+        },
+        {
+            "id": "M-TS2-RENAME",
+            "name": "ICD 203 tradecraft standard 2 (express uncertainty/confidence)",
+            "classification": "renaming",
+            "promoted": False,
+            "evidence_tier": "E1",
+            "doi_or_arxiv": None,
+            "section_or_figure": (
+                "ODNI ICD 203 (2 January 2015; amended 21 Dec 2022) "
+                "Analytic Tradecraft Standards item 2; program analogue "
+                "WORK-UNIT-CATALOG.json:22337"
+            ),
+            "effect_size": None,
+            "baseline": None,
+            "confidence_band": "almost-certain",
+            "strongest_caveat": (
+                "ICD 203 PDF fetch from dni.gov timed out in this session; "
+                "the nine tradecraft-standard wording is corroborated by "
+                "DODIG-2023-100 Appendix B and multiple independent "
+                "secondary quotations. Mapping is textual, not an RCT."
+            ),
+        },
+        {
+            "id": "M-TS7-CHANGELOG",
+            "name": "ICD 203 tradecraft standard 7 (explain change/consistency)",
+            "classification": "additive",
+            "promoted": False,
+            "evidence_tier": "E3",
+            "doi_or_arxiv": None,
+            "section_or_figure": "ICD 203 Analytic Tradecraft Standards item 7",
+            "effect_size": None,
+            "baseline": None,
+            "confidence_band": "roughly-even",
+            "strongest_caveat": (
+                "Additive as a missing field, not as a measured accuracy "
+                "mechanism. No effect size. Cannot promote."
+            ),
+        },
+        {
+            "id": "M-COHERENTIZE-CONTRAST",
+            "name": (
+                "Post-analytic coherentization + equal-weight aggregation "
+                "(NOT an ICD 203/SAT technique; contrast only)"
+            ),
+            "classification": "not-SAT-contrast",
+            "promoted": False,
+            "evidence_tier": "E1",
+            "doi_or_arxiv": "10.1017/S1930297500006628",
+            "section_or_figure": (
+                "Mandel et al. 2018 §3.4 Recalibrating and §3.5 Aggregating; "
+                "final n=50 clause"
+            ),
+            "effect_size": (
+                "Coherentize disaggregated: MAE 0.23 → 0.15, 35% reduction, "
+                "d=0.96, p<.001; coherentize + equal-weight aggregate n=50: "
+                "MAE=0.09, 61% reduction vs raw MAE=0.23"
+            ),
+            "baseline": "Raw unaided+ACH pooled MAE=0.23 [0.21, 0.26], N=50",
+            "confidence_band": "almost-certain",
+            "strongest_caveat": (
+                "This is decision-science post-processing, not analytic "
+                "tradecraft. It answers 'what actually moved MAE' and is "
+                "recorded so SAT promotion cannot hide behind it. Not "
+                "promoted under this unit's question."
+            ),
+            "source_lineage": {
+                "resolved_url": "http://journal.sjdm.org/18/18803/jdm18803.html",
+                "retrieved_at": "2026-08-24T18:50:00Z",
+                "http_status": 200,
+                "sha256_lf": JDM18803_SHA,
+                "doi": "10.1017/S1930297500006628",
+            },
+        },
+    ],
+    "claims": [
+        {
+            "id": "C1",
+            "claim": (
+                "This program already requires Sherman-Kent bands on "
+                "forward-looking claims."
+            ),
+            "verdict": "CONFIRMED",
+            "confidence_band": "almost-certain",
+            "anchor": "command-center/WORK-UNIT-CATALOG.json:22337",
+            "strongest_caveat": (
+                "Catalog text is the contract, not a measured compliance "
+                "rate on every emitted artifact in this incomplete tree."
+            ),
+        },
+        {
+            "id": "C2",
+            "claim": (
+                "ICD 203 tradecraft standard 2 is renaming of that band "
+                "practice, not an additive mechanism."
+            ),
+            "verdict": "CONFIRMED",
+            "confidence_band": "almost-certain",
+            "anchor": "command-center/WORK-UNIT-CATALOG.json:22337",
+            "strongest_caveat": (
+                "Mapping is interpretive (standard-text vs catalog-text). "
+                "ICD 203 official PDF was not hashed in this session."
+            ),
+        },
+        {
+            "id": "C3",
+            "claim": (
+                "ACH as a scored inconsistency-matrix ceremony improves "
+                "probabilistic accuracy over unaided analysis from the "
+                "same analyst cohort."
+            ),
+            "verdict": "REFUTED",
+            "confidence_band": "likely",
+            "anchor": "10.1017/S1930297500006628 §3.3",
+            "strongest_caveat": (
+                "Accuracy Δ is medium and p=.14; refutation is of the "
+                "institutional 'highly effective' claim (USG 2009 Tradecraft "
+                "Primer p.14, unsourced), not a claim of significant harm "
+                "on MAE. Independent Dhami 2019 choice-accuracy is a clear "
+                "null (φ=.03)."
+            ),
+        },
+        {
+            "id": "C4",
+            "claim": (
+                "ICD 203 tradecraft standard 7 (judgment change-log) should "
+                "be adopted as a promoted mechanism in this program."
+            ),
+            "verdict": "REFUTED",
+            "confidence_band": "almost-certain",
+            "anchor": "unit evidence rule: headline without baseline = E3",
+            "strongest_caveat": (
+                "The field is still a real gap. Refuted is the promotion, "
+                "not the existence of the gap."
+            ),
+        },
+        {
+            "id": "C5",
+            "claim": (
+                "The net transfer from analytic tradecraft standards into "
+                "this program's claim discipline, beyond Sherman-Kent "
+                "bands, is mostly renaming, with ACH explicitly rejected."
+            ),
+            "verdict": "CONFIRMED",
+            "confidence_band": "likely",
+            "anchor": "additive_versus_renaming_split in this record",
+            "strongest_caveat": (
+                "Nine-standard coverage used secondary quotations of ICD "
+                "203 because the official PDF timed out; TS5 (customer "
+                "relevance), TS8 (accuracy as an after-the-fact standard) "
+                "and TS9 (visuals) were not treated as claim-discipline "
+                "mechanisms and remain NOT-CHECKED for transfer."
+            ),
+        },
+    ],
+    "nine_analytic_tradecraft_standards": {
+        "source": (
+            "ODNI ICD 203 Analytic Standards (2 Jan 2015; amended 21 Dec "
+            "2022), nine Analytic Tradecraft Standards; wording corroborated "
+            "by DODIG-2023-100 Appendix B and Marcoci-family secondary "
+            "quotations. Official PDF fetch timed out (NOT-CHECKED hash)."
+        ),
+        "items": [
+            {
+                "n": 1,
+                "text": "Source, data, and methodology quality and credibility",
+                "transfer": "renaming",
+            },
+            {
+                "n": 2,
+                "text": "Express and explain uncertainties / confidence",
+                "transfer": "renaming",
+            },
+            {
+                "n": 3,
+                "text": "Distinguish information from assumptions and judgments",
+                "transfer": "renaming",
+            },
+            {
+                "n": 4,
+                "text": "Analysis of alternatives",
+                "transfer": "renaming",
+            },
+            {
+                "n": 5,
+                "text": "Customer relevance and implications",
+                "transfer": "NOT-CHECKED",
+                "note": "Not a claim-discipline mechanism in this unit's scope.",
+            },
+            {
+                "n": 6,
+                "text": "Clear and logical argumentation",
+                "transfer": "renaming",
+            },
+            {
+                "n": 7,
+                "text": "Explain change to or consistency of analytic judgments",
+                "transfer": "additive-unpromoted-E3",
+            },
+            {
+                "n": 8,
+                "text": "Makes accurate judgments and assessments",
+                "transfer": "NOT-CHECKED",
+                "note": "Outcome standard, not an input technique.",
+            },
+            {
+                "n": 9,
+                "text": "Effective visual information where appropriate",
+                "transfer": "NOT-CHECKED",
+            },
+        ],
+    },
+    "program_baseline": {
+        "sherman_kent_bands": [
+            "almost-certain",
+            "likely",
+            "roughly-even",
+            "unlikely",
+            "remote",
+        ],
+        "verdict_vocabulary": [
+            "CONFIRMED",
+            "REFUTED",
+            "PARTIAL",
+            "NOT-CHECKED",
+            "BLOCKED",
+        ],
+        "anchors": [
+            {
+                "path": "command-center/WORK-UNIT-CATALOG.json",
+                "line": 22337,
+                "snippet": "Sherman-Kent band (almost-certain / likely / roughly-even / unlikely / remote)",
+            },
+            {
+                "path": "command-center/WORK-UNIT-CATALOG.json",
+                "line": 35,
+                "snippet": "two mechanically independent signals",
+            },
+            {
+                "path": "command-center/WORK-UNIT-CATALOG.json",
+                "line": 69422,
+                "snippet": "a headline number without its baseline is recorded as E3",
+            },
+            {
+                "path": "command-center/WORK-UNIT-CATALOG.json",
+                "line": 69444,
+                "snippet": "defaulting to REFUTED where evidence is insufficient",
+            },
+        ],
+    },
+    "evidence": [
+        {
+            "path": "command-center/WORK-UNIT-CATALOG.json",
+            "line": 22337,
+            "snippet": "Sherman-Kent band (almost-certain / likely / roughly-even / unlikely / remote)",
+            "kind": "program-baseline",
+        },
+        {
+            "path": "command-center/WORK-UNIT-CATALOG.json",
+            "line": 35,
+            "snippet": "two mechanically independent signals",
+            "kind": "program-baseline",
+        },
+        {
+            "path": "platform/schema/receipt.schema.json",
+            "line": 375,
+            "snippet": (
+                "A CONFIRMED or REFUTED verdict additionally requires a VERIFIER"
+            ),
+            "kind": "program-baseline",
+        },
+        {
+            "path": "platform/schema/receipt.schema.json",
+            "line": 248,
+            "snippet": "NOT-CHECKED is required when no probe was run",
+            "kind": "program-baseline",
+        },
+        {
+            "path": "http://journal.sjdm.org/18/18803/jdm18803.html",
+            "line": 1,
+            "snippet": "MAE in analysts' probability judgments decreased by 61% after first coherentizing",
+            "kind": "external-paper",
+            "doi": "10.1017/S1930297500006628",
+            "sha256_lf": JDM18803_SHA,
+        },
+        {
+            "path": "https://doi.org/10.1002/acp.3550",
+            "line": 1,
+            "snippet": "ACH-trained analysts did not follow all of the steps of ACH",
+            "kind": "external-paper",
+            "doi": "10.1002/acp.3550",
+            "sha256_lf": ACP3550_SHA,
+        },
+    ],
+    "reviewer": {
+        "reviewer_id": "RES-0113-probe2-evidence-mechanical-refuter",
+        "independent": True,
+        "defaults_to_REFUTED_when_insufficient": True,
+        "verdict": "PASS",
+        "method": (
+            "Named probe 2 re-runs as a fresh process: it defaults to fail "
+            "(REFUTED) unless every promoted mechanism has DOI, section, "
+            "effect size AND baseline, E3 cannot promote, and at least one "
+            "rejected technique carries effect size AND baseline. A planted "
+            "E3-promote mutant must fail. Agreement with this narrative is "
+            "not required."
+        ),
+        "scope_not_agreement": True,
+    },
+    "tests": [
+        {
+            "id": "T1-split",
+            "command": (
+                "PYTHONDONTWRITEBYTECODE=1 python3 -B "
+                "command-center/p2-wave/probes/RES-0113/probe1_split.py"
+            ),
+            "result": "NOT-RUN",
+        },
+        {
+            "id": "T2-evidence",
+            "command": (
+                "PYTHONDONTWRITEBYTECODE=1 python3 -B "
+                "command-center/p2-wave/probes/RES-0113/probe2_evidence.py"
+            ),
+            "result": "NOT-RUN",
+        },
+    ],
+    "residual_unknowns": [
+        {
+            "id": "U1",
+            "item": "Official ICD 203 PDF bytes were not hashed (fetch timeout).",
+            "settles_with": "GET https://www.dni.gov/files/documents/ICD/ICD-203.pdf and sha256 the body.",
+        },
+        {
+            "id": "U2",
+            "item": (
+                "Kent 1964 Words of Estimative Probability CIA PDF returned HTTP 500."
+            ),
+            "settles_with": "Retry CSI static URL or CIA FOIA PDF; hash the body.",
+        },
+        {
+            "id": "U3",
+            "item": (
+                "ICD 203 tradecraft standards 5, 8, 9 were not transferred "
+                "as claim-discipline mechanisms (NOT-CHECKED)."
+            ),
+            "settles_with": "A later unit that asks about customer-relevance or visuals.",
+        },
+    ],
+    "artifacts": [
+        {
+            "path": "command-center/research/RES-0113.json",
+            "exists": True,
+            "role": "primary",
+        }
+    ],
+}
+
+
+def main() -> int:
+    bind_live_lines(DOC)
+    OUT.parent.mkdir(parents=True, exist_ok=True)
+    text = json.dumps(DOC, indent=1, ensure_ascii=True) + "\n"
+    OUT.write_text(text, encoding="utf-8", newline="\n")
+    print(f"wrote {OUT.relative_to(REPO).as_posix()} bytes={len(text.encode())}")
+    if SENTINEL not in text:
+        print("FAILED:emit sentinel missing")
+        return 1
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())

@@ -1,0 +1,20 @@
+I'll start from the existing AUD-0039 probe tree, read the return artifact if it's there, and resume rather than rebuild.Existing probe tree is there. Next I’ll read the return artifacts, handoff, and the measure script so we resume from what’s already built.Probes and a per-unit manifest already exist; next I’ll compare them with the catalog contract and a delivered AUD unit so we don’t hand-flip SUCCESS.The catalog artifact is already SUCCESS; I’ll check pack/lock scripts, `ready_units`, and a delivered AUD sibling before re-running probes on this Linux tree.I'll re-run the named probes on this Linux tree, then pack the receipt from those live outputs.Probes are green on this box. Next I’ll pack the receipt from the live outputs and check schema lock.Measure already prints `SUCCESS:delivered`. I’ll try packing a live Linux receipt now that the schema resolver is present, then lock the return artifacts.Measure is green after the pack. Next I’ll write the delivered `SUBAGENT-RETURN.json` from those live facts.**SUCCESS:delivered** AUD-0039 `predicate=delivered state=SUCCESS probes=4 raws=6 notes=negative_control.py:0,probe1_edge_integrity.py:0,probe2_reachability.py:0,verify_results.py:0`
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/AUD-0039/` (did not scrap it). Re-ran the named probes on this Linux worktree, packed the catalog receipt from those live outputs, and registered the per-unit manifest.
+
+| Gate | Result |
+|---|---|
+| Probe 1 (id-existence + topo) | exit 0 — 103 nodes, 18 edges, 0 dangling, acyclic, topo=103 |
+| Probe 2 (terminal-disposition closure) | exit 0 — 45 seeds, 54 reachable, **49 unreachable** |
+| Scratch control (cycle + dangling) | exit 0 on good; `--mutant-drop-cycle` exits 1 |
+| Independent verifier | exit 0 |
+| Receipt | `state=SUCCESS`, `headline_verdict=REFUTED` |
+| Per-unit manifest | `26876` bytes, sha256 `a1b34437a6f0213320919aec55e6c34ffbf9eedd046faca8c8f4e56c16f3058a` |
+
+The 49 unreachable `items[]` rows are the audit finding, not an open sidecar defect. The catalog question is answered: existence and acyclicity pass; universal terminal-closure fails. Cloud-ok `BLOCKED` was because the named probe files were absent; this session executed that alternative (restore probes + per-unit Condition 11), not a hand-flip.
+
+Wrote:
+- `command-center/p2-wave/probes/AUD-0039/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0039/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.

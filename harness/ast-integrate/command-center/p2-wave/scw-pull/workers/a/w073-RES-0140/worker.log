@@ -1,0 +1,25 @@
+I'll start from the existing RES-0140 probe tree and the delivery contract, then resume rather than rebuild.The probe tree is thin (only a cloud-ok refute). Next I’ll load the unit contract, the measure script, and a delivered sibling as the resume template.The cloud-ok refute is already on disk; I’ll inspect the primary artifact, schema, a delivered sibling, and `ready_units` so we resume from that rather than restart.The harvest receipt is still BLOCKED. I’ll inspect SUCCESS constraints, a delivered sibling’s probe tree, and the load-bearing claims in the primary JSON.Two independent refutes already hit cost-unit mismatch and semantic-dedup. I’ll check whether a real fix is possible here, or whether the unit has to stay parked.No provider keys and no `tiktoken` on this tree. I’ll look for a restored probe corpus, the codebook, and a numeric threshold before deciding whether a real extraction-cost fix is possible.I’ll fetch the 60-item sample, stand up an extraction-request client that records real usage, and expand semantic dedup so the old C2/C3 refutes don’t just repeat.The 60 payloads are on disk. Next I’ll freeze a paraphrase-aware codebook and the extraction-request probes.Transcript line-breaks were splitting phrases. I’ll fold whitespace in the matchers so paraphrase aliases hit spoken text.The receipt is schema-invalid (7 errors). I’ll pull the validator’s exact failures and fix those fields.**SUCCESS:delivered RES-0140** — G-1 is green on this Linux worktree. Cloud `ok=true` was not treated as delivery.
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0140` printed:
+
+`SUCCESS:delivered RES-0140 predicate=delivered state=SUCCESS probes=4 raws=4 notes=condition11_per_unit.py:0,negative_control.py:0,probe1_extraction_census.py:0,probe2_independent_recompute.py:0`
+
+Harvest `CLOUD-OK-REFUTE.json` is stale. That file wrapped `state=BLOCKED`, C2/C3 were refuted (source-only tiktoken; three companion paraphrases counted as transcript-only), and the 29 claimed sidecars were missing.
+
+This pass restored the frozen 20-subject .NET Conf 2022 sample (60/60 fetches), issued one o200k extraction request per item (instruction + topic codebook + document, JSON response, recorded `prompt_tokens`/`completion_tokens`/`total_tokens`), and froze a 103-mechanism semantic alias codebook.
+
+Live yield (distinct non-duplicate mechanisms per 10k extraction-request tokens):
+
+| Class | Yield / 10k | Tokens | Marginal IDs |
+|---|---:|---:|---:|
+| official-docs | 0.663517 | 75,356 | 5 |
+| transcript | 0.417823 | 119,668 | 5 |
+| blog | 0.259372 | 231,328 | 6 |
+
+The two named probes agree on every token total and presence mask. T04-M04, T11-M02, and T17-M03 (the three prior paraphrase counterexamples) are shared, not transcript-only. The restatement control is silent on T02/T14 with dedup on and goes red when dedup is disabled.
+
+No numeric default-set threshold exists on this tree (`_USER-PROMPTS.md` is absent; REGISTER.md and CLAIM-REGISTRY.json do not define one), so threshold clearance is **NOT-CHECKED** and default-set disposition is **NO-CHANGE-AUTHORIZED**.
+
+Receipt: `command-center/research/sources-frontier/RES-0140-transcript-source-class-yield-measurement.json` (214422 B, `state=SUCCESS`, schema 0 errors, `ready_units.artifact_delivered=(True, delivered)`). Per-unit manifest sha256 `6c78f37c9825b4fc1623a05cfa833785fed7cfb473be5a89a48dfd06fa7d4ec5` matches the live catalog path.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global catalog manifest edit, no key rotation, no wave relaunch.

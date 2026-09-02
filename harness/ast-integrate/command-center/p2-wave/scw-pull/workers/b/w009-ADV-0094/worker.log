@@ -1,0 +1,21 @@
+I'll start from the existing ADV-0094 probe tree, read any prior return/manifest, and only then measure or resume work.Existing artifacts are present. Next I’ll read the return, manifest, measure script, and unit definition so I know what still fails.The prior return already claims delivery. I’ll re-run the live measure and inspect probes plus the catalog artifact before trusting that.`python` isn’t on PATH here. I’ll switch to `python3` and inspect the receipt plus a delivered sibling so the measure is honest.Measure already prints `SUCCESS:delivered`. I’ll check G-1 and the live receipt so we don’t treat a hand-flipped or BLOCKED artifact as done.Measure is already green. I’ll read G-1, the rest of the receipt, and schema so I can confirm the hashes and probes are still honest.I’ll re-run the named probes, confirm schema and hashes, and check whether a production council kernel exists so we don’t keep a stub if the real one is here.Measure is green, but the schema resolver came back empty in my check. I’ll load it the same way `ready_units` does and validate the receipt for real.Live probes and measure are green. I’ll write this session’s return and the per-unit manifest from those hashes, then measure again.**SUCCESS:delivered** ADV-0094 (`predicate=delivered state=SUCCESS probes=4 raws=4`).
+
+Resumed the existing probe tree; did not scrap it. Re-ran the named probes on this box; both exited 0. Receipt stayed `SUCCESS` (not a hand-flip this session). Per-unit manifest sha256 matches the live LF digest.
+
+| Check | Result |
+|---|---|
+| `probe1_shares.py` | exit 0, `SUCCESS:ADV-0094-probe1` (2136 B raw) |
+| `probe2_removal.py` | exit 0, `SUCCESS:ADV-0094-probe2` (938 B raw) |
+| Balanced control | GREEN, max delta `0.0` |
+| Planted high-delta | RED, delta `1.0` |
+| Receipt | `command-center/adversarial/ADV-0094-participant-dominance-airtime.json` 32271 B, `state=SUCCESS` |
+| Per-unit manifest | sha256 `c946ea4d892a8b5f2dbaf73087e4acda9f3f6f49294339195058803b0eebf4e2` matches live LF |
+| Measure | `python3 command-center/p2-wave/_measure_one_delivered.py ADV-0094` → `SUCCESS:delivered` |
+
+Science from the live re-run: uncapped assertive token share `0.869565` / decision `EXPAND`; safeguarded share `0.400000` / `HOLD`; leave-one-out delta `0.500000` uncapped vs `0.000000` with quota + min-engagement.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0094/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0094/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Stale `CLOUD-OK-REFUTE.json` is harvest-era (BLOCKED / missing sidecars), not the current tree. Production `tools/council/kernel.py` is still absent; the executed referee is `lib/airtime_kernel.py`.

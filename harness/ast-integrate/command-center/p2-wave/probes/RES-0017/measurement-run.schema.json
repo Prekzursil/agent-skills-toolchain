@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0017/measurement-run.schema.json",
+  "title": "RES-0017 unit-local measurement-run (catalog schema is RES-0001; not rebuilt here)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "per_class",
+    "occupancy",
+    "ablation",
+    "stability",
+    "accounting",
+    "tests",
+    "reviewer",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "RES-0017" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL"]
+    },
+    "sentinel": { "type": "string", "minLength": 16 },
+    "report_kind": { "type": "string", "const": "measurement-run" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "per_class": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "class",
+          "injected_bytes",
+          "injected_tokens"
+        ],
+        "properties": {
+          "class": {
+            "type": "string",
+            "enum": ["rules", "skills", "mcp_schemas", "tools"]
+          },
+          "injected_bytes": { "type": "integer", "minimum": 0 },
+          "injected_tokens": { "type": "integer", "minimum": 0 }
+        }
+      }
+    },
+    "occupancy": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "numerator_field",
+        "turn0_injected_tokens",
+        "turn0_injected_bytes",
+        "tokens_cumulative",
+        "cumulative_rejected_as_occupancy"
+      ],
+      "properties": {
+        "numerator_field": { "type": "string", "const": "turn0_injected_tokens" },
+        "turn0_injected_tokens": { "type": "integer", "minimum": 1 },
+        "turn0_injected_bytes": { "type": "integer", "minimum": 1 },
+        "tokens_cumulative": { "type": "integer", "minimum": 1 },
+        "cumulative_rejected_as_occupancy": { "type": "boolean", "const": true }
+      }
+    },
+    "ablation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "class",
+        "measured_occupancy_delta_tokens",
+        "measured_delta_bytes",
+        "confirmed"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": ["rules", "skills", "mcp_schemas", "tools"]
+        },
+        "measured_occupancy_delta_tokens": { "type": "integer", "minimum": 1 },
+        "measured_delta_bytes": { "type": "integer", "minimum": 1 },
+        "confirmed": { "type": "boolean", "const": true }
+      }
+    },
+    "stability": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["stable", "delta_tokens", "delta_bytes"],
+      "properties": {
+        "stable": { "type": "boolean", "const": true },
+        "delta_tokens": { "type": "integer", "minimum": 0, "maximum": 0 },
+        "delta_bytes": { "type": "integer", "minimum": 0, "maximum": 0 }
+      }
+    },
+    "accounting": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "source_named",
+        "occupancy_field",
+        "cumulative_field",
+        "conflation_rejected"
+      ],
+      "properties": {
+        "source_named": { "type": "boolean", "const": true },
+        "occupancy_field": { "type": "string", "minLength": 8 },
+        "cumulative_field": { "type": "string", "minLength": 8 },
+        "conflation_rejected": { "type": "boolean", "const": true }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 2 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "minLength": 3 },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string", "minLength": 3 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,27 @@
+# rules/project/reviews.md
+shared:rules/project/reviews.md
+repo-unique:rules/project/reviews.md
+repo-pad:rules/project/reviews.md:0
+repo-pad:rules/project/reviews.md:1
+repo-pad:rules/project/reviews.md:2
+repo-pad:rules/project/reviews.md:3
+repo-pad:rules/project/reviews.md:4
+repo-pad:rules/project/reviews.md:5
+repo-pad:rules/project/reviews.md:6
+repo-pad:rules/project/reviews.md:7
+repo-pad:rules/project/reviews.md:8
+repo-pad:rules/project/reviews.md:9
+repo-pad:rules/project/reviews.md:10
+repo-pad:rules/project/reviews.md:11
+repo-pad:rules/project/reviews.md:12
+repo-pad:rules/project/reviews.md:13
+repo-pad:rules/project/reviews.md:14
+repo-pad:rules/project/reviews.md:15
+repo-pad:rules/project/reviews.md:16
+repo-pad:rules/project/reviews.md:17
+repo-pad:rules/project/reviews.md:18
+repo-pad:rules/project/reviews.md:19
+repo-pad:rules/project/reviews.md:20
+repo-pad:rules/project/reviews.md:21
+repo-pad:rules/project/reviews.md:22
+repo-pad:rules/project/reviews.md:23

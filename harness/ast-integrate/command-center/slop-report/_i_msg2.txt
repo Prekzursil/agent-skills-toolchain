@@ -1,0 +1,40 @@
+ci(slop): wire gate-published-commands so the SLOP class fix is actually reachable
+
+SHARED FILE, declared: .github/workflows/no-runtime-junk.yml. +17/-0, appended, byte-safe.
+`git status --porcelain .github/` was empty immediately before the write, the pre-existing
+bytes are an exact prefix of the result, CRLF went 121 -> 138 (= +17 lines, all CRLF), and
+no bare-LF line was introduced. The file is 100% CRLF and a text-mode round trip would have
+turned a 17-line addition into a whole-file diff.
+
+WHY THIS FILE AND NOT quality.yml. .quality/charter_check.sh enforces a CLOSED gate set --
+every `gate-<slug>` marker in quality.yml must map back to a slug in .quality/charter.yml
+and vice versa. A step there would either break that reverse check or require expanding the
+declared 7-gate charter, which is a governance decision and not an integration. This repo
+already keeps a gate outside the closed set in exactly this file (`gate-no-runtime-junk` is
+not a charter slug), so it is the precedented home -- and the thematic mirror: that workflow
+fails when git TRACKS a file it must not, this fails when a committed document PROMISES a
+file git does not track. Verified after the edit: the YAML parses, the step is the 5th under
+jobs.no-runtime-junk, and `bash .quality/charter_check.sh` still reports
+"OK -- 7 gates consistent".
+
+WHY THE SELF-TEST RUNS FIRST. A gate that has never failed is indistinguishable from a
+no-op and this repo has shipped that shape. --self-test proves both states (uuid4 synthetic
+known-bad flagged, tracked known-good clean, extractor fires) before the gate's silence is
+allowed to mean anything.
+
+PROOF THIS IS WORTH WIRING -- the control that decides it, in a fresh LF clone
+(_i3_integration_redproof.out.json, 8/8, EOL pin 2412 tracked .py / 0 CRLF):
+  T1 clone at HEAD, gate                          -> rc 0, does not red main
+  T2 same clone + ONE injected NEW violation      -> rc 1, names the target, says NEW
+  T3 the SAME injection, existing gates before vs after:
+       ruff check 0/0, ruff format --check 0/0, no-runtime-junk 0/0  -> IDENTICAL
+     The pre-existing CI is BLIND to it. Without this step the defect ships.
+  T4 a baseline row that stops violating          -> rc 1, so the ratchet cannot go slack
+  T5 a corpus yielding zero commands              -> rc 1, fail-closed not silent-pass
+
+And the wiring itself is verified end to end rather than grepped
+(_i5_ci_wiring_verify.out.json, 5/5): the YAML is parsed, the step located, its literal
+`run:` block extracted and EXECUTED in a fresh clone (both commands rc 0), the step is
+asserted to actually invoke the gate rather than merely be named after it, and the
+both-states control confirms the same parser reports MISSING against a copy of the workflow
+with the step deleted.

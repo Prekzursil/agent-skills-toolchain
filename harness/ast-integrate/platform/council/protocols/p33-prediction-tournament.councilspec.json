@@ -1,0 +1,460 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p33-prediction-tournament",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decompose the decision into resolvable binary or numeric questions with resolution dates and named sources, collect probabilities from every seat, and register them for Brier scoring at resolution.",
+    "charter": "The primary product is a SCORED FORECAST, not a decision. Its value is near zero immediately and high only if the questions actually resolve.",
+    "risk_tier": "moderate",
+    "desired_output": "forecast",
+    "success_criteria": [
+      "every registered question has a resolution date AND a named source",
+      "every seat submitted a probability independently, before seeing any peer",
+      "the scoring store recorded the submissions in a form that can be scored later"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "url",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "calibration_ranked",
+        "vendor_diverse",
+        "model_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4,
+      "max_share_per_vendor": 0.6
+    },
+    "roster": [
+      {
+        "participant_id": "question-clerk",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "scribe",
+        "authority": "contributor",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "question decomposition",
+          "resolution criteria"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "Refuse any question that lacks a resolution DATE and a NAMED source. An unresolvable question rots the scoring store."
+        }
+      },
+      {
+        "participant_id": "forecaster-a",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "base rates"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "forecaster-b",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "technical delivery"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "forecaster-c",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "adversarial forecasting"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "forecaster-d",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "forecaster",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": false
+        },
+        "expertise": [
+          "operations"
+        ],
+        "anonymous": true
+      },
+      {
+        "participant_id": "scoring-registrar",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "statistician",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "Brier scoring",
+          "resolution tracking"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "Register each question, its resolution date and its source. Score at resolution, not before."
+        }
+      }
+    ],
+    "role_templates": [
+      "forecaster",
+      "statistician",
+      "scribe"
+    ],
+    "anonymity": {
+      "mode": "blind_to_peers",
+      "reveal_after_round": 1
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity",
+        "model"
+      ],
+      "max_similarity": 0.9
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "evidence_pack",
+      "benchmark_baseline"
+    ]
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "custom_name": "question_decomposition_with_resolution_criteria",
+        "stage_id": "decompose",
+        "rounds": 1,
+        "participants": [
+          "question-clerk",
+          "scoring-registrar"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:questions_registered",
+              "op": ">=",
+              "value": 3,
+              "value_type": "number"
+            },
+            {
+              "metric": "custom:unresolvable_questions",
+              "op": "<=",
+              "value": 0,
+              "value_type": "number"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "prediction_confidence",
+        "stage_id": "elicit",
+        "rounds": 2,
+        "participants": [
+          "forecaster-a",
+          "forecaster-b",
+          "forecaster-c",
+          "forecaster-d"
+        ],
+        "independent": true,
+        "anonymous": true,
+        "quotas": {
+          "novel_ideas_per_round": 2
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "resolution_registry_write_and_brier_scheduling",
+        "stage_id": "register",
+        "rounds": 1,
+        "participants": [
+          "scoring-registrar"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "distribution"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 4,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "medium",
+    "time_minutes": 45,
+    "turns": 20,
+    "sources": 8,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1
+  },
+  "targets": {
+    "unique_ideas": 6,
+    "categories": 3,
+    "novelty_ratio": 0.3,
+    "evidence_items": 8,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.9,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "bayesian",
+    "belief_aggregation": {
+      "method": "logarithmic_pool",
+      "require_confidence_per_vote": true,
+      "calibration_source": "platform/council/state/p36-calibration-tournament/seat-scores.json"
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "reject_evidence_free_majority": true
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "confidence_overlap",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": false
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[custom:unresolvable_questions <= 0, custom:questions_registered >= 3, independent_positions >= 4, all_participants_spoke == true]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:unresolvable_questions",
+          "op": "<=",
+          "value": 0,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:questions_registered",
+          "op": ">=",
+          "value": 3,
+          "value_type": "number"
+        },
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 4
+        },
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6
+    },
+    "hard_caps": {
+      "max_rounds": 4,
+      "max_minutes": 60,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the forecast is labelled UNSCORED until at least one question resolves"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "recruit_independent_critic",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "judge"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "strategic_voting",
+      "sycophancy",
+      "echo_chamber",
+      "evidence_free_majority",
+      "hallucinated_expertise",
+      "premature_convergence"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "strongest_counterexample",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "confidence_trajectory",
+      "votes_by_round",
+      "calibration_report",
+      "evidence_map",
+      "transcript",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p33-prediction-tournament",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P33 prediction tournament (FORECASTING, OWNER-DECISION)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:637",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:642",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:648",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:649"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P33 prediction-tournament"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (6 declared): (1) the card's failure mode is 'questions never resolve and the store rots', so custom:unresolvable_questions <= 0 is both the decompose-stage exit and a stopping leaf - a question with no resolution date and no named source cannot enter the tournament; (2) strategic_voting - shading a probability toward the expected consensus - is countered by blind_to_peers elicitation with reveal_after_round=1 and strategic_abstention_check; (3) sycophancy and (4) echo_chamber are cut by anonymous independent submission; (5) evidence_free_majority is blocked by votes_require_evidence with anchor_style=url, because a forecast with no source is an opinion; (6) hallucinated_expertise is exposed by Brier scoring at resolution rather than by argument. FAST UNANIMITY on a probability distribution means the seats are not independent, so the response is blind_re_evaluation first. HONEST LIMIT, INLINE: voting.belief_aggregation.calibration_source names platform/council/state/p36-calibration-tournament/seat-scores.json and that file DOES NOT EXIST - no resolution registry or scoring store has been built on this estate, so calibration_ranked selection degrades to expertise order and the pool is unweighted today. The card's own adoption bar is the settling experiment: at least one question must actually resolve and update a weight before the mechanism is trusted, and the owner must be willing to run it for at least eight weeks."
+  }
+}

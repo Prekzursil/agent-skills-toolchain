@@ -1,0 +1,288 @@
+{
+ "answer": "Timeout substitutes a proxy position and records it AS a proxy (origin=proxy, proxy_origin_marker=proxy-origin). It does not become an unmarked abstention. Treating the same silence as unmarked abstention flips the winner from TIE to APPROVE.",
+ "artifact_paths": [
+  "tools/council/participants/human.py",
+  "tools/council/__init__.py",
+  "tools/council/participants/__init__.py",
+  "command-center/p2-wave/probes/IMP-0345/scenario.py",
+  "command-center/p2-wave/probes/IMP-0345/probe1_timeout_proxy_tally.py",
+  "command-center/p2-wave/probes/IMP-0345/probe2_marker_negative_control.py"
+ ],
+ "artifacts": [
+  {
+   "bytes": 16536,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/participants/human.py",
+   "role": "primary-implementation",
+   "sha256": "1f5b434c85e0351a09a55e86c49f29c25f0e93d39debe1425fe36c289536ddb6"
+  },
+  {
+   "bytes": 295,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/__init__.py",
+   "role": "supporting",
+   "sha256": "7c0ea0dfc9d0b051506a4cd7133df0cdee3d8b0c9a8cedbeb0cbb4576f00fafe"
+  },
+  {
+   "bytes": 564,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/participants/__init__.py",
+   "role": "supporting",
+   "sha256": "e219ce266ff63164fe7663b0229e40def7e33acdf173eda31f76fdc7dc9d4e7a"
+  },
+  {
+   "bytes": 10275,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0345/scenario.py",
+   "role": "supporting",
+   "sha256": "b37fe46db04be2bdbc446649f49f3fbd6fdc25a4ede5f4937bdcd6ffe8866988"
+  },
+  {
+   "bytes": 2679,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0345/probe1_timeout_proxy_tally.py",
+   "role": "supporting",
+   "sha256": "75b57f9bc42a23aef7a42d75cf7e1d92359e21becf54671e3cefd4a4ff25c013"
+  },
+  {
+   "bytes": 2464,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0345/probe2_marker_negative_control.py",
+   "role": "supporting",
+   "sha256": "dbdc05578e5c682d0a546fa82f7d26fa6040ee1d098c798cd59aef13b0ac91a8"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0345",
+ "dependencies_note": "Catalog lists IMP-0265 and IMP-0302. Neither artifact is on this worktree. This unit does not write those modules.",
+ "evidence": [
+  {
+   "anchor": "tools/council/participants/human.py:HybridCouncil.both_tallies",
+   "claim": "Live tally recomputation with and without the proxy is recorded. WITH: approve=2 reject=2 abstain=1 denom=4 winner=TIE. WITHOUT: approve=2 reject=1 abstain=2 denom=3 winner=APPROVE. Outcome shifts.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0345/probe1_timeout_proxy_tally.py",
+     "exit_code": 0,
+     "fingerprint": "08a66e20b6803d0223b0205f45487777",
+     "method": "command",
+     "raw_output": "{\"shifted\": true, \"with_proxy\": {\"abstain\": 1, \"approve\": 2, \"denominator\": 4, \"reject\": 2, \"winner\": \"TIE\"}, \"without_proxy\": {\"abstain\": 2, \"approve\": 2, \"denominator\": 3, \"reject\": 1, \"winner\": \"APPROVE\"}}",
+     "role": "source"
+    },
+    {
+     "command": "sha256 tools/council/participants/human.py",
+     "exit_code": 0,
+     "fingerprint": "fb1ee0f3aea29b83681f7402749aaf99",
+     "method": "file-read",
+     "raw_output": "bytes=16536 sha256=1f5b434c85e0351a09a55e86c49f29c25f0e93d39debe1425fe36c289536ddb6",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/participants/human.py:scan_proxy_markers",
+   "claim": "Every proxied turn carries proxy-origin. H3 timeout is origin=proxy, marker=proxy-origin, choice=REJECT.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0345/probe2_marker_negative_control.py",
+     "exit_code": 0,
+     "fingerprint": "79417c8a33a83bc6453936baa5a331ad",
+     "method": "command",
+     "raw_output": "{\"bad_kinds\": {\"H2\": \"abstention\", \"H3\": \"abstention\"}, \"good_kinds\": {\"H2\": \"abstention\", \"H3\": \"proxy\"}, \"indistinguishable_after_strip\": true}",
+     "role": "verifier"
+    },
+    {
+     "command": "timeout_path_assigns_marker(human.py)",
+     "exit_code": 0,
+     "fingerprint": "7a4100668a4ea1b47bd3c288b4df6747",
+     "method": "ast-read",
+     "raw_output": "{\"assigns_marker\": true, \"method_found\": true, \"pass\": true, \"path\": \"tools/council/participants/human.py\"}",
+     "role": "verifier"
+    },
+    {
+     "command": "sha256 tools/council/participants/human.py",
+     "exit_code": 0,
+     "fingerprint": "fb1ee0f3aea29b83681f7402749aaf99",
+     "method": "file-read",
+     "raw_output": "bytes=16536 sha256=1f5b434c85e0351a09a55e86c49f29c25f0e93d39debe1425fe36c289536ddb6",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0345",
+ "implementation": {
+  "abstention_policy_id": "exclude-abstention",
+  "api_module": "tools/council/participants/human.py",
+  "bytes": 16536,
+  "clock": "DeterministicClock (injected; tests do not sleep)",
+  "entry_points": [
+   "council.participants.human.HybridCouncil",
+   "council.participants.human.effective_ballot",
+   "council.participants.human.scan_proxy_markers",
+   "council.participants.human.strip_proxy_markers"
+  ],
+  "human_only_refuses_agent_seats": true,
+  "proxy_origin_marker": "proxy-origin",
+  "sha256": "1f5b434c85e0351a09a55e86c49f29c25f0e93d39debe1425fe36c289536ddb6",
+  "timeout_policy": "timeout-to-proxy"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0345/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "negative_control_ids": [
+  "c-strip-proxy-marker-silence-equals-abstention"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"H2\": \"abstention\", \"H3\": \"abstention\"}",
+   "description": "Strip proxy-origin from live turns. Timeout silence classifies as abstention, matching explicit human abstain. Scan fails on the stripped artifact and passes on the intact one.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"H2\": \"abstention\", \"H3\": \"proxy\"}",
+   "id": "c-strip-proxy-marker-silence-equals-abstention",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 technical contract for IMP-0345. Live named probes exit 0. Did not run global unit_manifest.py --write. Owner sign-off is pending and is not granted by the reviewer.",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-runtime-module",
+ "owner_signoff": {
+  "granted": false,
+  "grantor": null,
+  "note": "Catalog owner_approval_required=true. This receipt is technical delivery of timeout-to-proxy marking and tally shift. The owner half is a separate sign-off; the reviewer verdict above does not grant it.",
+  "required": true,
+  "reviewer_may_not_grant": true,
+  "status": "PENDING-OWNER"
+ },
+ "produced_by": {
+  "execution_substrate": "headless-linux",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "proxy_marker_scan": {
+  "all_marked": true,
+  "marked_seat_ids": [
+   "H3"
+  ],
+  "missing_marker_count": 0,
+  "missing_seat_ids": [],
+  "proxied_count": 1,
+  "required_marker": "proxy-origin"
+ },
+ "question_or_target": "Implement tools/council/participants/human.py so a council can seat humans alongside agents, with asynchronous turn windows, reminders, timeout-to-proxy and an explicit human-only mode (spec 10922). Falsifiable question: when a human seat times out, does the council substitute a proxy position and record it AS a proxy, or does the human's silence become an unmarked abstention that shifts the tally?",
+ "residual_unknowns": [
+  {
+   "claim": "Owner sign-off is pending. Technical G-1 does not substitute for the owner half.",
+   "settling_experiment": "Owner records granted=true on this receipt.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "IMP-0265 tools/council/participants/registry.py is absent. human.py carries seat id/kind/origin locally.",
+   "settling_experiment": "Re-seat the mixed roster through the registry once IMP-0265 lands.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "IMP-0302 tools/council/vote/tally.py is absent. This unit recomputes tallies inside human.py with an explicit abstention_policy_id on every decision artifact.",
+   "settling_experiment": "Feed HybridCouncil.turns() into tally.py once IMP-0302 lands.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "11-COUNCIL-SPECIFICATION.md / spec 10922 source file is not on this Linux worktree. Behaviour is taken from the catalog question_or_target.",
+   "settling_experiment": "Diff this module against spec 10922 when the specification is present.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "ast": {
+   "assigns_marker": true,
+   "method_found": true,
+   "pass": true,
+   "path": "tools/council/participants/human.py"
+  },
+  "fresh_context": true,
+  "independent": true,
+  "note": "Adversarial half is probe 2 plus AST check that _apply_timeout_proxy assigns PROXY_ORIGIN_MARKER. The reviewer does not grant the owner-signoff half.",
+  "reviewer_id": "IMP-0345-probe2-marker-negative-control",
+  "starts_from_tests": true,
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0345",
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0345 question_or_target (spec 10922 human-only mode, timeout-to-proxy). 11-COUNCIL-SPECIFICATION.md is absent on this worktree.",
+ "state": "SUCCESS",
+ "tally_recomputations": {
+  "expected_with": {
+   "abstain": 1,
+   "approve": 2,
+   "denominator": 4,
+   "reject": 2,
+   "winner": "TIE"
+  },
+  "expected_without": {
+   "abstain": 2,
+   "approve": 2,
+   "denominator": 3,
+   "reject": 1,
+   "winner": "APPROVE"
+  },
+  "hand_computed": true,
+  "note": "WITH proxy: H3's marked proxy REJECT is counted. WITHOUT proxy: H3 silence is an unmarked abstention. Winner flips TIE \u2192 APPROVE.",
+  "outcome_shifted": true,
+  "with_proxy": {
+   "abstain": 1,
+   "approve": 2,
+   "denominator": 4,
+   "reject": 2,
+   "winner": "TIE"
+  },
+  "without_proxy": {
+   "abstain": 2,
+   "approve": 2,
+   "denominator": 3,
+   "reject": 1,
+   "winner": "APPROVE"
+  }
+ },
+ "test_ids": [
+  "t1-async-window-reminder-timeout-proxy",
+  "t2-marker-load-bearing-negative-control"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0345/probe1_timeout_proxy_tally.py",
+   "detail": "unit_paths=[{'id': 'submit-before-open', 'pass': True}, {'id': 'human-submit-after-close', 'pass': True}, {'id': 'reminder-silent-human-only', 'pass': True}, {'id': 'timeout-to-proxy-marked', 'pass': True}, {'id': 'agent-sync-during-human-window', 'pass': True}, {'id': 'human-only-refuses-agent-still-proxies', 'pass': True}, {'id': 'double-submit-refused', 'pass': True}] with={'approve': 2, 'reject': 2, 'abstain': 1, 'denominator': 4, 'winner': 'TIE'} without={'approve': 2, 'reject': 1, 'abstain': 2, 'denominator': 3, 'winner': 'APPROVE'}",
+   "id": "t1-async-window-reminder-timeout-proxy",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0345/probe2_marker_negative_control.py",
+   "detail": "good_kinds={'H2': 'abstention', 'H3': 'proxy'} bad_kinds={'H2': 'abstention', 'H3': 'abstention'}",
+   "id": "t2-marker-load-bearing-negative-control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:02:46Z",
+  "started_at": "2026-08-25T01:02:46Z"
+ },
+ "title": "Hybrid human and agent participation with asynchronous human turns",
+ "ts": "2026-08-25T01:02:46Z",
+ "unit_id": "IMP-0345"
+}

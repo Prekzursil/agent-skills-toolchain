@@ -1,0 +1,99 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-center/p2-wave/probes/CNL-0031/note.schema.json",
+  "title": "CNL-0031 council design note (local live contract)",
+  "$comment": "The catalog output_schema is command-center/schema/council-design-note.schema.json, a $ref shim to https://ast-integrate.invalid/... that this host cannot fetch. G-1 requires parse+sentinel+named probes, not a remote $ref. This local schema is the contract probe2 actually enforces: negative_controls[].rejects is required so stripping it is a live schema failure, not a vacuous pass.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "unifying_parameter",
+    "fragmentation_threshold",
+    "claims",
+    "fixtures",
+    "evidence",
+    "tests",
+    "negative_controls",
+    "reviewer"
+  ],
+  "properties": {
+    "unit_id": { "const": "CNL-0031" },
+    "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+    "sentinel": { "const": "SUCCESS:CNL-0031" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 80 },
+    "unifying_parameter": {
+      "type": "object",
+      "required": ["name", "symbol"],
+      "properties": {
+        "name": { "const": "partition-grain" },
+        "symbol": { "const": "k" }
+      }
+    },
+    "fragmentation_threshold": {
+      "type": "object",
+      "required": ["crossover_k", "measured"],
+      "properties": {
+        "crossover_k": { "type": "integer", "minimum": 1 },
+        "measured": {
+          "type": "object",
+          "required": ["sweep"],
+          "properties": {
+            "sweep": { "type": "array", "minItems": 3 }
+          }
+        }
+      }
+    },
+    "claims": { "type": "array", "minItems": 4 },
+    "fixtures": { "type": "array", "minItems": 10 },
+    "evidence": { "type": "array", "minItems": 2 },
+    "tests": { "type": "array", "minItems": 2 },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "rejects",
+          "bad_state_output",
+          "good_state_output",
+          "fires_on_bad",
+          "silent_on_good"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "rejects": { "type": "string", "minLength": 8 },
+          "bad_state_output": { "type": "string", "minLength": 8 },
+          "good_state_output": { "type": "string", "minLength": 8 },
+          "fires_on_bad": { "const": true },
+          "silent_on_good": { "const": true }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent", "counterexample"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 8 },
+        "verdict": { "const": "PASS" },
+        "independent": { "const": true },
+        "counterexample": {
+          "type": "object",
+          "required": ["k", "lost_count"],
+          "properties": {
+            "k": { "type": "integer", "minimum": 1 },
+            "lost_count": { "type": "integer", "minimum": 0 }
+          }
+        }
+      }
+    }
+  }
+}

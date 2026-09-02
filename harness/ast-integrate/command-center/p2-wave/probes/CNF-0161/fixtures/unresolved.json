@@ -1,0 +1,42 @@
+{
+  "unresolved_claims": [
+    {
+      "id": "CLAIM-TRI-001",
+      "statement": "The plugin adapter silently degrades on vendor B.",
+      "status": "AMBIGUOUS-CLAIM",
+      "vendor_a_verdict": "CONFIRMED",
+      "vendor_b_verdict": "REFUTED",
+      "vendor_c_verdict": "PARTIAL",
+      "owner_question": "When three vendors return three different verdicts on CLAIM-TRI-001, should the claim close as AMBIGUOUS-CLAIM rather than take a majority or casting vote",
+      "recommendation": "Close CLAIM-TRI-001 as AMBIGUOUS-CLAIM. Do not treat any vendor as a casting vote.",
+      "strongest_tradeoff": "A majority vote would manufacture a verdict the triangulation rule forbids; leaving the row open blocks every consumer that requires a terminal status.",
+      "default_if_unanswered": "Close as AMBIGUOUS-CLAIM; do not count the claim as CONFIRMED or REFUTED.",
+      "impact": "Downstream confirmation rates must keep CLAIM-TRI-001 out of both CONFIRMED and REFUTED denominators until an owner answer or a re-run of settle_claim.py changes the row.",
+      "settling_experiment": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/settle_claim.py --fixture command-center/p2-wave/probes/CNF-0161/fixtures/unresolved.json --claim CLAIM-TRI-001",
+        "expected_observation": "vendor_a_verdict, vendor_b_verdict and vendor_c_verdict are pairwise distinct.",
+        "discriminating_outcome": "Pairwise-distinct => keep AMBIGUOUS-CLAIM. Any two agreeing => the claim is no longer owner-escalation material.",
+        "cost": "one local process, under 30s, no vendor rail, no credential"
+      }
+    },
+    {
+      "id": "CLAIM-TRI-002",
+      "statement": "The hook contract fires twice on the same event under vendor C.",
+      "status": "IRREDUCIBLE",
+      "vendor_a_verdict": "REFUTED",
+      "vendor_b_verdict": "CONFIRMED",
+      "vendor_c_verdict": "NOT-CHECKED",
+      "owner_question": "Should CLAIM-TRI-002 stay owner-escalated while vendor C is NOT-CHECKED, instead of treating the two disagreeing vendors as a two-way vote",
+      "recommendation": "Keep CLAIM-TRI-002 as IRREDUCIBLE until vendor C is checked or the owner accepts the two-way split as terminal.",
+      "strongest_tradeoff": "Collapsing to a two-way vote silently drops the NOT-CHECKED prerequisite; waiting for vendor C delays every downstream gate that needs a terminal row.",
+      "default_if_unanswered": "Keep IRREDUCIBLE; do not convert NOT-CHECKED into a casting vote.",
+      "impact": "CNF-0161 consumers must not count CLAIM-TRI-002 as settled; the missing vendor-C check remains an explicit prerequisite.",
+      "settling_experiment": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0161/settle_claim.py --fixture command-center/p2-wave/probes/CNF-0161/fixtures/unresolved.json --claim CLAIM-TRI-002",
+        "expected_observation": "vendor_c_verdict is NOT-CHECKED while A and B disagree.",
+        "discriminating_outcome": "If vendor C becomes CONFIRMED or REFUTED and matches one side, the claim leaves the owner packet. If it remains NOT-CHECKED, the owner default stays IRREDUCIBLE.",
+        "cost": "one local process, under 30s, no vendor rail, no credential"
+      }
+    }
+  ]
+}

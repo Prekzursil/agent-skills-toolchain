@@ -1,0 +1,32 @@
+name: routing-benchmark
+'on':
+  pull_request: {}
+  push: {}
+  schedule: {}
+  workflow_dispatch: {}
+jobs:
+  routing-benchmark:
+    runs-on: ubuntu-latest
+    name: routing-benchmark (shadow)
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: '3.11'
+    - run: pip install pytest==8.4.2
+    - name: routing benchmark self-test
+      run: python -m pytest hooks/harness-bench/test_bench.py hooks/harness-bench/test_gate.py hooks/semantic-router/test_eval.py
+        ci/tests/test_routing_benchmark_wiring.py -q
+    - name: pull pinned embedding model and verify health
+      run: '# ollama pulls by TAG. The `name@sha256:` form is rejected with # `400 Bad Request: invalid model name` (measured
+        in CI on this workflow''s first run). docker exec "${{ job.services.ollama.id }}" ollama pull "$SEMROUTER_EMBED_MODEL"
+        python hooks/semantic-router/embed.py'
+    - name: pin the regression bar to the base branch (pull_request only)
+      run: BAR="$RUNNER_TEMP/bench-base-baseline.json" echo "BENCH_BASELINE=$BAR" >> "$GITHUB_ENV" git fetch --no-tags --depth=1
+        origin "$BASE_SHA" || true if git show "$BASE_SHA:hooks/harness-bench/baseline.json" > "$BAR"; then echo "pinned the
+        regression bar to base $BASE_SHA:" cat "$BAR" else rm -f "$BAR" echo "base baseline unavailable; the probe will report
+        INDETERMINATE (never PASS)" fi
+      if: github.event_name == 'pull_request'
+    - name: routing regression probe (5-run; shadow)
+      run: python hooks/harness-bench/gate.py --runs 5
+      continue-on-error: true

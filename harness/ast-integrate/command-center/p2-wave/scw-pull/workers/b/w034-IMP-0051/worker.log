@@ -1,0 +1,17 @@
+I'll start from the existing IMP-0051 probe tree and the measurement contract, then resume whatever is already built instead of scraping it.The probe dir currently only has a cloud-ok refute. I’ll pull the catalog unit, receipt, and similar delivered units next so we resume from the real contract.The catalog target is a real taxonomy contract, not a receipt flip. I’ll load the unit spec, delivery predicate, and live plugin error surfaces next.This worktree is sparse—no `platform/plugin`. I’ll confirm what’s on disk, how G-1 is defined, and whether IMP units here were delivered by implementing or by parking.I'll inspect the receipt contract, a delivered IMP receipt, and the fixture plugin so we can implement the taxonomy instead of flipping status.I'll restore the plugin from the clean fixture, then implement the missing taxonomy dimensions, coded raises, tests, and named probes.I'll write the named probes, required tests, and fixtures next so the catalog contract can be re-run.Static scan is green. Next I’ll run the runtime sweep, negative control, and required pytest nodes.**SUCCESS:delivered IMP-0051**
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0051` printed:
+
+`SUCCESS:delivered IMP-0051 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,run_required_tests.py:0,runtime_sweep.py:0,static_scan.py:0`
+
+Cloud-ok was not treated as delivery. The existing refute was right: harvest `UNIT-COMPLETE` wrapped `state=BLOCKED`, the named probes were missing, and the live taxonomy omitted `category` / `severity` / `retryable`.
+
+This pass implemented the catalog target on this tree:
+
+- Restored `platform/plugin` from the on-tree clean fixture, then added the three catalog dimensions to every taxonomy row.
+- Made `tools/plugin/schema/error-taxonomy.schema.json` require those fields instead of rejecting them.
+- Removed the seven uncoded raise sites (process exits are now `sys.exit`; logs/rehearsal use `PluginError`).
+- Joined logs, docs (`ERROR-TAXONOMY.md`), doctor actions, and exit codes on `code`.
+- Added `tools/plugin/tests/test_error_taxonomy.py` with the two required nodes, plus the uncoded-raise negative control.
+
+Named probes re-ran to exit 0. Receipt `command-center/receipts/IMP-0051.json` is `state=SUCCESS`. Per-unit `command-center/p2-wave/probes/IMP-0051/UNIT-ARTIFACT-MANIFEST.json` matches the live LF sha256 `fae4e3043e34fb553bc65a1d0d776e2068bf1db9ca57dd54dfe6b6c52fe177bc`. Global `unit_manifest.py --write` was not run.

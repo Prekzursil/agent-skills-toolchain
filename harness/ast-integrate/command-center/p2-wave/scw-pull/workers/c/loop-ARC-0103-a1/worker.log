@@ -1,0 +1,28 @@
+
+===== launch 2026-08-20T07:44:02Z attempt=1 =====
+I'll start from the existing ARC-0103 probe tree and the unit's current artifacts, then implement anything that's missing before measuring.The probe tree is missing, so I’ll pull the unit spec, the measure contract, and a delivered ARC unit as the implementation template.I’ll inspect delivered ARC probes, the conformance schema, and the dependency contracts so the new unit matches the real delivery contract.I’ll pull the receipt schema, nearby ARC contracts, and any existing schema-negotiation code so the probes exercise a real pair.I’ll confirm how the live receipt consumer treats version 1 versus a version-2 mutant, then implement the probes around that real pair.I have the real v1/v2 pair: live receipts accept version 1 and refuse version 2 with a single `schema_version` error. Next I’ll implement the negotiator, named probes, and packer.The skew-matrix probe still has a duplicate helper; I’ll clean that up, then add the loud-refusal probe and the silent-drop control.**SUCCESS:delivered ARC-0103** — `predicate=delivered state=SUCCESS probes=3 raws=6`
+
+The unit had never been started (`probes/ARC-0103/` was missing). It is now implemented and contract-green on this worktree.
+
+**Negotiation specified and exercised**
+- Version field: `$.schema_version` (receipts/envelopes); `$.compatibility.schema_version` (plugin manifests)
+- Compatibility: consumer at version C with min_supported S accepts producer P iff `S <= P <= C`
+- Incompatible pairs raise `SchemaVersionRefused` and return no decoded object
+
+**Live probes (re-run exit 0)**
+| Probe | Result |
+|---|---|
+| `probe_skew_matrix.py` | 4/4 (producer, consumer) cells in `{1,2}` matched; 0 NOT-CHECKED |
+| `probe_loud_refusal.py` | producer=2/consumer=1 raises; silent-drop mutant returns 4/5 fields (`required_v2` dropped) |
+| `control_silent_drop.py` | fired on bad state, silent on good state |
+
+**Real version-skewed pair:** live `command-center/receipts/TST-0199.json` (`schema_version=1`) validates with 0 errors. The same document with `schema_version=2` yields exactly `schema_version: 1 was expected`.
+
+**Artifacts**
+- Receipt: `command-center/phase4/conformance/ARC-0103.json` (21155 B, `state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0103/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `f451e3ce0d982d84fc40564ab8fa4e95de75fe2456c9f0fa6938364cb2ce5c49`)
+- Handoff: `command-center/p2-wave/probes/ARC-0103/SUBAGENT-RETURN.json`
+
+**Residuals (not blockers):** ARC-0092/0093/0095 contract files are absent; `platform.plugin.manifest.parse` accepts `schema_version=99` (no upper bound). Neither was used as a park.
+
+Git was not mutated. `unit_manifest.py --write` was not run. cloud-ok was not treated as delivery.

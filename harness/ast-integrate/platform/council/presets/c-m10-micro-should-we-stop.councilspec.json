@@ -1,0 +1,133 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-m10-micro-should-we-stop",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide whether a RUNNING council or work unit has met its stopping floors, and if not, name exactly which floor is unmet.",
+    "charter": "The meta-council. Two seats, two minutes, transcript state only. It may not re-litigate the question under discussion; its entire output space is STOP, CONTINUE, or DEFER plus the name of the unmet floor. 'We have talked enough' is not an answer - the floor must be named.",
+    "risk_tier": "low",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "either every minimum-deliberation floor is shown met, or the unmet floor is named exactly",
+      "the verdict cites transcript state (rounds, positions, open objections), not impressions",
+      "no opinion on the underlying question appears in the output"
+    ],
+    "consensus_intent": "adjudicate",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 1 },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 2 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 2, "min": 2, "max": 2 },
+    "roster": [
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist (audits the floors against transcript state)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["stopping rules", "deliberation floors"],
+        "role": "custom:methodologist",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "source_access": ["transcripts"],
+        "effort": "low",
+        "context": {
+          "briefing": "Read the transcript state only. For each floor in the parent council's stopping.minimum_deliberation, report MET or UNMET with the observed number next to the required one."
+        }
+      },
+      {
+        "participant_id": "chair",
+        "display_name": "Chair (rules STOP / CONTINUE / DEFER)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["chairing"],
+        "role": "chair",
+        "authority": "chair",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "low"
+      }
+    ],
+    "role_templates": ["custom:methodologist", "chair"],
+    "conflicts_policy": { "disclosure_required": false, "on_conflict": "disclose_only" }
+  },
+  "preparation": { "research_required": false, "independent_prep": false, "min_sources": 1 },
+  "topology": { "kind": "chair_led", "chair": "chair" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "custom_name": "stopping-rule-audit", "stage_id": "floor-audit", "rounds": 1 }
+    ],
+    "speaking_order": "chair_directed",
+    "rounds": { "min": 1, "max": 1 },
+    "turn": { "max_words": 200 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": false, "max_experiments": 0 }
+  },
+  "budgets": { "effort": "low", "time_minutes": 2, "tokens": 8000, "tool_calls": 4, "turns": 2 },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "metric": "custom:floor_met_or_named",
+      "op": "==",
+      "value": true,
+      "value_type": "boolean",
+      "producer": "stage 'floor-audit': every floor in the PARENT council's stopping.minimum_deliberation is marked MET with an observed value, or exactly one UNMET floor is named",
+      "note": "Single-leaf rule, and deliberately self-referential: this council stops when it has AUDITED the floors, not when the parent has met them. The floor list is the dial (floors)."
+    },
+    "minimum_deliberation": { "min_rounds": 1, "every_participant_spoke": true },
+    "hard_caps": { "max_rounds": 1, "max_minutes": 2, "on_cap": "escalate_to_owner" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1 },
+    "resolution": ["chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 1, "to": "chair" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["endless_debate", "premature_convergence", "circular_debate", "prompt_injection"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["transcript", "final_recommendation", "resumable_state"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 30 },
+    "persistence": { "store": "ledger", "checkpoint_every_round": false }
+  },
+  "metadata": {
+    "title": "C-M10 micro-should-we-stop",
+    "notes": "HUMAN-STOP: custom:floor_met_or_named == true | EDITABLE-DIALS: the producer text on the single stopping leaf, i.e. which parent floors are audited (floors) . budgets.time_minutes | NO-SOURCE-EXPRESSION: the custom leaf carries producer + note, which SEM-001 exact-equality forbids alongside source_expression; the HUMAN-STOP line is proven equivalent by _probe_lane1_presets.py | OUTCOME-MAP: PROCEED and STOP -> decision . DEFER -> no_decision | VOTING-MAP: design chair -> voting.method=synthesis_only with topology.chair and tie_break=chair | SELF-REFERENCE: this preset gates on auditing the floors, not on the parent meeting them, so it can never deadlock waiting for the council it is measuring | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:10760-10761",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1282-1295"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-M10 micro-should-we-stop",
+      "protocol P57 stopping-rule-tournament"
+    ]
+  }
+}

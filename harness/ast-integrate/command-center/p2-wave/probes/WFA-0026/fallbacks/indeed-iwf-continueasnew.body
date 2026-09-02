@@ -1,0 +1,9 @@
+ContinueAsNew in Temporal (or Cadence) workflow · indeedeng/iwf Wiki
+
+Temporal has a 50K history event length limit and 50MB size limit for each execution. If the workflows reach the limit, the Temporal server will immediately terminate them.
+
+As a result, continue as new is needed to avoid running into the history scalability issue. Users call continueAsNew after packing stack state into a snapshot.
+
+Drain all received signals in one workflow task. Therefore, if using APIs to proactively receive signals like Golang ReceiveChanel, you need to do drainAllSignalsInOneWorkflowTask.
+
+This is a base of the real production iWF code to drain the threads. The implementation is more complicated because we also have to optimize the workflow, so that if a workflow can fail/complete early, and let it fail/complete before continueAsNew, but this should give enough understand to the feature and its implementation.

@@ -1,0 +1,2434 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1047,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/independence-audit.schema.json",
+      "role": "supporting",
+      "sha256": "dee08049d3ea16c8915b577929e0b95791956cda41371aeecb439e942b76db4e"
+    },
+    {
+      "bytes": 12726,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/SYN-0037/audit.py",
+      "role": "supporting",
+      "sha256": "6f9883717b131151f9eada5d60c991e72765d8ef3f5217abeaa73e5a96d9c536"
+    },
+    {
+      "bytes": 3284,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/SYN-0037/fixtures.py",
+      "role": "fixture",
+      "sha256": "598bcf9e482cbd115e610c8e5421a89b325e005563a249d2a9c8ffd8965a4428"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/SYN-0037.json",
+      "consumer": "command-center/p2-wave/probes/SYN-0037/schema_local.py",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 command-center/p2-wave/probes/SYN-0037/schema_local.py",
+        "exit_code": 0,
+        "fingerprint": "9e29276ced027ee9ba62d600c4d33168",
+        "method": "schema-validate",
+        "raw_output": "errors_for(doc)=[]",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/SYN-0037/probe1_planted_self_review.py",
+      "claim": "Planted self-review (author_id=reviewer_id=agent-alpha) is detected; a missing reviewer_id is classified missing-reviewer-field, not skipped. Skip-mutant undercounts.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0037/probe1_planted_self_review.py",
+          "exit_code": 0,
+          "fingerprint": "66a9957b5624c8bd90915b7789093a02",
+          "method": "command",
+          "raw_output": "planted self-review detected; missing reviewer is a violation; live_missing_field_count=43",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c fixtures.planted_self_review+planted_missing_reviewer",
+          "exit_code": 0,
+          "fingerprint": "4d30999430f6974a29a28d495edbf499",
+          "method": "test-run",
+          "raw_output": "self_review_agents=['agent-alpha']; skip_mutant_undercounts=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/SYN-0037/probe2_two_cycle_and_missing_field.py",
+      "claim": "Planted two-cycle agent-a \u2194 agent-b is detected by DFS and by an independent Kahn topo-sort leftover. Live author\u00d7reviewer intersection and directed cycles are published; missing_field_count is published as a violation count, not a skip.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0037/probe2_two_cycle_and_missing_field.py",
+          "exit_code": 0,
+          "fingerprint": "db52807476d0f29d913f8def474e64dc",
+          "method": "command",
+          "raw_output": "planted two-cycle detected; missing_field_count=43 published",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c audit.kahn_cyclic vs audit.directed_cycles on live chain_edges",
+          "exit_code": 0,
+          "fingerprint": "422bb4feff9e9b3036ed8e66adf6ef4d",
+          "method": "static-analysis",
+          "raw_output": "intersection=[]; cycles=[]; kahn_cyclic=False; missing_field_count=43",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false,
+    "notes": "G-1 SYN-0037: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. missing_field_count is a live ledger measurement (probe2 refreshes it). SUCCESS:SYN-0037 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both planted violations were detected and the missing-field count is published. Any other terminal state is FAILED:SYN-0037 <classification> with the diagnostic tail attached."
+  },
+  "manifest_registration": {
+    "entry_id": "SYN-0037",
+    "manifest_path": "command-center/p2-wave/probes/SYN-0037/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "description": "Fixture SYN-PLANT-SELF has author_id=reviewer_id=agent-alpha. Detector must fire; known-good is silent.",
+      "fired_on_bad_state": true,
+      "id": "NC-PLANTED-SELF-REVIEW",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Fixtures SYN-PLANT-C1/C2 form agent-a \u2194 agent-b. DFS and Kahn must both see the cycle.",
+      "fired_on_bad_state": true,
+      "id": "NC-PLANTED-TWO-CYCLE",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "missing_is_violation=False drops receipts without reviewer_id (failure class missing-reviewer-field-skipped) and must undercount relative to the live detector.",
+      "fired_on_bad_state": true,
+      "id": "NC-SKIP-MUTANT-MISSING-REVIEWER",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "xai"
+  },
+  "report": {
+    "author_reviewer_intersection": [],
+    "bipartite_graph": {
+      "author_partition": [
+        "anthropic|opus|durability-engineer",
+        "anthropic|opus|implementer",
+        "cursor|grok-4.6|calibration-analyst",
+        "cursor|grok-4.6|conformance-engineer",
+        "cursor|grok-4.6|fault-injection-engineer",
+        "cursor|grok-4.6|implementer",
+        "cursor|grok-4.6|platform-test-engineer",
+        "cursor|grok-4.6|release-test-engineer",
+        "cursor|grok-4.6|resume-tester",
+        "cursor|grok-4.6|runtime-architect",
+        "cursor|grok-4.6|schema-conformance-tester",
+        "cursor|grok-4.6|security-implementer",
+        "cursor|grok-4.6|systems-implementer",
+        "cursor|grok-4.6|test-architect",
+        "cursor|grok-4.6|test-engineer",
+        "grok|grok-4.6|implementer",
+        "grok|grok-4.6|p2-deliver-implementer",
+        "grok|grok-4.6|p2-deliver-worker",
+        "grok|grok-4.6|schema-conformance-tester",
+        "grok|grok-4.6|shell-portability-tester",
+        "grok|grok-4|stale-premise-refuter",
+        "grok|grok-build|paired-independent-refuter",
+        "openai|GPT-5 Codex|headless Prompt Two R2E worker",
+        "openai|codex-cli-default|security-tester",
+        "openai|codex-cli-default|supply-chain-auditor",
+        "openai|gpt-5.6-sol|headless Prompt Two R2E implement worker",
+        "openai|gpt-5.6-sol|headless Prompt Two R2E refute worker",
+        "openai|gpt-5.6-sol|reliability-engineer",
+        "openai|gpt-5.6-sol|resume-tester",
+        "openai|gpt-5.6-sol|scheduler-tester",
+        "openai|gpt-5|Prompt Two R2E refute worker",
+        "openai|gpt-5|adversarial-refuter",
+        "openai|gpt-5|cache-integrity-tester",
+        "openai|gpt-5|defect-archaeologist",
+        "openai|gpt-5|fault-injection-refuter",
+        "openai|gpt-5|headless Prompt Two R2E refute worker",
+        "openai|gpt-5|headless-prompt-two-r2e-refute-worker",
+        "openai|gpt-5|headless-r2e-refute-worker",
+        "openai|gpt-5|headless-r2e-worker",
+        "openai|gpt-5|headless-refute-worker",
+        "openai|gpt-5|oracle-analyst",
+        "openai|gpt-5|portability-tester",
+        "openai|gpt-5|prompt-two-r2e-refute-worker",
+        "openai|gpt-5|security-reviewer",
+        "xai|grok-4.6|P2-deliver implementer",
+        "xai|grok-4.6|Prompt Two P2-deliver worker",
+        "xai|grok-4.6|accessibility-tester",
+        "xai|grok-4.6|benchmark-engineer",
+        "xai|grok-4.6|cache-integrity-tester",
+        "xai|grok-4.6|completion-predicate-tester",
+        "xai|grok-4.6|confirmation-architect",
+        "xai|grok-4.6|conformance-engineer",
+        "xai|grok-4.6|detector-auditor",
+        "xai|grok-4.6|docs-conformance-tester",
+        "xai|grok-4.6|evidence-auditor",
+        "xai|grok-4.6|fault-injection-tester",
+        "xai|grok-4.6|headless-prompt-two-g1-ground-worker",
+        "xai|grok-4.6|implementer",
+        "xai|grok-4.6|independent-confirmer",
+        "xai|grok-4.6|observability-tester",
+        "xai|grok-4.6|p2-deliver",
+        "xai|grok-4.6|p2-deliver-implementer",
+        "xai|grok-4.6|p2-deliver-named-probe-worker",
+        "xai|grok-4.6|p2-deliver-named-probes",
+        "xai|grok-4.6|p2-deliver-worker",
+        "xai|grok-4.6|performance-tester",
+        "xai|grok-4.6|platform-test-engineer",
+        "xai|grok-4.6|portability-tester",
+        "xai|grok-4.6|release-test-engineer",
+        "xai|grok-4.6|reproduction-engineer",
+        "xai|grok-4.6|scheduler-tester",
+        "xai|grok-4.6|schema-designer / P2-deliver worker",
+        "xai|grok-4.6|security-tester",
+        "xai|grok-4.6|supply-chain-auditor",
+        "xai|grok-4.6|systems-implementer",
+        "xai|grok|adversarial-refuter",
+        "xai|grok|auditor",
+        "xai|grok|completion-predicate-tester",
+        "xai|grok|concurrency-tester",
+        "xai|grok|cost-analyst",
+        "xai|grok|independent-confirmer",
+        "xai|grok|observability-tester",
+        "xai|grok|p2-deliver",
+        "xai|grok|p2-wave-named-probe-implementer",
+        "xai|grok|portability-tester",
+        "xai|grok|security-exploit-engineer",
+        "xai|grok|security-tester",
+        "xai|grok|shell-portability-tester"
+      ],
+      "edges": [
+        {
+          "author_id": "grok|grok-build|paired-independent-refuter",
+          "path": "command-center/receipts/ADV-0009.json",
+          "reviewer_id": "NOT-ASSIGNED"
+        },
+        {
+          "author_id": "xai|grok|adversarial-refuter",
+          "path": "command-center/receipts/ADV-0010.json",
+          "reviewer_id": "grok-p2-wave-ADV-0010-independent"
+        },
+        {
+          "author_id": "xai|grok|adversarial-refuter",
+          "path": "command-center/receipts/ADV-0011.json",
+          "reviewer_id": "p2-wave-adv-0011-xai-grok"
+        },
+        {
+          "author_id": "grok|grok-4|stale-premise-refuter",
+          "path": "command-center/receipts/ADV-0012.json",
+          "reviewer_id": "ADV-0012-P2-REVIEW-GROK-2026-08-16"
+        },
+        {
+          "author_id": "xai|grok|adversarial-refuter",
+          "path": "command-center/receipts/ADV-0017.json",
+          "reviewer_id": "UNASSIGNED"
+        },
+        {
+          "author_id": "xai|grok|adversarial-refuter",
+          "path": "command-center/receipts/ADV-0020.json",
+          "reviewer_id": "grok-p2-wave-ADV-0020-independent"
+        },
+        {
+          "author_id": "xai|grok|security-exploit-engineer",
+          "path": "command-center/receipts/ADV-0025.json",
+          "reviewer_id": "grok-p2-wave-ADV-0025-linux-rerun"
+        },
+        {
+          "author_id": "xai|grok|auditor",
+          "path": "command-center/receipts/AUD-0006.json",
+          "reviewer_id": "UNASSIGNED-build-lane-cannot-self-review"
+        },
+        {
+          "author_id": "openai|gpt-5|Prompt Two R2E refute worker",
+          "path": "command-center/receipts/BLD-0001.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|Prompt Two R2E refute worker",
+          "path": "command-center/receipts/BLD-0002.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|docs-conformance-tester",
+          "path": "command-center/receipts/BLD-0004.json",
+          "reviewer_id": "grok-p2-wave-BLD-0004-verify_measurement"
+        },
+        {
+          "author_id": "openai|gpt-5|Prompt Two R2E refute worker",
+          "path": "command-center/receipts/BLD-0006.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok|portability-tester",
+          "path": "command-center/receipts/BLD-0008.json",
+          "reviewer_id": "grok-p2-wave-bld0008-probe2-reviewer"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-named-probes",
+          "path": "command-center/receipts/BLD-0010.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|Prompt Two P2-deliver worker",
+          "path": "command-center/receipts/BLD-0016.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|headless Prompt Two R2E refute worker",
+          "path": "command-center/receipts/BLD-0023.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12"
+        },
+        {
+          "author_id": "openai|gpt-5|defect-archaeologist",
+          "path": "command-center/receipts/BLD-0024.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|Prompt Two P2-deliver worker",
+          "path": "command-center/receipts/BLD-0027.json",
+          "reviewer_id": "grok-p2-wave-BLD-0027-network-partition-rederive"
+        },
+        {
+          "author_id": "xai|grok-4.6|detector-auditor",
+          "path": "command-center/receipts/BLD-0028.json",
+          "reviewer_id": "grok-4.6-p2-deliver-verify_census"
+        },
+        {
+          "author_id": "openai|gpt-5|prompt-two-r2e-refute-worker",
+          "path": "command-center/receipts/BLD-0031.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|oracle-analyst",
+          "path": "command-center/receipts/BLD-0040.json",
+          "reviewer_id": "grok-p2-wave-BLD-0040-independent"
+        },
+        {
+          "author_id": "openai|gpt-5|adversarial-refuter",
+          "path": "command-center/receipts/BLD-0041.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-worker",
+          "path": "command-center/receipts/BLD-0042.json",
+          "reviewer_id": "grok-p2-wave-bld0042-raw-refuter"
+        },
+        {
+          "author_id": "openai|gpt-5.6-sol|reliability-engineer",
+          "path": "command-center/receipts/BLD-0044.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|headless Prompt Two R2E refute worker",
+          "path": "command-center/receipts/BLD-0045.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|conformance-engineer",
+          "path": "command-center/receipts/BLD-0047.json",
+          "reviewer_id": "grok-p2-wave-BLD-0047-independent"
+        },
+        {
+          "author_id": "openai|gpt-5.6-sol|headless Prompt Two R2E refute worker",
+          "path": "command-center/receipts/BLD-0049.json",
+          "reviewer_id": "prompt-two-r2e-refute-stage-openai-2026-08-16"
+        },
+        {
+          "author_id": "openai|GPT-5 Codex|headless Prompt Two R2E worker",
+          "path": "command-center/receipts/BLD-0052.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-worker",
+          "path": "command-center/receipts/BLD-0055.json",
+          "reviewer_id": "probe2-independent-refit"
+        },
+        {
+          "author_id": "xai|grok|cost-analyst",
+          "path": "command-center/receipts/BLD-0056.json",
+          "reviewer_id": "grok-p2-wave-bld0056-second-filesystem"
+        },
+        {
+          "author_id": "openai|gpt-5.6-sol|reliability-engineer",
+          "path": "command-center/receipts/BLD-0057.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5.6-sol|headless Prompt Two R2E implement worker",
+          "path": "command-center/receipts/BLD-0058.json",
+          "reviewer_id": "grok-p2-wave-BLD-0058-independent"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/CC-0001.json",
+          "reviewer_id": "grok-p2-deliver-CC-0001-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/CC-0002.json",
+          "reviewer_id": "grok-p2-wave-cc0002-raw-refuter"
+        },
+        {
+          "author_id": "grok|grok-4.6|implementer",
+          "path": "command-center/receipts/CC-0007.json",
+          "reviewer_id": "grok-p2-deliver-CC-0007-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/CC-0010.json",
+          "reviewer_id": "grok-p2-deliver-CC-0010-racer"
+        },
+        {
+          "author_id": "openai|gpt-5|security-reviewer",
+          "path": "command-center/receipts/CC-0011.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/CC-0015.json",
+          "reviewer_id": "grok-p2-wave-cc0015-independent-texts"
+        },
+        {
+          "author_id": "xai|grok-4.6|confirmation-architect",
+          "path": "command-center/receipts/CNF-0129.json",
+          "reviewer_id": "grok-p2-deliver-CNF-0129"
+        },
+        {
+          "author_id": "xai|grok-4.6|reproduction-engineer",
+          "path": "command-center/receipts/CNF-0145.json",
+          "reviewer_id": "grok-p2-wave-cnf0145-probe2-verifier"
+        },
+        {
+          "author_id": "xai|grok|independent-confirmer",
+          "path": "command-center/receipts/CNF-0153.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|evidence-auditor",
+          "path": "command-center/receipts/CNF-0162.json",
+          "reviewer_id": "grok-p2-wave-cnf0162-control-planter"
+        },
+        {
+          "author_id": "xai|grok-4.6|independent-confirmer",
+          "path": "command-center/receipts/CNF-0166.json",
+          "reviewer_id": "grok-p2-deliver-CNF-0166-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|evidence-auditor",
+          "path": "command-center/receipts/CNF-0167.json",
+          "reviewer_id": "cnf0167-event-log-only-rederive"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-worker",
+          "path": "command-center/receipts/CNF-0169.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-named-probe-worker",
+          "path": "command-center/receipts/CNF-0171.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-prompt-two-r2e-refute-worker",
+          "path": "command-center/receipts/CNF-0188.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok|p2-wave-named-probe-implementer",
+          "path": "command-center/receipts/IMP-0001.json",
+          "reviewer_id": "grok-p2-wave-IMP-0001-raw-rederive"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0021.json",
+          "reviewer_id": "grok-p2-wave-imp0021-raw-refuter"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0029.json",
+          "reviewer_id": "p2-deliver-imp-0029-sigint"
+        },
+        {
+          "author_id": "xai|grok-4.6|P2-deliver implementer",
+          "path": "command-center/receipts/IMP-0051.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0067.json",
+          "reviewer_id": "grok-p2-wave-IMP-0067-old-client"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0084.json",
+          "reviewer_id": "IMP-0084-probe2-determinism-reviewer"
+        },
+        {
+          "author_id": "grok|grok-4.6|p2-deliver-implementer",
+          "path": "command-center/receipts/IMP-0129.json",
+          "reviewer_id": "grok-p2-wave-IMP-0129-independent-probe-rerun"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0138.json",
+          "reviewer_id": "IMP-0138-probe2-family-coverage-and-substring-mutant"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0150.json",
+          "reviewer_id": "grok-p2-deliver-IMP-0150-xai"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0156.json",
+          "reviewer_id": "IMP-0156-probe2-redistribution-gate"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0165.json",
+          "reviewer_id": "IMP-0165-probe2-unknown-rate-and-nearest-neighbour-mutant"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0174.json",
+          "reviewer_id": "IMP-0174-probe2-planted-orphan-and-keyword-lookalike"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0183.json",
+          "reviewer_id": "IMP-0183-probe2-planted-lossy-core"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0192.json",
+          "reviewer_id": "IMP-0192-probe2-library-false-positives"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0219.json",
+          "reviewer_id": "IMP-0219-probe2-progress-stream-and-parse-mutant"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0228.json",
+          "reviewer_id": "IMP-0228-probe2-zero-dispatch-and-clock-free-AST"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0237.json",
+          "reviewer_id": "IMP-0237-probe2-impossibility-and-distinct-exits"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0246.json",
+          "reviewer_id": "IMP-0246-probe2-prioritization-repro-and-ast"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0255.json",
+          "reviewer_id": "IMP-0255-probe2-independent-benchmark-rerun"
+        },
+        {
+          "author_id": "anthropic|opus|implementer",
+          "path": "command-center/receipts/IMP-0261.json",
+          "reviewer_id": "grok-p2-wave-IMP-0261-raw-refuter"
+        },
+        {
+          "author_id": "cursor|grok-4.6|runtime-architect",
+          "path": "command-center/receipts/IMP-0264.json",
+          "reviewer_id": "IMP-0264-probe2-callgraph-bypass-mutant"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0273.json",
+          "reviewer_id": "IMP-0273-probe2-agreeing-refuter-spread-flag"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0282.json",
+          "reviewer_id": "IMP-0282-probe2-moderator-capture"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0318.json",
+          "reviewer_id": "IMP-0318-probe2-negative-controls"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0336.json",
+          "reviewer_id": "IMP-0336-reviewer-silent-drop"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0345.json",
+          "reviewer_id": "IMP-0345-probe2-marker-negative-control"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0354.json",
+          "reviewer_id": "IMP-0354-probe2-seed-removed"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0363.json",
+          "reviewer_id": "IMP-0363-probe2-correlation-and-planted-gap"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0426.json",
+          "reviewer_id": "IMP-0426-probe2-mcp-both-states"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0433.json",
+          "reviewer_id": "grok-p2-wave-imp0433-g1"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0435.json",
+          "reviewer_id": "IMP-0435-probe2-noop-mode"
+        },
+        {
+          "author_id": "xai|grok-4.6|systems-implementer",
+          "path": "command-center/receipts/IMP-0440.json",
+          "reviewer_id": "grok-p2-deliver-IMP-0440-xai"
+        },
+        {
+          "author_id": "cursor|grok-4.6|systems-implementer",
+          "path": "command-center/receipts/IMP-0444.json",
+          "reviewer_id": "IMP-0444-probe2-readout-not-from-config"
+        },
+        {
+          "author_id": "cursor|grok-4.6|implementer",
+          "path": "command-center/receipts/IMP-0453.json",
+          "reviewer_id": "IMP-0453-probe2-cleanup-mutation"
+        },
+        {
+          "author_id": "cursor|grok-4.6|security-implementer",
+          "path": "command-center/receipts/IMP-0480.json",
+          "reviewer_id": "IMP-0480-probe2-reviewer-ast-novel"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-prompt-two-r2e-refute-worker",
+          "path": "command-center/receipts/REL-0001.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12"
+        },
+        {
+          "author_id": "xai|grok-4.6|schema-designer / P2-deliver worker",
+          "path": "command-center/receipts/REL-0002.json",
+          "reviewer_id": "grok-p2-wave-rel0002-schema-refuter"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/SYN-0019.json",
+          "reviewer_id": "SYN-0019-probe2-staleness-and-clean"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/SYN-0037.json",
+          "reviewer_id": "SYN-0037-probe2-two-cycle-and-missing-field"
+        },
+        {
+          "author_id": "anthropic|opus|durability-engineer",
+          "path": "command-center/receipts/SYN-0046.json",
+          "reviewer_id": "SYN-0046-probe1-detector-control"
+        },
+        {
+          "author_id": "cursor|grok-4.6|test-architect",
+          "path": "command-center/receipts/TST-0027.json",
+          "reviewer_id": "TST-0027-probe2-replay-and-ignore-seed-mutant"
+        },
+        {
+          "author_id": "xai|grok-4.6|conformance-engineer",
+          "path": "command-center/receipts/TST-0036.json",
+          "reviewer_id": "TST-0036-probe2-security-refuter"
+        },
+        {
+          "author_id": "cursor|grok-4.6|conformance-engineer",
+          "path": "command-center/receipts/TST-0045.json",
+          "reviewer_id": "TST-0045-probe2-both-states"
+        },
+        {
+          "author_id": "cursor|grok-4.6|platform-test-engineer",
+          "path": "command-center/receipts/TST-0054.json",
+          "reviewer_id": "TST-0054-probe2-live-parser-matrix"
+        },
+        {
+          "author_id": "xai|grok-4.6|platform-test-engineer",
+          "path": "command-center/receipts/TST-0063.json",
+          "reviewer_id": "TST-0063-probe2-switch-logged"
+        },
+        {
+          "author_id": "xai|grok-4.6|release-test-engineer",
+          "path": "command-center/receipts/TST-0072.json",
+          "reviewer_id": "TST-0072-os.walk-second-inventory"
+        },
+        {
+          "author_id": "cursor|grok-4.6|release-test-engineer",
+          "path": "command-center/receipts/TST-0081.json",
+          "reviewer_id": "TST-0081-probe2-polluted-gate"
+        },
+        {
+          "author_id": "cursor|grok-4.6|fault-injection-engineer",
+          "path": "command-center/receipts/TST-0090.json",
+          "reviewer_id": "TST-0090-probe2-timeout-only-mutant"
+        },
+        {
+          "author_id": "cursor|grok-4.6|fault-injection-engineer",
+          "path": "command-center/receipts/TST-0117.json",
+          "reviewer_id": "TST-0117-probe2-minimise-and-replay"
+        },
+        {
+          "author_id": "openai|gpt-5|fault-injection-refuter",
+          "path": "command-center/receipts/TST-0129.json",
+          "reviewer_id": "openai-headless-refuter-TST-0129"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-prompt-two-r2e-refute-worker",
+          "path": "command-center/receipts/TST-0130.json",
+          "reviewer_id": "prompt-two-r2e-refute-TST-0130"
+        },
+        {
+          "author_id": "xai|grok-4.6|fault-injection-tester",
+          "path": "command-center/receipts/TST-0131.json",
+          "reviewer_id": "grok-p2-deliver-TST-0131-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-named-probe-worker",
+          "path": "command-center/receipts/TST-0135.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|scheduler-tester",
+          "path": "command-center/receipts/TST-0140.json",
+          "reviewer_id": "grok-p2-deliver-TST-0140-eventlog-refuter"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-prompt-two-r2e-refute-worker",
+          "path": "command-center/receipts/TST-0141.json",
+          "reviewer_id": "prompt-two-r2e-refute-TST-0141"
+        },
+        {
+          "author_id": "openai|gpt-5.6-sol|scheduler-tester",
+          "path": "command-center/receipts/TST-0142.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok|completion-predicate-tester",
+          "path": "command-center/receipts/TST-0144.json",
+          "reviewer_id": "grok-p2-deliver-TST-0144-xai"
+        },
+        {
+          "author_id": "xai|grok|completion-predicate-tester",
+          "path": "command-center/receipts/TST-0145.json",
+          "reviewer_id": "grok-p2-wave-tst0145-linux-raw-refuter"
+        },
+        {
+          "author_id": "xai|grok-4.6|completion-predicate-tester",
+          "path": "command-center/receipts/TST-0147.json",
+          "reviewer_id": "codex-tst0147-review"
+        },
+        {
+          "author_id": "xai|grok|observability-tester",
+          "path": "command-center/receipts/TST-0150.json",
+          "reviewer_id": "grok-p2-wave-tst0150-linux-remesurer"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-r2e-refute-worker",
+          "path": "command-center/receipts/TST-0151.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|observability-tester",
+          "path": "command-center/receipts/TST-0153.json",
+          "reviewer_id": "grok-p2-wave-tst0153-g1-remeasure"
+        },
+        {
+          "author_id": "xai|grok-4.6|observability-tester",
+          "path": "command-center/receipts/TST-0154.json",
+          "reviewer_id": "tst-0154-second-process-named-probe-rerun"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-r2e-refute-worker",
+          "path": "command-center/receipts/TST-0155.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-r2e-refute-worker",
+          "path": "command-center/receipts/TST-0158.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "grok|grok-4.6|p2-deliver-worker",
+          "path": "command-center/receipts/TST-0159.json",
+          "reviewer_id": "fresh-context-adversarial-tst0159"
+        },
+        {
+          "author_id": "xai|grok|concurrency-tester",
+          "path": "command-center/receipts/TST-0160.json",
+          "reviewer_id": "tst0160-probe-b-ast-verifier"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-r2e-worker",
+          "path": "command-center/receipts/TST-0161.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|implementer",
+          "path": "command-center/receipts/TST-0162.json",
+          "reviewer_id": "resume_oracle.py"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver",
+          "path": "command-center/receipts/TST-0163.json",
+          "reviewer_id": "grok-p2-wave-tst0163-raw-refuter"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver",
+          "path": "command-center/receipts/TST-0164.json",
+          "reviewer_id": "xai-grok-4.6-adversarial-fresh-tst0164"
+        },
+        {
+          "author_id": "openai|gpt-5.6-sol|resume-tester",
+          "path": "command-center/receipts/TST-0165.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok|p2-deliver",
+          "path": "command-center/receipts/TST-0166.json",
+          "reviewer_id": "grok-p2-deliver-TST-0166-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-worker",
+          "path": "command-center/receipts/TST-0167.json",
+          "reviewer_id": "grok-p2-wave-tst0167-raw-refuter"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-refute-worker",
+          "path": "command-center/receipts/TST-0168.json",
+          "reviewer_id": "prompt-two-r2e-refute-TST-0168"
+        },
+        {
+          "author_id": "cursor|grok-4.6|resume-tester",
+          "path": "command-center/receipts/TST-0171.json",
+          "reviewer_id": "TST-0171-probe2-fifty-trial-determinism"
+        },
+        {
+          "author_id": "xai|grok-4.6|cache-integrity-tester",
+          "path": "command-center/receipts/TST-0172.json",
+          "reviewer_id": "TST-0172-name-version-mutant"
+        },
+        {
+          "author_id": "openai|gpt-5|headless-refute-worker",
+          "path": "command-center/receipts/TST-0173.json",
+          "reviewer_id": "grok-p2-deliver-TST-0173-independent"
+        },
+        {
+          "author_id": "openai|gpt-5|Prompt Two R2E refute worker",
+          "path": "command-center/receipts/TST-0175.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "openai|gpt-5|cache-integrity-tester",
+          "path": "command-center/receipts/TST-0176.json",
+          "reviewer_id": "grok-p2-deliver-TST-0176-linux"
+        },
+        {
+          "author_id": "cursor|grok-4.6|schema-conformance-tester",
+          "path": "command-center/receipts/TST-0180.json",
+          "reviewer_id": "TST-0180-probe2-collision-seed"
+        },
+        {
+          "author_id": "grok|grok-4.6|schema-conformance-tester",
+          "path": "command-center/receipts/TST-0182.json",
+          "reviewer_id": "grok-p2-deliver-TST-0182-independent"
+        },
+        {
+          "author_id": "grok|grok-4.6|shell-portability-tester",
+          "path": "command-center/receipts/TST-0186.json",
+          "reviewer_id": "grok-p2-wave-TST-0186-independent-probe-rerun"
+        },
+        {
+          "author_id": "xai|grok|shell-portability-tester",
+          "path": "command-center/receipts/TST-0191.json",
+          "reviewer_id": "grok-p2-wave-tst0191-linux-refuter"
+        },
+        {
+          "author_id": "xai|grok-4.6|portability-tester",
+          "path": "command-center/receipts/TST-0197.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|portability-tester",
+          "path": "command-center/receipts/TST-0199.json",
+          "reviewer_id": "grok-p2-wave-TST-0199-independent"
+        },
+        {
+          "author_id": "openai|gpt-5|portability-tester",
+          "path": "command-center/receipts/TST-0204.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok|security-tester",
+          "path": "command-center/receipts/TST-0207.json",
+          "reviewer_id": "TST-0207-probe2-independent-zipfile-census"
+        },
+        {
+          "author_id": "openai|codex-cli-default|security-tester",
+          "path": "command-center/receipts/TST-0208.json",
+          "reviewer_id": "grok-p2-wave-TST-0208-independent"
+        },
+        {
+          "author_id": "xai|grok-4.6|headless-prompt-two-g1-ground-worker",
+          "path": "command-center/receipts/TST-0212.json",
+          "reviewer_id": "grok-p2-wave-tst0212-security"
+        },
+        {
+          "author_id": "openai|codex-cli-default|supply-chain-auditor",
+          "path": "command-center/receipts/TST-0215.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver",
+          "path": "command-center/receipts/TST-0217.json",
+          "reviewer_id": "grok-p2-wave-tst0217-linux-refuter"
+        },
+        {
+          "author_id": "xai|grok-4.6|supply-chain-auditor",
+          "path": "command-center/receipts/TST-0218.json",
+          "reviewer_id": "grok-p2-g1-linux-TST-0218-rederive"
+        },
+        {
+          "author_id": "openai|codex-cli-default|supply-chain-auditor",
+          "path": "command-center/receipts/TST-0220.json",
+          "reviewer_id": "grok-p2-deliver-TST-0220-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver",
+          "path": "command-center/receipts/TST-0221.json",
+          "reviewer_id": "grok-p2-wave-TST-0221-independent"
+        },
+        {
+          "author_id": "xai|grok-4.6|security-tester",
+          "path": "command-center/receipts/TST-0222.json",
+          "reviewer_id": "grok-p2-wave-tst0222-probe2-filesystem"
+        },
+        {
+          "author_id": "xai|grok|security-tester",
+          "path": "command-center/receipts/TST-0224.json",
+          "reviewer_id": "grok-p2-deliver-tst0224-linux"
+        },
+        {
+          "author_id": "xai|grok-4.6|security-tester",
+          "path": "command-center/receipts/TST-0228.json",
+          "reviewer_id": "grok-p2-wave-TST-0228-independent"
+        },
+        {
+          "author_id": "xai|grok-4.6|benchmark-engineer",
+          "path": "command-center/receipts/TST-0230.json",
+          "reviewer_id": "grok-p2-deliver-TST-0230-xai"
+        },
+        {
+          "author_id": "xai|grok-4.6|performance-tester",
+          "path": "command-center/receipts/TST-0243.json",
+          "reviewer_id": "TST-0243-probe2-short-timeout-control"
+        },
+        {
+          "author_id": "xai|grok-4.6|accessibility-tester",
+          "path": "command-center/receipts/TST-0244.json",
+          "reviewer_id": "grok-p2-wave-tst0244-this-tree"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-implementer",
+          "path": "command-center/receipts/TST-0246.json",
+          "reviewer_id": "grok-p2-deliver-TST-0246-raw-rederive"
+        },
+        {
+          "author_id": "xai|grok-4.6|headless-prompt-two-g1-ground-worker",
+          "path": "command-center/receipts/TST-0247.json",
+          "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)"
+        },
+        {
+          "author_id": "xai|grok-4.6|p2-deliver-worker",
+          "path": "command-center/receipts/TST-0250.json",
+          "reviewer_id": "grok-p2-wave-tst0250-deliver"
+        },
+        {
+          "author_id": "xai|grok-4.6|docs-conformance-tester",
+          "path": "command-center/receipts/TST-0252.json",
+          "reviewer_id": "TST-0252-probe2-regression-seed-and-name-only-mutant"
+        },
+        {
+          "author_id": "xai|grok-4.6|docs-conformance-tester",
+          "path": "command-center/receipts/TST-0253.json",
+          "reviewer_id": "grok-p2-wave-tst0253-raw-refuter"
+        },
+        {
+          "author_id": "cursor|grok-4.6|test-engineer",
+          "path": "command-center/receipts/TST-0261.json",
+          "reviewer_id": "TST-0261-probe2-independent-kahn-and-undirected-mutant"
+        },
+        {
+          "author_id": "cursor|grok-4.6|calibration-analyst",
+          "path": "command-center/receipts/TST-0270.json",
+          "reviewer_id": "TST-0270-probe2-unanswerable-and-always-grant-mutant"
+        }
+      ],
+      "reviewer_partition": [
+        "ADV-0012-P2-REVIEW-GROK-2026-08-16",
+        "IMP-0084-probe2-determinism-reviewer",
+        "IMP-0138-probe2-family-coverage-and-substring-mutant",
+        "IMP-0156-probe2-redistribution-gate",
+        "IMP-0165-probe2-unknown-rate-and-nearest-neighbour-mutant",
+        "IMP-0174-probe2-planted-orphan-and-keyword-lookalike",
+        "IMP-0183-probe2-planted-lossy-core",
+        "IMP-0192-probe2-library-false-positives",
+        "IMP-0219-probe2-progress-stream-and-parse-mutant",
+        "IMP-0228-probe2-zero-dispatch-and-clock-free-AST",
+        "IMP-0237-probe2-impossibility-and-distinct-exits",
+        "IMP-0246-probe2-prioritization-repro-and-ast",
+        "IMP-0255-probe2-independent-benchmark-rerun",
+        "IMP-0264-probe2-callgraph-bypass-mutant",
+        "IMP-0273-probe2-agreeing-refuter-spread-flag",
+        "IMP-0282-probe2-moderator-capture",
+        "IMP-0318-probe2-negative-controls",
+        "IMP-0336-reviewer-silent-drop",
+        "IMP-0345-probe2-marker-negative-control",
+        "IMP-0354-probe2-seed-removed",
+        "IMP-0363-probe2-correlation-and-planted-gap",
+        "IMP-0426-probe2-mcp-both-states",
+        "IMP-0435-probe2-noop-mode",
+        "IMP-0444-probe2-readout-not-from-config",
+        "IMP-0453-probe2-cleanup-mutation",
+        "IMP-0480-probe2-reviewer-ast-novel",
+        "NOT-ASSIGNED",
+        "SYN-0019-probe2-staleness-and-clean",
+        "SYN-0037-probe2-two-cycle-and-missing-field",
+        "SYN-0046-probe1-detector-control",
+        "TST-0027-probe2-replay-and-ignore-seed-mutant",
+        "TST-0036-probe2-security-refuter",
+        "TST-0045-probe2-both-states",
+        "TST-0054-probe2-live-parser-matrix",
+        "TST-0063-probe2-switch-logged",
+        "TST-0072-os.walk-second-inventory",
+        "TST-0081-probe2-polluted-gate",
+        "TST-0090-probe2-timeout-only-mutant",
+        "TST-0117-probe2-minimise-and-replay",
+        "TST-0171-probe2-fifty-trial-determinism",
+        "TST-0172-name-version-mutant",
+        "TST-0180-probe2-collision-seed",
+        "TST-0207-probe2-independent-zipfile-census",
+        "TST-0243-probe2-short-timeout-control",
+        "TST-0252-probe2-regression-seed-and-name-only-mutant",
+        "TST-0261-probe2-independent-kahn-and-undirected-mutant",
+        "TST-0270-probe2-unanswerable-and-always-grant-mutant",
+        "UNASSIGNED",
+        "UNASSIGNED-build-lane-cannot-self-review",
+        "cnf0167-event-log-only-rederive",
+        "codex-tst0147-review",
+        "fresh-context-adversarial-tst0159",
+        "grok-4.6-p2-deliver-verify_census",
+        "grok-p2-deliver-CC-0001-xai",
+        "grok-p2-deliver-CC-0007-xai",
+        "grok-p2-deliver-CC-0010-racer",
+        "grok-p2-deliver-CNF-0129",
+        "grok-p2-deliver-CNF-0166-xai",
+        "grok-p2-deliver-IMP-0150-xai",
+        "grok-p2-deliver-IMP-0440-xai",
+        "grok-p2-deliver-TST-0131-xai",
+        "grok-p2-deliver-TST-0140-eventlog-refuter",
+        "grok-p2-deliver-TST-0144-xai",
+        "grok-p2-deliver-TST-0166-xai",
+        "grok-p2-deliver-TST-0173-independent",
+        "grok-p2-deliver-TST-0176-linux",
+        "grok-p2-deliver-TST-0182-independent",
+        "grok-p2-deliver-TST-0220-xai",
+        "grok-p2-deliver-TST-0230-xai",
+        "grok-p2-deliver-TST-0246-raw-rederive",
+        "grok-p2-deliver-tst0224-linux",
+        "grok-p2-g1-linux-TST-0218-rederive",
+        "grok-p2-wave-ADV-0010-independent",
+        "grok-p2-wave-ADV-0020-independent",
+        "grok-p2-wave-ADV-0025-linux-rerun",
+        "grok-p2-wave-BLD-0004-verify_measurement",
+        "grok-p2-wave-BLD-0027-network-partition-rederive",
+        "grok-p2-wave-BLD-0040-independent",
+        "grok-p2-wave-BLD-0047-independent",
+        "grok-p2-wave-BLD-0058-independent",
+        "grok-p2-wave-IMP-0001-raw-rederive",
+        "grok-p2-wave-IMP-0067-old-client",
+        "grok-p2-wave-IMP-0129-independent-probe-rerun",
+        "grok-p2-wave-IMP-0261-raw-refuter",
+        "grok-p2-wave-TST-0186-independent-probe-rerun",
+        "grok-p2-wave-TST-0199-independent",
+        "grok-p2-wave-TST-0208-independent",
+        "grok-p2-wave-TST-0221-independent",
+        "grok-p2-wave-TST-0228-independent",
+        "grok-p2-wave-bld0008-probe2-reviewer",
+        "grok-p2-wave-bld0042-raw-refuter",
+        "grok-p2-wave-bld0056-second-filesystem",
+        "grok-p2-wave-cc0002-raw-refuter",
+        "grok-p2-wave-cc0015-independent-texts",
+        "grok-p2-wave-cnf0145-probe2-verifier",
+        "grok-p2-wave-cnf0162-control-planter",
+        "grok-p2-wave-imp0021-raw-refuter",
+        "grok-p2-wave-imp0433-g1",
+        "grok-p2-wave-rel0002-schema-refuter",
+        "grok-p2-wave-tst0145-linux-raw-refuter",
+        "grok-p2-wave-tst0150-linux-remesurer",
+        "grok-p2-wave-tst0153-g1-remeasure",
+        "grok-p2-wave-tst0163-raw-refuter",
+        "grok-p2-wave-tst0167-raw-refuter",
+        "grok-p2-wave-tst0191-linux-refuter",
+        "grok-p2-wave-tst0212-security",
+        "grok-p2-wave-tst0217-linux-refuter",
+        "grok-p2-wave-tst0222-probe2-filesystem",
+        "grok-p2-wave-tst0244-this-tree",
+        "grok-p2-wave-tst0250-deliver",
+        "grok-p2-wave-tst0253-raw-refuter",
+        "openai-headless-refuter-TST-0129",
+        "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+        "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12",
+        "p2-deliver-imp-0029-sigint",
+        "p2-wave-adv-0011-xai-grok",
+        "probe2-independent-refit",
+        "prompt-two-r2e-refute-TST-0130",
+        "prompt-two-r2e-refute-TST-0141",
+        "prompt-two-r2e-refute-TST-0168",
+        "prompt-two-r2e-refute-stage-openai-2026-08-16",
+        "resume_oracle.py",
+        "tst-0154-second-process-named-probe-rerun",
+        "tst0160-probe-b-ast-verifier",
+        "xai-grok-4.6-adversarial-fresh-tst0164"
+      ]
+    },
+    "chain_graph": {
+      "acyclic": true,
+      "edges": [
+        {
+          "from": "NOT-ASSIGNED",
+          "to": "grok|grok-build|paired-independent-refuter"
+        },
+        {
+          "from": "grok-p2-wave-ADV-0010-independent",
+          "to": "xai|grok|adversarial-refuter"
+        },
+        {
+          "from": "p2-wave-adv-0011-xai-grok",
+          "to": "xai|grok|adversarial-refuter"
+        },
+        {
+          "from": "ADV-0012-P2-REVIEW-GROK-2026-08-16",
+          "to": "grok|grok-4|stale-premise-refuter"
+        },
+        {
+          "from": "UNASSIGNED",
+          "to": "xai|grok|adversarial-refuter"
+        },
+        {
+          "from": "grok-p2-wave-ADV-0020-independent",
+          "to": "xai|grok|adversarial-refuter"
+        },
+        {
+          "from": "grok-p2-wave-ADV-0025-linux-rerun",
+          "to": "xai|grok|security-exploit-engineer"
+        },
+        {
+          "from": "UNASSIGNED-build-lane-cannot-self-review",
+          "to": "xai|grok|auditor"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|Prompt Two R2E refute worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|Prompt Two R2E refute worker"
+        },
+        {
+          "from": "grok-p2-wave-BLD-0004-verify_measurement",
+          "to": "xai|grok-4.6|docs-conformance-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|Prompt Two R2E refute worker"
+        },
+        {
+          "from": "grok-p2-wave-bld0008-probe2-reviewer",
+          "to": "xai|grok|portability-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|p2-deliver-named-probes"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|Prompt Two P2-deliver worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12",
+          "to": "openai|gpt-5|headless Prompt Two R2E refute worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|defect-archaeologist"
+        },
+        {
+          "from": "grok-p2-wave-BLD-0027-network-partition-rederive",
+          "to": "xai|grok-4.6|Prompt Two P2-deliver worker"
+        },
+        {
+          "from": "grok-4.6-p2-deliver-verify_census",
+          "to": "xai|grok-4.6|detector-auditor"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|prompt-two-r2e-refute-worker"
+        },
+        {
+          "from": "grok-p2-wave-BLD-0040-independent",
+          "to": "openai|gpt-5|oracle-analyst"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12",
+          "to": "openai|gpt-5|adversarial-refuter"
+        },
+        {
+          "from": "grok-p2-wave-bld0042-raw-refuter",
+          "to": "xai|grok-4.6|p2-deliver-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5.6-sol|reliability-engineer"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|headless Prompt Two R2E refute worker"
+        },
+        {
+          "from": "grok-p2-wave-BLD-0047-independent",
+          "to": "xai|grok-4.6|conformance-engineer"
+        },
+        {
+          "from": "prompt-two-r2e-refute-stage-openai-2026-08-16",
+          "to": "openai|gpt-5.6-sol|headless Prompt Two R2E refute worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|GPT-5 Codex|headless Prompt Two R2E worker"
+        },
+        {
+          "from": "probe2-independent-refit",
+          "to": "xai|grok-4.6|p2-deliver-worker"
+        },
+        {
+          "from": "grok-p2-wave-bld0056-second-filesystem",
+          "to": "xai|grok|cost-analyst"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5.6-sol|reliability-engineer"
+        },
+        {
+          "from": "grok-p2-wave-BLD-0058-independent",
+          "to": "openai|gpt-5.6-sol|headless Prompt Two R2E implement worker"
+        },
+        {
+          "from": "grok-p2-deliver-CC-0001-xai",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-wave-cc0002-raw-refuter",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-deliver-CC-0007-xai",
+          "to": "grok|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-deliver-CC-0010-racer",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|security-reviewer"
+        },
+        {
+          "from": "grok-p2-wave-cc0015-independent-texts",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-deliver-CNF-0129",
+          "to": "xai|grok-4.6|confirmation-architect"
+        },
+        {
+          "from": "grok-p2-wave-cnf0145-probe2-verifier",
+          "to": "xai|grok-4.6|reproduction-engineer"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok|independent-confirmer"
+        },
+        {
+          "from": "grok-p2-wave-cnf0162-control-planter",
+          "to": "xai|grok-4.6|evidence-auditor"
+        },
+        {
+          "from": "grok-p2-deliver-CNF-0166-xai",
+          "to": "xai|grok-4.6|independent-confirmer"
+        },
+        {
+          "from": "cnf0167-event-log-only-rederive",
+          "to": "xai|grok-4.6|evidence-auditor"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|p2-deliver-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|p2-deliver-named-probe-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|headless-prompt-two-r2e-refute-worker"
+        },
+        {
+          "from": "grok-p2-wave-IMP-0001-raw-rederive",
+          "to": "xai|grok|p2-wave-named-probe-implementer"
+        },
+        {
+          "from": "grok-p2-wave-imp0021-raw-refuter",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "p2-deliver-imp-0029-sigint",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|P2-deliver implementer"
+        },
+        {
+          "from": "grok-p2-wave-IMP-0067-old-client",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0084-probe2-determinism-reviewer",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-wave-IMP-0129-independent-probe-rerun",
+          "to": "grok|grok-4.6|p2-deliver-implementer"
+        },
+        {
+          "from": "IMP-0138-probe2-family-coverage-and-substring-mutant",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-deliver-IMP-0150-xai",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0156-probe2-redistribution-gate",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0165-probe2-unknown-rate-and-nearest-neighbour-mutant",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0174-probe2-planted-orphan-and-keyword-lookalike",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0183-probe2-planted-lossy-core",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0192-probe2-library-false-positives",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0219-probe2-progress-stream-and-parse-mutant",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0228-probe2-zero-dispatch-and-clock-free-AST",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0237-probe2-impossibility-and-distinct-exits",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0246-probe2-prioritization-repro-and-ast",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0255-probe2-independent-benchmark-rerun",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-wave-IMP-0261-raw-refuter",
+          "to": "anthropic|opus|implementer"
+        },
+        {
+          "from": "IMP-0264-probe2-callgraph-bypass-mutant",
+          "to": "cursor|grok-4.6|runtime-architect"
+        },
+        {
+          "from": "IMP-0273-probe2-agreeing-refuter-spread-flag",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0282-probe2-moderator-capture",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0318-probe2-negative-controls",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0336-reviewer-silent-drop",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0345-probe2-marker-negative-control",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0354-probe2-seed-removed",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0363-probe2-correlation-and-planted-gap",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0426-probe2-mcp-both-states",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-wave-imp0433-g1",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0435-probe2-noop-mode",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-deliver-IMP-0440-xai",
+          "to": "xai|grok-4.6|systems-implementer"
+        },
+        {
+          "from": "IMP-0444-probe2-readout-not-from-config",
+          "to": "cursor|grok-4.6|systems-implementer"
+        },
+        {
+          "from": "IMP-0453-probe2-cleanup-mutation",
+          "to": "cursor|grok-4.6|implementer"
+        },
+        {
+          "from": "IMP-0480-probe2-reviewer-ast-novel",
+          "to": "cursor|grok-4.6|security-implementer"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12",
+          "to": "openai|gpt-5|headless-prompt-two-r2e-refute-worker"
+        },
+        {
+          "from": "grok-p2-wave-rel0002-schema-refuter",
+          "to": "xai|grok-4.6|schema-designer / P2-deliver worker"
+        },
+        {
+          "from": "SYN-0019-probe2-staleness-and-clean",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "SYN-0037-probe2-two-cycle-and-missing-field",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "SYN-0046-probe1-detector-control",
+          "to": "anthropic|opus|durability-engineer"
+        },
+        {
+          "from": "TST-0027-probe2-replay-and-ignore-seed-mutant",
+          "to": "cursor|grok-4.6|test-architect"
+        },
+        {
+          "from": "TST-0036-probe2-security-refuter",
+          "to": "xai|grok-4.6|conformance-engineer"
+        },
+        {
+          "from": "TST-0045-probe2-both-states",
+          "to": "cursor|grok-4.6|conformance-engineer"
+        },
+        {
+          "from": "TST-0054-probe2-live-parser-matrix",
+          "to": "cursor|grok-4.6|platform-test-engineer"
+        },
+        {
+          "from": "TST-0063-probe2-switch-logged",
+          "to": "xai|grok-4.6|platform-test-engineer"
+        },
+        {
+          "from": "TST-0072-os.walk-second-inventory",
+          "to": "xai|grok-4.6|release-test-engineer"
+        },
+        {
+          "from": "TST-0081-probe2-polluted-gate",
+          "to": "cursor|grok-4.6|release-test-engineer"
+        },
+        {
+          "from": "TST-0090-probe2-timeout-only-mutant",
+          "to": "cursor|grok-4.6|fault-injection-engineer"
+        },
+        {
+          "from": "TST-0117-probe2-minimise-and-replay",
+          "to": "cursor|grok-4.6|fault-injection-engineer"
+        },
+        {
+          "from": "openai-headless-refuter-TST-0129",
+          "to": "openai|gpt-5|fault-injection-refuter"
+        },
+        {
+          "from": "prompt-two-r2e-refute-TST-0130",
+          "to": "openai|gpt-5|headless-prompt-two-r2e-refute-worker"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0131-xai",
+          "to": "xai|grok-4.6|fault-injection-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|p2-deliver-named-probe-worker"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0140-eventlog-refuter",
+          "to": "xai|grok-4.6|scheduler-tester"
+        },
+        {
+          "from": "prompt-two-r2e-refute-TST-0141",
+          "to": "openai|gpt-5|headless-prompt-two-r2e-refute-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5.6-sol|scheduler-tester"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0144-xai",
+          "to": "xai|grok|completion-predicate-tester"
+        },
+        {
+          "from": "grok-p2-wave-tst0145-linux-raw-refuter",
+          "to": "xai|grok|completion-predicate-tester"
+        },
+        {
+          "from": "codex-tst0147-review",
+          "to": "xai|grok-4.6|completion-predicate-tester"
+        },
+        {
+          "from": "grok-p2-wave-tst0150-linux-remesurer",
+          "to": "xai|grok|observability-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|headless-r2e-refute-worker"
+        },
+        {
+          "from": "grok-p2-wave-tst0153-g1-remeasure",
+          "to": "xai|grok-4.6|observability-tester"
+        },
+        {
+          "from": "tst-0154-second-process-named-probe-rerun",
+          "to": "xai|grok-4.6|observability-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|headless-r2e-refute-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|headless-r2e-refute-worker"
+        },
+        {
+          "from": "fresh-context-adversarial-tst0159",
+          "to": "grok|grok-4.6|p2-deliver-worker"
+        },
+        {
+          "from": "tst0160-probe-b-ast-verifier",
+          "to": "xai|grok|concurrency-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|headless-r2e-worker"
+        },
+        {
+          "from": "resume_oracle.py",
+          "to": "xai|grok-4.6|implementer"
+        },
+        {
+          "from": "grok-p2-wave-tst0163-raw-refuter",
+          "to": "xai|grok-4.6|p2-deliver"
+        },
+        {
+          "from": "xai-grok-4.6-adversarial-fresh-tst0164",
+          "to": "xai|grok-4.6|p2-deliver"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5.6-sol|resume-tester"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0166-xai",
+          "to": "xai|grok|p2-deliver"
+        },
+        {
+          "from": "grok-p2-wave-tst0167-raw-refuter",
+          "to": "xai|grok-4.6|p2-deliver-worker"
+        },
+        {
+          "from": "prompt-two-r2e-refute-TST-0168",
+          "to": "openai|gpt-5|headless-refute-worker"
+        },
+        {
+          "from": "TST-0171-probe2-fifty-trial-determinism",
+          "to": "cursor|grok-4.6|resume-tester"
+        },
+        {
+          "from": "TST-0172-name-version-mutant",
+          "to": "xai|grok-4.6|cache-integrity-tester"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0173-independent",
+          "to": "openai|gpt-5|headless-refute-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|Prompt Two R2E refute worker"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0176-linux",
+          "to": "openai|gpt-5|cache-integrity-tester"
+        },
+        {
+          "from": "TST-0180-probe2-collision-seed",
+          "to": "cursor|grok-4.6|schema-conformance-tester"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0182-independent",
+          "to": "grok|grok-4.6|schema-conformance-tester"
+        },
+        {
+          "from": "grok-p2-wave-TST-0186-independent-probe-rerun",
+          "to": "grok|grok-4.6|shell-portability-tester"
+        },
+        {
+          "from": "grok-p2-wave-tst0191-linux-refuter",
+          "to": "xai|grok|shell-portability-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|portability-tester"
+        },
+        {
+          "from": "grok-p2-wave-TST-0199-independent",
+          "to": "xai|grok-4.6|portability-tester"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "openai|gpt-5|portability-tester"
+        },
+        {
+          "from": "TST-0207-probe2-independent-zipfile-census",
+          "to": "xai|grok|security-tester"
+        },
+        {
+          "from": "grok-p2-wave-TST-0208-independent",
+          "to": "openai|codex-cli-default|security-tester"
+        },
+        {
+          "from": "grok-p2-wave-tst0212-security",
+          "to": "xai|grok-4.6|headless-prompt-two-g1-ground-worker"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12",
+          "to": "openai|codex-cli-default|supply-chain-auditor"
+        },
+        {
+          "from": "grok-p2-wave-tst0217-linux-refuter",
+          "to": "xai|grok-4.6|p2-deliver"
+        },
+        {
+          "from": "grok-p2-g1-linux-TST-0218-rederive",
+          "to": "xai|grok-4.6|supply-chain-auditor"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0220-xai",
+          "to": "openai|codex-cli-default|supply-chain-auditor"
+        },
+        {
+          "from": "grok-p2-wave-TST-0221-independent",
+          "to": "xai|grok-4.6|p2-deliver"
+        },
+        {
+          "from": "grok-p2-wave-tst0222-probe2-filesystem",
+          "to": "xai|grok-4.6|security-tester"
+        },
+        {
+          "from": "grok-p2-deliver-tst0224-linux",
+          "to": "xai|grok|security-tester"
+        },
+        {
+          "from": "grok-p2-wave-TST-0228-independent",
+          "to": "xai|grok-4.6|security-tester"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0230-xai",
+          "to": "xai|grok-4.6|benchmark-engineer"
+        },
+        {
+          "from": "TST-0243-probe2-short-timeout-control",
+          "to": "xai|grok-4.6|performance-tester"
+        },
+        {
+          "from": "grok-p2-wave-tst0244-this-tree",
+          "to": "xai|grok-4.6|accessibility-tester"
+        },
+        {
+          "from": "grok-p2-deliver-TST-0246-raw-rederive",
+          "to": "xai|grok-4.6|p2-deliver-implementer"
+        },
+        {
+          "from": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+          "to": "xai|grok-4.6|headless-prompt-two-g1-ground-worker"
+        },
+        {
+          "from": "grok-p2-wave-tst0250-deliver",
+          "to": "xai|grok-4.6|p2-deliver-worker"
+        },
+        {
+          "from": "TST-0252-probe2-regression-seed-and-name-only-mutant",
+          "to": "xai|grok-4.6|docs-conformance-tester"
+        },
+        {
+          "from": "grok-p2-wave-tst0253-raw-refuter",
+          "to": "xai|grok-4.6|docs-conformance-tester"
+        },
+        {
+          "from": "TST-0261-probe2-independent-kahn-and-undirected-mutant",
+          "to": "cursor|grok-4.6|test-engineer"
+        },
+        {
+          "from": "TST-0270-probe2-unanswerable-and-always-grant-mutant",
+          "to": "cursor|grok-4.6|calibration-analyst"
+        }
+      ],
+      "nodes": [
+        "ADV-0012-P2-REVIEW-GROK-2026-08-16",
+        "IMP-0084-probe2-determinism-reviewer",
+        "IMP-0138-probe2-family-coverage-and-substring-mutant",
+        "IMP-0156-probe2-redistribution-gate",
+        "IMP-0165-probe2-unknown-rate-and-nearest-neighbour-mutant",
+        "IMP-0174-probe2-planted-orphan-and-keyword-lookalike",
+        "IMP-0183-probe2-planted-lossy-core",
+        "IMP-0192-probe2-library-false-positives",
+        "IMP-0219-probe2-progress-stream-and-parse-mutant",
+        "IMP-0228-probe2-zero-dispatch-and-clock-free-AST",
+        "IMP-0237-probe2-impossibility-and-distinct-exits",
+        "IMP-0246-probe2-prioritization-repro-and-ast",
+        "IMP-0255-probe2-independent-benchmark-rerun",
+        "IMP-0264-probe2-callgraph-bypass-mutant",
+        "IMP-0273-probe2-agreeing-refuter-spread-flag",
+        "IMP-0282-probe2-moderator-capture",
+        "IMP-0318-probe2-negative-controls",
+        "IMP-0336-reviewer-silent-drop",
+        "IMP-0345-probe2-marker-negative-control",
+        "IMP-0354-probe2-seed-removed",
+        "IMP-0363-probe2-correlation-and-planted-gap",
+        "IMP-0426-probe2-mcp-both-states",
+        "IMP-0435-probe2-noop-mode",
+        "IMP-0444-probe2-readout-not-from-config",
+        "IMP-0453-probe2-cleanup-mutation",
+        "IMP-0480-probe2-reviewer-ast-novel",
+        "NOT-ASSIGNED",
+        "SYN-0019-probe2-staleness-and-clean",
+        "SYN-0037-probe2-two-cycle-and-missing-field",
+        "SYN-0046-probe1-detector-control",
+        "TST-0027-probe2-replay-and-ignore-seed-mutant",
+        "TST-0036-probe2-security-refuter",
+        "TST-0045-probe2-both-states",
+        "TST-0054-probe2-live-parser-matrix",
+        "TST-0063-probe2-switch-logged",
+        "TST-0072-os.walk-second-inventory",
+        "TST-0081-probe2-polluted-gate",
+        "TST-0090-probe2-timeout-only-mutant",
+        "TST-0117-probe2-minimise-and-replay",
+        "TST-0171-probe2-fifty-trial-determinism",
+        "TST-0172-name-version-mutant",
+        "TST-0180-probe2-collision-seed",
+        "TST-0207-probe2-independent-zipfile-census",
+        "TST-0243-probe2-short-timeout-control",
+        "TST-0252-probe2-regression-seed-and-name-only-mutant",
+        "TST-0261-probe2-independent-kahn-and-undirected-mutant",
+        "TST-0270-probe2-unanswerable-and-always-grant-mutant",
+        "UNASSIGNED",
+        "UNASSIGNED-build-lane-cannot-self-review",
+        "anthropic|opus|durability-engineer",
+        "anthropic|opus|implementer",
+        "cnf0167-event-log-only-rederive",
+        "codex-tst0147-review",
+        "cursor|grok-4.6|calibration-analyst",
+        "cursor|grok-4.6|conformance-engineer",
+        "cursor|grok-4.6|fault-injection-engineer",
+        "cursor|grok-4.6|implementer",
+        "cursor|grok-4.6|platform-test-engineer",
+        "cursor|grok-4.6|release-test-engineer",
+        "cursor|grok-4.6|resume-tester",
+        "cursor|grok-4.6|runtime-architect",
+        "cursor|grok-4.6|schema-conformance-tester",
+        "cursor|grok-4.6|security-implementer",
+        "cursor|grok-4.6|systems-implementer",
+        "cursor|grok-4.6|test-architect",
+        "cursor|grok-4.6|test-engineer",
+        "fresh-context-adversarial-tst0159",
+        "grok-4.6-p2-deliver-verify_census",
+        "grok-p2-deliver-CC-0001-xai",
+        "grok-p2-deliver-CC-0007-xai",
+        "grok-p2-deliver-CC-0010-racer",
+        "grok-p2-deliver-CNF-0129",
+        "grok-p2-deliver-CNF-0166-xai",
+        "grok-p2-deliver-IMP-0150-xai",
+        "grok-p2-deliver-IMP-0440-xai",
+        "grok-p2-deliver-TST-0131-xai",
+        "grok-p2-deliver-TST-0140-eventlog-refuter",
+        "grok-p2-deliver-TST-0144-xai",
+        "grok-p2-deliver-TST-0166-xai",
+        "grok-p2-deliver-TST-0173-independent",
+        "grok-p2-deliver-TST-0176-linux",
+        "grok-p2-deliver-TST-0182-independent",
+        "grok-p2-deliver-TST-0220-xai",
+        "grok-p2-deliver-TST-0230-xai",
+        "grok-p2-deliver-TST-0246-raw-rederive",
+        "grok-p2-deliver-tst0224-linux",
+        "grok-p2-g1-linux-TST-0218-rederive",
+        "grok-p2-wave-ADV-0010-independent",
+        "grok-p2-wave-ADV-0020-independent",
+        "grok-p2-wave-ADV-0025-linux-rerun",
+        "grok-p2-wave-BLD-0004-verify_measurement",
+        "grok-p2-wave-BLD-0027-network-partition-rederive",
+        "grok-p2-wave-BLD-0040-independent",
+        "grok-p2-wave-BLD-0047-independent",
+        "grok-p2-wave-BLD-0058-independent",
+        "grok-p2-wave-IMP-0001-raw-rederive",
+        "grok-p2-wave-IMP-0067-old-client",
+        "grok-p2-wave-IMP-0129-independent-probe-rerun",
+        "grok-p2-wave-IMP-0261-raw-refuter",
+        "grok-p2-wave-TST-0186-independent-probe-rerun",
+        "grok-p2-wave-TST-0199-independent",
+        "grok-p2-wave-TST-0208-independent",
+        "grok-p2-wave-TST-0221-independent",
+        "grok-p2-wave-TST-0228-independent",
+        "grok-p2-wave-bld0008-probe2-reviewer",
+        "grok-p2-wave-bld0042-raw-refuter",
+        "grok-p2-wave-bld0056-second-filesystem",
+        "grok-p2-wave-cc0002-raw-refuter",
+        "grok-p2-wave-cc0015-independent-texts",
+        "grok-p2-wave-cnf0145-probe2-verifier",
+        "grok-p2-wave-cnf0162-control-planter",
+        "grok-p2-wave-imp0021-raw-refuter",
+        "grok-p2-wave-imp0433-g1",
+        "grok-p2-wave-rel0002-schema-refuter",
+        "grok-p2-wave-tst0145-linux-raw-refuter",
+        "grok-p2-wave-tst0150-linux-remesurer",
+        "grok-p2-wave-tst0153-g1-remeasure",
+        "grok-p2-wave-tst0163-raw-refuter",
+        "grok-p2-wave-tst0167-raw-refuter",
+        "grok-p2-wave-tst0191-linux-refuter",
+        "grok-p2-wave-tst0212-security",
+        "grok-p2-wave-tst0217-linux-refuter",
+        "grok-p2-wave-tst0222-probe2-filesystem",
+        "grok-p2-wave-tst0244-this-tree",
+        "grok-p2-wave-tst0250-deliver",
+        "grok-p2-wave-tst0253-raw-refuter",
+        "grok|grok-4.6|implementer",
+        "grok|grok-4.6|p2-deliver-implementer",
+        "grok|grok-4.6|p2-deliver-worker",
+        "grok|grok-4.6|schema-conformance-tester",
+        "grok|grok-4.6|shell-portability-tester",
+        "grok|grok-4|stale-premise-refuter",
+        "grok|grok-build|paired-independent-refuter",
+        "openai-headless-refuter-TST-0129",
+        "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+        "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor) \u2014 remaining12",
+        "openai|GPT-5 Codex|headless Prompt Two R2E worker",
+        "openai|codex-cli-default|security-tester",
+        "openai|codex-cli-default|supply-chain-auditor",
+        "openai|gpt-5.6-sol|headless Prompt Two R2E implement worker",
+        "openai|gpt-5.6-sol|headless Prompt Two R2E refute worker",
+        "openai|gpt-5.6-sol|reliability-engineer",
+        "openai|gpt-5.6-sol|resume-tester",
+        "openai|gpt-5.6-sol|scheduler-tester",
+        "openai|gpt-5|Prompt Two R2E refute worker",
+        "openai|gpt-5|adversarial-refuter",
+        "openai|gpt-5|cache-integrity-tester",
+        "openai|gpt-5|defect-archaeologist",
+        "openai|gpt-5|fault-injection-refuter",
+        "openai|gpt-5|headless Prompt Two R2E refute worker",
+        "openai|gpt-5|headless-prompt-two-r2e-refute-worker",
+        "openai|gpt-5|headless-r2e-refute-worker",
+        "openai|gpt-5|headless-r2e-worker",
+        "openai|gpt-5|headless-refute-worker",
+        "openai|gpt-5|oracle-analyst",
+        "openai|gpt-5|portability-tester",
+        "openai|gpt-5|prompt-two-r2e-refute-worker",
+        "openai|gpt-5|security-reviewer",
+        "p2-deliver-imp-0029-sigint",
+        "p2-wave-adv-0011-xai-grok",
+        "probe2-independent-refit",
+        "prompt-two-r2e-refute-TST-0130",
+        "prompt-two-r2e-refute-TST-0141",
+        "prompt-two-r2e-refute-TST-0168",
+        "prompt-two-r2e-refute-stage-openai-2026-08-16",
+        "resume_oracle.py",
+        "tst-0154-second-process-named-probe-rerun",
+        "tst0160-probe-b-ast-verifier",
+        "xai-grok-4.6-adversarial-fresh-tst0164",
+        "xai|grok-4.6|P2-deliver implementer",
+        "xai|grok-4.6|Prompt Two P2-deliver worker",
+        "xai|grok-4.6|accessibility-tester",
+        "xai|grok-4.6|benchmark-engineer",
+        "xai|grok-4.6|cache-integrity-tester",
+        "xai|grok-4.6|completion-predicate-tester",
+        "xai|grok-4.6|confirmation-architect",
+        "xai|grok-4.6|conformance-engineer",
+        "xai|grok-4.6|detector-auditor",
+        "xai|grok-4.6|docs-conformance-tester",
+        "xai|grok-4.6|evidence-auditor",
+        "xai|grok-4.6|fault-injection-tester",
+        "xai|grok-4.6|headless-prompt-two-g1-ground-worker",
+        "xai|grok-4.6|implementer",
+        "xai|grok-4.6|independent-confirmer",
+        "xai|grok-4.6|observability-tester",
+        "xai|grok-4.6|p2-deliver",
+        "xai|grok-4.6|p2-deliver-implementer",
+        "xai|grok-4.6|p2-deliver-named-probe-worker",
+        "xai|grok-4.6|p2-deliver-named-probes",
+        "xai|grok-4.6|p2-deliver-worker",
+        "xai|grok-4.6|performance-tester",
+        "xai|grok-4.6|platform-test-engineer",
+        "xai|grok-4.6|portability-tester",
+        "xai|grok-4.6|release-test-engineer",
+        "xai|grok-4.6|reproduction-engineer",
+        "xai|grok-4.6|scheduler-tester",
+        "xai|grok-4.6|schema-designer / P2-deliver worker",
+        "xai|grok-4.6|security-tester",
+        "xai|grok-4.6|supply-chain-auditor",
+        "xai|grok-4.6|systems-implementer",
+        "xai|grok|adversarial-refuter",
+        "xai|grok|auditor",
+        "xai|grok|completion-predicate-tester",
+        "xai|grok|concurrency-tester",
+        "xai|grok|cost-analyst",
+        "xai|grok|independent-confirmer",
+        "xai|grok|observability-tester",
+        "xai|grok|p2-deliver",
+        "xai|grok|p2-wave-named-probe-implementer",
+        "xai|grok|portability-tester",
+        "xai|grok|security-exploit-engineer",
+        "xai|grok|security-tester",
+        "xai|grok|shell-portability-tester"
+      ]
+    },
+    "completion_sentinel": "SUCCESS:SYN-0037 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both planted violations were detected and the missing-field count is published. Any other terminal state is FAILED:SYN-0037 <classification> with the diagnostic tail attached.",
+    "control_ids": [
+      "NC-PLANTED-SELF-REVIEW",
+      "NC-PLANTED-TWO-CYCLE",
+      "NC-SKIP-MUTANT-MISSING-REVIEWER"
+    ],
+    "cycles": [],
+    "dependency_SYN-0030": {
+      "present": false,
+      "required": true,
+      "verdict": "NOT-CHECKED"
+    },
+    "inputs": {
+      "catalog": {
+        "path": "command-center/WORK-UNIT-CATALOG.json",
+        "present": true,
+        "sample": {
+          "ADV-0001": "one cross-vendor Codex (openai) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+          "ADV-0002": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+          "ADV-0003": "one cross-vendor Anthropic (opus) refuter who re-derives the counterexample from the raw artifact and NOT from this unit's report; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement"
+        },
+        "units_total": 2007,
+        "units_with_reviewer_requirement": 2007
+      },
+      "events": {
+        "dispatch_count": 0,
+        "path": "command-center/events/EVENTS.jsonl",
+        "present": true
+      },
+      "receipts_dir": "command-center/receipts/"
+    },
+    "kind": "independence-audit",
+    "known_good": {
+      "acyclic": true,
+      "author_reviewer_intersection": [],
+      "cycles": [],
+      "missing_field_count": 0
+    },
+    "missing_field_count": 43,
+    "missing_field_count_published": true,
+    "missing_field_receipts": [
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0006.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0007.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0008.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0014.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/ADV-0015.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0019.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/ADV-0021.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/ADV-0022.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0023.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/ADV-0024.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0029.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0030.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0031.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0036.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0039.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0040.json"
+      },
+      {
+        "classification": "missing-author-and-reviewer-fields",
+        "missing_fields": [
+          "author_id",
+          "reviewer_id"
+        ],
+        "path": "command-center/receipts/ADV-0042.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/AUD-0020.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/BLD-0051.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/BLD-0059.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/CNF-0135.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/CNF-0144.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/CNF-0180.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0039.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0048.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0057.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0066.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0075.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0093.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0147.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0291.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0309.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0327.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0372.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0390.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0408.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0417.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/IMP-0462.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/TST-0009.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/TST-0216.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/TST-0334.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/TST-0350.json"
+      },
+      {
+        "classification": "missing-author-field",
+        "missing_fields": [
+          "author_id"
+        ],
+        "path": "command-center/receipts/TST-0351.json"
+      }
+    ],
+    "observations": [
+      {
+        "anchor": "command-center/receipts/",
+        "measured": "[]",
+        "method": "set intersection of extracted author_id and reviewer_id over command-center/receipts/*.json",
+        "name": "author_reviewer_intersection"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/SYN-0037/audit.py:directed_cycles",
+        "measured": 0,
+        "method": "DFS simple directed cycles plus independent Kahn topo-sort leftover",
+        "name": "cycles"
+      },
+      {
+        "anchor": "command-center/receipts/",
+        "measured": 43,
+        "method": "missing author_id or reviewer_id is a VIOLATION, never a skip",
+        "name": "missing_field_count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/SYN-0037/fixtures.py",
+        "measured": true,
+        "method": "fixtures.planted_self_review",
+        "name": "planted_self_review_detected"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/SYN-0037/fixtures.py",
+        "measured": true,
+        "method": "fixtures.planted_two_cycle",
+        "name": "planted_two_cycle_detected"
+      }
+    ],
+    "output_path": "command-center/receipts/SYN-0037.json",
+    "output_schema": "command-center/schema/independence-audit.schema.json",
+    "planted_violations": {
+      "missing_reviewer_count_on_plant": 1,
+      "missing_reviewer_is_violation": true,
+      "self_review_agents": [
+        "agent-alpha"
+      ],
+      "self_review_detected": true,
+      "skip_mutant_undercounts": true,
+      "two_cycle_detected": true,
+      "two_cycle_nodes": [
+        [
+          "agent-a",
+          "agent-b"
+        ]
+      ]
+    },
+    "planted_violations_were_detected": true,
+    "question": "Question: did any agent review its own output, and does any review chain close into a cycle (A reviews B, B reviews A)? Target: build the authorship-to-review bipartite graph from the receipt corpus and prove the self-review intersection is empty and the chain graph is acyclic. Independence asserted in a prompt is not independence measured in the ledger.",
+    "receipts_audited": 198,
+    "self_reviews": []
+  },
+  "residual_unknowns": [
+    {
+      "claim": "command-center/events/EVENTS.jsonl dispatch ledger is present on this worktree; independence is measured from receipt author/reviewer fields plus catalog reviewer_requirement coverage. Missing events are not treated as empty evidence of independence.",
+      "settling_experiment": "Place command-center/events/EVENTS.jsonl dispatch records and re-run audit.load_dispatch_records.",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "claim": "SYN-0030 (catalog four-way join) receipt is absent; this unit audits authorship/review fields on receipts that exist and does not invent SYN-0030 orphans.",
+      "settling_experiment": "Deliver SYN-0030 to command-center/receipts/SYN-0030.json and re-run this audit.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. The first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Mechanical reviewer is probe2 (Kahn topo-sort vs DFS cycles, independent author\u2229reviewer recount). Not a second human.",
+    "reviewer_id": "SYN-0037-probe2-two-cycle-and-missing-field",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:SYN-0037 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both planted violations were detected and the missing-field count is published. Any other terminal state is FAILED:SYN-0037 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json SYN-0037: authorship-to-review bipartite graph, empty author\u00d7reviewer intersection, acyclic chain graph, missing reviewer_id is a violation",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0037/probe1_planted_self_review.py",
+      "id": "planted-self-review-detected",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0037/probe2_two_cycle_and_missing_field.py",
+      "id": "planted-two-cycle-detected",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/SYN-0037/probe1_planted_self_review.py",
+      "id": "test_a_receipt_with_no_reviewer_id_is_a_VIOLATION_not_a_skip",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 0,
+    "ended_at": "2026-08-25T01:32:39Z",
+    "started_at": "2026-08-25T01:32:39Z"
+  },
+  "unit_id": "SYN-0037"
+}

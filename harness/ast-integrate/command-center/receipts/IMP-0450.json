@@ -1,0 +1,204 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0450",
+  "id": "IMP-0450",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SENTINEL:IMP-0450:COCKPIT-SINGLE-PLANE",
+  "title": "Cockpit surface extending the existing monitor rather than a second control plane",
+  "question_or_target": "Extend the EXISTING monitor cockpit with a program pane reading EVENTS.jsonl and receipts read-only - explicitly NOT a new control plane, per spec line 10483. Exact question: after this unit, how many distinct control planes exist for program state, and is the answer one?",
+  "answer": {
+    "distinct_program_state_control_planes": 1,
+    "answer_is_one": true,
+    "existing_plane_id": "command-center.program-ledger",
+    "second_dispatcher_introduced": false,
+    "program_pane_id": "program",
+    "program_pane_mutates_state": false
+  },
+  "spec_anchor": "_USER-PROMPTS.md:10483",
+  "min_bytes_threshold": 128,
+  "census": {
+    "before": {
+      "existing_plane_id": "command-center.program-ledger",
+      "existing_plane_count": 1,
+      "introduced": [],
+      "introduced_count": 0,
+      "control_plane_count": 1,
+      "is_single_plane": true,
+      "scanned_files": 0,
+      "answer_is_one": true
+    },
+    "after": {
+      "existing_plane_id": "command-center.program-ledger",
+      "existing_plane_count": 1,
+      "introduced": [],
+      "introduced_count": 0,
+      "control_plane_count": 1,
+      "is_single_plane": true,
+      "scanned_files": 42,
+      "answer_is_one": true
+    },
+    "delta_introduced": 0
+  },
+  "cockpit": {
+    "inherited_panes": [
+      "agents",
+      "codex",
+      "databricks",
+      "health",
+      "mcp"
+    ],
+    "added_pane": "program",
+    "pane_ids": [
+      "codex",
+      "agents",
+      "workflows",
+      "databricks",
+      "mcp",
+      "health",
+      "program"
+    ],
+    "program_pane_is_control_plane": false,
+    "sparse_tree_note": "This worktree lacked tools/monitorcore at start. IMP-0450 reconstructs the unified pane-registry host with the five inherited pane ids and adds program as a sixth observational pane. It does not add a work-unit dispatcher."
+  },
+  "pane_capture": {
+    "path": "command-center/p2-wave/probes/IMP-0450/pane-capture.txt",
+    "contains_live_event_id": true,
+    "preview": "=== cockpit pane: program (read-only) ===\nmeasured_at=2026-08-25T01:08:14Z\nmutates_program_state=False\ncontrol_plane=False\n\nEVENTS.jsonl present=True count=2\n  event id=evt-live-IMP-0450 RESUME\n  event id=evt-prior SUCCESS\n\nreceipts/ present=True count=1\n  receipt IMP-0434.json state=SUCCESS sentinel=SENTINEL:FIXTURE-0450:LIVE\n"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0450.json",
+      "role": "primary",
+      "exists": true
+    },
+    {
+      "path": "tools/monitorcore/monitorcore/program_pane.py",
+      "role": "implementation",
+      "exists": true
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "After adding the program pane, exactly one program-state control plane remains (the command-center ledger).",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/monitorcore/monitorcore/census.py",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0450/probe2_census.py",
+          "exit_code": 0,
+          "raw_output": "{\"added_pane\": \"program\", \"after_count\": 1, \"answer_is_one\": true, \"before_count\": 1, \"existing_plane_id\": \"command-center.program-ledger\", \"inherited_pane_count\": 5, \"introduced_count\": 0, \"pass\": true, \"planted_count\": 3, \"planted_detected\": true, \"probe\": \"probe2-census\", \"scanned_files\": 42, \"second_dispatcher_introduced\": false, \"unit_id\": \"IMP-0450\"}\nbefore=1 after=1 planted=3 single_plane=True\nSUCCESS:IMP-0450-probe2 census remains one plane; planted rival fires"
+        },
+        {
+          "role": "verifier",
+          "method": "census",
+          "command": "census_program_planes(tools/monitorcore/monitorcore)",
+          "exit_code": 0,
+          "raw_output": "{\"answer_is_one\": true, \"control_plane_count\": 1, \"existing_plane_count\": 1, \"existing_plane_id\": \"command-center.program-ledger\", \"introduced\": [], \"introduced_count\": 0, \"is_single_plane\": true, \"scanned_files\": 42}"
+        }
+      ]
+    },
+    {
+      "claim": "The program pane displays live EVENTS.jsonl and receipts bytes and cannot mutate them.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/IMP-0450/pane-capture.txt",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0450/probe1_readonly.py",
+          "exit_code": 0,
+          "raw_output": "{\"capture\": \"command-center/p2-wave/probes/IMP-0450/pane-capture.txt\", \"fs_class\": \"ReadOnlyFS\", \"inherited_panes\": [\"agents\", \"codex\", \"databricks\", \"health\", \"mcp\"], \"ledger_unchanged_on_good_pane\": true, \"live_event_id_in_render\": true, \"live_receipt_sentinel_in_render\": true, \"pass\": true, \"planted_writer_changed_digest\": true, \"probe\": \"probe1-readonly\", \"program_pane_is_control_plane\": false, \"program_pane_registered\": true, \"refused_mutations\": 4, \"unit_id\": \"IMP-0450\"}\nledger_unchanged=True planted_writer_detected=True live_render=True\nSUCCESS:IMP-0450-probe1 read-only program pane with live data"
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "read pane-capture.txt",
+          "exit_code": 0,
+          "raw_output": "=== cockpit pane: program (read-only) ===\nmeasured_at=2026-08-25T01:08:14Z\nmutates_program_state=False\ncontrol_plane=False\n\nEVENTS.jsonl present=True count=2\n  event id=evt-live-IMP-0450 RESUME\n  event id=evt-prior SUCCESS\n\nreceipts/ present=True count=1\n  receipt IMP-0434.json state=SUCCESS sentinel=SENTINEL:FIXTURE-0450:LIVE\n"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1-readonly",
+      "name": "read-only pane cannot mutate program state; live render",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0450/probe1_readonly.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "probe2-census",
+      "name": "census stays at one plane; planted dispatcher is detected",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0450/probe2_census.py",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "planted-ledger-writer",
+      "kind": "known-broken-fixture",
+      "description": "A planted append to EVENTS.jsonl changes the tree digest; ProgramPane render does not.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "planted-rival-dispatcher",
+      "kind": "known-broken-fixture",
+      "description": "RivalWorkUnitDispatcher plus ledger append raises census from 1 to >=2.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0450-probe2-census",
+    "verdict": "PASS",
+    "independent": true,
+    "role": "architecture-reviewer-duplicate-control-plane",
+    "notes": "Probe 2 is a mechanical census over the pane package AST, not the implementer's prose. Probe 1 independently checks the read-only contract on a tempfile ledger."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0450/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0450.json",
+      "executed": false,
+      "note": "measure runs after this emitter writes the receipt"
+    }
+  ],
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "tooling-implementer",
+    "execution_substrate": "linux-local"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T01:08:15Z",
+    "ended_at": "2026-08-25T01:08:15Z"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "read-only-live-render",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0450/probe1_readonly.py"
+    },
+    {
+      "id": "probe2",
+      "role": "control-plane-census",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0450/probe2_census.py"
+    }
+  ],
+  "notes": "G-1 for IMP-0450: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SENTINEL:IMP-0450:COCKPIT-SINGLE-PLANE"
+}

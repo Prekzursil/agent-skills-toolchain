@@ -1,0 +1,25 @@
+DIFF_UNIQUE_MARKER_CNF0038
+--- command-center/p2-wave/probes/CNF-0038/fixtures/pre-fix/receipt_gate.py	2026-08-24 18:42:34.996444744 +0000
++++ command-center/p2-wave/probes/CNF-0038/fixtures/post-fix/receipt_gate.py	2026-08-24 18:42:37.296414883 +0000
+@@ -1,4 +1,4 @@
+-"""Pre-fix receipt_gate: empty source normalises and compares as independent."""
++"""Post-fix receipt_gate: CONFIRMED + missing/empty source_probe is rejected."""
+ 
+ from __future__ import annotations
+ 
+@@ -6,10 +6,12 @@
+ def validate_receipt(receipt: dict) -> dict:
+     if not isinstance(receipt, dict):
+         return {"ok": False, "reason": "not-an-object"}
++    verdict = receipt.get("verdict")
++    if verdict == "CONFIRMED":
++        if "source_probe" not in receipt or receipt.get("source_probe") in (None, ""):
++            return {"ok": False, "reason": "empty-source-probe"}
+     source = receipt.get("source_probe") or ""
+     verifier = receipt.get("verifier_probe") or ""
+     if source != verifier:
+         return {"ok": True, "reason": "independent-probes"}
+-    if source:
+-        return {"ok": False, "reason": "same-probe-rerun"}
+-    return {"ok": True, "reason": "independent-probes"}
++    return {"ok": False, "reason": "same-probe-rerun"}

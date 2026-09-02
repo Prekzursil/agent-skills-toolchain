@@ -1,0 +1,18 @@
+I'll start from the existing TST-0173 probe tree and measure what's already there before writing any artifacts.The probe tree is a harvest remnant. Next I’ll read the return file, measure script, and a delivered unit so I know the exact contract.The harvest receipt is still BLOCKED. I’ll pull the catalog row, `cache.py`, a delivered unit’s artifacts, and the P2 contract next.`platform/plugin/cache.py` is missing on this tree. I’ll check B07, delivered TST units, and the cache_report schema before deciding whether to implement or park.I'll restore a production `Cache.get` read-through on this tree, then build live named probes against it instead of treating the harvest BLOCKED receipt as delivery.Probes are green. Next I’ll pack a SUCCESS receipt from the live outputs and register the per-unit manifest.**SUCCESS:delivered TST-0173** `predicate=delivered state=SUCCESS probes=2 raws=5 notes=run_cache_probe.py:0,verify_recovery.py:0`
+
+Harvest `ok=true` was UNIT-COMPLETE text on a BLOCKED receipt. That is not delivery.
+
+This worktree had no `platform/plugin/cache.py`. The catalog question needs checksum **and** quarantine **and** refetch. `Cache.get` now takes an optional `fetch=` callable: a corrupt hit is quarantined and never returned; `fetch` then `put`s the source bytes. Intact hits do not call `fetch`.
+
+Live named probes (re-run by the measure gate, both exit 0):
+
+| Probe | Result |
+|---|---|
+| `run_cache_probe.py` | 500/500 mismatch + quarantine + refetch; 0 crashes; 0 silent corrupt uses |
+| `verify_recovery.py` | independent SHA-256 match `ca5f3500be8c5fb3c5d700ad1e646a3d89a701e4c54816b8abecd27591b9583a` |
+
+Both-states: intact read, `refetch_count=0`. Blind-read negative control goes red on the same corrupt bytes.
+
+Receipt `command-center/receipts/TST-0173.json` is `state=SUCCESS` after those probes (`schema_error_count=0`, `ready_units.artifact_delivered=true`). Per-unit `UNIT-ARTIFACT-MANIFEST.json` sha256 matches the live LF digest `3a2dc6b83617a1dbd53c9a3dd81b4158c3bc7c2fc774fc10d71d7dbadf50cd02`.
+
+Constraints kept: no git write, no global `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close / p2-cloud-ok-deliver.

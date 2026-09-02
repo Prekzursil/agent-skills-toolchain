@@ -1,0 +1,480 @@
+
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+	<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0">
+	<title>Projects : Node-RED</title>
+	<link href='https://fonts.googleapis.com/css?family=Roboto+Slab:400,700,300,100' rel='stylesheet' type='text/css'>
+	<link href='https://fonts.googleapis.com/css?family=Ubuntu+Mono' rel='stylesheet' type='text/css'>
+	<link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,700" rel="stylesheet">
+
+	<link href="/css/font-awesome/css/font-awesome.min.css" rel="stylesheet">
+	<script src="/jquery/js/jquery-1.9.1.js"></script>
+	<link href="/css/simplegrid.css?d=20200825" rel="stylesheet" media="screen">
+	<link href="/css/style.css?d=20200825" rel="stylesheet" media="screen">
+	<link href="/css/front.css?d=20200825" rel="stylesheet" media="screen">
+	<link href="/css/docs.css?d=20200825" rel="stylesheet" media="screen">
+	<link href="/css/blog.css?d=20200825" rel="stylesheet" media="screen">
+	<link href="/css/syntax.css?d=20211008" rel="stylesheet" media="screen">
+	<link type="application/atom+xml" rel="alternate" href="https://nodered.org/feed.xml" />
+	
+</head>
+<body>
+<div class="banner">
+	<a href="https://nrcon.nodered.org/" class="banner-content">
+		📢 <strong>Registrations opening soon!</strong> Node-RED Con 2026 · Nov 3 · Get notified &raquo;
+	</a>
+</div>
+<div class="header">
+    <div class="header-content">
+        <div class="brand"><a href="/">Node-RED</a></div>
+        <ul class="navigation">
+            <li ><a href="/">home</a></li>
+            <li ><a href="/about/">about</a></li>
+            <li ><a href="/blog/">blog</a></li>
+            <li class="current"><a href="/docs/">documentation</a></li>
+            <li><a href="https://discourse.nodered.org/">forum</a></li>
+            <li><a href="https://flows.nodered.org/">flows</a></li>
+            <li><a href="https://github.com/node-red">github</a></li>
+        </ul>
+        <a href="#" class="menu"><i class="fa fa-reorder fa-2x"></i></a>
+    </div>
+</div>
+
+<div class="docs">
+    <div class="breadcrumbs">
+    <div class="grid">
+        
+        <a href="/docs">docs</a>
+        
+         &bull; <a href="/docs/user-guide">user guide</a>
+        &bull; <a class="active" href="">projects</a>
+
+    </div>
+</div>
+
+    <div class="grid" style="padding-bottom: 50px">
+
+        <div id="toc-column" class="col-3-12">
+            <ul class="toc">
+    <li class="toc-expander"><i class="fa fa-caret-down"></i></li>
+    <li class="tocheader">
+        <ul id="page-toc">
+        </ul>
+    </li>
+</ul>
+<script>
+    $(function() {
+        $(".docs-content h3, .docs-content h4").each(function() {
+            var li = $('<li id="toc-item-'+$(this).attr('id')+'"><a href="#'+$(this).attr('id')+'">'+$(this).text()+'</a></li>').appendTo("#page-toc");
+            if ($(this)[0].nodeName === "H3") {
+                li.addClass("toctitle")
+            }
+        })
+    })
+</script>
+
+            &nbsp;
+<script>
+$(function() {
+    var TOC = $("ul.toc");
+
+    $(".toc-expander").click(function() {
+        if (TOC.hasClass('open')) {
+            TOC.removeClass('open');
+        } else {
+            TOC.addClass('open');
+        }
+    })
+
+    var fixed = false;
+    $(window).on("scroll", function(e) {
+        if ($(window).scrollTop() > 140) {
+            if (!fixed) {
+                TOC.addClass("fixed-toc");
+                TOC.width(TOC.parent().width());
+                fixed = true;
+            }
+        } else {
+            if (fixed) {
+                TOC.removeClass("fixed-toc");
+                TOC.width(TOC.parent().width());
+                fixed = false;
+            }
+        }
+
+    });
+
+    var positions = [];
+    var windowHeight;
+    var currentItem;
+
+
+    function resizeWindow() {
+        TOC.width(TOC.parent().width());
+        calculatePositions();
+        windowHeight = $(window).height();
+    }
+    function calculatePositions() {
+        positions = [];
+        $(".docs-content > div >  h3,.docs-content > div >  h4").each(function() {
+            positions.push({
+                el: $("#toc-item-"+$(this).attr('id')),
+                orig: $(this),
+                pos: $(this).offset().top +parseInt($(this).css("marginTop"))
+            });
+        });
+    }
+
+    function getCurrentItem() {
+        if (positions.length === 0) {
+            return;
+        }
+        var top = $(window).scrollTop();
+        var previous = positions[0].el;
+        for (var i=0;i<positions.length;i++) {
+            if (positions[i].pos > top) {
+                if (positions[i].pos-top < windowHeight/2 ) {
+                    return positions[i].el;
+                } else {
+                    return previous;
+                }
+            }
+            previous = positions[i].el;
+        }
+    }
+    function scrollWindow() {
+        var targetItem = getCurrentItem();
+        if (targetItem !== currentItem) {
+            if (currentItem) {
+                currentItem.removeClass("active");
+            }
+            currentItem = targetItem;
+            if (currentItem) {
+                currentItem.addClass("active");
+            }
+        }
+    }
+    $(window).resize(resizeWindow);
+    $(window).on("scroll",scrollWindow);
+    setTimeout(function() {
+        resizeWindow();
+        scrollWindow();
+    },500);
+
+});
+</script>
+
+        </div>
+        <div class="col-9-12">
+
+            <div class="docs-content">
+
+                <h1 class="docs-title">Projects</h1>
+                <div><h3 id="introducing-projects">Introducing projects</h3>
+
+<p>Projects are a new way to manage your flow files. Rather than treat your flows as
+a simple pair of files, they represent everything you need to create a redistributable
+Node-RED application.</p>
+
+<p>They are backed by a Git repository, meaning all of the files are fully version
+controlled and allow developers to use familiar workflows to collaborate with others.</p>
+
+<p>In the 0.18 release, the projects feature is in preview mode. That means it must be
+enabled in the settings file.</p>
+
+<p><em>The feature is not currently available in the IBM Cloud environment.</em></p>
+
+<h3 id="enabling-projects">Enabling projects</h3>
+
+<p>To enable the projects feature, edit your <code class="language-plaintext highlighter-rouge">settings.js</code> file and add the following
+option within the <code class="language-plaintext highlighter-rouge">module.exports</code> block and restart Node-RED.</p>
+
+<div class="doc-callout">
+<em>Note</em> :  The <code>settings.js</code> file exports a <em>JavaScript object</em>.
+To configure Node-RED you should understand how to modify a JavaScript object by adding
+new or modifying existing key/value pairs like the <code>editorTheme</code> below.
+</div>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>   editorTheme: {
+       projects: {
+           enabled: true
+       }
+   },
+</code></pre></div></div>
+
+<p>It is also possible to enable the projects feature by setting the <code class="language-plaintext highlighter-rouge">NODE_RED_ENABLE_PROJECTS</code> environment variable to <code class="language-plaintext highlighter-rouge">true</code>.</p>
+
+<p>The feature relies on having the <code class="language-plaintext highlighter-rouge">git</code> and <code class="language-plaintext highlighter-rouge">ssh-keygen</code> command line tools available.
+Node-RED will check for them on start-up and let you know if they are missing.</p>
+
+<h3 id="creating-your-first-project">Creating your first project</h3>
+
+<p>When you open the editor you’ll be greeted by a welcome screen that invites you
+to create your first project using your existing flow files.</p>
+
+<p><img src="/docs/user-guide/projects/images/project_welcome.png" alt="Projects Welcome Screen" /></p>
+
+<p>It will take you through the following steps:</p>
+
+<ol>
+  <li>
+    <p><strong>Setup your version control client</strong></p>
+
+    <p>Node-RED uses the open source tool Git for version control. It tracks changes
+ to your project files and lets you push them to remote repositories.</p>
+
+    <p>When you commit a set of changes, Git records who made the changes with a
+ username and email address. The Username can be anything you want - it does
+ not need to be your real name.</p>
+
+    <p>You may already have your Git client configured - in which Node-RED will reuse
+ those settings.</p>
+
+    <p>You can change these settings at any time via the main Node-RED settings dialog.</p>
+
+    <ul>
+      <li><a href="https://help.github.com/articles/set-up-git/#setting-up-git">More information on configuring your git client</a> (GitHub)</li>
+    </ul>
+  </li>
+  <li>
+    <p><strong>Create your project</strong></p>
+
+    <p>The next step lets you name your project and given it a description.</p>
+  </li>
+  <li>
+    <p><strong>Create your project files</strong></p>
+
+    <p>Node-RED will automatically migrate your existing flow files into your project.
+ You can choose to rename them here if you want.</p>
+  </li>
+  <li>
+    <p><strong>Setup encryption of your credentials file</strong></p>
+
+    <p>As you may choose to share your project on public sites such as GitHub, it is
+ <em>strongly</em> recommended that you encrypt your credentials file.</p>
+
+    <p>To encrypt it, you need to choose a key that will be used to secure the file.
+ This key is not stored within the project. If someone else clones your project,
+ you will need to provide them the key to decrypt the credentials file.
+ Otherwise they will need to edit the flow to provide their own credentials.</p>
+  </li>
+</ol>
+
+<p>The project is then created in the directory: <code class="language-plaintext highlighter-rouge">~/.node-red/projects/&lt;project-name&gt;</code>.</p>
+
+<h3 id="working-with-projects">Working with projects</h3>
+
+<p>Once you have created your project, you can continue to use the Node-RED editor
+just as you always have. There are some new parts of the editor that have been
+added to work with your project.</p>
+
+<h4 id="accessing-project-settings">Accessing Project Settings</h4>
+
+<p>The Info sidebar now shows what project you are working on at the top. Next to
+the project name is a button that opens up the Project Settings dialog.</p>
+
+<p><img src="images/project_info_sidebar.png" width="314px" /></p>
+
+<p>You can also access this from the <code class="language-plaintext highlighter-rouge">Projects -&gt; Project Settings</code> option in the
+main menu.</p>
+
+<p>The dialog has three tabs:</p>
+
+<ul>
+  <li>Project - lets you edit the project’s README.md file.</li>
+  <li><a href="#project-dependencies">Dependencies</a> - manage the list of node modules your project depends on</li>
+  <li><a href="#project-settings">Settings</a> - manage the project settings, including the git remotes</li>
+</ul>
+
+<h5 id="project-dependencies">Project Dependencies</h5>
+
+<p>Each project has its own <code class="language-plaintext highlighter-rouge">package.json</code> file that includes a list of node modules
+the project depends on. The Node-RED editor tracks what nodes you are using in a
+flow and helps you to keep that list of dependencies up to date.</p>
+
+<p><img src="images/project_dependencies.png" width="599px" /></p>
+
+<p>In the screenshot above, the current project has three modules listed in its
+<code class="language-plaintext highlighter-rouge">package.json</code> file, each in a different state:</p>
+
+<ul>
+  <li><code class="language-plaintext highlighter-rouge">node-red-node-mysql</code> is not currently installed</li>
+  <li><code class="language-plaintext highlighter-rouge">node-red-node-random</code> is used by the current flow</li>
+  <li><code class="language-plaintext highlighter-rouge">node-red-node-rbe</code> is listed, but is unused by the current flow</li>
+</ul>
+
+<p>Finally <code class="language-plaintext highlighter-rouge">node-red-node-smooth</code> provides a node that is used by the current flow,
+but that module is not listed as a dependency.</p>
+
+<p>Keeping the dependency list up to date is important if you want to share the project
+with others - as it will help users to install the necessary modules.</p>
+
+<h5 id="project-settings">Project Settings</h5>
+
+<p>The project settings tab lets you manage your flow files, the encryption configuration
+of your credentials and configure your local git branches and remote repositories.</p>
+
+<h4 id="version-control">Version Control</h4>
+
+<p>A new <code class="language-plaintext highlighter-rouge">history</code> tab has been added to the sidebar. This is where you manage the
+version control of your project. The tab has two sections:</p>
+
+<ul>
+  <li>Local Changes - shows project files that have changed, allowing you to stage
+and commit them.</li>
+  <li>Commit History - a list of all commits in the repository, with tools to push
+commits to remote repositories.</li>
+</ul>
+
+<h5 id="local-changes">Local Changes</h5>
+
+<p><img src="images/project_local_changes.png" width="326px" style="float: right; margin-left: 20px" /></p>
+
+<p>Whenever you change a project file, such as by deploying a new flow configuration,
+it will be listed in the ‘Local files’ section. You can click on the file name
+to see a diff of what has changed. When you hover over the file, you’ll see a
+<strong>+</strong> button - clicking that will stage the file - moving it down to the ‘Changes
+to commit’ list.</p>
+
+<p>When you have staged the files you want to commit, click the <code class="language-plaintext highlighter-rouge">commit</code> button, enter
+a message and confirm.</p>
+
+<p><br style="clear:both" /></p>
+
+<h5 id="commit-history">Commit History</h5>
+
+<p><img src="images/project_commit_history.png" width="327px" style="float: left; margin-right: 20px" /></p>
+
+<p>The Commit History section lists all of the commits in the current branch of the
+repository. When you create a project, Node-RED automatically commits the initial
+set of default files for the project.</p>
+
+<p>At the top of the list is the ‘Branch’ button. That allows you to checkout/create
+branches within the repository.</p>
+
+<p>If your repository has a remote repository configured, there is also a button that
+shows how many commits ahead and/or behind your local repository is compared with the
+remote. It allows you to pick the remote/branch to track, and push/pull your changes
+to the remote.</p>
+
+<p>This is one area that the Node-RED editor tries to simplify the user experience,
+and doesn’t expose all of the various options git provides. This is an area we
+welcome feedback on. For example, it does not provide options to rebase your local
+commits, or force push your changes to the remote. You can still do those things
+by falling back to the command line.</p>
+
+<p><br style="clear:both" /></p>
+
+<h4 id="creating-new-projects">Creating new projects</h4>
+
+<p>After you have created your first project by migrating your existing flow files
+you can create additional projects.</p>
+
+<p>Selecting <code class="language-plaintext highlighter-rouge">Projects -&gt; New</code> from the menu opens the Projects dialog.</p>
+
+<p>This provides three options:</p>
+
+<ul>
+  <li>open an existing project</li>
+  <li>create a new project</li>
+  <li>clone a project repository</li>
+</ul>
+
+<h5 id="open-an-existing-project">Open an existing project</h5>
+
+<p>Node-RED only runs one project at any time. By opening another project you
+change what flows are running.</p>
+
+<p>The ‘open project’ view also allows you to delete projects by hovering over them
+in the list and clicking the delete button. You cannot delete the active project.</p>
+
+<h5 id="create-a-new-project">Create a new project</h5>
+
+<p>This lets you create a new project. It provides the same options as the
+‘create your first project’ set of screens, but collapsed into one.</p>
+
+<h5 id="clone-a-project-repository">Clone a project repository</h5>
+
+<p>This lets you clone an existing remote repository. You can use either an <code class="language-plaintext highlighter-rouge">http(s)</code>
+or <code class="language-plaintext highlighter-rouge">git/ssh</code> url for the repository. If the repository requires authentication
+you must provide it here.</p>
+
+<p><em>Note:</em> for <code class="language-plaintext highlighter-rouge">http</code> urls, do not include your username and/or password in the url
+itself. You can should provide those separately when prompted.</p>
+
+<p>For <code class="language-plaintext highlighter-rouge">ssh</code> urls from GitHub they will need to be changed from 
+<code class="language-plaintext highlighter-rouge">git@github.com:username/project</code> to <code class="language-plaintext highlighter-rouge">ssh://git@github.com/username/project</code></p>
+
+<p><em>Node-RED does not currently make use of any credential helper you git client may be
+configured with. This is an area we look for feedback on from the community.</em></p>
+
+<p>For <code class="language-plaintext highlighter-rouge">git/ssh</code>, Node-RED will offer a list of available ssh public keys. This list
+is generated by scanning <code class="language-plaintext highlighter-rouge">~/.ssh</code> for files ending <code class="language-plaintext highlighter-rouge">.pub</code> that have corresponding
+private key files. It also allows you to generate a new public/private key pairs
+via the ‘Git config’ tab of the main settings dialog. These files are stored under
+<code class="language-plaintext highlighter-rouge">~/.node-red/projects/.sshkeys/</code>. If you have <code class="language-plaintext highlighter-rouge">adminAuth</code> enabled, the files are
+scoped to the current logged in user so they do not need to share credentials for
+the remote.</p>
+</div>
+            </div>
+        </div>
+
+    </div>
+</div>
+<div class="links">
+    <div class="grid">
+        <div class="col-1-4">
+            <p><a href="https://nodered.org">Node-RED</a>: Low-code programming for event-driven applications.</p>
+        </div>
+        <div class="col-1-4">
+            <ul>
+                <li><a href="https://github.com/node-red">GitHub</a></li>
+                <li><a href="https://www.npmjs.com/package/node-red">npm</a></li>
+                <li><a href="/docs">Documentation</a></li>
+                <li><a href="/docs/api">APIs</a></li>
+            </ul>
+        </div>
+        <div class="col-1-4">
+            <ul>
+                <li><a href="https://flows.nodered.org">Flow Library</a></li>
+                <li><a href="/about/">About</a></li>
+                <li><a href="/about/conduct">Code of Conduct</a></li>
+                <li><a href="/about/community">Community</a></li>
+            </ul>
+        </div>
+        <div class="col-1-4">
+            <ul>
+                <li><a href="/blog">Blog</a></li>
+                <li><a href="https://discourse.nodered.org">Forum</a></li>
+                <li><a href="/slack">Slack</a></li>
+                <li><a rel="me" href="https://social.nodered.org/@nodered">Mastodon</a></li>
+                <li><a href="https://twitter.com/nodered">Twitter</a></li>
+            </ul>
+        </div>
+    </div>
+    <div class="grid openjs">
+        <div class="col-1-4">
+            <a href="https://openjsf.org"><img class="openjs-logo" src="https://nodered.org/images/openjs_foundation-logo.svg" /></a>
+        </div>
+        <div class="col-3-4">
+            <p>Copyright <a href="https://openjsf.org">OpenJS Foundation</a> and Node-RED contributors. All rights reserved. The <a href="https://openjsf.org">OpenJS Foundation</a> has registered trademarks and uses trademarks.  For a list of trademarks of the <a href="https://openjsf.org">OpenJS Foundation</a>, please see our <a href="https://trademark-policy.openjsf.org">Trademark Policy</a> and <a href="https://trademark-list.openjsf.org">Trademark List</a>.  Trademarks and logos not indicated on the <a href="https://trademark-list.openjsf.org">list of OpenJS Foundation trademarks</a> are trademarks&trade; or registered&reg; trademarks of their respective holders. Use of them does not imply any affiliation with or endorsement by them.</p>
+            <p><a href="https://openjsf.org">The OpenJS Foundation</a> | <a href="https://terms-of-use.openjsf.org">Terms of Use</a> | <a href="https://privacy-policy.openjsf.org">Privacy Policy</a> | <a href="https://bylaws.openjsf.org">OpenJS Foundation Bylaws</a> | <a href="https://trademark-policy.openjsf.org">Trademark Policy</a> | <a href="https://trademark-list.openjsf.org">Trademark List</a> | <a href="https://www.linuxfoundation.org/cookies">Cookie Policy</a></p>
+        </div>
+    </div>
+</div>
+<script>
+ $(function() {
+    $(".menu").on("click", function(e) {
+        var s = $(".navigation").slideToggle('hide');
+        e.preventDefault();
+    });
+  });
+</script>
+<script defer data-domain="nodered.org" src="https://plausible.io/js/plausible.js"></script>
+</body>
+</html>
+
+

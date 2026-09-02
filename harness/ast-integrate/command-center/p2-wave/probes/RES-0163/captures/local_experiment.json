@@ -1,0 +1,84 @@
+{
+  "disqualified_ids": [
+    "git-worktree-locked-file",
+    "naive-lockfile-no-pid-no-ttl"
+  ],
+  "fetch_timestamp": "2026-08-24T20:50:57Z",
+  "host_pid_max_note": "dead_pid chosen so os.kill raises ProcessLookupError",
+  "isolated_repo": true,
+  "kind": "local-measurement",
+  "options": [
+    {
+      "crash_without_release": "Holder dies leaving the worktree directory: git worktree list still shows the checkout. Holder dies and the directory is gone: prune --expire=now reclaims admin files.",
+      "id": "git-worktree-occupancy",
+      "measured": {
+        "add_rc": 0,
+        "listed_after_rm_still_mentions_path": true,
+        "listed_contains_wt_a_before_rm": true,
+        "prune_unlocked_rc": 0,
+        "prune_unlocked_stderr": "Removing worktrees/wt-a: gitdir file points to non-existent location\n",
+        "prune_unlocked_stdout": "",
+        "unlocked_reclaimed": true
+      },
+      "no_server": true,
+      "stale_lock_story": "git worktree prune removes $GIT_DIR/worktrees/<id> when the gitdir path is missing and the entry is not locked.",
+      "stale_mechanisms": [
+        "directory_missing_prune"
+      ],
+      "verdict": "QUALIFIED"
+    },
+    {
+      "crash_without_release": "git worktree lock writes $GIT_DIR/worktrees/<id>/locked with a reason string and no PID/TTL. After the directory is deleted, prune --expire=now does not reclaim it.",
+      "id": "git-worktree-locked-file",
+      "measured": {
+        "add_rc": 0,
+        "listed_after": "worktree /tmp/res0163-wt-j1w44ju_/main\nHEAD 29edd5e58d64bbd6f46b91136f557192d8c20982\nbranch refs/heads/main\n\nworktree /tmp/res0163-wt-j1w44ju_/wt-b\nHEAD 29edd5e58d64bbd6f46b91136f557192d8c20982\nbranch refs/heads/topic-b\nlocked crash-test\n\n",
+        "lock_rc": 0,
+        "locked_paths": [
+          "/tmp/res0163-wt-j1w44ju_/main/.git/worktrees/wt-b/locked"
+        ],
+        "locked_still_present": true,
+        "prune_locked_rc": 0
+      },
+      "no_server": true,
+      "stale_lock_story": "",
+      "stale_mechanisms": [],
+      "verdict": "DISQUALIFIED"
+    },
+    {
+      "crash_without_release": "Symlink .#file -> USER@HOST.PID remains after crash. Same-host kill(pid,0) ProcessLookupError => stale, reclaim.",
+      "id": "emacs-style-pid-lock",
+      "measured": {
+        "dead_pid": 4194304,
+        "dead_pid_alive": false,
+        "emacs_dead_reclaimable": true,
+        "live_pid": 173875,
+        "live_pid_alive": true,
+        "lock_text": "tester@testhost.4194304:0"
+      },
+      "no_server": true,
+      "stale_lock_story": "When the host matches, Emacs checks pid validity with kill; a dead pid is treated as a stale lock.",
+      "stale_mechanisms": [
+        "pid_liveness"
+      ],
+      "verdict": "QUALIFIED"
+    },
+    {
+      "crash_without_release": "A file containing only LOCKED remains forever. No pid, no TTL, no prune. Holder crash leaks the claim.",
+      "id": "naive-lockfile-no-pid-no-ttl",
+      "measured": {
+        "bytes": 7,
+        "contents": "LOCKED\n"
+      },
+      "no_server": true,
+      "stale_lock_story": "",
+      "stale_mechanisms": [],
+      "verdict": "DISQUALIFIED"
+    }
+  ],
+  "qualified_ids": [
+    "git-worktree-occupancy",
+    "emacs-style-pid-lock"
+  ],
+  "unit_id": "RES-0163"
+}

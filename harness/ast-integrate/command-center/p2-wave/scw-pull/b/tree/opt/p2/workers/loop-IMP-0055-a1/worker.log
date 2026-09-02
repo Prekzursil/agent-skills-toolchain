@@ -1,0 +1,33 @@
+
+===== launch 2026-08-20T08:59:05Z attempt=1 =====
+I'll start from the existing IMP-0055 probe tree and the unit contract, then implement until the live measure prints SUCCESS:delivered.IMP-0055 looks like it may never have been started. I’ll pull the catalog contract, the measure script, and a nearby delivered IMP unit as the template.The unit is missing entirely, so I’ll inspect IMP-0051, the plugin error surface, and a delivered IMP unit for the receipt and probe shape.The catalog names six major exit classes; I’ll check the plugin CLI, tests, and receipt schema for what’s already there versus what still has to be built.The contract is six distinct process exits plus live bash and pwsh observation. I’ll add the missing permission and internal classes, then wire probes that actually re-run.I’ll land the taxonomy and CLI changes first so the live probes have a real contract to observe.The tree already has an `E_PERM` class, so I’ll reconcile against that and keep `E_PERMISSION` as the distinct access-denied exit.Uniqueness holds. Next I’ll add the required tests and the live bash/pwsh probes.The receipt schema needs source-plus-verifier probes, `residual_unknowns`, and object-shaped downstream consumers. I’ll fix the packer and re-emit.IMP-0055 is delivered. The live measure printed `SUCCESS:delivered`.
+
+The probe tree did not exist, so it was created and the CLI exit-code contract was implemented end to end.
+
+**Major process exits a calling script can branch on**
+
+| Class | Code | Exit |
+|---|---|---|
+| usage error | `E_USAGE` | 2 |
+| precondition failed | `E_PREFLIGHT` | 20 |
+| validation failed | `E_CONFORM` | 51 |
+| permission denied | `E_PERMISSION` | 16 |
+| blocked-needs-owner | `E_DRIFT` | 30 |
+| internal error | `E_INTERNAL` | 100 |
+
+Exit 0 is reserved for verified success (`astplugin errors`). Taxonomy exits stay in 0..125 and do not collide with 126, 127, or 128+n.
+
+**What landed**
+
+- `E_PERMISSION` and `E_INTERNAL` in the taxonomy; OS `EACCES` maps to permission-denied; uncaught exceptions map to internal-error
+- `tools/plugin/tests/test_exit_codes.py` (one case per class, exact integer)
+- Live observation: bash `$?` and pwsh7 `$LASTEXITCODE` saw the same integers
+- Negative control: a failing `conform` that wrote a JSON report exited 51; an exit-0-after-report mutant turned the detector red
+
+**Measure**
+
+```
+SUCCESS:delivered IMP-0055 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,posix_shell.py:0,pwsh_shell.py:0,run_required_tests.py:0
+```
+
+Receipt `command-center/receipts/IMP-0055.json` is `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `fdf36007bd7f22656dbd58a8193cb357f44675604590c94cf166fc71066f2629`. No git writes, no global catalog `--write`.

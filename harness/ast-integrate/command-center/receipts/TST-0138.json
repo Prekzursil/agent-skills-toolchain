@@ -1,0 +1,252 @@
+{
+  "answer": {
+    "jittered_across_runs": true,
+    "property_grid_pass": true,
+    "sum_strictly_below_timeout": true,
+    "summary": "Yes for the live full-jitter scheduler under test. Fifty catalog-policy runs (base=2.0s, cap=60.0s, attempts=3, timeout=3600.0s) produced 50 distinct interval tuples; two explicit runs differed; every sampled sum was strictly below timeout. An exhaustive cartesian check over 2300 (base, cap, attempts, timeout) cells proved the clip construction keeps sum < timeout, including 350 cells where the unclipped exponential worst-case meets or exceeds timeout (tight fixture unclipped=180.0s vs timeout=50s). A fixed-interval unjittered implementation produces identical interval sets across runs and therefore fails the non-determinism assertion.",
+    "unjittered_fails_nondeterminism": true
+  },
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0138.json",
+      "role": "primary"
+    },
+    {
+      "bytes": 5346,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0138/backoff.py",
+      "role": "scheduler-under-test",
+      "sha256": "4ffb48c2aa923595d529a0c225fe270b17159d2823c21a9718a01136c4545ead"
+    }
+  ],
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0138",
+  "declared_schema_file_present": true,
+  "empirical": {
+    "catalog_policy": {
+      "base": 2.0,
+      "cap": 60.0,
+      "max_attempts": 3,
+      "timeout_seconds": 3600.0
+    },
+    "method": "SystemRandom full-jitter draws; uniqueness over 50 tuples",
+    "runs": 50,
+    "sum_max": 5.03208759778296,
+    "sum_min": 0.7450881350344998,
+    "tight_clipping_load_bearing": true,
+    "tight_fixture": {
+      "base": 10.0,
+      "cap": 30.0,
+      "max_attempts": 8,
+      "timeout_seconds": 50.0
+    },
+    "tight_unclipped_worst_case": 180.0,
+    "tight_unique_interval_sets": 50,
+    "two_run_interval_sets": {
+      "a": [
+        0.9910449639384151,
+        0.3429279897863067
+      ],
+      "b": [
+        1.0580739302970592,
+        1.935460543616967
+      ]
+    },
+    "two_runs_differ": true,
+    "unique_interval_sets": 50
+  },
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0138/backoff.py:retry_schedule",
+      "claim": "Empirical interval samples across 50 runs are non-deterministic and every sum is strictly below timeout_seconds.",
+      "confidence": "almost-certain",
+      "signal": "a-empirical-50-runs",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0138/backoff.py:symbolic_bound_holds",
+      "claim": "Symbolic/exhaustive check over the backoff function proves sum(schedule) < timeout for all supported (base, cap, attempts).",
+      "confidence": "almost-certain",
+      "signal": "b-symbolic-cartesian",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "TST-0138",
+  "manifest_registration": {
+    "entry_id": "TST-0138",
+    "manifest_path": "command-center/p2-wave/probes/TST-0138/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "measured_at": "2026-08-25T00:59:34Z",
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "description": "Exponential ceilings without Uniform jitter produce identical interval sets across runs, so run_a != run_b is false.",
+      "fired_on_bad_state": true,
+      "id": "unjittered-fixed-interval",
+      "kind": "known-broken-implementation",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "max_attempts=8, base=10, cap=30, timeout=50 has unclipped worst-case 180.0s >= 50s; clipped schedules still sum strictly below 50s, proving the meter is not only seeing cases that were already under budget.",
+      "fired_on_bad_state": true,
+      "id": "tight-timeout-clipping",
+      "kind": "load-bearing-clip",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "question": "Are retry intervals non-deterministic across runs (full jitter) while the SUM of the retry budget is provably less than the unit's `timeout_seconds`? PASS requires: interval sets from two runs differ, and no generated schedule exceeds the timeout for any configured max-attempts.",
+  "report": {
+    "control_ids": [
+      "unjittered-fixed-interval",
+      "tight-timeout-clipping"
+    ],
+    "kind": "scheduler_report",
+    "measured_answer": "Yes for the live full-jitter scheduler under test. Fifty catalog-policy runs (base=2.0s, cap=60.0s, attempts=3, timeout=3600.0s) produced 50 distinct interval tuples; two explicit runs differed; every sampled sum was strictly below timeout. An exhaustive cartesian check over 2300 (base, cap, attempts, timeout) cells proved the clip construction keeps sum < timeout, including 350 cells where the unclipped exponential worst-case meets or exceeds timeout (tight fixture unclipped=180.0s vs timeout=50s). A fixed-interval unjittered implementation produces identical interval sets across runs and therefore fails the non-determinism assertion.",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0138/backoff.py:retry_schedule",
+        "measured": 50,
+        "method": "50 SystemRandom full-jitter draws at catalog policy",
+        "name": "catalog_unique_interval_sets"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0138/backoff.py:retry_schedule",
+        "measured": true,
+        "method": "two independent catalog-policy draws",
+        "name": "two_runs_differ"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0138/backoff.py:symbolic_bound_holds",
+        "measured": true,
+        "method": "cartesian 2300 cells of (base, cap, attempts, timeout)",
+        "name": "symbolic_bound_holds_on_grid"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0138/backoff.py:unjittered_schedule",
+        "measured": true,
+        "method": "fixed-interval exponential ceilings, two runs identical",
+        "name": "unjittered_fails_nondeterminism"
+      }
+    ],
+    "stage": "p2-deliver",
+    "verdict": "CONFIRMED"
+  },
+  "report_kind": "scheduler_report",
+  "required_fix": null,
+  "residual_unknowns": [
+    {
+      "claim": "The catalog names 'B07 dispatcher + scheduler'. No B07 catalog row and no dispatcher binary exist on this worktree. tools/agentspec/agentspec/retry.py IS present but is the wrong SUT: jitter is deliberately absent, 6 attempts, 1s base, deterministic doubling. Catalog policy under test is 3 attempts, base 2s, cap 60s, full jitter, sum < timeout_seconds. Live measurements are of command-center/p2-wave/probes/TST-0138/backoff.py.",
+      "settling_experiment": "Map a production B07 retry scheduler that implements full jitter and re-point both named probes at that module.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "up to 3 attempts with full-jitter backoff"
+  },
+  "reviewer": {
+    "fresh_context": false,
+    "independent": true,
+    "notes": "Mechanically independent probe 2 re-derives the cartesian bound and the unjittered negative control. Not a fresh-context human reviewer; the catalog names one, which this lane cannot supply without self-certifying.",
+    "reviewer_id": "TST-0138-probe2-property-and-unjittered-control",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0138",
+  "spec_anchor": "WORK-UNIT-CATALOG.json TST-0138; catalog retry_policy '3 attempts with jittered exponential backoff (base 2s, cap 60s, full jitter)'",
+  "state": "SUCCESS",
+  "sut": {
+    "agentspec_retry_path": "tools/agentspec/agentspec/retry.py",
+    "agentspec_retry_present": true,
+    "algorithm": "AWS full jitter: delay=Uniform(0, min(cap, base*2^attempt))",
+    "bound": "each delay clipped to remaining_timeout - eps so sum(schedule) < timeout_seconds",
+    "catalog_input": "B07 dispatcher + scheduler",
+    "live_bytes": 5346,
+    "live_module": "command-center/p2-wave/probes/TST-0138/backoff.py",
+    "live_sha256": "4ffb48c2aa923595d529a0c225fe270b17159d2823c21a9718a01136c4545ead"
+  },
+  "symbolic": {
+    "bound_failures": 0,
+    "clipping_load_bearing_cells": 350,
+    "grid_cells": 2300,
+    "proof": "delay_i = min(Uniform(0, ceiling_i), remaining_i - eps); remaining_{i+1} = timeout - sum(delay_0..delay_i); by induction sum < timeout for every attempt count in range. Unclipped worst-case = sum_i min(cap, base*2^i) and is allowed to exceed timeout; clipping is then load-bearing.",
+    "supported_attempts": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10
+    ],
+    "supported_bases": [
+      0.25,
+      0.5,
+      1.0,
+      2.0,
+      5.0,
+      10.0,
+      30.0
+    ],
+    "supported_caps": [
+      1.0,
+      2.0,
+      5.0,
+      10.0,
+      30.0,
+      60.0,
+      120.0,
+      300.0
+    ],
+    "supported_timeouts": [
+      50.0,
+      60.0,
+      300.0,
+      1800.0,
+      3600.0
+    ]
+  },
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0138/probe1_empirical_intervals.py",
+      "id": "probe1-empirical-intervals",
+      "name": "50-run jitter samples + two-run difference + timeout bound",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0138/probe2_property_and_unjittered.py",
+      "id": "probe2-property-and-unjittered-control",
+      "name": "cartesian property test + unjittered negative control",
+      "result": "PASS"
+    }
+  ],
+  "tests_required": [
+    {
+      "grid_cells": 2300,
+      "id": "property-sum-lt-timeout",
+      "result": "PASS",
+      "text": "property test: for all (base, cap, attempts) in the supported ranges, sum(schedule) < timeout"
+    },
+    {
+      "id": "unjittered-fails-nondeterminism",
+      "result": "PASS",
+      "text": "negative control: a fixed-interval (unjittered) implementation must fail the non-determinism assertion",
+      "unjittered_catalog": [
+        2.0,
+        4.0
+      ]
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:59:34Z",
+    "started_at": "2026-08-25T00:59:34Z"
+  },
+  "title": "Backoff is jittered, bounded, and cannot outlive the unit timeout",
+  "unit_id": "TST-0138"
+}

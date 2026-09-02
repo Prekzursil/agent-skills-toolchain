@@ -1,0 +1,57 @@
+{
+  "id": "task.api-token-storage",
+  "title": "CLI must store user API tokens",
+  "candidates": [
+    {"id": "ops-1", "class": "operator"},
+    {"id": "own-1", "class": "owner"},
+    {"id": "imp-1", "class": "implementer"},
+    {"id": "usr-1", "class": "affected-party"},
+    {"id": "leg-1", "class": "constraint-bearer"}
+  ],
+  "wants": [
+    {
+      "id": "W-plain",
+      "class": "operator",
+      "statement": "Keep tokens in plaintext so on-call can debug auth failures without a key ceremony.",
+      "conflicts_with": ["W-erase"]
+    },
+    {
+      "id": "W-erase",
+      "class": "constraint-bearer",
+      "statement": "Tokens must be erasable on user request (GDPR storage limitation).",
+      "conflicts_with": ["W-plain"]
+    },
+    {
+      "id": "W-fast",
+      "class": "owner",
+      "statement": "Ship a working CLI this quarter.",
+      "conflicts_with": ["W-tests"]
+    },
+    {
+      "id": "W-tests",
+      "class": "affected-party",
+      "statement": "Auth failures must have a regression test before ship.",
+      "conflicts_with": ["W-fast"]
+    },
+    {
+      "id": "W-simple",
+      "class": "implementer",
+      "statement": "Avoid a KMS dependency in v1.",
+      "conflicts_with": []
+    }
+  ],
+  "proposed_rewrites": [
+    {
+      "id": "R-ship-with-tests",
+      "pair": ["W-fast", "W-tests"],
+      "rewrite": "Ship this quarter with the auth-failure regression test as a release gate.",
+      "accepted_by": ["owner", "affected-party"]
+    },
+    {
+      "id": "R-plaintext-promise",
+      "pair": ["W-plain", "W-erase"],
+      "rewrite": "Store plaintext now and promise to delete later without a deletion mechanism.",
+      "accepted_by": ["operator"]
+    }
+  ]
+}

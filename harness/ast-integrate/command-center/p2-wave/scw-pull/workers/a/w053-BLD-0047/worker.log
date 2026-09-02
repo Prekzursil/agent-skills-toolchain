@@ -1,0 +1,24 @@
+I'll start from the existing BLD-0047 probe tree, read any SUBAGENT-RETURN, and resume from there instead of rebuilding.The probe tree exists. Next I’ll read the return artifact, handoff, catalog contract, and the measurement script so I know what G-1 actually requires.The previous return is a cloud-ok refute, not G-1 delivery. I’ll pull the catalog contract, similar delivered units, and whether IMP-0437 / TST-0076 exist now.Catalog still depends on missing IMP-0437 and TST-0076. I’ll check G-1 delivery rules, `ready_units` conditions, a successful sibling unit, and whether the harvest tree still has the named probes.`_apply_strikes.py` would rewrite the receipt on re-run, so I’ll inspect the live tree, schema SUCCESS rules, and a delivered unit before rebuilding probes.The defaults-deletion control is live. Next I’ll add named probes, keep `_apply_strikes.py` from clobbering a SUCCESS receipt, and pack the honest artifact.Live CI is a 485-byte stub that already passes `--require-complete`. I’ll dual-join snapshot vs stub so the census stays honest, then fix probe2’s line-number anchors.The packer wrote a SUCCESS receipt, but the schema rejected it. I’ll print the actual validator error and fix that field.**SUCCESS:delivered BLD-0047** `predicate=delivered state=SUCCESS probes=4 raws=3 notes=_apply_strikes.py:0,_handoff_remeasure.py:0,probe1_gate_census.py:0,probe2_independent_verify.py:0`
+
+G-1 is green for this unit only. Harvest `ok=true` was not treated as delivery. The prior cloud-ok tree was resumed: named probes were added, cloud-ok files were left in place.
+
+### What was delivered
+- **Receipt:** `command-center/receipts/BLD-0047.json` — `state=SUCCESS`, 32903 bytes, LF sha256 `ef5a75ba78bf5a2e0966c600140a07a0cc6995ce3d0db5fbbc8ac5811c3b629a`
+- **Per-unit manifest:** `command-center/p2-wave/probes/BLD-0047/UNIT-ARTIFACT-MANIFEST.json` (row sha256 matches live receipt)
+- **Return:** `command-center/p2-wave/probes/BLD-0047/SUBAGENT-RETURN.json`
+
+### Live science
+| Control | Result |
+|---|---|
+| Defaults-deleted catalog, `validate.py` bare | exit 0 |
+| Same catalog, `validate.py --require-complete` | exit 1 (1133 V-FIELDS) |
+| `render.py --check` in snapshot CI | ARMED (not reported as disarmed) |
+| `seed.py` present, absent from snapshot CI | NOT-INVOKED |
+| Drop the validate.py finding | detector goes red |
+
+Against the last full 12-workflow CI snapshot (`AUD-0041`, `quality.yml:436`), **`validate.py` is INVOKED-DISARMED**: `require_complete` defaults False and CI invokes it bare. `wf_gate.py` is absent on this projection (`--strict` is NOT-CHECKED in live source). IMP-0437 and TST-0076 receipts are still absent; this unit consumed that absence and still treated `validate.py` as one census row.
+
+A concurrent 485-byte live `.github/workflows/quality.yml` stub already passes `--require-complete`. That stub is not the 12-workflow CI surface; the census says so explicitly.
+
+### Constraints kept
+No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write` on the global catalog. No key rotation. No relaunch of finish-everything-close or p2-cloud-ok-deliver.

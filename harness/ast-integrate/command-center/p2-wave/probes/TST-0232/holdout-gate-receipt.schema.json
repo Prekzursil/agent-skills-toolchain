@@ -1,0 +1,138 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/TST-0232/holdout-gate-receipt.schema.json",
+  "title": "TST-0232 holdout-gap gate receipt",
+  "description": "Local discriminating schema. Catalog cites receipt.schema.json#/$defs/benchmark_result which is absent on this worktree.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "gap_threshold",
+    "candidates",
+    "detector_control",
+    "provenance",
+    "tests",
+    "reviewer",
+    "evidence"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "TST-0232" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:TST-0232" },
+    "report_kind": { "type": "string", "const": "holdout-gap-gate" },
+    "question": { "type": "string", "minLength": 40 },
+    "gap_threshold": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["value", "version", "formula"],
+      "properties": {
+        "value": { "type": "number", "exclusiveMinimum": 0, "maximum": 1 },
+        "version": { "type": "string", "minLength": 8 },
+        "formula": { "type": "string", "minLength": 20 }
+      }
+    },
+    "candidates": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "visible_score",
+          "holdout_score",
+          "n_visible",
+          "n_holdout",
+          "gap",
+          "verdict"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "visible_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "holdout_score": { "type": "number", "minimum": 0, "maximum": 1 },
+          "n_visible": { "type": "integer", "minimum": 12 },
+          "n_holdout": { "type": "integer", "minimum": 12 },
+          "gap": { "type": "number" },
+          "verdict": {
+            "type": "string",
+            "enum": ["PASS", "FAIL_GAMING", "INSUFFICIENT"]
+          }
+        }
+      }
+    },
+    "detector_control": {
+      "type": "object",
+      "required": [
+        "overfit_fired",
+        "honest_silent",
+        "overfit_id",
+        "honest_id"
+      ],
+      "properties": {
+        "overfit_fired": { "type": "boolean", "const": true },
+        "honest_silent": { "type": "boolean", "const": true },
+        "overfit_id": { "type": "string", "minLength": 3 },
+        "honest_id": { "type": "string", "minLength": 3 }
+      }
+    },
+    "provenance": {
+      "type": "object",
+      "required": [
+        "leak_count",
+        "implementation_units_scanned",
+        "holdout_ids",
+        "planted_control_fired"
+      ],
+      "properties": {
+        "leak_count": { "type": "integer", "const": 0 },
+        "implementation_units_scanned": { "type": "integer", "minimum": 1 },
+        "holdout_ids": {
+          "type": "array",
+          "minItems": 12,
+          "items": { "type": "string", "minLength": 8 }
+        },
+        "planted_control_fired": { "type": "boolean", "const": true }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 2 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "minLength": 3 },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["kind", "detail"],
+        "properties": {
+          "kind": { "type": "string", "minLength": 3 },
+          "detail": { "type": "string", "minLength": 8 }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,23 @@
+
+===== launch 2026-08-20T07:43:21Z attempt=1 =====
+I'll start from the existing ARC-0071 probe tree and the unit's measure/contract docs so we can implement from what's already there rather than treating an absent predicate as a park.Next I’ll pull the catalog row, the measure contract, and a delivered ARC unit so we can copy a working shape instead of guessing.The probe tree is missing, so I’ll load the schema, scorecards, ranking, and a delivered ARC unit as the implementation template.Inputs are missing and dependencies aren’t delivered yet; I’ll inspect the decision-record schema and nearby delivered ARC units to see how they handled that.I’ll pull the receipt schema, nearby ARC catalog rows, and a delivered SUBAGENT-RETURN so the artifact shape matches the gate.I’ll look at a delivered unit’s full receipt and the p2-deliver contract so ARC-0071 matches what the measure actually greps.The unit is unimplemented: I’ll add the dissent-preservation instrument, fixture scoring round, named probes, and pack path so G-1 can go green without touching the global catalog.I’ll add the shared dissent library, a fixture scoring round, and the named probes next.Pack succeeded with 4 dissents and a locked manifest. Next I’ll run the live measure and only then write SUBAGENT-RETURN.Measure printed `SUCCESS:delivered`. I’ll record that in SUBAGENT-RETURN with the live hashes and probe exits.**SUCCESS:delivered ARC-0071** — G-1 is green on this worktree.
+
+The unit had never been started (`probes/ARC-0071/` was missing). It is implemented, not parked.
+
+Live measure:
+
+```
+SUCCESS:delivered ARC-0071 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_both_states.py:0,probe_judge_replay.py:0,probe_report_setdiff.py:0,probe_scorecard_dissent.py:0
+```
+
+What the instrument does:
+- **Probe 1** walks scorecards (nested JSON + per-`(entry, dimension)` majority) and lists minority positions.
+- **Probe 2** independently flattens the same cells and computes a published set-difference against `minority_positions`. Difference is empty (4/4).
+- **Probe 3** is the both-states control: drop one dissent → fires; distort reasoning → fires; drop `report.kind` → schema red; live report stays silent.
+- **Probe 4** replays dissenting judge `J-OPENAI` field-for-field (score, reasoning, evidence).
+
+Catalog output `command-center/phase3/MINORITY-REPORT.json` is `state=SUCCESS`, 20826 bytes, live LF sha256 `d626d2f55fe4b7bf738a0238321ac291813260a2a8116c91a6a85c596efdae91`, registered only in the per-unit `UNIT-ARTIFACT-MANIFEST.json`.
+
+Honest residual: live `SCORECARDS.json` (ARC-0069) and `AGGREGATE-RANKING.json` (ARC-0070) are still absent. Probes used a 108-cell probe-local scoring round with four planted minority positions and will prefer the live files when those units deliver. This unit did not write those other catalog paths.
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no finish-everything / cloud-ok relaunch.

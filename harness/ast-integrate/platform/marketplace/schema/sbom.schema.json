@@ -1,0 +1,94 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/platform/marketplace/schema/sbom.schema.json",
+  "title": "Package SBOM (CycloneDX-shaped subset)",
+  "description": "Software bill of materials (spec 10852). Field names deliberately mirror CycloneDX 1.5 (`bomFormat`, `specVersion`, `components[].hashes[]`, `licenses[]`) so a real CycloneDX consumer can read it, but this is a SUBSET and says so: only the fields mkt can actually VERIFY are permitted. An SBOM component that names a payload file mkt cannot hash is a claim, not a bill of materials -- mkt.sbom.verify requires a bijection between SBOM file components and manifest payload files, in BOTH directions.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bomFormat", "specVersion", "serialNumber", "metadata", "components"],
+  "properties": {
+    "bomFormat": { "const": "CycloneDX" },
+    "specVersion": { "const": "1.5" },
+    "serialNumber": { "type": "string", "pattern": "^urn:uuid:[0-9a-f-]{36}$" },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timestamp", "component", "tools"],
+      "properties": {
+        "timestamp": { "$ref": "common.schema.json#/$defs/iso8601" },
+        "component": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "name", "version"],
+          "properties": {
+            "type": { "const": "application" },
+            "name": { "$ref": "common.schema.json#/$defs/package_name" },
+            "version": { "$ref": "common.schema.json#/$defs/semver" }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version"],
+            "properties": {
+              "name": { "type": "string", "maxLength": 80 },
+              "version": { "type": "string", "maxLength": 40 }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 5000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "name", "hashes", "licenses"],
+        "properties": {
+          "type": { "enum": ["file", "library"] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 400 },
+          "version": { "type": "string", "maxLength": 60 },
+          "hashes": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["alg", "content"],
+              "properties": {
+                "alg": { "const": "SHA-256" },
+                "content": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+              }
+            }
+          },
+          "licenses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["license"],
+              "properties": {
+                "license": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id"],
+                  "properties": {
+                    "id": { "$ref": "common.schema.json#/$defs/spdx" },
+                    "url": { "type": "string", "maxLength": 300 }
+                  }
+                }
+              }
+            },
+            "description": "REQUIRED per component, minItems 1. TOURNAMENT-VERDICT.md M1 records that a file-presence licence scanner reported this repo clean while a CC BY-SA 4.0 share-alike entry sat inside a package declaring MIT. A per-component licence that a publisher must state explicitly is the only shape in which that defect is visible."
+          }
+        }
+      }
+    }
+  }
+}

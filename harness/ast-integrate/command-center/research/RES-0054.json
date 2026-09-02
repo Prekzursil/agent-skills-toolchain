@@ -1,0 +1,951 @@
+{
+  "unit_id": "RES-0054",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0054 in the receipt AND a defense table with an automatable/moderation-dependent column and at least one of each",
+  "receipt": "SUCCESS:RES-0054 in the receipt AND a defense table with an automatable/moderation-dependent column and at least one of each",
+  "report_kind": "threat_model",
+  "title": "Catalogue publisher-identity and namespace-squatting defenses that a one-owner registry can run",
+  "question": "Which identity and namespace defenses (scoped names, verified publishers, reserved prefixes, typo-distance blocking) are implementable by a single-owner marketplace with no review staff, and which fundamentally require human moderation?",
+  "answer": "Split each named defense into the part a computer can enforce and the part that is a judgment. Scoped names are automatable as an account-owned prefix ACL (npm grants @scope at signup); they do not stop brand-scope squatting. 'Verified publishers' is two different controls: OIDC trusted publishing is automatable cryptography and does not attest a legal entity; VS Code/NuGet identity badges require staff reputation and identifying-question review. Reserved prefixes are automatable as a 409 prefix ACL *after* a grant exists (PEP 752 / NuGet); issuing the grant (PEP 755 harm/identity criteria, PEP 541 workgroup, crates.io squat takedowns) is moderation-dependent. Typo-distance blocking is automatable for Warehouse ultranormalize collisions; TypoSnyper in the captured source is an admin observation after create and is not a gate. A one-owner prompt-payload marketplace can ship D1, D2, D4, D6 with no review staff. It cannot honestly ship D3, D5, or D7 without hiring moderators or accepting that those rows are theatre.",
+  "generated_at": "2026-08-25T00:58:12Z",
+  "output_schema": "command-center/schema/threat-model.schema.json",
+  "scope": {
+    "marketplace": "single-owner, no review staff",
+    "payload_type": "prompt/rule/skill marketplace, not executed extension code",
+    "named_defenses": [
+      "scoped names",
+      "verified publishers",
+      "reserved prefixes",
+      "typo-distance blocking"
+    ],
+    "dependency_res0047": "RES-0047 (six-registry trust-signal matrix) is not on disk in this worktree; this unit answers from live registry APIs and primary prose rather than from that matrix."
+  },
+  "automatable/moderation-dependent_counts": {
+    "automatable": 4,
+    "moderation-dependent": 3
+  },
+  "control": {
+    "id": "at-least-one-moderation-dependent",
+    "fired": true,
+    "rows": [
+      "D3-verified-publishers-identity-badge",
+      "D5-reserved-prefixes-grant-issuance",
+      "D7-typo-distance-async-admin-queue"
+    ],
+    "why": "A table that classified every defense automatable would deny PEP 755 independent review, VS Code's 5-day reputation check, and TypoSnyper's admin-only observation. That classification would not be honest."
+  },
+  "defense_table": [
+    {
+      "id": "D1-scoped-names",
+      "defense": "scoped names",
+      "named_family": "scoped names",
+      "automatable/moderation-dependent": "automatable",
+      "single_owner_no_review_staff": true,
+      "reason": "Binding a prefix to an account is a membership check. npm grants a scope that matches the user or organization name at signup; only members of that scope can publish into it. A one-owner marketplace implements the same rule as UNIQUE(owner_id, local_name) plus a publish ACL. No human is required to enforce the ACL once the scope exists. It does not, by itself, stop someone from registering an unused brand scope first.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://registry.npmjs.org/@sindresorhus%2fis",
+          "fetch_timestamp": "2026-08-24T18:43:58Z",
+          "http_status": 200,
+          "sha256": "2fe668f8b19ce8f17812ccbab233acd559a022e6ed46669eef51a2b4b765f803",
+          "captured_bytes": 88286,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-npm-scoped-sindresorhus-is.json",
+          "snippet": "registry name='@sindresorhus/is'; also @types/node name='@types/node'",
+          "anchors": [
+            "\"name\":\"@sindresorhus/is\""
+          ],
+          "note": "Live npm registry packument for a scoped package."
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://docs.npmjs.com/about-scopes/",
+          "fetch_timestamp": "2026-08-24T18:43:08Z",
+          "http_status": 200,
+          "sha256": "83b2020b71339e1610aea1ba49e42beb1f3ba10925cedb59ba8346c2ec02a024",
+          "captured_bytes": 488022,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-npm-about-scopes.html",
+          "snippet": "When you sign up for an npm user account or create an organization, you are granted a scope that matches your user or organization name.",
+          "anchors": [
+            "granted a scope that matches your user or organization name"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D1-SCOPE-SQUAT",
+        "bypasses": true,
+        "construction": "Register the unused scope @acme-corp and publish @acme-corp/sdk. Scope ACL only checks membership of that scope; it does not ask whether the registrant is Acme Corp.",
+        "bypasses_stated_goal": "impersonation of an unclaimed brand namespace",
+        "still_holds": "an outsider still cannot publish inside an already-owned scope",
+        "effective_if_recorded_as": "intra-scope publish ACL, not trademark protection",
+        "payload": {
+          "name": "@acme-corp/sdk",
+          "scoped": true,
+          "scope": "acme-corp",
+          "local": "sdk",
+          "well_formed": true
+        }
+      },
+      "recorded_as_effective": "intra-scope publish ACL only",
+      "evidence_grade": "E1"
+    },
+    {
+      "id": "D2-verified-publishers-oidc",
+      "defense": "verified publishers (OIDC trusted publishing)",
+      "named_family": "verified publishers",
+      "automatable/moderation-dependent": "automatable",
+      "single_owner_no_review_staff": true,
+      "reason": "Trusted publishing exchanges a short-lived OIDC token from a named IdP (GitHub Actions, GitLab, CircleCI) against a preconfigured trust policy. Verification is cryptographic (JWT signature + claims). PyPI, npm, and the OpenSSF trusted-publishers profile all describe this as an automated publisher-to-CI binding. It does not prove that the package author is a named legal entity. npm does not even verify the saved configuration until publish time.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://raw.githubusercontent.com/pypi/warehouse/main/warehouse/packaging/services.py",
+          "fetch_timestamp": "2026-08-24T18:43:07Z",
+          "http_status": 200,
+          "sha256": "fb1e184b469b899ff4c8521b922d1f768f31fa9fadf13f10d2d1ae310bbdbf3c",
+          "captured_bytes": 25967,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-packaging-services.py",
+          "snippet": "PendingOIDCPublisher is ultranormalized against Project.name in warehouse/packaging/services.py (captured GitHub raw).",
+          "anchors": [
+            "PendingOIDCPublisher",
+            "ultranormalize_name"
+          ],
+          "note": "Implementation probe of PyPI's pending OIDC publisher collision check."
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://docs.pypi.org/trusted-publishers/",
+          "fetch_timestamp": "2026-08-24T18:43:08Z",
+          "http_status": 200,
+          "sha256": "f5369f494e2984aec6a0d0231144dddec6042855e210fd5fcf5c6b76d1478214",
+          "captured_bytes": 40922,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-pypi-trusted-publishers.html",
+          "snippet": "Trusted Publishing is our term for using the OpenID Connect (OIDC) standard to exchange short-lived identity tokens with PyPI.",
+          "anchors": [
+            "Trusted Publishing",
+            "OpenID Connect",
+            "OIDC"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://docs.npmjs.com/trusted-publishers/",
+          "fetch_timestamp": "2026-08-24T18:43:08Z",
+          "http_status": 200,
+          "sha256": "68903c240761e988c731e67665a3ecd880439e64d0c41a4d1fcff5d5011d5b4d",
+          "captured_bytes": 641603,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-npm-trusted-publishers.html",
+          "snippet": "npm does not verify your trusted publisher configuration when you save it.",
+          "anchors": [
+            "npm does not verify your trusted publisher configuration when you save it"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://repos.openssf.org/trusted-publishers-for-all-package-repositories",
+          "fetch_timestamp": "2026-08-24T18:43:14Z",
+          "http_status": 200,
+          "sha256": "a2e8432b476bb22ac10dcdd3268c2459c360a19f06618c08e9cfefe9a539ccf9",
+          "captured_bytes": 21699,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-openssf-trusted-publishers.html",
+          "snippet": "Authentication is performed by exchanging OIDC identity tokens for short-lived and tightly scoped API tokens.",
+          "anchors": [
+            "exchanging OIDC identity tokens for short-lived"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D2-OIDC-NOT-LEGAL-ID",
+        "bypasses": true,
+        "construction": "Bind a trusted publisher to an attacker-controlled CI repo whose package name resembles a vendor. OIDC authenticates the IdP identity in the preconfigured trust policy; it does not attest a legal entity. npm's own docs state the trusted-publisher config is not verified at save.",
+        "bypasses_stated_goal": "verified publisher means this is the real vendor",
+        "still_holds": "publish still requires a matching OIDC token for that policy",
+        "effective_if_recorded_as": "CI-to-package cryptographic binding, not a brand badge",
+        "payload": {
+          "package": "acme-official-sdk",
+          "trusted_publisher": {
+            "idp": "github-actions",
+            "repository": "attacker-org/acme-official-sdk",
+            "workflow": "release.yml"
+          },
+          "proves_legal_entity": false,
+          "npm_verifies_config_at_save": false
+        }
+      },
+      "recorded_as_effective": "CI identity binding, not a brand badge",
+      "evidence_grade": "E1"
+    },
+    {
+      "id": "D3-verified-publishers-identity-badge",
+      "defense": "verified publishers (legal-entity / reputation badge)",
+      "named_family": "verified publishers",
+      "automatable/moderation-dependent": "moderation-dependent",
+      "single_owner_no_review_staff": false,
+      "reason": "A blue-check / verified badge that means 'this publisher is the real vendor' is not the OIDC check. VS Code Marketplace requires a Marketplace-team review of legitimacy, trust and positive reputation within 5 business days after DNS TXT succeeds. NuGet prefix applications go to account@nuget.org and 'may need to ask additional identifying questions'. DNS TXT is automatable; the reputation and identity judgment is not. A staffless marketplace cannot honestly issue this badge.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://azuresearch-usnc.nuget.org/query?q=packageid:Microsoft.Extensions.Logging&prerelease=false",
+          "fetch_timestamp": "2026-08-24T18:44:33Z",
+          "http_status": 200,
+          "sha256": "aa1ba4c6262ebfcaa59417992f3247834ca1ad21f3d90596762c19bce755c8b3",
+          "captured_bytes": 12891,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-nuget-query-microsoft-extensions-logging.json",
+          "snippet": "Microsoft.Extensions.Logging verified=True owners=['aspnet', 'dotnetframework', 'Microsoft']; left-pad verified=False",
+          "anchors": [
+            "Microsoft.Extensions.Logging",
+            "\"verified\":true"
+          ],
+          "note": "NuGet SearchQueryService exposes a machine-readable verified flag."
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://code.visualstudio.com/api/working-with-extensions/publishing-extension",
+          "fetch_timestamp": "2026-08-24T18:43:10Z",
+          "http_status": 200,
+          "sha256": "304914279f1f1657ed6c98f48bbfa096bc075031f005245884e2d6666e39dba2",
+          "captured_bytes": 117998,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-vscode-publishing-extension.html",
+          "snippet": "Once your TXT record has been validated, the Marketplace team will review your request and let you know the result within 5 business days. The validation includes, but is not limited to: domain, website and extensions prerequisites for track record, content eligibility, legitimacy, trust and positive reputation.",
+          "anchors": [
+            "Marketplace team will review your request",
+            "5 business days",
+            "legitimacy, trust and positive reputation"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://learn.microsoft.com/en-us/nuget/nuget-org/id-prefix-reservation",
+          "fetch_timestamp": "2026-08-24T18:43:12Z",
+          "http_status": 200,
+          "sha256": "063c99ff55dcc73e37b081120ec3c0f2bbeace4294ba6f92a3f7f9d5990cdac7",
+          "captured_bytes": 55309,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-nuget-prefix-reservation.html",
+          "snippet": "After the application is submitted, you are notified of acceptance or rejection (with the criteria that caused rejection). We may need to ask additional identifying questions to confirm owner identity.",
+          "anchors": [
+            "additional identifying questions to confirm owner identity"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D3-DNS-WITHOUT-STAFF",
+        "bypasses": true,
+        "construction": "Prove TXT on a lookalike domain. The automatable step only proves DNS control. VS Code's remaining checks are legitimacy/reputation review by the Marketplace team within 5 business days.",
+        "bypasses_stated_goal": "staffless verified-publisher badge",
+        "still_holds": "none, if the badge is issued from DNS alone",
+        "effective_if_recorded_as": "not effective as a staffless identity defense",
+        "payload": {
+          "domain": "acme-official.example",
+          "txt_record_proves": "control of that domain",
+          "txt_record_does_not_prove": "legal identity of Acme Corp",
+          "staff_review_required_for_reputation": true
+        }
+      },
+      "recorded_as_effective": null,
+      "evidence_grade": "E1"
+    },
+    {
+      "id": "D4-reserved-prefixes-enforcement",
+      "defense": "reserved prefixes (enforcement after a grant exists)",
+      "named_family": "reserved prefixes",
+      "automatable/moderation-dependent": "automatable",
+      "single_owner_no_review_staff": true,
+      "reason": "Once a grant exists, PEP 752 requires uploads matching the reserved namespace to fail with HTTP 409 unless the uploader holds the grant. NuGet rejects submissions on a reserved ID prefix unless they come from the prefix owner. That is a string-prefix ACL a single owner can run with no staff. It does not decide who receives the grant.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://azuresearch-usnc.nuget.org/query?q=packageid:Microsoft.Extensions.Logging&prerelease=false",
+          "fetch_timestamp": "2026-08-24T18:44:33Z",
+          "http_status": 200,
+          "sha256": "aa1ba4c6262ebfcaa59417992f3247834ca1ad21f3d90596762c19bce755c8b3",
+          "captured_bytes": 12891,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-nuget-query-microsoft-extensions-logging.json",
+          "snippet": "id='Microsoft.Extensions.Logging' verified=True owners=['aspnet', 'dotnetframework', 'Microsoft']",
+          "anchors": [
+            "Microsoft.Extensions.Logging",
+            "\"verified\":true",
+            "Microsoft"
+          ],
+          "note": "Live NuGet query for a Microsoft.* package under a reserved-prefix owner."
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://peps.python.org/pep-0752/",
+          "fetch_timestamp": "2026-08-24T18:43:09Z",
+          "http_status": 200,
+          "sha256": "8d1d27ad50085ea29a8f0dd776d4d7bffbac82a96334b99bbc1afc7ff1384230",
+          "captured_bytes": 64786,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-pep-0752.html",
+          "snippet": "Uploads MUST fail with a 409 Conflict HTTP status code if the name of a package being uploaded matches a reserved namespace and the project owner does not have an active grant for the namespace.",
+          "anchors": [
+            "409 Conflict",
+            "reserved namespace",
+            "active grant"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://learn.microsoft.com/en-us/nuget/nuget-org/id-prefix-reservation",
+          "fetch_timestamp": "2026-08-24T18:43:12Z",
+          "http_status": 200,
+          "sha256": "063c99ff55dcc73e37b081120ec3c0f2bbeace4294ba6f92a3f7f9d5990cdac7",
+          "captured_bytes": 55309,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-nuget-prefix-reservation.html",
+          "snippet": "Whenever a package is submitted to nuget.org with an ID that matches the reserved ID prefix, the package is rejected unless it originates from the owner(s) that reserved the ID prefix.",
+          "anchors": [
+            "matches the reserved ID prefix",
+            "rejected unless it originates from the owner"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D4-HYPHEN-BOUNDARY",
+        "bypasses": true,
+        "construction": "Publish googlecloud-compute against a grant on google-cloud-. The reserved-namespace matcher keys off the hyphenated prefix, not ultranormalize equivalence.",
+        "bypasses_stated_goal": "all names that look like google-cloud-*",
+        "still_holds": "hyphenated children of the reserved prefix are rejected",
+        "effective_if_recorded_as": "hyphen-prefix ACL after a grant exists",
+        "payload": {
+          "reserved": "google-cloud-",
+          "blocked_name": "google-cloud-compute",
+          "bypass_name": "googlecloud-compute",
+          "blocked": true,
+          "bypass_blocked": false
+        }
+      },
+      "recorded_as_effective": "hyphen-prefix ACL after grant",
+      "evidence_grade": "E1"
+    },
+    {
+      "id": "D5-reserved-prefixes-grant-issuance",
+      "defense": "reserved prefixes (who gets the grant / trademark / squat judgment)",
+      "named_family": "reserved prefixes",
+      "automatable/moderation-dependent": "moderation-dependent",
+      "single_owner_no_review_staff": false,
+      "reason": "Issuing the grant is a judgment: PEP 755 approval criteria include whether the namespace 'properly and clearly identify the reservation owner' and whether not reserving it 'may cause ambiguity, confusion, or other harm'. Applications 'require independent review'. PEP 541 name-retention disputes are tickets against pypi/support; the Packaging Workgroup has the final say. crates.io's RFC 3463 lets the team delete crates that exist only to squat a name. A staffless marketplace can seed a static well-known list; it cannot adjudicate competing claims.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://api.github.com/repos/pypi/support/issues?labels=PEP%20541&state=all&per_page=5",
+          "fetch_timestamp": "2026-08-24T18:43:06Z",
+          "http_status": 200,
+          "sha256": "e65cac61f4ff65bac8347c5435ae790f4a4b77b514d4ef7c72e000f92e7d634e",
+          "captured_bytes": 27874,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-github-pypi-support-pep541.json",
+          "snippet": "GitHub issues API returned 5 PEP 541 tickets; sample=[{'number': 11971, 'title': 'PEP 541 Request: dst', 'state': 'open', 'html_url': 'https://github.com/pypi/support/issues/11971'}, {'number': 11959, 'title': 'PEP 541 Request: groundcontrol', 'state': 'open', 'html_url': 'https://github.com/pypi/support/issues/11959'}, {'number': 11949, 'title': 'PEP 541 Request: tc420 (https://pypi.org/project/tc420/)', 'state': 'open', 'html_url': 'https://github.com/pypi/support/issues/11949'}]",
+          "anchors": [
+            "PEP 541 Request",
+            "https://github.com/pypi/support/issues/"
+          ],
+          "note": "Live structured list of human name-retention requests."
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://peps.python.org/pep-0755/",
+          "fetch_timestamp": "2026-08-24T18:43:10Z",
+          "http_status": 200,
+          "sha256": "e806f799ce2909145e96726527eba466f1df80ff50688a7f4717fd4b37c3ac25",
+          "captured_bytes": 27579,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-pep-0755.html",
+          "snippet": "Only organization (non-user) accounts have access to the grant application form. ... Although each application would require independent review ... The namespace should properly and clearly identify the reservation owner. ... There should be evidence that not reserving the namespace may cause ambiguity, confusion, or other harm to the community.",
+          "anchors": [
+            "grant application",
+            "independent review",
+            "properly and clearly identify the reservation owner",
+            "ambiguity, confusion, or other harm"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://peps.python.org/pep-0541/",
+          "fetch_timestamp": "2026-08-24T18:43:09Z",
+          "http_status": 200,
+          "sha256": "82738f8edccb0cb277acbcc03ea1ece676149d86e25acc669d799bc5b8e6c34f",
+          "captured_bytes": 31136,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-pep-0541.html",
+          "snippet": "The maintainers of the Package Index are not arbiters in disputes around active projects. ... The Packaging Workgroup has the final say in any disputes covered by this document.",
+          "anchors": [
+            "not arbiters in disputes",
+            "Packaging Workgroup has the final say"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://raw.githubusercontent.com/rust-lang/rfcs/master/text/3463-crates-io-policy-update.md",
+          "fetch_timestamp": "2026-08-24T18:43:14Z",
+          "http_status": 200,
+          "sha256": "3a639de0a3d37394f8f9eee19d8012882ee02388d423dfe4e1eb9df2baf67171",
+          "captured_bytes": 14389,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-rfc-3463.html",
+          "snippet": "The crates.io team may delete crates from the registry that do not comply with the policies on this document. ... exists only to reserve a name for a prolonged period of time (often called \"name squatting\") without having any genuine functionality",
+          "anchors": [
+            "crates.io team may delete crates",
+            "name squatting",
+            "genuine functionality"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D5-NO-STAFF-NO-GRANT",
+        "bypasses": true,
+        "construction": "Without a reviewer, nobody can apply PEP 755's harm/identity criteria. First-come-first-served is the remaining policy, which is the opposite of reserved-prefix protection for a late-arriving trademark holder.",
+        "bypasses_stated_goal": "staffless trademark prefix reservation",
+        "still_holds": "enforcement of an already-issued grant (D4)",
+        "effective_if_recorded_as": "not effective as a staffless grant process"
+      },
+      "recorded_as_effective": null,
+      "evidence_grade": "E1"
+    },
+    {
+      "id": "D6-typo-distance-ultranormalize-block",
+      "defense": "typo-distance blocking (ultranormalize similar-name reject)",
+      "named_family": "typo-distance blocking",
+      "automatable/moderation-dependent": "automatable",
+      "single_owner_no_review_staff": true,
+      "reason": "Warehouse check_project_name raises ProjectNameUnavailableSimilarError when ultranormalize_name(existing) equals ultranormalize_name(candidate). The SQL function strips separators and maps l/i->1 and o->0. That is a pure function over names plus an index; a staffless marketplace can run it at register time. It is not a general Levenshtein gate: requets vs requests and pydantic2 vs pydantic are documented misses.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://raw.githubusercontent.com/pypi/warehouse/ff5bba2906a666a2db551ce341cba27a87a7b8ed/warehouse/migrations/versions/d18d443f89f0_ultranormalize_name_function.py",
+          "fetch_timestamp": "2026-08-24T18:43:07Z",
+          "http_status": 200,
+          "sha256": "3a4318e65a0ab174e6c78b8562dbf8398e25586f2de54d0280ce4abfa5c853ec",
+          "captured_bytes": 1603,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-ultranormalize.py",
+          "snippet": "CREATE FUNCTION ultranormalize_name(text) ... regexp_replace($1, '(\\.|_|-)', '') then (l|L|i|I)->1 then (o|O)->0",
+          "anchors": [
+            "CREATE FUNCTION ultranormalize_name",
+            "(l|L|i|I)",
+            "(o|O)"
+          ]
+        },
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://raw.githubusercontent.com/pypi/warehouse/main/warehouse/packaging/services.py",
+          "fetch_timestamp": "2026-08-24T18:43:07Z",
+          "http_status": 200,
+          "sha256": "fb1e184b469b899ff4c8521b922d1f768f31fa9fadf13f10d2d1ae310bbdbf3c",
+          "captured_bytes": 25967,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-packaging-services.py",
+          "snippet": "if similar_project_name := ... func.ultranormalize_name(Project.name) == func.ultranormalize_name(name): raise ProjectNameUnavailableSimilarError; mapped to HTTPBadRequest 'too similar to an existing project'",
+          "anchors": [
+            "ProjectNameUnavailableSimilarError",
+            "too similar to an existing project"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://discuss.python.org/t/pypi-typo-squatting-is-there-any-mechanism-to-delay-new-package-name-visibility/50195.json",
+          "fetch_timestamp": "2026-08-24T18:43:13Z",
+          "http_status": 200,
+          "sha256": "11105aa64f98382d55d9a5d80c27792d318d71c88963e729ae26b3f72e8a02d4",
+          "captured_bytes": 35718,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-discuss-pypi-typosquat.json",
+          "snippet": "PyPI does have a separate, unrelated, mechanism for limiting similar package names: if a new package has an ultranormalized form that matches any other pre-existing package, it gets rejected. In practice, this means that you can't upload py-fo0 if py-foo already exists.",
+          "anchors": [
+            "ultranormalized",
+            "py-fo0",
+            "py-foo"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D6-TYPO-GAPS",
+        "bypasses": true,
+        "construction": "Use requets (Levenshtein 1 vs requests) or pydantic2 (trailing digit). Neither collides under ultranormalize, so check_project_name's similar-name raise does not fire.",
+        "bypasses_stated_goal": "block all typo-distance impersonation of popular names",
+        "still_holds": "homoglyph/separator collisions such as pip/p1p still reject",
+        "effective_if_recorded_as": "homoglyph+separator equivalence class only",
+        "payload": {
+          "popular": "requests",
+          "levenshtein_1": "requets",
+          "distance": 1,
+          "ultranormalize_blocks": false,
+          "trailing_digit": {
+            "popular": "pydantic",
+            "candidate": "pydantic2",
+            "ultranormalize_blocks": false
+          }
+        }
+      },
+      "recorded_as_effective": "homoglyph+separator equivalence class",
+      "evidence_grade": "E1"
+    },
+    {
+      "id": "D7-typo-distance-async-admin-queue",
+      "defense": "typo-distance blocking (TypoSnyper / admin observation queue)",
+      "named_family": "typo-distance blocking",
+      "automatable/moderation-dependent": "moderation-dependent",
+      "single_owner_no_review_staff": false,
+      "reason": "The captured warehouse.packaging.tasks.typo_check_project_name runs *after* the create transaction commits. It records ObservationKind.IsTypoSnyperMatch 'for admin review'. The source states this is a record only and nothing about the project's lifecycle changes. Without staff to act on the queue, the check is telemetry, not a defense. A staffless marketplace that copies this pattern has not implemented typo-distance blocking.",
+      "rails": [
+        {
+          "kind": "structured_api_probe",
+          "permalink": "https://raw.githubusercontent.com/pypi/warehouse/main/warehouse/packaging/tasks.py",
+          "fetch_timestamp": "2026-08-24T18:43:58Z",
+          "http_status": 200,
+          "sha256": "da052cc88e8ccc894c165852a36690cac766ae3036f33f92809f89c62f6dcc88",
+          "captured_bytes": 19923,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-packaging-tasks.py",
+          "snippet": "Annotate the project for admin review. This is a record only - the kind is not one that any of the observation reactions act on, so nothing about the project's lifecycle changes.",
+          "anchors": [
+            "Annotate the project for admin review. This is a record only",
+            "project's lifecycle changes"
+          ]
+        },
+        {
+          "kind": "prose_source",
+          "permalink": "https://discuss.python.org/t/pypi-typo-squatting-is-there-any-mechanism-to-delay-new-package-name-visibility/50195.json",
+          "fetch_timestamp": "2026-08-24T18:43:13Z",
+          "http_status": 200,
+          "sha256": "11105aa64f98382d55d9a5d80c27792d318d71c88963e729ae26b3f72e8a02d4",
+          "captured_bytes": 35718,
+          "capture_path": "command-center/p2-wave/probes/RES-0054/captures/r2-discuss-pypi-typosquat.json",
+          "snippet": "I suspect the volume of new packages would overwhelm any manual review efforts. It'd need to be an automated process, at which point the security value of a delay is somewhat limited.",
+          "anchors": [
+            "overwhelm any manual review efforts"
+          ]
+        }
+      ],
+      "bypass_attempt": {
+        "id": "BX-D7-QUEUE-IS-NOT-A-GATE",
+        "bypasses": true,
+        "construction": "Create the project. warehouse.packaging.tasks.typo_check_project_name runs after commit and records an observation only; captured source says nothing about the project's lifecycle changes.",
+        "bypasses_stated_goal": "staffless publish-time typo blocking",
+        "still_holds": "none as a gate; it is a review ticket generator",
+        "effective_if_recorded_as": "not effective without review staff",
+        "payload": {
+          "lifecycle_changes": false,
+          "admin_review_required_for_action": true
+        }
+      },
+      "recorded_as_effective": null,
+      "evidence_grade": "E1"
+    }
+  ],
+  "mechanical_self_test": {
+    "ultranormalize_ok": true,
+    "prefix_ok": true,
+    "scope_ok": true,
+    "ultranormalize_cases": [
+      {
+        "existing": "py-foo",
+        "candidate": "pyfo0",
+        "ultranormalize_existing": "pyf00",
+        "ultranormalize_candidate": "pyf00",
+        "blocked": true,
+        "expected_blocked": true,
+        "ok": true,
+        "why": "separator-strip plus o->0"
+      },
+      {
+        "existing": "pip",
+        "candidate": "p1p",
+        "ultranormalize_existing": "p1p",
+        "ultranormalize_candidate": "p1p",
+        "blocked": true,
+        "expected_blocked": true,
+        "ok": true,
+        "why": "i->1 homoglyph"
+      },
+      {
+        "existing": "example",
+        "candidate": "examp1e",
+        "ultranormalize_existing": "examp1e",
+        "ultranormalize_candidate": "examp1e",
+        "blocked": true,
+        "expected_blocked": true,
+        "ok": true,
+        "why": "l->1 / 1 collision"
+      },
+      {
+        "existing": "example",
+        "candidate": "exampie",
+        "ultranormalize_existing": "examp1e",
+        "ultranormalize_candidate": "examp1e",
+        "blocked": true,
+        "expected_blocked": true,
+        "ok": true,
+        "why": "i->1 / l->1 collision"
+      },
+      {
+        "existing": "requests",
+        "candidate": "requets",
+        "ultranormalize_existing": "requests",
+        "ultranormalize_candidate": "requets",
+        "blocked": false,
+        "expected_blocked": false,
+        "ok": true,
+        "why": "single deletion is not an ultranormalize hit"
+      },
+      {
+        "existing": "numpy",
+        "candidate": "nunpy",
+        "ultranormalize_existing": "numpy",
+        "ultranormalize_candidate": "nunpy",
+        "blocked": false,
+        "expected_blocked": false,
+        "ok": true,
+        "why": "n/m substitution is not l/i/o"
+      },
+      {
+        "existing": "pydantic",
+        "candidate": "pydantic2",
+        "ultranormalize_existing": "pydant1c",
+        "ultranormalize_candidate": "pydant1c2",
+        "blocked": false,
+        "expected_blocked": false,
+        "ok": true,
+        "why": "trailing digit documented miss (warehouse#17774)"
+      },
+      {
+        "existing": "google-cloud",
+        "candidate": "googlecloud",
+        "ultranormalize_existing": "g00g1ec10ud",
+        "ultranormalize_candidate": "g00g1ec10ud",
+        "blocked": true,
+        "expected_blocked": true,
+        "ok": true,
+        "why": "hyphen stripped; not the same as prefix match"
+      }
+    ],
+    "prefix_cases": [
+      {
+        "name": "google-cloud-compute",
+        "prefix": "google-cloud-",
+        "matches": true,
+        "expected": true,
+        "ok": true,
+        "why": "hyphenated child"
+      },
+      {
+        "name": "google-cloud",
+        "prefix": "google-cloud-",
+        "matches": true,
+        "expected": true,
+        "ok": true,
+        "why": "parent stem"
+      },
+      {
+        "name": "googlecloud-compute",
+        "prefix": "google-cloud-",
+        "matches": false,
+        "expected": false,
+        "ok": true,
+        "why": "missing hyphen boundary"
+      },
+      {
+        "name": "google-cloudcompute",
+        "prefix": "google-cloud-",
+        "matches": false,
+        "expected": false,
+        "ok": true,
+        "why": "child not split on reserved hyphen"
+      },
+      {
+        "name": "not-google-cloud-foo",
+        "prefix": "google-cloud-",
+        "matches": false,
+        "expected": false,
+        "ok": true,
+        "why": "prefix is not a substring grant"
+      },
+      {
+        "name": "google-cloud-compute-extra",
+        "prefix": "google-cloud-",
+        "matches": true,
+        "expected": true,
+        "ok": true,
+        "why": "deeper child still matches"
+      }
+    ],
+    "scope_cases": [
+      {
+        "name": "@sindresorhus/is",
+        "scoped": true,
+        "scope": "sindresorhus",
+        "local": "is",
+        "well_formed": true,
+        "expected_scoped": true,
+        "ok": true
+      },
+      {
+        "name": "@types/node",
+        "scoped": true,
+        "scope": "types",
+        "local": "node",
+        "well_formed": true,
+        "expected_scoped": true,
+        "ok": true
+      },
+      {
+        "name": "@acme-corp/sdk",
+        "scoped": true,
+        "scope": "acme-corp",
+        "local": "sdk",
+        "well_formed": true,
+        "expected_scoped": true,
+        "ok": true
+      },
+      {
+        "name": "lodash",
+        "scoped": false,
+        "scope": null,
+        "local": "lodash",
+        "well_formed": true,
+        "expected_scoped": false,
+        "ok": true
+      },
+      {
+        "name": "@incomplete",
+        "scoped": false,
+        "scope": null,
+        "local": "@incomplete",
+        "well_formed": false,
+        "expected_scoped": false,
+        "ok": true
+      }
+    ]
+  },
+  "claims": [
+    {
+      "id": "D1-scoped-names",
+      "claim": "Binding a prefix to an account is a membership check. npm grants a scope that matches the user or organization name at signup; only members of that scope can publish into it. A one-owner marketplace implements the same rule as UNIQUE(owner_id, local_name) plus a publish ACL. No human is required to enforce the ACL once the scope exists. It does not, by itself, stop someone from registering an unused brand scope first.",
+      "classification": "automatable",
+      "verdict": "CONFIRMED",
+      "rails": 2
+    },
+    {
+      "id": "D2-verified-publishers-oidc",
+      "claim": "Trusted publishing exchanges a short-lived OIDC token from a named IdP (GitHub Actions, GitLab, CircleCI) against a preconfigured trust policy. Verification is cryptographic (JWT signature + claims). PyPI, npm, and the OpenSSF trusted-publishers profile all describe this as an automated publisher-to-CI binding. It does not prove that the package author is a named legal entity. npm does not even verify the saved configuration until publish time.",
+      "classification": "automatable",
+      "verdict": "CONFIRMED",
+      "rails": 4
+    },
+    {
+      "id": "D3-verified-publishers-identity-badge",
+      "claim": "A blue-check / verified badge that means 'this publisher is the real vendor' is not the OIDC check. VS Code Marketplace requires a Marketplace-team review of legitimacy, trust and positive reputation within 5 business days after DNS TXT succeeds. NuGet prefix applications go to account@nuget.org and 'may need to ask additional identifying questions'. DNS TXT is automatable; the reputation and identity judgment is not. A staffless marketplace cannot honestly issue this badge.",
+      "classification": "moderation-dependent",
+      "verdict": "CONFIRMED",
+      "rails": 3
+    },
+    {
+      "id": "D4-reserved-prefixes-enforcement",
+      "claim": "Once a grant exists, PEP 752 requires uploads matching the reserved namespace to fail with HTTP 409 unless the uploader holds the grant. NuGet rejects submissions on a reserved ID prefix unless they come from the prefix owner. That is a string-prefix ACL a single owner can run with no staff. It does not decide who receives the grant.",
+      "classification": "automatable",
+      "verdict": "CONFIRMED",
+      "rails": 3
+    },
+    {
+      "id": "D5-reserved-prefixes-grant-issuance",
+      "claim": "Issuing the grant is a judgment: PEP 755 approval criteria include whether the namespace 'properly and clearly identify the reservation owner' and whether not reserving it 'may cause ambiguity, confusion, or other harm'. Applications 'require independent review'. PEP 541 name-retention disputes are tickets against pypi/support; the Packaging Workgroup has the final say. crates.io's RFC 3463 lets the team delete crates that exist only to squat a name. A staffless marketplace can seed a static well-known list; it cannot adjudicate competing claims.",
+      "classification": "moderation-dependent",
+      "verdict": "CONFIRMED",
+      "rails": 4
+    },
+    {
+      "id": "D6-typo-distance-ultranormalize-block",
+      "claim": "Warehouse check_project_name raises ProjectNameUnavailableSimilarError when ultranormalize_name(existing) equals ultranormalize_name(candidate). The SQL function strips separators and maps l/i->1 and o->0. That is a pure function over names plus an index; a staffless marketplace can run it at register time. It is not a general Levenshtein gate: requets vs requests and pydantic2 vs pydantic are documented misses.",
+      "classification": "automatable",
+      "verdict": "CONFIRMED",
+      "rails": 3
+    },
+    {
+      "id": "D7-typo-distance-async-admin-queue",
+      "claim": "The captured warehouse.packaging.tasks.typo_check_project_name runs *after* the create transaction commits. It records ObservationKind.IsTypoSnyperMatch 'for admin review'. The source states this is a record only and nothing about the project's lifecycle changes. Without staff to act on the queue, the check is telemetry, not a defense. A staffless marketplace that copies this pattern has not implemented typo-distance blocking.",
+      "classification": "moderation-dependent",
+      "verdict": "CONFIRMED",
+      "rails": 2
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0054-probe2-bypass-constructor",
+    "independent": true,
+    "shown_conclusion_first": false,
+    "verdict": "PASS",
+    "requirement": "one security reviewer who must attempt to construct a bypass of every mitigation listed before the mitigation may be recorded as effective",
+    "mitigations_recorded_as_effective": [
+      "D1-scoped-names",
+      "D2-verified-publishers-oidc",
+      "D4-reserved-prefixes-enforcement",
+      "D6-typo-distance-ultranormalize-block"
+    ],
+    "bypass_attempts": [
+      {
+        "id": "BX-D1-SCOPE-SQUAT",
+        "bypasses": true,
+        "construction": "Register the unused scope @acme-corp and publish @acme-corp/sdk. Scope ACL only checks membership of that scope; it does not ask whether the registrant is Acme Corp.",
+        "bypasses_stated_goal": "impersonation of an unclaimed brand namespace",
+        "still_holds": "an outsider still cannot publish inside an already-owned scope",
+        "effective_if_recorded_as": "intra-scope publish ACL, not trademark protection",
+        "payload": {
+          "name": "@acme-corp/sdk",
+          "scoped": true,
+          "scope": "acme-corp",
+          "local": "sdk",
+          "well_formed": true
+        }
+      },
+      {
+        "id": "BX-D2-OIDC-NOT-LEGAL-ID",
+        "bypasses": true,
+        "construction": "Bind a trusted publisher to an attacker-controlled CI repo whose package name resembles a vendor. OIDC authenticates the IdP identity in the preconfigured trust policy; it does not attest a legal entity. npm's own docs state the trusted-publisher config is not verified at save.",
+        "bypasses_stated_goal": "verified publisher means this is the real vendor",
+        "still_holds": "publish still requires a matching OIDC token for that policy",
+        "effective_if_recorded_as": "CI-to-package cryptographic binding, not a brand badge",
+        "payload": {
+          "package": "acme-official-sdk",
+          "trusted_publisher": {
+            "idp": "github-actions",
+            "repository": "attacker-org/acme-official-sdk",
+            "workflow": "release.yml"
+          },
+          "proves_legal_entity": false,
+          "npm_verifies_config_at_save": false
+        }
+      },
+      {
+        "id": "BX-D3-DNS-WITHOUT-STAFF",
+        "bypasses": true,
+        "construction": "Prove TXT on a lookalike domain. The automatable step only proves DNS control. VS Code's remaining checks are legitimacy/reputation review by the Marketplace team within 5 business days.",
+        "bypasses_stated_goal": "staffless verified-publisher badge",
+        "still_holds": "none, if the badge is issued from DNS alone",
+        "effective_if_recorded_as": "not effective as a staffless identity defense",
+        "payload": {
+          "domain": "acme-official.example",
+          "txt_record_proves": "control of that domain",
+          "txt_record_does_not_prove": "legal identity of Acme Corp",
+          "staff_review_required_for_reputation": true
+        }
+      },
+      {
+        "id": "BX-D4-HYPHEN-BOUNDARY",
+        "bypasses": true,
+        "construction": "Publish googlecloud-compute against a grant on google-cloud-. The reserved-namespace matcher keys off the hyphenated prefix, not ultranormalize equivalence.",
+        "bypasses_stated_goal": "all names that look like google-cloud-*",
+        "still_holds": "hyphenated children of the reserved prefix are rejected",
+        "effective_if_recorded_as": "hyphen-prefix ACL after a grant exists",
+        "payload": {
+          "reserved": "google-cloud-",
+          "blocked_name": "google-cloud-compute",
+          "bypass_name": "googlecloud-compute",
+          "blocked": true,
+          "bypass_blocked": false
+        }
+      },
+      {
+        "id": "BX-D5-NO-STAFF-NO-GRANT",
+        "bypasses": true,
+        "construction": "Without a reviewer, nobody can apply PEP 755's harm/identity criteria. First-come-first-served is the remaining policy, which is the opposite of reserved-prefix protection for a late-arriving trademark holder.",
+        "bypasses_stated_goal": "staffless trademark prefix reservation",
+        "still_holds": "enforcement of an already-issued grant (D4)",
+        "effective_if_recorded_as": "not effective as a staffless grant process"
+      },
+      {
+        "id": "BX-D6-TYPO-GAPS",
+        "bypasses": true,
+        "construction": "Use requets (Levenshtein 1 vs requests) or pydantic2 (trailing digit). Neither collides under ultranormalize, so check_project_name's similar-name raise does not fire.",
+        "bypasses_stated_goal": "block all typo-distance impersonation of popular names",
+        "still_holds": "homoglyph/separator collisions such as pip/p1p still reject",
+        "effective_if_recorded_as": "homoglyph+separator equivalence class only",
+        "payload": {
+          "popular": "requests",
+          "levenshtein_1": "requets",
+          "distance": 1,
+          "ultranormalize_blocks": false,
+          "trailing_digit": {
+            "popular": "pydantic",
+            "candidate": "pydantic2",
+            "ultranormalize_blocks": false
+          }
+        }
+      },
+      {
+        "id": "BX-D7-QUEUE-IS-NOT-A-GATE",
+        "bypasses": true,
+        "construction": "Create the project. warehouse.packaging.tasks.typo_check_project_name runs after commit and records an observation only; captured source says nothing about the project's lifecycle changes.",
+        "bypasses_stated_goal": "staffless publish-time typo blocking",
+        "still_holds": "none as a gate; it is a review ticket generator",
+        "effective_if_recorded_as": "not effective without review staff",
+        "payload": {
+          "lifecycle_changes": false,
+          "admin_review_required_for_action": true
+        }
+      }
+    ],
+    "notes": "Every automatable row has a constructed bypass that lands against the naive reading ('this stops impersonation'). The residual that still holds is recorded; the row is not labelled fully effective."
+  },
+  "tests": [
+    {
+      "id": "T1-defense-table-both-classes-dual-rail",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0054/probe1_defense_table.py",
+      "result": "NOT-RUN"
+    },
+    {
+      "id": "T2-reviewer-bypass-and-honesty-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0054/probe2_reviewer_bypass.py",
+      "result": "NOT-RUN"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0054.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/threat-model.schema.json",
+      "exists": true,
+      "role": "schema"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/_index.json",
+      "exists": true,
+      "role": "evidence-index"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r1-npm-scoped-sindresorhus-is.json",
+      "kind": "structured_api_probe",
+      "claim": "npm registry serves scoped package names of the form @scope/name"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r2-npm-about-scopes.html",
+      "kind": "prose_source",
+      "claim": "npm grants a matching scope at account or organization creation"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-packaging-services.py",
+      "kind": "structured_api_probe",
+      "claim": "ultranormalize similar-name check is a blocking raise in check_project_name"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r1-warehouse-packaging-tasks.py",
+      "kind": "structured_api_probe",
+      "claim": "TypoSnyper is a post-create admin observation, not a lifecycle gate"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r2-pep-0752.html",
+      "kind": "prose_source",
+      "claim": "reserved-namespace uploads MUST 409 without an active grant"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r2-pep-0755.html",
+      "kind": "prose_source",
+      "claim": "prefix grant applications require independent human review"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r2-vscode-publishing-extension.html",
+      "kind": "prose_source",
+      "claim": "VS Code verified-publisher badge includes staff legitimacy review"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0054/captures/r1-github-pypi-support-pep541.json",
+      "kind": "structured_api_probe",
+      "claim": "PEP 541 name disputes exist as live human tickets"
+    }
+  ],
+  "strongest_surviving_counterargument": "A staffless operator could pretreat 'moderation-dependent' rows as automatable by publishing a frozen list of famous prefixes and a Levenshtein>=1 reject against the top-N names. That is a different and narrower control (static denylist + edit distance) than grant issuance or a verified-identity badge. The table already admits static lists as automatable; it refuses to relabel PEP 755 / VS Code reputation review as automatable just because a denylist exists.",
+  "failure_classification_not_used": null
+}

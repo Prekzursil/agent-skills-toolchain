@@ -1,0 +1,98 @@
+{
+  "id": "wf.host.pipeline-v1",
+  "kind": "workflow-ir",
+  "licence": "Apache-2.0",
+  "version": "1.0.0",
+  "source_anchor": "WFA-0100/fixtures:host",
+  "entry": [
+    {
+      "name": "raw",
+      "type": "bytes"
+    }
+  ],
+  "exit": [
+    {
+      "name": "verdict",
+      "type": "boolean"
+    }
+  ],
+  "stages": [
+    {
+      "id": "ingest",
+      "kind": "ingest",
+      "capability": "pure-transform",
+      "input_type": "bytes",
+      "output_type": "document",
+      "inputs": [
+        {
+          "name": "raw",
+          "type": "bytes"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "doc",
+          "type": "document"
+        }
+      ],
+      "body": {
+        "op": "parse",
+        "from": "raw",
+        "to": "doc"
+      },
+      "source_anchor": "WFA-0100/fixtures:ingest"
+    },
+    {
+      "id": "extract",
+      "kind": "extract",
+      "capability": "pure-transform",
+      "input_type": "document",
+      "output_type": "number",
+      "inputs": [
+        {
+          "name": "doc",
+          "type": "document"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "score",
+          "type": "number"
+        }
+      ],
+      "body": {
+        "op": "extract",
+        "from": "doc",
+        "to": "score",
+        "quality": 0.62
+      },
+      "source_anchor": "WFA-0100/fixtures:extract"
+    },
+    {
+      "id": "decide",
+      "kind": "gate",
+      "capability": "pure-transform",
+      "input_type": "number",
+      "output_type": "boolean",
+      "inputs": [
+        {
+          "name": "score",
+          "type": "number"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "verdict",
+          "type": "boolean"
+        }
+      ],
+      "body": {
+        "op": "decide",
+        "from": "score",
+        "to": "verdict",
+        "threshold": 0.35
+      },
+      "source_anchor": "WFA-0100/fixtures:decide"
+    }
+  ]
+}

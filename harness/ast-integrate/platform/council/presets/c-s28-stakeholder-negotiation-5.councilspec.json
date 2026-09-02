@@ -1,0 +1,403 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s28-stakeholder-negotiation-5",
+  "preset": "negotiation_council",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Allocate a contested resource across stakeholders, where every stakeholder has stated a BATNA and no proposal is admitted without a stated concession.",
+    "charter": "Stakeholder negotiation. A proposal with no concession is a demand; the facilitator refuses it. A stakeholder with no stated BATNA cannot be negotiated with, so the council cannot close until every seat has stated one.",
+    "risk_tier": "moderate",
+    "desired_output": "decision",
+    "success_criteria": [
+      "every stakeholder stated a BATNA (what they do if this fails)",
+      "every proposal named the concession its proposer was making",
+      "the allocation is expressed as numbers, not as intent"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "deadline_minutes": 40
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "stakeholder_balanced"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 5,
+      "min": 5,
+      "max": 5
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 4
+    },
+    "roster": [
+      {
+        "participant_id": "stake-1",
+        "display_name": "Stakeholder 1 (delivery speed)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "stakeholder",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "delivery"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "stake-2",
+        "display_name": "Stakeholder 2 (reliability)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "stakeholder",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "reliability"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "stake-3",
+        "display_name": "Stakeholder 3 (cost and quota)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "stakeholder",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "budget"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "stake-4",
+        "display_name": "Stakeholder 4 (the end user)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "stakeholder",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "user outcomes"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        },
+        "independence": {
+          "fresh_context": true,
+          "sees_peers_before_first_position": false
+        }
+      },
+      {
+        "participant_id": "facilitator",
+        "display_name": "Facilitator / mediator (refuses concession-free proposals)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "mediator",
+        "authority": "chair",
+        "effort": "high",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "position_memo"
+    ]
+  },
+  "topology": {
+    "kind": "caucus",
+    "chair": "facilitator",
+    "caucuses": [
+      {
+        "caucus_id": "build-side",
+        "members": [
+          "stake-1",
+          "stake-4"
+        ],
+        "private_rounds": 1
+      },
+      {
+        "caucus_id": "run-side",
+        "members": [
+          "stake-2",
+          "stake-3"
+        ],
+        "private_rounds": 1
+      }
+    ]
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "batna-declaration",
+        "custom_name": "every stakeholder states its BATNA before any proposal",
+        "independent": true,
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "all_participants_spoke",
+              "op": "==",
+              "value": true,
+              "note": "a silent stakeholder has no BATNA on record"
+            },
+            {
+              "metric": "independent_positions",
+              "op": ">=",
+              "value": 4,
+              "note": "one BATNA per stakeholder seat"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "negotiation",
+        "stage_id": "bargaining",
+        "rounds": 2
+      },
+      {
+        "kind": "mediation",
+        "stage_id": "mediate",
+        "participants": [
+          "facilitator"
+        ]
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "allocation"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 3,
+      "max": 5
+    },
+    "turn": {
+      "max_words": 450
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 40,
+    "turns": 30,
+    "tool_calls": 60
+  },
+  "targets": {
+    "objections": 6,
+    "evidence_items": 8
+  },
+  "voting": {
+    "method": "approval",
+    "quorum": {
+      "min_voters": 4,
+      "min_fraction": 0.8,
+      "on_failure": "escalate_to_owner"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "tie_break": "owner"
+  },
+  "consensus": {
+    "threshold": 0.75,
+    "measure": "vote_share",
+    "minority_report": "optional",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 2
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "all_participants_spoke == true AND independent_positions >= 4",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "independent_positions",
+          "op": ">=",
+          "value": 4
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "every_participant_spoke": true,
+      "min_independent_positions": 4
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 40,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "irreducible_disagreement",
+      "no_decision",
+      "conditional_decision",
+      "proof_of_impossibility"
+    ],
+    "conditional_decision_requires": [
+      "the allocation names numbers, and each stakeholder's concession is recorded"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "forced_dissent",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "strategic_voting",
+      "strategic_abstention",
+      "participant_dominance",
+      "instant_unanimity",
+      "collusion",
+      "hidden_conflict_of_interest",
+      "prompt_injection"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "blind_re_evaluation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "votes_by_round",
+      "option_cards",
+      "final_recommendation",
+      "action_plan",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 180
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "Stakeholder negotiation council (4 stakeholders + mediator)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S28 stakeholder-negotiation-5",
+      "P04 consensus-conference"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1544-1557"
+    ],
+    "notes": "DESIGN LINEAGE: C-S28 stakeholder-negotiation-5 in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 5; roles: stakeholder_x4,facilitator).\nPRESET LABEL: negotiation_council - exact archetype match for an allocation decision reached by bargaining. NOTE: stakeholder_user_panel is a SECOND required archetype that this same card could carry (four stakeholder seats plus a user advocate). It is NOT built here - one card cannot honestly be two presets. See LANE-2-STATUS.json coverage matrix; stakeholder_user_panel is reported as an unassigned archetype.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, IRREDUCIBLE_DISAGREEMENT->irreducible_disagreement, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision, PROOF_OF_IMPOSSIBILITY->proof_of_impossibility.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.participants.roster (the four stakeholder seats) : stakeholders dial - who is at the table\n  - $.protocol.obligations + $.protocol.sequence[0] : concession_rule dial; the BATNA stage is what makes the rule enforceable\n  - $.voting.method : approval (card default). ranked_choice if you need a strict order\n  - $.consensus.dissent_policy.min_dissenters_to_block : how many stakeholders can block\nOWNER-DECISION: YES on this card, so objective.owner_constraints.approval_required is true and voting.tie_break is 'owner'.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

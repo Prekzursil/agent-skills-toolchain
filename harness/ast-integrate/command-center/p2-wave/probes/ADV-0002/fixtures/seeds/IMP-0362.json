@@ -1,0 +1,214 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "tools/council/prep.py verifies preparation by artifact + fetch log, not by self-report. Unprepared seats raise UnpreparedError. Asserting prepared without a real Read/WebFetch fires AssertionWithoutFetchError. SUCCESS:IMP-0362",
+ "artifact_paths": [
+  "command-center/receipts/IMP-0362.json",
+  "tools/council/prep.py",
+  "tools/council/__init__.py",
+  "command-center/p2-wave/probes/IMP-0362/scenario.py",
+  "command-center/p2-wave/probes/IMP-0362/probe1_unprepared_gate.py",
+  "command-center/p2-wave/probes/IMP-0362/probe2_assert_without_fetch.py",
+  "command-center/p2-wave/probes/IMP-0362/fixtures/workspace/sources/brief.md",
+  "command-center/p2-wave/probes/IMP-0362/fixtures/workspace/sources/protocol.md"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "notes": "Live sha256 is recorded in the per-unit UNIT-ARTIFACT-MANIFEST.json after this file is written (self-hash is circular).",
+   "path": "command-center/receipts/IMP-0362.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 13558,
+   "exists": true,
+   "path": "tools/council/prep.py",
+   "role": "implementation",
+   "sha256": "b34f21f3c22e9dbb6a798f3aaba1a11e6b7ce549f34946a16d39b8a62b3033b2"
+  },
+  {
+   "bytes": 6329,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0362/scenario.py",
+   "role": "supporting",
+   "sha256": "59c14c448589a74d91122ebd7b34a09b97d95d15aca90fcc8d0b44f49f97d637"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:IMP-0362",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0362.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "notes": "Measure runs after this receipt is written.",
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0362/probe1_unprepared_gate.py",
+   "claim": "Prep gate blocks an unprepared participant (no artifact / empty artifact) via UnpreparedError and does not fire assertion-without-fetch on that path.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0362/probe1_unprepared_gate.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"alice_allowed\": true, \"alice_corroboration_fired\": false, \"alice_notes_grounded\": true, \"alice_prepared\": true, \"alice_resolved\": 2, \"assert_without_fetch_fired\": true, \"before_turn_alice_ok\": true, \"bob_empty_allowed\": false, \"bob_empty_fired\": false, \"bob_none_allowed\": false, \"bob_none_fired\": false, \"carol_allowed\": false, \"carol_fired\": true, \"dave_asserted_tool_allowed\": false, \"dave_asserted_tool_fired\": true, \"eve_allowed\": true, \"eve_bare_fired\": true, \"eve_fired\": false, \"parse_asserted_is_not_fetch\": true, \"unprepared_blocked\": true}\nunprepared_reasons=['notes-missing-or-too-short', 'too-few-source-anchors', 'unprepared']\nbefore_turn_bob_blocked=True\nunprepared_blocked=True alice_allowed=True eve_url_allowed=True\nSUCCESS:IMP-0362-probe1 prep gate blocks an unprepared participant",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0362/probe2_assert_without_fetch.py",
+   "claim": "Asserting preparation without fetching fires the tool-call corroboration detector. A status=asserted Read does not count as a fetch. Alice's real Read log is silent.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0362/probe2_assert_without_fetch.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"carol_allowed\": false, \"carol_fired\": true, \"dave_asserted_tool_allowed\": false, \"dave_asserted_tool_fired\": true, \"eve_bare_allowed\": false, \"eve_bare_fired\": true, \"fetched_ungrounded_allowed\": false, \"fetched_ungrounded_fired\": false, \"fetched_ungrounded_notes_grounded\": false, \"parse_asserted_is_not_fetch\": true}\ncarol_reasons=['uncorroborated:sources/brief.md:stat-ok-but-not-fetched', 'notes-not-grounded-in-fetched-sources', 'assertion-without-fetch']\ndave_reasons=['uncorroborated:sources/brief.md:stat-ok-but-not-fetched', 'notes-not-grounded-in-fetched-sources', 'assertion-without-fetch']\nrequire_prepared_fired=corroboration-fired participant=carol speak=False uncorroborated:sources/brief.md:stat-ok-but-not-fetched; notes-not-grounded-in-fetched-sources; assertion-without-fetch\nfetched_ungrounded_reasons=['notes-not-grounded-in-fetched-sources']\ngood_state_alice_silent=True\ncorroboration_fired=True asserted_tool_rejected=True good_state_silent=True\nSUCCESS:IMP-0362-probe2 assert-without-fetch corroboration FIRES",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0362/scenario.py",
+   "claim": "Each prepared seat has a preparation artifact with resolvable source anchors and a tool-call log that corroborates the fetches (alice files; eve URL).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.run_cases",
+     "exit_code": 0,
+     "method": "live-evaluate",
+     "raw_output": "{\"alice_allowed\": true, \"alice_resolved\": 2, \"eve_allowed\": true}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "bytes": 13558,
+  "dependencies_on_this_tree": {
+   "IMP-0264": "kernel.py absent; gate is callable, not wired",
+   "IMP-0314": "evidence_map.py absent; file/url resolution is local"
+  },
+  "kernel_hook": "PrepGate.require_prepared / before_turn",
+  "path": "tools/council/prep.py",
+  "rule": "allowed_to_speak iff notes exist, every named source anchor resolves, every anchor has a successful fetch/read tool-call, and notes share a distinctive token with fetched bytes. asserted_prepared / status=asserted / empty log FIRE corroboration and refuse the turn.",
+  "sha256": "b34f21f3c22e9dbb6a798f3aaba1a11e6b7ce549f34946a16d39b8a62b3033b2"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "global_unit_manifest_write": false,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0362/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measurement": {
+  "alice_allowed": true,
+  "assert_without_fetch_fired": true,
+  "carol_fired": true,
+  "dave_asserted_tool_fired": true,
+  "eve_bare_fired": true,
+  "eve_url_allowed": true,
+  "method": "artifact-stat + tool-call corroboration",
+  "parse_asserted_is_not_fetch": true,
+  "unprepared_blocked": true,
+  "workspace": "command-center/p2-wave/probes/IMP-0362/fixtures/workspace"
+ },
+ "min_bytes_threshold": 128,
+ "negative_control_ids": [
+  "assert-prepared-without-tool-calls",
+  "asserted-read-status-is-not-a-fetch",
+  "url-without-webfetch"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "carol_fired=True",
+   "description": "Seat carol asserts prepared=true, names brief.md, writes notes, and supplies an empty tool-call log. Detector must FIRE.",
+   "fired_on_bad_state": true,
+   "good_state_output": "alice_allowed=True",
+   "id": "assert-prepared-without-tool-calls",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "dave_fired=True",
+   "description": "A Read tool-call with status=asserted must not corroborate the named source.",
+   "fired_on_bad_state": true,
+   "id": "asserted-read-status-is-not-a-fetch",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "eve_bare_fired=True",
+   "description": "A URL anchor with no WebFetch must FIRE; with WebFetch it must speak.",
+   "fired_on_bad_state": true,
+   "good_state_output": "eve_allowed=True",
+   "id": "url-without-webfetch",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "profile": "council-runtime-module",
+ "question_or_target": "Implement tools/council/prep.py enforcing the spec's preparation/research requirements before a participant may speak, and verifying the preparation actually happened. Falsifiable question: is preparation verified by an artifact (sources read, notes produced) or merely by the participant asserting it did the reading?",
+ "report_kind": "receipt",
+ "residual_unknowns": [
+  {
+   "claim": "11-COUNCIL-SPECIFICATION.md and _USER-PROMPTS.md:10754 are not in this worktree. Local contract is the catalog row.",
+   "settling_experiment": "Re-run PrepGate against the engagement.preparation section once the spec file is restored; unknown keys must still fail closed.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Kernel (IMP-0264) calls before_turn on every speaking path.",
+   "settling_experiment": "After kernel.py exists, add a topology that tries to emit a turn without require_prepared and assert the call-graph check fires.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Independent fresh-context human/agent reviewer.",
+   "settling_experiment": "Independent reviewer re-runs probe1 and probe2.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Mechanical adversarial control is probe2 (assert without fetch, asserted Read status, URL without WebFetch). No separate human reviewer ran in a fresh context on this worktree.",
+  "reviewer_id": "IMP-0362-probe2-assert-without-fetch",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0362",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:58117-58159",
+ "spec_anchor_present_in_worktree": true,
+ "spec_anchor_upstream": "C:/Users/Prekzursil/.claude/harness-restore-20260806/11-COUNCIL-SPECIFICATION.md (not present in this worktree); catalog also names _USER-PROMPTS.md:10754",
+ "state": "SUCCESS",
+ "test_ids": [
+  "prep-gate-blocks-unprepared",
+  "assert-without-fetch-corroboration-fires"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0362/probe1_unprepared_gate.py",
+   "exit_code": 0,
+   "id": "prep-gate-blocks-unprepared",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0362/probe2_assert_without_fetch.py",
+   "exit_code": 0,
+   "id": "assert-without-fetch-corroboration-fires",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:02:31Z"
+ },
+ "title": "Participant preparation and research-requirement enforcement",
+ "unit_id": "IMP-0362"
+}

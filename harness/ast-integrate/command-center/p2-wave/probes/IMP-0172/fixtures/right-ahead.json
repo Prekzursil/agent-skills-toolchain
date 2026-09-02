@@ -1,0 +1,74 @@
+{
+  "edges": [
+    [
+      "discover",
+      "record"
+    ],
+    [
+      "record",
+      "publish"
+    ]
+  ],
+  "id": "wf.right-ahead",
+  "stages": [
+    {
+      "gate": {
+        "args": [
+          "repo"
+        ],
+        "pred": "files_present"
+      },
+      "id": "discover",
+      "inputs": [
+        "repo"
+      ],
+      "kind": "static-scan",
+      "outputs": [
+        "candidates.json"
+      ],
+      "role": "analyst",
+      "tools": [
+        "Read",
+        "Grep"
+      ]
+    },
+    {
+      "gate": {
+        "pred": "candidates_nonempty"
+      },
+      "id": "record",
+      "inputs": [
+        "candidates.json"
+      ],
+      "kind": "write-config",
+      "outputs": [
+        "blueprint.json"
+      ],
+      "role": "operator",
+      "tools": [
+        "Write"
+      ]
+    },
+    {
+      "gate": {
+        "pred": "tests_green"
+      },
+      "id": "publish",
+      "inputs": [
+        "blueprint.json"
+      ],
+      "kind": "publish-pr",
+      "outputs": [
+        "pr-url"
+      ],
+      "role": "releaser",
+      "tools": [
+        "Bash"
+      ]
+    }
+  ],
+  "stopping": {
+    "max_stages": 2,
+    "on_error": "halt"
+  }
+}

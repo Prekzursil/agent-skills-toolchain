@@ -1,0 +1,216 @@
+{
+  "branches": [
+    {
+      "id": "br.search-cheap",
+      "is_default": false,
+      "predicate": {
+        "args": [
+          {
+            "field": "task_class",
+            "op": "eq",
+            "value": "search"
+          },
+          {
+            "field": "budget",
+            "op": "eq",
+            "value": "cheap"
+          }
+        ],
+        "op": "and"
+      },
+      "reachable": true,
+      "source_id": "wf.scout",
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "search"
+      }
+    },
+    {
+      "id": "br.extract",
+      "is_default": false,
+      "predicate": {
+        "field": "task_class",
+        "op": "eq",
+        "value": "extract"
+      },
+      "reachable": true,
+      "source_id": "wf.extract",
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "extract"
+      }
+    },
+    {
+      "id": "br.default",
+      "is_default": true,
+      "predicate": {
+        "op": "true"
+      },
+      "reachable": true,
+      "source_id": "wf.general",
+      "witness": {
+        "budget": "cheap",
+        "locale": "en",
+        "task_class": "summarize"
+      }
+    }
+  ],
+  "default_branch_id": "br.default",
+  "default_explicit": true,
+  "default_source_id": "wf.general",
+  "fused_workflow": {
+    "default_branch_id": "br.default",
+    "id": "fusion.conditional-hybrid.imp-0186",
+    "sources": [
+      "wf.scout",
+      "wf.extract",
+      "wf.general"
+    ],
+    "strategy": "conditional-hybrid"
+  },
+  "id": "fusion.conditional-hybrid.imp-0186",
+  "input_type": {
+    "fields": {
+      "budget": {
+        "kind": "enum",
+        "values": [
+          "cheap",
+          "expensive"
+        ]
+      },
+      "locale": {
+        "kind": "enum",
+        "values": [
+          "en",
+          "ja",
+          "other"
+        ]
+      },
+      "task_class": {
+        "kind": "enum",
+        "values": [
+          "search",
+          "extract",
+          "summarize"
+        ]
+      }
+    }
+  },
+  "lineage": {
+    "operator": "conditional-hybrid",
+    "sources": [
+      "wf.scout",
+      "wf.extract",
+      "wf.general"
+    ],
+    "unit_id": "WFA-0104"
+  },
+  "reachability_proof": {
+    "agreement": true,
+    "bitmask_reachable": [
+      "br.search-cheap",
+      "br.extract",
+      "br.default"
+    ],
+    "cfg_reachable": [
+      "br.search-cheap",
+      "br.extract",
+      "br.default"
+    ],
+    "universe_size": 18,
+    "unreachable": [],
+    "unrouted_count": 0
+  },
+  "sources": {
+    "wf.extract": {
+      "id": "wf.extract",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ]
+        },
+        {
+          "id": "slice",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "span-extract",
+          "outputs": [
+            "result.json"
+          ]
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      }
+    },
+    "wf.general": {
+      "id": "wf.general",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ]
+        },
+        {
+          "id": "reduce",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "summarize",
+          "outputs": [
+            "result.json"
+          ]
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      }
+    },
+    "wf.scout": {
+      "id": "wf.scout",
+      "stages": [
+        {
+          "id": "ingest",
+          "inputs": [
+            "runtime"
+          ],
+          "kind": "read-input",
+          "outputs": [
+            "case.json"
+          ]
+        },
+        {
+          "id": "fanout",
+          "inputs": [
+            "case.json"
+          ],
+          "kind": "index-search",
+          "outputs": [
+            "result.json"
+          ]
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      }
+    }
+  },
+  "strategy": "conditional-hybrid"
+}

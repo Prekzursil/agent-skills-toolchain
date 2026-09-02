@@ -1,0 +1,183 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/wfa-0144/artifact.schema.json",
+  "title": "WFA-0144 workflow-forge foundry artifact",
+  "$comment": "Local contract. The catalog output_schema is a generated $ref shim to ast-integrate.invalid; jsonschema 4.10 follows that $ref over HTTPS. This file is the non-vacuous discriminator used by emit and named probes.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "mechanism",
+    "extracted_mechanisms",
+    "runs",
+    "build_bias_control",
+    "typed_failure_control",
+    "evidence",
+    "tests",
+    "reviewer",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "WFA-0144" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:WFA-0144" },
+    "title": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 40 },
+    "mechanism": { "type": "string", "minLength": 40 },
+    "extracted_mechanisms": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "op", "transferable", "source_candidate_id"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "op": { "type": "string", "minLength": 1 },
+          "transferable": { "type": "boolean" },
+          "source_candidate_id": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "runs": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "goal_id",
+          "completed",
+          "winner",
+          "rejected",
+          "rationale",
+          "scoreboard",
+          "scoreboard_sha256"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "goal_id": { "type": "string", "minLength": 1 },
+          "completed": { "type": "boolean", "const": true },
+          "winner": {
+            "type": "object",
+            "required": ["variant_id", "kind", "measured_score", "workflow"],
+            "properties": {
+              "variant_id": { "type": "string", "minLength": 1 },
+              "kind": {
+                "type": "string",
+                "enum": ["ADOPT", "ADAPT", "MERGE", "COMPOSE", "BUILD"]
+              },
+              "measured_score": { "type": "number" },
+              "workflow": {
+                "type": "object",
+                "required": ["id", "kind", "stages", "executable"],
+                "properties": {
+                  "stages": { "type": "array", "minItems": 1 },
+                  "executable": { "const": true }
+                }
+              }
+            }
+          },
+          "rejected": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": ["variant_id", "kind", "measured_score", "why_rejected"],
+              "properties": {
+                "variant_id": { "type": "string", "minLength": 1 },
+                "why_rejected": { "type": "string", "minLength": 3 }
+              }
+            }
+          },
+          "rationale": { "type": "string", "minLength": 40 },
+          "scoreboard": { "type": "object", "minProperties": 2 },
+          "scoreboard_sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          }
+        }
+      }
+    },
+    "build_bias_control": {
+      "type": "object",
+      "required": [
+        "winner_kind",
+        "winner_source_candidate_id",
+        "build_variant_benchmarked",
+        "build_score_lt_adopt",
+        "uncovered_not_false_adopt",
+        "zero_build_cost_mutant_fires"
+      ],
+      "properties": {
+        "winner_kind": { "type": "string" },
+        "winner_source_candidate_id": { "type": "string", "minLength": 1 },
+        "build_variant_benchmarked": { "type": "boolean" },
+        "build_score_lt_adopt": { "type": "boolean" },
+        "uncovered_not_false_adopt": { "type": "boolean" },
+        "zero_build_cost_mutant_fires": { "type": "boolean" }
+      }
+    },
+    "typed_failure_control": {
+      "type": "object",
+      "required": ["empty_scout_error_type", "looks_right_build_not_returned"],
+      "properties": {
+        "empty_scout_error_type": { "type": "string", "const": "FORGE_INPUT_INVALID" },
+        "looks_right_build_not_returned": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["path", "line", "snippet", "kind"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "line": { "type": "integer", "minimum": 1 },
+          "snippet": { "type": "string", "minLength": 3 },
+          "kind": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "command": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 1 },
+        "verdict": { "type": "string", "enum": ["PASS", "FAIL", "CHANGES-REQUESTED"] },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "role": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

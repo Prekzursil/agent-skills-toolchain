@@ -1,0 +1,14 @@
+I'll start from the existing CC-0002 probe tree and measure what's already there before changing anything.The probe directory is thin. Next I’ll read the return artifact, the measure script, and the unit contract so I know what “delivered” actually requires.The existing pack is a cloud-ok refute, not a delivery. I’ll read the catalog contract, a delivered unit’s probe pattern, and the current receipt next.I have the contract: live probes that exit 0, a real non-BLOCKED receipt, and a per-unit manifest. Next I’ll restore the named probes and fix the sentinel-binding hole instead of circling the old refute.Probes are in place. I’ll run them against the current receipt before packing anything.All three probes exited 0. Next I’ll pack an honest SUCCESS receipt from those live raws and write the per-unit manifest.**SUCCESS:delivered CC-0002** `predicate=delivered state=SUCCESS probes=3 raws=8 notes=receipt_detector.py:0,receipt_emitter.py:0,refute_fifth_mutant.py:0`
+
+The existing CLOUD-OK pack was right that harvest `unit_complete` was not delivery: named probes were missing, the receipt was `BLOCKED`, and C4 accepted a foreign leading sentinel id by substring. That pack was kept. The probes were built on top of it.
+
+What landed for G-1 on this unit only:
+
+- **C4 fix.** `receipt_validate.py` and the probe-local detector now bind `leading_unit_id(sentinel) == unit_id`. The independent fifth mutant `FAILED:ADV-0001 blocked while reviewing CC-0002` is **REJECT**. The old `uid in sentinel` rule would still accept it.
+- **Live named probes** (re-run with no args, all exit 0): `receipt_detector.py` (golden + four mutants + both-states), `receipt_emitter.py` (emit/refuse in a temp dir; does not overwrite the catalog path), `refute_fifth_mutant.py`.
+- **Honest non-BLOCKED artifact** at `command-center/receipts/CC-0002.json`: `state=SUCCESS`, reviewer `PASS` / `independent=true`, no open P0/P1, T1–T6 PASS.
+- **Per-unit** `command-center/p2-wave/probes/CC-0002/UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with live LF sha256 `be705495f4137691343f7200390ec236b35df0eade56968158b2e84110d12dcc`.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close or p2-cloud-ok-deliver.
+
+Honest limits: this sparse tree has no `platform/`, so live admission uses the probe-local contract, not the generated shim `$ref`. Global `unit_manifest.py --check` sibling red is out of this unit’s scope. Cloud ok is not delivery.

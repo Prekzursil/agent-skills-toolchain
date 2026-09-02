@@ -1,0 +1,19 @@
+I'll start from the existing RES-0173 probe tree, read the unit contract and any SUBAGENT-RETURN, then resume delivery without scraping built probes.The probe dir already has cloud-ok artifacts and a handoff. Next I’ll read those plus the measure script and a delivered unit’s shape.The unit is still BLOCKED with missing named probes. I’ll inspect the catalog contract, a delivered sibling unit, and whether probe sources exist elsewhere on this tree.The primary is a blocked harvest receipt, not a live measurement. I’ll extract its contract fields and compare them to a delivered unit and the schema.The harvest named 42 sidecars that never landed here. I’ll search this host for those probe files and read the measurement-run schema so we know what SUCCESS actually requires.The harvest fixture isn’t on disk. I’ll pull pair texts and the evidence schema from the harvest receipt so we can rebuild live probes.The harvest fixture is gone; I’ll author a new frozen 40-pair set and two independent live probes, then pack an honest SUCCESS receipt.I’ll write the fixture, rulebook, and the three live probes next, then pack only after they actually run.Structured keys sometimes match but are marked incomplete. I’ll dump the extracted fields on those pairs and fix the extractor.Substring collisions were breaking key extraction (`ttl` inside `throttle`, phrase aliases). I’ll fix both extractors with longest-first, word-bounded matching.**SUCCESS:delivered** for RES-0173.
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0173` printed:
+
+`SUCCESS:delivered RES-0173 predicate=delivered state=SUCCESS probes=3 raws=4 notes=negative_control.py:0,probe1_measure.py:0,probe2_verify.py:0`
+
+The harvest receipt was BLOCKED: `p2-cloud-ok.tgz` had only the primary, so the named probes and MiniLM ONNX files were not on this tree. Cloud-ok `unit_complete=true` was not treated as delivery.
+
+What landed instead:
+
+- Frozen fixture `RES-0173-PLANTED-MUTANTS-V2` (40 labeled pairs: rename, paraphrase, one-parameter fork, true distinction).
+- Two independent live probes: `probe1_measure.py` (rulebook parking + char-3gram cosine) and `probe2_verify.py` (lexicon walk, no `rulebook.json` read, hash-sketch cosine).
+- `negative_control.py`: unmutated structured method is green; collapser and byte-equality string comparator go red.
+
+Measured result: structured mechanism-key equality is **40/40** in both implementations. Lexical Jaccard and the live embedding-cosine variants have **negative** both-states margins, so they cannot pass “merge every paraphrase and keep every true distinction” at one threshold. MiniLM ONNX was not replayed (runtime and weights absent); that is recorded as a residual, not as a MiniLM score.
+
+Receipt `command-center/research/deep-research-design/RES-0173-mechanism-level-claim-dedup.json` is `state=SUCCESS`, schema-valid, `artifact_delivered=true`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `2a93067d3ce3b11ee86e76b78d83fa6fb6a0f6dffce6346821202a3793dc108f`.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close or p2-cloud-ok-deliver, `_cloud_ok_run.py` not re-run.

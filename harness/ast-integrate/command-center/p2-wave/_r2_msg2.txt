@@ -1,0 +1,55 @@
+feat(command-center): deliver CC-0002 and IMP-0440, and close a real validator hole
+
+Round-2 tranche in OQ-2 order (ascending integer phase, then unblocking power). Ranks 1-3, 5, 6
+landed in round 1; rank 4 (AUD-0001) stays BLOCKED on the recorded blocker. These are ranks 7
+and 8, both phase 0, both unblocking 3, and both declare a contract measured able to fail.
+
+CC-0002 -- create the receipt substrate every work unit is contracted to write to.
+  Premise REFUTED on three of its four asserted absences: receipt.schema.json is present
+  (5,882 B, tracked), command-center/receipts/ exists with 4 receipts, and an emitter exists
+  (42,480 B). The fourth -- a committed .gitkeep -- was genuinely absent and is created here.
+  Prior art first: platform/lib/receipt_schema_gate.py already ships schema validation and the
+  12-condition predicate, so it was EXECUTED against the four mutants the row names before any
+  code was written. It rejects three and ACCEPTS the fourth: a receipt whose unit_id is
+  `ZZZ-9999` validates with exit 0. Neither WORK-UNIT-CATALOG nor work_units appears anywhere in
+  that file, so the cross-reference is genuinely absent rather than merely unused.
+  New: command-center/receipt_validate.py, an ADMISSION check that imports the existing gate
+  rather than reimplementing it and adds C3, the catalog cross-reference. Single-bit ACCEPT or
+  REJECT, never a score -- a score becomes the next thing to optimise. It fails closed on an
+  empty walk. Its --self-test asserts the golden is ACCEPTED and all four mutants REJECTED each
+  on its own condition code, so a reject-everything stub would fail the control too.
+  Admission is deliberately NOT completion: layer 2 rejects every receipt on disk, correctly, on
+  the reviewer gate, so it cannot serve as the accept/reject instrument the row's tests need.
+
+IMP-0440 -- single blob-bytes helper and removal of the archive-based recipe everywhere.
+  Premise PARTLY REFUTED: tools/measure-guard/blobread.py already is the helper (8,757 B) and
+  refuses the archive route by measurement; its function is read_blob(path, rev) rather than
+  blob_bytes(rev, path). Its suite passes, 8 tests. The migration itself was already performed by
+  command-center/fix_blob_recipe.py.
+  Census answering the row's exact question: 263 lines mention `git archive`; 2 are real
+  invocations and both are whole-tree materialisation (--format=tar / --output), which is the
+  CORRECT use; 0 provenance prescriptions remain. Three-route comparison on TWO committed files:
+  archive 19,927 B / 437 CRLF vs cat-file 19,490 B / 0 CRLF vs show 19,490 B / 0 CRLF, identical
+  after LF normalisation. `git show <rev>:<path>` equals `git cat-file -p` byte for byte.
+  T5 is recorded as FAIL, not hidden: 37 executable files still implement their own cat-file read
+  instead of importing the one helper. They are all CORRECT, so it is duplication rather than a
+  defect, but the row asks for consolidation and re-routing them means editing platform/, tools/
+  and command-center files this lane does not own while siblings write the same tree.
+
+TWO DETECTOR FAILURES OF MINE, DISCLOSED IN THE SOURCE AND IN THE RECEIPT, NOT DROPPED.
+  1. The first census counted any non-comment line matching `git archive` as an invocation and
+     reported ~19 remaining prescriptions that were prose inside JSON strings. Replaced with a
+     per-file-kind classifier: Python by AST (only a string reaching a subprocess argv counts),
+     shell/CI by non-comment line, markdown by fenced-code-block membership, data files excluded
+     with the reason stated.
+  2. That still reported 3, all lines PRESCRIBING the correct recipe while naming the wrong one
+     in a trailing comment (`git show <sha>:<path>   # NOT git archive`). Trailing comments are
+     now stripped before matching and an explicit negation before the token marks a mention.
+  Both survived only because the plant-one control exists: a wrong recipe is planted inside the
+  scanned tree, found, removed, and the census re-run. A grep returning 0 without that control is
+  indistinguishable from a broken pattern.
+
+Both receipts are state=BLOCKED on the reviewer gate. CC-0002's reviewer_requirement asks for an
+independent reviewer who writes a FIFTH mutant the author did not anticipate -- unsatisfiable from
+inside the build lane by construction, since a mutant the author writes is one the author
+anticipated.

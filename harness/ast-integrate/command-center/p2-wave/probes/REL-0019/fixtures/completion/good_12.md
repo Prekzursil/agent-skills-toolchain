@@ -1,0 +1,3 @@
+SUCCESS:FX-COMP-GOOD-12
+
+Fixture body 12 for the completion predicate. This paragraph exists so the artifact is not a sentinel-only stub. Measured rates need a labelled known-good document with distinct characters and enough non-space text to clear the thin-body floor. Unique token sequence: alpha-12-bravo-charlie-delta-echo. abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 abcdefghijklmnopqrstuvwxyz0123456789 

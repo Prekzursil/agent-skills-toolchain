@@ -1,0 +1,105 @@
+{
+  "id": "wf.donor.successor-mismatch",
+  "licence": "Apache-2.0",
+  "version": "2.0.0",
+  "entry": [
+    {
+      "name": "raw",
+      "type": "bytes"
+    }
+  ],
+  "exit": [
+    {
+      "name": "verdict",
+      "type": "boolean"
+    }
+  ],
+  "stages": [
+    {
+      "id": "ingest",
+      "kind": "ingest",
+      "capability": "pure-transform",
+      "inputs": [
+        {
+          "name": "raw",
+          "type": "bytes"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "doc",
+          "type": "document"
+        }
+      ],
+      "body": {
+        "op": "parse",
+        "from": "raw",
+        "to": "doc"
+      },
+      "source_anchor": "IMP-0182/fixtures:ingest",
+      "performance": {
+        "metric": "latency_ms",
+        "score": 9.0,
+        "benchmark_run_id": "donor-ingest-1"
+      }
+    },
+    {
+      "id": "render",
+      "kind": "render",
+      "capability": "pure-transform",
+      "inputs": [
+        {
+          "name": "doc",
+          "type": "document"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "image",
+          "type": "pixels"
+        }
+      ],
+      "body": {
+        "op": "extract",
+        "from": "doc",
+        "to": "image",
+        "quality": 0.91
+      },
+      "source_anchor": "IMP-0182/fixtures:render",
+      "performance": {
+        "metric": "f1",
+        "score": 0.91,
+        "benchmark_run_id": "donor-render-1"
+      }
+    },
+    {
+      "id": "decide",
+      "kind": "gate",
+      "capability": "gate",
+      "inputs": [
+        {
+          "name": "score",
+          "type": "number"
+        }
+      ],
+      "outputs": [
+        {
+          "name": "verdict",
+          "type": "boolean"
+        }
+      ],
+      "body": {
+        "op": "decide",
+        "from": "score",
+        "to": "verdict",
+        "threshold": 0.4
+      },
+      "source_anchor": "IMP-0182/fixtures:decide",
+      "performance": {
+        "metric": "accuracy",
+        "score": 0.8,
+        "benchmark_run_id": "donor-decide-1"
+      }
+    }
+  ]
+}

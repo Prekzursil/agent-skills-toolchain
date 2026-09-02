@@ -1,0 +1,267 @@
+{
+  "family": "ANONYMOUS",
+  "notes": "Designed executable runtime semantics for catalog-named P-ids. Not transcribed from 12-COUNCIL-PROTOCOLS-AND-PRESETS.json (absent).",
+  "protocols": [
+    {
+      "id": "P20",
+      "slug": "delphi-anonymous-rounds",
+      "family": "ANONYMOUS",
+      "verdict": "EXECUTABLE",
+      "missing_element": null,
+      "anonymity_lift_event": "UNSEAL",
+      "anonymity_lift_meaning": "First authorized public binding of seat_token to seat_id, immediately after RESULT_FREEZE. There is no discussion phase; conversational and estimate anonymity share this clock.",
+      "conversational_identity_allowed_from": null,
+      "protected_until_unseal": ["estimate", "rationale"],
+      "stopping": {
+        "type": "any",
+        "clauses": [
+          {"kind": "max_rounds", "value": 2},
+          {"kind": "iqr_below", "value": 0.05}
+        ]
+      },
+      "schedule": [
+        "ROUND_OPEN",
+        "SUBMIT_SEALED",
+        "AGGREGATE",
+        "FEEDBACK_ANON",
+        "ROUND_OPEN",
+        "SUBMIT_SEALED",
+        "AGGREGATE",
+        "RESULT_FREEZE",
+        "UNSEAL"
+      ],
+      "leaks_before_lift": [
+        {
+          "channel": "writing_style",
+          "carrier": "rationale text copied into FEEDBACK_ANON",
+          "why": "a unique stylistic marker in a forwarded comment binds the sealed estimate to one seat"
+        },
+        {
+          "channel": "tool_traces",
+          "carrier": "tool_run_id on the public SUBMIT view",
+          "why": "a unique tool invocation id is a runtime identity even when seat_id is stripped"
+        },
+        {
+          "channel": "timing",
+          "carrier": "public submit_delay_ms unique to one seat",
+          "why": "a delay no other seat shares identifies the remaining participant"
+        }
+      ]
+    },
+    {
+      "id": "P21",
+      "slug": "wideband-delphi-estimation",
+      "family": "ANONYMOUS",
+      "verdict": "EXECUTABLE",
+      "missing_element": null,
+      "anonymity_lift_event": "UNSEAL",
+      "anonymity_lift_meaning": "Estimate-attribution anonymity lifts at UNSEAL after RESULT_FREEZE. Conversational anonymity is not provided after DISCUSSION_OPEN: speech may carry seat_id, estimates may not.",
+      "conversational_identity_allowed_from": "DISCUSSION_OPEN",
+      "protected_until_unseal": ["estimate"],
+      "stopping": {
+        "type": "any",
+        "clauses": [
+          {"kind": "max_rounds", "value": 2},
+          {"kind": "range_below", "value": 1.0}
+        ]
+      },
+      "schedule": [
+        "ROUND_OPEN",
+        "SUBMIT_SEALED",
+        "AGGREGATE",
+        "DISCUSSION_OPEN",
+        "DISCUSS",
+        "ROUND_OPEN",
+        "SUBMIT_SEALED",
+        "AGGREGATE",
+        "RESULT_FREEZE",
+        "UNSEAL"
+      ],
+      "leaks_before_lift": [
+        {
+          "channel": "writing_style",
+          "carrier": "estimate rationale attributed during DISCUSS",
+          "why": "naming whose number is whose during discussion unseals estimates before RESULT_FREEZE"
+        },
+        {
+          "channel": "tool_traces",
+          "carrier": "tool_run_id on public estimate objects",
+          "why": "tool provenance on the card binds the number to a runtime identity"
+        },
+        {
+          "channel": "timing",
+          "carrier": "public card-submit delays",
+          "why": "unique submit timing identifies the card author while discussion is still open"
+        }
+      ]
+    },
+    {
+      "id": "P22",
+      "slug": "brainwriting-635",
+      "family": "ANONYMOUS",
+      "verdict": "EXECUTABLE",
+      "missing_element": null,
+      "anonymity_lift_event": "UNSEAL",
+      "anonymity_lift_meaning": "Sheet authorship is token-sealed through six pass cycles and POOL_REVEAL. Lift is UNSEAL (plenary unseal) after the pool is published without names.",
+      "conversational_identity_allowed_from": null,
+      "protected_until_unseal": ["sheet_author", "idea"],
+      "stopping": {
+        "type": "all",
+        "clauses": [
+          {"kind": "pass_cycles", "value": 6}
+        ]
+      },
+      "schedule": [
+        "CYCLE",
+        "CYCLE",
+        "CYCLE",
+        "CYCLE",
+        "CYCLE",
+        "CYCLE",
+        "POOL_REVEAL",
+        "UNSEAL"
+      ],
+      "leaks_before_lift": [
+        {
+          "channel": "writing_style",
+          "carrier": "idea text on a circulating sheet",
+          "why": "a unique phrase written in cycle 1 is still on the sheet when later seats read it"
+        },
+        {
+          "channel": "tool_traces",
+          "carrier": "editor session id stamped on a digital sheet cell",
+          "why": "the cell's tool_run_id names the writer without a byline"
+        },
+        {
+          "channel": "timing",
+          "carrier": "which seat delayed the pass",
+          "why": "a unique pass latency identifies who held the sheet"
+        }
+      ]
+    },
+    {
+      "id": "P23",
+      "slug": "silent-start-pooling",
+      "family": "ANONYMOUS",
+      "verdict": "EXECUTABLE",
+      "missing_element": null,
+      "anonymity_lift_event": "UNSEAL",
+      "anonymity_lift_meaning": "Silent generation has no public view. POOL_REVEAL publishes note bodies without authors. Attribution anonymity lifts at UNSEAL.",
+      "conversational_identity_allowed_from": null,
+      "protected_until_unseal": ["note_author"],
+      "stopping": {
+        "type": "all",
+        "clauses": [
+          {"kind": "all_notes_in", "value": true},
+          {"kind": "silent_window_closed", "value": true}
+        ]
+      },
+      "schedule": [
+        "SILENT_WINDOW_OPEN",
+        "SUBMIT_SEALED",
+        "SILENT_WINDOW_CLOSE",
+        "POOL_REVEAL",
+        "UNSEAL"
+      ],
+      "leaks_before_lift": [
+        {
+          "channel": "writing_style",
+          "carrier": "note body at POOL_REVEAL",
+          "why": "the pooled text still carries a unique stylistic marker of its author"
+        },
+        {
+          "channel": "tool_traces",
+          "carrier": "tool_run_id on a pooled note",
+          "why": "the capture tool names the writer"
+        },
+        {
+          "channel": "timing",
+          "carrier": "public note-arrival delays during the silent window",
+          "why": "a unique arrival time identifies the remaining silent seat"
+        }
+      ]
+    },
+    {
+      "id": "P24",
+      "slug": "surprisingly-popular-bts",
+      "family": "ANONYMOUS",
+      "verdict": "EXECUTABLE",
+      "missing_element": null,
+      "anonymity_lift_event": "UNSEAL",
+      "anonymity_lift_meaning": "Ballots (vote + predicted popularity) stay sealed through scoring. Lift is UNSEAL immediately after SCORE_FREEZE. Revealing ballots before freeze makes Bayesian Truth Serum gameable.",
+      "conversational_identity_allowed_from": null,
+      "protected_until_unseal": ["ballot", "prediction"],
+      "stopping": {
+        "type": "all",
+        "clauses": [
+          {"kind": "all_ballots_in", "value": true},
+          {"kind": "score_frozen", "value": true}
+        ]
+      },
+      "schedule": [
+        "BALLOT_SEALED",
+        "SCORE_SURPRISINGLY_POPULAR",
+        "SCORE_FREEZE",
+        "UNSEAL"
+      ],
+      "leaks_before_lift": [
+        {
+          "channel": "writing_style",
+          "carrier": "free-text justification attached to a public ballot",
+          "why": "justification stylometry identifies the voter before SCORE_FREEZE"
+        },
+        {
+          "channel": "tool_traces",
+          "carrier": "tool_run_id on the ballot channel",
+          "why": "the voting tool's run id is a seat identity"
+        },
+        {
+          "channel": "timing",
+          "carrier": "public ballot arrival unique to one seat",
+          "why": "the last unique delay names the remaining voter while scoring is still open"
+        }
+      ]
+    },
+    {
+      "id": "P25",
+      "slug": "blind-reevaluation",
+      "family": "ANONYMOUS",
+      "verdict": "EXECUTABLE",
+      "missing_element": null,
+      "anonymity_lift_event": "UNSEAL",
+      "anonymity_lift_meaning": "Work-product authorship and reviewer identity stay sealed until SCORE_LOCK. UNSEAL is the first authorized author (and reviewer) reveal.",
+      "conversational_identity_allowed_from": null,
+      "protected_until_unseal": ["author", "reviewer"],
+      "stopping": {
+        "type": "all",
+        "clauses": [
+          {"kind": "all_reviewers_scored", "value": true},
+          {"kind": "score_locked", "value": true}
+        ]
+      },
+      "schedule": [
+        "INGEST_SEALED",
+        "SCORE_SEALED",
+        "SCORE_LOCK",
+        "UNSEAL"
+      ],
+      "leaks_before_lift": [
+        {
+          "channel": "writing_style",
+          "carrier": "work-product text visible to reviewers",
+          "why": "stylometry of the artifact identifies the author before SCORE_LOCK"
+        },
+        {
+          "channel": "tool_traces",
+          "carrier": "paths or tool_run_id left in the artifact",
+          "why": "a unique tool trace in the work product is an author byline"
+        },
+        {
+          "channel": "timing",
+          "carrier": "creation timestamp unique to one author seat",
+          "why": "a unique ingest time identifies the author while scores are still open"
+        }
+      ]
+    }
+  ]
+}

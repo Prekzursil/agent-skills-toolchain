@@ -1,0 +1,489 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p17-jury-with-allowed-hung",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Reach unanimity on the question or return IRREDUCIBLE_DISAGREEMENT; never manufacture a plurality the evidence does not support.",
+    "charter": "JUDICIAL family. Failure to decide is a legitimate terminal state. One Allen-charge round may urge reconsideration WITHOUT any new argument or new anchor; the foreperson must reject a new anchor in that round.",
+    "risk_tier": "critical",
+    "desired_output": "decision",
+    "success_criteria": [
+      "a genuinely balanced question returns IRREDUCIBLE_DISAGREEMENT rather than a coin-flip majority",
+      "the Allen round introduces zero new anchors",
+      "every dissent survives verbatim into the record"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 3,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "deadline_minutes": 150
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "vendor_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 8,
+      "min": 8,
+      "max": 8
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 6,
+      "max_share_per_vendor": 0.5
+    },
+    "roster": [
+      {
+        "participant_id": "hung-juror-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "risk analysis"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "hung-juror-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "reproduction",
+          "test design"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "hung-juror-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "statistics",
+          "base rates"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "hung-juror-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "security review"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "hung-juror-5",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "operations",
+          "rollback"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "hung-juror-6",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "cost modeling"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "hung-juror-7",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "user impact"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "foreperson",
+        "display_name": "Foreperson (delivers the Allen charge; may not argue)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "process discipline",
+          "deadlock hygiene"
+        ],
+        "role": "chair",
+        "authority": "chair",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "blind_to_peers",
+      "reveal_after_round": 1
+    },
+    "replacement": {
+      "enabled": true,
+      "triggers": [
+        "dominance",
+        "inactivity",
+        "role_collapse"
+      ],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "recuse_from_vote"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "evidence_pack",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "jury",
+    "chair": "foreperson"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "independent-verdicts",
+        "independent": true,
+        "anonymous": true,
+        "rounds": 1
+      },
+      {
+        "kind": "jury",
+        "stage_id": "deliberation",
+        "rounds": 4,
+        "quotas": {
+          "objections_per_participant": 3,
+          "counterexamples_per_round": 1
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "allen_charge_no_new_argument",
+        "stage_id": "allen-charge",
+        "rounds": 1,
+        "participants": [
+          "foreperson"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "custom:new_anchors_in_allen_round",
+              "op": "==",
+              "value": 0,
+              "value_type": "number",
+              "producer": "allen_round_anchor_diff",
+              "note": "the Allen round may urge reconsideration but may not smuggle in a new anchor"
+            },
+            {
+              "metric": "unanimity",
+              "op": "==",
+              "value": true,
+              "note": "reconsideration succeeded; otherwise the outcome is IRREDUCIBLE_DISAGREEMENT"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "verdict-or-hung",
+        "rounds": 1
+      }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": true
+    },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 3,
+      "runner": "ci"
+    }
+  },
+  "budgets": {
+    "effort": "xhigh",
+    "time_minutes": 150,
+    "tool_calls": 250,
+    "sources": 35,
+    "turns": 60,
+    "speaking_quota_per_participant": 8,
+    "min_engagement_turns": 3,
+    "max_inactivity_rounds": 2,
+    "rebuttal_depth": 3
+  },
+  "targets": {
+    "objections": 10,
+    "counterexamples": 4,
+    "evidence_items": 24,
+    "coverage_score": 0.9,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "flag_for_review"
+    }
+  },
+  "voting": {
+    "method": "unanimity",
+    "quorum": {
+      "min_voters": 7,
+      "min_fraction": 0.85,
+      "on_failure": "no_decision"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "none",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 1.0,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "rounds_elapsed >= 3 AND (unanimity == true OR deadlock_detected == true OR rounds_elapsed >= 8)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "rounds_elapsed",
+          "op": ">=",
+          "value": 3
+        },
+        {
+          "any_of": [
+            {
+              "metric": "unanimity",
+              "op": "==",
+              "value": true
+            },
+            {
+              "metric": "deadlock_detected",
+              "op": "==",
+              "value": true
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 8
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 7,
+      "every_participant_spoke": true,
+      "min_evidence_items": 12,
+      "min_objections_addressed": 5
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 150,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "forced_dissent",
+      "blind_re_evaluation",
+      "run_experiment",
+      "declare_no_decision",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": false,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "sycophancy",
+      "premature_convergence",
+      "participant_dominance",
+      "lost_dissent",
+      "minority_suppression",
+      "strategic_voting",
+      "endless_debate"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "strongest_counterexample",
+      "role_rotation"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "votes_by_round",
+      "confidence_trajectory",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "experiments",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P17 jury with allowed hung verdict",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:372-387"
+    ],
+    "notes": "The stopping rule cannot fire before round 3 even under unanimity - that conjunct is the coercion guard, and the both-states control includes a round-2 unanimous snapshot that must evaluate FALSE. hard_caps.max_rounds=8 matches the rounds_elapsed >= 8 escape so SEM-011 has a declared cap to agree with."
+  }
+}

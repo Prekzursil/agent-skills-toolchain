@@ -1,0 +1,337 @@
+{
+  "$comment": "SUCCESS:ARC-0092",
+  "$defs": {
+    "artifact_class": {
+      "enum": [
+        "plugin",
+        "marketplace",
+        "workflow_dsl",
+        "schema"
+      ],
+      "type": "string"
+    },
+    "bump": {
+      "enum": [
+        "MAJOR",
+        "MINOR",
+        "PATCH",
+        "NONE"
+      ],
+      "type": "string"
+    },
+    "change": {
+      "additionalProperties": false,
+      "properties": {
+        "bump": {
+          "$ref": "#/$defs/bump"
+        },
+        "detail": {
+          "minLength": 3,
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/change_kind"
+        },
+        "path": {
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "path",
+        "kind",
+        "bump",
+        "detail"
+      ],
+      "type": "object"
+    },
+    "change_kind": {
+      "enum": [
+        "removed_field",
+        "narrowed_enum",
+        "widened_enum",
+        "tightened_required",
+        "loosened_required",
+        "changed_default",
+        "added_optional_field",
+        "removed_field",
+        "permission_widening",
+        "hook_signature_change",
+        "id_retirement",
+        "type_narrowing",
+        "type_widening",
+        "additional_properties_tightened",
+        "const_changed",
+        "constraint_tightened",
+        "ref_changed",
+        "one_of_narrowed",
+        "added_definition",
+        "description_change",
+        "format_removed",
+        "annotation_change"
+      ],
+      "type": "string"
+    },
+    "deprecation_window": {
+      "additionalProperties": false,
+      "properties": {
+        "min_days": {
+          "const": 90
+        },
+        "min_minor_releases": {
+          "const": 2
+        },
+        "rule": {
+          "const": "both_must_elapse_before_removal"
+        }
+      },
+      "required": [
+        "min_minor_releases",
+        "min_days",
+        "rule"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://ast-integrate.local/command-center/phase4/contracts/ARC-0092.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "artifact_classes": {
+    "marketplace": {
+      "additive": [
+        "added_optional_field"
+      ],
+      "breaking": [
+        "removed_field",
+        "id_retirement",
+        "changed_default"
+      ],
+      "patch": [
+        "description_change"
+      ]
+    },
+    "plugin": {
+      "additive": [
+        "added_optional_field"
+      ],
+      "breaking": [
+        "removed_field",
+        "permission_widening",
+        "hook_signature_change",
+        "id_retirement",
+        "changed_default"
+      ],
+      "patch": [
+        "description_change"
+      ]
+    },
+    "schema": {
+      "additive": [
+        "added_optional_field",
+        "widened_enum",
+        "loosened_required",
+        "type_widening",
+        "added_definition"
+      ],
+      "breaking": [
+        "removed_field",
+        "narrowed_enum",
+        "tightened_required",
+        "changed_default",
+        "type_narrowing",
+        "additional_properties_tightened",
+        "const_changed",
+        "constraint_tightened",
+        "ref_changed",
+        "one_of_narrowed"
+      ],
+      "patch": [
+        "description_change",
+        "format_removed",
+        "annotation_change"
+      ]
+    },
+    "workflow_dsl": {
+      "additive": [
+        "added_optional_field",
+        "widened_enum"
+      ],
+      "breaking": [
+        "removed_field",
+        "narrowed_enum",
+        "id_retirement",
+        "tightened_required",
+        "changed_default"
+      ],
+      "patch": [
+        "description_change"
+      ]
+    }
+  },
+  "calculator": {
+    "method": "diff two JSON documents; max bump across classified changes; identity is NONE only after a planted breaking change is detected",
+    "module": "command-center/p2-wave/probes/ARC-0092/calculator.py"
+  },
+  "deprecation_window": {
+    "min_days": 90,
+    "min_minor_releases": 2,
+    "note": "A field may be removed only after it was marked deprecated on a published schema for at least two minor releases and 90 days. The removal itself is still MAJOR.",
+    "rule": "both_must_elapse_before_removal"
+  },
+  "description": "Machine-checkable versioning rules for plugin, marketplace, workflow DSL, and JSON Schema artifacts. A consumer validates a bump report against this schema. SUCCESS:ARC-0092 Specify semantic versioning across the plugin, the marketplace, the workflow DSL, and every schema: define precisely what constitutes a BREAKING change for each artifact class (a removed field, a narrowed enum, a tightened required list, a changed default), what is additive, the deprecation window in releases or days, and the machine check that computes the required version bump by diffing two schema versions.",
+  "evidence": {
+    "both_states": {
+      "added_optional_not_major": true,
+      "narrowed_enum_major": true,
+      "original_enum": [
+        "halt",
+        "skip"
+      ],
+      "pass": true
+    },
+    "calculator_control": {
+      "detected_breaking": true,
+      "identity_none": true,
+      "pass": true,
+      "planted_kind": "narrowed_enum",
+      "trusted_identity_after_control": true
+    },
+    "extra_machine_checks": {
+      "changed_default": "MAJOR",
+      "pass": true,
+      "permission_widening": "MAJOR",
+      "removed_field": "MAJOR",
+      "tightened_required": "MAJOR"
+    },
+    "historical": {
+      "pair_count": 6,
+      "pairs": [
+        {
+          "artifact_class": "schema",
+          "computed_required_bump": "NONE",
+          "from_ref": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+          "id": "a2-registry-schema-recorded-cut",
+          "matches_recorded_history": true,
+          "recorded_required_bump": "NONE",
+          "to_ref": "command-center/p2-wave/probes/ARC-0010/registry.schema.json"
+        },
+        {
+          "artifact_class": "plugin",
+          "computed_required_bump": "NONE",
+          "from_ref": "command-center/p2-wave/probes/ARC-0010/registry.json#plugin.harness",
+          "id": "plugin-harness-1.0.0-identity",
+          "matches_recorded_history": true,
+          "recorded_required_bump": "NONE",
+          "to_ref": "command-center/p2-wave/probes/ARC-0010/registry.json#plugin.harness"
+        },
+        {
+          "artifact_class": "marketplace",
+          "computed_required_bump": "NONE",
+          "from_ref": "command-center/p2-wave/probes/ARC-0010/registry.json#marketplace.harness",
+          "id": "marketplace-harness-1.0.0-identity",
+          "matches_recorded_history": true,
+          "recorded_required_bump": "NONE",
+          "to_ref": "command-center/p2-wave/probes/ARC-0010/registry.json#marketplace.harness"
+        },
+        {
+          "artifact_class": "workflow_dsl",
+          "computed_required_bump": "NONE",
+          "from_ref": "command-center/p2-wave/probes/ARC-0010/registry.json#wf.catalog-class.discovery-only",
+          "id": "workflow-discovery-only-identity",
+          "matches_recorded_history": true,
+          "recorded_required_bump": "NONE",
+          "to_ref": "command-center/p2-wave/probes/ARC-0010/registry.json#wf.catalog-class.discovery-only"
+        },
+        {
+          "artifact_class": "schema",
+          "computed_required_bump": "MAJOR",
+          "from_ref": "command-center/p2-wave/probes/ARC-0092/fixtures/known-major-narrowed-enum/old.json",
+          "id": "known-major-narrowed-enum",
+          "matches_recorded_history": true,
+          "recorded_required_bump": "MAJOR",
+          "to_ref": "command-center/p2-wave/probes/ARC-0092/fixtures/known-major-narrowed-enum/new.json"
+        },
+        {
+          "artifact_class": "schema",
+          "computed_required_bump": "PATCH",
+          "from_ref": "command-center/p2-wave/probes/ARC-0092/fixtures/known-patch-description/old.json",
+          "id": "known-patch-description",
+          "matches_recorded_history": true,
+          "recorded_required_bump": "PATCH",
+          "to_ref": "command-center/p2-wave/probes/ARC-0092/fixtures/known-patch-description/new.json"
+        }
+      ],
+      "pass": true
+    }
+  },
+  "examples": [
+    {
+      "artifact_class": "schema",
+      "changes": [],
+      "computed_not_asserted": true,
+      "contract_id": "ARC-0092",
+      "from_ref": "command-center/p2-wave/probes/ARC-0010/registry.schema.json",
+      "matches_recorded_history": true,
+      "required_bump": "NONE",
+      "to_ref": "command-center/p2-wave/probes/ARC-0010/registry.schema.json"
+    }
+  ],
+  "properties": {
+    "artifact_class": {
+      "$ref": "#/$defs/artifact_class"
+    },
+    "changes": {
+      "items": {
+        "$ref": "#/$defs/change"
+      },
+      "type": "array"
+    },
+    "computed_not_asserted": {
+      "const": true,
+      "type": "boolean"
+    },
+    "contract_id": {
+      "const": "ARC-0092",
+      "type": "string"
+    },
+    "declared_bump": {
+      "$ref": "#/$defs/bump"
+    },
+    "from_ref": {
+      "minLength": 8,
+      "type": "string"
+    },
+    "matches_recorded_history": {
+      "type": "boolean"
+    },
+    "required_bump": {
+      "$ref": "#/$defs/bump"
+    },
+    "to_ref": {
+      "minLength": 8,
+      "type": "string"
+    }
+  },
+  "question": "Specify semantic versioning across the plugin, the marketplace, the workflow DSL, and every schema: define precisely what constitutes a BREAKING change for each artifact class (a removed field, a narrowed enum, a tightened required list, a changed default), what is additive, the deprecation window in releases or days, and the machine check that computes the required version bump by diffing two schema versions.",
+  "required": [
+    "contract_id",
+    "artifact_class",
+    "from_ref",
+    "to_ref",
+    "required_bump",
+    "changes",
+    "computed_not_asserted"
+  ],
+  "reviewer": {
+    "consumer_call_site": "probe2_calculator_control.py validates a live bump report against this schema",
+    "independent": true,
+    "reviewer_id": "ARC-0092-probe2-calculator-control-consumer",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:ARC-0092",
+  "state": "SUCCESS",
+  "title": "ARC-0092 versioning contract: bump-calculator report",
+  "type": "object",
+  "unit_id": "ARC-0092"
+}

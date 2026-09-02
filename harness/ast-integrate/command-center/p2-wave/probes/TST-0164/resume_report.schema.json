@@ -1,0 +1,153 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/TST-0164/resume_report.schema.json",
+  "title": "TST-0164 resume_report — mid-phase resume vs uninterrupted artifact trees",
+  "description": "Discriminating: SUCCESS requires an up-front declared non-determinism mask (not inferred from a diff), a raw byte-diff of the two trees, a normalized diff after that mask, a both-states undeclared-field control, and a mask-coverage-ceiling refusal of blanket masking.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "declared_nondeterministic_fields",
+    "mask_discovered_by_diffing",
+    "byte_diff",
+    "normalized_diff",
+    "both_states",
+    "mask_coverage_ceiling",
+    "tests",
+    "evidence",
+    "named_probes",
+    "reviewer",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "TST-0164" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:TST-0164" },
+    "completion_sentinel": { "type": "string", "const": "SUCCESS:TST-0164" },
+    "report_kind": { "type": "string", "const": "resume_report" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "declared_nondeterministic_fields": {
+      "type": "array",
+      "minItems": 2,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "mask_discovered_by_diffing": { "type": "boolean", "const": false },
+    "byte_diff": {
+      "type": "object",
+      "required": ["identical", "mechanism", "tree_sha_a", "tree_sha_b"],
+      "properties": {
+        "identical": { "type": "boolean" },
+        "mechanism": { "type": "string", "minLength": 8 },
+        "tree_sha_a": { "type": "string", "pattern": "^[0-9a-f]{64}$" },
+        "tree_sha_b": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+      }
+    },
+    "normalized_diff": {
+      "type": "object",
+      "required": ["identical", "mechanism", "mask"],
+      "properties": {
+        "identical": { "type": "boolean", "const": true },
+        "mechanism": { "type": "string", "minLength": 8 },
+        "mask": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "both_states": {
+      "type": "object",
+      "required": [
+        "frozen_clock_raw_identical",
+        "undeclared_field_fails_normalized",
+        "undeclared_field"
+      ],
+      "properties": {
+        "frozen_clock_raw_identical": { "type": "boolean", "const": true },
+        "undeclared_field_fails_normalized": { "type": "boolean", "const": true },
+        "undeclared_field": { "type": "string", "const": "session_nonce" }
+      }
+    },
+    "mask_coverage_ceiling": {
+      "type": "object",
+      "required": ["blanket_rejected", "mask_everything_rejected", "reason"],
+      "properties": {
+        "blanket_rejected": { "type": "boolean", "const": true },
+        "mask_everything_rejected": { "type": "boolean", "const": true },
+        "reason": { "type": "string", "minLength": 8 }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "named_probes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean" },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

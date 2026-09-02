@@ -1,0 +1,27 @@
+# rules/project/ci.md
+shared:rules/project/ci.md
+repo-unique:rules/project/ci.md
+repo-pad:rules/project/ci.md:0
+repo-pad:rules/project/ci.md:1
+repo-pad:rules/project/ci.md:2
+repo-pad:rules/project/ci.md:3
+repo-pad:rules/project/ci.md:4
+repo-pad:rules/project/ci.md:5
+repo-pad:rules/project/ci.md:6
+repo-pad:rules/project/ci.md:7
+repo-pad:rules/project/ci.md:8
+repo-pad:rules/project/ci.md:9
+repo-pad:rules/project/ci.md:10
+repo-pad:rules/project/ci.md:11
+repo-pad:rules/project/ci.md:12
+repo-pad:rules/project/ci.md:13
+repo-pad:rules/project/ci.md:14
+repo-pad:rules/project/ci.md:15
+repo-pad:rules/project/ci.md:16
+repo-pad:rules/project/ci.md:17
+repo-pad:rules/project/ci.md:18
+repo-pad:rules/project/ci.md:19
+repo-pad:rules/project/ci.md:20
+repo-pad:rules/project/ci.md:21
+repo-pad:rules/project/ci.md:22
+repo-pad:rules/project/ci.md:23

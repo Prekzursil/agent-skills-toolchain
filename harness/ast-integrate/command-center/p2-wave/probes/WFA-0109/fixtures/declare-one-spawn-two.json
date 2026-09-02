@@ -1,0 +1,34 @@
+{
+  "fusion_id": "fx-declare-one-spawn-two",
+  "kind": "fused_workflow_ir",
+  "sources": [
+    {"id": "wf-src-a", "capabilities": ["ingest"]},
+    {"id": "wf-src-b", "capabilities": ["emit"]}
+  ],
+  "capabilities": ["ingest", "emit"],
+  "declared": {
+    "schedulers": [{"id": "sched-primary"}],
+    "state_stores": [{"id": "store-primary", "snapshot": "snap-ok"}],
+    "execution_order_owners": [{"id": "sched-primary"}]
+  },
+  "components": [
+    {
+      "id": "sched-primary",
+      "role": "scheduler",
+      "owns_execution_order": true
+    },
+    {"id": "store-primary", "role": "state_store"},
+    {
+      "id": "sched-shadow",
+      "role": "parallel_helper",
+      "owns_execution_order": false
+    }
+  ],
+  "runtime_script": [
+    {"process": "sched-primary", "op": "run_loop"},
+    {"process": "sched-primary", "op": "schedule_step", "target": "step-ingest"},
+    {"process": "sched-shadow", "op": "run_loop"},
+    {"process": "sched-shadow", "op": "schedule_step", "target": "step-emit"},
+    {"process": "store-primary", "op": "commit_state", "target": "store-primary"}
+  ]
+}

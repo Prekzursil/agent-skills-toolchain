@@ -1,0 +1,1420 @@
+========================================================================
+ADV-0010
+title: Mutation-survivor hunt aimed at the quality gates themselves, not at product code
+output: command-center/adversarial/ADV-0010-gate-code-mutation-survivors.json exists=True
+helpers: ['emit.py', 'harness.py', 'write_receipts.py']
+probes: ['probe1_mutations.py', 'probe2_survivors.py']
+-- probe1_mutations.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import emit as E  # noqa: E402
+  import harness as H  # noqa: E402
+-- probe1_mutations.py asserts --
+      print(f"FAILED:ADV-0010-probe1 {msg}")
+      if doc.get("state") in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_survivors.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import emit as E  # noqa: E402
+  import harness as H  # noqa: E402
+-- probe2_survivors.py asserts --
+      print(f"FAILED:ADV-0010-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+ADV-0069
+title: Mirror and offline-export tamper detection
+output: command-center/adversarial/ADV-0069-mirror-and-offline-bundle-tamper.json exists=True
+helpers: ['dist.py', 'emit_artifact.py']
+probes: ['probe1_install_tamper.py', 'probe2_format_audit.py']
+-- probe1_install_tamper.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from dist import (  # noqa: E402
+-- probe1_install_tamper.py asserts --
+          print("FAILED:ADV-0069-probe1 measurement invariants broken", file=sys.stderr)
+      raise SystemExit(main())
+-- probe2_format_audit.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from dist import (  # noqa: E402
+-- probe2_format_audit.py asserts --
+          print("FAILED:ADV-0069-probe2 format-audit invariants broken", file=sys.stderr)
+      raise SystemExit(main())
+========================================================================
+ADV-0128
+title: Offline and network-partition behaviour must degrade loudly
+output: command-center/adversarial/ADV-0128-offline-and-partition-degrade-loudly.json exists=True
+helpers: ['emit_artifact.py', 'harness.py', 'write_receipts.py']
+probes: ['probe1_full_offline.py', 'probe2_mid_partition.py']
+-- probe1_full_offline.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import harness as H  # noqa: E402
+-- probe1_full_offline.py asserts --
+          print("FAILED:ADV-0128-probe1 artifact missing")
+          print("FAILED:ADV-0128-probe1 sentinel absent")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:ADV-0128-probe1 self-declared {st}")
+          print("FAILED:ADV-0128-probe1 online control failed")
+          print("FAILED:ADV-0128-probe1 expected silent success on all naive paths", silent)
+          print("FAILED:ADV-0128-probe1 expected labelled cache on contract paths", labelled)
+          print("FAILED:ADV-0128-probe1 unlabelled-cache detector did not fire")
+          print("FAILED:ADV-0128-probe1 labelled cache presented as live")
+          print("FAILED:ADV-0128-probe1 empty contract was not explicit")
+          print("FAILED:ADV-0128-probe1 fixture was not loopback-only")
+              print(f"FAILED:ADV-0128-probe1 {path_id} class {live_class.get(path_id)}")
+              print(f"FAILED:ADV-0128-probe1 illegal verdict {path_id} {verdict}")
+              print(f"FAILED:ADV-0128-probe1 {path_id} verdict {verdict} want CONFIRMED/PARTIAL")
+      raise SystemExit(main())
+-- probe2_mid_partition.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import harness as H  # noqa: E402
+-- probe2_mid_partition.py asserts --
+          print("FAILED:ADV-0128-probe2 artifact missing")
+          print("FAILED:ADV-0128-probe2 sentinel absent")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:ADV-0128-probe2 self-declared {st}")
+          print("FAILED:ADV-0128-probe2 contract lost step-1 across the stall")
+          print("FAILED:ADV-0128-probe2 contract resume dropped step-1")
+          print("FAILED:ADV-0128-probe2 naive did not lose the partial artifact")
+          print("FAILED:ADV-0128-probe2 partition was not loopback-only")
+          print("FAILED:ADV-0128-probe2 reviewer block", reviewer)
+          print("FAILED:ADV-0128-probe2 probe fingerprints identical")
+          print("FAILED:ADV-0128-probe2 artifact/live partition mismatch")
+              print(f"FAILED:ADV-0128-probe2 {path_id} naive partial survived")
+          print("FAILED:ADV-0128-probe2 production target missing")
+          print("FAILED:ADV-0128-probe2 production gap not CONFIRMED")
+      raise SystemExit(main())
+========================================================================
+ARC-0035
+title: A5 (distributed workflow-runtime): Folding today's ad-hoc rails into one work-unit contract without dropping in-flight work
+output: command-center/phase3/A5/MIGRATION.json exists=True
+helpers: ['adapters.py', 'drain.py', 'emit_migration.py', 'fold.py', 'harvest.py', 'reviewer.py', 'write_receipts.py']
+probes: ['probe1_conservation.py', 'probe2_append_only.py']
+-- probe1_conservation.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import fold as F  # noqa: E402
+  import harvest as H  # noqa: E402
+-- probe1_conservation.py asserts --
+          print("FAILED:ARC-0035-probe1 migration artifact missing")
+          print("FAILED:ARC-0035-probe1 sentinel absent")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:ARC-0035-probe1 self-declared {doc.get('state')}")
+          print("FAILED:ARC-0035-probe1 fold refused", result.get("reason"))
+              "FAILED:ARC-0035-probe1 conservation "
+          print("FAILED:ARC-0035-probe1 no classified drops; conservation would be tautological")
+          print(f"FAILED:ARC-0035-probe1 too few folded records {result['output_records']}")
+          print("FAILED:ARC-0035-probe1 artifact counts disagree with live fold")
+      raise SystemExit(main())
+-- probe2_append_only.py imports --
+  from __future__ import annotations
+  import json
+  import subprocess
+  import sys
+  from pathlib import Path
+  import drain as D  # noqa: E402
+  import fold as F  # noqa: E402
+  import harvest as H  # noqa: E402
+-- probe2_append_only.py asserts --
+  """Probe 2: append-only assertion via a different shell and a different field.
+          print("FAILED:ARC-0035-probe2 migration artifact missing")
+              print("FAILED:ARC-0035-probe2 fixture prefix is not live EVENTS.jsonl")
+          print("FAILED:ARC-0035-probe2 BLOCKED line-count disagreement")
+          print("FAILED:ARC-0035-probe2 fold failed", result.get("reason"))
+          print("FAILED:ARC-0035-probe2 source mutated by fold")
+          print("FAILED:ARC-0035-probe2 source_unmodified false")
+          print("FAILED:ARC-0035-probe2 in-place rewrite was not refused")
+          print("FAILED:ARC-0035-probe2 in-place attempt mutated source")
+              print("FAILED:ARC-0035-probe2 live EVENTS.jsonl was rewritten")
+          print("FAILED:ARC-0035-probe2 drain mutated census or failed")
+              "FAILED:ARC-0035-probe2 drain count "
+          print("FAILED:ARC-0035-probe2 abandoned without record")
+          print("FAILED:ARC-0035-probe2 abandon-without-record not refused")
+      recorded = (doc.get("tests") or {}).get("append_only_assertion") or {}
+          print("FAILED:ARC-0035-probe2 artifact missing append-only proof")
+              "FAILED:ARC-0035-probe2 drain census disagree "
+      raise SystemExit(main())
+========================================================================
+ADV-0036
+title: Windows ACL and filesystem-permission review of the deployed harness
+output: command-center/adversarial/ADV-0036-windows-deployed-acl-review.json exists=True
+helpers: ['emit.py', 'layout.py', 'lib_acl.py']
+probes: ['probe1_icacls_classify.py', 'probe2_empirical_write.py']
+-- probe1_icacls_classify.py imports --
+  from __future__ import annotations
+  import json
+  import shutil
+  import sys
+  from pathlib import Path
+  from layout import deployed_nodes, packaging_census  # noqa: E402
+  from lib_acl import (  # noqa: E402
+-- probe1_icacls_classify.py asserts --
+          "computed_not_asserted": True,
+      print("FAILED:ADV-0036-probe1 classification controls did not hold")
+      raise SystemExit(main())
+-- probe2_empirical_write.py imports --
+  from __future__ import annotations
+  import json
+  import os
+  import shutil
+  import subprocess
+  import sys
+  import tempfile
+  from pathlib import Path
+  from layout import deployed_nodes, product_stat_snapshot  # noqa: E402
+  from lib_acl import (  # noqa: E402
+-- probe2_empirical_write.py asserts --
+          "computed_not_asserted": True,
+      print("FAILED:ADV-0036-probe2 empirical controls did not hold")
+      raise SystemExit(main())
+========================================================================
+AUD-0027
+title: Native, compiled, and platform-wheel dependency census
+output: command-center/audit/AUD-0027-native-platform-dep-census.json exists=True
+helpers: ['emit_report.py', 'harness.py', 'write_receipts.py']
+probes: ['probe1_wheel_tags.py', 'probe2_install.py']
+-- probe1_wheel_tags.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import harness as H  # noqa: E402
+-- probe1_wheel_tags.py asserts --
+          print("FAILED:AUD-0027-probe1 pypi fetch errors", errors)
+          print("FAILED:AUD-0027-probe1 empty declared set")
+              print("FAILED:AUD-0027-probe1 unit_id", doc.get("unit_id"))
+              print("FAILED:AUD-0027-probe1 sentinel absent")
+              print("FAILED:AUD-0027-probe1 platform-wheel set drifted")
+                  "FAILED:AUD-0027-probe1 finding_count",
+      raise SystemExit(main())
+-- probe2_install.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import harness as H  # noqa: E402
+-- probe2_install.py asserts --
+          print("FAILED:AUD-0027-probe2 source-only control did not report compiler requirement")
+          print("FAILED:AUD-0027-probe2 both-states control")
+              print("FAILED:AUD-0027-probe2 artifact both_states.pass is not true")
+              print("FAILED:AUD-0027-probe2 artifact records a clean pass for source-only")
+      raise SystemExit(main())
+========================================================================
+AUD-0067
+title: Prompt-One artifact census with per-artifact tree location
+output: command-center/audit/AUD-0067-prompt-one-artifact-census.json exists=True
+helpers: ['census.py', 'common.py', 'emit_census.py', 'fixtures.py', 'write_receipts.py']
+probes: ['probe1_per_tree.py', 'probe2_sha256.py']
+-- probe1_per_tree.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from census import live_census, probe1_payload  # noqa: E402
+  from common import OUT, UNIT  # noqa: E402
+-- probe1_per_tree.py asserts --
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+          "FAILED",
+      raise SystemExit(main())
+-- probe2_sha256.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from census import live_census, probe2_payload  # noqa: E402
+  from common import OUT, UNIT  # noqa: E402
+-- probe2_sha256.py asserts --
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+          "FAILED",
+      raise SystemExit(main())
+========================================================================
+AUD-0096
+title: Fresh-user-profile harness-load baseline
+output: command-center/audit/AUD-0096-fresh-profile-harness-baseline.json exists=True
+helpers: ['emit.py', 'loadset.py', 'write_receipts.py']
+probes: ['probe1_clean_profile.py', 'probe2_current_diff.py']
+-- probe1_clean_profile.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import loadset as L  # noqa: E402
+-- probe1_clean_profile.py asserts --
+          print("FAILED:AUD-0096-probe1 cleanliness both-states control did not discriminate")
+          print("FAILED:AUD-0096-probe1 sandbox was not proven clean before measure")
+          print("FAILED:AUD-0096-probe1 clean sandbox still has user-profile loadables")
+      raise SystemExit(main())
+-- probe2_current_diff.py imports --
+  from __future__ import annotations
+  import json
+  import os
+  import sys
+  from pathlib import Path
+  import loadset as L  # noqa: E402
+-- probe2_current_diff.py asserts --
+          print("FAILED:AUD-0096-probe2 leaked-profile identity control did not hold")
+              "FAILED:AUD-0096-probe2 current profile is dirty but load sets are "
+          print("FAILED:AUD-0096-probe2 clean-only keys should be empty (clean is a subset)")
+      raise SystemExit(main())
+========================================================================
+BLD-0051
+title: Secret-egress surface map, read-only, with rotation handed back to the owner
+output: command-center/receipts/BLD-0051.json exists=True
+helpers: ['constants.py', 'emit_map.py', 'inventory.py', 'scratch_writers.py', 'write_receipts.py']
+probes: ['probe1_scratch_redaction.py', 'probe2_live_reviewer.py']
+-- probe1_scratch_redaction.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  import constants as C  # noqa: E402
+  import scratch_writers as SW  # noqa: E402
+-- probe1_scratch_redaction.py asserts --
+          print("FAILED:BLD-0051-probe1 scratch redaction")
+          print("FAILED:BLD-0051-probe1 writer-class coverage")
+          print("FAILED:BLD-0051-probe1 shape coverage")
+          print("FAILED:BLD-0051-probe1 receipt missing")
+          print("FAILED:BLD-0051-probe1 canary in live receipt")
+          print("FAILED:BLD-0051-probe1 sentinel missing")
+      if doc.get("state") in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:BLD-0051-probe1 self-declared {doc.get('state')}")
+      raise SystemExit(main())
+-- probe2_live_reviewer.py imports --
+  from __future__ import annotations
+  import hashlib
+  import json
+  import math
+  import os
+  import re
+  import sys
+  from pathlib import Path
+  import constants as C  # noqa: E402
+-- probe2_live_reviewer.py asserts --
+          print("FAILED:BLD-0051-probe2 receipt missing")
+          print("FAILED:BLD-0051-probe2 canary body in receipt")
+      if doc.get("state") in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:BLD-0051-probe2 self-declared {doc.get('state')}")
+          print("FAILED:BLD-0051-probe2 sentinel missing")
+          print("FAILED:BLD-0051-probe2 canary sha256 mismatch")
+          print("FAILED:BLD-0051-probe2 live-path flags")
+          print("FAILED:BLD-0051-probe2 no redaction markers in receipt")
+          print("FAILED:BLD-0051-probe2 safety.credential_values_written")
+          print("FAILED:BLD-0051-probe2 rotation was claimed")
+          print("FAILED:BLD-0051-probe2 writers short")
+          print("FAILED:BLD-0051-probe2 egress_map short")
+          print("FAILED:BLD-0051-probe2 sources short")
+              print(f"FAILED:BLD-0051-probe2 env value of {name} in receipt")
+          print("FAILED:BLD-0051-probe2 unexpected high-entropy strings")
+      raise SystemExit(main())
+========================================================================
+CNF-0006
+title: Probe fingerprinting that rejects a confirmation which only re-ran the original probe
+output: command-center/confirmation/CNF-0006-probe-independence.json exists=True
+helpers: ['corpus.py', 'emit_audit.py', 'fingerprint.py', 'write_receipts.py']
+probes: ['probe1_same_command_reject.py', 'probe2_shell_axis_accept.py']
+-- probe1_same_command_reject.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import fingerprint as F  # noqa: E402
+-- probe1_same_command_reject.py asserts --
+          print("FAILED:CNF-0006-probe1 emit failed")
+          print("FAILED:CNF-0006-probe1 identical command was not rejected")
+          print("FAILED:CNF-0006-probe1 controls did not return opposite verdicts")
+          print("FAILED:CNF-0006-probe1 detector-failure identical and shell agreed")
+      if doc.get("state") in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:CNF-0006-probe1 self-declared {doc.get('state')}")
+          print("FAILED:CNF-0006-probe1 artifact did not record identical REJECTED")
+          print("FAILED:CNF-0006-probe1 artifact missing same-invocation flag")
+      raise SystemExit(main())
+-- probe2_shell_axis_accept.py imports --
+  from __future__ import annotations
+  import copy
+  import json
+  import sys
+  from pathlib import Path
+  import corpus as C  # noqa: E402
+  import fingerprint as F  # noqa: E402
+-- probe2_shell_axis_accept.py asserts --
+          print("FAILED:CNF-0006-probe2 artifact missing")
+          print("FAILED:CNF-0006-probe2 shell-only difference was not accepted")
+          print("FAILED:CNF-0006-probe2 expected differing_axes=['shell']")
+          print("FAILED:CNF-0006-probe2 empty source was not a violation")
+          print("FAILED:CNF-0006-probe2 empty source classified as differs-from-verifier")
+          print("FAILED:CNF-0006-probe2 controls were not opposite")
+              print(f"FAILED:CNF-0006-probe2 empty {bad!r} not VIOLATION: {got}")
+      if doc.get("state") in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:CNF-0006-probe2 self-declared {doc.get('state')}")
+          print("FAILED:CNF-0006-probe2 empty offender list without detector controls")
+          print("FAILED:CNF-0006-probe2 empty corpus treated as a pass")
+              "FAILED:CNF-0006-probe2 corpus count drift "
+              "FAILED:CNF-0006-probe2 same-probe count drift "
+          print("FAILED:CNF-0006-probe2 offender id list drift")
+          print("FAILED:CNF-0006-probe2 fingerprint function not cited at file:line")
+          print(f"FAILED:CNF-0006-probe2 fingerprint line {line_no} does not define fingerprint")
+          print("FAILED:CNF-0006-probe2 artifact missing shell ACCEPT")
+          print("FAILED:CNF-0006-probe2 artifact missing empty VIOLATION")
+      raise SystemExit(main())
+========================================================================
+CNF-0064
+title: License and provenance confirmation by reading the actual license blob at the pinned commit
+output: command-center/confirmation/CNF-0064-license-provenance.json exists=True
+helpers: ['audit.py', 'emit.py', 'schema_ctl.py', 'write_receipts.py']
+probes: ['probe1_blob_not_badge.py', 'probe2_history_and_riders.py']
+-- probe1_blob_not_badge.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import audit as A  # noqa: E402
+  import schema_ctl as S  # noqa: E402
+-- probe1_blob_not_badge.py asserts --
+          print("FAILED:CNF-0064-probe1 artifact missing")
+          print("FAILED:CNF-0064-probe1 sentinel absent")
+          print("FAILED:CNF-0064-probe1 unit/state", doc.get("unit_id"), doc.get("state"))
+          print("FAILED:CNF-0064-probe1 report.kind", report.get("kind"))
+          print("FAILED:CNF-0064-probe1 schema", errs[0])
+          print("FAILED:CNF-0064-probe1", exc)
+          print("FAILED:CNF-0064-probe1 candidate id set drift")
+              print(f"FAILED:CNF-0064-probe1 missing blob {cid} {rel}")
+              print(f"FAILED:CNF-0064-probe1 sha mismatch {cid}")
+                  f"FAILED:CNF-0064-probe1 spdx not from blob {cid} "
+              print(f"FAILED:CNF-0064-probe1 live parse drift {cid}")
+                  print(f"FAILED:CNF-0064-probe1 copied registry SPDX onto blob {cid}")
+          print("FAILED:CNF-0064-probe1 badge-trap fixture broken")
+          print("FAILED:CNF-0064-probe1 badge-trap did not prefer blob over badge")
+          print("FAILED:CNF-0064-probe1 badge-trap blob SPDX", trap_spdx)
+          print("FAILED:CNF-0064-probe1 hashed package.json instead of LICENSE")
+          print("FAILED:CNF-0064-probe1 blob_sha_missing_count")
+          print("FAILED:CNF-0064-probe1 method claims to read badges")
+      raise SystemExit(main())
+-- probe2_history_and_riders.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import audit as A  # noqa: E402
+-- probe2_history_and_riders.py asserts --
+          print("FAILED:CNF-0064-probe2 artifact missing")
+              print(f"FAILED:CNF-0064-probe2 missed identity change {cid}")
+              print(f"FAILED:CNF-0064-probe2 artifact omitted change {cid}")
+              print(f"FAILED:CNF-0064-probe2 false identity change {cid}")
+          print("FAILED:CNF-0064-probe2 planted earliest not GPL", planted["spdx_from_earliest_blob"])
+          print("FAILED:CNF-0064-probe2 planted pinned not MIT", planted["spdx_from_blob"])
+              print(f"FAILED:CNF-0064-probe2 missing rider {rider_id} on {cid} have={ids}")
+              print(f"FAILED:CNF-0064-probe2 artifact dropped rider {cid}")
+              print(f"FAILED:CNF-0064-probe2 rider not verbatim {cid}")
+          print("FAILED:CNF-0064-probe2 n8n earliest commons-clause undetected", n8n_ids)
+          print("FAILED:CNF-0064-probe2 n8n commons-clause not on artifact", art_n8n_ids)
+          print("FAILED:CNF-0064-probe2 planted rider fixture broken")
+          print("FAILED:CNF-0064-probe2 planted rider verbatim missing from artifact")
+          print("FAILED:CNF-0064-probe2 react false rider", live["wf-dep-react"]["riders"])
+          print("FAILED:CNF-0064-probe2 changed count", reported, live_changed)
+      raise SystemExit(main())
+========================================================================
+CNF-0127
+title: Self-improvement retention re-measurement: keep only what a fresh agent can measure
+output: command-center/confirmation/CNF-0127-retention-remeasure.json exists=True
+helpers: ['checks.py', 'emit.py', 'harness.py', 'independence.py', 'ledger.py', 'schema_local.py', 'write_receipts.py']
+probes: ['probe1_remeasure.py', 'probe2_controls.py']
+-- probe1_remeasure.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import emit as E  # noqa: E402
+  import harness as H  # noqa: E402
+  from checks import domain  # noqa: E402
+-- probe1_remeasure.py asserts --
+          print("FAILED:CNF-0127-probe1 artifact missing")
+          print("FAILED:CNF-0127-probe1 unit_id", doc.get("unit_id"))
+          print("FAILED:CNF-0127-probe1 sentinel absent")
+              print(f"FAILED:CNF-0127-probe1 unknown case {case.get('id')}")
+              print(f"FAILED:CNF-0127-probe1 under-sampling {case['id']} n={raw_n}")
+              print(f"FAILED:CNF-0127-probe1 not independent {case['id']}")
+              print("FAILED:CNF-0127-probe1 probe agent authored the change")
+          print("FAILED:CNF-0127-probe1 flake overwrite", flake)
+          print("FAILED:CNF-0127-probe1 remesure disagreement")
+          print("FAILED:CNF-0127-probe1 too few cases", len(rows))
+      raise SystemExit(main())
+-- probe2_controls.py imports --
+  from __future__ import annotations
+  import copy
+  import json
+  import sys
+  from pathlib import Path
+  import checks as C  # noqa: E402
+  import jsonschema  # noqa: E402
+-- probe2_controls.py asserts --
+          print("FAILED:CNF-0127-probe2 artifact missing")
+          print("FAILED:CNF-0127-probe2 schema accepts garbage")
+          print("FAILED:CNF-0127-probe2 checker rejected live artifact")
+          print("FAILED:CNF-0127-probe2 no neutral/harmful revert")
+          print("FAILED:CNF-0127-probe2 comment-only was retained")
+          print("FAILED:CNF-0127-probe2 extra-scan was retained")
+          print("FAILED:CNF-0127-probe2 unguarded speedup not filed")
+          print("FAILED:CNF-0127-probe2 genuine gain not kept")
+          print("FAILED:CNF-0127-probe2 extra-scan row missing")
+          print("FAILED:CNF-0127-probe2 mutant KEEP of harmful was accepted")
+          print("FAILED:CNF-0127-probe2 unmeasured KEEP was accepted")
+          print("FAILED:CNF-0127-probe2 independence plant inert", rb)
+          print("FAILED:CNF-0127-probe2 reviewer count", ids)
+      raise SystemExit(main())
+========================================================================
+CNF-0172
+title: Deterministic council replay: same transcript and seed must yield the same decision and the same dissent
+output: command-center/receipts/CNF-0172.json exists=True
+helpers: ['emit_receipt.py', 'replay_engine.py', 'write_receipts.py']
+probes: ['probe1_replay_identity.py', 'probe2_controls.py']
+-- probe1_replay_identity.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import replay_engine as E  # noqa: E402
+-- probe1_replay_identity.py asserts --
+          print("FAILED:CNF-0172-probe1 identity or dissent")
+          print("FAILED:CNF-0172-probe1 receipt missing")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print(f"FAILED:CNF-0172-probe1 self-declared {doc.get('state')}")
+          print("FAILED:CNF-0172-probe1 sentinel absent")
+          print("FAILED:CNF-0172-probe1 receipt four_hashes drift")
+          print("FAILED:CNF-0172-probe1 receipt log_replay not all_match")
+          print("FAILED:CNF-0172-probe1 receipt missing lossy classified_failure")
+          print("FAILED:CNF-0172-probe1 receipt dissent not replayed")
+          print("FAILED:CNF-0172-probe1 source_probe/verifier_probe missing")
+          print("FAILED:CNF-0172-probe1 same-probe-rerun fingerprints")
+          print("FAILED:CNF-0172-probe1 empty probe fingerprint")
+      raise SystemExit(main())
+-- probe2_controls.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import replay_engine as E  # noqa: E402
+-- probe2_controls.py asserts --
+          print("FAILED:CNF-0172-probe2 controls")
+          print("FAILED:CNF-0172-probe2 receipt missing")
+          print("FAILED:CNF-0172-probe2 receipt seed control missing")
+          print("FAILED:CNF-0172-probe2 transcript_a drift")
+          print("FAILED:CNF-0172-probe2 receipt drop control missing")
+          print("FAILED:CNF-0172-probe2 receipt second-run classes missing")
+          print("FAILED:CNF-0172-probe2 receipt second-run dissent missing")
+          print("FAILED:CNF-0172-probe2 honest scoping omitted a non-replayable component")
+      raise SystemExit(main())
+========================================================================
+CNL-0086
+title: Echo chamber: measuring independence loss
+output: command-center/design/council/CNL-0086-echo-chamber-measuring-independence-loss.md exists=True
+helpers: ['detector.py', 'emit_spec.py', 'fixtures.py', 'reviewer.py', 'spec_view.py', 'write_receipts.py']
+probes: ['probe1_both_states.py', 'probe2_schema_decoy.py']
+-- probe1_both_states.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import detector as D  # noqa: E402
+  import fixtures as F  # noqa: E402
+  import spec_view as SV  # noqa: E402
+-- probe1_both_states.py asserts --
+      print(f"FAILED:CNL-0086-probe1 {msg}")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_schema_decoy.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import detector as D  # noqa: E402
+  import fixtures as F  # noqa: E402
+  import reviewer as R  # noqa: E402
+  import spec_view as SV  # noqa: E402
+-- probe2_schema_decoy.py asserts --
+      print(f"FAILED:CNL-0086-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+IMP-0040
+title: Content-addressed plugin cache keyed by the source blob hash
+output: command-center/receipts/IMP-0040.json exists=True
+helpers: ['write_receipts.py']
+probes: ['probe1.py', 'probe1_source_change_new_key.py', 'probe2.py', 'probe2_ttl_negative_concurrency.py']
+-- probe1.py imports --
+  from probe1_source_change_new_key import main
+-- probe1.py asserts --
+      raise SystemExit(main())
+-- probe1_source_change_new_key.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import test_cache_content_addressing as T  # noqa: E402
+-- probe1_source_change_new_key.py asserts --
+          print("FAILED:IMP-0040-probe1 reap.py missing")
+          print(f"FAILED:IMP-0040-probe1 {exc}")
+          "computed_not_asserted": True,
+          print("FAILED:IMP-0040-probe1 oracle not satisfied")
+      raise SystemExit(main())
+-- probe2.py imports --
+  from probe2_ttl_negative_concurrency import main
+-- probe2.py asserts --
+      raise SystemExit(main())
+-- probe2_ttl_negative_concurrency.py imports --
+  from __future__ import annotations
+  import hashlib
+  import json
+  import sys
+  from pathlib import Path
+  import test_cache_content_addressing as T  # noqa: E402
+-- probe2_ttl_negative_concurrency.py asserts --
+          print(f"FAILED:IMP-0040-probe2 {exc}")
+          print("FAILED:IMP-0040-probe2 negative control or reviewer checks")
+      raise SystemExit(main())
+========================================================================
+IMP-0088
+title: Marketplace `remove` that cannot damage another package's data
+output: command-center/receipts/IMP-0088.json exists=True
+helpers: ['emit_receipt.py']
+probes: ['probe1_sibling_isolation.py', 'probe2_shared_path_and_blind.py']
+-- probe1_sibling_isolation.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from tools.marketplace.census import census, subset  # noqa: E402
+  from tools.marketplace.remove_isolation import plant_two_packages  # noqa: E402
+  from tools.marketplace.remove import (  # noqa: E402
+-- probe1_sibling_isolation.py asserts --
+              print("FAILED:IMP-0088-probe1 owner gate did not refuse")
+              print("FAILED:IMP-0088-probe1 owner-gate refusal mutated the tree")
+                  print(f"FAILED:IMP-0088-probe1 pkg-a path survived: {rel}")
+              print("FAILED:IMP-0088-probe1 user-authored file mutated")
+              print("FAILED:IMP-0088-probe1 both isolation signals did not hold")
+      raise SystemExit(main())
+-- probe2_shared_path_and_blind.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from tools.marketplace.census import census, subset  # noqa: E402
+  from tools.marketplace.ownership_blind import ownership_blind_remove  # noqa: E402
+  from tools.marketplace.remove_isolation import (  # noqa: E402
+  from tools.marketplace.remove import (  # noqa: E402
+-- probe2_shared_path_and_blind.py asserts --
+              print("FAILED:IMP-0088-probe2 shared path did not require a decision")
+              print("FAILED:IMP-0088-probe2 shared-path refusal mutated the tree")
+              print("FAILED:IMP-0088-probe2 exclusive A file survived keep-decision remove")
+              print("FAILED:IMP-0088-probe2 sibling exclusive file mutated")
+              print("FAILED:IMP-0088-probe2 shared path mutated under keep")
+              print("FAILED:IMP-0088-probe2 ownership-blind control did not fail isolation")
+      raise SystemExit(main())
+========================================================================
+IMP-0134
+title: Implement param validation and coercion at load time with new closed violation ids
+output: command-center/receipts/IMP-0134.json exists=True
+helpers: ['emit_receipt.py', 'write_receipts.py']
+probes: ['probe1_four_ids.py', 'probe2_id_closure.py']
+-- probe1_four_ids.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from agentspec.validate import (  # noqa: E402
+-- probe1_four_ids.py asserts --
+      print(f"FAILED:IMP-0134-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2_id_closure.py imports --
+  from __future__ import annotations
+  import ast
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from agentspec.validate import DOCUMENTED_VIOLATION_IDS  # noqa: E402
+-- probe2_id_closure.py asserts --
+      print(f"FAILED:IMP-0134-probe2 {msg}")
+      raise RuntimeError("DOCUMENTED_VIOLATION_IDS literal set not found")
+      raise SystemExit(main())
+========================================================================
+IMP-0185
+title: Implement best-of-breed fusion driven by per-stage benchmark evidence
+output: command-center/receipts/IMP-0185.json exists=True
+helpers: ['emit.py', 'fixtures.py', 'write_receipts.py']
+probes: ['probe1.py', 'probe1_run_ids.py', 'probe2.py', 'probe2_no_evidence.py']
+-- probe1.py imports --
+  from probe1_run_ids import main
+-- probe1.py asserts --
+      raise SystemExit(main())
+-- probe1_run_ids.py imports --
+  from __future__ import annotations
+  import copy
+  import json
+  import sys
+  from pathlib import Path
+  from workflow_forge.best_of_breed import (  # noqa: E402
+  import fixtures as F  # noqa: E402
+-- probe1_run_ids.py asserts --
+      print(f"FAILED:IMP-0185-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2.py imports --
+  from probe2_no_evidence import main
+-- probe2.py asserts --
+      raise SystemExit(main())
+-- probe2_no_evidence.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from workflow_forge.best_of_breed import (  # noqa: E402
+  import fixtures as F  # noqa: E402
+-- probe2_no_evidence.py asserts --
+      print(f"FAILED:IMP-0185-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+IMP-0230
+title: Define the blueprint authoring contract and ship a scaffold generator
+output: command-center/receipts/IMP-0230.json exists=True
+helpers: ['_lib.py', 'emit_receipt.py', 'write_receipts.py']
+probes: ['probe1_scaffold_self_gate.py', 'probe2_six_omissions.py']
+-- probe1_scaffold_self_gate.py imports --
+  from __future__ import annotations
+  import hashlib
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from _lib import REPO, SENTINEL, TOOLS, load_receipt  # noqa: E402
+  from blueprint_contract import (  # noqa: E402
+-- probe1_scaffold_self_gate.py asserts --
+          print("FAILED:IMP-0230-probe1 scaffold is not JSON-round-trippable")
+          print("FAILED:IMP-0230-probe1 in-memory scaffold rejected")
+          print("FAILED:IMP-0230-probe1 JSON-round-trip scaffold rejected")
+              print("FAILED:IMP-0230-probe1 scaffold bytes contain CRLF")
+              print("FAILED:IMP-0230-probe1 on-disk scaffold differs from in-memory")
+              print("FAILED:IMP-0230-probe1 unmodified on-disk scaffold rejected")
+          print(f"FAILED:IMP-0230-probe1 smoke asserts failed: {failed}")
+          print("FAILED:IMP-0230-probe1 scaffold is not deterministic")
+      raise SystemExit(main())
+-- probe2_six_omissions.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from _lib import SENTINEL, TOOLS, load_receipt  # noqa: E402
+  from blueprint_contract import (  # noqa: E402
+-- probe2_six_omissions.py asserts --
+          print("FAILED:IMP-0230-probe2 control scaffold does not register")
+              print(f"FAILED:IMP-0230-probe2 omit {element} still registered")
+                  f"FAILED:IMP-0230-probe2 omit {element}: want {want} got {ids}"
+                  f"FAILED:IMP-0230-probe2 omit {element} leaked extra ids {extra}"
+              print(f"FAILED:IMP-0230-probe2 omit {element} duplicated {want}")
+          print(f"FAILED:IMP-0230-probe2 distinct ids {seen}")
+          print(f"FAILED:IMP-0230-probe2 id set {seen} != {closed}")
+          print("FAILED:IMP-0230-probe2 control went red after mutants")
+      raise SystemExit(main())
+========================================================================
+IMP-0291
+title: Brainstorming engine with a structured idea ledger
+output: command-center/receipts/IMP-0291.json exists=True
+helpers: ['fixtures.py', 'reviewer.py', 'scenario.py', 'write_receipts.py']
+probes: ['probe1_ledger_canonicalise.py', 'probe2_count_gaming.py']
+-- probe1_ledger_canonicalise.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from scenario import evaluate_append_canonicalise  # noqa: E402
+-- probe1_ledger_canonicalise.py asserts --
+          print("FAILED:IMP-0291-probe1 ledger append/canonicalise")
+      raise SystemExit(main())
+-- probe2_count_gaming.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from reviewer import review_labelled_grouping  # noqa: E402
+  from scenario import evaluate_count_gaming, evaluate_labelled_sample  # noqa: E402
+-- probe2_count_gaming.py asserts --
+  This probe plants 100 trivial wordings of one mechanism and asserts the
+          print("FAILED:IMP-0291-probe2 count-gaming or labelled grouping")
+      raise SystemExit(main())
+========================================================================
+IMP-0317
+title: Privacy, retention and persistence policy engine
+output: command-center/receipts/IMP-0317.json exists=True
+helpers: ['corpus.py', 'emit_receipt.py', 'gitleaks_style.py', 'write_receipts.py']
+probes: ['probe1_planted_zero_survivors.py', 'probe2_negative_control.py']
+-- probe1_planted_zero_survivors.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from tools.council.artifacts.retention import (  # noqa: E402
+  import corpus as C  # noqa: E402
+  import gitleaks_style as G  # noqa: E402
+-- probe1_planted_zero_survivors.py asserts --
+      print(f"FAILED:IMP-0317-probe1 {msg}")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_negative_control.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from datetime import datetime, timedelta, timezone
+  from pathlib import Path
+  from tools.council.artifacts.retention import (  # noqa: E402
+  import corpus as C  # noqa: E402
+  import gitleaks_style as G  # noqa: E402
+-- probe2_negative_control.py asserts --
+      print(f"FAILED:IMP-0317-probe2 {msg}")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+========================================================================
+IMP-0367
+title: Participant-count sensitivity analysis
+output: command-center/receipts/IMP-0367.json exists=True
+helpers: ['scenario.py', 'write_receipts.py']
+probes: ['probe1_decision_vs_n.py', 'probe2_evidence_decisive_control.py']
+-- probe1_decision_vs_n.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import scenario as S  # noqa: E402
+  from council.sensitivity import (  # noqa: E402
+-- probe1_decision_vs_n.py asserts --
+      print(f"FAILED:IMP-0367-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2_evidence_decisive_control.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import scenario as S  # noqa: E402
+  from council.sensitivity import (  # noqa: E402
+-- probe2_evidence_decisive_control.py asserts --
+      print(f"FAILED:IMP-0367-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+IMP-0417
+title: Reducer call-site adoption and census across all seven fan-in points
+output: command-center/receipts/IMP-0417.json exists=True
+helpers: ['scenario.py', 'write_receipts.py']
+probes: ['probe1_import_graph.py', 'probe2_planted_predicate.py']
+-- probe1_import_graph.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from completion.census import census_dir, import_graph_site  # noqa: E402
+  from completion.sites import SITE_FILES, SITE_IDS, load_all  # noqa: E402
+  from scenario import BEFORE_DIR, REPO, SITES_DIR  # noqa: E402
+  import test_import_graph as live_tests  # noqa: E402
+-- probe1_import_graph.py asserts --
+              print("FAILED:IMP-0417-probe1 import-graph", site_id)
+              print("FAILED:IMP-0417-probe1 judge object identity", site_id)
+          print("FAILED:IMP-0417-probe1 before census too small", independent_before)
+          print("FAILED:IMP-0417-probe1 live sites retain local predicates")
+      raise SystemExit(main())
+-- probe2_planted_predicate.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  from completion.census import census_file  # noqa: E402
+  from scenario import PLANTED_SOURCE, REPO, SITES_DIR  # noqa: E402
+-- probe2_planted_predicate.py asserts --
+          print("FAILED:IMP-0417-probe2 live site already has a local predicate")
+          print("FAILED:IMP-0417-probe2 AST census missed planted predicate")
+          print("FAILED:IMP-0417-probe2 regex census missed planted predicate")
+      raise SystemExit(main())
+========================================================================
+IMP-0471
+title: Both-states detector-validation harness applied to every shipped detector
+output: command-center/receipts/IMP-0471.json exists=True
+helpers: ['emit_receipt.py', 'schema_local.py']
+probes: ['probe1_two_state_table.py', 'probe2_reviewer_independent_broken.py']
+-- probe1_two_state_table.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from detectors.campaign import run_campaign  # noqa: E402
+  from detectors.census import KNOWN_PRESENT_DETECTOR  # noqa: E402
+  from detectors.two_state import (  # noqa: E402
+  from test_two_state_harness import run_all  # noqa: E402
+-- probe1_two_state_table.py asserts --
+          print("FAILED:IMP-0471-probe1 enumerator missed", KNOWN_PRESENT_DETECTOR)
+          print("FAILED:IMP-0471-probe1 harness self-test")
+          print("FAILED:IMP-0471-probe1 empty census")
+              print("FAILED:IMP-0471-probe1 detector error", row["detector_id"], row.get("reason"))
+              print("FAILED:IMP-0471-probe1 missing fixture not NOT-CHECKED", row["detector_id"])
+              print("FAILED:IMP-0471-probe1 NOT-CHECKED leaked outputs", row["detector_id"])
+              print("FAILED:IMP-0471-probe1 SILENT-BOTH flag mismatch", row["detector_id"])
+                  print("FAILED:IMP-0471-probe1 DIFFERS polarity", row["detector_id"])
+          print("FAILED:IMP-0471-probe1 filesystem-only must not discriminate")
+          if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+              print("FAILED:IMP-0471-probe1 self-declared", st)
+              print("FAILED:IMP-0471-probe1 sentinel-absent")
+      raise SystemExit(main())
+-- probe2_reviewer_independent_broken.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from detectors.adapters import (  # noqa: E402
+  from detectors.two_state import (  # noqa: E402
+  from jsonschema import Draft7Validator  # noqa: E402
+-- probe2_reviewer_independent_broken.py asserts --
+          print("FAILED:IMP-0471-probe2 harness self-test")
+          print("FAILED:IMP-0471-probe2 valid control not DIFFERS")
+          print("FAILED:IMP-0471-probe2 inert stub not SILENT-BOTH")
+              print("FAILED:IMP-0471-probe2 independent broken state did not DIFFERS", detector_id)
+              print("FAILED:IMP-0471-probe2 schema accepted garbage")
+          if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+              print("FAILED:IMP-0471-probe2 self-declared", st)
+              print("FAILED:IMP-0471-probe2 sentinel-absent")
+              print("FAILED:IMP-0471-probe2 artifact schema", art_errs[0].message)
+              print("FAILED:IMP-0471-probe2 empty table")
+                  print("FAILED:IMP-0471-probe2 fixture row marked NOT-CHECKED", row.get("detector_id"))
+      raise SystemExit(main())
+========================================================================
+RES-0033
+title: Compute the cross-vendor primitive intersection that a portable work unit may rely on
+output: command-center/research/RES-0033.json exists=True
+helpers: ['emit.py', 'engine.py', 'inventories.py', 'schema_local.py', 'write_receipts.py']
+probes: ['probe1_intersection.py', 'probe2_unique_control.py']
+-- probe1_intersection.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from engine import OUT_REL, SCRIPT_REL, SENTINEL, UNIT, compute, domain_of  # noqa: E402
+-- probe1_intersection.py asserts --
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_unique_control.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from engine import (  # noqa: E402
+-- probe2_unique_control.py asserts --
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+========================================================================
+RES-0103
+title: Determine when a router should inject nothing, and what confidence threshold expresses that
+output: command-center/research/RES-0103.json exists=True
+helpers: ['chow.py', 'emit.py', 'fixtures.py', 'grader.py', 'reviewer.py', 'schema_bind.py', 'write_receipts.py']
+probes: ['probe1_cost_ratio.py', 'probe2_schema_and_overclaim.py']
+-- probe1_cost_ratio.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import chow as C  # noqa: E402
+  import fixtures as F  # noqa: E402
+-- probe1_cost_ratio.py asserts --
+      print(f"FAILED:RES-0103-probe1 {msg}")
+          "FAILED",
+      raise SystemExit(main())
+-- probe2_schema_and_overclaim.py imports --
+  from __future__ import annotations
+  import copy
+  import json
+  import sys
+  from pathlib import Path
+  import grader as G  # noqa: E402
+  import reviewer as R  # noqa: E402
+  from schema_bind import load_discriminator  # noqa: E402
+-- probe2_schema_and_overclaim.py asserts --
+      print(f"FAILED:RES-0103-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+RES-0154
+title: Refuter role design: incentives, success metric, and measured yield versus finder agents
+output: command-center/research/evidence-quality/RES-0154-refuter-incentive-and-yield-design.json exists=True
+helpers: ['corpus.py', 'emit.py', 'experiment.py', 'find.py', 'judge.py', 'refute.py', 'score.py', 'util.py']
+probes: ['probe1_negative_control.py', 'probe2_third_agent_and_volume.py']
+-- probe1_negative_control.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import experiment as E  # noqa: E402
+  from util import OUT_REL, SENTINEL  # noqa: E402
+-- probe1_negative_control.py asserts --
+      print(f"FAILED:RES-0154-probe1 {msg}")
+          "FAILED",
+      raise SystemExit(main())
+-- probe2_third_agent_and_volume.py imports --
+  from __future__ import annotations
+  import ast
+  import json
+  import sys
+  from pathlib import Path
+  import experiment as E  # noqa: E402
+  import judge as J  # noqa: E402
+  from util import OUT_REL, REPO as ROOT, SENTINEL  # noqa: E402
+-- probe2_third_agent_and_volume.py asserts --
+      print(f"FAILED:RES-0154-probe2 {msg}")
+          "FAILED",
+      raise SystemExit(main())
+========================================================================
+RES-0180
+title: Standing watchlist: fire a re-check when a watched source changes, without polling everything
+output: command-center/research/sources-frontier/RES-0180-watchlist-standing-recheck.json exists=True
+helpers: ['emit_report.py', 'sample.py', 'watchlist.py', 'write_receipts.py']
+probes: ['probe1_both_states.py', 'probe2_live_sample.py']
+-- probe1_both_states.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import watchlist as W  # noqa: E402
+-- probe1_both_states.py asserts --
+          print("FAILED:RES-0180-probe1 artifact missing")
+          print("FAILED:RES-0180-probe1 unit_id", doc.get("unit_id"))
+          print("FAILED:RES-0180-probe1 sentinel absent")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print("FAILED:RES-0180-probe1 self-declared", doc.get("state"))
+          print("FAILED:RES-0180-probe1 both-states")
+          print("FAILED:RES-0180-probe1 watcher behaves as poller")
+          print("FAILED:RES-0180-probe1 poller control did not fire on cosmetic")
+          print("FAILED:RES-0180-probe1 regex path disagrees with parser")
+              print("FAILED:RES-0180-probe1 missing control", case["id"])
+              print("FAILED:RES-0180-probe1 drift", case["id"], rec, case)
+              print("FAILED:RES-0180-probe1 recorded verdict", case["id"], rec.get("verdict"))
+          print("FAILED:RES-0180-probe1 signals_by_class thin")
+          print("FAILED:RES-0180-probe1 on_wake missing")
+      raise SystemExit(main())
+-- probe2_live_sample.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+-- probe2_live_sample.py asserts --
+          print("FAILED:RES-0180-probe2 artifact missing")
+          print("FAILED:RES-0180-probe2 captures missing")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          print("FAILED:RES-0180-probe2 self-declared", doc.get("state"))
+          print("FAILED:RES-0180-probe2 sentinel absent")
+              print("FAILED:RES-0180-probe2 watcher recompute drift", pair.get("id"))
+              print("FAILED:RES-0180-probe2 poller recompute drift", pair.get("id"))
+          print(f"FAILED:RES-0180-probe2 sample_size={n} want>=20")
+          print("FAILED:RES-0180-probe2 watcher false-wakes on stable wake_value", watcher_false)
+          print("FAILED:RES-0180-probe2 sample_size drift", meas.get("sample_size"), n)
+          print("FAILED:RES-0180-probe2 claims thin")
+              print("FAILED:RES-0180-probe2 claim single-signal", claim.get("id"))
+              print("FAILED:RES-0180-probe2 lineage sha256", claim.get("id"))
+              print("FAILED:RES-0180-probe2 lineage incomplete", claim.get("id"))
+          print("FAILED:RES-0180-probe2 reviewer not independent")
+          print("FAILED:RES-0180-probe2 elapsed_seconds not real")
+          print("FAILED:RES-0180-probe2 overclaim standing 7d daemon")
+      raise SystemExit(main())
+========================================================================
+SYN-0030
+title: Four-way referential join across catalog, manifest, test registry and claim registry
+output: command-center/receipts/SYN-0030.json exists=True
+helpers: ['emit.py', 'fixtures.py', 'join.py', 'shape.py', 'write_receipts.py']
+probes: ['probe1.py', 'probe1_planted_orphans.py', 'probe2.py', 'probe2_join_keys.py']
+-- probe1.py imports --
+  from probe1_planted_orphans import main
+-- probe1.py asserts --
+      raise SystemExit(main())
+-- probe1_planted_orphans.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import fixtures as F  # noqa: E402
+  import join as J  # noqa: E402
+-- probe1_planted_orphans.py asserts --
+      print(f"FAILED:SYN-0030-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2.py imports --
+  from probe2_join_keys import main
+-- probe2.py asserts --
+      raise SystemExit(main())
+-- probe2_join_keys.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import jsonschema
+  import fixtures as F  # noqa: E402
+  import join as J  # noqa: E402
+  import shape as S  # noqa: E402
+-- probe2_join_keys.py asserts --
+      print(f"FAILED:SYN-0030-probe2 {msg}")
+      raise SystemExit("FAILED:SYN-0030-probe2 catalog unit missing")
+          "FAILED",
+      raise SystemExit(main())
+========================================================================
+TST-0031
+title: Blob-versus-worktree EOL parity gate (git cat-file, never git archive)
+output: command-center/receipts/TST-0031.json exists=True
+helpers: ['archive_lint.py', 'blob_gate.py', 'emit_receipt.py', 'harness_load.py', 'write_receipts.py']
+probes: ['probe1_blob_not_worktree.py', 'probe2_lint_and_checklist.py']
+-- probe1_blob_not_worktree.py imports --
+  from __future__ import annotations
+  import hashlib
+  import json
+  import sys
+  import tempfile
+  from pathlib import Path
+  import blob_gate as G  # noqa: E402
+  from harness_load import load_both_states  # noqa: E402
+-- probe1_blob_not_worktree.py asserts --
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2_lint_and_checklist.py imports --
+  from __future__ import annotations
+  import sys
+  import tempfile
+  from pathlib import Path
+  import archive_lint as L  # noqa: E402
+  import blob_gate as G  # noqa: E402
+  from harness_load import load_both_states  # noqa: E402
+-- probe2_lint_and_checklist.py asserts --
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+TST-0071
+title: Upgrade-in-place from every supported prior version
+output: command-center/receipts/TST-0071.json exists=True
+helpers: ['emit_receipt.py', 'suite.py', 'surface.py', 'upgrade.py', 'write_receipts.py']
+probes: ['probe1_upgrade_from_each_version.py', 'probe2_curation_and_idempotent.py']
+-- probe1_upgrade_from_each_version.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from suite import test_upgrade_from_each_supported_version  # noqa: E402
+  from upgrade import CURRENT_VERSION, SUPPORTED_PRIOR  # noqa: E402
+-- probe1_upgrade_from_each_version.py asserts --
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_curation_and_idempotent.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from suite import (  # noqa: E402
+-- probe2_curation_and_idempotent.py asserts --
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+========================================================================
+TST-0124
+title: CI-gate census: every test suite must map to a gate that can turn red
+output: command-center/receipts/TST-0124.json exists=True
+helpers: ['emit_receipt.py', 'join.py', 'write_receipts.py']
+probes: ['probe1_classify_and_list.py', 'probe2_known_gated_join.py']
+-- probe1_classify_and_list.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from join import (  # noqa: E402
+-- probe1_classify_and_list.py asserts --
+      assert_every_suite_classified,
+      assert_ungated_listed_by_path,
+      print(f"FAILED:TST-0124-probe1 {msg}")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          assert_every_suite_classified(live)
+          assert_ungated_listed_by_path(live)
+      raise SystemExit(main())
+-- probe2_known_gated_join.py imports --
+  from __future__ import annotations
+  import json
+  import shutil
+  import sys
+  import tempfile
+  from pathlib import Path
+  from join import (  # noqa: E402
+-- probe2_known_gated_join.py asserts --
+      assert_every_suite_classified,
+      assert_known_gated_joined,
+      assert_ungated_listed_by_path,
+      print(f"FAILED:TST-0124-probe2 {msg}")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+          assert_every_suite_classified(ctrl)
+          assert_ungated_listed_by_path(ctrl)
+          assert_known_gated_joined(ctrl)
+      raise SystemExit(main())
+========================================================================
+TST-0163
+title: Launcher edited mid-run is detected by a spec hash at fan-in
+output: command-center/receipts/TST-0163.json exists=True
+helpers: ['emit_receipt.py', 'hash_spec.py', 'launcher.py', 'scenario.py', 'write_receipts.py']
+probes: ['probe1_both_states.py', 'probe2_independent_hash.py']
+-- probe1_both_states.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import scenario as S  # noqa: E402
+-- probe1_both_states.py asserts --
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+          "FAILED",
+      raise SystemExit(main())
+-- probe2_independent_hash.py imports --
+  from __future__ import annotations
+  import json
+  import os
+  import subprocess
+  import sys
+  import tempfile
+  from pathlib import Path
+  import scenario as S  # noqa: E402
+  from launcher import independent_digest  # noqa: E402
+-- probe2_independent_hash.py asserts --
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+              raise RuntimeError(f"hash_spec.py rc={proc.returncode} {proc.stderr}")
+          "FAILED",
+      raise SystemExit(main())
+========================================================================
+TST-0212
+title: Masking preserves the zero-entropy prefix and leaks no length information
+output: command-center/receipts/TST-0212.json exists=True
+helpers: ['emit_receipt.py', 'fixtures.py', 'write_receipts.py']
+probes: ['probe1_prefix_and_fixed_width.py', 'probe2_per_char_mask_fails.py']
+-- probe1_prefix_and_fixed_width.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from fixtures import (  # noqa: E402
+  from security import fixed_width_holds as fixed_width_holds  # noqa: E402
+  from security import utf8_len as utf8_len  # noqa: E402
+-- probe1_prefix_and_fixed_width.py asserts --
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2_per_char_mask_fails.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from fixtures import (  # noqa: E402
+  from security import fixed_width_holds as fixed_width_holds  # noqa: E402
+  from security import utf8_len as utf8_len  # noqa: E402
+-- probe2_per_char_mask_fails.py asserts --
+  """Probe 2: a per-character mask MUST fail the fixed-width assertion.
+  same secrets still holds, so the assertion is not vacuously false.
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+      print(f"SUCCESS:{UNIT}-probe2 per-character mask fails fixed-width assertion")
+      raise SystemExit(main())
+========================================================================
+RES-0127
+title: Resolve the two-tree corpus split so no research unit reads only half the evidence
+output: command-center/research/RES-0127.json exists=True
+helpers: ['catalog_cite.py', 'control_trees.py', 'emit_registry.py', 'locate.py', 'partition.py', 'relevance.py', 'schema_local.py', 'write_receipts.py']
+probes: ['probe1_partition_algebra.py', 'probe2_independent_rehash.py']
+-- probe1_partition_algebra.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from control_trees import EXPECTED, ensure_control_trees  # noqa: E402
+  from locate import locate_trees  # noqa: E402
+  from partition import (  # noqa: E402
+-- probe1_partition_algebra.py asserts --
+      print(f"FAILED:RES-0127-probe1 {msg}")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_independent_rehash.py imports --
+  from __future__ import annotations
+  import hashlib
+  import json
+  import subprocess
+  import sys
+  from pathlib import Path
+  from control_trees import ensure_control_trees  # noqa: E402
+  from locate import locate_trees, probe_path  # noqa: E402
+  from partition import sha256_file  # noqa: E402
+  from relevance import is_research_relevant  # noqa: E402
+  from schema_local import registry_of  # noqa: E402
+-- probe2_independent_rehash.py asserts --
+      print(f"FAILED:RES-0127-probe2 {msg}")
+              raise RuntimeError(f"no sha256sum/openssl: {err or exc}") from exc
+              raise RuntimeError(proc.stderr or "openssl failed")
+      if st in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+========================================================================
+TST-0274
+title: Settle a council dispute with an executable test and prove the test outranks the consensus
+output: command-center/receipts/TST-0274.json exists=True
+helpers: ['emit_receipt.py', 'scenarios.py']
+probes: ['probe1_unanimous_wrong.py', 'probe2_both_states.py']
+-- probe1_unanimous_wrong.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from scenarios import spec_probe_error, spec_unanimous_wrong  # noqa: E402
+  from tools.council.simulate import (  # noqa: E402
+-- probe1_unanimous_wrong.py asserts --
+      print(f"FAILED:TST-0274-probe1 {msg}")
+              "check_asserted": rec["check"]["asserted"],
+      raise SystemExit(main())
+-- probe2_both_states.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from scenarios import spec_both_agree, spec_unanimous_wrong  # noqa: E402
+  from tools.council.simulate import (  # noqa: E402
+-- probe2_both_states.py asserts --
+      print(f"FAILED:TST-0274-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+TST-0307
+title: Contamination check: benchmark cases leaking into prompts, fixtures and the program corpus
+output: command-center/receipts/TST-0307.json exists=True
+helpers: ['emit_receipt.py', 'write_receipts.py']
+probes: ['probe1_planted.py', 'probe2_quarantine.py']
+-- probe1_planted.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from bench.contamination import (  # noqa: E402
+-- probe1_planted.py asserts --
+      print(f"FAILED:TST-0307-probe1 {msg}")
+          not in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+      raise SystemExit(main())
+-- probe2_quarantine.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from bench.contamination import (  # noqa: E402
+-- probe2_quarantine.py asserts --
+  Mechanically different from probe 1 (which only asserts detection): every
+      print(f"FAILED:TST-0307-probe2 {msg}")
+          not in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+      raise SystemExit(main())
+========================================================================
+WFA-0002
+title: Resolve the 66 unresolved blueprint-to-candidate provenance edges (40 distinct refs)
+output: command-center/wfa/WFA-0002-provenance-closure.json exists=True
+helpers: ['closure.py', 'emit_receipt.py', 'estate.py', 'fixtures.py', 'locate.py']
+probes: ['probe1_closure_rate.py', 'probe2_both_states.py']
+-- probe1_closure_rate.py imports --
+  from __future__ import annotations
+  import ast
+  import inspect
+  import json
+  import sys
+  from copy import deepcopy
+  from pathlib import Path
+  from jsonschema import Draft202012Validator
+  import closure as C  # noqa: E402
+  from closure import (  # noqa: E402
+  from estate import evidence_b, load_head_index, pair_ab, scan_filesystem  # noqa: E402
+  from fixtures import ESTATE, HEAD_INDEX_PATH, all_refs, materialize  # noqa: E402
+-- probe1_closure_rate.py asserts --
+  BLOCKED = {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+      print(f"FAILED:{UNIT}-probe1 {msg}")
+      raise SystemExit(main())
+-- probe2_both_states.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  from closure import (  # noqa: E402
+  from estate import evidence_b, load_head_index, pair_ab, scan_filesystem  # noqa: E402
+  from fixtures import ESTATE, HEAD_INDEX_PATH, materialize  # noqa: E402
+-- probe2_both_states.py asserts --
+  BLOCKED = {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+      print(f"FAILED:{UNIT}-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+WFA-0070
+title: Settle all 44 UNKNOWN-NEEDS-PROBE candidates with a named, executed probe each
+output: command-center/wfa/WFA-0070-unknown-needs-probe-settlement.json exists=True
+helpers: ['emit_report.py', 'settle.py', 'write_receipts.py']
+probes: ['probe1_live_settlement.py', 'probe2_both_states.py']
+-- probe1_live_settlement.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import settle as S  # noqa: E402
+-- probe1_live_settlement.py asserts --
+      print(f"FAILED:WFA-0070-probe1 {msg}")
+      if str(doc.get("state") or "").upper() in {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}:
+      raise SystemExit(main())
+-- probe2_both_states.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import settle as S  # noqa: E402
+-- probe2_both_states.py asserts --
+      print(f"FAILED:WFA-0070-probe2 {msg}")
+      raise SystemExit(main())
+========================================================================
+WFA-0123
+title: Prove program stopping condition 16: at least 160 candidates classified with provenance and licence
+output: command-center/wfa/WFA-0123-candidate-floor-proof.json exists=True
+helpers: ['corpus.py', 'emit_artifact.py', 'planted.py', 'qualify_a.py', 'qualify_b.py', 'write_receipts.py']
+probes: ['probe1_three_way_and_not_raw.py', 'probe2_independent_recompute.py']
+-- probe1_three_way_and_not_raw.py imports --
+  from __future__ import annotations
+  import json
+  import sys
+  from pathlib import Path
+  import planted as P  # noqa: E402
+  import qualify_a as A  # noqa: E402
+-- probe1_three_way_and_not_raw.py asserts --
+  NOT_DELIVERING = {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+      print(f"FAILED:WFA-0123-probe1 {msg}")
+      P.assert_fixture_files(REPO)
+      raise SystemExit(main())
+-- probe2_independent_recompute.py imports --
+  from __future__ import annotations
+  import copy
+  import json
+  import sys
+  from pathlib import Path
+  import corpus as C  # noqa: E402
+  import planted as P  # noqa: E402
+  import qualify_b as B  # noqa: E402
+-- probe2_independent_recompute.py asserts --
+      print("FAILED:WFA-0123-probe2 imported qualify_a")
+      raise SystemExit(1)
+  NOT_DELIVERING = {"BLOCKED", "FAILED", "SEVERED", "TIMEOUT"}
+      print(f"FAILED:WFA-0123-probe2 {msg}")
+      P.assert_fixture_files(REPO)
+      raise SystemExit(main())

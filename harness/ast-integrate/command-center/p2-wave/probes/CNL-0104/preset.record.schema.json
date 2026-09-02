@@ -1,0 +1,210 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/p2-wave/probes/CNL-0104/preset.record.schema.json",
+  "title": "CNL-0104 gated-review-board family preset record",
+  "$comment": "Catalog output_schema cites command-center/schema/council-preset.schema.json. On this tree that file is a generated $ref shim into platform/schema/artifact-class-profiles.schema.json#/$defs/council-preset (receipt envelope, report.kind=council-preset) and does not define $defs.preset. This unit-local schema is the executable Draft 2020-12 contract for the two family members. It does not rewrite the shared shim.",
+  "$defs": {
+    "role": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["id", "count", "votes", "obligation"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "count": { "type": "integer", "minimum": 1 },
+        "votes": { "type": "boolean" },
+        "obligation": { "type": "string", "minLength": 8 }
+      }
+    },
+    "schedule_step": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["order", "protocol_id", "purpose"],
+      "properties": {
+        "order": { "type": "integer", "minimum": 1 },
+        "protocol_id": { "type": "string", "minLength": 2 },
+        "purpose": { "type": "string", "minLength": 8 }
+      }
+    },
+    "preset": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "name",
+        "family",
+        "catalog_c_ids",
+        "base_spec_ref",
+        "delta",
+        "roles",
+        "protocol_schedule",
+        "voting",
+        "stopping",
+        "editable_dials",
+        "default_binding",
+        "anti_failure",
+        "audit",
+        "evidence_contract",
+        "outcome_types",
+        "oracles",
+        "recusal",
+        "version_policy",
+        "metadata"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 8, "pattern": "^[A-Za-z0-9][A-Za-z0-9._:-]+$" },
+        "name": { "type": "string", "minLength": 4 },
+        "family": { "type": "string", "const": "gated-review-board" },
+        "catalog_c_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "base_spec_ref": { "type": "string", "minLength": 8 },
+        "delta": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["overlays", "must_not_override"],
+          "properties": {
+            "overlays": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 4 }
+            },
+            "must_not_override": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 4 }
+            }
+          }
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "$ref": "#/$defs/role" }
+        },
+        "protocol_schedule": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "$ref": "#/$defs/schedule_step" }
+        },
+        "voting": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["rule", "quorum", "who_votes", "oracle_veto"],
+          "properties": {
+            "rule": { "type": "string", "minLength": 4 },
+            "quorum": { "type": "integer", "minimum": 1 },
+            "who_votes": { "type": "string", "minLength": 4 },
+            "oracle_veto": { "type": ["boolean", "string"] }
+          }
+        },
+        "stopping": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["expression", "max_rounds", "on_timeout", "forbid"],
+          "properties": {
+            "expression": { "type": "string", "minLength": 8 },
+            "max_rounds": { "type": "integer", "minimum": 1 },
+            "on_timeout": { "type": "string", "minLength": 2 },
+            "forbid": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 4 }
+            }
+          }
+        },
+        "editable_dials": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 4 }
+        },
+        "default_binding": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "rubric_source",
+            "evidence_kind",
+            "fail_override_who",
+            "fail_kind"
+          ],
+          "properties": {
+            "rubric_source": { "type": "string", "minLength": 4 },
+            "evidence_kind": { "type": "string", "minLength": 4 },
+            "fail_override_who": { "type": "string", "minLength": 4 },
+            "fail_kind": { "type": "string", "minLength": 4 }
+          }
+        },
+        "anti_failure": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["on_split", "no_silent_average"],
+          "properties": {
+            "on_split": { "type": "string", "minLength": 4 },
+            "no_silent_average": { "type": "boolean" }
+          }
+        },
+        "audit": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["persist_transcript", "hash_inputs", "seal_protocol"],
+          "properties": {
+            "persist_transcript": { "type": "boolean" },
+            "hash_inputs": { "type": "boolean" },
+            "seal_protocol": { "type": "boolean" }
+          }
+        },
+        "evidence_contract": { "type": "string", "minLength": 24 },
+        "outcome_types": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "oracles": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["id", "vetoes", "obligation"],
+            "properties": {
+              "id": { "type": "string", "minLength": 2 },
+              "vetoes": { "type": "string", "minLength": 2 },
+              "obligation": { "type": "string", "minLength": 8 }
+            }
+          }
+        },
+        "recusal": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 4 }
+        },
+        "version_policy": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["on_base_bump", "reject_locked_override"],
+          "properties": {
+            "on_base_bump": { "type": "string", "minLength": 4 },
+            "reject_locked_override": { "type": "boolean" }
+          }
+        },
+        "metadata": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["unit_id", "extends_protocols", "extends_units"],
+          "properties": {
+            "unit_id": { "type": "string", "const": "CNL-0104" },
+            "extends_protocols": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 2 }
+            },
+            "extends_units": {
+              "type": "array",
+              "minItems": 1,
+              "items": { "type": "string", "minLength": 4 }
+            }
+          }
+        }
+      }
+    }
+  }
+}

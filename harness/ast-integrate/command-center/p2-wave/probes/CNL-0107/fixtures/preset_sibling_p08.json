@@ -1,0 +1,121 @@
+{
+  "artifact_type": "council_preset",
+  "id": "preset.p08-red-blue-team",
+  "kind": "typed_delta",
+  "title": "Catalog-cited P08 red/blue-team baseline (reconstructed)",
+  "unit_origin": "CNL-0107-reconstruction",
+  "base_ref": {
+    "spec_kind": "CouncilSpec",
+    "protocol_id": "P08",
+    "on_base_version_bump": "migrate"
+  },
+  "roles": [
+    {
+      "id": "red_team",
+      "mandate": "attack",
+      "team": "red",
+      "produces": "attack-notes"
+    },
+    {
+      "id": "blue_team",
+      "mandate": "defend",
+      "team": "blue",
+      "produces": "defense-notes"
+    },
+    {
+      "id": "moderator",
+      "mandate": "keep-time-and-declare-winner",
+      "team": "neutral",
+      "produces": "winner-call"
+    },
+    {
+      "id": "scribe",
+      "mandate": "minutes",
+      "team": "neutral",
+      "produces": "minutes"
+    }
+  ],
+  "protocol_binding": {
+    "protocol_id": "P08",
+    "family": "ADVERSARIAL",
+    "name": "red-blue-team"
+  },
+  "protocol_schedule": [
+    {
+      "id": "brief",
+      "actor_role": "moderator",
+      "artifact": "brief",
+      "notes": "Shared brief. No coverage-ack artifact."
+    },
+    {
+      "id": "red-attack",
+      "actor_role": "red_team",
+      "artifact": "attack-notes",
+      "notes": "Attack notes. Qualifying finding schema is not required."
+    },
+    {
+      "id": "blue-defend",
+      "actor_role": "blue_team",
+      "artifact": "defense-notes",
+      "notes": "Defense notes. Counter-artifact schema is not required."
+    },
+    {
+      "id": "call",
+      "actor_role": "moderator",
+      "artifact": "winner-call",
+      "notes": "Naive baseline: if red runs out of time with no finding, moderator may call blue."
+    }
+  ],
+  "voting": {
+    "rule": "moderator-call",
+    "quorum": 1,
+    "security_poll_forbidden": false
+  },
+  "stopping": {
+    "expression": "if red_budget_exhausted then BLUE_WINS else if red_found_something then RED_WINS else CONTINUE",
+    "max_red_rounds": 4,
+    "timeout_outcome": "BLUE_WINS",
+    "timeout_may_not_map_to_blue_win": false
+  },
+  "budgets": {
+    "red_search_rounds": 4,
+    "blue_rebuttal_per_finding": 1,
+    "neutral_fixed": 1,
+    "notes": "Symmetric-looking clocks. Timeout maps to defender win — the failure mode CNL-0107 forbids."
+  },
+  "evidence_standards": {
+    "red_qualifying_finding": [
+      "attack-notes",
+      "optional-poc",
+      "moderator-impression"
+    ],
+    "blue_close": [
+      "defense-notes",
+      "moderator-impression"
+    ],
+    "coverage_ack": "not required; clock expiry may stand in for coverage"
+  },
+  "win_conditions": {
+    "RED_WINS": "moderator accepts that red found something",
+    "BLUE_WINS": "red time expires without an accepted finding, or moderator calls blue",
+    "INCONCLUSIVE": "not used; clock is treated as a blue win",
+    "illegal": [
+      "none in this baseline — timeout-as-blue-win is permitted"
+    ]
+  },
+  "editable_dials": [
+    "budgets.red_search_rounds"
+  ],
+  "default_binding": {
+    "protocol_id": "P08",
+    "task_class": "adversarial-exercise"
+  },
+  "anti_failure": {
+    "on_split": "moderator-breaks-tie",
+    "no_silent_secure": false
+  },
+  "audit": {
+    "persist_transcript": true,
+    "hash_findings": false
+  }
+}

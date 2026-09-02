@@ -1,0 +1,34 @@
+docs(casualty): the INTEGRATE dossier, plus a blob-level CI-parity check
+
+Records what got wired in f087a6f6 with every command output pasted verbatim, and adds the
+one instrument that commit was missing.
+
+verify_ci_parity.py runs the pinned ruff over the STORED BLOBS via `git cat-file -p` -- never
+`git archive`, which applies export-time EOL conversion and hands back CRLF on Windows, so it
+verifies the wrong bytes. It also carries the repo's ruff.toml into the mirror: a bare temp
+dir has no config, ruff falls back to line-length 88 against this repo's own setting, and the
+result is a FALSE red on clean files. Control runs first and must fire on mangled input.
+Measured: 9 committed blobs, 0 CRLF, check rc 0, format rc 0, control rc 1.
+
+It is EXEMPT from CI on purpose -- `uvx` fetches over the network, which does not belong in
+the fast hermetic gate, and the runner already checks out the LF form and lints it natively in
+gate-lint-format. The exemption is written into the disposition table, which P2 gates in both
+directions, so it cannot rot into an unexplained skip.
+
+The dossier's section 5 is the part that matters. Eight residuals, each with what would settle
+it. Two are worth naming here:
+
+  R-I1  CI has not actually run yet. Everything is measured locally plus a blob-level parity
+        pass; the ubuntu runner itself is UNVERIFIED. Settling experiment: open a PR and read
+        the gate-tests-coverage command-center step.
+  R-I2  Nothing prevents a human deleting the CI line. The red-proof shows the guard DETECTS a
+        missing wire; it cannot ENFORCE one, because if the line goes the guard stops running.
+        Partial mitigation only: suitefloor --suite casualty is a second line in a different
+        step, so one deletion leaves a survivor. This integration is not tamper-proof and the
+        dossier says so inline rather than in a footnote.
+
+Also carried forward rather than dropped: no reviewer on either receipt, both still parked
+outside their canonical output_path, and recover_failed_agents_v2 still not installed over v1.
+
+P2 fired on this commit's own work -- verify_ci_parity.py arrived undispositioned and the gate
+refused it until a reason was written. Second time in this stage.

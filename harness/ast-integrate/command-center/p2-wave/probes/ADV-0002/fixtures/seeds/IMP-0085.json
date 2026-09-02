@@ -1,0 +1,360 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0085",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0085",
+  "spec_anchor": "_USER-PROMPTS.md:10852 (platform and client compatibility); IMP-0008; IMP-0083",
+  "title": "Platform and client compatibility resolution with an explicit refusal reason",
+  "question_or_target": "Filter candidate versions by declared platform and client compatibility during resolution, and when nothing satisfies the constraints, report the exact unmet requirement (e.g. 'requires client >= X, you have Y') instead of an empty result set.",
+  "min_bytes_threshold": 128,
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0085.json",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/compat.py",
+      "bytes": 10047,
+      "sha256": "489933638c63ec43e914035994e44152fb78ef4e1577d0f68cca40c650ff4725",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/tests/test_compat_resolution.py",
+      "bytes": 7440,
+      "sha256": "514db19d6d58f61d6bd58f1e57016dd2f4e591c8a5a036d646f1366fd09f3f1f",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/fixtures/compat-index.json",
+      "bytes": 1335,
+      "sha256": "667f28985e471c410e661cb39abb5b362a5f01e3e0a24415a4378cfad6006664",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/marketplace/schema/compat.schema.json",
+      "bytes": 927,
+      "sha256": "93748676297b274a2573bc73682fca426613f0f6f13312dc5e269c3e2d578513",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0085/independent.py",
+      "bytes": 4117,
+      "sha256": "bd5b6ce6fa2540888f27bdd28de7ecf5f5f76c9f81cda1badf426bdf8f36c63f",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0085/probe1_resolver_sets.py",
+      "bytes": 3860,
+      "sha256": "f09fbc2222154c513a186cd38c5dcfbd6e1bb02089d60ff03e8d13211662014f",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0085/probe2_independent_recompute.py",
+      "bytes": 5015,
+      "sha256": "f6c07aa4f628950717794578075492611826c7f91ea6603bc8ad0d35d0db8594",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "For each of Windows/macOS/Linux and client versions 1.2.0 and 3.1.0, the resolver's filtered candidate set equals an independent set-algebra recomputation from the same raw metadata.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/compat.py:filter_candidates",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/compat.py-resolution_matrix",
+          "raw_output": "{\"linux|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"linux|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"macos|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"macos|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"windows|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"windows|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"]}",
+          "exit_code": 0,
+          "fingerprint": "c221b7d87aa516e401329a298405a499"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0085/independent.py",
+          "raw_output": "[{\"client_version\": \"1.2.0\", \"independent\": [\"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"platform\": \"windows\"}, {\"client_version\": \"3.1.0\", \"independent\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"platform\": \"windows\"}, {\"client_version\": \"1.2.0\", \"independent\": [\"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"platform\": \"macos\"}, {\"client_version\": \"3.1.0\", \"independent\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"platform\": \"macos\"}, {\"client_version\": \"1.2.0\", \"independent\": [\"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"platform\": \"linux\"}, {\"client_version\": \"3.1.0\", \"independent\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"platform\": \"linux\"}]",
+          "exit_code": 0,
+          "fingerprint": "9056c73bcf3fc518d0b6b28ae48bfbf7"
+        }
+      ],
+      "measured": {
+        "cells": [
+          {
+            "platform": "windows",
+            "client_version": "1.2.0",
+            "production": [
+              "demo.claude-only@1.4.0",
+              "demo.windows-only@1.0.0"
+            ],
+            "independent": [
+              "demo.claude-only@1.4.0",
+              "demo.windows-only@1.0.0"
+            ],
+            "identical": true
+          },
+          {
+            "platform": "windows",
+            "client_version": "3.1.0",
+            "production": [
+              "demo.all-platforms-min-2.5@2.5.0",
+              "demo.claude-only@1.4.0",
+              "demo.windows-only@1.0.0"
+            ],
+            "independent": [
+              "demo.all-platforms-min-2.5@2.5.0",
+              "demo.claude-only@1.4.0",
+              "demo.windows-only@1.0.0"
+            ],
+            "identical": true
+          },
+          {
+            "platform": "macos",
+            "client_version": "1.2.0",
+            "production": [
+              "demo.claude-only@1.4.0",
+              "demo.macos-only@1.0.0"
+            ],
+            "independent": [
+              "demo.claude-only@1.4.0",
+              "demo.macos-only@1.0.0"
+            ],
+            "identical": true
+          },
+          {
+            "platform": "macos",
+            "client_version": "3.1.0",
+            "production": [
+              "demo.all-platforms-min-2.5@2.5.0",
+              "demo.claude-only@1.4.0",
+              "demo.macos-only@1.0.0"
+            ],
+            "independent": [
+              "demo.all-platforms-min-2.5@2.5.0",
+              "demo.claude-only@1.4.0",
+              "demo.macos-only@1.0.0"
+            ],
+            "identical": true
+          },
+          {
+            "platform": "linux",
+            "client_version": "1.2.0",
+            "production": [
+              "demo.claude-only@1.4.0",
+              "demo.linux-only@1.0.0"
+            ],
+            "independent": [
+              "demo.claude-only@1.4.0",
+              "demo.linux-only@1.0.0"
+            ],
+            "identical": true
+          },
+          {
+            "platform": "linux",
+            "client_version": "3.1.0",
+            "production": [
+              "demo.all-platforms-min-2.5@2.5.0",
+              "demo.claude-only@1.4.0",
+              "demo.linux-only@1.0.0"
+            ],
+            "independent": [
+              "demo.all-platforms-min-2.5@2.5.0",
+              "demo.claude-only@1.4.0",
+              "demo.linux-only@1.0.0"
+            ],
+            "identical": true
+          }
+        ],
+        "matrix": {
+          "windows|1.2.0": [
+            "demo.claude-only@1.4.0",
+            "demo.windows-only@1.0.0"
+          ],
+          "windows|3.1.0": [
+            "demo.all-platforms-min-2.5@2.5.0",
+            "demo.claude-only@1.4.0",
+            "demo.windows-only@1.0.0"
+          ],
+          "macos|1.2.0": [
+            "demo.claude-only@1.4.0",
+            "demo.macos-only@1.0.0"
+          ],
+          "macos|3.1.0": [
+            "demo.all-platforms-min-2.5@2.5.0",
+            "demo.claude-only@1.4.0",
+            "demo.macos-only@1.0.0"
+          ],
+          "linux|1.2.0": [
+            "demo.claude-only@1.4.0",
+            "demo.linux-only@1.0.0"
+          ],
+          "linux|3.1.0": [
+            "demo.all-platforms-min-2.5@2.5.0",
+            "demo.claude-only@1.4.0",
+            "demo.linux-only@1.0.0"
+          ]
+        }
+      }
+    },
+    {
+      "claim": "An empty filtered set always carries a non-empty unmet_requirement; linux+0.9.0 reports 'requires client >= 1.0.0, you have 0.9.0'.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/compat.py:_aggregate_unmet",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/compat.py-resolution_matrix",
+          "raw_output": "{\"linux|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"linux|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"macos|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"macos|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"windows|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"windows|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"]}",
+          "exit_code": 0,
+          "fingerprint": "c221b7d87aa516e401329a298405a499"
+        },
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_compat_resolution.py",
+          "raw_output": "ok test_per_platform\nok test_per_client\nok test_no_candidate_case\nok test_negative_control_empty_reason\nok test_unknown_not_universal\nok test_platform_aliases_and_fail_closed\nok test_max_client_and_prerelease\nok test_matrix_deterministic\nSUCCESS:test_compat_resolution",
+          "exit_code": 0,
+          "fingerprint": "3a2eada49283ac3d4f4571c39b3ac954"
+        }
+      ],
+      "measured": {
+        "accepted": [],
+        "unmet_requirement": "requires client >= 1.0.0, you have 0.9.0"
+      }
+    },
+    {
+      "claim": "A package with no declared compatibility (missing field or empty object) is treated as unknown, not universally compatible.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/compat.py:declared_compat",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/compat.py-resolution_matrix",
+          "raw_output": "{\"linux|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"linux|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"macos|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"macos|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"windows|1.2.0\": [\"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"windows|3.1.0\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"]}",
+          "exit_code": 0,
+          "fingerprint": "c221b7d87aa516e401329a298405a499"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0085/independent.py",
+          "raw_output": "[{\"client_version\": \"1.2.0\", \"independent\": [\"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"platform\": \"windows\"}, {\"client_version\": \"3.1.0\", \"independent\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.windows-only@1.0.0\"], \"platform\": \"windows\"}, {\"client_version\": \"1.2.0\", \"independent\": [\"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"platform\": \"macos\"}, {\"client_version\": \"3.1.0\", \"independent\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.macos-only@1.0.0\"], \"platform\": \"macos\"}, {\"client_version\": \"1.2.0\", \"independent\": [\"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"platform\": \"linux\"}, {\"client_version\": \"3.1.0\", \"independent\": [\"demo.all-platforms-min-2.5@2.5.0\", \"demo.claude-only@1.4.0\", \"demo.linux-only@1.0.0\"], \"platform\": \"linux\"}]",
+          "exit_code": 0,
+          "fingerprint": "9056c73bcf3fc518d0b6b28ae48bfbf7"
+        }
+      ],
+      "measured": {
+        "unknown_keys": [
+          "demo.empty-compat-object@0.0.1",
+          "demo.unknown-compat@9.9.9"
+        ],
+        "leaked_into_any_matrix_cell": false
+      }
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_compat_resolution.py",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_compat_resolution.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "raw_output": "ok test_per_platform\nok test_per_client\nok test_no_candidate_case\nok test_negative_control_empty_reason\nok test_unknown_not_universal\nok test_platform_aliases_and_fail_closed\nok test_max_client_and_prerelease\nok test_matrix_deterministic\nSUCCESS:test_compat_resolution"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "empty-reason-forbidden",
+      "kind": "known-broken-fixture",
+      "description": "An empty candidate set with an empty unmet_requirement must fail assert_nonempty_reason_on_empty.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "AssertionError: NEGATIVE CONTROL: empty candidate set with empty unmet_requirement",
+      "good_state_output": "requires client >= 1.0.0, you have 0.9.0"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0085-independent-set-algebra",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Unknown-compatibility default is conservative: undeclared and empty compatibility objects are subtracted before platform/client matching. Signal 2 recomputes membership by set difference and required identical sets on the 3\u00d72 matrix plus empty and client-name extras."
+  },
+  "manifest_registration": {
+    "manifest_path": "command-center/p2-wave/probes/IMP-0085/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0085.json",
+      "consumer": "command-center/p2-wave/probes/IMP-0085/probe1_resolver_sets.py",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0085/probe1_resolver_sets.py",
+        "role": "verifier",
+        "method": "command"
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0083 deterministic SAT resolver and IMP-0008 live `claude --version` negotiation are not re-implemented here; this unit is the compatibility filter the resolver calls, with fail-closed version parsing.",
+      "settling_experiment": "IMP-0083 / IMP-0008 delivery on this worktree.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:45Z",
+    "ended_at": "2026-08-25T00:58:45Z"
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "resolver-filtered-sets",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0085/probe1_resolver_sets.py"
+    },
+    {
+      "id": "probe2",
+      "role": "independent-recompute",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0085/probe2_independent_recompute.py"
+    }
+  ],
+  "cloud_ok": false,
+  "registered": true,
+  "implementation": {
+    "module": "tools/marketplace/compat.py",
+    "hook": "filter_index_for_resolution",
+    "unknown_default": "conservative-refuse",
+    "reason_example": "requires client >= 1.0.0, you have 0.9.0"
+  },
+  "does_not_claim": [
+    "cloud ok=true is delivery",
+    "global tools/command-center/unit_manifest.py --write was run",
+    "IMP-0083 SAT solver is complete on this worktree"
+  ]
+}

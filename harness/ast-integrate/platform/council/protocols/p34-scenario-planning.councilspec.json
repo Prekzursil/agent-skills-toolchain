@@ -1,0 +1,562 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p34-scenario-planning",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Identify the two most uncertain high-impact drivers, build a 2x2 of four named futures, stress-test the decision in each, and select the option that is least bad across all four.",
+    "charter": "Robustness, not expected value. This protocol deliberately REFUSES to weight the futures by probability - that is P33's job, and mixing the two hides fragility.",
+    "risk_tier": "high",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "the two drivers were shown to be independent, not two names for one driver",
+      "all four futures were stress-tested by a seat that owned only that future",
+      "the selected option is the least-bad ACROSS futures, with the worst case named"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "stratified",
+        "expertise_ranked",
+        "vendor_diverse"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 4,
+      "max_share_per_vendor": 0.7
+    },
+    "roster": [
+      {
+        "participant_id": "scenario-chair",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "facilitator",
+        "authority": "chair",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "scenario method",
+          "robustness selection"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "scenario-analyst-q1",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "strategy"
+        ],
+        "context": {
+          "briefing": "You own ONE named future. Stress-test the decision inside it only."
+        }
+      },
+      {
+        "participant_id": "scenario-analyst-q2",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "delivery risk"
+        ],
+        "context": {
+          "briefing": "You own ONE named future. Stress-test the decision inside it only."
+        }
+      },
+      {
+        "participant_id": "scenario-analyst-q3",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "risk_officer",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "risk analysis"
+        ],
+        "context": {
+          "briefing": "You own ONE named future. Stress-test the decision inside it only."
+        }
+      },
+      {
+        "participant_id": "scenario-analyst-q4",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "domain_expert",
+        "authority": "voter",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "cost and market"
+        ],
+        "context": {
+          "briefing": "You own ONE named future. Stress-test the decision inside it only."
+        }
+      },
+      {
+        "participant_id": "driver-independence-verifier",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "statistician",
+        "authority": "judge",
+        "effort": "high",
+        "independence": {
+          "sees_peers_before_first_position": true,
+          "fresh_context": false
+        },
+        "expertise": [
+          "correlation",
+          "driver selection"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        },
+        "context": {
+          "briefing": "Show the two drivers are independent. Four futures that are really one future make this protocol theatre."
+        }
+      }
+    ],
+    "role_templates": [
+      "domain_expert",
+      "risk_officer",
+      "statistician",
+      "facilitator"
+    ],
+    "information_partition": {
+      "enabled": true,
+      "strategy": "role_scoped",
+      "partitions": [
+        {
+          "partition_id": "q1-high-high",
+          "visible_to": [
+            "scenario-analyst-q1"
+          ],
+          "sources": [
+            "the decision",
+            "future q1-high-high"
+          ]
+        },
+        {
+          "partition_id": "q2-high-low",
+          "visible_to": [
+            "scenario-analyst-q2"
+          ],
+          "sources": [
+            "the decision",
+            "future q2-high-low"
+          ]
+        },
+        {
+          "partition_id": "q3-low-high",
+          "visible_to": [
+            "scenario-analyst-q3"
+          ],
+          "sources": [
+            "the decision",
+            "future q3-low-high"
+          ]
+        },
+        {
+          "partition_id": "q4-low-low",
+          "visible_to": [
+            "scenario-analyst-q4"
+          ],
+          "sources": [
+            "the decision",
+            "future q4-low-low"
+          ]
+        }
+      ]
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 3,
+    "required_artifacts": [
+      "evidence_pack",
+      "risk_list"
+    ]
+  },
+  "topology": {
+    "kind": "committee",
+    "committees": [
+      {
+        "committee_id": "q1-high-high",
+        "mandate": "stress-test the decision inside named future q1-high-high",
+        "members": [
+          "scenario-analyst-q1"
+        ]
+      },
+      {
+        "committee_id": "q2-high-low",
+        "mandate": "stress-test the decision inside named future q2-high-low",
+        "members": [
+          "scenario-analyst-q2"
+        ]
+      },
+      {
+        "committee_id": "q3-low-high",
+        "mandate": "stress-test the decision inside named future q3-low-high",
+        "members": [
+          "scenario-analyst-q3"
+        ]
+      },
+      {
+        "committee_id": "q4-low-low",
+        "mandate": "stress-test the decision inside named future q4-low-low",
+        "members": [
+          "scenario-analyst-q4"
+        ]
+      }
+    ],
+    "fan_in": {
+      "reducer": "weighted_merge",
+      "require_all_subcouncils_complete": true
+    }
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "custom_name": "driver_extraction_and_independence_check",
+        "stage_id": "drivers",
+        "rounds": 1,
+        "participants": [
+          "driver-independence-verifier",
+          "scenario-chair"
+        ],
+        "exit_when": {
+          "metric": "custom:driver_pair_correlation",
+          "op": "<=",
+          "value": 0.3,
+          "value_type": "number"
+        }
+      },
+      {
+        "kind": "scenario",
+        "stage_id": "stress-test",
+        "rounds": 2,
+        "participants": [
+          "scenario-analyst-q1",
+          "scenario-analyst-q2",
+          "scenario-analyst-q3",
+          "scenario-analyst-q4"
+        ],
+        "independent": true,
+        "quotas": {
+          "counterexamples_per_round": 2,
+          "novel_ideas_per_round": 2
+        }
+      },
+      {
+        "kind": "custom",
+        "custom_name": "robustness_scoring_across_futures",
+        "stage_id": "robustness",
+        "rounds": 1,
+        "exit_when": {
+          "weighted": {
+            "threshold": 3,
+            "clauses": [
+              {
+                "weight": 2,
+                "when": {
+                  "metric": "custom:futures_stress_tested",
+                  "op": ">=",
+                  "value": 4,
+                  "value_type": "number"
+                }
+              },
+              {
+                "weight": 1,
+                "when": {
+                  "metric": "custom:worst_case_named_per_option",
+                  "op": "==",
+                  "value": true,
+                  "value_type": "boolean"
+                }
+              },
+              {
+                "weight": 1,
+                "when": {
+                  "metric": "every_objection_addressed",
+                  "op": "==",
+                  "value": true
+                }
+              }
+            ]
+          }
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "select-robust"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 2,
+      "max": 5,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 800
+    },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "steelman_before_rebuttal": true,
+      "rebuttal_required": true,
+      "cross_examination": true,
+      "declare_confidence": true,
+      "declare_conflicts": false
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 90,
+    "turns": 35,
+    "min_engagement_turns": 2,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 2
+  },
+  "targets": {
+    "unique_ideas": 16,
+    "categories": 4,
+    "novelty_ratio": 0.5,
+    "counterexamples": 8,
+    "evidence_items": 8,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "merge"
+    }
+  },
+  "voting": {
+    "method": "score",
+    "score_scale": {
+      "min": 0,
+      "max": 4
+    },
+    "belief_aggregation": {
+      "method": "none",
+      "require_confidence_per_vote": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.7,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "ALL[custom:futures_stress_tested >= 4, custom:driver_pair_correlation <= 0.3, every_objection_addressed == true, custom:worst_case_named_per_option == true]",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "custom:futures_stress_tested",
+          "op": ">=",
+          "value": 4,
+          "value_type": "number"
+        },
+        {
+          "metric": "custom:driver_pair_correlation",
+          "op": "<=",
+          "value": 0.3,
+          "value_type": "number"
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        },
+        {
+          "metric": "custom:worst_case_named_per_option",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true,
+      "min_evidence_items": 6,
+      "min_objections_addressed": 4
+    },
+    "hard_caps": {
+      "max_rounds": 5,
+      "max_minutes": 120,
+      "on_cap": "conditional_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "if one option wins in all four quadrants, a note showing the drivers are actually discriminating"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.85,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "split_question",
+      "narrow_scope",
+      "run_experiment",
+      "chair_ruling"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "premature_convergence",
+      "echo_chamber",
+      "weak_synthesis",
+      "participant_dominance",
+      "evidence_free_majority",
+      "missing_expertise"
+    ],
+    "fast_unanimity_response": [
+      "strongest_counterexample",
+      "recruit_independent_critic",
+      "forced_dissent"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "option_cards",
+      "unresolved_unknowns",
+      "argument_ledger",
+      "votes_by_round",
+      "dissent_minority_report",
+      "transcript",
+      "final_recommendation"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "any action outside the council transcript",
+        "any write to a shared branch"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "path": "platform/council/state/p34-scenario-planning",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "P34 scenario planning 2x2 (FORECASTING)",
+    "owner": "Prekzursil",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:653",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:658",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:664",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:665"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P34 scenario-planning"
+    ],
+    "notes": "ANTI-FAILURE DEFENCES (6 declared): (1) the card's failure mode is 'four futures that are really one', defended by custom:driver_pair_correlation <= 0.3 as the drivers-stage exit AND a stopping leaf, with a verifier who cannot vote; (2) premature_convergence is blocked because the rule cannot fire until all four futures were stress-tested and every option has a named worst case; (3) echo_chamber is cut by a role_scoped partition per quadrant - a seat sees only its own future; (4) weak_synthesis is answered by score voting on a 0-4 rubric with belief_aggregation.method=none, an explicit refusal to average futures into an expected value; (5) participant_dominance is bounded by one seat per quadrant; (6) missing_expertise is why the four committees are expertise-differentiated. COMPOSABILITY DEMONSTRATED: the robustness stage exits on a WEIGHTED expression (threshold 3, quadrant coverage worth 2, worst-case naming and objection closure worth 1 each) so coverage alone cannot close it; the top-level stopping rule stays conjunctive. FAST UNANIMITY: if every quadrant owner agrees immediately, the quadrants are not discriminating - strongest_counterexample + recruit_independent_critic + forced_dissent. UNVERIFIED: the 0.3 correlation ceiling is a placeholder, and the card's check - if one option wins in all four quadrants, verify the drivers discriminate before celebrating - is encoded only as a conditional_decision requirement, not as an executable detector."
+  }
+}

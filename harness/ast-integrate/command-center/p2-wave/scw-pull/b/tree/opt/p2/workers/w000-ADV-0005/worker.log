@@ -1,0 +1,22 @@
+I'll start from the existing ADV-0005 probe tree, read what's already there, and resume delivery without touching git or the global catalog.The probe tree exists but has no `SUBAGENT-RETURN.json` yet. I'll read the handoff, return files, and the measure script next.The measure gate needs a non-BLOCKED artifact, live probe reruns, and a per-unit manifest. I'll inspect the delivery predicate, a successful sibling unit, and the existing probes.ADV-0002 is the G-1 pattern: live probes, `state=SUCCESS`, per-unit manifest. Next I’ll inspect ADV-0005 probes, extra scripts the measure would rerun, and the catalog/schema contract.Helper scripts would be picked up by the measure and some mutate the receipt. I’ll check the schema, catalog counts, and how ADV-0002 packed a green receipt.Catalog items are still 103. Helper scripts would be re-run first and mutate the receipt, and probe1 would crash on missing `agent-self`. I’ll pin those, then re-run the named probes.Named probes are hardened and mutators are skipped. Next I’ll add the packer, then re-run the live probes.Pack succeeded. `verify_fields.py` resolves the repo one directory too high, which would fail the measure rerun — I'll fix that path.**SUCCESS:delivered ADV-0005** `predicate=delivered state=SUCCESS probes=4 raws=4 notes=control_negative.py:0,probe1_blind.py:0,probe2_settle.py:0,verify_fields.py:0`
+
+G-1 for this unit is green. The existing probe tree was resumed, not rebuilt. Live named probes re-ran to exit 0, the catalog receipt is `state=SUCCESS` (not BLOCKED), and the per-unit manifest row matches the live LF sha256.
+
+### What landed
+- Receipt: `command-center/adversarial/ADV-0005-p0-p1-fresh-context-rederivation.json` (36,954 bytes, sha256 `d00f10fc9933ccacddebebc21c0461c067904ae14039e428a214b7cfb5cce8ab`)
+- Per-unit row: `command-center/p2-wave/probes/ADV-0005/UNIT-ARTIFACT-MANIFEST.json`
+- Return: `command-center/p2-wave/probes/ADV-0005/SUBAGENT-RETURN.json`
+
+### Live probes
+| Probe | Result |
+|---|---|
+| Probe 1 blind | `blinding_held=true`, 9 files, 0 violations |
+| Probe 2 unblind/settle | 12 claims, 5 AGREE, 7 DISAGREE, vote banned |
+| Negative control | planted 3 REFUTED, known-true 3 CONFIRMED, `--leak` fires, good run silent |
+
+Blind verdicts on this Linux tree: Q1 PARTIAL, Q2 CONFIRMED, Q3 PARTIAL, Q4 CONFIRMED, Q5/Q6 REFUTED (no `agent-self` tree here), Q7/Q8/Q12 NOT-CHECKED, Q9/Q10 REFUTED, Q11 CONFIRMED.
+
+### Constraints kept
+No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write` on the global catalog. No key rotation or printing. Archived mutators were prefixed `_pack_`/`_status_` so the measure re-runs the named probes instead of rewriting the receipt.
+
+Residuals that stay open and are **not** G-1 blockers: D1 (cross-vendor credential rail), D3 (CC-7 rate still unmeasurable without `_USER-PROMPTS.md`), and 0/12 registry claims carrying a severity field.

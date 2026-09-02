@@ -1,0 +1,50 @@
+{
+  "id": "colliding-internal-id",
+  "parent": {
+    "id": "parent-meta",
+    "nodes": [
+      {
+        "kind": "subworkflow",
+        "id": "left",
+        "workflow_ref": "inner-shared",
+        "id_namespace": "sib.left",
+        "param_bindings": {"label": "ALPHA"}
+      },
+      {
+        "kind": "subworkflow",
+        "id": "right",
+        "workflow_ref": "inner-shared",
+        "id_namespace": "sib.right",
+        "param_bindings": {"label": "BETA"}
+      }
+    ]
+  },
+  "workflows": {
+    "inner-shared": {
+      "id": "inner-shared",
+      "nodes": [
+        {
+          "kind": "task",
+          "id": "shared-step",
+          "budget": 7,
+          "write_name": "out.txt",
+          "write_from_param": "label"
+        }
+      ]
+    }
+  },
+  "expected": {
+    "internal_ids_identical": true,
+    "internal_unit_id": "shared-step",
+    "distinct_receipt_ids": [
+      "sib.left::shared-step",
+      "sib.right::shared-step"
+    ],
+    "payloads": {
+      "sib.left::shared-step": "ALPHA",
+      "sib.right::shared-step": "BETA"
+    },
+    "child_budgets": {"sib.left": 7, "sib.right": 7},
+    "parent_budget": 14
+  }
+}

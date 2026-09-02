@@ -1,0 +1,26 @@
+I'll start from the existing TST-0144 probe tree and measure what's already there before changing anything.The probe dir only has a cloud-ok refute so far. Next I’ll read that plus the unit catalog and a delivered unit’s artifact shape.I’ll load the catalog contract, the live receipt, a delivered unit’s artifact shape, and whether IMP-0229 or probe sources exist.I’ll inspect a delivered neighbor, `artifact_delivered`, the receipt schema, and whether a real parse-cache consumer exists now.I'll look for a real production parse-cache consumer and for any TST units that already went contract-green.This tree is a sparse seed: the completion predicate is missing. I’ll look at worker trees and vendor the production reducer the same way ADV-0085 did.I’ll bind live probes to the production parse and cache surfaces on this tree, then pack a SUCCESS receipt and the per-unit manifest.Cache import works. Next I’ll generate the 224-byte fixture and write the named probes.Writing the shared harness, named probes, and fixtures next.Probes all exit 0. Next I’ll pack the SUCCESS receipt and the per-unit manifest from those live outputs.**SUCCESS:delivered** for TST-0144.
+
+`python command-center/p2-wave/_measure_one_delivered.py TST-0144` printed:
+
+`SUCCESS:delivered TST-0144 predicate=delivered state=SUCCESS probes=4 raws=4 notes=control_lenient.py:0,probe_cache_inspection.py:0,probe_common.py:0,probe_parse_error.py:0`
+
+CLOUD-OK-REFUTE was right that harvest `UNIT-COMPLETE` was not delivery: the named scripts were missing, the receipt was `BLOCKED`, T4 was `NOT-RUN`, and T5 was `FAIL`. This pass restored live probes on this tree instead of flipping that harvest JSON.
+
+**What the probes measured**
+- Truncated 224-byte JSON fails `json.loads` at byte 224 (`JSONDecodeError`).
+- `ready_units.artifact_delivered` returns `unparseable:JSONDecodeError` and keeps no object.
+- A parse-gated consumer over `platform/plugin/cache.py` stores nothing for the truncated id and stores the full document for the complete control.
+- A lenient repair parser incorrectly accepts and caches the truncated fixture, so the negative control goes red.
+
+**Why those surfaces:** `platform/lib/completion_predicate.py` is absent on this sparse seed, `IMP-0229.json` is absent, and B06/B07 are allocation buckets. The probes bind the production parse/cache surfaces that actually exist here. That is not the harvest probe-local adapter.
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/receipts/TST-0144.json` | Catalog receipt, `state=SUCCESS`, 29467 bytes |
+| `command-center/p2-wave/probes/TST-0144/UNIT-ARTIFACT-MANIFEST.json` | Per-unit row, LF sha256 `648bbeb21873eec82c5310ea7add4ed16d83f5d082efde79531f3b1029160e76` |
+| `command-center/p2-wave/probes/TST-0144/SUBAGENT-RETURN.json` | Handoff |
+
+Global `unit_manifest.py --write` was not run. Git was not mutated. Keys were not touched. `finish-everything-close` / `p2-cloud-ok-deliver` were not relaunched.
+
+Open residuals (P2, not delivery blockers): the canonical `_c4_*` reducer is still missing on this seed, and a second-vendor reviewer who did not author the harness was not dispatched.

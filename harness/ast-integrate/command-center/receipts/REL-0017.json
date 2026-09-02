@@ -1,0 +1,473 @@
+{
+  "unit_id": "REL-0017",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:REL-0017",
+  "completion_sentinel": "SUCCESS:REL-0017",
+  "kind": "lifecycle-drill-receipt",
+  "drill_kind": "legacy-hand-managed-to-plugin-migration",
+  "schema_version": 1,
+  "title": "Legacy hand-managed layout migration, dry-run first, on a copy, refusing one-directional overwrite",
+  "question": "Implementation target: rehearse converting the pre-plugin hand-managed layout -- loose skills in the live tree, hand-edited hook registrations, rule files modified in place -- into the plugin-managed layout. Work on a copy of a captured real layout, run the conversion in dry-run mode first and require the printed plan to match the applied result exactly, and demonstrate reversibility by restoring from the backup the conversion takes. Where the source holds content the target does not, the conversion must preserve it or refuse.",
+  "profile": {
+    "isolated": true,
+    "owner_home_untouched": true,
+    "isolation_assertion": "assert_copy refuses Path.home()/.claude and the frozen fixtures/captured original. The conversion ran only under copy_path=/tmp/rel0017-emit-ucut5n5f. Host live profiles were not read or written.",
+    "copy_path": "/tmp/rel0017-emit-ucut5n5f",
+    "kind": "tempfile-copy-of-captured-layout"
+  },
+  "isolation": {
+    "ran_against_copy": true,
+    "copy_path": "/tmp/rel0017-emit-ucut5n5f",
+    "hand_copy_path": "/tmp/rel0017-emit-ucut5n5f/hand",
+    "plugin_copy_path": "/tmp/rel0017-emit-ucut5n5f/plugin",
+    "captured_original": "/opt/p2/ast-integrate/command-center/p2-wave/probes/REL-0017/fixtures/captured",
+    "live_tree_untouched": true,
+    "isolation_assertion": "assert_copy refuses Path.home()/.claude and the frozen fixtures/captured original. The conversion ran only under copy_path=/tmp/rel0017-emit-ucut5n5f. Host live profiles were not read or written.",
+    "negative_control": {
+      "pass": true,
+      "live_path_refused": true,
+      "captured_original_refused": true,
+      "error": "refusing to touch live profile path /root/.claude/rel0017-must-not-exist (marker /root/.claude) | refusing to mutate the captured original /opt/p2/ast-integrate/command-center/p2-wave/probes/REL-0017/fixtures/captured/plugin"
+    }
+  },
+  "operations": [
+    {
+      "name": "dry-run-plan",
+      "paths_hashed": 11,
+      "paths_skipped": 4,
+      "paths_altered": 0,
+      "skipped_are_not_checked": true,
+      "declared_change_set": {
+        "creates": [
+          "skills/owner-skill/SKILL.md",
+          "rules/rule.owner-local.md",
+          "hooks/hook.owner-local.json",
+          "hooks/owner-local.sh"
+        ],
+        "mutates": [
+          "plugin.json"
+        ],
+        "removes": []
+      }
+    },
+    {
+      "name": "apply-on-copy",
+      "paths_hashed": 11,
+      "paths_skipped": 5,
+      "paths_altered": 5,
+      "skipped_are_not_checked": true,
+      "declared_change_set": {
+        "creates": [
+          "skills/owner-skill/SKILL.md",
+          "rules/rule.owner-local.md",
+          "hooks/hook.owner-local.json",
+          "hooks/owner-local.sh"
+        ],
+        "mutates": [
+          "plugin.json"
+        ],
+        "removes": []
+      }
+    },
+    {
+      "name": "restore-from-conversion-backup",
+      "paths_hashed": 7,
+      "paths_skipped": 0,
+      "paths_altered": 0,
+      "skipped_are_not_checked": true,
+      "declared_change_set": {
+        "creates": [],
+        "mutates": [],
+        "removes": []
+      }
+    }
+  ],
+  "drill": {
+    "id": "REL-0017-hand-to-plugin",
+    "mode": "dry-run-then-apply-on-copy",
+    "backup_path": "/tmp/rel0017-emit-ucut5n5f/backup",
+    "resume_policy": "resumable with mandatory restore: a dirty resume marker rolls the plugin copy back to the conversion backup before the next attempt",
+    "steps": [
+      "Copy fixtures/captured/{hand,plugin} into a tempfile worktree.",
+      "Print the dry-run mutation plan (create/overwrite/skip/refuse) without writing.",
+      "Snapshot the plugin copy as the conversion backup.",
+      "Apply the plan; measure the tree delta independently; require empty diff vs the plan writes.",
+      "Restore from that backup and require the raw sha256 hash set to match pre-apply."
+    ]
+  },
+  "dry_run_plan": [
+    {
+      "op": "create",
+      "source_rel": "skills/owner-skill.md",
+      "target_rel": "skills/owner-skill/SKILL.md",
+      "classification": "SOURCE-ONLY",
+      "reason": "create from skills/owner-skill.md (SOURCE-ONLY)",
+      "content_sha256": "2e51709e6722c0d22e0fd00acd14c9ff13628a1e9094ac335ffe8820c8c7a9a6",
+      "bytes": 157
+    },
+    {
+      "op": "skip",
+      "source_rel": "skills/skill.council.md",
+      "target_rel": "skills/skill.council/SKILL.md",
+      "classification": "BYTE-IDENTICAL",
+      "reason": "BYTE-IDENTICAL classified unchanged; no write",
+      "content_sha256": null,
+      "bytes": 0
+    },
+    {
+      "op": "skip",
+      "source_rel": "rules/rule.no-secrets.md",
+      "target_rel": "rules/rule.no-secrets.md",
+      "classification": "EOL-ONLY",
+      "reason": "EOL-ONLY classified unchanged; no write",
+      "content_sha256": null,
+      "bytes": 0
+    },
+    {
+      "op": "create",
+      "source_rel": "rules/rule.owner-local.md",
+      "target_rel": "rules/rule.owner-local.md",
+      "classification": "SOURCE-ONLY",
+      "reason": "create from rules/rule.owner-local.md (SOURCE-ONLY)",
+      "content_sha256": "7ca456abe455e2f7ba9e28096e773593e9bc751c74a1251fa3e4043f369ddce4",
+      "bytes": 78
+    },
+    {
+      "op": "refuse",
+      "source_rel": "rules/rule.security.md",
+      "target_rel": "rules/rule.security.md",
+      "classification": "BOTH-UNIQUE",
+      "reason": "one-directional overwrite refused: unique content on the other side (classification=BOTH-UNIQUE, policy=default)",
+      "content_sha256": null,
+      "bytes": 0
+    },
+    {
+      "op": "skip",
+      "source_rel": "hooks.json",
+      "target_rel": "hooks/hook.pre-tool.json",
+      "classification": "BYTE-IDENTICAL",
+      "reason": "BYTE-IDENTICAL classified unchanged; no write",
+      "content_sha256": null,
+      "bytes": 0
+    },
+    {
+      "op": "create",
+      "source_rel": "hooks.json",
+      "target_rel": "hooks/hook.owner-local.json",
+      "classification": "SOURCE-ONLY",
+      "reason": "create from hooks.json (SOURCE-ONLY)",
+      "content_sha256": "09e858385a3c5600a182864d13de06b151870f0dca260046241e42daedefa29f",
+      "bytes": 105
+    },
+    {
+      "op": "create",
+      "source_rel": "hooks/owner-local.sh",
+      "target_rel": "hooks/owner-local.sh",
+      "classification": "SOURCE-ONLY",
+      "reason": "create from hooks/owner-local.sh (SOURCE-ONLY)",
+      "content_sha256": "51c0ef0480ec8a18cc5a15c00f0418d1cddc9a0fcf906e1f6ee6b787e424175a",
+      "bytes": 41
+    },
+    {
+      "op": "skip",
+      "source_rel": "hooks/pre-tool.sh",
+      "target_rel": "hooks/pre-tool.sh",
+      "classification": "BYTE-IDENTICAL",
+      "reason": "BYTE-IDENTICAL classified unchanged; no write",
+      "content_sha256": null,
+      "bytes": 0
+    },
+    {
+      "op": "overwrite",
+      "source_rel": "plugin.json",
+      "target_rel": "plugin.json",
+      "classification": "BOTH-UNIQUE",
+      "reason": "add preserved source-unique listings; keep plugin-only paths",
+      "content_sha256": "f40a68c17a80d07afd01f0f8366bcbd1c5136fdb3a1ffb931e96f9dab82ce4a2",
+      "bytes": 430
+    }
+  ],
+  "applied_diff": [
+    {
+      "op": "create",
+      "target_rel": "hooks/hook.owner-local.json",
+      "content_sha256": "09e858385a3c5600a182864d13de06b151870f0dca260046241e42daedefa29f",
+      "bytes": 105
+    },
+    {
+      "op": "create",
+      "target_rel": "hooks/owner-local.sh",
+      "content_sha256": "51c0ef0480ec8a18cc5a15c00f0418d1cddc9a0fcf906e1f6ee6b787e424175a",
+      "bytes": 41
+    },
+    {
+      "op": "overwrite",
+      "target_rel": "plugin.json",
+      "content_sha256": "f40a68c17a80d07afd01f0f8366bcbd1c5136fdb3a1ffb931e96f9dab82ce4a2",
+      "bytes": 430
+    },
+    {
+      "op": "create",
+      "target_rel": "rules/rule.owner-local.md",
+      "content_sha256": "7ca456abe455e2f7ba9e28096e773593e9bc751c74a1251fa3e4043f369ddce4",
+      "bytes": 78
+    },
+    {
+      "op": "create",
+      "target_rel": "skills/owner-skill/SKILL.md",
+      "content_sha256": "2e51709e6722c0d22e0fd00acd14c9ff13628a1e9094ac335ffe8820c8c7a9a6",
+      "bytes": 157
+    }
+  ],
+  "plan_vs_applied_diff": [],
+  "plan_applied_identical": true,
+  "source_unique": {
+    "preserved": 4,
+    "refused": 1,
+    "preserved_paths": [
+      "skills/owner-skill/SKILL.md",
+      "rules/rule.owner-local.md",
+      "hooks/hook.owner-local.json",
+      "hooks/owner-local.sh"
+    ],
+    "refused_paths": [
+      "rules/rule.security.md"
+    ],
+    "preserved_source_rels": [
+      "skills/owner-skill.md",
+      "rules/rule.owner-local.md",
+      "hooks.json",
+      "hooks/owner-local.sh"
+    ],
+    "refused_source_rels": [
+      "rules/rule.security.md"
+    ]
+  },
+  "source_unique_preserved_versus_refused": {
+    "preserved": 4,
+    "refused": 1,
+    "note": "preserved = SOURCE-ONLY files copied into the plugin layout with raw sha256 intact; refused = both-unique (or target-superset) paths that would destroy unique bytes on a one-directional copy"
+  },
+  "restore": {
+    "from_conversion_backup": true,
+    "backup_path": "/tmp/rel0017-emit-ucut5n5f/backup",
+    "hash_set_match": true,
+    "files": 7,
+    "algorithm": "sha256 of raw bytes (CRLF preserved; not LF-normalised)"
+  },
+  "eol_classification": {
+    "path": "rules/rule.no-secrets.md",
+    "classification": "EOL-ONLY",
+    "op": "skip",
+    "naive_without_eol_norm": "CONFLICT",
+    "honest_unchanged": true
+  },
+  "divergence_honesty": {
+    "catalog_pin_5_of_88": "WORK-UNIT-CATALOG cites a 2026-08-09 estate measurement of 5 of 88 live rule files identical to repository counterparts. That number is a historical pin, not today's host measurement.",
+    "host_live_trees_read": false,
+    "fixture_two_directional": true,
+    "fixture_both_unique_path": "rules/rule.security.md",
+    "b02_receipt_on_disk": false,
+    "rel0002_receipt_on_disk": false,
+    "inverses_encoded_in": "command-center/p2-wave/probes/REL-0017/migrate.py",
+    "invariants": [
+      "an inverse may never remove a path the installer did not create",
+      "an inverse may never remove a command, skill or setting that pre-dated the install"
+    ]
+  },
+  "planted_owner_file": {
+    "source_rel": "skills/owner-skill.md",
+    "target_rel": "skills/owner-skill/SKILL.md",
+    "line": "OWNER-AUTHORED:REL-0017-planted-do-not-destroy",
+    "take_target_policy_refused": true,
+    "survived_honest_apply_hash_intact": true,
+    "sha256": "2e51709e6722c0d22e0fd00acd14c9ff13628a1e9094ac335ffe8820c8c7a9a6"
+  },
+  "inverses": {
+    "create_file": {
+      "inverse": "delete_file",
+      "total": true,
+      "residue": null,
+      "invariant": "after inverse, the path is absent AND the path is in the installer_created_set recorded at apply time",
+      "may_remove_preexisting": false,
+      "impact_if_irreversible": null
+    },
+    "overwrite_file": {
+      "inverse": "restore_from_backup",
+      "total": true,
+      "residue": null,
+      "invariant": "after inverse, bytes equal the conversion backup snapshot",
+      "may_remove_preexisting": false,
+      "impact_if_irreversible": null
+    },
+    "backup_tree": {
+      "inverse": "none_required",
+      "total": true,
+      "residue": null,
+      "invariant": "backup directory remains readable until restore completes",
+      "may_remove_preexisting": false,
+      "impact_if_irreversible": null
+    },
+    "delete_file": {
+      "inverse": "restore_from_backup",
+      "total": true,
+      "residue": null,
+      "invariant": "delete is only legal for installer_created_set members",
+      "may_remove_preexisting": false,
+      "impact_if_irreversible": null
+    }
+  },
+  "inverse_control": {
+    "pass": true,
+    "attempted_path": "rules/rule.plugin-only.md",
+    "in_created_set": false,
+    "invariant": "an inverse may never remove a path the installer did not create",
+    "error": "an inverse may never remove a path the installer did not create: rules/rule.plugin-only.md not in created_set"
+  },
+  "created_set": [
+    "hooks/hook.owner-local.json",
+    "hooks/owner-local.sh",
+    "rules/rule.owner-local.md",
+    "skills/owner-skill/SKILL.md"
+  ],
+  "tests": [
+    {
+      "id": "T1-dry-run-vs-applied",
+      "description": "Dry-run plan versus independently measured applied tree delta: the diff must be empty.",
+      "detail": "plan_vs_applied_diff is empty; predicted writes equal the measured tree delta (5 writes)",
+      "result": "PASS",
+      "diff_count": 0
+    },
+    {
+      "id": "T2-source-unique-hash",
+      "description": "A file existing only in the source layout survives the conversion with its hash intact.",
+      "detail": "SOURCE-ONLY files copied into the plugin layout kept raw sha256: skills/owner-skill/SKILL.md, rules/rule.owner-local.md, hooks/hook.owner-local.json, hooks/owner-local.sh",
+      "result": "PASS",
+      "preserved_paths": [
+        "skills/owner-skill/SKILL.md",
+        "rules/rule.owner-local.md",
+        "hooks/hook.owner-local.json",
+        "hooks/owner-local.sh"
+      ]
+    },
+    {
+      "id": "T3-restore-backup-hash-set",
+      "description": "Restore from the conversion's own backup returns the tree to its exact pre-conversion hash set.",
+      "detail": "sha256(raw bytes) over 7 files matched the pre-apply hash set after restore_tree(backup)",
+      "result": "PASS",
+      "files": 7
+    },
+    {
+      "id": "T4-eol-unchanged",
+      "description": "A file differing only in line endings is classified unchanged, not as a conflict.",
+      "detail": "rules/rule.no-secrets.md classified EOL-ONLY op=skip; naive raw-byte classifier said CONFLICT",
+      "result": "PASS",
+      "honest": "EOL-ONLY",
+      "naive_without_eol_norm": "CONFLICT"
+    }
+  ],
+  "evidence": {
+    "hashed_path_count": 11,
+    "skip_folded_into_pass": false,
+    "surfaces_not_checked": [
+      "owner live ~/.claude and ~/.cursor profiles (absent or forbidden)",
+      "REL-0002 receipt on disk (inverses encoded locally from the catalog contract)",
+      "B02 current-state audit receipt (5/88 is a catalog pin, not remeasured here)"
+    ],
+    "side_by_side": {
+      "claim": "dry_run_plan writes and applied_diff (measured post-apply tree delta) are identical; plan_vs_applied_diff is []",
+      "anchor": "command-center/receipts/REL-0017.json:dry_run_plan|applied_diff|plan_vs_applied_diff"
+    },
+    "copy_path": {
+      "claim": "operation ran against a copy, copy_path=/tmp/rel0017-emit-ucut5n5f; captured original and live profiles were not mutated",
+      "anchor": "command-center/receipts/REL-0017.json:isolation.copy_path"
+    },
+    "preserved_versus_refused": {
+      "claim": "4 source-unique files preserved, 1 both-unique paths refused",
+      "anchor": "command-center/receipts/REL-0017.json:source_unique"
+    },
+    "restore_hash_set": {
+      "claim": "restore from /tmp/rel0017-emit-ucut5n5f/backup matched the 7-file pre-conversion raw hash set",
+      "anchor": "command-center/receipts/REL-0017.json:restore"
+    }
+  },
+  "reviewer": {
+    "reviewer_id": "REL-0017-probe2-planted-owner-file",
+    "verdict": "PASS",
+    "independent": true,
+    "planted_owner_file_caught": true,
+    "scope_not_agreement": true,
+    "notes": "Probe 2 attempts the take-target lifecycle path against the planted owner-authored skill and requires REFUSE. Probe 1 reads a different field (dry-run vs measured apply). Cloud ok=true is not delivery."
+  },
+  "report": {
+    "kind": "lifecycle-drill-receipt",
+    "observations": [
+      {
+        "name": "dry-run-plan-versus-measured-apply",
+        "measured": true,
+        "method": "plan_vs_applied independent tree-delta compare",
+        "anchor": "command-center/receipts/REL-0017.json:plan_vs_applied_diff"
+      },
+      {
+        "name": "source-unique-preserved-versus-refused",
+        "measured": "4/1",
+        "method": "raw sha256 of SOURCE-ONLY creates; BOTH-UNIQUE refuse",
+        "anchor": "command-center/receipts/REL-0017.json:source_unique"
+      },
+      {
+        "name": "restore-from-conversion-backup-hash-set",
+        "measured": 7,
+        "method": "sha256 of raw bytes before apply vs after restore_tree",
+        "anchor": "command-center/receipts/REL-0017.json:restore"
+      },
+      {
+        "name": "eol-only-classified-unchanged",
+        "measured": "EOL-ONLY",
+        "method": "honest classify_pair vs naive byte-unequal CONFLICT",
+        "anchor": "command-center/receipts/REL-0017.json:eol_classification"
+      }
+    ],
+    "control_ids": [
+      "isolation-negative-control-live-profile-and-captured-original",
+      "naive-eol-byte-compare-conflict",
+      "planted-owner-file-take-target-refuse",
+      "inverse-no-remove-foreign-plugin-only"
+    ]
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "dry-run-identity",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0017/probe1_dryrun_identity.py"
+    },
+    {
+      "id": "probe2",
+      "role": "restore-eol-oracle",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0017/probe2_restore_eol.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/REL-0017.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/lifecycle-drill-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "cloud_ok": false,
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "migration-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "min_bytes_threshold": 2048,
+  "timestamps": {
+    "ended_at": "2026-08-25T00:55:37Z"
+  },
+  "answer": "Hand-to-plugin conversion rehearsed on copy /tmp/rel0017-emit-ucut5n5f. Dry-run vs measured apply diff empty. Source-unique preserved=4 refused=1. Restore hash-set match on 7 files. EOL-only classified unchanged (naive byte compare says CONFLICT). Planted owner file skills/owner-skill/SKILL.md caught. SUCCESS:REL-0017"
+}

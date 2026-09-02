@@ -1,0 +1,12 @@
+I'll start from the existing ADV-0087 probe tree, read any SUBAGENT-RETURN, and resume rather than scrap built work.The probe tree is already populated. Next I’ll read the return files, the measurer, and the unit contract so we resume from that state.P2-DELIVER-HANDOFF already claims delivery; I’ll check live artifacts, probes, and the catalog contract against that claim.I’ll run the live measurer and inspect `artifact_delivered` plus a recently delivered sibling so we know what still fails.Probe 1 fails on missing architecture excerpts. I’ll inspect fixture construction and what’s actually on disk.Architecture sources are missing on this tree; I’ll resume from the existing fixtures and make historical-scope fail closed instead of crashing.Named probes exited 0. Next I’ll pack the receipt from this tree’s live historical-scope measurement.**SUCCESS:delivered** `ADV-0087 predicate=delivered state=SUCCESS probes=2 raws=6 notes=probe1_blind.py:0,probe2_label_swap.py:0`
+
+Resumed the existing probe tree. Live measure was red because `probe1_blind.py` required six `platform/architecture` excerpts, and that directory is not on this Linux tree. That is not the same structural reason as the two CLOUD-OK file-only strikes, so the unit was not parked.
+
+**Strike 1 (resume, not a rebuild):** `lib/judge.py` now loads the already-captured six pair cards from `fixtures.json` when live architecture docs are missing, and `historical_scope` records `workflow_exists=false` instead of crashing. Both named probes then re-ran to exit 0 (0/6 blind flips, 0/6 unbiased label-swap flips, 6/6 biased-judge flips; stability GREEN / mutant RED).
+
+**Writes**
+- `command-center/adversarial/ADV-0087-judge-same-vendor-bias.json` — `state=SUCCESS`, schema 0 errors, overall_verdict `PARTIAL`
+- `command-center/p2-wave/probes/ADV-0087/UNIT-ARTIFACT-MANIFEST.json` — path + LF sha256 `5dcf66a70148b587f25bafaf43616339bc16440f62aba02898c3851127bb7b46` (100514 bytes)
+- `command-center/p2-wave/probes/ADV-0087/SUBAGENT-RETURN.json`
+
+Historical own-vendor and own-prior-output targets stay **NOT-CHECKED** (allowed catalog verdicts). CLOUD-OK harvest `unit_complete=true` is not treated as delivery. No git mutation and no `unit_manifest.py --write`.

@@ -1,0 +1,96 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNF-0160/confirmation-record.local.schema.json",
+  "title": "CNF-0160 confirmation record (unit-local; global confirmation-record.schema.json is CNF-0129)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "claim_id",
+    "state",
+    "sentinel",
+    "verdict",
+    "confirmer",
+    "blinding_attestation_hash",
+    "baseline_repro",
+    "corrected_repro",
+    "rollback_repro",
+    "regression_diff",
+    "discrepancies",
+    "source_probe",
+    "verifier_probe",
+    "residual_caveat",
+    "recruitment_rule",
+    "trigger_evaluations",
+    "tests"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNF-0160" },
+    "claim_id": { "type": "string", "minLength": 8 },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNF-0160" },
+    "verdict": {
+      "type": "string",
+      "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+    },
+    "confirmer": {
+      "type": "object",
+      "required": ["identity", "vendor"],
+      "properties": {
+        "identity": { "type": "string", "minLength": 3 },
+        "vendor": { "type": "string", "minLength": 3 }
+      }
+    },
+    "blinding_attestation_hash": { "type": "string", "minLength": 32 },
+    "baseline_repro": { "type": "string", "minLength": 16 },
+    "corrected_repro": { "type": "string", "minLength": 16 },
+    "rollback_repro": { "type": "string", "minLength": 16 },
+    "regression_diff": { "type": "string", "minLength": 8 },
+    "discrepancies": { "type": "array" },
+    "source_probe": {
+      "type": "object",
+      "required": ["id", "command", "fingerprint"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "command": { "type": "string", "minLength": 8 },
+        "fingerprint": { "type": "string", "minLength": 16 }
+      }
+    },
+    "verifier_probe": {
+      "type": "object",
+      "required": ["id", "command", "fingerprint"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "command": { "type": "string", "minLength": 8 },
+        "fingerprint": { "type": "string", "minLength": 16 }
+      }
+    },
+    "residual_caveat": { "type": "string", "minLength": 24 },
+    "recruitment_rule": { "type": "object" },
+    "trigger_evaluations": {
+      "type": "array",
+      "minItems": 1
+    },
+    "tests": { "type": "object" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "verdict": { "enum": ["CONFIRMED", "REFUTED"] } },
+        "required": ["verdict"]
+      },
+      "then": {
+        "required": ["source_probe"],
+        "properties": {
+          "source_probe": {
+            "type": "object",
+            "required": ["id", "command", "fingerprint"]
+          }
+        }
+      }
+    }
+  ]
+}

@@ -1,0 +1,459 @@
+{
+  "artifacts": [
+    {
+      "bytes": 19169,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/phase3/[REDACTED]/SECURITY.json",
+      "role": "primary",
+      "sha256": "6166835be8a7a4818cd7e65701429ad0d54087bf8b8388abaeec45bcbcf3dd84"
+    }
+  ],
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/phase3/[REDACTED]/SECURITY.json",
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python platform/lib/schema_resolver.py validate command-center/phase3/[REDACTED]/SECURITY.json",
+        "exit_code": 0,
+        "fingerprint": "c277e121617917552ff08713ecce1212",
+        "method": "schema-validate",
+        "raw_output": "SUCCESS:schema-valid",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/phase3/[REDACTED]/SECURITY.json",
+      "claim": "[REDACTED] catalog output_path exists, parses, and is registered as the primary artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "stat command-center/phase3/[REDACTED]/SECURITY.json",
+          "exit_code": 0,
+          "fingerprint": "2c5ea3b63e1a53ffefeb9f883edfb373",
+          "method": "file-read",
+          "raw_output": "bytes=19169 sha256=6166835be8a7a4818cd7e65701429ad0d54087bf8b8388abaeec45bcbcf3dd84",
+          "role": "source"
+        },
+        {
+          "command": "validate_artifact [REDACTED]",
+          "exit_code": 0,
+          "fingerprint": "72cfc725379a1c6852bc4c6289ca5f75",
+          "method": "schema-validate",
+          "raw_output": "schema-check",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/[REDACTED]",
+      "claim": "[REDACTED] named probes/schema contract were exercised against the live artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py [REDACTED]",
+          "exit_code": 0,
+          "fingerprint": "7acca6c68916918c01427032e790446c",
+          "method": "command",
+          "raw_output": "SUCCESS:delivered",
+          "role": "source"
+        },
+        {
+          "command": "ready_units.artifact_delivered [REDACTED]",
+          "exit_code": 0,
+          "fingerprint": "2f85ce03fcbb94adc6d06276a1cca4e8",
+          "method": "static-analysis",
+          "raw_output": "schema-valid",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "legacy_root": {
+      "adv_rebuild_circle": false,
+      "answer": "[REDACTED] execution is refuse-by-default until verify_package passes metadata, exact lockfile identity, private-only source, permission subset, freshness-bounded CRL, and HMAC-SHA256 over canonical bytes. Path coverage (AST) shows one sink caller (_after_choke) with choke lineno before sink lineno; a smuggle_unsigned mutant adds a second sink caller and the detector goes red. Unsigned-but-well-formed metadata is refused (signature-verification-failed) on every public path including execute_cached. [REDACTED] DESIGN.json is absent ([REDACTED]); this unit specifies the choke without rebuilding the dossier. SUCCESS:[REDACTED]",
+      "architecture_class": "[REDACTED]",
+      "architecture_id": "[REDACTED]",
+      "attack_classes": [
+        {
+          "design_path": {
+            "anchor": "command-center/p2-wave/probes/[REDACTED]/verify.py:25",
+            "gate": "permissions-subset-allowlist",
+            "line": 25,
+            "path": "command-center/p2-wave/probes/[REDACTED]/verify.py",
+            "snippet": "REFUSE_OVER_PERMISSION = \"permissions-not-subset-of-allowlist\""
+          },
+          "id": "malicious-or-over-permissioned",
+          "mapping": "event-stream shipped a payload with more capability than consumers had reason to grant. verify_package refuses any permission not in the lockfile allowlist before the sink.",
+          "prior_art": {
+            "dated": "2018-11-26",
+            "incident": "npm event-stream / flatmap-stream",
+            "url": "https://blog.npmjs.org/post/180565383195/details-about-the-event-stream-incident"
+          },
+          "title": "Malicious or over-permissioned package"
+        },
+        {
+          "design_path": {
+            "anchor": "command-center/p2-wave/probes/[REDACTED]/verify.py:21",
+            "gate": "exact-lockfile-id-and-version",
+            "line": 21,
+            "path": "command-center/p2-wave/probes/[REDACTED]/verify.py",
+            "snippet": "REFUSE_TYPOSQUAT = \"package-id-not-exact-lockfile-match\""
+          },
+          "id": "typosquat",
+          "mapping": "crossenv existed because a near-name was installable. This client requires package.id == lockfile.packages[id].id and matching version; skill.helo is not skill.hello.",
+          "prior_art": {
+            "dated": "2017-08-02",
+            "incident": "npm crossenv vs cross-env",
+            "url": "https://blog.npmjs.org/post/163723642530/crossenv-malware-on-the-npm-registry"
+          },
+          "title": "Typosquatted package id"
+        },
+        {
+          "design_path": {
+            "anchor": "command-center/p2-wave/probes/[REDACTED]/verify.py:28",
+            "gate": "hmac-sha256-over-canonical-bytes",
+            "line": 28,
+            "path": "command-center/p2-wave/probes/[REDACTED]/verify.py",
+            "snippet": "REFUSE_SIGNATURE = \"signature-verification-failed\""
+          },
+          "id": "signature-stripped",
+          "mapping": "Codecov customers ran an unsigned script whose bytes had changed. Metadata-valid packages with a missing or wrong hmac-sha256 MAC are refused at the signature step; execute_package_content is not called.",
+          "prior_art": {
+            "dated": "2021-04-01",
+            "incident": "Codecov bash uploader modification",
+            "url": "https://about.codecov.io/security-update/"
+          },
+          "title": "Unsigned or signature-stripped artifact"
+        },
+        {
+          "design_path": {
+            "anchor": "command-center/p2-wave/probes/[REDACTED]/verify.py:23",
+            "gate": "no-public-registry-fallback",
+            "line": 23,
+            "path": "command-center/p2-wave/probes/[REDACTED]/verify.py",
+            "snippet": "REFUSE_PUBLIC_FALLBACK = \"public-registry-fallback-forbidden\""
+          },
+          "id": "dependency-confusion",
+          "mapping": "Birsan's installers consulted a public index when a private name collided. This client has no fetch_public path (AST-proven) and refuses allow_public_fallback=true and any source_registry other than the private index id.",
+          "prior_art": {
+            "dated": "2021-02-09",
+            "incident": "Alex Birsan dependency confusion",
+            "url": "https://medium.com/@alex.birsan/dependency-confusion-4a5d60fec610"
+          },
+          "title": "Private-mirror vs public-index confusion"
+        },
+        {
+          "design_path": {
+            "anchor": "command-center/p2-wave/probes/[REDACTED]/client.py:62",
+            "gate": "re-verify-on-cached-execute",
+            "line": 62,
+            "path": "command-center/p2-wave/probes/[REDACTED]/client.py",
+            "snippet": "def execute_cached("
+          },
+          "id": "stale-revocation",
+          "mapping": "A yanked or patched Log4j release did not move clients whose lockfile/cache still held 2.14.1. execute_cached is a public execute path and still calls verify_package, which fail-closes on a stale CRL and on a revoked id.",
+          "prior_art": {
+            "dated": "2021-12-10",
+            "incident": "Log4Shell CVE-2021-44228 \u2014 patched release vs pinned/cached install",
+            "url": "https://nvd.nist.gov/vuln/detail/CVE-2021-44228"
+          },
+          "title": "Revocation that never reaches an already-installed client"
+        }
+      ],
+      "claim_under_test": "A marketplace client that validates package metadata may execute package content; signature, identity, source, permission, and revocation checks can be skipped for already-installed or lockfile-pinned packages.",
+      "claims": [
+        {
+          "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+          "claim": "Making the canonical registry index the control plane is sufficient to execute package content; no separate verify-before-execute choke is required.",
+          "defect_locus": "DESIGN",
+          "id": "C1",
+          "scoped_restatement": "The index may be the control plane for what is listed. Execution still requires verify_package; without it, index-as-control-plane is a fail-open loader.",
+          "verdict": "REFUTED",
+          "why_locus": "[REDACTED]'s architecture sentence makes the index the control plane and does not name a choke. That is a DESIGN gap in the [REDACTED] class, not a wording slip. This unit does not fill it by writing DESIGN.json."
+        },
+        {
+          "anchor": "command-center/WORK-UNIT-CATALOG.json:11474",
+          "claim": "A lockfile-pinned package is supply-chain safe, so already-installed content may run without re-verification.",
+          "defect_locus": "SENTENCE",
+          "id": "C2",
+          "scoped_restatement": "A lockfile pins id and version. Safety against signature-stripped or revoked-but-cached bytes requires the MAC and CRL steps on execute_cached as well as install.",
+          "verdict": "REFUTED",
+          "why_locus": "lockfile-pinned is a catalogue phrase. DESIGN.json for [REDACTED] is absent, so there is no [REDACTED] rule to refute; the overclaim is the sentence that pinning implies byte safety."
+        },
+        {
+          "anchor": "command-center/p2-wave/probes/[REDACTED]/verify.py:17",
+          "claim": "Every public execute path in client.py reaches execute_package_content only after verify_package allows.",
+          "id": "C3",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "command-center/p2-wave/probes/[REDACTED]/verify.py:28",
+          "claim": "A package that passes metadata validation but fails signature verification is refused, including on execute_cached.",
+          "id": "C4",
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "command-center/p2-wave/probes/[REDACTED]/registry.schema.json:60",
+          "claim": "[REDACTED] marketplace_entry JSON is an executable [REDACTED] package and therefore a signature-stripped install path on this tree.",
+          "defect_locus": "SENTENCE",
+          "id": "C5",
+          "scoped_restatement": "[REDACTED] marketplace_entry is a generated metadata class with no signature field and no execute sink. It is not mapped as an [REDACTED] install path; treating it as one would be decorative.",
+          "verdict": "REFUTED",
+          "why_locus": "[REDACTED] registry.schema.json marketplace_entry has no signature field and no execute sink. Calling that listing an [REDACTED] execute path is a sentence-level category error, not a reason to rebuild [REDACTED] DESIGN.json here."
+        }
+      ],
+      "class_controls": {
+        "over_permission_refused": true,
+        "public_fallback_refused": true,
+        "revoked_refused": true,
+        "stale_crl_refused": true,
+        "typosquat_refused": true,
+        "wrong_source_refused": true
+      },
+      "completion_sentinel": "SUCCESS:[REDACTED]",
+      "cross_vendor_reviewer": {
+        "independent": true,
+        "reason": "Catalog requires a [REDACTED] [REDACTED] reviewer. [REDACTED] MCP is not available on this Linux substrate. Absence is recorded as NOT-CHECKED rather than a forged PASS.",
+        "required_by_catalog": true,
+        "reviewer_id": "[REDACTED]",
+        "scope_not_agreement": true,
+        "verdict": "NOT-CHECKED"
+      },
+      "dropped_threats": [
+        {
+          "id": "public-moderation-dispute",
+          "title": "Marketplace moderation queue and publisher dispute process",
+          "why_no_design_path": "This client has no second publisher and no moderation object. Listing a dispute process would be decorative under PR-ONLY."
+        },
+        {
+          "id": "multi-publisher-pki",
+          "title": "Per-publisher public-key signatures and web-of-trust",
+          "why_no_design_path": "No second publisher keyring exists in the client. HMAC with the owner key is the implemented binding; a PKI gate with no keys would be an unfalsifiable control."
+        },
+        {
+          "id": "sbom-cve-scanner-as-install-gate",
+          "title": "SBOM CVE scanner as a blocking install gate",
+          "why_no_design_path": "No scanner binary or advisory feed is invoked from client.py. Claiming CVE blocking without a call site would be overclaim."
+        }
+      ],
+      "headline_verdict": "CHOKE-SPECIFIED",
+      "mandatory_verification": {
+        "choke": "verify_package",
+        "order": [
+          "metadata",
+          "identity (exact lockfile id/version + NFKC)",
+          "source (private index only; public fallback forbidden)",
+          "permissions subset of allowlist",
+          "CRL freshness then revocation set",
+          "HMAC-SHA256 over canonical id/version/source/permissions/content digest"
+        ],
+        "primitive": "hmac-sha256 owner MAC (single-owner PR-ONLY; not a public signature)",
+        "sink": "execute_package_content"
+      },
+      "named_probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe1_path_coverage.py",
+          "id": "probe1",
+          "role": "path-coverage"
+        },
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/[REDACTED]/probe2_negative_control.py",
+          "id": "probe2",
+          "role": "negative-control-overclaim"
+        }
+      ],
+      "negative_control": {
+        "cached_unsigned_executed": false,
+        "cached_unsigned_reason": "signature-verification-failed",
+        "good_reason": "ok",
+        "metadata_fields_present_on_unsigned": true,
+        "metadata_ok_signature_bad_refused": true,
+        "metadata_ok_signature_ok_allowed": true,
+        "silent_loss_file": "command-center/p2-wave/probes/[REDACTED]/fixtures/unsigned-skill.hello.json",
+        "stripped_reason": "signature-verification-failed",
+        "unsigned_reason": "signature-verification-failed"
+      },
+      "path_coverage": {
+        "all_execute_paths_cross_choke": true,
+        "choke_before_sink": true,
+        "computed_not_asserted": true,
+        "forbidden_hits": 0,
+        "method": "ast.parse(client.py); sink callers, choke lineno, PUBLIC_EXECUTE_PATHS",
+        "missing_public": [],
+        "public_path_count": 5,
+        "public_paths": [
+          "install_from_index",
+          "install_from_export",
+          "upgrade",
+          "execute_cached",
+          "rollback_restore"
+        ],
+        "public_paths_crossing_choke": [
+          "install_from_index",
+          "install_from_export",
+          "upgrade",
+          "execute_cached",
+          "rollback_restore"
+        ],
+        "sink_caller_count": 1,
+        "sink_callers": [
+          "_after_choke"
+        ]
+      },
+      "path_coverage_both_states": {
+        "both_states_pass": true,
+        "live_ok": true,
+        "mutant_ok": false,
+        "mutant_sink_callers": [
+          "_after_choke",
+          "smuggle_unsigned"
+        ]
+      },
+      "public_path_runs": {
+        "all_good_executed": true,
+        "all_unsigned_refused": true,
+        "paths": [
+          {
+            "good_executed": true,
+            "path": "install_from_index",
+            "unsigned_executed": false,
+            "unsigned_reason": "signature-verification-failed"
+          },
+          {
+            "good_executed": true,
+            "path": "install_from_export",
+            "unsigned_executed": false,
+            "unsigned_reason": "signature-verification-failed"
+          },
+          {
+            "good_executed": true,
+            "path": "upgrade",
+            "unsigned_executed": false,
+            "unsigned_reason": "signature-verification-failed"
+          },
+          {
+            "good_executed": true,
+            "path": "execute_cached",
+            "unsigned_executed": false,
+            "unsigned_reason": "signature-verification-failed"
+          },
+          {
+            "good_executed": true,
+            "path": "rollback_restore",
+            "unsigned_executed": false,
+            "unsigned_reason": "signature-verification-failed"
+          }
+        ]
+      },
+      "question": "Threat-model the marketplace as an attack surface: malicious or over-permissioned package, typosquatted id, unsigned or signature-stripped artifact, dependency confusion between a private mirror and a public one, and a revocation that never reaches an already-installed client. Specify the MANDATORY verification a client performs before executing ANY package content, and prove no install path skips it.",
+      "required_fix": null,
+      "scenario": {
+        "catching_architecture": "[REDACTED] [REDACTED] with mandatory verify_package before execute_package_content on every public lifecycle path in command-center/p2-wave/probes/[REDACTED]/client.py, including execute_cached.",
+        "id": "S1-unsigned-metadata-valid",
+        "procedure": [
+          "Build a lockfile pinning skill.hello@1.0.0 from owner-private-index.",
+          "Build a package with valid id/version/source/permissions and an HMAC over those bytes.",
+          "Strip or zero the signature field while leaving metadata intact.",
+          "Offer the stripped package to every PUBLIC_EXECUTE_PATHS entry, including execute_cached.",
+          "Assert each path returns executed=False with reason signature-verification-failed."
+        ],
+        "silent_loss_file": "command-center/p2-wave/probes/[REDACTED]/fixtures/unsigned-skill.hello.json",
+        "title": "Metadata-valid signature-stripped package must not execute"
+      },
+      "strongest_surviving_counterargument": "Under PR-ONLY the owner is the only publisher, so HMAC-SHA256 with the owner key is the smallest binding that still fails closed on stripped bytes. A second publisher would make this MAC insufficient (no per-publisher keys). That is dead-weight under the single-owner cost model, not a reason to skip the choke. The index can remain the control plane for what is listed; it is not a substitute for verify-before-execute. Do not rebuild [REDACTED] DESIGN.json in this unit (no ADV circle). Generated [REDACTED] marketplace_entry JSON is metadata-only and is not an execute path.",
+      "title": "[REDACTED] ([REDACTED]): Marketplace threat model and mandatory verify-before-execute choke",
+      "upstream_design": {
+        "note": "[REDACTED] is not delivered on this worktree. This unit specifies the mandatory verification choke and maps threats onto that choke. It does not write command-center/phase3/[REDACTED]/DESIGN.json.",
+        "path": "command-center/phase3/[REDACTED]/DESIGN.json",
+        "present": false,
+        "stand_in": "command-center/p2-wave/probes/[REDACTED]/verify.py and command-center/p2-wave/probes/[REDACTED]/client.py"
+      }
+    }
+  },
+  "manifest_registration": {
+    "entry_id": "[REDACTED]",
+    "manifest_path": "command-center/p2-wave/probes/[REDACTED]/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 4096,
+  "negative_controls": [
+    {
+      "bad_state_output": "absent",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "good_state_output": "delivered",
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "ovh-leftover-fleet",
+    "model": "[REDACTED]",
+    "role": "implementer",
+    "vendor": "[REDACTED]"
+  },
+  "report": {
+    "control_ids": [
+      "NC-ABSENT"
+    ],
+    "kind": "architecture-review",
+    "observations": [
+      {
+        "anchor": "command-center/phase3/[REDACTED]/SECURITY.json",
+        "measured": 19169,
+        "method": "filesystem-stat",
+        "name": "primary_artifact_bytes"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent [REDACTED] reviewer of this leftover envelope has not been dispatched.",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema.",
+    "reviewer_id": "schema-resolver",
+    "vendor": "custom",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:[REDACTED]",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#[REDACTED]",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 1,
+      "command": "python -c json.load(command-center/phase3/[REDACTED]/SECURITY.json)",
+      "duration_seconds": 0.01,
+      "id": "T-PARSE",
+      "name": "artifact parses as JSON",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 5280,
+    "ended_at": "2026-08-25T01:48:00Z",
+    "started_at": "2026-08-25T00:20:00Z"
+  },
+  "unit_id": "[REDACTED]"
+}

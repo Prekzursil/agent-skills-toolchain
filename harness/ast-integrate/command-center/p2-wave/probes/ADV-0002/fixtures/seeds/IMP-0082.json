@@ -1,0 +1,240 @@
+{
+  "answer": "tools/marketplace/dependency.py stores required/optional/peer/dev edges with version ranges and runs an iterative Johnson-style simple-cycle detector at publish. Planted self / two-node / four-node cycles report the exact closed path; an acyclic diamond is silent. graphlib.TopologicalSorter plus Kosaraju SCC agree on existence and membership. Peer-only mutual edges are classified and are not install cycles. A naive recursive walker still RecursionError's as the dead control. SUCCESS:IMP-0082",
+  "artifacts": [
+    {
+      "exists": true,
+      "note": "self; sha256 is in the per-unit UNIT-ARTIFACT-MANIFEST.json row",
+      "path": "command-center/receipts/IMP-0082.json",
+      "role": "primary"
+    },
+    {
+      "bytes": 10920,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/marketplace/dependency.py",
+      "role": "supporting",
+      "sha256": "8a83706cf203464030bfabc950d82a7f2d5958d51833d8bf588d51089b84a370"
+    },
+    {
+      "bytes": 3211,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/marketplace/cycle_cases.py",
+      "role": "supporting",
+      "sha256": "3bfc2e6fa349f9a51bad239985c8b4a1b41e73b88913c4a4f498d8869748e032"
+    },
+    {
+      "bytes": 5064,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/marketplace/cycle_ref.py",
+      "role": "supporting",
+      "sha256": "c1363bfb7ae2510d5a13fde8ab47d6fbccb88cd673795ce285e6479cf51d0433"
+    },
+    {
+      "bytes": 2616,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/marketplace/schema/dependency.schema.json",
+      "role": "supporting",
+      "sha256": "ece3849a435614ffef3edf9b234bb3b35f94914babfef67773a25e61abd26d6c"
+    },
+    {
+      "bytes": 7760,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/marketplace/tests/test_dependency_graph.py",
+      "role": "supporting",
+      "sha256": "8b264e25511e68991235b7283febb1ffb0f74c5d4eaf30e1c41b654d136c6d87"
+    },
+    {
+      "bytes": 4721,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/marketplace/index_linter.py",
+      "role": "supporting",
+      "sha256": "87af35f1d8d5788686331025716cc461113f40449385c948098fba2326bb24b1"
+    },
+    {
+      "bytes": 4387,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0082/probe1_planted_cycles.py",
+      "role": "supporting",
+      "sha256": "724c0748e4a81f1f02c6ea4ccb0e3792bab8f5dbda8c17e0774cd6c3e85115c2"
+    },
+    {
+      "bytes": 4116,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0082/probe2_independent_library.py",
+      "role": "supporting",
+      "sha256": "751d3576ab4d0763e26b0b7503c794c8b7c2917d0b91f51951289918880c465c"
+    },
+    {
+      "bytes": 19558,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0082/emit_receipt.py",
+      "role": "supporting",
+      "sha256": "9e13bf8bcfd74059f29f14908ea0d50037e4d94ca45f3e64586bae9012742b49"
+    }
+  ],
+  "canonical_module": "marketplace.dependency",
+  "canonical_symbol": "detect_cycles",
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:IMP-0082",
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/IMP-0082/probe1_planted_cycles.py",
+      "consumer": "named-probe1",
+      "executed": true,
+      "read_ok": true
+    },
+    {
+      "artifact_path": "command-center/p2-wave/probes/IMP-0082/probe2_independent_library.py",
+      "consumer": "named-probe2",
+      "executed": true,
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/marketplace/dependency.py:detect_cycles",
+      "claim": "The primary detector reports the exact closed node sequence of a self-cycle, a two-node cycle, and a four-node cycle, and is silent on an acyclic diamond. The refuse happens at publish (DependencyCycleError.stage=publish), not as RecursionError at install.",
+      "detail": "{\"diamond_silent\": true, \"long\": {\"matches_expected\": true, \"members\": [\"p\", \"q\", \"r\", \"s\"], \"paths\": [[\"p\", \"q\", \"r\", \"s\", \"p\"]]}, \"publish_stage\": \"publish\", \"self\": {\"matches_expected\": true, \"members\": [\"loop\"], \"paths\": [[\"loop\", \"loop\"]]}, \"two\": {\"matches_expected\": true, \"members\": [\"a\", \"b\"], \"paths\": [[\"a\", \"b\", \"a\"]]}}",
+      "id": "signal-1-planted-cycle-sequence",
+      "independent_of": "signal-2-independent-graph-library",
+      "kind": "planted-cycle-exact-path",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/marketplace/cycle_ref.py:independent_report",
+      "claim": "stdlib graphlib.TopologicalSorter plus an independent Kosaraju SCC pass, run over the same edge list, agree with the primary detector on cycle existence AND membership. optional/peer/dev stay classified distinctly from required.",
+      "detail": "{\"kinds_distinct\": true, \"library\": \"graphlib.TopologicalSorter + Kosaraju SCC\", \"long_members\": [\"p\", \"q\", \"r\", \"s\"], \"peer_not_install_cycle\": true, \"self_members\": [\"loop\"], \"two_members\": [\"a\", \"b\"]}",
+      "id": "signal-2-independent-graph-library",
+      "independent_of": "signal-1-planted-cycle-sequence",
+      "kind": "independent-library-agreement",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "evidence_requirement": "TWO independent signals: (1) the detector reports the exact node sequence of a planted cycle; (2) an independent graph library run over the same edge list reports the same cycle set. Agreement on existence AND on membership is required.",
+  "host": {
+    "machine": "x86_64",
+    "system": "linux"
+  },
+  "id": "IMP-0082",
+  "library_path": "tools/marketplace/dependency.py",
+  "manifest_registration": {
+    "global_unit_manifest_write": false,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0082/UNIT-ARTIFACT-MANIFEST.json",
+    "note": "per-unit manifest only; did not run tools/command-center/unit_manifest.py --write",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0082/probe1_planted_cycles.py",
+      "id": "probe1"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0082/probe2_independent_library.py",
+      "id": "probe2"
+    }
+  ],
+  "negative_controls": [
+    {
+      "bad_state_output": "a cyclic graph would have been reported",
+      "description": "root\u2192left, root\u2192right, left\u2192leaf, right\u2192leaf. Must not be reported as a cycle by the primary detector or graphlib.",
+      "fired_on_bad_state": true,
+      "good_state_output": "diamond cycles=[] publish_ok=true graphlib.cyclic=false",
+      "id": "acyclic-diamond",
+      "kind": "known-acyclic-graph",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 for IMP-0082: live named probes re-run planted sequences and independent graphlib agreement. Cycle gate is publish-time via check_at_publish / index_linter DEPENDENCY_CYCLE. Did not run global unit_manifest.py --write. cloud_ok=true is not delivery. SUCCESS:IMP-0082",
+  "output_path": "command-center/receipts/IMP-0082.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/dependency.schema.json",
+  "phase": "6",
+  "probe_results": {
+    "diamond_silent": true,
+    "independent_library": "graphlib.TopologicalSorter + Kosaraju SCC",
+    "long_paths": [
+      [
+        "p",
+        "q",
+        "r",
+        "s",
+        "p"
+      ]
+    ],
+    "naive_walker_recursion_error": true,
+    "publish_stage": "publish",
+    "self_paths": [
+      [
+        "loop",
+        "loop"
+      ]
+    ],
+    "signal1_ok": true,
+    "signal2_ok": true,
+    "two_paths": [
+      [
+        "a",
+        "b",
+        "a"
+      ]
+    ]
+  },
+  "question_or_target": "Model declared dependencies (required, optional, peer, dev) with version ranges and detect cycles at publish time, reporting the exact cycle path rather than failing with a recursion error at install time.",
+  "registered": true,
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0070 owns range resolution; this unit stores and classifies ranges without solving them. Version-aware cycles across multiple releases of one name are deferred to IMP-0083's resolver.",
+      "verdict": "RECORDED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 is graphlib.TopologicalSorter + Kosaraju SCC over the same edge list, a different method from probe 1's planted-path oracle. Publish-time gate confirmed: check_at_publish raises DependencyCycleError(stage='publish'); index_linter emits DEPENDENCY_CYCLE with the exact path a -> b -> a.",
+    "reviewer_id": "IMP-0082-probe2-independent-library",
+    "verdict": "PASS"
+  },
+  "reviewer_requirement": "Reviewer must confirm cycle detection runs at publish time, not only at install time.",
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0082",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0082",
+  "spec_inputs_present": {
+    "IMP-0067_index_schema": true,
+    "IMP-0070_version_model": true,
+    "tools/marketplace/schema/dependency.schema.json": true,
+    "tools/marketplace/tests/test_dependency_graph.py": true
+  },
+  "spec_source": "_USER-PROMPTS.md:10851 (dependency metadata)",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_dependency_graph.py",
+      "exit_code": 0,
+      "id": "tools/marketplace/tests/test_dependency_graph.py",
+      "name": "self/two/long cycle + diamond negative + kinds + independent library",
+      "output_tail": "PASS test_self_cycle_exact_path\nPASS test_two_node_cycle_exact_path\nPASS test_long_cycle_exact_path\nPASS test_diamond_negative_control_is_silent\nPASS test_publish_refuses_two_node_with_exact_path\nPASS test_optional_and_peer_classified_distinctly\nPASS test_peer_only_mutual_is_not_an_install_cycle\nPASS test_independent_library_agrees_on_existence_and_membership\nPASS test_index_linter_emits_dependency_cycle_path\nPASS test_naive_walker_recursion_error_control\nPASS test_schema_file_exists_and_names_four_kinds\nSUCCESS:test_dependency_graph passed=11",
+      "result": "PASS"
+    }
+  ],
+  "tests_required": "tools/marketplace/tests/test_dependency_graph.py (self-cycle, two-node cycle, long cycle, diamond without a cycle); NEGATIVE CONTROL: an acyclic diamond must NOT be reported as a cycle; optional and peer edges are classified distinctly from required ones",
+  "timestamps": {
+    "ended_at": "2026-08-25T01:00:02Z",
+    "started_at": "2026-08-25T01:00:02Z"
+  },
+  "title": "Dependency metadata model with a cycle detector",
+  "ts": "2026-08-25T01:00:02Z",
+  "unit_id": "IMP-0082"
+}

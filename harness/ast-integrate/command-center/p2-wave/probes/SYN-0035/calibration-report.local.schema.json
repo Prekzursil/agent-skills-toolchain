@@ -1,0 +1,169 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "SYN-0035 calibration report (local, probe-facing)",
+  "$comment": "The catalog output_schema is a generated shim that $refs https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/calibration-report. jsonschema 4.10 follows that over HTTPS (undeclared egress) and raises RefResolutionError. This local schema is the contract the named probes actually read: five Sherman-Kent band rows with n, unadjudicated_count reported separately, planted synthetic control, Brier proper score, written (not data-fitted) likely interval 55-80 percent. Garbage documents must fail.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "bands",
+    "live_bands",
+    "unadjudicated_count",
+    "planted_items",
+    "confusion_matrix",
+    "false_pass_rate",
+    "proper_score",
+    "likely_in_practice",
+    "written_intervals",
+    "tests",
+    "reviewer"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "SYN-0035" },
+    "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+    "sentinel": { "type": "string", "pattern": "SUCCESS:SYN-0035" },
+    "schema_version": { "type": "integer", "const": 1 },
+    "report_kind": { "type": "string", "const": "calibration-report" },
+    "bands": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/definitions/band_row" }
+    },
+    "live_bands": {
+      "type": "array",
+      "minItems": 5,
+      "maxItems": 5,
+      "items": { "$ref": "#/definitions/band_row" }
+    },
+    "unadjudicated_count": { "type": "integer", "minimum": 1 },
+    "planted_items": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "oracle_label",
+          "confirmer_verdict",
+          "set_id",
+          "band"
+        ]
+      }
+    },
+    "confusion_matrix": {
+      "type": "object",
+      "required": [
+        "true_positive",
+        "false_positive",
+        "false_negative",
+        "true_negative"
+      ],
+      "properties": {
+        "true_positive": { "type": "integer", "minimum": 0 },
+        "false_positive": { "type": "integer", "minimum": 0 },
+        "false_negative": { "type": "integer", "minimum": 0 },
+        "true_negative": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "false_pass_rate": {
+      "type": "object",
+      "required": ["numerator", "denominator", "value"],
+      "properties": {
+        "numerator": { "type": "integer", "minimum": 0 },
+        "denominator": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "proper_score": {
+      "type": "object",
+      "required": ["synthetic_perfect"],
+      "properties": {
+        "synthetic_perfect": {
+          "type": "object",
+          "required": ["value", "n"],
+          "properties": {
+            "value": { "type": "number" },
+            "n": { "type": "integer", "minimum": 1 }
+          }
+        }
+      }
+    },
+    "likely_in_practice": {
+      "type": "object",
+      "required": ["written_interval", "verdict"],
+      "properties": {
+        "written_interval": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number" }
+        },
+        "verdict": {
+          "type": "string",
+          "enum": [
+            "UNMEASURED",
+            "INSIDE-WRITTEN-INTERVAL",
+            "OUTSIDE-WRITTEN-INTERVAL"
+          ]
+        }
+      }
+    },
+    "written_intervals": {
+      "type": "object",
+      "required": ["likely", "almost-certain"],
+      "properties": {
+        "likely": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "independent": { "type": "boolean", "const": true },
+        "verdict": { "type": "string", "const": "PASS" }
+      }
+    }
+  },
+  "definitions": {
+    "band_row": {
+      "type": "object",
+      "required": [
+        "band",
+        "n",
+        "unadjudicated_n",
+        "observed_hit_rate",
+        "nominal_interval",
+        "inside_nominal_interval"
+      ],
+      "properties": {
+        "band": { "type": "string", "minLength": 1 },
+        "n": { "type": "integer", "minimum": 0 },
+        "unadjudicated_n": { "type": "integer", "minimum": 0 },
+        "nominal_interval": {
+          "type": "array",
+          "minItems": 2,
+          "maxItems": 2,
+          "items": { "type": "number" }
+        },
+        "inside_nominal_interval": { "type": "boolean" }
+      }
+    }
+  }
+}

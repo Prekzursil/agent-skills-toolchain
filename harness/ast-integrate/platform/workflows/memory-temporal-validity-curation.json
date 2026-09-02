@@ -1,0 +1,760 @@
+{
+  "dsl_version": "1.0.0",
+  "id": "memory-temporal-validity-curation",
+  "name": "Memory temporal-validity curation - verified by recall order, not by writing",
+  "description": "Blueprint 86 of 96 (design BP-DOC-05). Keep semantic memory current by SUPERSEDING old notes explicitly rather than deleting them, so recall surfaces present truth while dead ends stay visible as dead ends. Mechanism: the write is not the deliverable - the RECALL ORDER is. A note is only curated when a fresh recall of the topic returns the new fact FIRST and the old note is still reachable, tagged superseded. When recall still leads with the old fact the diagnosis is a stale index, and a repair loop rebuilds and re-verifies rather than rewriting the note.",
+  "version": "1.0.0",
+  "kind": "workflow",
+  "categories": [
+    "data-science-knowledge-and-creative-work"
+  ],
+  "tags": [
+    "memory",
+    "temporal-validity",
+    "recall-verification",
+    "supersession"
+  ],
+  "flagship": false,
+  "params": {
+    "new_fact": {
+      "type": "string",
+      "required": true,
+      "min_length": 20,
+      "description": "The fact that has become true, stated so a reader can tell WHICH prior belief it displaces"
+    },
+    "topic_query": {
+      "type": "string",
+      "required": true,
+      "min_length": 3,
+      "description": "The query a future session would actually run. Recall is verified against THIS string, not against a paraphrase chosen to make the test pass."
+    },
+    "candidate_superseded_notes": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "min_items": 1,
+      "description": "Permalinks of notes the new fact may displace. At least one: a new fact that supersedes nothing does not need this workflow."
+    },
+    "valid_as_of": {
+      "type": "string",
+      "required": true,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}$",
+      "description": "The date from which the new fact holds. Passed as a param rather than read from the clock, because a replayable workflow must not read the clock."
+    },
+    "require_old_note_reachable": {
+      "type": "boolean",
+      "default": true,
+      "description": "Must stay true. A superseded note is retired, never deleted - the dead end has to remain visible so it is not re-walked."
+    }
+  },
+  "roles": {
+    "memory-writer": {
+      "description": "Writes the new note with valid_as_of and adds superseded_by to each displaced note",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium",
+      "authority": "advisory",
+      "independence": "independent",
+      "tool_permissions": [
+        "Read",
+        "mcp__basic-memory__search_notes",
+        "mcp__basic-memory__write_note",
+        "mcp__basic-memory__edit_note",
+        "Write(command-center/memory/**)"
+      ],
+      "write_paths": [
+        "command-center/memory/**"
+      ],
+      "speaking_rights": "always"
+    },
+    "recall-verifier": {
+      "description": "Runs the recall the future session would run and reports the ORDER of what comes back. It never reads the writer's summary of what was written.",
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "high",
+      "authority": "veto",
+      "independence": "independent",
+      "tool_permissions": [
+        "mcp__basic-memory__search_notes",
+        "mcp__basic-memory__build_context",
+        "Write(command-center/memory/**)"
+      ],
+      "speaking_rights": "always"
+    }
+  },
+  "tool_policy": {
+    "default": "deny",
+    "allow": [
+      "Read",
+      "mcp__basic-memory__search_notes",
+      "mcp__basic-memory__build_context",
+      "mcp__basic-memory__write_note",
+      "mcp__basic-memory__edit_note",
+      "Write(command-center/memory/**)"
+    ],
+    "deny": [
+      "mcp__basic-memory__delete_note",
+      "Bash",
+      "WebFetch",
+      "WebSearch"
+    ],
+    "network": "none",
+    "write_paths": [
+      "command-center/memory/**"
+    ],
+    "forbid_write_paths": [
+      "platform/schema/**"
+    ],
+    "source_policy": {
+      "offline_only": true,
+      "require_provenance": true,
+      "treat_fetched_content_as_data": true,
+      "paywalled": "skip"
+    }
+  },
+  "model_routing": {
+    "strategy": "static",
+    "default": {
+      "model": "opus",
+      "vendor": "anthropic",
+      "effort": "medium"
+    },
+    "routes": [
+      {
+        "when": "stage_role == recall-verifier",
+        "target": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "effort": "high"
+        },
+        "reason": "the verifier must resist the pull of the writer's narrative; that is the expensive part of this workflow, not the write"
+      }
+    ],
+    "forbid_downgrade_below": "opus"
+  },
+  "gates": {
+    "supersession-links-both-ways": {
+      "predicate": "custom-expression",
+      "expression": "new_note_has_valid_as_of == true AND superseded_notes_updated == candidate_count",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "recall-returns-current-first": {
+      "predicate": "custom-expression",
+      "expression": "recall_first_hit_is_new_note == true AND old_note_reachable == true AND old_note_tagged_superseded == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "repair"
+    },
+    "no-deletion": {
+      "predicate": "custom-expression",
+      "expression": "notes_deleted == 0 AND require_old_note_reachable == true",
+      "blocking": true,
+      "evidence_required": true,
+      "on_fail": "fail"
+    }
+  },
+  "stages": [
+    {
+      "id": "find-superseded",
+      "title": "Search memory for the fact that is about to become false",
+      "kind": "task",
+      "role": "memory-writer",
+      "timeout_seconds": 600,
+      "checkpoint": true,
+      "work_unit": {
+        "id": "BPW-8601",
+        "title": "Locate the notes the new fact displaces and confirm each really asserts the old fact",
+        "phase": "2",
+        "question_or_target": "For each candidate permalink, open the note and quote the sentence that asserts the OLD fact. A candidate whose text does not actually assert it is dropped from the set - superseding a note that never made the claim manufactures a false history.",
+        "inputs": [
+          "params.candidate_superseded_notes",
+          "params.topic_query",
+          "params.new_fact"
+        ],
+        "dependencies": [],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "memory-writer",
+          "basis": "deciding whether a note really asserts the displaced fact is reading comprehension, not string matching"
+        },
+        "tool_permissions": [
+          "mcp__basic-memory__search_notes",
+          "Read",
+          "Write(command-center/memory/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 600,
+        "output_path": "command-center/memory/supersession-candidates.json",
+        "output_schema": "command-center/schema/supersession-graph.schema.json",
+        "evidence_requirement": "per candidate the permalink and the quoted sentence asserting the old fact, or an explicit DROPPED verdict with the reason; a permalink list with no quotes cannot be audited",
+        "tests_required": [
+          "a candidate that does not assert the old fact must be DROPPED, not superseded",
+          "the search must be run with the caller's topic_query, not with a query rewritten to guarantee a hit"
+        ],
+        "reviewer_requirement": "one independent reader who confirms at least one quoted sentence against the note it was taken from",
+        "completion_sentinel": "SUCCESS:BPW-8601 emitted only when every candidate carries a quote or a DROPPED reason; otherwise FAILED:BPW-8601 <reason>",
+        "retry_policy": "one retry with a broader search if zero candidates survive; a second empty result means the old fact is not in memory and the workflow completes with a plain write, which is a different terminal state and must be said out loud",
+        "failure_classification": [
+          "candidate-does-not-assert",
+          "empty-candidate-set",
+          "detector-failure"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/memory/supersession-candidates.json",
+          "schema_ref": "command-center/schema/supersession-graph.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8601",
+          "consumers": [
+            "write-and-link"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "write-and-link",
+      "title": "New note with valid_as_of; old notes get superseded_by",
+      "kind": "task",
+      "role": "memory-writer",
+      "depends_on": [
+        "find-superseded"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPW-8602",
+        "title": "Write the new note and add a superseded_by link to every surviving candidate",
+        "phase": "2",
+        "question_or_target": "Write the new note carrying valid_as_of, then edit each surviving candidate to add superseded_by pointing at the new note's permalink. Delete nothing. Both directions of the link must exist or recall cannot order them.",
+        "inputs": [
+          "command-center/memory/supersession-candidates.json",
+          "params.new_fact",
+          "params.valid_as_of"
+        ],
+        "dependencies": [
+          "BPW-8601"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "memory-writer",
+          "basis": "writing the note so a future session can tell what changed and why is composition, not templating"
+        },
+        "tool_permissions": [
+          "mcp__basic-memory__write_note",
+          "mcp__basic-memory__edit_note",
+          "Write(command-center/memory/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/memory/supersession-writes.json",
+        "output_schema": "command-center/schema/decision-provenance.schema.json",
+        "evidence_requirement": "the new note's permalink, its valid_as_of value, and per old note the superseded_by value actually stored (read back, not assumed from the write call's return)",
+        "tests_required": [
+          "an old note whose superseded_by was not stored must FAIL the stage even though the write call returned success",
+          "no note may be deleted; a deletion attempt must be blocked by tool policy, and the test must confirm the policy denies it rather than assuming it"
+        ],
+        "reviewer_requirement": "the recall verifier is the reviewer and it does not read this stage's output before running its own recall",
+        "completion_sentinel": "SUCCESS:BPW-8602 emitted only when the new note exists with valid_as_of and every surviving candidate has a READ-BACK superseded_by; otherwise FAILED:BPW-8602 <reason>",
+        "retry_policy": "two strikes then pivot: after two failed link writes, report the unlinked notes explicitly rather than attempting a third and declaring done",
+        "failure_classification": [
+          "link-not-stored",
+          "write-reported-success-but-absent",
+          "overclaim"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/memory/supersession-writes.json",
+          "schema_ref": "command-center/schema/decision-provenance.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8602",
+          "consumers": [
+            "verify-recall-order"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-links",
+      "title": "Both link directions present",
+      "kind": "gate",
+      "depends_on": [
+        "write-and-link"
+      ],
+      "gate_ref": "supersession-links-both-ways"
+    },
+    {
+      "id": "verify-recall-order",
+      "title": "The deliverable is the recall ORDER, not the write",
+      "kind": "task",
+      "role": "recall-verifier",
+      "depends_on": [
+        "gate-links"
+      ],
+      "timeout_seconds": 900,
+      "work_unit": {
+        "id": "BPW-8603",
+        "title": "Recall the topic and record the ORDER of results",
+        "phase": "2",
+        "question_or_target": "Run the caller's topic_query against memory and record the ordered result list. Assert the new note is FIRST, the old note is still present, and the old note is tagged superseded. Do not read the write stage's artifact before running the recall.",
+        "inputs": [
+          "params.topic_query",
+          "params.require_old_note_reachable"
+        ],
+        "dependencies": [
+          "BPW-8602"
+        ],
+        "assigned_model_vendor_role": {
+          "model": "opus",
+          "vendor": "anthropic",
+          "role": "recall-verifier",
+          "basis": "an independent verifier is the only thing separating a filing convention from a working memory"
+        },
+        "tool_permissions": [
+          "mcp__basic-memory__search_notes",
+          "mcp__basic-memory__build_context",
+          "Write(command-center/memory/**)"
+        ],
+        "execution_substrate": "local-serialized",
+        "timeout_seconds": 900,
+        "output_path": "command-center/memory/recall-order-check.json",
+        "output_schema": "command-center/schema/reprobe-record.schema.json",
+        "evidence_requirement": "the exact query string and the ordered list of returned permalinks with ranks; a claim that recall works with no ordered list is unfalsifiable",
+        "tests_required": [
+          "both-states control: run the SAME recall BEFORE the supersession write and confirm the OLD note ranks first; after the write the NEW note must rank first. A verifier that reports the new note first in both states is measuring nothing",
+          "the old note must appear somewhere in the result set - absent means it was deleted, which is a hard failure"
+        ],
+        "reviewer_requirement": "none - this stage IS the independent verification and holds veto authority",
+        "completion_sentinel": "SUCCESS:BPW-8603 emitted only when the ordered recall list shows the new note first AND the old note present and tagged; otherwise FAILED:BPW-8603 <reason>",
+        "retry_policy": "no plain retry - a second identical recall is the same signal. A failure routes to the index-staleness repair loop instead.",
+        "failure_classification": [
+          "stale-index",
+          "old-note-absent",
+          "recall-order-wrong"
+        ],
+        "owner_approval_required": false
+      },
+      "produces": [
+        {
+          "path": "command-center/memory/recall-order-check.json",
+          "schema_ref": "command-center/schema/reprobe-record.schema.json",
+          "min_bytes": 128,
+          "register_in_manifest": true,
+          "sentinel": "SUCCESS:BPW-8603",
+          "consumers": [
+            "gate-recall",
+            "owner"
+          ]
+        }
+      ]
+    },
+    {
+      "id": "gate-recall",
+      "title": "Writing a note is not the same as it being recalled",
+      "kind": "gate",
+      "depends_on": [
+        "verify-recall-order"
+      ],
+      "gate_ref": "recall-returns-current-first"
+    },
+    {
+      "id": "gate-no-deletion",
+      "title": "A dead end must stay visible as a dead end",
+      "kind": "gate",
+      "depends_on": [
+        "gate-recall"
+      ],
+      "gate_ref": "no-deletion"
+    },
+    {
+      "id": "repair-stale-index",
+      "title": "Recall still leads with the old fact - rebuild the index, do not rewrite the note",
+      "kind": "repair_loop",
+      "depends_on": [
+        "gate-no-deletion"
+      ],
+      "target": [
+        "verify-recall-order"
+      ],
+      "max_attempts": 2,
+      "classification_filter": [
+        "stale-index",
+        "recall-order-wrong"
+      ],
+      "escalate_to": "memory-writer",
+      "require_root_cause": true,
+      "timeout_seconds": 3600,
+      "diagnose": {
+        "id": "diagnose-recall-failure",
+        "kind": "task",
+        "role": "recall-verifier",
+        "timeout_seconds": 900,
+        "work_unit": {
+          "id": "BPW-8604",
+          "title": "Distinguish a stale index from a genuinely bad note",
+          "phase": "2",
+          "question_or_target": "Establish which of two causes produced the wrong recall order: the index has not been rebuilt since the write (the note is correct and unreachable), or the note's text does not match how a future session would ask (the index is fine and the note is wrong). These need opposite repairs.",
+          "inputs": [
+            "command-center/memory/recall-order-check.json",
+            "command-center/memory/supersession-writes.json"
+          ],
+          "dependencies": [
+            "BPW-8603"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "recall-verifier",
+            "basis": "the two causes look identical from the outside; separating them is the diagnosis"
+          },
+          "tool_permissions": [
+            "mcp__basic-memory__search_notes",
+            "Read",
+            "Write(command-center/memory/**)"
+          ],
+          "execution_substrate": "local-serialized",
+          "timeout_seconds": 900,
+          "output_path": "command-center/memory/recall-root-cause.json",
+          "output_schema": "command-center/schema/root-cause-graph.schema.json",
+          "evidence_requirement": "a direct fetch of the new note by permalink (proving it exists) paired with its absence from the query results (proving the index, not the note, is the problem) - or the reverse",
+          "tests_required": [
+            "a note that is fetchable by permalink but absent from query results must be diagnosed STALE-INDEX",
+            "a note that is fetchable and returned but ranked below the old one must be diagnosed NOTE-TEXT-MISMATCH"
+          ],
+          "reviewer_requirement": "the memory writer may rebut with the stored note text; the fetch-by-permalink result decides it",
+          "completion_sentinel": "SUCCESS:BPW-8604 emitted only when one of the two causes is named with the fetch-versus-query evidence pair; otherwise FAILED:BPW-8604 <reason>",
+          "retry_policy": "one attempt then escalate - a second diagnosis over the same evidence is not a second signal",
+          "failure_classification": [
+            "ambiguous-cause",
+            "detector-failure"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "repair": {
+        "id": "apply-recall-repair",
+        "kind": "task",
+        "role": "memory-writer",
+        "timeout_seconds": 1800,
+        "work_unit": {
+          "id": "BPW-8605",
+          "title": "Rebuild the index or rewrite the note - whichever the diagnosis named",
+          "phase": "2",
+          "question_or_target": "If STALE-INDEX, rebuild the recall index and change no note text. If NOTE-TEXT-MISMATCH, rewrite the new note to carry the words a future session would search for, and change no index. Applying both hides which one was wrong.",
+          "inputs": [
+            "command-center/memory/recall-root-cause.json"
+          ],
+          "dependencies": [
+            "BPW-8604"
+          ],
+          "assigned_model_vendor_role": {
+            "model": "opus",
+            "vendor": "anthropic",
+            "role": "memory-writer",
+            "basis": "rewriting for retrievability without changing meaning is the delicate case"
+          },
+          "tool_permissions": [
+            "mcp__basic-memory__edit_note",
+            "mcp__basic-memory__write_note",
+            "Write(command-center/memory/**)"
+          ],
+          "execution_substrate": "local-serialized",
+          "timeout_seconds": 1800,
+          "output_path": "command-center/memory/recall-repair.json",
+          "output_schema": "command-center/schema/improvement-ledger.schema.json",
+          "evidence_requirement": "which single repair was applied, and an explicit statement that the other was NOT - applying both makes the next verification uninterpretable",
+          "tests_required": [
+            "exactly one repair kind must be applied per attempt",
+            "a rewrite must preserve the asserted fact; a rewrite that changes the claim is a new fact, not a repair"
+          ],
+          "reviewer_requirement": "the verify gate re-runs the recall; the writer does not certify its own repair",
+          "completion_sentinel": "SUCCESS:BPW-8605 emitted only when exactly one repair kind was applied and recorded; otherwise FAILED:BPW-8605 <reason>",
+          "retry_policy": "two strikes then pivot: after two attempts hand the ordered recall list to the owner rather than attempting a third",
+          "failure_classification": [
+            "both-repairs-applied",
+            "meaning-changed",
+            "stale-index"
+          ],
+          "owner_approval_required": false
+        }
+      },
+      "verify": {
+        "id": "verify-recall-repair",
+        "kind": "gate",
+        "gate": {
+          "predicate": "custom-expression",
+          "expression": "recall_first_hit_is_new_note == true AND old_note_reachable == true AND exactly_one_repair_applied == true",
+          "blocking": true,
+          "evidence_required": true,
+          "on_fail": "escalate-to-human"
+        }
+      }
+    }
+  ],
+  "stopping_rules": [
+    {
+      "id": "recall-returns-current-fact",
+      "expression": "recall_first_hit_is_new_note == true AND old_note_tagged_superseded == true",
+      "applies_to": "workflow",
+      "minimum_conditions": "superseded_notes_updated >= 1",
+      "on_stop": "complete"
+    },
+    {
+      "id": "nothing-to-supersede",
+      "expression": "surviving_candidate_count == 0",
+      "applies_to": "workflow",
+      "on_stop": "emit-partial"
+    }
+  ],
+  "retry_policy": {
+    "strategy": "two-strikes-then-pivot",
+    "max_attempts": 2,
+    "backoff_seconds": 5,
+    "jitter": false,
+    "retry_on": [
+      "stale-index",
+      "link-not-stored"
+    ],
+    "no_retry_on": [
+      "old-note-absent",
+      "meaning-changed",
+      "both-repairs-applied"
+    ],
+    "pivot": {
+      "after_attempts": 1,
+      "enumerate_alternatives_min": 2,
+      "escalate_to": "memory-writer"
+    }
+  },
+  "failure_policy": {
+    "on_failure": "escalate-to-human",
+    "classify_as": [
+      "stale-index",
+      "old-note-absent",
+      "recall-order-wrong",
+      "link-not-stored"
+    ],
+    "terminal_state_required": true,
+    "never_silent": true,
+    "preserve_partial_artifact": true,
+    "escalate_to": "owner",
+    "quarantine_path": "command-center/quarantine/memory-curation"
+  },
+  "resume": {
+    "enabled": true,
+    "checkpoint_store": "command-center/checkpoints/memory-curation",
+    "granularity": "stage",
+    "idempotency_key_from": [
+      "workflow_id",
+      "stage_id",
+      "params_hash"
+    ],
+    "resume_from": "last-checkpoint",
+    "stale_checkpoint_seconds": 86400,
+    "on_stale": "warn-and-resume"
+  },
+  "replay": {
+    "deterministic": false,
+    "journal_path": "command-center/replay/memory-curation.jsonl",
+    "record": [
+      "params",
+      "inputs",
+      "tool_calls",
+      "tool_results",
+      "model_outputs"
+    ],
+    "replay_source": "recorded-journal",
+    "verify": "semantic-equal",
+    "on_divergence": "record-discrepancy"
+  },
+  "cache": {
+    "enabled": false,
+    "read_only": true
+  },
+  "dry_run": {
+    "supported": true,
+    "side_effect_free": true,
+    "emits": [
+      "plan",
+      "permission-report",
+      "artifact-diff"
+    ],
+    "plan_artifact": "command-center/dry-run/memory-curation-plan.json",
+    "forbid_tools": [
+      "mcp__basic-memory__write_note",
+      "mcp__basic-memory__edit_note",
+      "Write(command-center/memory/**)"
+    ]
+  },
+  "estimate": {
+    "basis": "static-declared",
+    "confidence": "likely",
+    "cost": {
+      "currency": "USD",
+      "min": 0.02,
+      "expected": 0.2,
+      "max": 1.2
+    },
+    "wallclock_seconds": {
+      "min": 30,
+      "expected": 240,
+      "max": 1800
+    },
+    "tokens": {
+      "min": 4000,
+      "expected": 25000,
+      "max": 150000
+    },
+    "tool_calls": {
+      "min": 5,
+      "expected": 14,
+      "max": 50
+    },
+    "impact": {
+      "risk": "low",
+      "reversibility": "reversible",
+      "blast_radius": "adds one note and edits the front-matter of the notes it supersedes; deletes nothing, and the delete tool is explicitly denied by tool_policy rather than merely unused",
+      "requires_owner_approval": false
+    }
+  },
+  "portability": {
+    "export": {
+      "format": "json",
+      "includes": [
+        "definition",
+        "examples",
+        "tests",
+        "lineage"
+      ],
+      "redact_secrets": true,
+      "bundle_path": "command-center/export/memory-curation.bundle.json"
+    },
+    "import": {
+      "validate_against": "platform/schema/workflow-dsl.schema.json",
+      "on_version_mismatch": "warn"
+    }
+  },
+  "lineage": {
+    "derived_from": [
+      {
+        "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-DOC-05",
+        "relation": "ADOPT-AS-IS",
+        "license": "owner-proprietary",
+        "credit": "program design corpus"
+      },
+      {
+        "source": "CLAUDE.md - Persistent Memory temporal-validity contract",
+        "relation": "TRANSLATE",
+        "license": "owner-proprietary",
+        "credit": "owner - superseded_by on the OLD note, valid_as_of on the NEW one"
+      }
+    ],
+    "decomposable_back_to_sources": true,
+    "rollback_to": [
+      "a plain write_note with no supersession link"
+    ]
+  },
+  "outputs": {
+    "recall_check": {
+      "path": "command-center/memory/recall-order-check.json",
+      "schema_ref": "command-center/schema/reprobe-record.schema.json",
+      "min_bytes": 128,
+      "register_in_manifest": true,
+      "sentinel": "SUCCESS:BPW-8603",
+      "consumers": [
+        "owner",
+        "command-center/memory/supersession-candidates.json"
+      ]
+    }
+  },
+  "x_extensions": {
+    "blueprint": {
+      "slot": 86,
+      "of": 96,
+      "design_card": "BP-DOC-05",
+      "design_family": "D16-documentation",
+      "spec_category": "data-science-knowledge-and-creative-work",
+      "acquisition_route": "ADOPT-AS-IS",
+      "flagship": false
+    },
+    "mechanism": "verification by RECALL ORDER with a before/after control on the same query, plus a repair loop that distinguishes a stale index from a badly-worded note - two causes that look identical and need opposite repairs. Deletion is denied by tool policy, not merely avoided by convention.",
+    "not_a_duplicate_because": {
+      "vs_shared-grounding-pack-emission": "that builds a single-run, frozen map of a CODE tree for prompt injection; this maintains cross-session semantic memory and its whole test is retrieval order",
+      "vs_detector-truncation-audit": "that compares a reported COUNT against an independent count; this compares retrieval ORDER before and after a write. Both are two-signal checks, but the signals and the subjects are different.",
+      "vs_the_event_ledger": "the objective event ledger records what HAPPENED; this maintains what is currently TRUE. A failure entry in the ledger is not superseded when the failure is fixed - it is retired by a milestone. Different role, deliberately not unified."
+    },
+    "contraindications": [
+      "NOT for ephemeral session state",
+      "NOT a substitute for the objective event ledger",
+      "NOT for a fact that supersedes nothing - use a plain note write"
+    ],
+    "benchmark_cases": [
+      {
+        "id": "recall-order-flips",
+        "given": "the same topic_query run before and after the supersession",
+        "expect": "OLD note first before, NEW note first after. Identical order in both states means the verifier is measuring nothing."
+      },
+      {
+        "id": "old-note-survives",
+        "given": "a completed supersession",
+        "expect": "the old note is still reachable and tagged superseded - absent is a hard failure"
+      },
+      {
+        "id": "stale-index-vs-bad-note",
+        "given": "a new note fetchable by permalink but absent from query results",
+        "expect": "diagnosed STALE-INDEX, and the repair rebuilds the index without touching the note text"
+      }
+    ],
+    "worked_examples": [
+      {
+        "id": "supersede-a-retired-integration",
+        "params": {
+          "new_fact": "AgentBridge is retired and its get_budget tool no longer exists; budget pacing is manual and advisory as of this date.",
+          "topic_query": "budget pacing agentbridge get_budget",
+          "candidate_superseded_notes": [
+            "main/reference/agentbridge-budget-pacing-protocol"
+          ],
+          "valid_as_of": "2026-08-08",
+          "require_old_note_reachable": true
+        },
+        "candidate_screening": [
+          {
+            "permalink": "main/reference/agentbridge-budget-pacing-protocol",
+            "quoted_old_assertion": "every allocation MUST query get_budget before dispatch",
+            "verdict": "SUPERSEDE"
+          }
+        ],
+        "recall_before": [
+          "main/reference/agentbridge-budget-pacing-protocol",
+          "main/projects/multi-ai-mingle"
+        ],
+        "recall_after": [
+          "main/reference/budget-pacing-manual-2026-08-08",
+          "main/reference/agentbridge-budget-pacing-protocol"
+        ],
+        "assertions": {
+          "recall_first_hit_is_new_note": true,
+          "old_note_reachable": true,
+          "old_note_tagged_superseded": true,
+          "notes_deleted": 0
+        },
+        "terminal_state": "SUCCESS:BPW-8603 - recall order flipped, old note retained and tagged, nothing deleted",
+        "note": "The before/after pair is the whole proof. Without recall_before, 'the new note ranks first' could simply mean it always would have - the control is what makes the after-state meaningful."
+      }
+    ],
+    "owner_decision": "none",
+    "unverified": [
+      "Supersession COVERAGE across the estate's memory is UNVERIFIED - no measurement here establishes how many decisions that should have produced a superseded_by link actually did. Settling experiment = count notes carrying a superseded_by link against the number of recorded decisions that invalidated a stored fact.",
+      "That recall ranking responds to a superseded_by link at all is an assumption about the retrieval backend, not a measured property. The before/after control in BPW-8603 is what would REFUTE it; until that control runs on this estate, the mechanism is plausible (likely, 55-80%) rather than established."
+    ]
+  }
+}

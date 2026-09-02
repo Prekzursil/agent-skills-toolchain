@@ -1,0 +1,24 @@
+
+===== launch 2026-08-20T09:08:03Z attempt=1 =====
+I'll start from the existing IMP-0158 probe tree and the unit contract, then implement and measure until the delivered gate is green.I'll pull the catalog row, the measure script, and a delivered IMP unit so the contract and artifact shape are explicit.IMP-0158 has no probe tree yet. Next I’ll inspect IMP-0155 and nearby delivered IMP units so the trust-tier work sits on the existing admission path.I'll inspect the receipt contract, publisher-identity code, and a recently delivered implement unit so the trust-tier work matches the live gate.I'll implement production trust-tier assignment in the foundry package, then add live probes that exercise the real admission path.Probes are green. Next I’ll pack the receipt and per-unit manifest, then run the delivery measure.IMP-0158 is **G-1 contract-green** on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0158` printed:
+
+```
+SUCCESS:delivered IMP-0158 predicate=delivered state=SUCCESS probes=4 raws=8 notes=fixtures.py:0,probe_imp0158.py:0,refute_oracle.py:0,test_trust_tier.py:0
+```
+
+The unit had never been started (`probes/IMP-0158/` was missing). Production trust-tier assignment now lives in `platform/lib/foundry/trust.py` and is an **input** to `foundry.trust.admit_candidate`, not a stamped label.
+
+| Check | Result |
+|---|---|
+| Unknown fixture auto-adopt | **refused** (`unknown-tier-not-auto-adoptable`) |
+| First-party twin auto-adopt | **allowed** |
+| Stamped `trust_tier=first-party` on unknown evidence | still **unknown** |
+| Two-run assignment | **identical**; clock-shaped fields ignored |
+| Independent Ed25519/set oracle | **6/6 match** |
+| Unknown via clean-room or owner approval | **allowed** |
+
+Receipt: `command-center/receipts/IMP-0158.json` (`state=SUCCESS`, 20054 bytes). Per-unit manifest: `command-center/p2-wave/probes/IMP-0158/UNIT-ARTIFACT-MANIFEST.json` (sha256 `00a8990c802b5995f8109074e32c2ba20124586921451f83783c1ba578c6d593`).
+
+Honest residual: IMP-0155’s provenance receipt is not on this tree; fixtures use that contracted shape rather than a live re-fetch corpus. Global `unit_manifest.py --write` was not run. No git writes. Cloud `ok=true` was not treated as delivery.

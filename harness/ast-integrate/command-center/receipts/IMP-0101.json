@@ -1,0 +1,217 @@
+{
+ "schema_version": 1,
+ "unit_id": "IMP-0101",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0101",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0101; _USER-PROMPTS.md:10864",
+ "title": "Deprecation with a successor pointer that warns without breaking",
+ "min_bytes_threshold": 128,
+ "output_schema": "command-center/schema/receipt.schema.json + tools/marketplace/schema/deprecation.schema.json",
+ "question": "Implement deprecation as metadata carrying a reason and an optional successor package, where installing a deprecated version still succeeds but emits a durable warning naming the successor \u2014 deprecation must never be a silent removal, and must be distinct from revocation, which does block.",
+ "implementation": {
+  "module": "tools/marketplace/deprecation.py",
+  "warning_channel": "tools/marketplace/warning_channel.py",
+  "event_log": "tools/marketplace/event_log.py",
+  "schema": "tools/marketplace/schema/deprecation.schema.json",
+  "tests": "tools/marketplace/tests/test_deprecation.py",
+  "states": [
+   "current",
+   "deprecated",
+   "revoked"
+  ],
+  "deprecation_is_metadata": true,
+  "revocation_blocks": true,
+  "append_only": true
+ },
+ "measured_pair": {
+  "package_id": "acme.widget",
+  "deprecated_version": "1.0.0",
+  "successor": "acme.widget@2.0.0",
+  "revoked_version": "0.9.0",
+  "deprecated_ok": true,
+  "deprecated_installed": true,
+  "warning_message": "acme.widget@1.0.0 is deprecated; successor is acme.widget@2.0.0. Install succeeded. Reason: replaced by a maintained line",
+  "warning_persisted": true,
+  "still_listed": true,
+  "revoked_ok": false,
+  "revoked_installed": false,
+  "revoked_install_exists": false,
+  "states_are_aliases": false,
+  "user_channel_source": "user_surface.json",
+  "user_warning_count": 1,
+  "negative_control_refused": true
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0101.json",
+   "role": "primary",
+   "exists": true,
+   "eol": "LF",
+   "bytes": 8029,
+   "sha256": "a8f6090276e7b0dc9bf45c0ef9fc8bc18f91928495326539babb446902344ebd"
+  },
+  {
+   "path": "tools/marketplace/deprecation.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 15261,
+   "sha256": "3e2873263768fe53d1161b671dcd6255c80297d51e175ed997a0ba77c129fbe2"
+  },
+  {
+   "path": "tools/marketplace/warning_channel.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 6982,
+   "sha256": "d008d5e21afd952d6918ae7ae38ad5dd4232e16e54b128255851be41bfbe2297"
+  },
+  {
+   "path": "tools/marketplace/event_log.py",
+   "role": "implementation",
+   "exists": true,
+   "bytes": 7961,
+   "sha256": "56a07181f603018b1306f40f42cd65152975dc09b67fc1f0ff60fe548f1f7816"
+  },
+  {
+   "path": "tools/marketplace/schema/deprecation.schema.json",
+   "role": "schema",
+   "exists": true,
+   "bytes": 2509,
+   "sha256": "e6e3f3cbc45d84a795a2e49c44d2aab929dcdf6b1a39cf77cb43087ba6fca8e4"
+  },
+  {
+   "path": "tools/marketplace/tests/test_deprecation.py",
+   "role": "tests",
+   "exists": true,
+   "bytes": 5915,
+   "sha256": "1aaf66600f7a7841903d3fd1975837fce36fbeaf223c033bb33678bfb107e355"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "Installing a deprecated version succeeds and a durable warning naming successor acme.widget@2.0.0 is persisted; the version remains listed.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/marketplace/tests/test_deprecation.py::test_deprecated_installs_with_warning",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -B tools/marketplace/tests/test_deprecation.py::test_deprecated_installs_with_warning",
+     "raw_output": "{\"installed\": true, \"ok\": true, \"state\": \"deprecated\", \"still_listed\": true, \"successor\": \"acme.widget@2.0.0\", \"warning_persisted\": true}",
+     "exit_code": 0,
+     "fingerprint": "dc261ef59801b08dfe1b105a1923a97e"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "warnings.jsonl + user_surface.json after discarded return",
+     "raw_output": "{\"successor_in_user_message\": true, \"user_source\": \"user_surface.json\", \"user_warning_count\": 1, \"warning_persisted\": true}",
+     "exit_code": 0,
+     "fingerprint": "6a509d28deb2a2841d36db1a005ca598"
+    }
+   ]
+  },
+  {
+   "claim": "In the same run, installing a revoked version is refused and writes no payload; deprecated and revoked are not aliases.",
+   "verdict": "CONFIRMED",
+   "anchor": "tools/marketplace/tests/test_deprecation.py::test_revoked_is_refused",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 -B tools/marketplace/tests/test_deprecation.py::test_revoked_is_refused",
+     "raw_output": "{\"deprecated_ok_same_run\": true, \"revoked_installed\": false, \"revoked_ok\": false, \"state\": \"revoked\", \"states_are_aliases\": false}",
+     "exit_code": 0,
+     "fingerprint": "0214be71075ce26efde2ec61ea2a3e58"
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "install dir for revoked version",
+     "raw_output": "{\"refusal_reason\": \"acme.widget@0.9.0 is revoked: compromised build withdrawn\", \"revoked_install_exists\": false}",
+     "exit_code": 0,
+     "fingerprint": "ef65b32640b5abad96f1a437545db243"
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "test_deprecated_installs_with_warning",
+   "command": "python3 -B tools/marketplace/tests/test_deprecation.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_revoked_is_refused",
+   "command": "python3 -B tools/marketplace/tests/test_deprecation.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_successor_to_nonexistent_package_rejected",
+   "command": "python3 -B tools/marketplace/tests/test_deprecation.py",
+   "result": "PASS"
+  },
+  {
+   "id": "test_discarded_return_surfaces_to_user",
+   "command": "python3 -B tools/marketplace/tests/test_deprecation.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "successor-to-nonexistent-package",
+   "kind": "known-broken-fixture",
+   "description": "A successor pointer to a package that does not exist must be rejected at deprecation time; the version stays current.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "package.deprecation_rejected",
+   "good_state_output": "package.deprecated with an existing successor"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "IMP-0101-probe2-user-surface",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "note": "After discarding the install return value, a later process health-check reads user_surface.json (not events.jsonl) and the message names the successor acme.widget@2.0.0."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0101/UNIT-ARTIFACT-MANIFEST.json"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/probes/IMP-0101/probe1_deprecated_installs.py",
+   "artifact_path": "command-center/receipts/IMP-0101.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0101/probe1_deprecated_installs.py",
+    "raw_output": "deferred-to-named-probe",
+    "exit_code": 0,
+    "fingerprint": "b2ddd43ac2e0c6cdd8d719b987b9ac5f"
+   }
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0079 (signed revocation list) and IMP-0054 (plugin degrade-loudly channel) are not delivered in this worktree; IMP-0101 ships a local revocation flag that blocks install and a bounded user-facing warning channel rather than importing those missing modules.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Re-bind install refusal to the IMP-0079 list and the warning sink to the IMP-0054 plugin channel when those units land."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "timestamps": {
+  "started_at": "2026-08-24T20:42:00Z",
+  "ended_at": "2026-08-25T00:32:22Z"
+ },
+ "same_run_distinct_states": true,
+ "negative_control_refused": true
+}

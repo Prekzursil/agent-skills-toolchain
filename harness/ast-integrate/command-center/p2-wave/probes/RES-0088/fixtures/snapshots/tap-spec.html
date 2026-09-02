@@ -1,0 +1,482 @@
+<!DOCTYPE html>
+<html>
+    <head>
+        <meta charset="utf-8">
+        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+        <title>TAP specification - Test Anything Protocol</title>
+        <meta name="viewport" content="width=device-width">
+
+        <!-- syntax highlighting CSS -->
+        <link rel="stylesheet" href="/css/syntax.css">
+
+        <!-- Custom CSS -->
+        <link rel="stylesheet" href="/css/main.css">
+
+    </head>
+    <body>
+
+        <div class="site">
+          <div class="header">
+            <h1 class="title"><a href="/"><img alt="Test Anything Protocol" src="/images/tap.png" /><!-- TestAnything.org--></a></h1>
+            <ul>
+              <li><a class="extra" href="/">Home</a></li>
+              <li><a class="extra" href="/testing-with-tap">Testing with TAP</a></li>
+              <li><a class="extra" href="/producers.html">Producers</a></li>
+              <li><a class="extra" href="/consumers.html">Consumers</a></li>
+              <li><a class="extra" href="/tap-version-14-specification.html">Specification</a></li>
+            </ul>
+            <br class="clear" />
+          </div>
+
+          <div class="content">
+          <!-- SPDX-License-Identifier: Artistic-1.0-Perl -->
+
+<h1 id="name">NAME</h1>
+
+<p>TAP - The Test Anything Protocol</p>
+
+<h2 id="synopsis">SYNOPSIS</h2>
+
+<p>TAP, the Test Anything Protocol, is Perl’s simple text-based interface between testing modules such as Test::More and a test harness such as Test::Harness 2.x or TAP::Harness 3.x.</p>
+
+<h2 id="the-tap-format">THE TAP FORMAT</h2>
+
+<p>TAP’s general format is:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..N
+ok 1 Description # Directive
+# Diagnostic
+....
+ok 47 Description
+ok 48 Description
+more tests....
+</code></pre></div></div>
+
+<p>For example, a test file’s output might look like:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..4
+ok 1 - Input file opened
+not ok 2 - First line of the input valid
+ok 3 - Read the rest of the file
+not ok 4 - Summarized correctly # TODO Not written yet
+</code></pre></div></div>
+
+<h2 id="harness-behavior">HARNESS BEHAVIOR</h2>
+
+<p>In this document, the “harness” is any program analyzing TAP output. Typically this will be Perl’s prove program, or the underlying Test::Harness::runtests subroutine.
+A harness must only read TAP output from standard output and not from standard error. Lines written to standard output matching /^(not )?ok\b/ must be interpreted as test lines. All other lines must not be considered test output.</p>
+
+<h2 id="tests-lines-and-the-plan">TESTS LINES AND THE PLAN</h2>
+
+<h3 id="the-version">The version</h3>
+<p>The current version of TAP is 12. To allow future enhancements any future version greater than 12 should start with an explicit version line.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>TAP version 13
+</code></pre></div></div>
+
+<p>In the absence of any version line version 12 is assumed. It is an error to explicitly specify any version lower than 13.</p>
+
+<h3 id="the-plan">The plan</h3>
+<p>The plan tells how many tests will be run, or how many tests have run. It’s a check that the test file hasn’t stopped prematurely. It must appear once, whether at the beginning or end of the output.
+The plan is usually the first line of TAP output (although in future there may be a version line before it) and it specifies how many test points are to follow. For example,</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..10
+</code></pre></div></div>
+
+<p>means you plan on running 10 tests. This is a safeguard in case your test file dies silently in the middle of its run. The plan is optional but if there is a plan before the test points it must be the first non-diagnostic line output by the test file.
+In certain instances a test file may not know how many test points it will ultimately be running. In this case the plan can be the last non-diagnostic line in the output.
+The plan cannot appear in the middle of the output, nor can it appear more than once.</p>
+
+<h3 id="the-test-line">The test line</h3>
+<p>The core of TAP is the test line. A test file prints one test line per test point executed. There must be at least one test line in TAP output. Each test line comprises the following elements:</p>
+
+<ul>
+  <li>ok or not ok</li>
+</ul>
+
+<p>This tells whether the test point passed or failed. It must be at the beginning of the line. /^not ok/ indicates a failed test point. /^ok/ is a successful test point. This is the only mandatory part of the line.
+Note that unlike the Directives below, ok and not ok are case-sensitive.</p>
+
+<ul>
+  <li>Test number</li>
+</ul>
+
+<p>TAP expects the ok or not ok to be followed by a test point number. If there is no number the harness must maintain its own counter until the script supplies test numbers again. So the following test output</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..6
+not ok
+ok
+not ok
+ok
+ok
+</code></pre></div></div>
+
+<p>has five tests. The sixth is missing. Test::Harness will generate</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>FAILED tests 1, 3, 6
+Failed 3/6 tests, 50.00% okay
+</code></pre></div></div>
+
+<ul>
+  <li>Description</li>
+</ul>
+
+<p>Any text after the test number but before a # is the description of the test point.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ok 42 this is the description of the test
+</code></pre></div></div>
+
+<p>Descriptions should not begin with a digit so that they are not confused with the test point number.
+The harness may do whatever it wants with the description.</p>
+
+<ul>
+  <li>Directive</li>
+</ul>
+
+<p>The test point may include a directive, following a hash on the test line. There are currently two directives allowed: TODO and SKIP. These are discussed below.</p>
+
+<p>To summarize:</p>
+<ul>
+  <li>ok/not ok (required)</li>
+  <li>Test number (recommended)</li>
+  <li>Description (recommended)</li>
+  <li>Directive (only when necessary)</li>
+</ul>
+
+<h2 id="directives">DIRECTIVES</h2>
+
+<p>Directives are special notes that follow a # on the test line. Only two are currently defined: TODO and SKIP. Note that these two keywords are not case-sensitive.</p>
+
+<h3 id="todo-tests">TODO tests</h3>
+
+<p>If the directive starts with # TODO, the test is counted as a todo test, and the text after TODO is the explanation.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>not ok 13 # TODO bend space and time
+</code></pre></div></div>
+
+<p>Note that if the TODO has an explanation it must be separated from TODO by a space.
+These tests represent a feature to be implemented or a bug to be fixed and act as something of an executable “things to do” list. They are <strong>not</strong> expected to succeed. Should a todo test point begin succeeding, the harness should report it as a bonus. This indicates that whatever you were supposed to do has been done and you should promote this to a normal test point.</p>
+
+<h3 id="skipping-tests">Skipping tests</h3>
+<p>If the directive starts with # SKIP, the test is counted as having been skipped. If the whole test file succeeds, the count of skipped tests is included in the generated output. The harness should report the text after # SKIP\S*\s+ as a reason for skipping.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ok 23 # skip Insufficient flogiston pressure.
+</code></pre></div></div>
+
+<p>Similarly, one can include an explanation in a plan line, emitted if the test file is skipped completely:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..0 # Skipped: WWW::Mechanize not installed
+</code></pre></div></div>
+
+<h2 id="other-lines">OTHER LINES</h2>
+
+<h3 id="bail-out">Bail out!</h3>
+
+<p>As an emergency measure a test script can decide that further tests are useless (e.g. missing dependencies) and testing should stop immediately. In that case the test script prints the magic words</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Bail out!
+</code></pre></div></div>
+
+<p>to standard output. Any message after these words must be displayed by the interpreter as the reason why testing must be stopped, as in</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>Bail out! MySQL is not running.
+</code></pre></div></div>
+
+<h3 id="diagnostics">Diagnostics</h3>
+<p>Additional information may be put into the testing output on separate lines. Diagnostic lines should begin with a #, which the harness must ignore, at least as far as analyzing the test results. The harness is free, however, to display the diagnostics. Typically diagnostics are used to provide information about the environment in which test file is running, or to delineate a group of tests.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>...
+ok 18 - Closed database connection
+# End of database section.
+# This starts the network part of the test.
+# Daemon started on port 2112
+ok 19 - Opened socket
+...
+ok 47 - Closed socket
+# End of network tests
+</code></pre></div></div>
+
+<h3 id="anything-else">Anything else</h3>
+<p>Any output line that is not a version, a plan, a test line, a diagnostic or a bail out is considered an “unknown” line. A TAP parser is required to not consider an unknown line as an error but may optionally choose to capture said line and hand it to the test harness, which may have custom behavior attached. This is to allow for forward compatability.
+Test::Harness silently ignores incorrect lines, but will become more stringent in the future.
+TAP::Harness reports TAP syntax errors at the end of a test run.</p>
+
+<h2 id="examples">EXAMPLES</h2>
+
+<p>All names, places, and events depicted in any example are wholly fictitious and bear no resemblance to, connection with, or relation to any real entity. Any such similarity is purely coincidental, unintentional, and unintended.</p>
+
+<h3 id="common-with-explanation">Common with explanation</h3>
+
+<p>The following TAP listing declares that six tests follow as well as provides handy feedback as to what the test is about to do. All six tests pass.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..6
+#
+# Create a new Board and Tile, then place
+# the Tile onto the board.
+#
+ok 1 - The object isa Board
+ok 2 - Board size is zero
+ok 3 - The object isa Tile
+ok 4 - Get possible places to put the Tile
+ok 5 - Placing the tile produces no error
+ok 6 - Board size is 1
+</code></pre></div></div>
+
+<h3 id="unknown-amount-and-failures">Unknown amount and failures</h3>
+<p>This hypothetical test program ensures that a handful of servers are online and network-accessible. Because it retrieves the hypothetical servers from a database, it doesn’t know exactly how many servers it will need to ping. Thus, the test count is declared at the bottom after all the test points have run. Also, two of the tests fail.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ok 1 - retrieving servers from the database
+# need to ping 6 servers
+ok 2 - pinged diamond
+ok 3 - pinged ruby
+not ok 4 - pinged saphire
+ok 5 - pinged onyx
+not ok 6 - pinged quartz
+ok 7 - pinged gold
+1..7
+</code></pre></div></div>
+
+<h3 id="giving-up">Giving up</h3>
+<p>This listing reports that a pile of tests are going to be run. However, the first test fails, reportedly because a connection to the database could not be established. The program decided that continuing was pointless and exited.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..573
+not ok 1 - database handle
+Bail out! Couldn't connect to database.
+</code></pre></div></div>
+
+<h3 id="skipping-a-few">Skipping a few</h3>
+<p>The following listing plans on running 5 tests. However, our program decided to not run tests 2 thru 5 at all. To properly report this, the tests are marked as being skipped.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..5
+ok 1 - approved operating system
+# $^0 is solaris
+ok 2 - # SKIP no /sys directory
+ok 3 - # SKIP no /sys directory
+ok 4 - # SKIP no /sys directory
+ok 5 - # SKIP no /sys directory
+</code></pre></div></div>
+
+<h3 id="skipping-everything">Skipping everything</h3>
+<p>This listing shows that the entire listing is a skip. No tests were run.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..0 # skip because English-to-French translator isn't installed
+</code></pre></div></div>
+
+<h3 id="got-spare-tuits">Got spare tuits?</h3>
+<p>The following example reports that four tests are run and the last two tests failed. However, because the failing tests are marked as things to do later, they are considered successes. Thus, a harness should report this entire listing as a success.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>1..4
+ok 1 - Creating test program
+ok 2 - Test program runs, no error
+not ok 3 - infinite loop # TODO halting problem unsolved
+not ok 4 - infinite loop 2 # TODO halting problem unsolved
+</code></pre></div></div>
+
+<h3 id="creative-liberties">Creative liberties</h3>
+<p>This listing shows an alternate output where the test numbers aren’t provided. The test also reports the state of a ficticious board game in diagnostic form. Finally, the test count is reported at the end.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>ok - created Board
+ok
+ok
+ok
+ok
+ok
+ok
+ok
+# +------+------+------+------+
+# |      |16G   |      |05C   |
+# |      |G N C |      |C C G |
+# |      |  G   |      |  C  +|
+# +------+------+------+------+
+# |10C   |01G   |      |03C   |
+# |R N G |G A G |      |C C C |
+# |  R   |  G   |      |  C  +|
+# +------+------+------+------+
+# |      |01G   |17C   |00C   |
+# |      |G A G |G N R |R N R |
+# |      |  G   |  R   |  G   |
+# +------+------+------+------+
+ok - board has 7 tiles + starter tile
+1..9
+</code></pre></div></div>
+
+<h2 id="non-perl-tap">Non-Perl TAP</h2>
+
+<p>In Perl, we use Test::Simple and Test::More to generate TAP output. Other languages have solutions that generate TAP, so that they can take advantage of Test::Harness.
+The following sections are provided by their maintainers, and may not be up-to-date.</p>
+
+<h2 id="cc">C/C++</h2>
+<p>libtap makes it easy to write test programs in C that produce TAP-compatible output. Modeled on the Test::More API, libtap contains all the functions you need to:</p>
+
+<ul>
+  <li>Specify a test plan</li>
+  <li>Run tests</li>
+  <li>Skip tests in certain situations</li>
+  <li>Have TODO tests</li>
+  <li>Produce TAP compatible diagnostics</li>
+</ul>
+
+<p>More information about libtap, including download links, checksums, anonymous access to the Subersion repository, and a bug tracking system, can be found at:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://jc.ngo.org.uk/trac-bin/trac.cgi/wiki/LibTap
+</code></pre></div></div>
+
+<p>(Nik Clayton, April 17, 2006)</p>
+
+<h2 id="python">Python</h2>
+<p>PyTap will, when it’s done, provide a simple, assertive (Test::More-like) interface for writing tests in Python. It will output TAP and will include the functionality found in Test::Builder and Test::More. It will try to make it easy to add more test code (so you can write your own TAP.StringDiff, for example.
+Right now, it’s got a fair bit of the basics needed to emulate Test::More, and I think it’s easy to add more stuff – just like Test::Builder, there’s a singleton that you can get at easily.
+I need to better identify and finish implementing the most basic tests. I am not a Python guru, I just use it from time to time, so my aim may not be true. I need to write tests for it, which means either relying on Perl for the tester tester, or writing one in Python.
+Here’s a sample test, as found in my Subversion:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>from TAP.Simple import *
+
+plan(15)
+
+ok(1)
+ok(1, "everything is OK!")
+ok(0, "always fails")
+
+is_ok(10, 10, "is ten ten?")
+is_ok(ok, ok, "even ok is ok!")
+ok(id(ok),    "ok is not the null pointer")
+ok(True,      "the Truth will set you ok")
+ok(not False, "and nothing but the truth")
+ok(False,     "and we'll know if you lie to us")
+
+isa_ok(10, int, "10")
+isa_ok('ok', str, "some string")
+
+ok(0,    "zero is true", todo="be more like Ruby!")
+ok(None, "none is true", skip="not possible in this universe")
+
+eq_ok("not", "equal", "two strings are not equal");
+</code></pre></div></div>
+
+<p>(Ricardo Signes, April 17, 2006)</p>
+
+<h2 id="javascript">JavaScript</h2>
+<p>Test.Simple looks and acts just like TAP, although in reality it’s tracking test results in an object rather than scraping them from a print buffer.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://openjsan.org/doc/t/th/theory/Test/Simple/
+</code></pre></div></div>
+
+<p>(David Wheeler, April 17, 2006)</p>
+
+<h2 id="php">PHP</h2>
+<p>All the big PHP players now produce TAP</p>
+
+<ul>
+  <li>phpt</li>
+</ul>
+
+<p>Outputs TAP by default as of the yet-to-be-released PEAR 1.5.0</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://pear.php.net/PEAR
+</code></pre></div></div>
+
+<ul>
+  <li>PHPUnit</li>
+</ul>
+
+<p>Has a TAP logger (since 2.3.4)</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://www.phpunit.de/wiki/Main_Page
+</code></pre></div></div>
+
+<ul>
+  <li>SimpleTest
+There’s a third-party TAP reporting extension for SimpleTest</li>
+</ul>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://www.digitalsandwich.com/archives/51-Updated-Simpletest+Apache-Test.html
+</code></pre></div></div>
+
+<ul>
+  <li>Apache-Test</li>
+</ul>
+
+<p>Apache-Test’s PHP writes TAP by default and includes the standalone test-more.php</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>http://search.cpan.org/dist/Apache-Test/
+</code></pre></div></div>
+
+<p>(Geoffrey Young, April 17, 2006)</p>
+
+<h2 id="java">Java</h2>
+<p>tap4j provides objects to create TestSets, TestResults, BailOuts and, using a TapProducer, dump it into a java.io.File or String. It also provides TapConsumer’s to load TapStreams from Strings or java.io.File’s. YAMLish is interpreted and made available as diagnostics of each TestResult object of a TestSet.</p>
+
+<ul>
+  <li><a href="https://tupilabs.com/tap4j/tap4j/">tap4j</a></li>
+  <li><a href="https://tupilabs.com/tap4j/tap4j/tapconsumer.html">Example of a TapConsumer in Java with tap4j + YAMLish</a></li>
+  <li><a href="https://tupilabs.com/tap4j/tap4j/tapproducer.html">Example of a TapProducer in Java with tap4j + YAMLish</a></li>
+</ul>
+
+<p>tap4j is licensed under MIT License.</p>
+
+<h2 id="bugs">BUGS</h2>
+
+<p>Feature requests and bug reports should be <a href="https://github.com/TestAnything/testanything.github.io/issues/new">raised on GitHub.</a></p>
+
+<h2 id="support">SUPPORT</h2>
+
+<p>You can find documentation for this module with the perldoc command.</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>perldoc TAP
+</code></pre></div></div>
+
+<p>You can also look for information at:</p>
+
+<ul>
+  <li>AnnoCPAN: Annotated CPAN documentation
+<a href="http://annocpan.org/dist/TAP">http://annocpan.org/dist/TAP</a></li>
+  <li>CPAN Ratings
+<a href="http://cpanratings.perl.org/d/TAP">http://cpanratings.perl.org/d/TAP</a></li>
+  <li>RT: CPAN’s request tracker
+<a href="http://rt.cpan.org/NoAuth/Bugs.html?Dist=TAP">http://rt.cpan.org/NoAuth/Bugs.html?Dist=TAP</a></li>
+  <li>Search CPAN
+<a href="http://search.cpan.org/dist/TAP">http://search.cpan.org/dist/TAP</a></li>
+</ul>
+
+<h2 id="authors">AUTHORS</h2>
+
+<p>Andy Lester, based on the original Test::Harness documentation by Michael Schwern.</p>
+
+<h2 id="acknowledgements">ACKNOWLEDGEMENTS</h2>
+
+<p>Thanks to Pete Krawczyk, Paul Johnson, Ian Langworth and Nik Clayton for help and contributions on this document.
+The basis for the TAP format was created by Larry Wall in the original test script for Perl 1. Tim Bunce and Andreas Koenig developed it further with their modifications to Test::Harness.</p>
+
+<h2 id="copyright">COPYRIGHT</h2>
+
+<p>Copyright 2003-2006 by Michael G Schwern <a href="/cdn-cgi/l/email-protection#0f7c6c67786a7d614f7f606d6077216c6062"><span class="__cf_email__" data-cfemail="9ae9f9f2edffe8f4daeaf5f8f5e2b4f9f5f7">[email&#160;protected]</span></a>, Andy Lester <a href="/cdn-cgi/l/email-protection#6809060c1128180d1c0c09060b0d460b0705"><span class="__cf_email__" data-cfemail="a5c4cbc1dce5d5c0d1c1c4cbc6c08bc6cac8">[email&#160;protected]</span></a>.
+This program is free software; you can redistribute it and/or modify it under the same terms as Perl itself.
+See <a href="https://spdx.org/licenses/Artistic-1.0-Perl.html">https://spdx.org/licenses/Artistic-1.0-Perl.html</a>.</p>
+
+<h2 id="todo">TODO</h2>
+
+<p>Define the exit code of the process.</p>
+
+          </div>
+
+          <div class="footer">
+            <div class="contact">
+              <p>
+                <a href="https://github.com/testanything">github.com/testanything</a><br />
+              </p>
+            </div>
+          </div>
+        </div>
+
+
+      <script data-cfasync="false" src="/cdn-cgi/scripts/5c5dd728/cloudflare-static/email-decode.min.js"></script><script>
+        (function(i,s,o,g,r,a,m){i['GoogleAnalyticsObject']=r;i[r]=i[r]||function(){
+        (i[r].q=i[r].q||[]).push(arguments)},i[r].l=1*new Date();a=s.createElement(o),
+        m=s.getElementsByTagName(o)[0];a.async=1;a.src=g;m.parentNode.insertBefore(a,m)
+        })(window,document,'script','//www.google-analytics.com/analytics.js','ga');
+
+        ga('create', 'UA-48470734-1', 'testanything.org');
+        ga('send', 'pageview');
+      </script>
+    </body>
+</html>

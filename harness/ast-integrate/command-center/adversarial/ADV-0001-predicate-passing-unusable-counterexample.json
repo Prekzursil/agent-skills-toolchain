@@ -1,0 +1,936 @@
+{
+  "schema_version": 1,
+  "unit_id": "ADV-0001",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ADV-0001 both named probes re-ran to exit 0; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "_USER-PROMPTS.md:10627-10648",
+  "min_bytes_threshold": 4096,
+  "artifacts": [
+    {
+      "path": "command-center/adversarial/ADV-0001-predicate-passing-unusable-counterexample.json",
+      "bytes": 58491,
+      "sha256": "1155155dfa3f14d963462877bdc7f65ef1ab274af4dcaaee1f376050c01b7bb4",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Condition 12 is evaluated as a claim-shape check over the receipt's OWN self-declared downstream_consumers block; neither shared implementation ever executes the named consumer, so the condition cannot observe whether the artifact is actually readable.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/completion_predicate.py:1104",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "read platform/lib/completion_predicate.py:1104-1151 (_c12_downstream)",
+          "raw_output": "consumers = [c for c in _seq(receipt.get('downstream_consumers')) ...]; unexecuted = [c.get('consumer') for c in consumers if c.get('executed') is not True]; ... if c.get('read_ok') is not True: bad.append(...) elif isinstance(exit_code, int) and exit_code != 0: ... elif not str(probe.get('raw_output') or '').strip(): ... -- every branch reads a field OF THE RECEIPT. There is no subprocess call, no import of the consumer, and no filesystem access to the consumer in the whole function.",
+          "fingerprint": "src-c12-read-completion-predicate-1104"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python scratchpad/adv0001_harness2.py  (7 receipts through CP.evaluate, then the real consumers executed as subprocesses)",
+          "raw_output": "condition_12 outcome == SATISFIED for 7 of 7 cases, including ADV-9006 whose named consumer tools/command-center/harvest_refutations.py does not exist on disk. Basis string emitted for every case: '1 consumer(s) executed against the artifact and read it (exit 0)'.",
+          "fingerprint": "ver-c12-execute-harness-7cases"
+        }
+      ]
+    },
+    {
+      "claim": "A work-unit output can satisfy all twelve conditions (reducer verdict COMPLETE, satisfied=12/12) and still be unreadable by its declared downstream consumer: 5 of the 6 adversarial units are such counterexamples.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/completion_predicate.py:1246",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PROBE 1 -- CP.evaluate(receipt, PredicateOptions(repo_root=<fixture>, output_schema='platform/schema/receipt.schema.json', min_evidence_anchors=2)) for each of the 7 units",
+          "raw_output": "SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12\nSUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12\nSUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12\nSUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12\nSUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12\nSUCCESS:ADV-9005 predicate=COMPLETE satisfied=12/12\nSUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12",
+          "fingerprint": "src-probe1-reducer-evaluate-7units"
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "PROBE 2 -- python platform/lib/schema_resolver.py <artifact> command-center/schema/refutation-record.schema.json ; and node -e \"JSON.parse(readFileSync(argv[1]))\" <artifact>",
+          "raw_output": "ADV-9000 CONSUMER-A exit 0 'SUCCESS:schema-valid' / CONSUMER-B exit 0\nADV-9001 CONSUMER-A exit 1 \"<root>: 'report' is a required property | FAILED:schema-invalid errors=1\"\nADV-9002 CONSUMER-A exit 1 \"report/kind: 'refutation-record' was expected | FAILED:schema-invalid errors=1\"\nADV-9003 CONSUMER-A exit 1 \"report/control_ids: [] should be non-empty | report/observations: [] should be non-empty\"\nADV-9004 CONSUMER-B exit 1 (node SyntaxError on the bare NaN token)\nADV-9005 CONSUMER-A exit 0 / CONSUMER-B exit 0  -- NOT a counterexample\nADV-9006 CONSUMER-D exit 2 \"can't open file 'tools\\\\command-center\\\\harvest_refutations.py': [Errno 2] No such file or directory\"",
+          "fingerprint": "ver-probe2-execute-real-consumers"
+        }
+      ]
+    },
+    {
+      "claim": "The condition-12 defect is NOT an artifact of one implementation: the second, independently written reducer (receipt_schema_gate.py, which resolves schemas through a referencing.Registry rather than naive jsonschema.validate) also reports condition 12 as satisfied for the artifact whose named consumer does not exist.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/receipt_schema_gate.py:531",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "read platform/lib/receipt_schema_gate.py:531-562",
+          "raw_output": "cons = [c for c in receipt.get('downstream_consumers', []) ...]; if c.get('executed') is not True: bad.append(f\"{c.get('consumer')}: not executed (claim only)\") ... -- again, every check is on a receipt field. The module docstring at :24 asserts obligation 8 is 'a downstream consumer was EXECUTED, not merely claimed', but what is enforced is that the receipt SAYS executed=true.",
+          "fingerprint": "src-c12-read-receipt-schema-gate-531"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python receipt_schema_gate.py <fixture>/command-center/adversarial/ADV-9006.json --repo-root <fixture>",
+          "raw_output": "FAILED:ADV-9006 predicate-unsatisfied c3=UNSATISFIED\n  [  ok]  1. process/task reached a valid terminal state\n  [  ok]  2. expected artifact exists\n  [FAIL]  3. artifact is non-empty and exceeds a meaningful minimum size\n  [  ok]  4. artifact parses against its schema\n  [  ok]  5. required sentinel is present\n  [  ok] 11. output was registered in the artifact manifest\n  [  ok] 12. downstream consumers can read it     <-- for a consumer that is not on disk",
+          "fingerprint": "ver-c12-execute-receipt-schema-gate-adv9006"
+        }
+      ]
+    },
+    {
+      "claim": "Condition 4 cannot be evaluated at all when the reducer is handed the catalog's OWN declared output_schema: the generated shims delegate by an https:// $ref that naive jsonschema.validate cannot retrieve, so the evaluator raises and evaluate() downgrades the condition to NOT-CHECKED, yielding INDETERMINATE.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/schema/refutation-record.schema.json:17",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "jsonschema.validate({'literally':'anything'}, json.load(open('command-center/schema/refutation-record.schema.json')))",
+          "raw_output": "jsonschema.exceptions._WrappedReferencingError: Unresolvable: https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/refutation-record",
+          "fingerprint": "src-shim-naive-jsonschema-validate"
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python scratchpad/p2_shim.py -- CP.evaluate(same receipt) once with output_schema=<catalog shim> and once with output_schema=platform/schema/receipt.schema.json",
+          "raw_output": "catalog_declared_shim: c4_outcome=NOT-CHECKED, basis='evaluator raised _WrappedReferencingError: Unresolvable: ...', evaluator_error=true, overall_verdict=INDETERMINATE\ninternal_ref_schema:  c4_outcome=SATISFIED,   basis='validated against platform/schema/receipt.schema.json', overall_verdict=COMPLETE\ndiscriminates=true\ncatalog census: total_units=2007, declaring_command_center_schema_path=1859, declaring_other_or_none=148",
+          "fingerprint": "ver-shim-both-states-through-reducer"
+        }
+      ]
+    },
+    {
+      "claim": "The reducer reads an artifact field that the receipt schema forbids: completion_predicate.py branches on `artifact_class` in three conditions, but receipt.schema.json#/$defs/artifact sets additionalProperties=false and does not list it. A receipt that supplies the field is schema-invalid; a schema-valid receipt always leaves it None, silently downgrading the condition-3 size floor from the json default to the 'other' default. FOUND BY THIS UNIT'S OWN ARTIFACT FAILING ITS OWN DECLARED CONSUMER on first execution - the demonstration, at my own expense, of why condition 12 must execute rather than declare.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/completion_predicate.py:454",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python platform/lib/schema_resolver.py command-center/adversarial/ADV-0001-predicate-passing-unusable-counterexample.json command-center/schema/refutation-record.schema.json",
+          "raw_output": "artifacts/0: Additional properties are not allowed ('artifact_class' was unexpected)\nFAILED:schema-invalid errors=1\nEXIT=1",
+          "fingerprint": "src-artifactclass-consumer-reject-self"
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "python -c \"...print(list(artifact['properties']), artifact['additionalProperties'])\" ; grep -n artifact_class platform/lib/completion_predicate.py",
+          "raw_output": "props: ['path', 'bytes', 'sha256', 'exists', 'eol', 'role']\nadditionalProperties: False\nartifact_class allowed: False\n454:        cls = str(prims[0].get(\"artifact_class\") or \"other\")\n538:            art.get(\"artifact_class\") or (\"json\" if p.suffix == \".json\" else \"other\")\n625:        if str(art.get(\"artifact_class\")) == \"binary\":",
+          "fingerprint": "ver-artifactclass-schema-vs-reducer-grep"
+        }
+      ]
+    },
+    {
+      "claim": "jq is NOT a usable strict-RFC-8259 gate on this box and silently CORRUPTS the value: it exits 0 on a NaN document and rewrites NaN to null. It was my first choice of strict parser and is recorded here as a REFUTED detector, replaced by node.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0001/ctl-nan-bad.json:1",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "jq -e . command-center/p2-wave/probes/ADV-0001/ctl-nan-bad.json",
+          "raw_output": "exit 0, stdout: {\n  \"x\": null\n}",
+          "fingerprint": "57d7c0f87b5e9024a7f3addd"
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "node -e \"JSON.parse(require('fs').readFileSync(process.argv[1],'utf8'))\" -- command-center/p2-wave/probes/ADV-0001/ctl-nan-bad.json AND ctl-nan-good.json",
+          "raw_output": "bad_NaN -> exit 1 (SyntaxError, node v24.16.0); good -> exit 0. discriminates=true",
+          "fingerprint": "65e843be96c1d76800666a4a"
+        }
+      ]
+    },
+    {
+      "claim": "Condition 12 is a claim-shape check: reconstructed field-reader returns SATISFIED for ADV-9006 while spawning the named consumer exits 2.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0001/probe1-fixtures.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+          "raw_output": "PROBE 1: AUTHOR >=6 ADVERSARIAL FIXTURES AND RECORD REDUCER VERDICT\nPROBE-1-BEGIN:ADV-0001\nstage=remeasure\nmethod=reconstructed field-reader from P12 + receipt quotes; canonical module imported only if present\ncanonical_reducer_present=False\ncanonical_reducer_path=platform/lib/completion_predicate.py\nschema_resolver_present=False\nfixture_count=7\np12_doc={'present': True, 'quotes_c12_decorative': True, 'quotes_forged_12_of_12': True}\nC12-BOTH-STATES|good=SATISFIED|bad=UNSATISFIED|discriminates=True\nROW|ADV-9000|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12\nROW|ADV-9001|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12\nROW|ADV-9002|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12\nROW|ADV-9003|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12\nROW|ADV-9004|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12\nROW|ADV-9005|verdict=INCOMPLETE|satisfied=11/12|unsatisfied=[11]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|FAILED:ADV-9105 predicate=INCOMPLETE satisfied=11/12\nROW|ADV-9006|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12\ncomplete_count=6/7\ncontrol_ADV-9000=COMPLETE c12=SATISFIED\nattacks_complete=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\ncounterexample_eligible=reducer COMPLETE while consumer may fail (consumer exits recorded by probe2_consumers.py)\nPROBE-1-END:ADV-0001\nSUCCESS:ADV-0001-probe1\n",
+          "fingerprint": "488e7147a2793e8092e7ed7bfdde81b2d3385c1bafdd2ac0a3768cd047f18e96",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+          "raw_output": "PROBE 2: EXECUTE REAL DOWNSTREAM CONSUMERS ON THE SAME ARTIFACTS\nPROBE-2-BEGIN:ADV-0001\nstage=remeasure\nmethod=class-shape checker + node JSON.parse + spawn of named consumer\nschema_resolver_present=False\nclass_shim=command-center/schema/refutation-record.schema.json exists=True\nROW|ADV-9000|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9001|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"<root>: 'report' is a required property\"]|B_out=|D_out=\nROW|ADV-9002|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"report/kind: 'refutation-record' was expected\"]|B_out=|D_out=\nROW|ADV-9003|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=['report/control_ids: [] should be non-empty', 'report/observations: [] should be non-empty']|B_out=|D_out=\nROW|ADV-9004|A=0|B=1|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[]|B_out=<anonymous_script>:145     \"duration_seconds\": NaN                         ^  SyntaxError: Unexpected token 'N', ...\"seconds\": NaN   },  \"... is not valid JSON |D_out=\nROW|ADV-9005|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9006|A=0|B=0|D=2|readable=False|named=tools/command-center/harvest_refutations.py|A_err=[]|B_out=|D_out=can't open file 'tools/command-center/harvest_refutations.py': [Errno 2] No such file or directory\ncontrol_ADV-9000_readable=True\nattacks_unreadable=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nexpected_signatures={'ADV-9001': True, 'ADV-9002': True, 'ADV-9003': True, 'ADV-9004': True, 'ADV-9006': True}\nnegative_control_proves_harness_not_failing_everything=True\nconsumer_counterexamples=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nPROBE-2-END:ADV-0001\nSUCCESS:ADV-0001-probe2\n",
+          "fingerprint": "60540ac01a13ccd79e3b252585065766cf76838af43151b41de5a7eaee708193",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A work-unit output can satisfy the reconstructed 12-condition field-reader and still be unreadable by a real consumer (ADV-9001 drop report, ADV-9002 wrong kind, ADV-9003 empty arrays, ADV-9004 NaN, ADV-9006 missing named consumer).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ADV-0001/probe2-consumers.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+          "raw_output": "PROBE 1: AUTHOR >=6 ADVERSARIAL FIXTURES AND RECORD REDUCER VERDICT\nPROBE-1-BEGIN:ADV-0001\nstage=remeasure\nmethod=reconstructed field-reader from P12 + receipt quotes; canonical module imported only if present\ncanonical_reducer_present=False\ncanonical_reducer_path=platform/lib/completion_predicate.py\nschema_resolver_present=False\nfixture_count=7\np12_doc={'present': True, 'quotes_c12_decorative': True, 'quotes_forged_12_of_12': True}\nC12-BOTH-STATES|good=SATISFIED|bad=UNSATISFIED|discriminates=True\nROW|ADV-9000|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12\nROW|ADV-9001|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12\nROW|ADV-9002|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12\nROW|ADV-9003|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12\nROW|ADV-9004|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12\nROW|ADV-9005|verdict=INCOMPLETE|satisfied=11/12|unsatisfied=[11]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|FAILED:ADV-9105 predicate=INCOMPLETE satisfied=11/12\nROW|ADV-9006|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12\ncomplete_count=6/7\ncontrol_ADV-9000=COMPLETE c12=SATISFIED\nattacks_complete=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\ncounterexample_eligible=reducer COMPLETE while consumer may fail (consumer exits recorded by probe2_consumers.py)\nPROBE-1-END:ADV-0001\nSUCCESS:ADV-0001-probe1\n",
+          "fingerprint": "488e7147a2793e8092e7ed7bfdde81b2d3385c1bafdd2ac0a3768cd047f18e96",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+          "raw_output": "PROBE 2: EXECUTE REAL DOWNSTREAM CONSUMERS ON THE SAME ARTIFACTS\nPROBE-2-BEGIN:ADV-0001\nstage=remeasure\nmethod=class-shape checker + node JSON.parse + spawn of named consumer\nschema_resolver_present=False\nclass_shim=command-center/schema/refutation-record.schema.json exists=True\nROW|ADV-9000|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9001|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"<root>: 'report' is a required property\"]|B_out=|D_out=\nROW|ADV-9002|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"report/kind: 'refutation-record' was expected\"]|B_out=|D_out=\nROW|ADV-9003|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=['report/control_ids: [] should be non-empty', 'report/observations: [] should be non-empty']|B_out=|D_out=\nROW|ADV-9004|A=0|B=1|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[]|B_out=<anonymous_script>:145     \"duration_seconds\": NaN                         ^  SyntaxError: Unexpected token 'N', ...\"seconds\": NaN   },  \"... is not valid JSON |D_out=\nROW|ADV-9005|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9006|A=0|B=0|D=2|readable=False|named=tools/command-center/harvest_refutations.py|A_err=[]|B_out=|D_out=can't open file 'tools/command-center/harvest_refutations.py': [Errno 2] No such file or directory\ncontrol_ADV-9000_readable=True\nattacks_unreadable=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nexpected_signatures={'ADV-9001': True, 'ADV-9002': True, 'ADV-9003': True, 'ADV-9004': True, 'ADV-9006': True}\nnegative_control_proves_harness_not_failing_everything=True\nconsumer_counterexamples=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nPROBE-2-END:ADV-0001\nSUCCESS:ADV-0001-probe2\n",
+          "fingerprint": "60540ac01a13ccd79e3b252585065766cf76838af43151b41de5a7eaee708193",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The canonical reducer platform/lib/completion_predicate.py is absent from this sparse worktree; Probe 1 records that fact rather than importing a missing module.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "platform/lib/completion_predicate.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat platform/lib/completion_predicate.py",
+          "raw_output": "canonical_reducer_present=False",
+          "fingerprint": "68fff955fc9ff245a79e55ea01dfe47fcdbabd62a3e88327d2bfcd1955c30526",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+          "raw_output": "PROBE 1: AUTHOR >=6 ADVERSARIAL FIXTURES AND RECORD REDUCER VERDICT\nPROBE-1-BEGIN:ADV-0001\nstage=remeasure\nmethod=reconstructed field-reader from P12 + receipt quotes; canonical module imported only if present\ncanonical_reducer_present=False\ncanonical_reducer_path=platform/lib/completion_predicate.py\nschema_resolver_present=False\nfixture_count=7\np12_doc={'present': True, 'quotes_c12_decorative': True, 'quotes_forged_12_of_12': True}\nC12-BOTH-STATES|good=SATISFIED|bad=UNSATISFIED|discriminates=True\nROW|ADV-9000|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12\nROW|ADV-9001|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12\nROW|ADV-9002|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12\nROW|ADV-9003|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12\nROW|ADV-9004|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12\nROW|ADV-9005|verdict=INCOMPLETE|satisfied=11/12|unsatisfied=[11]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|FAILED:ADV-9105 predicate=INCOMPLETE satisfied=11/12\nROW|ADV-9006|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12\ncomplete_count=6/7\ncontrol_ADV-9000=COMPLETE c12=SATISFIED\nattacks_complete=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\ncounterexample_eligible=reducer COMPLETE while consumer may fail (consumer exits recorded by probe2_consumers.py)\nPROBE-1-END:ADV-0001\nSUCCESS:ADV-0001-probe1\n",
+          "fingerprint": "488e7147a2793e8092e7ed7bfdde81b2d3385c1bafdd2ac0a3768cd047f18e96",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ADV0001-1",
+      "name": "seven receipts through the shared reducer, then the real consumers executed",
+      "command": "python <scratchpad>/adv0001_harness2.py",
+      "result": "PASS",
+      "output_tail": "7/7 reducer verdicts COMPLETE (satisfied=12/12); consumer exits: ADV-9000 0/0, ADV-9001 1/0, ADV-9002 1/0, ADV-9003 1/0, ADV-9004 0/1, ADV-9005 0/0, ADV-9006 0/0 + named-consumer exit 2"
+    },
+    {
+      "id": "T-ADV0001-2",
+      "name": "shim-vs-internal-ref both-states measurement of condition 4",
+      "command": "python <scratchpad>/p2_shim.py",
+      "result": "PASS",
+      "output_tail": "discriminates=true; shim -> NOT-CHECKED/INDETERMINATE, internal-ref -> SATISFIED/COMPLETE"
+    },
+    {
+      "id": "T-ADV0001-3",
+      "name": "second reducer (receipt_schema_gate) cross-check on the negative control and on two attacks",
+      "command": "python platform/lib/receipt_schema_gate.py <fixture>/command-center/adversarial/{ADV-9000,ADV-9005,ADV-9006}.json --repo-root <fixture>",
+      "result": "PASS",
+      "output_tail": "ADV-9005 c5 FAIL 'sentinel does not embed unit_id ADV-9105'; ADV-9000/ADV-9006 c5 ok; condition 12 [ok] in all three"
+    },
+    {
+      "id": "T-ADV0001-4",
+      "name": "2026-08-16 schema_resolver + node + schema both-states control",
+      "command": "python command-center/p2-wave/probes/ADV-0001/measure_premise.py",
+      "result": "PASS",
+      "output_tail": "schema_resolver='SUCCESS:schema-valid'; node='(no output; process exited 0)'; mutant_missing_kind=\"report: 'kind' is a required property\\nreport: 'kind' is a required property\\nFAILED:schema-invalid errors=2\"; why_not_delivered='ADV-0001: delivered=False  reason=self-declared:BLOCKED'"
+    },
+    {
+      "id": "T-ADV0001-5",
+      "name": "unit_manifest --self-test still green; live --check still red",
+      "command": "python tools/command-center/unit_manifest.py --self-test ; python tools/command-center/unit_manifest.py --check",
+      "result": "PASS",
+      "output_tail": "SUCCESS:unit-manifest wrote 1 entries to command-center/UNIT-ARTIFACT-MANIFEST.json\nFAILED:unit-manifest drift in command-center/UNIT-ARTIFACT-MANIFEST.json\nSUCCESS:unit-manifest wrote 1 entries to command-center/UNIT-ARTIFACT-MANIFEST.json\nSUCCESS:unit-manifest command-center/UNIT-ARTIFACT-MANIFEST.json matches derived receipt corpus\nFAILED:unit-manifest discovered ZERO receipts (empty walk)\nFAILED:unit-manifest receipt command-center/receipts/TST-MISSING.json names absent artifact does-not-exist.txt\nFAILED:unit-manifest receipt command-center/receipts/TST-MISSING.json names absent artifact does-not-exist.txt\nSUCCESS:unit-manifest-self-test red on bad, green on clean, closed on empty, closed on missing\nFAILED:unit-manifest receipt candidate has invalid artifacts: C:\\Users\\Prekzursil\\source\\ast-integrate\\command-center\\p2-wave\\probes\\ADV-0008\\handoff-measure.json"
+    },
+    {
+      "id": "ADV0001-FIXTURE-REDUCER-MATRIX",
+      "name": "Probe 1: author >=6 fixtures and record reconstructed reducer verdicts.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "read it (exit 0) SENTINEL|SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12 ROW|ADV-9005|verdict=INCOMPLETE|satisfied=11/12|unsatisfied=[11]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0) SENTINEL|FAILED:ADV-9105 predicate=INCOMPLETE satisfied=11/12 ROW|ADV-9006|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0) SENTINEL|SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12 complete_count=6/7 control_ADV-9000=COMPLETE c12=SATISFIED attacks_complete=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006'] counterexample_eligible=reducer COMPLETE while consumer may fail (consumer exits recorded by probe2_consumers.py) PROBE-1-END:ADV-0001 SUCCESS:ADV-0001-probe1"
+    },
+    {
+      "id": "ADV0001-REAL-CONSUMERS",
+      "name": "Probe 2: execute class-shape + node + named-consumer spawn on the same fixtures.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+      "result": "PASS",
+      "assertions": 7,
+      "output_tail": "Unexpected token 'N', ...\"seconds\": NaN }, \"... is not valid JSON |D_out= ROW|ADV-9005|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out= ROW|ADV-9006|A=0|B=0|D=2|readable=False|named=tools/command-center/harvest_refutations.py|A_err=[]|B_out=|D_out=can't open file 'tools/command-center/harvest_refutations.py': [Errno 2] No such file or directory control_ADV-9000_readable=True attacks_unreadable=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006'] expected_signatures={'ADV-9001': True, 'ADV-9002': True, 'ADV-9003': True, 'ADV-9004': True, 'ADV-9006': True} negative_control_proves_harness_not_failing_everything=True consumer_counterexamples=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006'] PROBE-2-END:ADV-0001 SUCCESS:ADV-0001-probe2"
+    },
+    {
+      "id": "ADV0001-NEGATIVE-CONTROL-ADV-9000",
+      "name": "Unmutated ADV-9000 must pass both probes.",
+      "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py && python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "control_ADV-9000 COMPLETE and readable"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CTL-ADV0001-NEGATIVE",
+      "kind": "known-broken-fixture",
+      "description": "MANDATED BY THE UNIT: one artifact the consumer genuinely reads must return PASS from BOTH probes, proving the harness is not simply failing everything. ADV-9000 is a complete, well-formed refutation-record built by the same generator as the attacks, with no mutation applied.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "the six mutated siblings: CONSUMER-A exit 1 for ADV-9001/9002/9003, CONSUMER-B exit 1 for ADV-9004, CONSUMER-D exit 2 for ADV-9006",
+      "good_state_output": "ADV-9000: reducer 'SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12'; CONSUMER-A exit 0 'SUCCESS:schema-valid'; CONSUMER-B exit 0"
+    },
+    {
+      "id": "CTL-ADV0001-STRICTJSON",
+      "kind": "malformed-input",
+      "description": "Both-states control on the strict-JSON consumer, run BEFORE any verdict was read. node discriminates; jq does not and was discarded.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "node on {\"x\": NaN} -> exit 1 SyntaxError",
+      "good_state_output": "node on {\"x\": 1} -> exit 0"
+    },
+    {
+      "id": "CTL-ADV0001-SHIM",
+      "kind": "absent-input",
+      "description": "Both-states control on the condition-4 shim measurement: the same receipt evaluated with an unresolvable shim and with an internal-$ref schema must give different outcomes, or the probe measures nothing.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "shim -> c4 NOT-CHECKED, verdict INDETERMINATE",
+      "good_state_output": "platform/schema/receipt.schema.json -> c4 SATISFIED, verdict COMPLETE"
+    },
+    {
+      "id": "CTL-ADV0001-SECOND-REDUCER-DISCRIMINATES",
+      "kind": "mutation",
+      "description": "receipt_schema_gate must not be a pass-everything gate: it is required to catch at least one attack it CAN see. It caught the ADV-9005 sentinel/unit_id contradiction while passing the unmutated control on that same condition.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "ADV-9005: [FAIL] 5. required sentinel is present -> sentinel does not embed unit_id 'ADV-9105': 'SUCCESS:ADV-9005'",
+      "good_state_output": "ADV-9000 and ADV-9006: [  ok]  5. required sentinel is present"
+    },
+    {
+      "id": "CTL-ADV0001-SCHEMA-BOTHSTATES",
+      "kind": "mutation",
+      "description": "P2 delivery negative control: schema_resolver must reject a copy of this artifact with report.kind removed, and accept the unmutated artifact. Proves the harness is not failing everything.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "report: 'kind' is a required property\nreport: 'kind' is a required property\nFAILED:schema-invalid errors=2",
+      "good_state_output": "SUCCESS:schema-valid"
+    },
+    {
+      "id": "CTL-ADV0001-C12-BOTHSTATES",
+      "kind": "mutation",
+      "description": "Reconstructed c12 must SATISFY executed=true/read_ok=true/exit=0/raw and UNSATISFY executed=false.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "executed=false -> UNSATISFIED not executed (claim only)",
+      "good_state_output": "SATISFIED 1 consumer(s) executed against the artifact and read it (exit 0)"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "node RFC-8259 JSON.parse",
+      "artifact_path": "command-center/adversarial/ADV-0001-predicate-passing-unusable-counterexample.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "node -e JSON.parse ADV-0001 receipt",
+        "raw_output": "consumer=node JSON.parse + class-shape of catalog output_path\nunit_id=ADV-0001\nstate=SUCCESS\nSUCCESS:consumer-read",
+        "fingerprint": "f2bbd928c8f18721cf22d2696fbaeadd2c898473377e7489a9a237922586447f",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The primary artifact's own sha256 is recorded as 64 zeros, which is NOT a measurement. A self-describing file cannot contain the digest of its own final bytes - writing the digest changes the bytes. The zeros are an explicit not-computable marker, chosen because they cannot be mistaken for a real digest.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "adopt a documented self-hash convention (hash the file with the sha256 field replaced by 64 zeros) in receipt.schema.json, or have the manifest renderer - not the unit - write the digest after the file is sealed"
+    },
+    {
+      "claim": "The 1,859-of-2,007 figure is a string-prefix census of catalog output_schema values, not 1,859 executions. One shim (refutation-record) was actually driven through the reducer. UNVERIFIED that every one of the other 233 shim files fails identically, though they are all generated by the same emitter with the same https:// $ref shape.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "loop CP.evaluate over all 234 distinct shim paths with a fixed receipt and count c4 outcomes"
+    },
+    {
+      "claim": "The fixture universe lives under %TEMP% with its own repo_root and its own manifest, because registering fabricated artifacts in the real command-center/ARTIFACT-MANIFEST.json would edit a shared file. UNVERIFIED that a real repo-root run would behave identically, though conditions 2/3/11 read only the supplied root.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "re-run the harness with repo_root=<real repo> against a throwaway branch that registers the six fixtures, and diff the twelve condition outcomes"
+    },
+    {
+      "claim": "The live Probe 1 verdicts are from a reconstructed field-reader because platform/lib/completion_predicate.py is not on this tree. UNVERIFIED that a byte-identical import of the missing module would print the same 12/12 lines, though P12-ADVERSARIAL-REFUTATION.md on this tree records the same field-reader algorithm reaching COMPLETE 12/12.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Restore platform/lib/completion_predicate.py and re-run probe1_reducer.py against the same fixtures/"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-11T18:08:00Z",
+    "ended_at": "2026-08-19T11:52:15.744592Z"
+  },
+  "retry": {
+    "count": 3,
+    "policy": "two strikes then pivot; G-1 per-unit manifest replaces global unit_manifest.py --check as the registration path",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "harness-v1-condition-4-unsatisfied-for-all-7-including-the-control",
+        "outcome": "FAILED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "a-condition11-producer-check-invalid-sibling-receipts",
+        "outcome": "BLOCKED"
+      },
+      {
+        "attempt": 3,
+        "error_fingerprint": "g1-live-probes-per-unit-manifest",
+        "outcome": "SUCCESS"
+      }
+    ]
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "opus",
+    "role": "adversarial-refuter"
+  },
+  "report": {
+    "kind": "refutation-record",
+    "question": "Can a work-unit output satisfy all 12 numbered conditions of the shared completion predicate and still be unusable by its declared downstream consumer?",
+    "answer": "CONFIRMED on the reconstructed field-reader that implements the published c12 algorithm, and CONFIRMED as decorative by P12-ADVERSARIAL-REFUTATION.md on this tree. The canonical module is absent here. 5 constructed attacks are COMPLETE under the field-reader and unreadable under Probe 2. ADV-9000 passes both.",
+    "verdict": "REFUTED",
+    "confidence": "almost-certain",
+    "mechanism": "semantic-gap attack: satisfy every syntactic condition while violating the intent of condition 12. The gap is that conditions 4 and 12 measure two different things and neither measures the one that matters - condition 4 validates the artifact against the schema THE CALLER SUPPLIES, condition 12 validates the RECEIPT'S ASSERTION about a consumer. Nothing validates the artifact against what the consumer actually requires.",
+    "probe_1": {
+      "name": "reconstructed field-reader over ADV-9000..ADV-9006",
+      "invocation": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+      "raw_path": "command-center/p2-wave/probes/ADV-0001/probe1-fixtures.raw.txt"
+    },
+    "probe_2": {
+      "name": "real consumers executed (class-shape + node + named spawn)",
+      "invocation": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+      "raw_path": "command-center/p2-wave/probes/ADV-0001/probe2-consumers.raw.txt"
+    },
+    "cases": [
+      {
+        "unit": "ADV-9000",
+        "role": "NEGATIVE CONTROL (mandated by tests_required)",
+        "attack": "none - a complete, well-formed refutation-record",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 0,
+        "consumer_b_exit": 0,
+        "consumer_evidence": "SUCCESS:schema-valid",
+        "counterexample": false,
+        "reading": "the harness is not failing everything - a genuinely readable artifact passes BOTH probes"
+      },
+      {
+        "unit": "ADV-9001",
+        "role": "attack",
+        "attack": "schema-valid but semantically empty - the declared class payload is absent entirely",
+        "why_it_passes": "receipt_core does not require `report`; the artifact CLASS (generic_report) does",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 1,
+        "consumer_b_exit": 0,
+        "consumer_evidence": "<root>: 'report' is a required property | FAILED:schema-invalid errors=1",
+        "counterexample": true
+      },
+      {
+        "unit": "ADV-9002",
+        "role": "attack",
+        "attack": "valid JSON whose enum value no consumer accepts - report.kind is 'refutation_record' (underscore)",
+        "why_it_passes": "receipt_core types `report` as {type: object, minProperties: 1} with no constraint on kind",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 1,
+        "consumer_b_exit": 0,
+        "consumer_evidence": "report/kind: 'refutation-record' was expected | FAILED:schema-invalid errors=1",
+        "counterexample": true
+      },
+      {
+        "unit": "ADV-9003",
+        "role": "attack",
+        "attack": "schema-valid but semantically empty - zero observations, zero control_ids",
+        "why_it_passes": "same loose `report` object; the class requires minItems 1 on both arrays",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 1,
+        "consumer_b_exit": 0,
+        "consumer_evidence": "report/control_ids: [] should be non-empty | report/observations: [] should be non-empty",
+        "counterexample": true,
+        "reading": "a refutation record that measured nothing is accepted as COMPLETE by the predicate"
+      },
+      {
+        "unit": "ADV-9004",
+        "role": "attack",
+        "attack": "non-RFC-8259 numeric literal - a bare NaN token in timestamps.duration_seconds",
+        "why_it_passes": "python json.loads permits NaN by default, so the reducer parses the file and condition 4 is SATISFIED",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 0,
+        "consumer_b_exit": 1,
+        "consumer_evidence": "node SyntaxError parsing the bare NaN token (node v24.16.0)",
+        "counterexample": true,
+        "reading": "the strongest form - the artifact is not merely wrong for its class, it is not JSON at all to any consumer outside python"
+      },
+      {
+        "unit": "ADV-9005",
+        "role": "attack",
+        "attack": "correct sentinel with contradictory body - sentinel says SUCCESS:ADV-9005 while the body's unit_id is ADV-9105 and report.verdict is REFUTED",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9005 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 0,
+        "consumer_b_exit": 0,
+        "counterexample": false,
+        "reading": "NOT a counterexample under the declared consumers, and that is the finding: neither a schema validator nor a parser can see a semantic self-contradiction. It is caught only by a consumer that re-runs the predicate over the artifact - receipt_schema_gate reported '[FAIL] 5. required sentinel is present -> sentinel does not embed unit_id ADV-9105'. Reported as a scoped PARTIAL rather than stretched into a sixth win."
+      },
+      {
+        "unit": "ADV-9006",
+        "role": "attack",
+        "attack": "fabricated condition-12 block - the artifact is clean, the RECEIPT names a harvester that is not on disk and declares executed=true, read_ok=true, exit_code=0",
+        "reducer_verdict": "COMPLETE",
+        "reducer_sentinel": "SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12",
+        "condition_12": "SATISFIED",
+        "consumer_a_exit": 0,
+        "consumer_b_exit": 0,
+        "consumer_d_exit": 2,
+        "consumer_evidence": "python: can't open file 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\tools\\\\command-center\\\\harvest_refutations.py': [Errno 2] No such file or directory",
+        "counterexample": true,
+        "reading": "the purest proof. Condition 12 returned SATISFIED with the basis '1 consumer(s) executed against the artifact and read it (exit 0)' for a consumer that has never existed. Both reducers agree."
+      }
+    ],
+    "observations": [
+      {
+        "name": "counterexamples_found",
+        "measured": 5,
+        "method": "reducer verdict COMPLETE AND worst consumer exit != 0, over 6 attacks",
+        "anchor": "platform/lib/completion_predicate.py:1246"
+      },
+      {
+        "name": "condition_12_satisfied_rate",
+        "measured": "7 of 7, including 4 units whose declared consumer provably fails",
+        "method": "PredicateResult.condition(12).outcome across all cases",
+        "anchor": "platform/lib/completion_predicate.py:1104"
+      },
+      {
+        "name": "negative_control_passes_both_probes",
+        "measured": true,
+        "method": "ADV-9000 reducer COMPLETE and CONSUMER-A exit 0 and CONSUMER-B exit 0",
+        "anchor": "platform/lib/schema_resolver.py:1"
+      },
+      {
+        "name": "defect_reproduces_in_second_independent_reducer",
+        "measured": true,
+        "method": "receipt_schema_gate.py prints '[  ok] 12. downstream consumers can read it' for ADV-9006",
+        "anchor": "platform/lib/receipt_schema_gate.py:531"
+      },
+      {
+        "name": "condition_4_unevaluable_via_catalog_declared_schema_path",
+        "measured": "NOT-CHECKED / INDETERMINATE for the shim; SATISFIED / COMPLETE for an internal-$ref schema (both-states control passed)",
+        "method": "CP.evaluate twice on one receipt, varying only output_schema",
+        "anchor": "command-center/schema/refutation-record.schema.json:17"
+      },
+      {
+        "name": "units_declaring_a_command_center_schema_shim",
+        "measured": "1859 of 2007",
+        "method": "string-prefix census over work_units[].output_schema - a census, NOT 1859 executions",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:1"
+      },
+      {
+        "name": "reducer_reads_an_artifact_field_the_schema_forbids",
+        "measured": "artifact_class is read at completion_predicate.py:454,538,625 and is rejected by receipt.schema.json#/$defs/artifact (additionalProperties=false)",
+        "method": "consumer execution against my own artifact, corroborated by schema read + grep",
+        "anchor": "platform/lib/completion_predicate.py:454"
+      },
+      {
+        "name": "this_units_own_condition_12_claim_was_false_until_executed",
+        "measured": "first execution of the declared consumer against this very artifact returned exit 1; the block became true only after the artifact was fixed",
+        "method": "ran the declared consumer instead of declaring it",
+        "anchor": "platform/lib/schema_resolver.py:1"
+      },
+      {
+        "name": "jq_rejected_as_a_strict_json_detector",
+        "measured": "exit 0 on both the NaN and the clean document, and it rewrote NaN to null",
+        "method": "both-states control run before any verdict was read",
+        "anchor": "scratchpad/adv0001b/_ctl_bad.json:1"
+      },
+      {
+        "name": "p2_20260816_schema_resolver",
+        "measured": "SUCCESS:schema-valid",
+        "method": "python platform/lib/schema_resolver.py",
+        "anchor": "command-center/schema/refutation-record.schema.json:17"
+      },
+      {
+        "name": "live_20260819_probes",
+        "measured": true,
+        "method": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py ; python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+        "anchor": "command-center/p2-wave/probes/ADV-0001/probe1-fixtures.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "CTL-ADV0001-NEGATIVE",
+      "CTL-ADV0001-STRICTJSON",
+      "CTL-ADV0001-SHIM",
+      "CTL-ADV0001-SECOND-REDUCER-DISCRIMINATES",
+      "CTL-ADV0001-SCHEMA-BOTHSTATES",
+      "CTL-ADV0001-C12-BOTHSTATES"
+    ],
+    "targets": [
+      {
+        "target": "is condition 12 actually evaluated, or decorative?",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain",
+        "scope": "decorative with respect to ARTIFACT USABILITY; it is not literally dead code - it does reject a receipt that declares no consumer, or declares executed=false, or omits raw_output. What it cannot do is observe the consumer."
+      },
+      {
+        "target": "can a unit satisfy all 12 conditions and be unusable by its declared consumer?",
+        "verdict": "CONFIRMED",
+        "confidence": "almost-certain",
+        "scope": "5 of 6 constructed cases, each executed end to end"
+      },
+      {
+        "target": "is the defect specific to one reducer implementation?",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain",
+        "scope": "both completion_predicate.py and receipt_schema_gate.py exhibit it"
+      },
+      {
+        "target": "is condition 4 evaluable through the catalog's declared output_schema path?",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain",
+        "scope": "measured on one shim with a passing both-states control; the 1859-unit reach is a census, not 1859 executions"
+      },
+      {
+        "target": "can a semantic self-contradiction (correct sentinel, contradictory body) be caught by a schema-shaped consumer?",
+        "verdict": "PARTIAL",
+        "confidence": "almost-certain",
+        "scope": "ADV-9005 passed both declared consumers; only a predicate-evaluating consumer caught it"
+      },
+      {
+        "target": "does the reducer agree with the receipt schema about the artifact fields it reads?",
+        "verdict": "REFUTED",
+        "confidence": "almost-certain",
+        "scope": "artifact_class only; found incidentally when this unit's own artifact was rejected by its own declared consumer. Not a survey of every field the reducer reads - that survey is the settling experiment."
+      }
+    ],
+    "smallest_fix": "Condition 12 must not read the receipt. The reducer should RUN the declared consumer against the artifact and take the observed exit code, exactly as the reducer already re-hashes the artifact rather than trusting the declared sha256 - the identical design move the same file already makes for conditions 2 and 3. If executing a consumer inside the reducer is undesirable, the second-best is to make condition 12 NOT-CHECKED whenever the consumer's raw_output was not produced by the reducer itself, so a self-declaration can never read as SATISFIED. Either way, condition 4 should validate against the artifact's CLASS schema resolved the way schema_resolver.py resolves it, not against whatever schema the caller happens to pass.",
+    "honest_limits": "UNVERIFIED inline: the fixtures were fabricated by me, so this proves the predicate ACCEPTS such an output, not that any real unit has shipped one - a census of real receipts against these six shapes is the settling experiment. The harness itself failed twice before it measured anything - v1's artifact bodies were minimal so condition 4 failed for all seven cases INCLUDING the control, and the first strict-JSON consumer (jq) did not discriminate. Both failures are recorded above rather than deleted; a harness whose control also fails is measuring nothing, and I would have reported a false result had the negative control not been mandatory. Most pointedly, THIS unit's own downstream_consumers block was written as a plausible claim and was FALSE: executing it returned exit 1 on 'artifact_class was unexpected'. Had I followed the pattern this record criticises - declaring the consumer instead of running it - this artifact would have shipped schema-invalid while asserting SUCCESS:schema-valid, and the predicate would have scored it 12/12."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0001/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ADV-0001",
+    "registered_at": "2026-08-19T11:52:15.744592Z"
+  },
+  "extensions": {
+    "named_probes": [
+      {
+        "name": "Probe 1",
+        "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+        "raw_output": "PROBE 1: AUTHOR >=6 ADVERSARIAL FIXTURES AND RECORD REDUCER VERDICT\nPROBE-1-BEGIN:ADV-0001\nstage=remeasure\nmethod=reconstructed field-reader from P12 + receipt quotes; canonical module imported only if present\ncanonical_reducer_present=False\ncanonical_reducer_path=platform/lib/completion_predicate.py\nschema_resolver_present=False\nfixture_count=7\np12_doc={'present': True, 'quotes_c12_decorative': True, 'quotes_forged_12_of_12': True}\nC12-BOTH-STATES|good=SATISFIED|bad=UNSATISFIED|discriminates=True\nROW|ADV-9000|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12\nROW|ADV-9001|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12\nROW|ADV-9002|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12\nROW|ADV-9003|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12\nROW|ADV-9004|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12\nROW|ADV-9005|verdict=INCOMPLETE|satisfied=11/12|unsatisfied=[11]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|FAILED:ADV-9105 predicate=INCOMPLETE satisfied=11/12\nROW|ADV-9006|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12\ncomplete_count=6/7\ncontrol_ADV-9000=COMPLETE c12=SATISFIED\nattacks_complete=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\ncounterexample_eligible=reducer COMPLETE while consumer may fail (consumer exits recorded by probe2_consumers.py)\nPROBE-1-END:ADV-0001\nSUCCESS:ADV-0001-probe1\n"
+      },
+      {
+        "name": "Probe 2",
+        "command": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+        "raw_output": "PROBE 2: EXECUTE REAL DOWNSTREAM CONSUMERS ON THE SAME ARTIFACTS\nPROBE-2-BEGIN:ADV-0001\nstage=remeasure\nmethod=class-shape checker + node JSON.parse + spawn of named consumer\nschema_resolver_present=False\nclass_shim=command-center/schema/refutation-record.schema.json exists=True\nROW|ADV-9000|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9001|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"<root>: 'report' is a required property\"]|B_out=|D_out=\nROW|ADV-9002|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"report/kind: 'refutation-record' was expected\"]|B_out=|D_out=\nROW|ADV-9003|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=['report/control_ids: [] should be non-empty', 'report/observations: [] should be non-empty']|B_out=|D_out=\nROW|ADV-9004|A=0|B=1|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[]|B_out=<anonymous_script>:145     \"duration_seconds\": NaN                         ^  SyntaxError: Unexpected token 'N', ...\"seconds\": NaN   },  \"... is not valid JSON |D_out=\nROW|ADV-9005|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9006|A=0|B=0|D=2|readable=False|named=tools/command-center/harvest_refutations.py|A_err=[]|B_out=|D_out=can't open file 'tools/command-center/harvest_refutations.py': [Errno 2] No such file or directory\ncontrol_ADV-9000_readable=True\nattacks_unreadable=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nexpected_signatures={'ADV-9001': True, 'ADV-9002': True, 'ADV-9003': True, 'ADV-9004': True, 'ADV-9006': True}\nnegative_control_proves_harness_not_failing_everything=True\nconsumer_counterexamples=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nPROBE-2-END:ADV-0001\nSUCCESS:ADV-0001-probe2\n"
+      }
+    ],
+    "condition_11": {
+      "manifest_path": "command-center/p2-wave/probes/ADV-0001/UNIT-ARTIFACT-MANIFEST.json",
+      "registered": true,
+      "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+      "global_unit_manifest_write_invoked": false
+    },
+    "p2_remeasure": {
+      "probes_reran": true,
+      "probe1_reducer_exit": 0,
+      "probe2_consumers_exit": 0,
+      "state_set_after_live_rerun": true,
+      "canonical_reducer_present": false
+    },
+    "completion_marker": "UNIT-COMPLETE:ADV-0001"
+  },
+  "reviewer": {
+    "reviewer_id": "grok-p2-wave-adv0001-raw-refuter",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "grok",
+    "reviewed_at": "2026-08-19T11:52:15.744592Z",
+    "notes": "Cross-vendor re-derivation from the raw probe files. Probe 1 authored ADV-9000..ADV-9006 and recorded reconstructed field-reader verdicts; the canonical platform/lib/completion_predicate.py is absent on this sparse worktree and that absence is printed. Probe 2 ran node JSON.parse plus the documented refutation-record class-shape and spawned the named ADV-9006 consumer. ADV-9000 is readable; attacks 9001-9004/9006 are not. Condition 12 remains a claim-shape check: fabricated executed=true on a missing consumer is SATISFIED."
+  },
+  "named_probes": [
+    {
+      "name": "Probe 1",
+      "command": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+      "raw_output": "PROBE 1: AUTHOR >=6 ADVERSARIAL FIXTURES AND RECORD REDUCER VERDICT\nPROBE-1-BEGIN:ADV-0001\nstage=remeasure\nmethod=reconstructed field-reader from P12 + receipt quotes; canonical module imported only if present\ncanonical_reducer_present=False\ncanonical_reducer_path=platform/lib/completion_predicate.py\nschema_resolver_present=False\nfixture_count=7\np12_doc={'present': True, 'quotes_c12_decorative': True, 'quotes_forged_12_of_12': True}\nC12-BOTH-STATES|good=SATISFIED|bad=UNSATISFIED|discriminates=True\nROW|ADV-9000|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12\nROW|ADV-9001|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12\nROW|ADV-9002|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12\nROW|ADV-9003|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12\nROW|ADV-9004|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12\nROW|ADV-9005|verdict=INCOMPLETE|satisfied=11/12|unsatisfied=[11]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|FAILED:ADV-9105 predicate=INCOMPLETE satisfied=11/12\nROW|ADV-9006|verdict=COMPLETE|satisfied=12/12|unsatisfied=[]|c12=SATISFIED|c12_basis=1 consumer(s) executed against the artifact and read it (exit 0)\nSENTINEL|SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12\ncomplete_count=6/7\ncontrol_ADV-9000=COMPLETE c12=SATISFIED\nattacks_complete=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\ncounterexample_eligible=reducer COMPLETE while consumer may fail (consumer exits recorded by probe2_consumers.py)\nPROBE-1-END:ADV-0001\nSUCCESS:ADV-0001-probe1\n"
+    },
+    {
+      "name": "Probe 2",
+      "command": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+      "raw_output": "PROBE 2: EXECUTE REAL DOWNSTREAM CONSUMERS ON THE SAME ARTIFACTS\nPROBE-2-BEGIN:ADV-0001\nstage=remeasure\nmethod=class-shape checker + node JSON.parse + spawn of named consumer\nschema_resolver_present=False\nclass_shim=command-center/schema/refutation-record.schema.json exists=True\nROW|ADV-9000|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9001|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"<root>: 'report' is a required property\"]|B_out=|D_out=\nROW|ADV-9002|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[\"report/kind: 'refutation-record' was expected\"]|B_out=|D_out=\nROW|ADV-9003|A=1|B=0|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=['report/control_ids: [] should be non-empty', 'report/observations: [] should be non-empty']|B_out=|D_out=\nROW|ADV-9004|A=0|B=1|D=None|readable=False|named=platform/lib/schema_resolver.py|A_err=[]|B_out=<anonymous_script>:145     \"duration_seconds\": NaN                         ^  SyntaxError: Unexpected token 'N', ...\"seconds\": NaN   },  \"... is not valid JSON |D_out=\nROW|ADV-9005|A=0|B=0|D=None|readable=True|named=platform/lib/schema_resolver.py|A_err=[]|B_out=|D_out=\nROW|ADV-9006|A=0|B=0|D=2|readable=False|named=tools/command-center/harvest_refutations.py|A_err=[]|B_out=|D_out=can't open file 'tools/command-center/harvest_refutations.py': [Errno 2] No such file or directory\ncontrol_ADV-9000_readable=True\nattacks_unreadable=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nexpected_signatures={'ADV-9001': True, 'ADV-9002': True, 'ADV-9003': True, 'ADV-9004': True, 'ADV-9006': True}\nnegative_control_proves_harness_not_failing_everything=True\nconsumer_counterexamples=['ADV-9001', 'ADV-9002', 'ADV-9003', 'ADV-9004', 'ADV-9006']\nPROBE-2-END:ADV-0001\nSUCCESS:ADV-0001-probe2\n"
+    }
+  ],
+  "condition_11": {
+    "manifest_path": "command-center/p2-wave/probes/ADV-0001/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "route": "STRUCTURAL-CONDITION-11 per-unit manifest",
+    "global_unit_manifest_write_invoked": false
+  },
+  "p2_remeasure": {
+    "probes_reran": true,
+    "probe1_reducer_exit": 0,
+    "probe2_consumers_exit": 0,
+    "state_set_after_live_rerun": true,
+    "canonical_reducer_present": false
+  },
+  "completion_marker": "UNIT-COMPLETE:ADV-0001",
+  "kind": "refutation-record",
+  "question": "Can a work-unit output satisfy all 12 numbered conditions of the shared completion predicate and still be unusable by its declared downstream consumer?",
+  "answer": "CONFIRMED on the reconstructed field-reader that implements the published c12 algorithm, and CONFIRMED as decorative by P12-ADVERSARIAL-REFUTATION.md on this tree. The canonical module is absent here. 5 constructed attacks are COMPLETE under the field-reader and unreadable under Probe 2. ADV-9000 passes both.",
+  "verdict": "REFUTED",
+  "confidence": "almost-certain",
+  "mechanism": "semantic-gap attack: satisfy every syntactic condition while violating the intent of condition 12. The gap is that conditions 4 and 12 measure two different things and neither measures the one that matters - condition 4 validates the artifact against the schema THE CALLER SUPPLIES, condition 12 validates the RECEIPT'S ASSERTION about a consumer. Nothing validates the artifact against what the consumer actually requires.",
+  "probe_1": {
+    "name": "reconstructed field-reader over ADV-9000..ADV-9006",
+    "invocation": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py",
+    "raw_path": "command-center/p2-wave/probes/ADV-0001/probe1-fixtures.raw.txt"
+  },
+  "probe_2": {
+    "name": "real consumers executed (class-shape + node + named spawn)",
+    "invocation": "python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+    "raw_path": "command-center/p2-wave/probes/ADV-0001/probe2-consumers.raw.txt"
+  },
+  "cases": [
+    {
+      "unit": "ADV-9000",
+      "role": "NEGATIVE CONTROL (mandated by tests_required)",
+      "attack": "none - a complete, well-formed refutation-record",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9000 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 0,
+      "consumer_b_exit": 0,
+      "consumer_evidence": "SUCCESS:schema-valid",
+      "counterexample": false,
+      "reading": "the harness is not failing everything - a genuinely readable artifact passes BOTH probes"
+    },
+    {
+      "unit": "ADV-9001",
+      "role": "attack",
+      "attack": "schema-valid but semantically empty - the declared class payload is absent entirely",
+      "why_it_passes": "receipt_core does not require `report`; the artifact CLASS (generic_report) does",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9001 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 1,
+      "consumer_b_exit": 0,
+      "consumer_evidence": "<root>: 'report' is a required property | FAILED:schema-invalid errors=1",
+      "counterexample": true
+    },
+    {
+      "unit": "ADV-9002",
+      "role": "attack",
+      "attack": "valid JSON whose enum value no consumer accepts - report.kind is 'refutation_record' (underscore)",
+      "why_it_passes": "receipt_core types `report` as {type: object, minProperties: 1} with no constraint on kind",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9002 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 1,
+      "consumer_b_exit": 0,
+      "consumer_evidence": "report/kind: 'refutation-record' was expected | FAILED:schema-invalid errors=1",
+      "counterexample": true
+    },
+    {
+      "unit": "ADV-9003",
+      "role": "attack",
+      "attack": "schema-valid but semantically empty - zero observations, zero control_ids",
+      "why_it_passes": "same loose `report` object; the class requires minItems 1 on both arrays",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9003 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 1,
+      "consumer_b_exit": 0,
+      "consumer_evidence": "report/control_ids: [] should be non-empty | report/observations: [] should be non-empty",
+      "counterexample": true,
+      "reading": "a refutation record that measured nothing is accepted as COMPLETE by the predicate"
+    },
+    {
+      "unit": "ADV-9004",
+      "role": "attack",
+      "attack": "non-RFC-8259 numeric literal - a bare NaN token in timestamps.duration_seconds",
+      "why_it_passes": "python json.loads permits NaN by default, so the reducer parses the file and condition 4 is SATISFIED",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9004 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 0,
+      "consumer_b_exit": 1,
+      "consumer_evidence": "node SyntaxError parsing the bare NaN token (node v24.16.0)",
+      "counterexample": true,
+      "reading": "the strongest form - the artifact is not merely wrong for its class, it is not JSON at all to any consumer outside python"
+    },
+    {
+      "unit": "ADV-9005",
+      "role": "attack",
+      "attack": "correct sentinel with contradictory body - sentinel says SUCCESS:ADV-9005 while the body's unit_id is ADV-9105 and report.verdict is REFUTED",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9005 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 0,
+      "consumer_b_exit": 0,
+      "counterexample": false,
+      "reading": "NOT a counterexample under the declared consumers, and that is the finding: neither a schema validator nor a parser can see a semantic self-contradiction. It is caught only by a consumer that re-runs the predicate over the artifact - receipt_schema_gate reported '[FAIL] 5. required sentinel is present -> sentinel does not embed unit_id ADV-9105'. Reported as a scoped PARTIAL rather than stretched into a sixth win."
+    },
+    {
+      "unit": "ADV-9006",
+      "role": "attack",
+      "attack": "fabricated condition-12 block - the artifact is clean, the RECEIPT names a harvester that is not on disk and declares executed=true, read_ok=true, exit_code=0",
+      "reducer_verdict": "COMPLETE",
+      "reducer_sentinel": "SUCCESS:ADV-9006 predicate=COMPLETE satisfied=12/12",
+      "condition_12": "SATISFIED",
+      "consumer_a_exit": 0,
+      "consumer_b_exit": 0,
+      "consumer_d_exit": 2,
+      "consumer_evidence": "python: can't open file 'C:\\\\Users\\\\Prekzursil\\\\source\\\\ast-integrate\\\\tools\\\\command-center\\\\harvest_refutations.py': [Errno 2] No such file or directory",
+      "counterexample": true,
+      "reading": "the purest proof. Condition 12 returned SATISFIED with the basis '1 consumer(s) executed against the artifact and read it (exit 0)' for a consumer that has never existed. Both reducers agree."
+    }
+  ],
+  "observations": [
+    {
+      "name": "counterexamples_found",
+      "measured": 5,
+      "method": "reducer verdict COMPLETE AND worst consumer exit != 0, over 6 attacks",
+      "anchor": "platform/lib/completion_predicate.py:1246"
+    },
+    {
+      "name": "condition_12_satisfied_rate",
+      "measured": "7 of 7, including 4 units whose declared consumer provably fails",
+      "method": "PredicateResult.condition(12).outcome across all cases",
+      "anchor": "platform/lib/completion_predicate.py:1104"
+    },
+    {
+      "name": "negative_control_passes_both_probes",
+      "measured": true,
+      "method": "ADV-9000 reducer COMPLETE and CONSUMER-A exit 0 and CONSUMER-B exit 0",
+      "anchor": "platform/lib/schema_resolver.py:1"
+    },
+    {
+      "name": "defect_reproduces_in_second_independent_reducer",
+      "measured": true,
+      "method": "receipt_schema_gate.py prints '[  ok] 12. downstream consumers can read it' for ADV-9006",
+      "anchor": "platform/lib/receipt_schema_gate.py:531"
+    },
+    {
+      "name": "condition_4_unevaluable_via_catalog_declared_schema_path",
+      "measured": "NOT-CHECKED / INDETERMINATE for the shim; SATISFIED / COMPLETE for an internal-$ref schema (both-states control passed)",
+      "method": "CP.evaluate twice on one receipt, varying only output_schema",
+      "anchor": "command-center/schema/refutation-record.schema.json:17"
+    },
+    {
+      "name": "units_declaring_a_command_center_schema_shim",
+      "measured": "1859 of 2007",
+      "method": "string-prefix census over work_units[].output_schema - a census, NOT 1859 executions",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json:1"
+    },
+    {
+      "name": "reducer_reads_an_artifact_field_the_schema_forbids",
+      "measured": "artifact_class is read at completion_predicate.py:454,538,625 and is rejected by receipt.schema.json#/$defs/artifact (additionalProperties=false)",
+      "method": "consumer execution against my own artifact, corroborated by schema read + grep",
+      "anchor": "platform/lib/completion_predicate.py:454"
+    },
+    {
+      "name": "this_units_own_condition_12_claim_was_false_until_executed",
+      "measured": "first execution of the declared consumer against this very artifact returned exit 1; the block became true only after the artifact was fixed",
+      "method": "ran the declared consumer instead of declaring it",
+      "anchor": "platform/lib/schema_resolver.py:1"
+    },
+    {
+      "name": "jq_rejected_as_a_strict_json_detector",
+      "measured": "exit 0 on both the NaN and the clean document, and it rewrote NaN to null",
+      "method": "both-states control run before any verdict was read",
+      "anchor": "scratchpad/adv0001b/_ctl_bad.json:1"
+    },
+    {
+      "name": "p2_20260816_schema_resolver",
+      "measured": "SUCCESS:schema-valid",
+      "method": "python platform/lib/schema_resolver.py",
+      "anchor": "command-center/schema/refutation-record.schema.json:17"
+    },
+    {
+      "name": "live_20260819_probes",
+      "measured": true,
+      "method": "python -B command-center/p2-wave/probes/ADV-0001/probe1_reducer.py ; python -B command-center/p2-wave/probes/ADV-0001/probe2_consumers.py",
+      "anchor": "command-center/p2-wave/probes/ADV-0001/probe1-fixtures.raw.txt"
+    }
+  ],
+  "control_ids": [
+    "CTL-ADV0001-NEGATIVE",
+    "CTL-ADV0001-STRICTJSON",
+    "CTL-ADV0001-SHIM",
+    "CTL-ADV0001-SECOND-REDUCER-DISCRIMINATES",
+    "CTL-ADV0001-SCHEMA-BOTHSTATES",
+    "CTL-ADV0001-C12-BOTHSTATES"
+  ],
+  "targets": [
+    {
+      "target": "is condition 12 actually evaluated, or decorative?",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "scope": "decorative with respect to ARTIFACT USABILITY; it is not literally dead code - it does reject a receipt that declares no consumer, or declares executed=false, or omits raw_output. What it cannot do is observe the consumer."
+    },
+    {
+      "target": "can a unit satisfy all 12 conditions and be unusable by its declared consumer?",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "scope": "5 of 6 constructed cases, each executed end to end"
+    },
+    {
+      "target": "is the defect specific to one reducer implementation?",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "scope": "both completion_predicate.py and receipt_schema_gate.py exhibit it"
+    },
+    {
+      "target": "is condition 4 evaluable through the catalog's declared output_schema path?",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "scope": "measured on one shim with a passing both-states control; the 1859-unit reach is a census, not 1859 executions"
+    },
+    {
+      "target": "can a semantic self-contradiction (correct sentinel, contradictory body) be caught by a schema-shaped consumer?",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "scope": "ADV-9005 passed both declared consumers; only a predicate-evaluating consumer caught it"
+    },
+    {
+      "target": "does the reducer agree with the receipt schema about the artifact fields it reads?",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "scope": "artifact_class only; found incidentally when this unit's own artifact was rejected by its own declared consumer. Not a survey of every field the reducer reads - that survey is the settling experiment."
+    }
+  ],
+  "smallest_fix": "Condition 12 must not read the receipt. The reducer should RUN the declared consumer against the artifact and take the observed exit code, exactly as the reducer already re-hashes the artifact rather than trusting the declared sha256 - the identical design move the same file already makes for conditions 2 and 3. If executing a consumer inside the reducer is undesirable, the second-best is to make condition 12 NOT-CHECKED whenever the consumer's raw_output was not produced by the reducer itself, so a self-declaration can never read as SATISFIED. Either way, condition 4 should validate against the artifact's CLASS schema resolved the way schema_resolver.py resolves it, not against whatever schema the caller happens to pass.",
+  "honest_limits": "UNVERIFIED inline: the fixtures were fabricated by me, so this proves the predicate ACCEPTS such an output, not that any real unit has shipped one - a census of real receipts against these six shapes is the settling experiment. The harness itself failed twice before it measured anything - v1's artifact bodies were minimal so condition 4 failed for all seven cases INCLUDING the control, and the first strict-JSON consumer (jq) did not discriminate. Both failures are recorded above rather than deleted; a harness whose control also fails is measuring nothing, and I would have reported a false result had the negative control not been mandatory. Most pointedly, THIS unit's own downstream_consumers block was written as a plausible claim and was FALSE: executing it returned exit 1 on 'artifact_class was unexpected'. Had I followed the pattern this record criticises - declaring the consumer instead of running it - this artifact would have shipped schema-invalid while asserting SUCCESS:schema-valid, and the predicate would have scored it 12/12.",
+  "completion_sentinel": "SUCCESS:ADV-0001 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0001 <reason>."
+}

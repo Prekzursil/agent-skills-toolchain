@@ -1,0 +1,149 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/p2-wave/probes/CNL-0106/council-preset.schema.json",
+  "title": "CNL-0106 code-review tribunal backed by an executable oracle (unit-local contract)",
+  "$comment": "Catalog output_schema cites command-center/schema/council-preset.schema.json. On this tree that file is a $ref shim to platform/schema/artifact-class-profiles.schema.json#/$defs/council-preset (generic_report). Draft202012Validator on the shim tries to fetch https://ast-integrate.invalid/ and raises RefResolutionError. This unit-local schema is the executable Draft 2020-12 contract for CNL-0106 records. It does not claim to own the catalog shim.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "id",
+    "title",
+    "family",
+    "roles",
+    "protocol_schedule",
+    "voting",
+    "stopping",
+    "default_binding",
+    "editable_dials",
+    "nearest_sibling",
+    "question",
+    "answers",
+    "oracle_cases",
+    "negative_control"
+  ],
+  "allOf": [
+    { "$ref": "#/$defs/preset_record" }
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0106" },
+    "state": { "type": "string", "enum": ["SUCCESS"] },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0106" },
+    "question": { "type": "string", "minLength": 40 },
+    "answers": {
+      "type": "object",
+      "required": [
+        "how_failing_test_overrides_majority",
+        "when_the_test_is_the_disputed_artifact"
+      ],
+      "properties": {
+        "how_failing_test_overrides_majority": { "type": "string", "minLength": 40 },
+        "when_the_test_is_the_disputed_artifact": { "type": "string", "minLength": 40 }
+      }
+    },
+    "nearest_sibling": {
+      "type": "object",
+      "required": ["id", "named_explicitly", "distance"],
+      "properties": {
+        "id": { "type": "string", "minLength": 8 },
+        "named_explicitly": { "type": "boolean", "const": true },
+        "distance": { "type": "number", "exclusiveMinimum": 0 }
+      }
+    },
+    "oracle_cases": { "type": "object", "minProperties": 3 },
+    "negative_control": {
+      "type": "object",
+      "required": ["rejected_state", "check_does", "observed_outcome"],
+      "properties": {
+        "rejected_state": { "type": "string", "minLength": 20 },
+        "check_does": { "type": "string", "minLength": 20 },
+        "observed_outcome": { "type": "string", "const": "NOT-YES" }
+      }
+    }
+  },
+  "$defs": {
+    "preset_record": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "title",
+        "family",
+        "roles",
+        "protocol_schedule",
+        "voting",
+        "stopping",
+        "default_binding",
+        "editable_dials"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "title": { "type": "string", "minLength": 3 },
+        "family": { "type": "string", "minLength": 1 },
+        "roles": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "title"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "title": { "type": "string", "minLength": 1 },
+              "voting": { "type": "boolean" }
+            }
+          }
+        },
+        "protocol_schedule": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id"],
+            "properties": {
+              "id": { "type": "string", "minLength": 1 },
+              "purpose": { "type": "string" }
+            }
+          }
+        },
+        "voting": {
+          "type": "object",
+          "required": ["rule", "quorum"],
+          "properties": {
+            "rule": { "type": "string", "minLength": 1 },
+            "quorum": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "stopping": {
+          "type": "object",
+          "required": ["max_rounds", "expression"],
+          "properties": {
+            "max_rounds": { "type": "integer", "minimum": 1 },
+            "expression": { "type": "string", "minLength": 1 }
+          }
+        },
+        "default_binding": {
+          "type": "object",
+          "required": ["base_spec_ref"],
+          "properties": {
+            "base_spec_ref": { "type": "string", "minLength": 1 }
+          }
+        },
+        "editable_dials": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "oracle": {
+          "type": "object",
+          "properties": {
+            "fail_overrides_majority": { "type": "boolean" }
+          }
+        },
+        "locked_dials": { "type": "array" },
+        "extends": { "type": "array" }
+      }
+    }
+  }
+}

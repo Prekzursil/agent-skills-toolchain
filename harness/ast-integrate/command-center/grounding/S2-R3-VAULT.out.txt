@@ -1,0 +1,40 @@
+=== R3-C  the handback prediction, executed on a COPY (both states) ===
+  real vault NEVER written: C:\Users\Prekzursil\.agents\skills
+  repo-vs-vault differing lines per skill: {'transcribe': 1, 'tdd-workflow': 4, 'security-review': 1, 'screenshot': 1, 'e2e-testing': 1, 'python-testing': 1, 'research-ops': 1}
+  differ by EXACTLY one line (the description): 6 ['transcribe', 'security-review', 'screenshot', 'e2e-testing', 'python-testing', 'research-ops']
+
+  STATE A -- vault copy as it is today
+    summary        {'IDENTICAL': 0, 'LEFT-AHEAD': 0, 'RIGHT-AHEAD': 0, 'DIVERGED': 7, 'REORDER-ONLY': 0}
+    needs_merge    7
+    SKILL.md in needs_merge: 7 ['e2e-testing/SKILL.md', 'python-testing/SKILL.md', 'research-ops/SKILL.md', 'screenshot/SKILL.md', 'security-review/SKILL.md', 'tdd-workflow/SKILL.md', 'transcribe/SKILL.md']
+  STATE B -- after the handback action, on the copy
+    summary        {'IDENTICAL': 6, 'LEFT-AHEAD': 0, 'RIGHT-AHEAD': 0, 'DIVERGED': 1, 'REORDER-ONLY': 0}
+    needs_merge    1
+    SKILL.md in needs_merge: 1 ['tdd-workflow/SKILL.md']
+    files reconciled: 6   (skills rewritten on the copy: 7)
+    CONTROL both-states verdicts differ: True (identical counts would make this probe inert)
+    NEGATIVE CONTROL tdd-workflow (diverged BEFORE round 1) still needs a merge: True
+    VERDICT: H-CLOSES (the +6 are description-line-only; the handback instruction is complete)
+
+=== R3-E  direction of divergence for the 6 defective vault files ===
+  (item 2 calls the remedy 'a targeted merge'; nobody measured the direction)
+  file                     repoOnly vaultOnly substantive  would a copy destroy work?
+  axe_scan.mjs                   11         1           0  no -- safe copy
+  capture.mjs                    11         1           0  no -- safe copy
+  critique.mjs                  281        19          18  YES -- union merge
+      vault-only: *               critique INPUT (critique-input.json + critique-input.md) for Claude.
+      vault-only: *               project the numbers onto the eight design dimensions, and write the
+      vault-only: *        --rubric ./critique_rubric.md [--uiclip ./out/uiclip.json] --out ./out
+  layout_lint.mjs                11         1           0  no -- safe copy
+  run_audit.mjs                  11         1           0  no -- safe copy
+  visual_diff.mjs                11         1           0  no -- safe copy
+  dead_button_crawl.mjs           8        69          69  YES -- union merge
+      vault-only: // (a click that only touches an ambiently-churning node reads as 'none'),
+      vault-only: // (measured). Such a control is WIRED BUT BROKEN — a different defect from a
+      vault-only: // --- BUG-2 fix: ambient-noise control window ---------------------------
+
+  DIFFER CONTROL: dead_button_crawl.mjs is known to hold real live-only work (round 2: 56 live-only lines) -> measured destructive: True
+  reconstruction check (both directions, all files): True
+  VERDICT: 5/6 of the six are safe to copy (vault-only content is exactly the old guard the repo replaced); 1 hold real vault-only work and need a union merge
+
+SUCCESS:s2-r3-vault reconciled=6 two_way=1/6

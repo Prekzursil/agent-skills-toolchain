@@ -1,0 +1,121 @@
+{
+  "unit_id": "IMP-0405",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SENTINEL:IMP-0405:TOMBSTONES-RESOLVE",
+  "completion_sentinel": "SENTINEL:IMP-0405:TOMBSTONES-RESOLVE",
+  "ts": "2026-08-24T18:46:29Z",
+  "question": "Implement tombstone records so a renamed or retired capability still resolves - the router must follow a redirect rather than returning a dead selection. Exact question: how many redirect tombstones exist in the current trees, and does each one resolve to a live target?",
+  "answer": {
+    "redirect_tombstone_count_current_trees": 1,
+    "all_redirects_resolve_to_live": true,
+    "missing_target_is_defect": true,
+    "live_capability_never_treated_as_tombstone": true,
+    "cycle_refused": true
+  },
+  "tombstone_table": [
+    {
+      "old_id": "skill.four-voice-prompt",
+      "new_id": "skill.council",
+      "record_kind": "rename",
+      "source_path": "skills/four-voice-prompt/SKILL.md",
+      "source_root": "repo-skills",
+      "resolution": "RESOLVED",
+      "terminal_id": "skill.council",
+      "hops": [
+        "skill.four-voice-prompt"
+      ],
+      "defect": null
+    }
+  ],
+  "roots_scanned": [
+    {
+      "name": "claude-skills",
+      "path": "/root/.claude/skills",
+      "kind": "skill",
+      "exists": false
+    },
+    {
+      "name": "agents-skills",
+      "path": "/root/.agents/skills",
+      "kind": "skill",
+      "exists": false
+    },
+    {
+      "name": "claude-plugins",
+      "path": "/root/.claude/plugins",
+      "kind": "plugin",
+      "exists": false
+    },
+    {
+      "name": "claude-commands",
+      "path": "/root/.claude/commands",
+      "kind": "command",
+      "exists": false
+    },
+    {
+      "name": "repo-skills",
+      "path": "/opt/p2/ast-integrate/skills",
+      "kind": "skill",
+      "exists": true
+    },
+    {
+      "name": "repo-workflows",
+      "path": "/opt/p2/ast-integrate/workflows",
+      "kind": "workflow",
+      "exists": false
+    }
+  ],
+  "live_count": 1,
+  "defect_count": 0,
+  "implementation": {
+    "module": "tools/router/tombstones.py",
+    "router_entry": "route_selection",
+    "real_tombstone": {
+      "old_id": "skill.four-voice-prompt",
+      "new_id": "skill.council",
+      "source_path": "skills/four-voice-prompt/SKILL.md"
+    },
+    "locators": [
+      {
+        "path": "tools/router/tombstones.py",
+        "line": 417,
+        "snippet": "def resolve("
+      },
+      {
+        "path": "tools/router/tombstones.py",
+        "line": 503,
+        "snippet": "def route_selection("
+      },
+      {
+        "path": "tools/router/tombstones.py",
+        "line": 461,
+        "snippet": "defect=\"tombstone-cycle\""
+      },
+      {
+        "path": "tools/router/tombstones.py",
+        "line": 450,
+        "snippet": "defect=\"missing-target\""
+      }
+    ]
+  },
+  "tests": {
+    "redirect_real_tombstone": "probe1_redirect.py",
+    "cycle_cannot_loop": "probe2_cycle_negative.py",
+    "negative_live_not_tombstone": "probe2_cycle_negative.py",
+    "missing_target_is_defect": "probe2_cycle_negative.py"
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0405/probe1_redirect.py",
+      "exit_code": 0
+    },
+    {
+      "id": "probe2",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0405/probe2_cycle_negative.py",
+      "exit_code": 0
+    }
+  ],
+  "notes": "G-1 for IMP-0405: live named probes exit 0, receipt is not BLOCKED, per-unit manifest row. Did not run global unit_manifest.py --write. SENTINEL:IMP-0405:TOMBSTONES-RESOLVE"
+}

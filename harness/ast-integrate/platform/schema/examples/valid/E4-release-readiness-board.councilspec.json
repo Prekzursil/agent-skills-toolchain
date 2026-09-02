@@ -1,0 +1,184 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "e4-release-readiness-board",
+  "preset": "release_readiness_board",
+  "objective": {
+    "statement": "Decide go / no-go for the plugin release under PR-ONLY release mode.",
+    "risk_tier": "critical",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "quality gate PASS",
+      "zero unresolved load-bearing counterexamples"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.9,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": ["publish to marketplace", "force-push main", "rotate credentials"]
+    }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "stakeholder_balanced"] },
+    "count": { "mode": "exact", "exact_n": 5, "min": 5, "max": 5 },
+    "roster": [
+      {
+        "participant_id": "judge-release",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["release engineering", "CI gates"],
+        "role": "judge",
+        "authority": "judge",
+        "rights": { "may_speak": true, "may_vote": true, "may_call_experiment": true }
+      },
+      {
+        "participant_id": "juror-qa",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["test design", "mutation testing"],
+        "role": "juror",
+        "authority": "voter",
+        "rights": { "may_vote": true, "may_call_experiment": true }
+      },
+      {
+        "participant_id": "juror-sec",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["supply chain", "permission model"],
+        "role": "juror",
+        "authority": "veto_holder",
+        "rights": { "may_vote": true, "may_veto": true }
+      },
+      {
+        "participant_id": "juror-ops",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["operational recovery", "rollback"],
+        "role": "juror",
+        "authority": "voter"
+      },
+      {
+        "participant_id": "verifier-fresh",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["independent confirmation"],
+        "role": "verifier",
+        "authority": "contributor",
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": {
+    "research_required": true,
+    "min_sources": 2,
+    "required_artifacts": ["evidence_pack", "benchmark_baseline", "risk_list"]
+  },
+  "topology": { "kind": "jury" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "solo-read", "independent": true },
+      { "kind": "jury", "stage_id": "deliberate", "rounds": 3 },
+      { "kind": "premortem", "stage_id": "premortem" },
+      { "kind": "synthesis", "stage_id": "verdict" }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": { "min": 2, "max": 6 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "adversarial",
+    "experiments": {
+      "allowed": true,
+      "required_before_decision": true,
+      "max_experiments": 6,
+      "runner": "ci"
+    }
+  },
+  "budgets": { "effort": "max", "time_minutes": 180, "experiments": 6, "turns": 30 },
+  "targets": { "counterexamples": 3, "evidence_items": 20 },
+  "voting": {
+    "method": "juror",
+    "quorum": { "min_voters": 4, "min_fraction": 0.8, "on_failure": "no_decision" },
+    "veto": { "holders": ["juror-sec"], "scope": "safety_only", "must_justify": true },
+    "abstention": { "allowed": false, "strategic_abstention_check": true },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "judge"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1 }
+  },
+  "stopping": {
+    "source_expression": "quality_gate == PASS AND unresolved_load_bearing_counterexample == 0",
+    "expression": {
+      "all_of": [
+        { "metric": "quality_gate", "op": "==", "value": "PASS" },
+        { "metric": "unresolved_load_bearing_counterexample", "op": "==", "value": 0 }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "every_participant_spoke": true,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 3
+    },
+    "hard_caps": { "max_rounds": 6, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": ["packaged-artifact smoke passes on all three platforms"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "vote_oscillation_rounds": 2 },
+    "resolution": ["run_experiment", "judge_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "sycophancy",
+      "strategic_abstention",
+      "hidden_conflict_of_interest"
+    ],
+    "fast_unanimity_response": ["strongest_counterexample", "blind_re_evaluation"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "evidence_map",
+      "votes_by_round",
+      "experiments",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "calibration_report"
+    ]
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["release", "publish"] },
+    "persistence": { "store": "ledger", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Release readiness board",
+    "spec_citations": ["_USER-PROMPTS.md:10940", "_USER-PROMPTS.md:11212"],
+    "notes": "Spec example 4 of 6: quality_gate == PASS AND unresolved_load_bearing_counterexample == 0. Evidence gates outrank popularity (spec 11198)."
+  }
+}

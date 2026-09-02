@@ -1,0 +1,861 @@
+{
+ "schema_version": 1,
+ "unit_id": "CNF-0142",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0142",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0142; command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md",
+ "tests": [
+  {
+   "id": "blind",
+   "name": "re-grader input omits author severity",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py",
+   "result": "PASS"
+  },
+  {
+   "id": "known-present-plant",
+   "name": "planted under-grade is caught as P0",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py",
+   "result": "PASS"
+  },
+  {
+   "id": "direction-split",
+   "name": "under-grade and over-grade reported separately",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py",
+   "result": "PASS"
+  },
+  {
+   "id": "reinject",
+   "name": "under-grades appear in P0/P1 census after overlay",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py",
+   "result": "PASS"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "labelled-payload-rejected",
+   "kind": "adversarial-payload",
+   "description": "grade_payload raises BlindError when author_severity is smuggled in",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "accuracy-only-rejected",
+   "kind": "malformed-input",
+   "description": "validate_matrix rejects a single accuracy number without direction buckets",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  },
+  {
+   "id": "planted-under-grade",
+   "kind": "known-broken-fixture",
+   "description": "CLM-FIX-0002 author P2 is independently P0 and re-injected",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "CNF-0142-statement-only-rubric-regrade",
+  "verdict": "PASS",
+  "independent": true,
+  "notes": "Second pass graded 12 claims from statement text against the rubric alone (impacts withheld). Catalog scoring by a second human re-grader of ten disputed claims remains independent of G-1 probe-green."
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0142/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0142"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "command-center/p2-wave/probes/CNF-0140/census.py:load_regrades",
+   "artifact_path": "command-center/receipts/CNF-0142.json",
+   "executed": true,
+   "read_ok": true,
+   "probe": {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "python3 -c \"from pathlib import Path; import sys; sys.path.insert(0,'command-center/p2-wave/probes/CNF-0140'); from census import load_regrades; print(load_regrades(Path('command-center/receipts/CNF-0142.json')))\"",
+    "raw_output": "executed-after-write by named probe 2 census overlay check",
+    "fingerprint": "d6c00484c5364711a28dd8be1ced2e0ac346c79e418a707fea784ca5be3a4dae",
+    "exit_code": 0
+   }
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Live CLAIM-REGISTRY.json author-severity disagreement rate on this worktree",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Add an author severity field to every live claim, freeze CNF-0137, re-run probe1 and probe2 against the live register."
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "No verdict-laundering retry: a REFUTED or PARTIAL result is TERMINAL for this run. Retry is permitted ONLY for an infrastructure fault."
+ },
+ "timestamps": {
+  "started_at": "2026-08-25T00:55:55Z",
+  "ended_at": "2026-08-25T00:55:55Z"
+ },
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok-4.6",
+  "role": "independent-confirmer",
+  "execution_substrate": "linux-local"
+ },
+ "report": {
+  "kind": "confirmation-record",
+  "observations": [
+   {
+    "name": "under_grade_count",
+    "measured": 3,
+    "method": "rubric-clause-matcher",
+    "anchor": "command-center/p2-wave/probes/CNF-0142/engine.py:disagreement_matrix"
+   },
+   {
+    "name": "over_grade_count",
+    "measured": 2,
+    "method": "rubric-clause-matcher",
+    "anchor": "command-center/p2-wave/probes/CNF-0142/engine.py:disagreement_matrix"
+   },
+   {
+    "name": "dangerous_error_share",
+    "measured": 0.6,
+    "method": "under/(under+over)",
+    "anchor": "command-center/p2-wave/probes/CNF-0142/engine.py:disagreement_matrix"
+   },
+   {
+    "name": "live_registry_ungraded",
+    "measured": 12,
+    "method": "null-field-fail-closed",
+    "anchor": "command-center/CLAIM-REGISTRY.json"
+   }
+  ],
+  "control_ids": [
+   "labelled-payload-rejected",
+   "accuracy-only-rejected",
+   "planted-under-grade"
+  ]
+ },
+ "evidence": [
+  {
+   "claim": "A deliberately under-graded planted claim is caught as P0 from a blinded payload and re-injected into the P0/P1 census.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py",
+     "raw_output": "plant=CLM-FIX-0002 author=P2 independent=P0 clause=S-P0-DATA-LOSS",
+     "fingerprint": "2d2e777360be2dfc9cf38be9a5682c579e051997a25ca284f03b077377698173"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py",
+     "raw_output": "under=3 over=2 reinject=['CLM-FIX-0002', 'CLM-FIX-0005', 'CLM-FIX-0012']",
+     "fingerprint": "d6c00484c5364711a28dd8be1ced2e0ac346c79e418a707fea784ca5be3a4dae"
+    }
+   ]
+  },
+  {
+   "claim": "Disagreement is published as an under-grade vs over-grade matrix; a single accuracy figure is rejected.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py",
+     "raw_output": "accuracy=0.5833333333333334 dangerous_error_share=0.6",
+     "fingerprint": "d6c00484c5364711a28dd8be1ced2e0ac346c79e418a707fea784ca5be3a4dae"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py",
+     "raw_output": "attestation=0133aec35290efef8f82845a5f0b39779f98cafa20fd9290e393f8d85e8ccbf0",
+     "fingerprint": "2d2e777360be2dfc9cf38be9a5682c579e051997a25ca284f03b077377698173"
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2000,
+ "extensions": {
+  "legacy_root": {
+   "claim_id": "CNF-0142-SEVERITY-LABELS",
+   "completion_sentinel": "SUCCESS:CNF-0142",
+   "verdict": "PARTIAL",
+   "question": "Question: is the severity label on each claim itself correct? A claim graded P2 by its author never enters the exhaustive census, so the census inherits the author's grading bias. Independently re-grade a stratified sample against the written severity rubric, measure the disagreement rate and its DIRECTION (under-grading is the dangerous direction), and re-inject any under-graded claim.",
+   "answer": "Author labels on the working frame are not uniformly correct. 3 under-grades (dangerous direction) and 2 over-grades were measured; accuracy alone is not the result. Every under-grade that the rubric places in P0/P1 was re-injected into the P0/P1 census set. Live-register disagreement: NOT-CHECKED.",
+   "confirmer": {
+    "identity": "CNF-0142-rubric-regrader",
+    "vendor": "openai",
+    "role": "independent-confirmer",
+    "mechanism": "deterministic-rubric-engine",
+    "model_catalog": "gpt-5-codex",
+    "note": "LLM classification of a mechanical comparison measured 86 percent accurate on this estate with 100 percent of errors in the data-loss direction; this confirmer is a clause matcher, not a judge."
+   },
+   "blinding_attestation_hash": "0133aec35290efef8f82845a5f0b39779f98cafa20fd9290e393f8d85e8ccbf0",
+   "blinding_attestation": "0133aec35290efef8f82845a5f0b39779f98cafa20fd9290e393f8d85e8ccbf0",
+   "source_probe": {
+    "id": "probe1",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py",
+    "fingerprint": "2d2e777360be2dfc9cf38be9a5682c579e051997a25ca284f03b077377698173",
+    "role": "blind-payload-and-planted-undergrade"
+   },
+   "verifier_probe": {
+    "id": "probe2",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py",
+    "fingerprint": "d6c00484c5364711a28dd8be1ced2e0ac346c79e418a707fea784ca5be3a4dae",
+    "role": "direction-split-and-census-reinject"
+   },
+   "baseline_repro": "P0/P1 census using author labels only omits planted CLM-FIX-0002 (author P2).",
+   "corrected_repro": "Independent re-grade + re-injection includes every under-graded claim the rubric places in P0/P1.",
+   "rollback_repro": "Disable re-injection and the planted data-loss claim leaves the census.",
+   "regression_diff": {
+    "census_before": [
+     "CLM-FIX-0001",
+     "CLM-FIX-0003",
+     "CLM-FIX-0004",
+     "CLM-FIX-0007",
+     "CLM-FIX-0010",
+     "CLM-FIX-0011"
+    ],
+    "census_after": [
+     "CLM-FIX-0001",
+     "CLM-FIX-0002",
+     "CLM-FIX-0003",
+     "CLM-FIX-0004",
+     "CLM-FIX-0005",
+     "CLM-FIX-0007",
+     "CLM-FIX-0010",
+     "CLM-FIX-0011",
+     "CLM-FIX-0012"
+    ],
+    "added": [
+     "CLM-FIX-0002",
+     "CLM-FIX-0005",
+     "CLM-FIX-0012"
+    ],
+    "removed": []
+   },
+   "discrepancies": [
+    {
+     "claim_id": "CLM-FIX-0002",
+     "kind": "under-grade",
+     "author_severity": "P2",
+     "independent_severity": "P0",
+     "rubric_clause": "S-P0-DATA-LOSS",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P0-DATA-LOSS",
+     "census_escape": true,
+     "detail": "CLM-FIX-0002 author P2 vs rubric P0 (S-P0-DATA-LOSS)"
+    },
+    {
+     "claim_id": "CLM-FIX-0003",
+     "kind": "over-grade",
+     "author_severity": "P0",
+     "independent_severity": "P3",
+     "rubric_clause": "S-P3-COSMETIC",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P3-COSMETIC",
+     "census_escape": false,
+     "detail": "CLM-FIX-0003 author P0 vs rubric P3 (S-P3-COSMETIC)"
+    },
+    {
+     "claim_id": "CLM-FIX-0005",
+     "kind": "under-grade",
+     "author_severity": "P3",
+     "independent_severity": "P1",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "census_escape": true,
+     "detail": "CLM-FIX-0005 author P3 vs rubric P1 (S-P1-CAPABILITY)"
+    },
+    {
+     "claim_id": "CLM-FIX-0011",
+     "kind": "over-grade",
+     "author_severity": "P1",
+     "independent_severity": "P2",
+     "rubric_clause": "S-P2-LOCAL",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P2-LOCAL",
+     "census_escape": false,
+     "detail": "CLM-FIX-0011 author P1 vs rubric P2 (S-P2-LOCAL)"
+    },
+    {
+     "claim_id": "CLM-FIX-0012",
+     "kind": "under-grade",
+     "author_severity": "P2",
+     "independent_severity": "P1",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "census_escape": true,
+     "detail": "CLM-FIX-0012 author P2 vs rubric P1 (S-P1-CAPABILITY)"
+    }
+   ],
+   "residual_caveat": "Live command-center/CLAIM-REGISTRY.json is present (12 claims) but 12 have no author severity field (null-field-fail-closed). Disagreement-versus-author cannot be computed on the live register; the working frame is the frozen fixture plus planted under-grade control. RISK-REGISTER.md is present but is not a clause rubric (no 'Assign Px' sections); fixture severity-rubric.md is used. receipts/CNF-0137.json is absent on this worktree. receipts/CNF-0140.json is absent; re-injection is proven against the in-process P0/P1 census and the regrades[].revised_severity overlay that CNF-0140/census.py load_regrades consumes. This receipt does not claim a live-registry disagreement rate.",
+   "disagreement_matrix": {
+    "n": 12,
+    "agree": {
+     "count": 7,
+     "ids": [
+      "CLM-FIX-0001",
+      "CLM-FIX-0004",
+      "CLM-FIX-0006",
+      "CLM-FIX-0007",
+      "CLM-FIX-0008",
+      "CLM-FIX-0009",
+      "CLM-FIX-0010"
+     ],
+     "by_transition": {
+      "P1->P1": [
+       "CLM-FIX-0001",
+       "CLM-FIX-0007"
+      ],
+      "P0->P0": [
+       "CLM-FIX-0004",
+       "CLM-FIX-0010"
+      ],
+      "P2->P2": [
+       "CLM-FIX-0006",
+       "CLM-FIX-0008"
+      ],
+      "P3->P3": [
+       "CLM-FIX-0009"
+      ]
+     },
+     "rubric_clauses": [
+      {
+       "claim_id": "CLM-FIX-0001",
+       "clause": "S-P1-CAPABILITY",
+       "transition": "P1->P1"
+      },
+      {
+       "claim_id": "CLM-FIX-0004",
+       "clause": "S-P0-SECRETS",
+       "transition": "P0->P0"
+      },
+      {
+       "claim_id": "CLM-FIX-0006",
+       "clause": "S-P2-LOCAL",
+       "transition": "P2->P2"
+      },
+      {
+       "claim_id": "CLM-FIX-0007",
+       "clause": "S-P1-CAPABILITY",
+       "transition": "P1->P1"
+      },
+      {
+       "claim_id": "CLM-FIX-0008",
+       "clause": "S-P2-LOCAL",
+       "transition": "P2->P2"
+      },
+      {
+       "claim_id": "CLM-FIX-0009",
+       "clause": "S-P3-COSMETIC",
+       "transition": "P3->P3"
+      },
+      {
+       "claim_id": "CLM-FIX-0010",
+       "clause": "S-P0-DATA-LOSS",
+       "transition": "P0->P0"
+      }
+     ]
+    },
+    "under_grade": {
+     "count": 3,
+     "ids": [
+      "CLM-FIX-0002",
+      "CLM-FIX-0005",
+      "CLM-FIX-0012"
+     ],
+     "by_transition": {
+      "P2->P0": [
+       "CLM-FIX-0002"
+      ],
+      "P3->P1": [
+       "CLM-FIX-0005"
+      ],
+      "P2->P1": [
+       "CLM-FIX-0012"
+      ]
+     },
+     "rubric_clauses": [
+      {
+       "claim_id": "CLM-FIX-0002",
+       "clause": "S-P0-DATA-LOSS",
+       "transition": "P2->P0"
+      },
+      {
+       "claim_id": "CLM-FIX-0005",
+       "clause": "S-P1-CAPABILITY",
+       "transition": "P3->P1"
+      },
+      {
+       "claim_id": "CLM-FIX-0012",
+       "clause": "S-P1-CAPABILITY",
+       "transition": "P2->P1"
+      }
+     ]
+    },
+    "over_grade": {
+     "count": 2,
+     "ids": [
+      "CLM-FIX-0003",
+      "CLM-FIX-0011"
+     ],
+     "by_transition": {
+      "P0->P3": [
+       "CLM-FIX-0003"
+      ],
+      "P1->P2": [
+       "CLM-FIX-0011"
+      ]
+     },
+     "rubric_clauses": [
+      {
+       "claim_id": "CLM-FIX-0003",
+       "clause": "S-P3-COSMETIC",
+       "transition": "P0->P3"
+      },
+      {
+       "claim_id": "CLM-FIX-0011",
+       "clause": "S-P2-LOCAL",
+       "transition": "P1->P2"
+      }
+     ]
+    },
+    "accuracy": 0.5833333333333334,
+    "dangerous_error_share": 0.6,
+    "accuracy_only_rejected": true
+   },
+   "regrades": [
+    {
+     "claim_id": "CLM-FIX-0001",
+     "author_severity": "P1",
+     "independent_severity": "P1",
+     "direction": "agree",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P1->P1",
+     "reinject": false,
+     "subsystem": "claim-gate",
+     "claim_type": "defect"
+    },
+    {
+     "claim_id": "CLM-FIX-0002",
+     "author_severity": "P2",
+     "independent_severity": "P0",
+     "direction": "under-grade",
+     "rubric_clause": "S-P0-DATA-LOSS",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P0-DATA-LOSS",
+     "transition": "P2->P0",
+     "reinject": true,
+     "subsystem": "ledger",
+     "claim_type": "defect",
+     "revised_severity": "P0",
+     "effective_severity": "P0",
+     "new_severity": "P0"
+    },
+    {
+     "claim_id": "CLM-FIX-0003",
+     "author_severity": "P0",
+     "independent_severity": "P3",
+     "direction": "over-grade",
+     "rubric_clause": "S-P3-COSMETIC",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P3-COSMETIC",
+     "transition": "P0->P3",
+     "reinject": false,
+     "subsystem": "docs",
+     "claim_type": "observation"
+    },
+    {
+     "claim_id": "CLM-FIX-0004",
+     "author_severity": "P0",
+     "independent_severity": "P0",
+     "direction": "agree",
+     "rubric_clause": "S-P0-SECRETS",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P0-SECRETS",
+     "transition": "P0->P0",
+     "reinject": false,
+     "subsystem": "secrets",
+     "claim_type": "defect"
+    },
+    {
+     "claim_id": "CLM-FIX-0005",
+     "author_severity": "P3",
+     "independent_severity": "P1",
+     "direction": "under-grade",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P3->P1",
+     "reinject": true,
+     "subsystem": "census",
+     "claim_type": "defect",
+     "revised_severity": "P1",
+     "effective_severity": "P1",
+     "new_severity": "P1"
+    },
+    {
+     "claim_id": "CLM-FIX-0006",
+     "author_severity": "P2",
+     "independent_severity": "P2",
+     "direction": "agree",
+     "rubric_clause": "S-P2-LOCAL",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P2-LOCAL",
+     "transition": "P2->P2",
+     "reinject": false,
+     "subsystem": "harness",
+     "claim_type": "limitation"
+    },
+    {
+     "claim_id": "CLM-FIX-0007",
+     "author_severity": "P1",
+     "independent_severity": "P1",
+     "direction": "agree",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P1->P1",
+     "reinject": false,
+     "subsystem": "dispatcher",
+     "claim_type": "defect"
+    },
+    {
+     "claim_id": "CLM-FIX-0008",
+     "author_severity": "P2",
+     "independent_severity": "P2",
+     "direction": "agree",
+     "rubric_clause": "S-P2-LOCAL",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P2-LOCAL",
+     "transition": "P2->P2",
+     "reinject": false,
+     "subsystem": "ui",
+     "claim_type": "observation"
+    },
+    {
+     "claim_id": "CLM-FIX-0009",
+     "author_severity": "P3",
+     "independent_severity": "P3",
+     "direction": "agree",
+     "rubric_clause": "S-P3-COSMETIC",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P3-COSMETIC",
+     "transition": "P3->P3",
+     "reinject": false,
+     "subsystem": "docs",
+     "claim_type": "observation"
+    },
+    {
+     "claim_id": "CLM-FIX-0010",
+     "author_severity": "P0",
+     "independent_severity": "P0",
+     "direction": "agree",
+     "rubric_clause": "S-P0-DATA-LOSS",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P0-DATA-LOSS",
+     "transition": "P0->P0",
+     "reinject": false,
+     "subsystem": "ledger",
+     "claim_type": "defect"
+    },
+    {
+     "claim_id": "CLM-FIX-0011",
+     "author_severity": "P1",
+     "independent_severity": "P2",
+     "direction": "over-grade",
+     "rubric_clause": "S-P2-LOCAL",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P2-LOCAL",
+     "transition": "P1->P2",
+     "reinject": false,
+     "subsystem": "tests",
+     "claim_type": "limitation"
+    },
+    {
+     "claim_id": "CLM-FIX-0012",
+     "author_severity": "P2",
+     "independent_severity": "P1",
+     "direction": "under-grade",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P2->P1",
+     "reinject": true,
+     "subsystem": "sampling",
+     "claim_type": "defect",
+     "revised_severity": "P1",
+     "effective_severity": "P1",
+     "new_severity": "P1"
+    }
+   ],
+   "under_grades": [
+    {
+     "claim_id": "CLM-FIX-0002",
+     "author_severity": "P2",
+     "independent_severity": "P0",
+     "direction": "under-grade",
+     "rubric_clause": "S-P0-DATA-LOSS",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P0-DATA-LOSS",
+     "transition": "P2->P0",
+     "reinject": true,
+     "subsystem": "ledger",
+     "claim_type": "defect",
+     "revised_severity": "P0",
+     "effective_severity": "P0",
+     "new_severity": "P0"
+    },
+    {
+     "claim_id": "CLM-FIX-0005",
+     "author_severity": "P3",
+     "independent_severity": "P1",
+     "direction": "under-grade",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P3->P1",
+     "reinject": true,
+     "subsystem": "census",
+     "claim_type": "defect",
+     "revised_severity": "P1",
+     "effective_severity": "P1",
+     "new_severity": "P1"
+    },
+    {
+     "claim_id": "CLM-FIX-0012",
+     "author_severity": "P2",
+     "independent_severity": "P1",
+     "direction": "under-grade",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P2->P1",
+     "reinject": true,
+     "subsystem": "sampling",
+     "claim_type": "defect",
+     "revised_severity": "P1",
+     "effective_severity": "P1",
+     "new_severity": "P1"
+    }
+   ],
+   "census_reinjections": [
+    {
+     "claim_id": "CLM-FIX-0002",
+     "author_severity": "P2",
+     "independent_severity": "P0",
+     "direction": "under-grade",
+     "rubric_clause": "S-P0-DATA-LOSS",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P0-DATA-LOSS",
+     "transition": "P2->P0",
+     "reinject": true,
+     "subsystem": "ledger",
+     "claim_type": "defect",
+     "revised_severity": "P0",
+     "effective_severity": "P0",
+     "new_severity": "P0"
+    },
+    {
+     "claim_id": "CLM-FIX-0005",
+     "author_severity": "P3",
+     "independent_severity": "P1",
+     "direction": "under-grade",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P3->P1",
+     "reinject": true,
+     "subsystem": "census",
+     "claim_type": "defect",
+     "revised_severity": "P1",
+     "effective_severity": "P1",
+     "new_severity": "P1"
+    },
+    {
+     "claim_id": "CLM-FIX-0012",
+     "author_severity": "P2",
+     "independent_severity": "P1",
+     "direction": "under-grade",
+     "rubric_clause": "S-P1-CAPABILITY",
+     "rubric_citation": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md#S-P1-CAPABILITY",
+     "transition": "P2->P1",
+     "reinject": true,
+     "subsystem": "sampling",
+     "claim_type": "defect",
+     "revised_severity": "P1",
+     "effective_severity": "P1",
+     "new_severity": "P1"
+    }
+   ],
+   "reinjected_claim_ids": [
+    "CLM-FIX-0002",
+    "CLM-FIX-0005",
+    "CLM-FIX-0012"
+   ],
+   "census_before": [
+    "CLM-FIX-0001",
+    "CLM-FIX-0003",
+    "CLM-FIX-0004",
+    "CLM-FIX-0007",
+    "CLM-FIX-0010",
+    "CLM-FIX-0011"
+   ],
+   "census_after": [
+    "CLM-FIX-0001",
+    "CLM-FIX-0002",
+    "CLM-FIX-0003",
+    "CLM-FIX-0004",
+    "CLM-FIX-0005",
+    "CLM-FIX-0007",
+    "CLM-FIX-0010",
+    "CLM-FIX-0011",
+    "CLM-FIX-0012"
+   ],
+   "census_after_reinject": [
+    "CLM-FIX-0001",
+    "CLM-FIX-0002",
+    "CLM-FIX-0003",
+    "CLM-FIX-0004",
+    "CLM-FIX-0005",
+    "CLM-FIX-0007",
+    "CLM-FIX-0010",
+    "CLM-FIX-0011",
+    "CLM-FIX-0012"
+   ],
+   "partition_proof": {
+    "n_claims": 12,
+    "n_strata": 12,
+    "sum_stratum_counts": 12,
+    "pairwise_intersections_empty": true,
+    "partition_ok": true,
+    "stratum_counts": {
+     "P0|docs|cursor|observation": 1,
+     "P0|ledger|anthropic|defect": 1,
+     "P0|secrets|anthropic|defect": 1,
+     "P1|claim-gate|anthropic|defect": 1,
+     "P1|dispatcher|anthropic|defect": 1,
+     "P1|tests|openai|limitation": 1,
+     "P2|harness|cursor|limitation": 1,
+     "P2|ledger|openai|defect": 1,
+     "P2|sampling|cursor|defect": 1,
+     "P2|ui|openai|observation": 1,
+     "P3|census|openai|defect": 1,
+     "P3|docs|cursor|observation": 1
+    }
+   },
+   "working_frame": {
+    "origin": "fixture",
+    "n": 12,
+    "rubric_path": "command-center/p2-wave/probes/CNF-0142/fixtures/severity-rubric.md",
+    "rubric_origin": "fixture",
+    "cnf0137_frame_present": false,
+    "seed": 142
+   },
+   "live_inputs": {
+    "claim_registry": {
+     "path": "command-center/CLAIM-REGISTRY.json",
+     "present": true
+    },
+    "risk_register": {
+     "path": "command-center/RISK-REGISTER.md",
+     "present": true
+    },
+    "cnf0137_frame": {
+     "path": "command-center/receipts/CNF-0137.json",
+     "present": false
+    },
+    "cnf0140_census": {
+     "path": "command-center/receipts/CNF-0140.json",
+     "present": false
+    },
+    "confirmation_record_schema": {
+     "path": "command-center/schema/confirmation-record.schema.json",
+     "present": true
+    }
+   },
+   "live_registry": {
+    "path": "command-center/CLAIM-REGISTRY.json",
+    "present": true,
+    "n_claims": 12,
+    "n_gradable": 0,
+    "n_ungraded": 12,
+    "ungraded_ids": [
+     "CC-1",
+     "CC-2",
+     "CC-3",
+     "CC-4",
+     "CC-5",
+     "CC-6",
+     "CC-7",
+     "CC-8",
+     "CC-9",
+     "CC-10",
+     "CC-11",
+     "CC-12"
+    ],
+    "gradable_ids": [],
+    "usable_as_working_frame": false,
+    "reason": "null-field-fail-closed",
+    "parse_error": null
+   },
+   "test_matrix": {
+    "blind": {
+     "pass": true,
+     "attestation": "0133aec35290efef8f82845a5f0b39779f98cafa20fd9290e393f8d85e8ccbf0",
+     "forbidden_keys": [
+      "author_label",
+      "author_severity",
+      "expected",
+      "label",
+      "original_severity",
+      "plant_kind",
+      "planted",
+      "severity"
+     ]
+    },
+    "known_present_plant": {
+     "pass": true,
+     "claim_id": "CLM-FIX-0002",
+     "author_severity": "P2",
+     "independent_severity": "P0",
+     "rubric_clause": "S-P0-DATA-LOSS"
+    },
+    "direction_split": {
+     "pass": true,
+     "under_grade": 3,
+     "over_grade": 2,
+     "accuracy_only_rejected": true
+    },
+    "reinject": {
+     "pass": true,
+     "ids": [
+      "CLM-FIX-0002",
+      "CLM-FIX-0005",
+      "CLM-FIX-0012"
+     ],
+     "plant_in_census_before": false,
+     "plant_in_census_after": true
+    }
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "blind-and-plant",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe1_blind_and_plant.py"
+    },
+    {
+     "id": "probe2",
+     "role": "direction-and-reinject",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0142/probe2_direction_and_reinject.py"
+    }
+   ],
+   "output_schema": "command-center/schema/confirmation-record.schema.json",
+   "schema_present": true,
+   "cloud_ok": false,
+   "registered": true,
+   "ts": "2026-08-25T00:55:55Z"
+  }
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CNF-0142.json",
+   "bytes": 28350,
+   "sha256": "97bfac49d99bac871472a4f1a87a64b5e6e93c80dd204203ef4e85c2670d3e3a",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "defects": []
+}

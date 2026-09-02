@@ -1,0 +1,39 @@
+docs(casualty): record R-I9 -- my commit swept a sibling edit and main is charter-red
+
+Found by re-running the full verification sweep after committing, which is the only reason it
+was found at all: charter_check passed BEFORE my `git add` and fails at HEAD.
+
+  $ bash .quality/charter_check.sh
+    - quality.yml has 'gate-p2-delivery' with no matching charter gate
+  charter_check: FAILED -- charter and quality.yml diverge.
+
+quality.yml:526 declares `- name: gate-p2-delivery` running tools/measure-guard/unitgate.py;
+.quality/charter.yml has no p2-delivery entry. charter_check.sh runs inside gate-lint-format,
+the FIRST gate, so at HEAD every PR is blocked -- not only that lane's.
+
+Provenance measured two-sided instead of assumed, because "a sibling did it" is exactly the
+kind of comfortable attribution that deserves a control:
+
+  git show 65638bad:.../quality.yml | grep -c gate-p2-delivery  -> 0
+  git show f087a6f6:.../quality.yml | grep -c gate-p2-delivery  -> 1   (f087a6f6 is MINE)
+  git merge-base --is-ancestor 70f70f74 f087a6f6                -> NO
+  .quality/charter.yml                                          -> unmodified, p2-delivery 0
+
+The sibling authored the step; it sat uncommitted in the shared worktree; my `git add` of that
+path carried it; their unitgate.py landed afterwards in 70f70f74. Only the charter entry is
+still missing.
+
+NOT FIXED HERE, deliberately. Reverting their step would delete work that is live on disk, and
+writing their charter entry would encode intent for a gate I did not design. Escalated to main
+with the owner named. What I can do is make sure nobody reads section 2 of the dossier as
+"charter clean" -- so the caveat sits inline there, not only in the residual list.
+
+THE SYSTEMIC POINT, and it is the mirror image of a defect this lane already recorded. Round 1
+had a sibling's whole-index commit sweep OUR staged files into 772159ce under their message.
+Pathspec staging stops a lane STAGING a sibling's files; nothing stops a lane COMMITTING a
+sibling's uncommitted edit to a file both lanes touch. quality.yml is that file and there is no
+lock on it. One worktree per lane, or one lane at a time on the workflow.
+
+Blast radius checked, not assumed: the casualty integration is unaffected. Re-verified at
+d14cea8f, two further sibling commits later -- SUCCESS:casualty-guard 6 probe(s) green, 32
+tests pass.

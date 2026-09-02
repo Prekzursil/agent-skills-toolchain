@@ -1,0 +1,27 @@
+# rules/project/docs.md
+shared:rules/project/docs.md
+repo-unique:rules/project/docs.md
+repo-pad:rules/project/docs.md:0
+repo-pad:rules/project/docs.md:1
+repo-pad:rules/project/docs.md:2
+repo-pad:rules/project/docs.md:3
+repo-pad:rules/project/docs.md:4
+repo-pad:rules/project/docs.md:5
+repo-pad:rules/project/docs.md:6
+repo-pad:rules/project/docs.md:7
+repo-pad:rules/project/docs.md:8
+repo-pad:rules/project/docs.md:9
+repo-pad:rules/project/docs.md:10
+repo-pad:rules/project/docs.md:11
+repo-pad:rules/project/docs.md:12
+repo-pad:rules/project/docs.md:13
+repo-pad:rules/project/docs.md:14
+repo-pad:rules/project/docs.md:15
+repo-pad:rules/project/docs.md:16
+repo-pad:rules/project/docs.md:17
+repo-pad:rules/project/docs.md:18
+repo-pad:rules/project/docs.md:19
+repo-pad:rules/project/docs.md:20
+repo-pad:rules/project/docs.md:21
+repo-pad:rules/project/docs.md:22
+repo-pad:rules/project/docs.md:23

@@ -1,0 +1,129 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "file:///C:/Users/Prekzursil/source/ast-integrate/platform/schema/completion-predicate-result.schema.json",
+  "title": "Shared completion predicate result (gate A, 12 conditions, ONE work unit)",
+  "description": "The OUTPUT of the one shared completion predicate defined at _USER-PROMPTS.md:10631-10644 (LF-only numbering) and transcribed in command-center/COMPLETION-GATES.json -> gate_a_unit_completion_predicate. Produced by platform/lib/completion_predicate.py. Deliberately shaped as a SUPERSET of receipt.schema.json#/$defs/predicate_report.report so a result validating here can be embedded verbatim as the report payload of a predicate_report receipt (that def constrains kind, reducer_id and conditions and permits additional keys - checked, not assumed).\n\nScope discipline: this is gate A only. It is NOT the 21-condition program stopping rule (gate B). COMPLETION-GATES.json exists to stop those being conflated; they intersect only at gate B condition 21.\n\nThe four-value outcome vocabulary is load-bearing. NOT-CHECKED means no probe ran and is never folded into a pass; NOT-APPLICABLE means the unit class waived a waivable condition with a justification and is never counted as a pass. is_complete is true only when every condition is SATISFIED or NOT-APPLICABLE with zero UNSATISFIED and zero NOT-CHECKED.",
+  "type": "object",
+  "required": ["kind", "reducer_id", "verdict", "is_complete", "counts", "conditions", "sentinel_line"],
+  "properties": {
+    "kind": { "const": "predicate_report" },
+    "unit_id": {
+      "type": "string",
+      "description": "Work-unit id. UNKNOWN-0000 when the receipt declared none, so a malformed receipt is still reportable rather than crashing the reducer.",
+      "pattern": "^[A-Z][A-Z0-9]*-[0-9]{4}$"
+    },
+    "reducer_id": {
+      "type": "string",
+      "minLength": 1,
+      "description": "Identity of the ONE reducer that computed this. Two receipts for the same unit carrying different reducer_ids is the seeded failure class 'two completion predicates disagree' (spec line 11314)."
+    },
+    "spec_anchor": { "type": "string", "minLength": 3 },
+    "verdict": {
+      "type": "string",
+      "enum": ["COMPLETE", "INCOMPLETE", "INDETERMINATE"],
+      "description": "COMPLETE = every condition SATISFIED or NOT-APPLICABLE. INCOMPLETE = at least one UNSATISFIED. INDETERMINATE = no UNSATISFIED but at least one NOT-CHECKED, i.e. the unit may or may not be done and the predicate refuses to guess."
+    },
+    "is_complete": { "type": "boolean" },
+    "counts": {
+      "type": "object",
+      "required": ["satisfied", "unsatisfied", "not_checked", "not_applicable"],
+      "additionalProperties": false,
+      "properties": {
+        "satisfied": { "type": "integer", "minimum": 0, "maximum": 12 },
+        "unsatisfied": { "type": "integer", "minimum": 0, "maximum": 12 },
+        "not_checked": { "type": "integer", "minimum": 0, "maximum": 12 },
+        "not_applicable": { "type": "integer", "minimum": 0, "maximum": 12 }
+      }
+    },
+    "unsatisfied": {
+      "type": "array",
+      "description": "Condition numbers that FAILED. This is the field a caller reads to learn WHICH condition failed; a bare boolean is what this schema exists to replace.",
+      "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+      "uniqueItems": true
+    },
+    "not_checked": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+      "uniqueItems": true
+    },
+    "not_applicable": {
+      "type": "array",
+      "items": { "type": "integer", "minimum": 1, "maximum": 12 },
+      "uniqueItems": true
+    },
+    "sentinel_line": {
+      "type": "string",
+      "pattern": "^(?:SUCCESS|FAILED):",
+      "description": "Terminal-state marker (AGENTS.md section 4). Open-ended prose is the main driver of repetitive-action loops, so the result always renders one."
+    },
+    "conditions": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "description": "Exactly twelve, always, in spec order. A result reporting fewer has skipped a condition; a result reporting more has invented one.",
+      "items": {
+        "type": "object",
+        "required": ["n", "text", "outcome", "basis"],
+        "properties": {
+          "n": { "type": "integer", "minimum": 1, "maximum": 12 },
+          "text": {
+            "type": "string",
+            "minLength": 1,
+            "description": "The condition verbatim from the spec, carried so a reader never has to trust a paraphrase."
+          },
+          "outcome": {
+            "type": "string",
+            "enum": ["SATISFIED", "UNSATISFIED", "NOT-APPLICABLE", "NOT-CHECKED"]
+          },
+          "basis": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Why this outcome, in one sentence, naming the measurement. 'ok' is not a basis."
+          },
+          "spec_line": { "type": "integer", "minimum": 10633, "maximum": 10644 },
+          "detail": {
+            "type": "object",
+            "description": "Machine-readable evidence for this condition: resolved paths, recomputed digests, sizes measured off disk, failing rows.",
+            "properties": {
+              "non_waivable": { "type": "boolean" },
+              "waiver_justified": { "type": "boolean" },
+              "evaluator_error": { "type": "boolean" },
+              "weak_threshold_declared": { "type": "boolean" }
+            }
+          }
+        }
+      }
+    }
+  },
+  "allOf": [
+    {
+      "$comment": "is_complete must agree with verdict. A result asserting is_complete=true with verdict != COMPLETE is a self-contradicting detector, not a finding.",
+      "if": { "properties": { "is_complete": { "const": true } }, "required": ["is_complete"] },
+      "then": {
+        "properties": {
+          "verdict": { "const": "COMPLETE" },
+          "counts": {
+            "properties": {
+              "unsatisfied": { "const": 0 },
+              "not_checked": { "const": 0 }
+            }
+          }
+        }
+      }
+    },
+    {
+      "$comment": "A COMPLETE verdict may not carry a FAILED sentinel line, and an incomplete one may not carry SUCCESS.",
+      "if": { "properties": { "verdict": { "const": "COMPLETE" } }, "required": ["verdict"] },
+      "then": { "properties": { "sentinel_line": { "pattern": "^SUCCESS:" } } },
+      "else": { "properties": { "sentinel_line": { "pattern": "^FAILED:" } } }
+    },
+    {
+      "$comment": "The seven structural conditions can never render NOT-APPLICABLE: waiving one is reported as UNSATISFIED on that condition instead.",
+      "properties": {
+        "not_applicable": {
+          "items": { "not": { "enum": [1, 2, 3, 4, 5, 11, 12] } }
+        }
+      }
+    }
+  ]
+}

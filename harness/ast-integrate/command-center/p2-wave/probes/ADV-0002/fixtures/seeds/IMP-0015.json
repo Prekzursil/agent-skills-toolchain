@@ -1,0 +1,193 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0015",
+  "id": "IMP-0015",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0015",
+  "completion_sentinel": "SUCCESS:IMP-0015",
+  "title": "Linux launch adapter (POSIX sh, exec bit, shebang normalisation)",
+  "question_or_target": "Implement release/platforms/linux launch logic and prove the shipped shell scripts actually run under real Linux bash \u2014 where CRLF line endings are rejected outright, unlike Git Bash which tolerates them.",
+  "min_bytes_threshold": 2048,
+  "output_path": "command-center/receipts/IMP-0015.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "implementation": {
+    "adapter": "release/platforms/linux/launch.sh",
+    "manifest": "release/platforms/linux/manifest.json",
+    "tests": "release/platforms/linux/tests/test_launch_adapter.sh",
+    "scripts": [
+      "release/platforms/linux/scripts/echo_arg.sh",
+      "release/platforms/linux/scripts/hello.sh",
+      "release/platforms/linux/scripts/longrun.sh"
+    ],
+    "invoke": "explicit bash <script> <args> (never shebang-exec, never ./script)",
+    "crlf_policy": "CR byte => named ERROR:CRLF_REJECTED; no silent dos2unix",
+    "shebang": "normalize to #!/usr/bin/env bash on an LF working copy",
+    "exec_bit": "chmod +x on normalize dest; launch does not rely on +x",
+    "repo_longrun_sh": "absent; platform ships release/platforms/linux/scripts/longrun.sh"
+  },
+  "host": {
+    "adapter_host_rc": 0,
+    "kernel": "Linux",
+    "release": "6.8.0-136-generic",
+    "machine": "x86_64",
+    "bash_path": "/usr/bin/bash",
+    "bash_exe": "/usr/bin/bash",
+    "bash_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+    "proc_version": "Linux version 6.8.0-136-generic (buildd@lcy02-amd64-041) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026",
+    "cwd": "/opt/p2/ast-integrate",
+    "mnt_c_exists": false,
+    "cwd_is_mnt_c": false,
+    "adapter": "release/platforms/linux/launch.sh",
+    "invoke": "explicit-bash",
+    "crlf_policy": "ERROR:CRLF_REJECTED",
+    "python_sysname": "Linux",
+    "python_release": "6.8.0-136-generic"
+  },
+  "reviewer": {
+    "reviewer_id": "IMP-0015-probe1-linux-identity",
+    "verdict": "PASS",
+    "independent": true,
+    "requirement": "Confirm the runner is real Linux, not WSL-on-Windows with a mounted /mnt/c path, and not Git Bash.",
+    "observed": {
+      "python_uname": "Linux",
+      "adapter_kernel": "Linux",
+      "bash_path": "/usr/bin/bash",
+      "bash_version": "GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)",
+      "mnt_c_exists": false,
+      "cwd_is_mnt_c": false,
+      "proc_version": "Linux version 6.8.0-136-generic (buildd@lcy02-amd64-041) (x86_64-linux-gnu-gcc-13 (Ubuntu 13.3.0-6ubuntu2~24.04.1) 13.3.0, GNU ld (GNU Binutils for Ubuntu) 2.42) #136-Ubuntu SMP PREEMPT_DYNAMIC Wed Jul  1 21:53:05 UTC 2026"
+    }
+  },
+  "evidence": [
+    {
+      "claim": "bash -n under real GNU bash on Linux (python uname AND bash uname agree; bash --version is GNU, not MSYS/MinGW) passes every shipped LF script.",
+      "verdict": "CONFIRMED",
+      "anchor": "release/platforms/linux/tests/test_launch_adapter.sh:bash -n",
+      "confidence": "almost-certain",
+      "rows": [
+        {
+          "path": "release/platforms/linux/scripts/echo_arg.sh",
+          "bash_n_rc": 0,
+          "has_cr": false
+        },
+        {
+          "path": "release/platforms/linux/scripts/hello.sh",
+          "bash_n_rc": 0,
+          "has_cr": false
+        },
+        {
+          "path": "release/platforms/linux/scripts/longrun.sh",
+          "bash_n_rc": 0,
+          "has_cr": false
+        }
+      ]
+    },
+    {
+      "claim": "Each shipped script executed with a trivial argument via the adapter (explicit bash, not shebang) exits 0 with the expected stdout prefix.",
+      "verdict": "CONFIRMED",
+      "anchor": "release/platforms/linux/launch.sh:run",
+      "confidence": "almost-certain",
+      "rows": [
+        {
+          "path": "release/platforms/linux/scripts/echo_arg.sh",
+          "run_rc": 0,
+          "stdout": "IMP-0015-ECHO:trivial"
+        },
+        {
+          "path": "release/platforms/linux/scripts/hello.sh",
+          "run_rc": 0,
+          "stdout": "IMP-0015-HELLO trivial"
+        },
+        {
+          "path": "release/platforms/linux/scripts/longrun.sh",
+          "run_rc": 0,
+          "stdout": "IMP-0015-LONGRUN ok arg=trivial n=3 bash=5.2.21(1)-release"
+        }
+      ]
+    },
+    {
+      "claim": "A deliberately CRLF-converted copy of longrun.sh fails bash -n, adapter check (ERROR:CRLF_REJECTED), and shebang-exec; the LF original stays green in the same run.",
+      "verdict": "CONFIRMED",
+      "anchor": "release/platforms/linux/tests/test_launch_adapter.sh:negative-control",
+      "confidence": "almost-certain"
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-test_launch_adapter",
+      "command": "bash release/platforms/linux/tests/test_launch_adapter.sh",
+      "result": "PASS",
+      "output_tail": "PASS real GNU bash GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu)\nPASS host kernel=Linux\nPASS host cwd not /mnt/c\nPASS LF-only echo_arg.sh\nPASS bash -n echo_arg.sh\nPASS adapter check echo_arg.sh\nPASS LF-only hello.sh\nPASS bash -n hello.sh\nPASS adapter check hello.sh\nPASS LF-only longrun.sh\nPASS bash -n longrun.sh\nPASS adapter check longrun.sh\nPASS adapter hello\nPASS hello adapter/direct agree\nPASS adapter echo_arg\nPASS echo_arg adapter/direct agree\nPASS adapter longrun IMP-0015-LONGRUN ok arg=trivial n=3 bash=5.2.21(1)-release\nPASS longrun adapter/direct agree\nPASS adapter run without exec bit\nPASS missing script rc rc=1\nPASS missing script named error\nPASS normalize shebang\nPASS normalize dest is executable\nPASS normalize dest runs\nPASS CRLF bash -n failed rc=2\nPASS CRLF adapter check rc rc=1\nPASS CRLF adapter ERROR:CRLF_REJECTED\nPASS CRLF adapter run failed rc=1\nPASS CRLF shebang-exec failed rc=127\nPASS LF original still bash -n green after control\nPASS LF original still runs after control\nPASS normalize CRLF rc rc=1\nPASS normalize refuses CRLF\nPASS normalize did not write dest from CRLF source\nSUCCESS:IMP-0015-test passed=34\nOK:CHECK path=/opt/p2/ast-integrate/release/platforms/linux/scripts/echo_arg.sh\nOK:CHECK path=/opt/p2/ast-integrate/release/platforms/linux/scripts/hello.sh\nOK:CHECK path=/opt/p2/ast-integrate/release/platforms/linux/scripts/longrun.sh\nOK:NORMALIZE dest=/tmp/imp0015-test.sBC72c/normalized.sh shebang=#!/usr/bin/env bash exec_bit=1"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0015-C1-crlf-copy",
+      "kind": "known-broken-fixture",
+      "description": "CRLF conversion of a for/do script must fail under Linux bash and the adapter; the LF original must still pass.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "linux-bash-syntax",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0015/probe1_linux_bash_syntax.py"
+    },
+    {
+      "id": "probe2",
+      "role": "execute-and-crlf",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0015/probe2_execute_and_crlf.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0015.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "release/platforms/linux/launch.sh",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "release/platforms/linux/tests/test_launch_adapter.sh",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:06+00:00",
+    "ended_at": "2026-08-25T00:56:06+00:00"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0015/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot; runner-provisioning flake may retry twice"
+  },
+  "notes": "G-1 for IMP-0015: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0015. Host is Linux 6.8.0-136-generic GNU bash GNU bash, version 5.2.21(1)-release (x86_64-pc-linux-gnu); cwd is not /mnt/c. Repo scripts/longrun.sh is absent; the adapter ships release/platforms/linux/scripts/longrun.sh.",
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "IMP-0012 interpreter manifest for the whole plugin is implemented here",
+      "IMP-0017 .gitattributes / packer CR scan is implemented here",
+      "macOS or Windows launch adapters"
+    ]
+  }
+}

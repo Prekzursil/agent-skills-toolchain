@@ -1,0 +1,25 @@
+
+===== launch 2026-08-20T09:01:41Z attempt=1 =====
+I'll start from the existing IMP-0105 probe tree, resume whatever is already built, and only then measure for G-1.I'll inspect the IMP-0105 probe tree, unit catalog, and a nearby delivered IMP unit for the contract shape.The IMP-0105 probe tree is missing, so I’ll pull the catalog contract and a delivered IMP unit as the implementation template.Marketplace is missing, so I’ll inspect `artifact_delivered`, a delivered IMP unit, and the ranking/trust code the catalog points at.There's already a live marketplace under `platform/marketplace`. I'll inspect its ranking, trust, and CLI surfaces before adding `why`.I’ll implement the `why` engine, catalog tests, live probes, and receipt packing next — the unit is currently absent, so this is a build, not a park.I’m writing the ranking/`why` engine, wiring it into the CLI, and adding the catalog tests the unit names.`explain_search` was calling `rank_documents`, which called `explain_search` again — I’ll split scoring from ranking so that loop can’t recurse.I’ll run the named probes and catalog tests next, then pack the receipt only if they exit 0.**SUCCESS:delivered IMP-0105** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0105` printed:
+
+`SUCCESS:delivered IMP-0105 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe1_reconstruct.py:0,probe2_tracks_changes.py:0,run_required_tests.py:0`
+
+The unit had no probe tree. This pass built it rather than parking on the first absent measure.
+
+**What landed**
+- `python -m mkt why search|install|policy-matrix` explains rankings and install decisions.
+- Ranking score is millipoints: BM25 query terms + quality + trust. No popularity term.
+- Hand reconstruction on the fixture hit: `1286 + 1151 + 920 + 800 = 4157`.
+- Changing quality 92→50 moves both the total and the quality line by **−420**. Adding `hello` tokens moves `term:hello` and the total.
+- Deny names the exact cell `cell:signature=invalid|trust=HIGH|advisory=none`. A generic `denied` string fails the same assertion. The 80-cell matrix has no unspecified cell.
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/receipts/IMP-0105.json` | `state=SUCCESS`, 21857 bytes |
+| `command-center/p2-wave/probes/IMP-0105/UNIT-ARTIFACT-MANIFEST.json` | live LF sha256 `cb2ced023018dd4c6bfdda31f191ed8b6d525db9746454c111eaf791d04c48a3` |
+| `command-center/p2-wave/probes/IMP-0105/SUBAGENT-RETURN.json` | this unit’s return |
+| `tools/marketplace/tests/test_explainability.py` | catalogued test nodes |
+| `platform/marketplace/mkt/explain.py` | engine |
+
+Global `unit_manifest.py --write` was not run. No git add/commit/push/stash/checkout/rebase.

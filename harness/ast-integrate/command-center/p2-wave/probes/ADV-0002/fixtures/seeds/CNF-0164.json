@@ -1,0 +1,585 @@
+{
+  "artifacts": [
+    {
+      "bytes": 1146,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/evidence-integrity-report.schema.json",
+      "role": "supporting",
+      "sha256": "ff5b2b83395928c73a31410782df9293a622c80d5d68ee4fa2207215f5500e87"
+    },
+    {
+      "bytes": 8538,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0164/classifier.py",
+      "role": "supporting",
+      "sha256": "655fb029ef6eb9fc1b29deb8ba2c8fc0a30d2610414c2da239f54e70b9d309fd"
+    },
+    {
+      "bytes": 5043,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0164/harvest.py",
+      "role": "supporting",
+      "sha256": "f64afe9c75ad7bb16d2b1ab1c8f8e652299113b3f68798b32de6ac9063301d09"
+    },
+    {
+      "bytes": 402,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt",
+      "role": "fixture",
+      "sha256": "2068a5eb8b3d188cef3776da1da0ca802381dd3aa58b18ab58ac28404b080ca9"
+    },
+    {
+      "bytes": 2173,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+      "role": "control",
+      "sha256": "bdb3ad63fc86dabe07e5e0d57ce01b77b9bb6f32f30d91bb4e6bf5c41847c636"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/CNF-0164.json",
+      "consumer": "json.loads catalog receipt + sentinel substring",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; from pathlib import Path; p=Path('command-center/receipts/CNF-0164.json'); d=json.loads(p.read_text(encoding='utf-8')); assert d.get('unit_id')=='CNF-0164'; assert 'SUCCESS:CNF-0164' in p.read_text(encoding='utf-8'); print('CONSUMER-READ-OK CNF-0164')\"",
+        "exit_code": 0,
+        "fingerprint": "dee7e837e247b9600f975a1956f1f7b6f339e998e338bd3601cecae01b3bff1b",
+        "method": "file-read",
+        "raw_output": "CONSUMER-READ-OK CNF-0164",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0164/probe1_known_controls.py",
+      "claim": "Planted known-present, known-broken, whitespace, absent, and external-no-archive quotes classify exact / paraphrase / whitespace-different / absent / NOT-CHECKED after EOL normalisation.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0164/probe1_known_controls.py",
+          "exit_code": 0,
+          "fingerprint": "c9618604b0af8d4b20b58345a5ff9b42630877aff2f808e50c1c753b84ebe333",
+          "method": "test-run",
+          "raw_output": "CTRL-EXACT expect=exact got=exact resolution=worktree\nCTRL-EXACT-CRLF expect=exact got=exact resolution=worktree\nCTRL-PARAPHRASE expect=paraphrase got=paraphrase resolution=worktree\nCTRL-WHITESPACE expect=whitespace-different got=whitespace-different resolution=worktree\nCTRL-ABSENT expect=absent got=absent resolution=worktree\nCTRL-EXTERNAL-NO-ARCHIVE expect=NOT-CHECKED got=NOT-CHECKED resolution=external-no-archive\nDETECTOR-SELF known_present exact=True slice='# Load policy (planted source for CNF-0164 quote-fidelity co'\nSUCCESS:CNF-0164-probe1 known-present known-broken whitespace detector-self",
+          "role": "source"
+        },
+        {
+          "command": "python3 -B -c import-classifier-reviewer-recheck command-center/p2-wave/probes/CNF-0164/classifier.py",
+          "exit_code": 0,
+          "fingerprint": "4ef86ac750d0af586905a583228990d1606d7c22a43d4252e162d6f183621ce4",
+          "method": "static-analysis",
+          "raw_output": "CTRL-EXACT primary=exact reviewer=exact\nCTRL-EXACT-CRLF primary=exact reviewer=exact\nCTRL-PARAPHRASE primary=paraphrase reviewer=paraphrase\nCTRL-WHITESPACE primary=whitespace-different reviewer=whitespace-different\nCTRL-ABSENT primary=absent reviewer=absent\nCTRL-EXTERNAL-NO-ARCHIVE primary=NOT-CHECKED reviewer=NOT-CHECKED\nCORPUS:command-center/phase3/A7/SECURITY.json:1 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:2 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:3 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:4 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:5 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:6 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:7 primary=exact reviewer=exact",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/CNF-0164/probe2_absent_reviewer.py",
+      "claim": "An independent second classifier re-checked every absent case and agreed with the primary class on all harvested quotes.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "command-center/p2-wave/probes/CNF-0164/harvest.py",
+          "exit_code": 0,
+          "fingerprint": "4fdf1b8b1468df0803d3d4cae44dcd1a16734d54366d7e1a57fe4ff2b3fe0d56",
+          "method": "static-analysis",
+          "raw_output": "harvested=13 absent=1 paraphrase=1 counts={\"NOT-CHECKED\": 1, \"absent\": 1, \"exact\": 9, \"paraphrase\": 1, \"whitespace-different\": 1}",
+          "role": "source"
+        },
+        {
+          "command": "command-center/p2-wave/probes/CNF-0164/classifier.py:reviewer_classify_quote",
+          "exit_code": 0,
+          "fingerprint": "b6ba902f0485ac81de7c2f8eed9c7124ca0c952bacc7852a9da41e717b076a8c",
+          "method": "byte-compare",
+          "raw_output": "CTRL-EXACT primary=exact reviewer=exact\nCTRL-EXACT-CRLF primary=exact reviewer=exact\nCTRL-PARAPHRASE primary=paraphrase reviewer=paraphrase\nCTRL-WHITESPACE primary=whitespace-different reviewer=whitespace-different\nCTRL-ABSENT primary=absent reviewer=absent\nCTRL-EXTERNAL-NO-ARCHIVE primary=NOT-CHECKED reviewer=NOT-CHECKED\nCORPUS:command-center/phase3/A7/SECURITY.json:1 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:2 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:3 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:4 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:5 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:6 primary=exact reviewer=exact\nCORPUS:command-center/phase3/A7/SECURITY.json:7 primary=exact reviewer=exact",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "absent_cases": [
+      {
+        "anchor": null,
+        "class": "absent",
+        "detector_self_check": true,
+        "expect": "absent",
+        "id": "CTRL-ABSENT",
+        "kind": "control",
+        "line": null,
+        "note": "No token window in the planted source is a one-word edit of this sentence.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "The quantum flux capacitor loads every unlisted skill at boot.",
+        "reason": "no-window",
+        "resolution": "worktree",
+        "reviewer_class": "absent",
+        "reviewer_reason": "reviewer-no-window",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      }
+    ],
+    "cases": [
+      {
+        "anchor": null,
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": "exact",
+        "id": "CTRL-EXACT",
+        "kind": "control",
+        "line": null,
+        "note": "Known-present: copy-pasted quote from the planted source.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "A file absent from MANIFEST.json is not loaded, even if it sits in a capabilities directory.",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      },
+      {
+        "anchor": null,
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": "exact",
+        "id": "CTRL-EXACT-CRLF",
+        "kind": "control",
+        "line": null,
+        "note": "EOL normalisation: CRLF quote against LF source is still exact.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "Quoted documentation must byte-match the source at the cited revision.\r\nEOL differences are not meaning differences; a copy-pasted quote is exact.",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      },
+      {
+        "anchor": null,
+        "class": "paraphrase",
+        "detector_self_check": true,
+        "expect": "paraphrase",
+        "id": "CTRL-PARAPHRASE",
+        "kind": "control",
+        "line": null,
+        "note": "Known-broken: one-word alteration (absent -> missing).",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "A file missing from MANIFEST.json is not loaded, even if it sits in a capabilities directory.",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "paraphrase",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      },
+      {
+        "anchor": null,
+        "class": "whitespace-different",
+        "detector_self_check": true,
+        "expect": "whitespace-different",
+        "id": "CTRL-WHITESPACE",
+        "kind": "control",
+        "line": null,
+        "note": "Indentation-only drift on the listed paths.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "The loader reads only listed paths:\n\n        capabilities/alpha.json\n        capabilities/beta.json",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "whitespace-different",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      },
+      {
+        "anchor": null,
+        "class": "absent",
+        "detector_self_check": true,
+        "expect": "absent",
+        "id": "CTRL-ABSENT",
+        "kind": "control",
+        "line": null,
+        "note": "No token window in the planted source is a one-word edit of this sentence.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "The quantum flux capacitor loads every unlisted skill at boot.",
+        "reason": "no-window",
+        "resolution": "worktree",
+        "reviewer_class": "absent",
+        "reviewer_reason": "reviewer-no-window",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      },
+      {
+        "anchor": null,
+        "class": "NOT-CHECKED",
+        "detector_self_check": null,
+        "expect": "NOT-CHECKED",
+        "id": "CTRL-EXTERNAL-NO-ARCHIVE",
+        "kind": "control-external",
+        "line": null,
+        "note": "External URL with no citation-time archive in this worktree.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "Manifest files are the single source of truth.",
+        "reason": "external URL has no citation-time archive in probes/CNF-0164/archives/",
+        "resolution": "external-no-archive",
+        "reviewer_class": "NOT-CHECKED",
+        "reviewer_reason": "external URL has no citation-time archive in probes/CNF-0164/archives/",
+        "source_path": "https://example.invalid/docs/manifest-policy#v1"
+      },
+      {
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:13105",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:1",
+        "kind": "corpus",
+        "line": 13105,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "Red-team the security architecture: assume the attacker can author a skill",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/WORK-UNIT-CATALOG.json"
+      },
+      {
+        "anchor": "command-center/WORK-UNIT-CATALOG.json:12954",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:2",
+        "kind": "corpus",
+        "line": 12954,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "evaluated at a SINGLE choke point, secret-free artifact bundles",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/WORK-UNIT-CATALOG.json"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0048/choke.py:240",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:3",
+        "kind": "corpus",
+        "line": 240,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "A7_CHOKE_AUTHORIZE_ONLY \u2014 sole factory for authorized tool calls.",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/ARC-0048/choke.py"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0048/choke.py:247",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:4",
+        "kind": "corpus",
+        "line": 247,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "A7_TAINT_DROPS_GRANTS \u2014 untrusted DATA taints the turn's principal.",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/ARC-0048/choke.py"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0048/choke.py:7",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:5",
+        "kind": "corpus",
+        "line": 7,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "A7_COUNCIL_ROLE_IS_DATA: a claimed contribution.role never selects the",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/ARC-0048/choke.py"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0010/registry.schema.json:131",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:6",
+        "kind": "corpus",
+        "line": 131,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "\"kind\": { \"type\": \"string\", \"minLength\": 1 }",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/ARC-0010/registry.schema.json"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ARC-0010/generator.py:35",
+        "class": "exact",
+        "detector_self_check": true,
+        "expect": null,
+        "id": "CORPUS:command-center/phase3/A7/SECURITY.json:7",
+        "kind": "corpus",
+        "line": 35,
+        "note": "evidence.snippet presented as a quote of path",
+        "origin_artifact": "command-center/phase3/A7/SECURITY.json",
+        "quote": "\"executable_policy\",",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "exact",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/ARC-0010/generator.py"
+      }
+    ],
+    "cited_revision_policy": {
+      "cnf_0163_path": "command-center/receipts/CNF-0163.json",
+      "cnf_0163_present": false,
+      "external_url_policy": "External URL quotes are checked only against a citation-time archive listed in probes/CNF-0164/archives/index.json; otherwise NOT-CHECKED. Live network fetch is never used as a substitute archive.",
+      "git_repository": false,
+      "method": "EOL-normalise then classify against worktree bytes at the cited path. This worktree is not a git repository and command-center/receipts/CNF-0163.json is absent, so cited-revision cat-file is NOT-CHECKED rather than pretended."
+    },
+    "completion_sentinel": "SUCCESS:CNF-0164",
+    "counts_by_class": {
+      "NOT-CHECKED": 1,
+      "absent": 1,
+      "exact": 9,
+      "paraphrase": 1,
+      "whitespace-different": 1
+    },
+    "disagreements": [],
+    "inputs": {
+      "claim_research_artifacts": "command-center/phase3/**/*.json evidence.snippet fields",
+      "cnf_0163_anchor_resolution": "ABSENT",
+      "planted_controls": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json"
+    },
+    "integrity_kind": "quote-fidelity",
+    "not_checked_cases": [
+      {
+        "anchor": null,
+        "class": "NOT-CHECKED",
+        "detector_self_check": null,
+        "expect": "NOT-CHECKED",
+        "id": "CTRL-EXTERNAL-NO-ARCHIVE",
+        "kind": "control-external",
+        "line": null,
+        "note": "External URL with no citation-time archive in this worktree.",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "Manifest files are the single source of truth.",
+        "reason": "external URL has no citation-time archive in probes/CNF-0164/archives/",
+        "resolution": "external-no-archive",
+        "reviewer_class": "NOT-CHECKED",
+        "reviewer_reason": "external URL has no citation-time archive in probes/CNF-0164/archives/",
+        "source_path": "https://example.invalid/docs/manifest-policy#v1"
+      }
+    ],
+    "notes": "G-1 for CNF-0164. Corpus quotes are phase-3 evidence.snippet rows plus planted controls. CNF-0163 is not on disk; git is not a repository. External URL without archive is NOT-CHECKED. SUCCESS:CNF-0164",
+    "paraphrase_cases": [
+      {
+        "anchor": null,
+        "class": "paraphrase",
+        "detector_self_check": true,
+        "expect": "paraphrase",
+        "id": "CTRL-PARAPHRASE",
+        "kind": "control",
+        "line": null,
+        "note": "Known-broken: one-word alteration (absent -> missing).",
+        "origin_artifact": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "quote": "A file missing from MANIFEST.json is not loaded, even if it sits in a capabilities directory.",
+        "reason": "matched",
+        "resolution": "worktree",
+        "reviewer_class": "paraphrase",
+        "reviewer_reason": "reviewer-matched",
+        "source_path": "command-center/p2-wave/probes/CNF-0164/fixtures/source.txt"
+      }
+    ],
+    "planted_controls_match_expect": true,
+    "question": "Question: is every quoted snippet in the corpus a real quote, or a paraphrase presented as one? Compare each quoted span against the source at the cited revision after EOL normalisation, and classify as exact, whitespace-different, paraphrase, or absent. A paraphrase presented as a quote is an evidence defect even when its meaning is correct.",
+    "rechecked_absent_ids": [
+      "CTRL-ABSENT"
+    ],
+    "title": "Quote-fidelity check: quoted source text must byte-match the source at that revision"
+  },
+  "manifest_registration": {
+    "entry_id": "CNF-0164",
+    "manifest_path": "command-center/p2-wave/probes/CNF-0164/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-25T00:59:24Z"
+  },
+  "min_bytes_threshold": 1024,
+  "negative_controls": [
+    {
+      "bad_state_output": "CTRL-PARAPHRASE class=paraphrase",
+      "description": "One-word alteration (absent->missing) must classify paraphrase, not exact; the copy-pasted quote must remain exact.",
+      "fired_on_bad_state": true,
+      "good_state_output": "CTRL-EXACT class=exact",
+      "id": "NC-CNF0164-PARAPHRASE",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "CTRL-WHITESPACE class=whitespace-different",
+      "description": "Indentation-only drift must classify whitespace-different, not paraphrase.",
+      "fired_on_bad_state": true,
+      "good_state_output": "CTRL-EXACT class=exact",
+      "id": "NC-CNF0164-WHITESPACE",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "CTRL-EXTERNAL-NO-ARCHIVE class=NOT-CHECKED",
+      "description": "An external URL with no citation-time archive must be NOT-CHECKED, never an implicit exact.",
+      "fired_on_bad_state": true,
+      "good_state_output": "CTRL-EXACT class=exact",
+      "id": "NC-CNF0164-EXTERNAL-NO-ARCHIVE",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "linux-local",
+    "model": "grok-4.6",
+    "role": "evidence-auditor",
+    "vendor": "xai"
+  },
+  "report": {
+    "control_ids": [
+      "NC-CNF0164-PARAPHRASE",
+      "NC-CNF0164-WHITESPACE",
+      "NC-CNF0164-EXTERNAL-NO-ARCHIVE"
+    ],
+    "kind": "evidence-integrity-report",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/classifier.py",
+        "measured": 13,
+        "method": "EOL-norm substring, whitespace-collapse, token-Hamming-1",
+        "name": "cases-classified"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/classifier.py",
+        "measured": 9,
+        "method": "contiguous substring after CRLF/CR->LF",
+        "name": "exact-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/classifier.py",
+        "measured": 1,
+        "method": "collapse all whitespace after EOL norm",
+        "name": "whitespace-different-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/classifier.py",
+        "measured": 1,
+        "method": "same-length token window Hamming distance == 1",
+        "name": "paraphrase-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/classifier.py",
+        "measured": 1,
+        "method": "no window after detector self-check on a known-present slice",
+        "name": "absent-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/archives/index.json",
+        "measured": 1,
+        "method": "external URL without citation-time archive, or unloadable source",
+        "name": "not-checked-count"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/CNF-0164/fixtures/planted-quotes.json",
+        "measured": true,
+        "method": "compare class to fixtures/planted-quotes.json expect",
+        "name": "planted-controls-match-expect"
+      },
+      {
+        "anchor": "command-center/receipts/CNF-0163.json",
+        "measured": false,
+        "method": "stat command-center/receipts/CNF-0163.json",
+        "name": "cnf-0163-present"
+      }
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Cited-revision git cat-file fidelity is unknown because this worktree is not a git repository and CNF-0163 is absent.",
+      "settling_experiment": "Mount a git object store, deliver command-center/receipts/CNF-0163.json, and re-classify each quote against git cat-file -p <rev>:<path> after EOL norm.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "Two strikes then pivot: after the 2nd failure on the same error-fingerprint, enumerate >=2 alternative implementations before a 3rd attempt. Schema $ref network fetch is not a classifier fingerprint; this emit uses platform/lib/schema_resolver.py."
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Second classifier: EOL-norm exact substring, then per-line indent-strip and whitespace-collapse, then same-length token Hamming distance == 1. Rechecked absent ids: ['CTRL-ABSENT']. No primary/reviewer disagreements.",
+    "reviewed_at": "2026-08-25T00:59:24Z",
+    "reviewer_id": "CNF-0164-independent-absent-rechecker",
+    "vendor": "xai",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:CNF-0164 quote-fidelity classified planted controls and phase-3 evidence.snippet rows; independent absent re-check; per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0164]",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 1,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0164/probe1_known_controls.py",
+      "id": "T-known-present",
+      "name": "Known-present control: copy-pasted quote classifies exact",
+      "output_tail": "CTRL-EXACT expect=exact got=exact resolution=worktree\nCTRL-EXACT-CRLF expect=exact got=exact resolution=worktree\nCTRL-PARAPHRASE expect=paraphrase got=paraphrase resolution=worktree\nCTRL-WHITESPACE expect=whitespace-different got=whitespace-different resolution=worktree\nCTRL-ABSENT expect=absent got=absent resolution=worktree\nCTRL-EXTERNAL-NO-ARCHIVE expect=NOT-CHECKED got=NOT-CHECKED resolution=external-no-archive\nDETECTOR-SELF known_present exact=True slice='# Load policy (planted source for CNF-0164 quote-fidelity co'\nSUCCESS:CNF-0164-probe1 known-present known-broken whitespace detector-self",
+      "result": "PASS"
+    },
+    {
+      "assertions": 1,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0164/probe1_known_controls.py",
+      "id": "T-known-broken",
+      "name": "Known-broken control: one-word-altered quote classifies paraphrase, not exact",
+      "output_tail": "CTRL-EXACT expect=exact got=exact resolution=worktree\nCTRL-EXACT-CRLF expect=exact got=exact resolution=worktree\nCTRL-PARAPHRASE expect=paraphrase got=paraphrase resolution=worktree\nCTRL-WHITESPACE expect=whitespace-different got=whitespace-different resolution=worktree\nCTRL-ABSENT expect=absent got=absent resolution=worktree\nCTRL-EXTERNAL-NO-ARCHIVE expect=NOT-CHECKED got=NOT-CHECKED resolution=external-no-archive\nDETECTOR-SELF known_present exact=True slice='# Load policy (planted source for CNF-0164 quote-fidelity co'\nSUCCESS:CNF-0164-probe1 known-present known-broken whitespace detector-self",
+      "result": "PASS"
+    },
+    {
+      "assertions": 1,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0164/probe1_known_controls.py",
+      "id": "T-whitespace",
+      "name": "Whitespace control: indent-only drift classifies whitespace-different, not paraphrase",
+      "output_tail": "CTRL-EXACT expect=exact got=exact resolution=worktree\nCTRL-EXACT-CRLF expect=exact got=exact resolution=worktree\nCTRL-PARAPHRASE expect=paraphrase got=paraphrase resolution=worktree\nCTRL-WHITESPACE expect=whitespace-different got=whitespace-different resolution=worktree\nCTRL-ABSENT expect=absent got=absent resolution=worktree\nCTRL-EXTERNAL-NO-ARCHIVE expect=NOT-CHECKED got=NOT-CHECKED resolution=external-no-archive\nDETECTOR-SELF known_present exact=True slice='# Load policy (planted source for CNF-0164 quote-fidelity co'\nSUCCESS:CNF-0164-probe1 known-present known-broken whitespace detector-self",
+      "result": "PASS"
+    },
+    {
+      "assertions": 1,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0164/probe1_known_controls.py",
+      "id": "T-detector-self",
+      "name": "Detector control on itself: known-present is exact before any absent is trusted",
+      "output_tail": "CTRL-EXACT expect=exact got=exact resolution=worktree\nCTRL-EXACT-CRLF expect=exact got=exact resolution=worktree\nCTRL-PARAPHRASE expect=paraphrase got=paraphrase resolution=worktree\nCTRL-WHITESPACE expect=whitespace-different got=whitespace-different resolution=worktree\nCTRL-ABSENT expect=absent got=absent resolution=worktree\nCTRL-EXTERNAL-NO-ARCHIVE expect=NOT-CHECKED got=NOT-CHECKED resolution=external-no-archive\nDETECTOR-SELF known_present exact=True slice='# Load policy (planted source for CNF-0164 quote-fidelity co'\nSUCCESS:CNF-0164-probe1 known-present known-broken whitespace detector-self",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:59:24Z",
+    "started_at": "2026-08-25T00:59:24Z"
+  },
+  "unit_id": "CNF-0164"
+}

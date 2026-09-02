@@ -1,0 +1,13 @@
+I'll start from the existing ADV-0016 probe tree, resume any prior work, and drive this unit to contract-green without touching git or the global catalog.Existing probe tree is present. Next I’ll read the return, handoff, and measurement contract so we resume instead of rebuilding.The prior pass was a CLOUD-OK refute, not G-1 delivery. I'll read the catalog contract, current artifact, and the probes already on disk.I’ll inspect `ready_units`, the current artifact schema, and a delivered peer so the SUCCESS state stays honest.The artifact is already marked SUCCESS from a Windows run. I’ll read the rest of it, packing helpers, and schema, then re-run the probes live on Linux.This worktree is missing workflow YAML, lockfiles, and `osv-scanner`. I’ll inventory what’s actually present before deciding whether we can re-run the probes.`ast-integrate` is private; lockfiles were previously pulled from `agent-skills-toolchain`. I’ll fetch those source files and the pinned scanner from there.Inputs match GitHub SSOT (`quality.yml` `be93f7c3…`, `isexe@2.0.0` present, osv-scanner 2.3.8). Next I’ll re-run the named probes live.Probe 1 and Probe 2 both passed on this box. I’ll run the verifier, pack an honest SUCCESS receipt from the live raws, then measure.**SUCCESS:delivered ADV-0016** `predicate=delivered state=SUCCESS probes=3 raws=4 notes=probe1_static_workflow.py:0,probe2_freshness.py:0,verify_probe2.py:0`
+
+G-1 is green for this unit only. Harvest `unit_complete` / cloud-ok was not treated as delivery.
+
+The prior CLOUD-OK pass had left ADV-0016 `BLOCKED` with named probes not re-run. This session resumed the existing probe tree. The projection here had no `.github`, lockfiles, or `osv-scanner`, so those inputs were fetched from GitHub SSOT `Prekzursil/agent-skills-toolchain@f7fac7b4` and pinned osv-scanner 2.3.8 (`bc98e153…`). Live re-runs:
+
+- **Probe 1** — 12 workflows, quality.yml sha256 `be93f7c3…`, no release/tag trigger, scanner jobs not cache-backed. **T1 REFUTED.**
+- **Probe 2** — four offline osv-scanner runs on the gate lockfiles: green, green, red naming `SYNTH-ADV-0016-WIN-0001`, green after byte-exact restore. **T2 CONFIRMED.** Negative control held.
+- **T3 PARTIAL** — synthetic local mirror, not a public advisory.
+
+The catalog artifact is `state=SUCCESS` only after those greens (schema 0 errors). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/adversarial/ADV-0016-release-time-scanner-freshness-gate.json` with live LF sha256 `cfc3dd063453eca9afebb3bdb69c8ac75fb0a136aa5763430993f122d150006d`.
+
+No git writes. No `unit_manifest.py --write`. No global catalog manifest rewrite. No key rotation. No wave relaunch.

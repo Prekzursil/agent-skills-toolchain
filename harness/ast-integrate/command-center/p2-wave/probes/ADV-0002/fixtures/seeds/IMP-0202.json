@@ -1,0 +1,122 @@
+{
+ "completion_sentinel": "SUCCESS:IMP-0202",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/p2-wave/probes/IMP-0202/confirm_hook.py",
+   "consumer": "command-center/p2-wave/probes/IMP-0202/certify.py",
+   "executed": true,
+   "exit_code": 0,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0202/confirm_hook.py:admit",
+   "claim": "Summary-only confirmation is rejected; raw-citing confirmation is accepted.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0202/probe1_summary_only.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\n  \"artifact_citing\": {\n    \"certified\": true,\n    \"raw_citations\": [\n      \"raw/per_case_rows.json\"\n    ],\n    \"reason\": \"RAW_RECOMPUTE_MATCH\",\n    \"recomputed\": {\n      \"mean_delta\": 0.25,\n      \"n\": 8,\n      \"verdict\": \"OUTPERFORMS\"\n    },\n    \"verdict\": \"ACCEPT\"\n  },\n  \"both_states\": true,\n  \"citing_accepted\": true,\n  \"pass\": true,\n  \"probe\": \"probe1-summary-only-both-states\",\n  \"same_author\": {\n    \"independent\": false,\n    \"reason\": \"AUTHOR_NOT_INDEPENDENT\",\n    \"verdict\": \"REJECT\"\n  },\n  \"same_author_rejected\": true,\n  \"summary_only\": {\n    \"blocked_by\": \"independent_confirmation_hook\",\n    \"certified\": false,\n    \"digest_accepted\": false,\n    \"reason\": \"SUMMARY_ONLY\",\n    \"verdict\": \"REJECT\"\n  },\n  \"summary_rejected\": true,\n  \"unit_id\": \"IMP-0202\"\n}\nsummary_rejected=True citing_accepted=True same_author_rejected=True both_states=True\nSUCCESS:IMP-0202-probe1 summary-only confirmation rejected (both-states)",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0202/confirm_hook.py:test_path",
+   "claim": "Every cited artifact path is Test-Path'd before a digest is read or accepted. A missing path rejects with digest_read=false.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0202/probe2_existence_before_digest.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\n  \"absent_ok\": true,\n  \"digest_ok\": true,\n  \"digest_only\": {\n    \"digest_accepted\": false,\n    \"reason\": \"DIGEST_IS_CLAIM\",\n    \"verdict\": \"REJECT\"\n  },\n  \"missing_path\": {\n    \"digest_accepted\": false,\n    \"digest_read\": false,\n    \"paths_missing\": [\n      \"raw/ghost-case-does-not-exist.json\"\n    ],\n    \"reason\": \"PATH_ABSENT\",\n    \"trace\": [\n      \"stage:independence_check\",\n      \"stage:classify_citations\",\n      \"class:raw=2 summary=0 digest_cites=0 digest_field=True\",\n      \"stage:test_path\",\n      \"test_path:raw/per_case_rows.json\",\n      \"test_path:raw/ghost-case-does-not-exist.json\",\n      \"verdict:REJECT:PATH_ABSENT\"\n    ],\n    \"verdict\": \"REJECT\"\n  },\n  \"pass\": true,\n  \"present_ok\": true,\n  \"present_path\": {\n    \"certified\": true,\n    \"digest_accepted\": false,\n    \"digest_read\": true,\n    \"reason\": \"RAW_RECOMPUTE_MATCH\",\n    \"trace\": [\n      \"stage:independence_check\",\n      \"stage:classify_citations\",\n      \"class:raw=1 summary=0 digest_cites=0 digest_field=True\",\n      \"stage:test_path\",\n      \"test_path:raw/per_case_rows.json\",\n      \"stage:recompute_from_raw\",\n      \"stage:digest_read_allowed\",\n      \"digest_read:confirmation.digest\",\n      \"digest:claim-not-receipt\",\n      \"verdict:ACCEPT:RAW_RECOMPUTE_MATCH\"\n    ],\n    \"verdict\": \"ACCEPT\"\n  },\n  \"probe\": \"probe2-existence-before-digest\",\n  \"unit_id\": \"IMP-0202\"\n}\nabsent_ok=True present_ok=True digest_ok=True digest_read_after_test_path=True\nSUCCESS:IMP-0202-probe2 every cited path Test-Path'd before digest accepted",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "binding": "certify.certify() calls confirm_hook.admit() as stage independent_confirmation_hook before emit_certificate. A REJECT gate returns certified=false and never emits CERTIFIED.",
+  "certify_path": "command-center/p2-wave/probes/IMP-0202/certify.py",
+  "hook": "command-center/p2-wave/probes/IMP-0202/confirm_hook.py",
+  "rules": [
+   "confirmer_id must differ from workflow.author_id and authoring_agents",
+   "cited_artifacts must include at least one raw per-case-row path",
+   "Test-Path (non-empty file) runs for every cited path before digest read",
+   "summary-only citations are REJECT SUMMARY_ONLY",
+   "digest-only confirmations are REJECT DIGEST_IS_CLAIM",
+   "missing cited paths are REJECT PATH_ABSENT with digest_read=false",
+   "claim is recomputed from raw rows; mismatch is REJECT RECOMPUTE_MISMATCH"
+  ]
+ },
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0202/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "negative_controls": [
+  {
+   "description": "confirmation citing only author_summary.json is rejected",
+   "fired_on_bad_state": true,
+   "id": "summary-only",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "ghost per-case-row path fails Test-Path before digest read",
+   "fired_on_bad_state": true,
+   "id": "missing-cited-path",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "a digest without raw citations is a claim, not a receipt",
+   "fired_on_bad_state": true,
+   "id": "digest-only",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0202: live named probes exit 0; receipt state=SUCCESS; per-unit UNIT-ARTIFACT-MANIFEST row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+ "question_or_target": "Target: before certification, a fresh reviewer that did NOT author the workflow reproduces the benchmark claim from raw sources. Acceptance: the confirmation record must cite the raw artifacts it read; a confirmation that only cites the author's summary is rejected by the gate - a digest is a claim, not a receipt (10646).",
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Confirmer is not the workflow author. Claim is recomputed from fixtures/raw/per_case_rows.json (n=8, mean_delta=0.25).",
+  "reviewer_id": "codex-independent-confirmer",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0202",
+ "spec_anchor": "_USER-PROMPTS.md:11028-11041; _USER-PROMPTS.md:10646",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0202/probe1_summary_only.py",
+   "exit_code": 0,
+   "id": "summary-only-both-states",
+   "name": "summary-only confirmation rejected (both-states)",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0202/probe2_existence_before_digest.py",
+   "exit_code": 0,
+   "id": "existence-before-digest",
+   "name": "every cited artifact path is existence-checked before the digest is accepted",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:41:12Z",
+  "started_at": "2026-08-25T00:41:12Z"
+ },
+ "title": "Wire the independent-confirmation hook into the certification path",
+ "unit_id": "IMP-0202"
+}

@@ -1,0 +1,1995 @@
+{
+  "unit_id": "RES-0014",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0014",
+  "reviewer": {
+    "reviewer_id": "RES-0014-adversarial-refuter",
+    "independent": true,
+    "verdict": "PASS",
+    "notes": "Default REFUTED for same-mechanism across Codex vs Claude Code and for CLI vs claude.ai. Surviving SAME-MECHANISM rows are #54280↔RES-0008 and the seeded $schema control. Keyword-only hits (#81551, decoy, #39468, withdrawn #86809) stay out of the match table."
+  },
+  "tests": [
+    {
+      "id": "detector-control-seeded-known-present",
+      "result": "PASS",
+      "command": "NOT-CHECKED"
+    },
+    {
+      "id": "each-match-has-discriminating-observation",
+      "result": "PASS",
+      "command": "NOT-CHECKED"
+    },
+    {
+      "id": "keyword-only-decoy-is-not-a-match",
+      "result": "PASS",
+      "command": "NOT-CHECKED"
+    }
+  ],
+  "extensions": {
+    "legacy_root": {
+      "completion_sentinel": "SUCCESS:RES-0014 in the receipt AND a matched-issue table where each row carries a discriminating observation, not just a keyword hit",
+      "schema": "command-center/p2-wave/probes/RES-0014/research-registry.schema.json",
+      "catalog_output_schema": "command-center/schema/research-registry.schema.json",
+      "question": "What open and recently-closed issues describe a plugin appearing installed while its hooks are unloaded, a marketplace install failing silently, or a skill present on disk but absent from the loaded set — and which of them match a failure this program has already measured locally?",
+      "tracker": {
+        "host": "https://github.com/anthropics/claude-code/issues",
+        "client": "Claude Code",
+        "fetch_note": "Unauthenticated GitHub API + HTML issue pages captured 2026-08-24. Search API rate-limited; issues were fetched by number after title search."
+      },
+      "local_classes": [
+        {
+          "id": "FC-11303",
+          "name": "plugin appears installed but hooks are unloaded",
+          "local_quote": "Measured precedent: a $schema key in hooks.json made Codex load ZERO hooks while everything looked installed.",
+          "anchors": [
+            "command-center/WORK-UNIT-CATALOG.json:79764",
+            "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:29"
+          ]
+        },
+        {
+          "id": "FC-11329",
+          "name": "skill exists in repo but not in live skill directory",
+          "local_quote": "No generator to sync trees; no runtime to discover the orphan.",
+          "anchors": [
+            "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:237",
+            "command-center/WORK-UNIT-CATALOG.json:42569"
+          ]
+        },
+        {
+          "id": "RES-0008",
+          "name": "plugin.json silently wins marketplace.json version",
+          "local_quote": "plugin.json still silently WIN over the marketplace entry for the version field - the trap that makes commits without a version bump ship nothing while both files pin 0.2.0",
+          "anchors": [
+            "command-center/WORK-UNIT-CATALOG.json:63997"
+          ]
+        }
+      ],
+      "detector_control": {
+        "seeded_token": "RES-0014-SEEDED-KNOWN-PRESENT-FC-11303",
+        "present_state_retrieves_seed": true,
+        "absent_state_misses_seed": true,
+        "pass": true,
+        "decoy_must_not_match": "RES-0014-DECOY-KEYWORD-ONLY"
+      },
+      "matched_issues": [
+        {
+          "issue_ref": "anthropics/claude-code#14815",
+          "number": 14815,
+          "title": "[BUG] Plugins show as \"(installed)\" in marketplace but don't appear in Installed tab",
+          "state": "open",
+          "html_url": "https://github.com/anthropics/claude-code/issues/14815",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11303",
+          "classes": [
+            "plugin_installed_hooks_unloaded",
+            "marketplace_silent_fail"
+          ],
+          "discriminating_observation": "SAME-MECHANISM with Codex $schema would require hooks.json parse rejection. Here the tell is contradictory install state (UI installed + 0 installs, state file vs loader). If hooks.json would fire once the loader recognised the install, this is a marketplace/state bug, not a hooks.json unknown-token dump.",
+          "upstream_reproduction": "Custom marketplace plugin: UI `✔ my-plugin (installed) · 0 installs`; ~/.claude/plugins/installed_plugins.json has the entry and cache plugin.json exists; plugin commands and hooks are not available.",
+          "local_reproduction": "FC-11303 plus marketplace install that can look successful while the runtime set is empty (IMP-0086 / catalog 64308).",
+          "why_not_keyword_only": "Marketplace UI prints '(installed)' and installed_plugins.json contains the entry, but the Installed tab is empty and commands/hooks are not available — a state-file vs loader split, not a keyword coincidence.",
+          "strongest_caveat": "Open; no maintainer-confirmed root cause in the captured comments.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/14815",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.api.json",
+              "http_status": 200,
+              "sha256": "dcacd406cdb9fe2a66833811c333121cdaefd1a5ce4b6a765716d2d758214f65",
+              "bytes": 6422,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/14815",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.html",
+              "http_status": 200,
+              "sha256": "7c3e60a70fb46be0ec0ed73612f75034afdf35c3e8dc584d903b68ec004ee076",
+              "bytes": 297589,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#16288",
+          "number": 16288,
+          "title": "Plugin hooks not loaded from external hooks.json file",
+          "state": "open",
+          "html_url": "https://github.com/anthropics/claude-code/issues/16288",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11303",
+          "classes": [
+            "plugin_installed_hooks_unloaded"
+          ],
+          "discriminating_observation": "If moving the identical hook command into user settings.json makes it fire, the hook engine works and the defect is plugin-sourced loading (this issue). If settings.json hooks also do not fire, look at PATH/Git-Bash (decoy class) or a process-wide hook disable. Local Codex $schema dumps ALL hooks including settings-level; #16288 settings-level hooks still work — that split keeps this at SAME-SYMPTOM, not SAME-MECHANISM as the $schema incident.",
+          "upstream_reproduction": "plugin.json hooks: ./hooks/hooks.json; SubagentStop command never creates /tmp/hook-test.log after Task tool. Workaround: define the same hook in ~/.claude/settings.json — then it fires.",
+          "local_reproduction": "FC-11303: plugin appears installed but hooks are unloaded; acceptance must be a runtime side effect, not a config-file listing (IMP-0460, TST-0082).",
+          "why_not_keyword_only": "External hooks.json referenced from plugin.json never executes; the same hook in ~/.claude/settings.json does fire. Multiple independent reporters. This is registration-path failure, not a missing bash.",
+          "strongest_caveat": "Still open; comments also describe a loadPluginHooks race.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/16288",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.api.json",
+              "http_status": 200,
+              "sha256": "eb72cb5d970e06afc48d444cff8db145e2f380ed3fdb7a86cf2321b90c8b51c0",
+              "bytes": 6772,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/16288",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.html",
+              "http_status": 200,
+              "sha256": "23388ea2375cb6fe627f34fe62e1ca6b05d0fa0af4bb3b733f96b43cb668e0e8",
+              "bytes": 288499,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#26254",
+          "number": 26254,
+          "title": "[BUG] User and Organization Skills — Metadata Registered in System Prompt but SKILL.md Files Not Mounted in Container",
+          "state": "open",
+          "html_url": "https://github.com/anthropics/claude-code/issues/26254",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11329",
+          "classes": [
+            "skill_on_disk_not_loaded"
+          ],
+          "discriminating_observation": "This is a Claude.ai container mount miss, not Claude Code CLI repo-vs-live two-tree drift. SAME-MECHANISM would require the CLI live skill directory to be a container mount that can omit SKILL.md while metadata still lists it. Surface differs (web container vs local trees) → SAME-SYMPTOM.",
+          "upstream_reproduction": "Claude.ai / Cowork: user and org skills appear in the system prompt available_skills block with paths; corresponding SKILL.md files are not mounted; /mnt/skills/user/ does not exist.",
+          "local_reproduction": "FC-11329: skill present in one inventory (repo / index) and absent from the runtime skill directory.",
+          "why_not_keyword_only": "available_skills metadata lists the skill; /mnt/skills/user/ SKILL.md is not on the container filesystem. Metadata-registered vs bytes-mounted.",
+          "strongest_caveat": "Open; web/Cowork surface, not the CLI plugin loader.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/26254",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.api.json",
+              "http_status": 200,
+              "sha256": "b32c6b381b237414263f392a1c4d3fab924f7137cd6751315121ca3a3bc6384a",
+              "bytes": 9824,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/26254",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.html",
+              "http_status": 200,
+              "sha256": "2e4c515341891e39115dff4e792edfd528145a1e77b3a5517af293130eb04d4b",
+              "bytes": 353704,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#38670",
+          "number": 38670,
+          "title": "Third-party marketplace plugins cannot register skills/commands/agents",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/38670",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11329",
+          "classes": [
+            "skill_on_disk_not_loaded"
+          ],
+          "discriminating_observation": "Hooks fire → this is not FC-11303. Skills absent because manifest validation silently skipped skill discovery, not because of two-tree copy drift. SAME-SYMPTOM with FC-11329; SAME-MECHANISM would require the estate's missing live skill to be a plugin.json schema reject.",
+          "upstream_reproduction": "Third-party marketplace plugin shows installed+enabled; / autocomplete has no plugin prefix commands. Fix: repository and bugs must be strings, not objects. Error only on fresh session start.",
+          "local_reproduction": "Skill files on disk not in the loaded set (FC-11329). Not FC-11303: hooks DO load.",
+          "why_not_keyword_only": "Reporter later named the token: plugin.json repository/bugs as npm objects fail manifest validation; skills/commands/agents never register; hooks and CLAUDE.md still load (different code path).",
+          "strongest_caveat": "Closed inactive after reporter's own manifest fix; VS Code chat panel still diverged.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/38670",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.api.json",
+              "http_status": 200,
+              "sha256": "65f7464b6473e9d3c620a7c01b2cc6de4d0b04855a32997bd919fe99e10f8ac0",
+              "bytes": 8227,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/38670",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.html",
+              "http_status": 200,
+              "sha256": "c6afb0afee09f3505f8cb9e67bcbace9728119168fcfc2059b73c25086ac79de",
+              "bytes": 304289,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#44120",
+          "number": 44120,
+          "title": "Plugin skills not discovered when .claude/ directory exists in plugin",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/44120",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11329",
+          "classes": [
+            "skill_on_disk_not_loaded"
+          ],
+          "discriminating_observation": "Local FC-11329 is two-tree drift (repo vs live skill directory). This issue is one plugin tree whose discovery root flips from skills/ to .claude/skills/ when .claude/ exists. SAME-MECHANISM would require the estate's 'missing from live directory' to be this discovery-root flip. On this worktree the local class is repo-vs-live copy, so SAME-SYMPTOM only. Closed inactive, not verified-fixed.",
+          "upstream_reproduction": "Plugin with .claude-plugin/plugin.json + skills/my-skill/SKILL.md + .claude/settings.json; install; reload-plugins does not load skills/; remove .claude/ from plugin cache; reload-plugins loads pluginName: prefix.",
+          "local_reproduction": "FC-11329: skill exists in repo but not in live skill directory (FAILURE-MODES.json, seeded_classes.py, catalog 42569 / 42578).",
+          "why_not_keyword_only": "skills/my-skill/SKILL.md is on disk; /reload-plugins does not load it iff plugin contains .claude/; deleting .claude/ from cache makes the same SKILL.md load. That is a discovery-path switch, not a missing file.",
+          "strongest_caveat": "Closed for inactivity; not a confirmed fix.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.api.json",
+              "http_status": 200,
+              "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+              "bytes": 7024,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/44120",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.html",
+              "http_status": 200,
+              "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+              "bytes": 278160,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#46594",
+          "number": 46594,
+          "title": "[BUG] /plugin marketplace update silently fails to upgrade installed plugin — no error when skills don't load",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/46594",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11303",
+          "classes": [
+            "marketplace_silent_fail",
+            "plugin_installed_hooks_unloaded",
+            "skill_on_disk_not_loaded"
+          ],
+          "discriminating_observation": "If plugin.json and marketplace.json versions already agree and the cache still serves the old tree, this is update-does-not-refresh-install (this issue), not plugin.json-wins-version (RES-0008 / #54280). The 0-skills/0-hooks reading while the plugin is listed as loaded is the FC-11303/FC-11329 symptom; the mechanism is stale install cache, not $schema parse rejection.",
+          "upstream_reproduction": "Install plugin; author pushes v1.0.0 → v1.1.0; marketplace update prints success; reload-plugins shows plugin loaded with 0 skills / 0 hooks; install says already installed.",
+          "local_reproduction": "Marketplace path that can look green while the live plugin set is stale or empty; local RES-0008 is a different silent-green (version field precedence), IMP-0086 is install handoff.",
+          "why_not_keyword_only": "/plugin marketplace update reports success; /reload-plugins lists the plugin as loaded; skills, agents, and hooks registered count is 0; re-install says already installed. Closed as duplicate of #14061.",
+          "strongest_caveat": "Closed as duplicate; captured comments are bots, not a fix commit.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/46594",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.api.json",
+              "http_status": 200,
+              "sha256": "114c6b5277d32998efe3b71a64255497eb97fd561adc604602c0ad78453b991b",
+              "bytes": 6449,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/46594",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.html",
+              "http_status": 200,
+              "sha256": "cc521f0796b5908ce52d99b56db3bd9161e2f62b054a3531ef9fd1ab2ed59103",
+              "bytes": 273452,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#54280",
+          "number": 54280,
+          "title": "plugin.json silently overrides marketplace.json version with no warning",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/54280",
+          "verdict": "SAME-MECHANISM",
+          "local_class": "RES-0008",
+          "classes": [
+            "marketplace_silent_fail"
+          ],
+          "discriminating_observation": "SAME-MECHANISM if, when the two files disagree, the installed/displayed version string equals plugin.json and marketplace.json is ignored with no warning. If the client honoured marketplace.json, or warned, this would not match RES-0008. Distinct from #46594 (cache not refreshed) and from #60725 (validate-green / install-red).",
+          "upstream_reproduction": "Disagree the two version fields; installed/displayed version is the plugin.json value; marketplace.json version is inert. Real-world: nfrith/als 0.1.0-beta.28 vs 0.1.0-beta.1.",
+          "local_reproduction": "RES-0008 question: does plugin.json still silently WIN over the marketplace entry for version — commits without a version bump ship nothing while both files pin 0.2.0 (WORK-UNIT-CATALOG 63997).",
+          "why_not_keyword_only": "Named reproduction: plugin.json version 0.1.0-beta.28 vs marketplace.json 1.0.0; Customize panel shows 0.1.0-beta.28; no warning at add, install, or `claude plugin validate`. That is the RES-0008 trap, not a generic install failure.",
+          "strongest_caveat": "Closed stale; this worktree did not re-run a live Claude Code binary. The GitHub reproduction is the second rail, not a local binary trace.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.api.json",
+              "http_status": 200,
+              "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+              "bytes": 5737,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/54280",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.html",
+              "http_status": 200,
+              "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+              "bytes": 261333,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#60725",
+          "number": 60725,
+          "title": "`claude plugin validate` does not validate per-plugin `plugin.json` — invalid plugins pass validation, fail at install with opaque temp-cache error",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/60725",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "RES-0008",
+          "classes": [
+            "marketplace_silent_fail"
+          ],
+          "discriminating_observation": "Install DOES error (opaque), so this is not a silent successful install. It is a silent-green validate. Distinct from #46594 (update prints success and loads 0 skills with no error) and from #54280 (install succeeds, wrong version, no warning).",
+          "upstream_reproduction": "Invalid plugin.json author:string passes validate; install errors naming ~/.claude/plugins/cache/temp_local_* not the source file. Reporter links this to #54280 as the same validator blind spot.",
+          "local_reproduction": "Marketplace tooling that can look successful while the plugin will not actually install; related to RES-0008's silent version win because validate does not look at plugin.json.",
+          "why_not_keyword_only": "`claude plugin validate` is green on marketplace.json only; install then fails on plugin.json with a temp-cache path. False-green validate, not a quiet successful install.",
+          "strongest_caveat": "Closed; install is not silent — only validate is.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/60725",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.api.json",
+              "http_status": 200,
+              "sha256": "2d00f82b7bea459c5607634e408d3f4139d91f3975bed4ca4c8c7c9650bf95a9",
+              "bytes": 9259,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/60725",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.html",
+              "http_status": 200,
+              "sha256": "08abf9dd0c305cf365e110d5e2089239d3578e2202f334ebd86741a85dd826dc",
+              "bytes": 318062,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#75972",
+          "number": 75972,
+          "title": "Plugin-sourced hooks.json never fires, even though the plugin shows installed + enabled (no error, no registry entry evidence)",
+          "state": "open",
+          "html_url": "https://github.com/anthropics/claude-code/issues/75972",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11303",
+          "classes": [
+            "plugin_installed_hooks_unloaded"
+          ],
+          "discriminating_observation": "Same symptom (plugin looks installed; zero plugin hooks fire) but the rejected token differs: Codex $schema (unknown JSON key) vs Claude Code PreSkill (unknown event name). SAME-MECHANISM would require observing that a $schema key also dumps Claude Code's hooks.json, or that Codex also dumps the file on an unknown event name. That cross-client experiment is not in this corpus. Also isolating: settings.json-level hooks DO fire (#75972 reporter and maintainer), so the dispatch engine is not dead — only plugin-sourced hooks.json registration is.",
+          "upstream_reproduction": "Plugin installed and enabled; cached hooks.json byte-identical to source; PreToolUse/Bash hook that should block `--no-verify` does not run. Maintainer: PreSkill is not a supported event; one unrecognised event name currently rejects the entire hooks.json; failure only visible in --debug and as 'failed to load' in `claude plugin list`.",
+          "local_reproduction": "Estate: a $schema key in hooks.json made Codex load ZERO hooks while the plugin/config still looked installed (TST-0082, IMP-0039, WORK-UNIT-CATALOG 79764 / 42621).",
+          "why_not_keyword_only": "Maintainer reproduction (bcherny, 2026-08-17) names the token: one unrecognised event name PreSkill causes the entire hooks.json to be rejected, so SessionStart/Stop/PreToolUse/PostToolUse never fire, while skills/agents still work and the plugin shows installed+enabled.",
+          "strongest_caveat": "Open as of fetch. Local precedent is Codex, not Claude Code. Do not cite as measured same-mechanism.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.api.json",
+              "http_status": 200,
+              "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+              "bytes": 6388,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/75972",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.html",
+              "http_status": 200,
+              "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+              "bytes": 282836,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "anthropics/claude-code#83422",
+          "number": 83422,
+          "title": "Plugins: enabled-in-settings but never installed loads nothing silently; marketplace autoUpdate never updates existing installs",
+          "state": "open",
+          "html_url": "https://github.com/anthropics/claude-code/issues/83422",
+          "verdict": "SAME-SYMPTOM",
+          "local_class": "FC-11303",
+          "classes": [
+            "marketplace_silent_fail",
+            "plugin_installed_hooks_unloaded",
+            "skill_on_disk_not_loaded"
+          ],
+          "discriminating_observation": "If installed_plugins.json lacks a row for the project path, absence of hooks/skills is never-installed, not hooks.json-rejected. The autoUpdate half is SAME-SYMPTOM as #46594 (clone refreshes, install does not). Distinct from RES-0008 version-field win: versions need not disagree for this to bite.",
+          "upstream_reproduction": "Commit enabledPlugins + extraKnownMarketplaces; new repo has no install record; plugin skills/hooks absent with no warning. autoUpdate:true advances marketplace lastUpdated; install records stay pinned (independent Windows reproduction in comments).",
+          "local_reproduction": "Declared-enabled / looks-configured vs actually loaded (FC-11303) and marketplace update that does not move the live install (IMP-0086 class).",
+          "why_not_keyword_only": "enabledPlugins in project settings without an installed_plugins.json row for that path: skills and hooks silently absent, no auto-install. Second bug: marketplace autoUpdate refreshes the clone but never updates existing installs.",
+          "strongest_caveat": "Open; two bugs in one ticket — do not collapse them.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/83422",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.api.json",
+              "http_status": 200,
+              "sha256": "8d6eb631fd07557984c712b5b81e2377fbd3e3368b4a3052fa71fd810243c475",
+              "bytes": 7033,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/83422",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.html",
+              "http_status": 200,
+              "sha256": "c6f6ff3aa06f893f99a5a4378de48af0da46269d48d0b0932f2602a695f4d1fd",
+              "bytes": 279354,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        },
+        {
+          "issue_ref": "RES-0014-SEEDED-KNOWN-PRESENT",
+          "number": 0,
+          "title": "SEEDED CONTROL: plugin appears installed while a $schema key in hooks.json unloads every hook",
+          "state": "open",
+          "html_url": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+          "verdict": "SAME-MECHANISM",
+          "local_class": "FC-11303",
+          "classes": [
+            "plugin_installed_hooks_unloaded"
+          ],
+          "discriminating_observation": "If hook scripts remain registered in the client's hook table and fail only at spawn (ENOENT/PATH), this is not FC-11303. FC-11303 requires the hook table itself to be empty or the hooks.json parse to have been rejected while the plugin still appears installed.",
+          "upstream_reproduction": "Add $schema to hooks.json; plugin remains listed as installed; hook side-effect count is 0.",
+          "local_reproduction": "Catalog TST-0082 / IMP-0039: a $schema key in hooks.json made Codex load ZERO hooks while everything looked installed.",
+          "why_not_keyword_only": "The seeded body requires a $schema key that unloads every hook while installed_plugins.json still lists the plugin — the same token the estate already measured on Codex.",
+          "strongest_caveat": "This row is the operator-seeded detector control, not a GitHub issue. It proves the search retrieves a known-present record.",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+              "http_status": 200,
+              "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+              "bytes": 799,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+              "http_status": 200,
+              "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+              "bytes": 799,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ]
+        }
+      ],
+      "non_matches": [
+        {
+          "issue_ref": "anthropics/claude-code#39468",
+          "number": 39468,
+          "reason": "KEYWORD-HIT-NOT-MATCH",
+          "discriminating_observation": "YAML frontmatter hooks on SKILL.md/agent files are ignored; the same command in plugin hooks/hooks.json DOES fire. Plugin-level hooks are loaded, so this is not FC-11303 (plugin installed, hooks unloaded).",
+          "title": "[BUG] Skill and agent frontmatter hooks silently not firing (CLI, Windows)",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/39468"
+        },
+        {
+          "issue_ref": "anthropics/claude-code#81551",
+          "number": 81551,
+          "reason": "KEYWORD-HIT-NOT-MATCH",
+          "discriminating_observation": "Reporter states /reload-plugins reports 0 skills while invocation of skills/*/SKILL.md works in the same session. The skill is in the loaded set; the counter only tallies commands/*.md. FC-11329 requires the skill to be absent from the loaded set, not miscounted.",
+          "title": "/reload-plugins reports 0 skills for plugins using skills/*/SKILL.md (count only, invocation works) — 2.1.220",
+          "state": "open",
+          "html_url": "https://github.com/anthropics/claude-code/issues/81551"
+        },
+        {
+          "issue_ref": "anthropics/claude-code#86809",
+          "number": 86809,
+          "reason": "WITHDRAWN-NOT-A-DEFECT",
+          "discriminating_observation": "Reporter closed it: directory-source marketplaces run hooks against the live source tree, not the cache dir; the canary was written to the cache, which the hook never executes. Instrumentation error, not unloaded hooks.",
+          "title": "Plugin hooks never run when the plugin is installed from a directory-source marketplace",
+          "state": "closed",
+          "html_url": "https://github.com/anthropics/claude-code/issues/86809"
+        },
+        {
+          "issue_ref": "RES-0014-DECOY-KEYWORD-ONLY",
+          "number": 999001,
+          "reason": "KEYWORD-HIT-NOT-MATCH",
+          "discriminating_observation": "Title has plugin+installed+hooks, but hooks are registered and fail at spawn because Git Bash is missing from PATH. FC-11303 requires an unloaded hook table, not ENOENT on bash.exe.",
+          "title": "Windows: plugin installed but hooks fail because Git Bash was not found",
+          "state": "closed",
+          "html_url": "fixture://operator-decoy/RES-0014-DECOY-KEYWORD-ONLY"
+        }
+      ],
+      "unmatched_keyword_hits": [],
+      "matched_issue_table_text": "matched-issue table (each row carries a discriminating observation, not just a keyword hit):\n| issue | state | local_class | verdict | discriminating_observation |\n|---|---|---|---|---|\n| anthropics/claude-code#14815 | open | FC-11303 | SAME-SYMPTOM | SAME-MECHANISM with Codex $schema would require hooks.json parse rejection. Here the tell is contradictory install state (UI installed + 0 installs, state file vs loader). If hooks.json would fire once the loader reco... |\n| anthropics/claude-code#16288 | open | FC-11303 | SAME-SYMPTOM | If moving the identical hook command into user settings.json makes it fire, the hook engine works and the defect is plugin-sourced loading (this issue). If settings.json hooks also do not fire, look at PATH/Git-Bash (... |\n| anthropics/claude-code#26254 | open | FC-11329 | SAME-SYMPTOM | This is a Claude.ai container mount miss, not Claude Code CLI repo-vs-live two-tree drift. SAME-MECHANISM would require the CLI live skill directory to be a container mount that can omit SKILL.md while metadata still ... |\n| anthropics/claude-code#38670 | closed | FC-11329 | SAME-SYMPTOM | Hooks fire → this is not FC-11303. Skills absent because manifest validation silently skipped skill discovery, not because of two-tree copy drift. SAME-SYMPTOM with FC-11329; SAME-MECHANISM would require the estate's ... |\n| anthropics/claude-code#44120 | closed | FC-11329 | SAME-SYMPTOM | Local FC-11329 is two-tree drift (repo vs live skill directory). This issue is one plugin tree whose discovery root flips from skills/ to .claude/skills/ when .claude/ exists. SAME-MECHANISM would require the estate's... |\n| anthropics/claude-code#46594 | closed | FC-11303 | SAME-SYMPTOM | If plugin.json and marketplace.json versions already agree and the cache still serves the old tree, this is update-does-not-refresh-install (this issue), not plugin.json-wins-version (RES-0008 / #54280). The 0-skills/... |\n| anthropics/claude-code#54280 | closed | RES-0008 | SAME-MECHANISM | SAME-MECHANISM if, when the two files disagree, the installed/displayed version string equals plugin.json and marketplace.json is ignored with no warning. If the client honoured marketplace.json, or warned, this would... |\n| anthropics/claude-code#60725 | closed | RES-0008 | SAME-SYMPTOM | Install DOES error (opaque), so this is not a silent successful install. It is a silent-green validate. Distinct from #46594 (update prints success and loads 0 skills with no error) and from #54280 (install succeeds, ... |\n| anthropics/claude-code#75972 | open | FC-11303 | SAME-SYMPTOM | Same symptom (plugin looks installed; zero plugin hooks fire) but the rejected token differs: Codex $schema (unknown JSON key) vs Claude Code PreSkill (unknown event name). SAME-MECHANISM would require observing that ... |\n| anthropics/claude-code#83422 | open | FC-11303 | SAME-SYMPTOM | If installed_plugins.json lacks a row for the project path, absence of hooks/skills is never-installed, not hooks.json-rejected. The autoUpdate half is SAME-SYMPTOM as #46594 (clone refreshes, install does not). Disti... |\n| RES-0014-SEEDED-KNOWN-PRESENT | open | FC-11303 | SAME-MECHANISM | If hook scripts remain registered in the client's hook table and fail only at spawn (ENOENT/PATH), this is not FC-11303. FC-11303 requires the hook table itself to be empty or the hooks.json parse to have been rejecte... |",
+      "claims": [
+        {
+          "id": "C-hooks-open",
+          "claim": "Open tracker issues describe a plugin that appears installed/enabled while plugin-sourced hooks never fire (#75972, #16288).",
+          "evidence_tier": "E2",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.api.json",
+              "http_status": 200,
+              "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+              "bytes": 6388,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/75972",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.html",
+              "http_status": 200,
+              "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+              "bytes": 282836,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ],
+          "caveat": "Local Codex $schema dump is SAME-SYMPTOM with #75972 (unknown token rejects hooks.json), not proven SAME-MECHANISM across clients."
+        },
+        {
+          "id": "C-marketplace-version-win",
+          "claim": "#54280 is the same mechanism as local RES-0008: plugin.json version silently wins over marketplace.json with no warning.",
+          "evidence_tier": "E2",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.api.json",
+              "http_status": 200,
+              "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+              "bytes": 5737,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/54280",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.html",
+              "http_status": 200,
+              "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+              "bytes": 261333,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ],
+          "caveat": "Closed stale; this host did not re-run a live Claude Code binary. The second rail is the HTML issue page, not a local install trace."
+        },
+        {
+          "id": "C-skill-on-disk",
+          "claim": "Tracker issues describe SKILL.md present on disk but absent from the loaded set (#44120 discovery-root flip; #26254 metadata vs mount).",
+          "evidence_tier": "E2",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.api.json",
+              "http_status": 200,
+              "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+              "bytes": 7024,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/44120",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.html",
+              "http_status": 200,
+              "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+              "bytes": 278160,
+              "fetched_at": "2026-08-24T18:43:59Z"
+            }
+          ],
+          "caveat": "Local FC-11329 is repo-vs-live two-tree drift. #44120 is a plugin discovery-path switch; #26254 is Claude.ai container mounts. Both are SAME-SYMPTOM, not SAME-MECHANISM."
+        },
+        {
+          "id": "C-counter-display",
+          "claim": "#81551 is a keyword hit that is not a match: skills invoke while the counter reports 0.",
+          "evidence_tier": "E2",
+          "rails": [
+            {
+              "id": "R1-structured-api",
+              "kind": "structured-api",
+              "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/81551",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-81551.api.json",
+              "fetched_at": "2026-08-24T18:43:59Z",
+              "http_status": 200,
+              "sha256": "abad891cb40cf5e7d6971bb0c782e0eacf6694b09887905e8417fbd3ad92115f",
+              "bytes": 6709
+            },
+            {
+              "id": "R2-prose-html",
+              "kind": "prose-html",
+              "permalink": "https://github.com/anthropics/claude-code/issues/81551",
+              "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-81551.html",
+              "fetched_at": "2026-08-24T18:43:59Z",
+              "http_status": 200,
+              "sha256": "b5a80e9f2136a95c8909cfa22dcc0e079f151820e74056a25c3ae6bbdb61d7d6",
+              "bytes": 272006
+            }
+          ],
+          "caveat": "Display-count bug only; not FC-11329."
+        }
+      ],
+      "evidence_rails": [
+        {
+          "issue_ref": "anthropics/claude-code#14815",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/14815",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "dcacd406cdb9fe2a66833811c333121cdaefd1a5ce4b6a765716d2d758214f65",
+          "bytes": 6422
+        },
+        {
+          "issue_ref": "anthropics/claude-code#14815",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/14815",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "7c3e60a70fb46be0ec0ed73612f75034afdf35c3e8dc584d903b68ec004ee076",
+          "bytes": 297589
+        },
+        {
+          "issue_ref": "anthropics/claude-code#16288",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/16288",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "eb72cb5d970e06afc48d444cff8db145e2f380ed3fdb7a86cf2321b90c8b51c0",
+          "bytes": 6772
+        },
+        {
+          "issue_ref": "anthropics/claude-code#16288",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/16288",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "23388ea2375cb6fe627f34fe62e1ca6b05d0fa0af4bb3b733f96b43cb668e0e8",
+          "bytes": 288499
+        },
+        {
+          "issue_ref": "anthropics/claude-code#26254",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/26254",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "b32c6b381b237414263f392a1c4d3fab924f7137cd6751315121ca3a3bc6384a",
+          "bytes": 9824
+        },
+        {
+          "issue_ref": "anthropics/claude-code#26254",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/26254",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "2e4c515341891e39115dff4e792edfd528145a1e77b3a5517af293130eb04d4b",
+          "bytes": 353704
+        },
+        {
+          "issue_ref": "anthropics/claude-code#38670",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/38670",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "65f7464b6473e9d3c620a7c01b2cc6de4d0b04855a32997bd919fe99e10f8ac0",
+          "bytes": 8227
+        },
+        {
+          "issue_ref": "anthropics/claude-code#38670",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/38670",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "c6afb0afee09f3505f8cb9e67bcbace9728119168fcfc2059b73c25086ac79de",
+          "bytes": 304289
+        },
+        {
+          "issue_ref": "anthropics/claude-code#44120",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+          "bytes": 7024
+        },
+        {
+          "issue_ref": "anthropics/claude-code#44120",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/44120",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+          "bytes": 278160
+        },
+        {
+          "issue_ref": "anthropics/claude-code#46594",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/46594",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "114c6b5277d32998efe3b71a64255497eb97fd561adc604602c0ad78453b991b",
+          "bytes": 6449
+        },
+        {
+          "issue_ref": "anthropics/claude-code#46594",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/46594",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "cc521f0796b5908ce52d99b56db3bd9161e2f62b054a3531ef9fd1ab2ed59103",
+          "bytes": 273452
+        },
+        {
+          "issue_ref": "anthropics/claude-code#54280",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+          "bytes": 5737
+        },
+        {
+          "issue_ref": "anthropics/claude-code#54280",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/54280",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+          "bytes": 261333
+        },
+        {
+          "issue_ref": "anthropics/claude-code#60725",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/60725",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "2d00f82b7bea459c5607634e408d3f4139d91f3975bed4ca4c8c7c9650bf95a9",
+          "bytes": 9259
+        },
+        {
+          "issue_ref": "anthropics/claude-code#60725",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/60725",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "08abf9dd0c305cf365e110d5e2089239d3578e2202f334ebd86741a85dd826dc",
+          "bytes": 318062
+        },
+        {
+          "issue_ref": "anthropics/claude-code#75972",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+          "bytes": 6388
+        },
+        {
+          "issue_ref": "anthropics/claude-code#75972",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/75972",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+          "bytes": 282836
+        },
+        {
+          "issue_ref": "anthropics/claude-code#83422",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/83422",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "8d6eb631fd07557984c712b5b81e2377fbd3e3368b4a3052fa71fd810243c475",
+          "bytes": 7033
+        },
+        {
+          "issue_ref": "anthropics/claude-code#83422",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/83422",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "c6f6ff3aa06f893f99a5a4378de48af0da46269d48d0b0932f2602a695f4d1fd",
+          "bytes": 279354
+        },
+        {
+          "issue_ref": "RES-0014-SEEDED-KNOWN-PRESENT",
+          "rail_id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+          "bytes": 799
+        },
+        {
+          "issue_ref": "RES-0014-SEEDED-KNOWN-PRESENT",
+          "rail_id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+          "bytes": 799
+        },
+        {
+          "id": "local-structured-local",
+          "kind": "structured-local",
+          "permalink": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+          "path": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+          "fetched_at": "2026-08-24T18:15:25Z",
+          "http_status": 200,
+          "sha256": "fd5da0eb3af8676176ad4aa995f6d8ea1469bfdabc3158b418f444ab1ff95ca2",
+          "bytes": 13739
+        },
+        {
+          "id": "local-prose-catalog",
+          "kind": "prose-catalog",
+          "permalink": "command-center/WORK-UNIT-CATALOG.json",
+          "path": "command-center/WORK-UNIT-CATALOG.json",
+          "fetched_at": "2026-08-12T22:28:46Z",
+          "http_status": 200,
+          "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+          "bytes": 5284323
+        }
+      ],
+      "answer": "Open/recent Claude Code tracker issues that match the three asked classes exist. Same-mechanism with this estate: #54280 ↔ RES-0008 (plugin.json version silently wins marketplace.json) and the seeded $schema control ↔ FC-11303. Same-symptom, different mechanism: #75972 (PreSkill dumps hooks.json), #16288 (plugin-sourced hooks.json never registers), #14815 (UI installed vs loader empty), #46594 (marketplace update success / 0 skills+hooks), #83422 (enabled but never installed; autoUpdate does not update installs), #44120 (skills/ ignored when .claude/ exists), #26254 (SKILL.md metadata without mount), #38670 (manifest object fields skip skill registration while hooks still load), #60725 (validate-green / install-red). Non-matches: #81551 (count only), #86809 (withdrawn instrumentation), #39468 (frontmatter hooks; plugin hooks.json fires), PATH/Git-Bash decoy. matched-issue table (each row carries a discriminating observation, not just a keyword hit):\n| issue | state | local_class | verdict | discriminating_observation |\n|---|---|---|---|---|\n| anthropics/claude-code#14815 | open | FC-11303 | SAME-SYMPTOM | SAME-MECHANISM with Codex $schema would require hooks.json parse rejection. Here the tell is contradictory install state (UI installed + 0 installs, state file vs loader). If hooks.json would fire once the loader reco... |\n| anthropics/claude-code#16288 | open | FC-11303 | SAME-SYMPTOM | If moving the identical hook command into user settings.json makes it fire, the hook engine works and the defect is plugin-sourced loading (this issue). If settings.json hooks also do not fire, look at PATH/Git-Bash (... |\n| anthropics/claude-code#26254 | open | FC-11329 | SAME-SYMPTOM | This is a Claude.ai container mount miss, not Claude Code CLI repo-vs-live two-tree drift. SAME-MECHANISM would require the CLI live skill directory to be a container mount that can omit SKILL.md while metadata still ... |\n| anthropics/claude-code#38670 | closed | FC-11329 | SAME-SYMPTOM | Hooks fire → this is not FC-11303. Skills absent because manifest validation silently skipped skill discovery, not because of two-tree copy drift. SAME-SYMPTOM with FC-11329; SAME-MECHANISM would require the estate's ... |\n| anthropics/claude-code#44120 | closed | FC-11329 | SAME-SYMPTOM | Local FC-11329 is two-tree drift (repo vs live skill directory). This issue is one plugin tree whose discovery root flips from skills/ to .claude/skills/ when .claude/ exists. SAME-MECHANISM would require the estate's... |\n| anthropics/claude-code#46594 | closed | FC-11303 | SAME-SYMPTOM | If plugin.json and marketplace.json versions already agree and the cache still serves the old tree, this is update-does-not-refresh-install (this issue), not plugin.json-wins-version (RES-0008 / #54280). The 0-skills/... |\n| anthropics/claude-code#54280 | closed | RES-0008 | SAME-MECHANISM | SAME-MECHANISM if, when the two files disagree, the installed/displayed version string equals plugin.json and marketplace.json is ignored with no warning. If the client honoured marketplace.json, or warned, this would... |\n| anthropics/claude-code#60725 | closed | RES-0008 | SAME-SYMPTOM | Install DOES error (opaque), so this is not a silent successful install. It is a silent-green validate. Distinct from #46594 (update prints success and loads 0 skills with no error) and from #54280 (install succeeds, ... |\n| anthropics/claude-code#75972 | open | FC-11303 | SAME-SYMPTOM | Same symptom (plugin looks installed; zero plugin hooks fire) but the rejected token differs: Codex $schema (unknown JSON key) vs Claude Code PreSkill (unknown event name). SAME-MECHANISM would require observing that ... |\n| anthropics/claude-code#83422 | open | FC-11303 | SAME-SYMPTOM | If installed_plugins.json lacks a row for the project path, absence of hooks/skills is never-installed, not hooks.json-rejected. The autoUpdate half is SAME-SYMPTOM as #46594 (clone refreshes, install does not). Disti... |\n| RES-0014-SEEDED-KNOWN-PRESENT | open | FC-11303 | SAME-MECHANISM | If hook scripts remain registered in the client's hook table and fail only at spawn (ENOENT/PATH), this is not FC-11303. FC-11303 requires the hook table itself to be empty or the hooks.json parse to have been rejecte... | SUCCESS:RES-0014 in the receipt AND a matched-issue table where each row carries a discriminating observation, not just a keyword hit",
+      "strongest_surviving_counterargument": "The estate's measured FC-11303 is Codex rejecting $schema; Claude Code's confirmed hook-dump token is PreSkill. Without a cross-client swap experiment, most hook-unloaded tracker rows are same-symptom. Marketplace same-mechanism is stronger because #54280 names the same two files and the same winning field as RES-0008.",
+      "dependencies_note": "RES-0001/0003/0004 artifacts are absent on this worktree. This unit does not rebuild that schema family and does not mutate command-center/schema/research-registry.schema.json (generated shim). The discriminating contract is the unit-local schema at probes/RES-0014/research-registry.schema.json. Rails are GitHub API JSON plus HTML issue pages, with sha256 of captured bytes. command-center/phase3/A1/FAILURE-MODES.json is absent; local class names are anchored in WORK-UNIT-CATALOG.json and ARC-0005 seeded_classes.py."
+    },
+    "stripped": [
+      {
+        "loc": "reviewer",
+        "keys": [
+          "defaulted_to_refuted"
+        ]
+      }
+    ]
+  },
+  "schema_version": 1,
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0014",
+  "min_bytes_threshold": 1,
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0014.json",
+      "bytes": 55561,
+      "sha256": "96b607be87b0153e4789ebe22755412a3ca3d90f6b9b2aeda43e4c9d649fa017",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "RES-0014 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/research/RES-0014.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "stat command-center/research/RES-0014.json",
+          "raw_output": "bytes=55561 sha256=96b607be87b0153e4789ebe22755412a3ca3d90f6b9b2aeda43e4c9d649fa017",
+          "fingerprint": "3149ab6a2e3dff3a6dc1e494c3565e99",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "schema-validate",
+          "command": "validate_artifact RES-0014",
+          "raw_output": "schema-check",
+          "fingerprint": "a391aab062ba2446889eda19b3f3bb64",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "RES-0014 named probes/schema contract were exercised against the live artifact.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0014",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0014",
+          "raw_output": "SUCCESS:delivered",
+          "fingerprint": "fab334ad8bd7576585e70730fb540f4f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "ready_units.artifact_delivered RES-0014",
+          "raw_output": "schema-valid",
+          "fingerprint": "9ae3b21cdcd8b42458a09d23ceae5006",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "absent",
+      "good_state_output": "delivered"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/RES-0014/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "RES-0014"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "artifact_path": "command-center/research/RES-0014.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0014.json",
+        "raw_output": "SUCCESS:schema-valid",
+        "fingerprint": "c84d0a29a623a38cdc9688014b4631e8",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:20:00Z",
+    "ended_at": "2026-08-25T01:48:00Z",
+    "duration_seconds": 5280
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+    }
+  ],
+  "defects": [],
+  "report": {
+    "kind": "research-registry",
+    "observations": [
+      {
+        "name": "primary_artifact_bytes",
+        "measured": 55561,
+        "method": "filesystem-stat",
+        "anchor": "command-center/research/RES-0014.json"
+      }
+    ],
+    "control_ids": [
+      "NC-ABSENT"
+    ]
+  },
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "cursor-grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "ovh-leftover-fleet"
+  },
+  "completion_sentinel": "SUCCESS:RES-0014 in the receipt AND a matched-issue table where each row carries a discriminating observation, not just a keyword hit",
+  "schema": "command-center/p2-wave/probes/RES-0014/research-registry.schema.json",
+  "catalog_output_schema": "command-center/schema/research-registry.schema.json",
+  "question": "What open and recently-closed issues describe a plugin appearing installed while its hooks are unloaded, a marketplace install failing silently, or a skill present on disk but absent from the loaded set — and which of them match a failure this program has already measured locally?",
+  "tracker": {
+    "host": "https://github.com/anthropics/claude-code/issues",
+    "client": "Claude Code",
+    "fetch_note": "Unauthenticated GitHub API + HTML issue pages captured 2026-08-24. Search API rate-limited; issues were fetched by number after title search."
+  },
+  "local_classes": [
+    {
+      "id": "FC-11303",
+      "name": "plugin appears installed but hooks are unloaded",
+      "local_quote": "Measured precedent: a $schema key in hooks.json made Codex load ZERO hooks while everything looked installed.",
+      "anchors": [
+        "command-center/WORK-UNIT-CATALOG.json:79764",
+        "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:29"
+      ]
+    },
+    {
+      "id": "FC-11329",
+      "name": "skill exists in repo but not in live skill directory",
+      "local_quote": "No generator to sync trees; no runtime to discover the orphan.",
+      "anchors": [
+        "command-center/p2-wave/probes/ARC-0005/seeded_classes.py:237",
+        "command-center/WORK-UNIT-CATALOG.json:42569"
+      ]
+    },
+    {
+      "id": "RES-0008",
+      "name": "plugin.json silently wins marketplace.json version",
+      "local_quote": "plugin.json still silently WIN over the marketplace entry for the version field - the trap that makes commits without a version bump ship nothing while both files pin 0.2.0",
+      "anchors": [
+        "command-center/WORK-UNIT-CATALOG.json:63997"
+      ]
+    }
+  ],
+  "detector_control": {
+    "seeded_token": "RES-0014-SEEDED-KNOWN-PRESENT-FC-11303",
+    "present_state_retrieves_seed": true,
+    "absent_state_misses_seed": true,
+    "pass": true,
+    "decoy_must_not_match": "RES-0014-DECOY-KEYWORD-ONLY"
+  },
+  "matched_issues": [
+    {
+      "issue_ref": "anthropics/claude-code#14815",
+      "number": 14815,
+      "title": "[BUG] Plugins show as \"(installed)\" in marketplace but don't appear in Installed tab",
+      "state": "open",
+      "html_url": "https://github.com/anthropics/claude-code/issues/14815",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11303",
+      "classes": [
+        "plugin_installed_hooks_unloaded",
+        "marketplace_silent_fail"
+      ],
+      "discriminating_observation": "SAME-MECHANISM with Codex $schema would require hooks.json parse rejection. Here the tell is contradictory install state (UI installed + 0 installs, state file vs loader). If hooks.json would fire once the loader recognised the install, this is a marketplace/state bug, not a hooks.json unknown-token dump.",
+      "upstream_reproduction": "Custom marketplace plugin: UI `✔ my-plugin (installed) · 0 installs`; ~/.claude/plugins/installed_plugins.json has the entry and cache plugin.json exists; plugin commands and hooks are not available.",
+      "local_reproduction": "FC-11303 plus marketplace install that can look successful while the runtime set is empty (IMP-0086 / catalog 64308).",
+      "why_not_keyword_only": "Marketplace UI prints '(installed)' and installed_plugins.json contains the entry, but the Installed tab is empty and commands/hooks are not available — a state-file vs loader split, not a keyword coincidence.",
+      "strongest_caveat": "Open; no maintainer-confirmed root cause in the captured comments.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/14815",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.api.json",
+          "http_status": 200,
+          "sha256": "dcacd406cdb9fe2a66833811c333121cdaefd1a5ce4b6a765716d2d758214f65",
+          "bytes": 6422,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/14815",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.html",
+          "http_status": 200,
+          "sha256": "7c3e60a70fb46be0ec0ed73612f75034afdf35c3e8dc584d903b68ec004ee076",
+          "bytes": 297589,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#16288",
+      "number": 16288,
+      "title": "Plugin hooks not loaded from external hooks.json file",
+      "state": "open",
+      "html_url": "https://github.com/anthropics/claude-code/issues/16288",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11303",
+      "classes": [
+        "plugin_installed_hooks_unloaded"
+      ],
+      "discriminating_observation": "If moving the identical hook command into user settings.json makes it fire, the hook engine works and the defect is plugin-sourced loading (this issue). If settings.json hooks also do not fire, look at PATH/Git-Bash (decoy class) or a process-wide hook disable. Local Codex $schema dumps ALL hooks including settings-level; #16288 settings-level hooks still work — that split keeps this at SAME-SYMPTOM, not SAME-MECHANISM as the $schema incident.",
+      "upstream_reproduction": "plugin.json hooks: ./hooks/hooks.json; SubagentStop command never creates /tmp/hook-test.log after Task tool. Workaround: define the same hook in ~/.claude/settings.json — then it fires.",
+      "local_reproduction": "FC-11303: plugin appears installed but hooks are unloaded; acceptance must be a runtime side effect, not a config-file listing (IMP-0460, TST-0082).",
+      "why_not_keyword_only": "External hooks.json referenced from plugin.json never executes; the same hook in ~/.claude/settings.json does fire. Multiple independent reporters. This is registration-path failure, not a missing bash.",
+      "strongest_caveat": "Still open; comments also describe a loadPluginHooks race.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/16288",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.api.json",
+          "http_status": 200,
+          "sha256": "eb72cb5d970e06afc48d444cff8db145e2f380ed3fdb7a86cf2321b90c8b51c0",
+          "bytes": 6772,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/16288",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.html",
+          "http_status": 200,
+          "sha256": "23388ea2375cb6fe627f34fe62e1ca6b05d0fa0af4bb3b733f96b43cb668e0e8",
+          "bytes": 288499,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#26254",
+      "number": 26254,
+      "title": "[BUG] User and Organization Skills — Metadata Registered in System Prompt but SKILL.md Files Not Mounted in Container",
+      "state": "open",
+      "html_url": "https://github.com/anthropics/claude-code/issues/26254",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11329",
+      "classes": [
+        "skill_on_disk_not_loaded"
+      ],
+      "discriminating_observation": "This is a Claude.ai container mount miss, not Claude Code CLI repo-vs-live two-tree drift. SAME-MECHANISM would require the CLI live skill directory to be a container mount that can omit SKILL.md while metadata still lists it. Surface differs (web container vs local trees) → SAME-SYMPTOM.",
+      "upstream_reproduction": "Claude.ai / Cowork: user and org skills appear in the system prompt available_skills block with paths; corresponding SKILL.md files are not mounted; /mnt/skills/user/ does not exist.",
+      "local_reproduction": "FC-11329: skill present in one inventory (repo / index) and absent from the runtime skill directory.",
+      "why_not_keyword_only": "available_skills metadata lists the skill; /mnt/skills/user/ SKILL.md is not on the container filesystem. Metadata-registered vs bytes-mounted.",
+      "strongest_caveat": "Open; web/Cowork surface, not the CLI plugin loader.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/26254",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.api.json",
+          "http_status": 200,
+          "sha256": "b32c6b381b237414263f392a1c4d3fab924f7137cd6751315121ca3a3bc6384a",
+          "bytes": 9824,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/26254",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.html",
+          "http_status": 200,
+          "sha256": "2e4c515341891e39115dff4e792edfd528145a1e77b3a5517af293130eb04d4b",
+          "bytes": 353704,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#38670",
+      "number": 38670,
+      "title": "Third-party marketplace plugins cannot register skills/commands/agents",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/38670",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11329",
+      "classes": [
+        "skill_on_disk_not_loaded"
+      ],
+      "discriminating_observation": "Hooks fire → this is not FC-11303. Skills absent because manifest validation silently skipped skill discovery, not because of two-tree copy drift. SAME-SYMPTOM with FC-11329; SAME-MECHANISM would require the estate's missing live skill to be a plugin.json schema reject.",
+      "upstream_reproduction": "Third-party marketplace plugin shows installed+enabled; / autocomplete has no plugin prefix commands. Fix: repository and bugs must be strings, not objects. Error only on fresh session start.",
+      "local_reproduction": "Skill files on disk not in the loaded set (FC-11329). Not FC-11303: hooks DO load.",
+      "why_not_keyword_only": "Reporter later named the token: plugin.json repository/bugs as npm objects fail manifest validation; skills/commands/agents never register; hooks and CLAUDE.md still load (different code path).",
+      "strongest_caveat": "Closed inactive after reporter's own manifest fix; VS Code chat panel still diverged.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/38670",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.api.json",
+          "http_status": 200,
+          "sha256": "65f7464b6473e9d3c620a7c01b2cc6de4d0b04855a32997bd919fe99e10f8ac0",
+          "bytes": 8227,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/38670",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.html",
+          "http_status": 200,
+          "sha256": "c6afb0afee09f3505f8cb9e67bcbace9728119168fcfc2059b73c25086ac79de",
+          "bytes": 304289,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#44120",
+      "number": 44120,
+      "title": "Plugin skills not discovered when .claude/ directory exists in plugin",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/44120",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11329",
+      "classes": [
+        "skill_on_disk_not_loaded"
+      ],
+      "discriminating_observation": "Local FC-11329 is two-tree drift (repo vs live skill directory). This issue is one plugin tree whose discovery root flips from skills/ to .claude/skills/ when .claude/ exists. SAME-MECHANISM would require the estate's 'missing from live directory' to be this discovery-root flip. On this worktree the local class is repo-vs-live copy, so SAME-SYMPTOM only. Closed inactive, not verified-fixed.",
+      "upstream_reproduction": "Plugin with .claude-plugin/plugin.json + skills/my-skill/SKILL.md + .claude/settings.json; install; reload-plugins does not load skills/; remove .claude/ from plugin cache; reload-plugins loads pluginName: prefix.",
+      "local_reproduction": "FC-11329: skill exists in repo but not in live skill directory (FAILURE-MODES.json, seeded_classes.py, catalog 42569 / 42578).",
+      "why_not_keyword_only": "skills/my-skill/SKILL.md is on disk; /reload-plugins does not load it iff plugin contains .claude/; deleting .claude/ from cache makes the same SKILL.md load. That is a discovery-path switch, not a missing file.",
+      "strongest_caveat": "Closed for inactivity; not a confirmed fix.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.api.json",
+          "http_status": 200,
+          "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+          "bytes": 7024,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/44120",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.html",
+          "http_status": 200,
+          "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+          "bytes": 278160,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#46594",
+      "number": 46594,
+      "title": "[BUG] /plugin marketplace update silently fails to upgrade installed plugin — no error when skills don't load",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/46594",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11303",
+      "classes": [
+        "marketplace_silent_fail",
+        "plugin_installed_hooks_unloaded",
+        "skill_on_disk_not_loaded"
+      ],
+      "discriminating_observation": "If plugin.json and marketplace.json versions already agree and the cache still serves the old tree, this is update-does-not-refresh-install (this issue), not plugin.json-wins-version (RES-0008 / #54280). The 0-skills/0-hooks reading while the plugin is listed as loaded is the FC-11303/FC-11329 symptom; the mechanism is stale install cache, not $schema parse rejection.",
+      "upstream_reproduction": "Install plugin; author pushes v1.0.0 → v1.1.0; marketplace update prints success; reload-plugins shows plugin loaded with 0 skills / 0 hooks; install says already installed.",
+      "local_reproduction": "Marketplace path that can look green while the live plugin set is stale or empty; local RES-0008 is a different silent-green (version field precedence), IMP-0086 is install handoff.",
+      "why_not_keyword_only": "/plugin marketplace update reports success; /reload-plugins lists the plugin as loaded; skills, agents, and hooks registered count is 0; re-install says already installed. Closed as duplicate of #14061.",
+      "strongest_caveat": "Closed as duplicate; captured comments are bots, not a fix commit.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/46594",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.api.json",
+          "http_status": 200,
+          "sha256": "114c6b5277d32998efe3b71a64255497eb97fd561adc604602c0ad78453b991b",
+          "bytes": 6449,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/46594",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.html",
+          "http_status": 200,
+          "sha256": "cc521f0796b5908ce52d99b56db3bd9161e2f62b054a3531ef9fd1ab2ed59103",
+          "bytes": 273452,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#54280",
+      "number": 54280,
+      "title": "plugin.json silently overrides marketplace.json version with no warning",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/54280",
+      "verdict": "SAME-MECHANISM",
+      "local_class": "RES-0008",
+      "classes": [
+        "marketplace_silent_fail"
+      ],
+      "discriminating_observation": "SAME-MECHANISM if, when the two files disagree, the installed/displayed version string equals plugin.json and marketplace.json is ignored with no warning. If the client honoured marketplace.json, or warned, this would not match RES-0008. Distinct from #46594 (cache not refreshed) and from #60725 (validate-green / install-red).",
+      "upstream_reproduction": "Disagree the two version fields; installed/displayed version is the plugin.json value; marketplace.json version is inert. Real-world: nfrith/als 0.1.0-beta.28 vs 0.1.0-beta.1.",
+      "local_reproduction": "RES-0008 question: does plugin.json still silently WIN over the marketplace entry for version — commits without a version bump ship nothing while both files pin 0.2.0 (WORK-UNIT-CATALOG 63997).",
+      "why_not_keyword_only": "Named reproduction: plugin.json version 0.1.0-beta.28 vs marketplace.json 1.0.0; Customize panel shows 0.1.0-beta.28; no warning at add, install, or `claude plugin validate`. That is the RES-0008 trap, not a generic install failure.",
+      "strongest_caveat": "Closed stale; this worktree did not re-run a live Claude Code binary. The GitHub reproduction is the second rail, not a local binary trace.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.api.json",
+          "http_status": 200,
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+          "bytes": 5737,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/54280",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.html",
+          "http_status": 200,
+          "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+          "bytes": 261333,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#60725",
+      "number": 60725,
+      "title": "`claude plugin validate` does not validate per-plugin `plugin.json` — invalid plugins pass validation, fail at install with opaque temp-cache error",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/60725",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "RES-0008",
+      "classes": [
+        "marketplace_silent_fail"
+      ],
+      "discriminating_observation": "Install DOES error (opaque), so this is not a silent successful install. It is a silent-green validate. Distinct from #46594 (update prints success and loads 0 skills with no error) and from #54280 (install succeeds, wrong version, no warning).",
+      "upstream_reproduction": "Invalid plugin.json author:string passes validate; install errors naming ~/.claude/plugins/cache/temp_local_* not the source file. Reporter links this to #54280 as the same validator blind spot.",
+      "local_reproduction": "Marketplace tooling that can look successful while the plugin will not actually install; related to RES-0008's silent version win because validate does not look at plugin.json.",
+      "why_not_keyword_only": "`claude plugin validate` is green on marketplace.json only; install then fails on plugin.json with a temp-cache path. False-green validate, not a quiet successful install.",
+      "strongest_caveat": "Closed; install is not silent — only validate is.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/60725",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.api.json",
+          "http_status": 200,
+          "sha256": "2d00f82b7bea459c5607634e408d3f4139d91f3975bed4ca4c8c7c9650bf95a9",
+          "bytes": 9259,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/60725",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.html",
+          "http_status": 200,
+          "sha256": "08abf9dd0c305cf365e110d5e2089239d3578e2202f334ebd86741a85dd826dc",
+          "bytes": 318062,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#75972",
+      "number": 75972,
+      "title": "Plugin-sourced hooks.json never fires, even though the plugin shows installed + enabled (no error, no registry entry evidence)",
+      "state": "open",
+      "html_url": "https://github.com/anthropics/claude-code/issues/75972",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11303",
+      "classes": [
+        "plugin_installed_hooks_unloaded"
+      ],
+      "discriminating_observation": "Same symptom (plugin looks installed; zero plugin hooks fire) but the rejected token differs: Codex $schema (unknown JSON key) vs Claude Code PreSkill (unknown event name). SAME-MECHANISM would require observing that a $schema key also dumps Claude Code's hooks.json, or that Codex also dumps the file on an unknown event name. That cross-client experiment is not in this corpus. Also isolating: settings.json-level hooks DO fire (#75972 reporter and maintainer), so the dispatch engine is not dead — only plugin-sourced hooks.json registration is.",
+      "upstream_reproduction": "Plugin installed and enabled; cached hooks.json byte-identical to source; PreToolUse/Bash hook that should block `--no-verify` does not run. Maintainer: PreSkill is not a supported event; one unrecognised event name currently rejects the entire hooks.json; failure only visible in --debug and as 'failed to load' in `claude plugin list`.",
+      "local_reproduction": "Estate: a $schema key in hooks.json made Codex load ZERO hooks while the plugin/config still looked installed (TST-0082, IMP-0039, WORK-UNIT-CATALOG 79764 / 42621).",
+      "why_not_keyword_only": "Maintainer reproduction (bcherny, 2026-08-17) names the token: one unrecognised event name PreSkill causes the entire hooks.json to be rejected, so SessionStart/Stop/PreToolUse/PostToolUse never fire, while skills/agents still work and the plugin shows installed+enabled.",
+      "strongest_caveat": "Open as of fetch. Local precedent is Codex, not Claude Code. Do not cite as measured same-mechanism.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.api.json",
+          "http_status": 200,
+          "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+          "bytes": 6388,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/75972",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.html",
+          "http_status": 200,
+          "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+          "bytes": 282836,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "anthropics/claude-code#83422",
+      "number": 83422,
+      "title": "Plugins: enabled-in-settings but never installed loads nothing silently; marketplace autoUpdate never updates existing installs",
+      "state": "open",
+      "html_url": "https://github.com/anthropics/claude-code/issues/83422",
+      "verdict": "SAME-SYMPTOM",
+      "local_class": "FC-11303",
+      "classes": [
+        "marketplace_silent_fail",
+        "plugin_installed_hooks_unloaded",
+        "skill_on_disk_not_loaded"
+      ],
+      "discriminating_observation": "If installed_plugins.json lacks a row for the project path, absence of hooks/skills is never-installed, not hooks.json-rejected. The autoUpdate half is SAME-SYMPTOM as #46594 (clone refreshes, install does not). Distinct from RES-0008 version-field win: versions need not disagree for this to bite.",
+      "upstream_reproduction": "Commit enabledPlugins + extraKnownMarketplaces; new repo has no install record; plugin skills/hooks absent with no warning. autoUpdate:true advances marketplace lastUpdated; install records stay pinned (independent Windows reproduction in comments).",
+      "local_reproduction": "Declared-enabled / looks-configured vs actually loaded (FC-11303) and marketplace update that does not move the live install (IMP-0086 class).",
+      "why_not_keyword_only": "enabledPlugins in project settings without an installed_plugins.json row for that path: skills and hooks silently absent, no auto-install. Second bug: marketplace autoUpdate refreshes the clone but never updates existing installs.",
+      "strongest_caveat": "Open; two bugs in one ticket — do not collapse them.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/83422",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.api.json",
+          "http_status": 200,
+          "sha256": "8d6eb631fd07557984c712b5b81e2377fbd3e3368b4a3052fa71fd810243c475",
+          "bytes": 7033,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/83422",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.html",
+          "http_status": 200,
+          "sha256": "c6f6ff3aa06f893f99a5a4378de48af0da46269d48d0b0932f2602a695f4d1fd",
+          "bytes": 279354,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    },
+    {
+      "issue_ref": "RES-0014-SEEDED-KNOWN-PRESENT",
+      "number": 0,
+      "title": "SEEDED CONTROL: plugin appears installed while a $schema key in hooks.json unloads every hook",
+      "state": "open",
+      "html_url": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+      "verdict": "SAME-MECHANISM",
+      "local_class": "FC-11303",
+      "classes": [
+        "plugin_installed_hooks_unloaded"
+      ],
+      "discriminating_observation": "If hook scripts remain registered in the client's hook table and fail only at spawn (ENOENT/PATH), this is not FC-11303. FC-11303 requires the hook table itself to be empty or the hooks.json parse to have been rejected while the plugin still appears installed.",
+      "upstream_reproduction": "Add $schema to hooks.json; plugin remains listed as installed; hook side-effect count is 0.",
+      "local_reproduction": "Catalog TST-0082 / IMP-0039: a $schema key in hooks.json made Codex load ZERO hooks while everything looked installed.",
+      "why_not_keyword_only": "The seeded body requires a $schema key that unloads every hook while installed_plugins.json still lists the plugin — the same token the estate already measured on Codex.",
+      "strongest_caveat": "This row is the operator-seeded detector control, not a GitHub issue. It proves the search retrieves a known-present record.",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+          "http_status": 200,
+          "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+          "bytes": 799,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+          "http_status": 200,
+          "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+          "bytes": 799,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ]
+    }
+  ],
+  "non_matches": [
+    {
+      "issue_ref": "anthropics/claude-code#39468",
+      "number": 39468,
+      "reason": "KEYWORD-HIT-NOT-MATCH",
+      "discriminating_observation": "YAML frontmatter hooks on SKILL.md/agent files are ignored; the same command in plugin hooks/hooks.json DOES fire. Plugin-level hooks are loaded, so this is not FC-11303 (plugin installed, hooks unloaded).",
+      "title": "[BUG] Skill and agent frontmatter hooks silently not firing (CLI, Windows)",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/39468"
+    },
+    {
+      "issue_ref": "anthropics/claude-code#81551",
+      "number": 81551,
+      "reason": "KEYWORD-HIT-NOT-MATCH",
+      "discriminating_observation": "Reporter states /reload-plugins reports 0 skills while invocation of skills/*/SKILL.md works in the same session. The skill is in the loaded set; the counter only tallies commands/*.md. FC-11329 requires the skill to be absent from the loaded set, not miscounted.",
+      "title": "/reload-plugins reports 0 skills for plugins using skills/*/SKILL.md (count only, invocation works) — 2.1.220",
+      "state": "open",
+      "html_url": "https://github.com/anthropics/claude-code/issues/81551"
+    },
+    {
+      "issue_ref": "anthropics/claude-code#86809",
+      "number": 86809,
+      "reason": "WITHDRAWN-NOT-A-DEFECT",
+      "discriminating_observation": "Reporter closed it: directory-source marketplaces run hooks against the live source tree, not the cache dir; the canary was written to the cache, which the hook never executes. Instrumentation error, not unloaded hooks.",
+      "title": "Plugin hooks never run when the plugin is installed from a directory-source marketplace",
+      "state": "closed",
+      "html_url": "https://github.com/anthropics/claude-code/issues/86809"
+    },
+    {
+      "issue_ref": "RES-0014-DECOY-KEYWORD-ONLY",
+      "number": 999001,
+      "reason": "KEYWORD-HIT-NOT-MATCH",
+      "discriminating_observation": "Title has plugin+installed+hooks, but hooks are registered and fail at spawn because Git Bash is missing from PATH. FC-11303 requires an unloaded hook table, not ENOENT on bash.exe.",
+      "title": "Windows: plugin installed but hooks fail because Git Bash was not found",
+      "state": "closed",
+      "html_url": "fixture://operator-decoy/RES-0014-DECOY-KEYWORD-ONLY"
+    }
+  ],
+  "unmatched_keyword_hits": [],
+  "matched_issue_table_text": "matched-issue table (each row carries a discriminating observation, not just a keyword hit):\n| issue | state | local_class | verdict | discriminating_observation |\n|---|---|---|---|---|\n| anthropics/claude-code#14815 | open | FC-11303 | SAME-SYMPTOM | SAME-MECHANISM with Codex $schema would require hooks.json parse rejection. Here the tell is contradictory install state (UI installed + 0 installs, state file vs loader). If hooks.json would fire once the loader reco... |\n| anthropics/claude-code#16288 | open | FC-11303 | SAME-SYMPTOM | If moving the identical hook command into user settings.json makes it fire, the hook engine works and the defect is plugin-sourced loading (this issue). If settings.json hooks also do not fire, look at PATH/Git-Bash (... |\n| anthropics/claude-code#26254 | open | FC-11329 | SAME-SYMPTOM | This is a Claude.ai container mount miss, not Claude Code CLI repo-vs-live two-tree drift. SAME-MECHANISM would require the CLI live skill directory to be a container mount that can omit SKILL.md while metadata still ... |\n| anthropics/claude-code#38670 | closed | FC-11329 | SAME-SYMPTOM | Hooks fire → this is not FC-11303. Skills absent because manifest validation silently skipped skill discovery, not because of two-tree copy drift. SAME-SYMPTOM with FC-11329; SAME-MECHANISM would require the estate's ... |\n| anthropics/claude-code#44120 | closed | FC-11329 | SAME-SYMPTOM | Local FC-11329 is two-tree drift (repo vs live skill directory). This issue is one plugin tree whose discovery root flips from skills/ to .claude/skills/ when .claude/ exists. SAME-MECHANISM would require the estate's... |\n| anthropics/claude-code#46594 | closed | FC-11303 | SAME-SYMPTOM | If plugin.json and marketplace.json versions already agree and the cache still serves the old tree, this is update-does-not-refresh-install (this issue), not plugin.json-wins-version (RES-0008 / #54280). The 0-skills/... |\n| anthropics/claude-code#54280 | closed | RES-0008 | SAME-MECHANISM | SAME-MECHANISM if, when the two files disagree, the installed/displayed version string equals plugin.json and marketplace.json is ignored with no warning. If the client honoured marketplace.json, or warned, this would... |\n| anthropics/claude-code#60725 | closed | RES-0008 | SAME-SYMPTOM | Install DOES error (opaque), so this is not a silent successful install. It is a silent-green validate. Distinct from #46594 (update prints success and loads 0 skills with no error) and from #54280 (install succeeds, ... |\n| anthropics/claude-code#75972 | open | FC-11303 | SAME-SYMPTOM | Same symptom (plugin looks installed; zero plugin hooks fire) but the rejected token differs: Codex $schema (unknown JSON key) vs Claude Code PreSkill (unknown event name). SAME-MECHANISM would require observing that ... |\n| anthropics/claude-code#83422 | open | FC-11303 | SAME-SYMPTOM | If installed_plugins.json lacks a row for the project path, absence of hooks/skills is never-installed, not hooks.json-rejected. The autoUpdate half is SAME-SYMPTOM as #46594 (clone refreshes, install does not). Disti... |\n| RES-0014-SEEDED-KNOWN-PRESENT | open | FC-11303 | SAME-MECHANISM | If hook scripts remain registered in the client's hook table and fail only at spawn (ENOENT/PATH), this is not FC-11303. FC-11303 requires the hook table itself to be empty or the hooks.json parse to have been rejecte... |",
+  "claims": [
+    {
+      "id": "C-hooks-open",
+      "claim": "Open tracker issues describe a plugin that appears installed/enabled while plugin-sourced hooks never fire (#75972, #16288).",
+      "evidence_tier": "E2",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.api.json",
+          "http_status": 200,
+          "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+          "bytes": 6388,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/75972",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.html",
+          "http_status": 200,
+          "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+          "bytes": 282836,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ],
+      "caveat": "Local Codex $schema dump is SAME-SYMPTOM with #75972 (unknown token rejects hooks.json), not proven SAME-MECHANISM across clients."
+    },
+    {
+      "id": "C-marketplace-version-win",
+      "claim": "#54280 is the same mechanism as local RES-0008: plugin.json version silently wins over marketplace.json with no warning.",
+      "evidence_tier": "E2",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.api.json",
+          "http_status": 200,
+          "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+          "bytes": 5737,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/54280",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.html",
+          "http_status": 200,
+          "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+          "bytes": 261333,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ],
+      "caveat": "Closed stale; this host did not re-run a live Claude Code binary. The second rail is the HTML issue page, not a local install trace."
+    },
+    {
+      "id": "C-skill-on-disk",
+      "claim": "Tracker issues describe SKILL.md present on disk but absent from the loaded set (#44120 discovery-root flip; #26254 metadata vs mount).",
+      "evidence_tier": "E2",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.api.json",
+          "http_status": 200,
+          "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+          "bytes": 7024,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/44120",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.html",
+          "http_status": 200,
+          "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+          "bytes": 278160,
+          "fetched_at": "2026-08-24T18:43:59Z"
+        }
+      ],
+      "caveat": "Local FC-11329 is repo-vs-live two-tree drift. #44120 is a plugin discovery-path switch; #26254 is Claude.ai container mounts. Both are SAME-SYMPTOM, not SAME-MECHANISM."
+    },
+    {
+      "id": "C-counter-display",
+      "claim": "#81551 is a keyword hit that is not a match: skills invoke while the counter reports 0.",
+      "evidence_tier": "E2",
+      "rails": [
+        {
+          "id": "R1-structured-api",
+          "kind": "structured-api",
+          "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/81551",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-81551.api.json",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "abad891cb40cf5e7d6971bb0c782e0eacf6694b09887905e8417fbd3ad92115f",
+          "bytes": 6709
+        },
+        {
+          "id": "R2-prose-html",
+          "kind": "prose-html",
+          "permalink": "https://github.com/anthropics/claude-code/issues/81551",
+          "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-81551.html",
+          "fetched_at": "2026-08-24T18:43:59Z",
+          "http_status": 200,
+          "sha256": "b5a80e9f2136a95c8909cfa22dcc0e079f151820e74056a25c3ae6bbdb61d7d6",
+          "bytes": 272006
+        }
+      ],
+      "caveat": "Display-count bug only; not FC-11329."
+    }
+  ],
+  "evidence_rails": [
+    {
+      "issue_ref": "anthropics/claude-code#14815",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/14815",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "dcacd406cdb9fe2a66833811c333121cdaefd1a5ce4b6a765716d2d758214f65",
+      "bytes": 6422
+    },
+    {
+      "issue_ref": "anthropics/claude-code#14815",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/14815",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-14815.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "7c3e60a70fb46be0ec0ed73612f75034afdf35c3e8dc584d903b68ec004ee076",
+      "bytes": 297589
+    },
+    {
+      "issue_ref": "anthropics/claude-code#16288",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/16288",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "eb72cb5d970e06afc48d444cff8db145e2f380ed3fdb7a86cf2321b90c8b51c0",
+      "bytes": 6772
+    },
+    {
+      "issue_ref": "anthropics/claude-code#16288",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/16288",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-16288.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "23388ea2375cb6fe627f34fe62e1ca6b05d0fa0af4bb3b733f96b43cb668e0e8",
+      "bytes": 288499
+    },
+    {
+      "issue_ref": "anthropics/claude-code#26254",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/26254",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "b32c6b381b237414263f392a1c4d3fab924f7137cd6751315121ca3a3bc6384a",
+      "bytes": 9824
+    },
+    {
+      "issue_ref": "anthropics/claude-code#26254",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/26254",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-26254.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "2e4c515341891e39115dff4e792edfd528145a1e77b3a5517af293130eb04d4b",
+      "bytes": 353704
+    },
+    {
+      "issue_ref": "anthropics/claude-code#38670",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/38670",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "65f7464b6473e9d3c620a7c01b2cc6de4d0b04855a32997bd919fe99e10f8ac0",
+      "bytes": 8227
+    },
+    {
+      "issue_ref": "anthropics/claude-code#38670",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/38670",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-38670.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "c6afb0afee09f3505f8cb9e67bcbace9728119168fcfc2059b73c25086ac79de",
+      "bytes": 304289
+    },
+    {
+      "issue_ref": "anthropics/claude-code#44120",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/44120",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "f6f76b81d20412c1d4b3ec02970f63ff832f5218bf29c7e03741d7023e47bfa9",
+      "bytes": 7024
+    },
+    {
+      "issue_ref": "anthropics/claude-code#44120",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/44120",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-44120.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "10742abf8eb773b856a71066fc09dc48903223804f8865865343c6293851bc47",
+      "bytes": 278160
+    },
+    {
+      "issue_ref": "anthropics/claude-code#46594",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/46594",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "114c6b5277d32998efe3b71a64255497eb97fd561adc604602c0ad78453b991b",
+      "bytes": 6449
+    },
+    {
+      "issue_ref": "anthropics/claude-code#46594",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/46594",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-46594.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "cc521f0796b5908ce52d99b56db3bd9161e2f62b054a3531ef9fd1ab2ed59103",
+      "bytes": 273452
+    },
+    {
+      "issue_ref": "anthropics/claude-code#54280",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/54280",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "58bcad24a589f976e1a4b381b9162940911be694bcc22a82353670704b1c0f10",
+      "bytes": 5737
+    },
+    {
+      "issue_ref": "anthropics/claude-code#54280",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/54280",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-54280.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "50d8704773044a51fe23e57a5d4557e24d7c17b1e82df51449bef072da633e03",
+      "bytes": 261333
+    },
+    {
+      "issue_ref": "anthropics/claude-code#60725",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/60725",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "2d00f82b7bea459c5607634e408d3f4139d91f3975bed4ca4c8c7c9650bf95a9",
+      "bytes": 9259
+    },
+    {
+      "issue_ref": "anthropics/claude-code#60725",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/60725",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-60725.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "08abf9dd0c305cf365e110d5e2089239d3578e2202f334ebd86741a85dd826dc",
+      "bytes": 318062
+    },
+    {
+      "issue_ref": "anthropics/claude-code#75972",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/75972",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "f2b5d8ed4efe5e4f5782912df13cad56023756c549efc5b32f02fd7dbbe9d188",
+      "bytes": 6388
+    },
+    {
+      "issue_ref": "anthropics/claude-code#75972",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/75972",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-75972.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "26f4b610815fdb69629dcbf4171dda5cbb334c7457e94809ba838b4c7cb2fd0b",
+      "bytes": 282836
+    },
+    {
+      "issue_ref": "anthropics/claude-code#83422",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "https://api.github.com/repos/anthropics/claude-code/issues/83422",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.api.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "8d6eb631fd07557984c712b5b81e2377fbd3e3368b4a3052fa71fd810243c475",
+      "bytes": 7033
+    },
+    {
+      "issue_ref": "anthropics/claude-code#83422",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "https://github.com/anthropics/claude-code/issues/83422",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/captures/issue-83422.html",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "c6f6ff3aa06f893f99a5a4378de48af0da46269d48d0b0932f2602a695f4d1fd",
+      "bytes": 279354
+    },
+    {
+      "issue_ref": "RES-0014-SEEDED-KNOWN-PRESENT",
+      "rail_id": "R1-structured-api",
+      "kind": "structured-api",
+      "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+      "bytes": 799
+    },
+    {
+      "issue_ref": "RES-0014-SEEDED-KNOWN-PRESENT",
+      "rail_id": "R2-prose-html",
+      "kind": "prose-html",
+      "permalink": "fixture://operator-seeded/RES-0014-SEEDED-KNOWN-PRESENT",
+      "path": "command-center/p2-wave/probes/RES-0014/fixtures/seeded_issue.json",
+      "fetched_at": "2026-08-24T18:43:59Z",
+      "http_status": 200,
+      "sha256": "fe4c96e6d62d8bb5ba56c86d59705efebe3bebdd061270ec237699a094f6e291",
+      "bytes": 799
+    },
+    {
+      "id": "local-structured-local",
+      "kind": "structured-local",
+      "permalink": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+      "path": "command-center/p2-wave/probes/ARC-0005/seeded_classes.py",
+      "fetched_at": "2026-08-24T18:15:25Z",
+      "http_status": 200,
+      "sha256": "fd5da0eb3af8676176ad4aa995f6d8ea1469bfdabc3158b418f444ab1ff95ca2",
+      "bytes": 13739
+    },
+    {
+      "id": "local-prose-catalog",
+      "kind": "prose-catalog",
+      "permalink": "command-center/WORK-UNIT-CATALOG.json",
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "fetched_at": "2026-08-12T22:28:46Z",
+      "http_status": 200,
+      "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171",
+      "bytes": 5284323
+    }
+  ],
+  "answer": "Open/recent Claude Code tracker issues that match the three asked classes exist. Same-mechanism with this estate: #54280 ↔ RES-0008 (plugin.json version silently wins marketplace.json) and the seeded $schema control ↔ FC-11303. Same-symptom, different mechanism: #75972 (PreSkill dumps hooks.json), #16288 (plugin-sourced hooks.json never registers), #14815 (UI installed vs loader empty), #46594 (marketplace update success / 0 skills+hooks), #83422 (enabled but never installed; autoUpdate does not update installs), #44120 (skills/ ignored when .claude/ exists), #26254 (SKILL.md metadata without mount), #38670 (manifest object fields skip skill registration while hooks still load), #60725 (validate-green / install-red). Non-matches: #81551 (count only), #86809 (withdrawn instrumentation), #39468 (frontmatter hooks; plugin hooks.json fires), PATH/Git-Bash decoy. matched-issue table (each row carries a discriminating observation, not just a keyword hit):\n| issue | state | local_class | verdict | discriminating_observation |\n|---|---|---|---|---|\n| anthropics/claude-code#14815 | open | FC-11303 | SAME-SYMPTOM | SAME-MECHANISM with Codex $schema would require hooks.json parse rejection. Here the tell is contradictory install state (UI installed + 0 installs, state file vs loader). If hooks.json would fire once the loader reco... |\n| anthropics/claude-code#16288 | open | FC-11303 | SAME-SYMPTOM | If moving the identical hook command into user settings.json makes it fire, the hook engine works and the defect is plugin-sourced loading (this issue). If settings.json hooks also do not fire, look at PATH/Git-Bash (... |\n| anthropics/claude-code#26254 | open | FC-11329 | SAME-SYMPTOM | This is a Claude.ai container mount miss, not Claude Code CLI repo-vs-live two-tree drift. SAME-MECHANISM would require the CLI live skill directory to be a container mount that can omit SKILL.md while metadata still ... |\n| anthropics/claude-code#38670 | closed | FC-11329 | SAME-SYMPTOM | Hooks fire → this is not FC-11303. Skills absent because manifest validation silently skipped skill discovery, not because of two-tree copy drift. SAME-SYMPTOM with FC-11329; SAME-MECHANISM would require the estate's ... |\n| anthropics/claude-code#44120 | closed | FC-11329 | SAME-SYMPTOM | Local FC-11329 is two-tree drift (repo vs live skill directory). This issue is one plugin tree whose discovery root flips from skills/ to .claude/skills/ when .claude/ exists. SAME-MECHANISM would require the estate's... |\n| anthropics/claude-code#46594 | closed | FC-11303 | SAME-SYMPTOM | If plugin.json and marketplace.json versions already agree and the cache still serves the old tree, this is update-does-not-refresh-install (this issue), not plugin.json-wins-version (RES-0008 / #54280). The 0-skills/... |\n| anthropics/claude-code#54280 | closed | RES-0008 | SAME-MECHANISM | SAME-MECHANISM if, when the two files disagree, the installed/displayed version string equals plugin.json and marketplace.json is ignored with no warning. If the client honoured marketplace.json, or warned, this would... |\n| anthropics/claude-code#60725 | closed | RES-0008 | SAME-SYMPTOM | Install DOES error (opaque), so this is not a silent successful install. It is a silent-green validate. Distinct from #46594 (update prints success and loads 0 skills with no error) and from #54280 (install succeeds, ... |\n| anthropics/claude-code#75972 | open | FC-11303 | SAME-SYMPTOM | Same symptom (plugin looks installed; zero plugin hooks fire) but the rejected token differs: Codex $schema (unknown JSON key) vs Claude Code PreSkill (unknown event name). SAME-MECHANISM would require observing that ... |\n| anthropics/claude-code#83422 | open | FC-11303 | SAME-SYMPTOM | If installed_plugins.json lacks a row for the project path, absence of hooks/skills is never-installed, not hooks.json-rejected. The autoUpdate half is SAME-SYMPTOM as #46594 (clone refreshes, install does not). Disti... |\n| RES-0014-SEEDED-KNOWN-PRESENT | open | FC-11303 | SAME-MECHANISM | If hook scripts remain registered in the client's hook table and fail only at spawn (ENOENT/PATH), this is not FC-11303. FC-11303 requires the hook table itself to be empty or the hooks.json parse to have been rejecte... | SUCCESS:RES-0014 in the receipt AND a matched-issue table where each row carries a discriminating observation, not just a keyword hit",
+  "strongest_surviving_counterargument": "The estate's measured FC-11303 is Codex rejecting $schema; Claude Code's confirmed hook-dump token is PreSkill. Without a cross-client swap experiment, most hook-unloaded tracker rows are same-symptom. Marketplace same-mechanism is stronger because #54280 names the same two files and the same winning field as RES-0008.",
+  "dependencies_note": "RES-0001/0003/0004 artifacts are absent on this worktree. This unit does not rebuild that schema family and does not mutate command-center/schema/research-registry.schema.json (generated shim). The discriminating contract is the unit-local schema at probes/RES-0014/research-registry.schema.json. Rails are GitHub API JSON plus HTML issue pages, with sha256 of captured bytes. command-center/phase3/A1/FAILURE-MODES.json is absent; local class names are anchored in WORK-UNIT-CATALOG.json and ARC-0005 seeded_classes.py.",
+  "stripped": [
+    {
+      "loc": "reviewer",
+      "keys": [
+        "defaulted_to_refuted"
+      ]
+    }
+  ],
+  "kind": "research-registry",
+  "observations": [
+    {
+      "name": "primary_artifact_bytes",
+      "measured": 55561,
+      "method": "filesystem-stat",
+      "anchor": "command-center/research/RES-0014.json"
+    }
+  ],
+  "control_ids": [
+    "NC-ABSENT"
+  ]
+}

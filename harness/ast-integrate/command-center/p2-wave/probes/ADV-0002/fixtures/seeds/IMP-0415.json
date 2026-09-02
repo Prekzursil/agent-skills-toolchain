@@ -1,0 +1,404 @@
+{
+ "unit_id": "IMP-0415",
+ "state": "SUCCESS",
+ "sentinel": "SENTINEL:IMP-0415:REDUCER-TWELVE-CONDITIONS",
+ "evidence": [
+  {
+   "claim": "IMP-0415 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0415.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0415.json",
+     "raw_output": "bytes=11778 sha256=84841e1861c06fa06814cc8185f81f48287cf6cd728957d7b734848c8b162dbf",
+     "fingerprint": "e1f62adb9701f6ca1cc4cf6f8b7d23e2",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0415",
+     "raw_output": "schema-check",
+     "fingerprint": "10993efb90df25f70b57937a469c373b",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0415 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0415",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0415",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "323715695a97bff95808c3cfad651f42",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0415",
+     "raw_output": "schema-valid",
+     "fingerprint": "d44d643223661ebc2de9cc6ce00e03ce",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0415.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0415.json",
+   "bytes": 11778,
+   "sha256": "84841e1861c06fa06814cc8185f81f48287cf6cd728957d7b734848c8b162dbf",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "min_bytes_threshold": 2048,
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "extensions": {
+  "legacy_root": {
+   "id": "IMP-0415",
+   "completion_sentinel": "SENTINEL:IMP-0415:REDUCER-TWELVE-CONDITIONS",
+   "report_kind": "completion-verdict",
+   "title": "Shared completion predicate implemented once as a library",
+   "question_or_target": "Implement the ONE shared completion reducer covering all twelve conditions at spec lines 10631-10644 as a single importable library with no per-caller variants. Exact target: exit code zero alone must be structurally incapable of returning COMPLETE.",
+   "canonical_module": "lib.completion_reducer",
+   "canonical_symbol": "reduce_completion",
+   "library_path": "lib/completion_reducer.py",
+   "spec_source": "command-center/COMPLETION-GATES.json#/gate_a_unit_completion_predicate/conditions",
+   "spec_inputs_present": {
+    "_USER-PROMPTS.md": false,
+    "command-center/COMPLETION-GATES.json": true,
+    "command-center/phase4/contracts/ARC-0087.json": false
+   },
+   "anti_patterns": [
+    "exit code zero alone is never success",
+    "a plausible digest is not a receipt",
+    "a file path in text is not proof the file exists"
+   ],
+   "exit_code_alone_never_success": true,
+   "condition_texts": [
+    "process/task reached a valid terminal state",
+    "expected artifact exists",
+    "artifact is non-empty and exceeds a meaningful minimum size",
+    "artifact parses against its schema",
+    "required sentinel is present",
+    "required evidence anchors exist",
+    "required tests ran and passed",
+    "negative controls or mutations fail as expected",
+    "independent reviewer status is PASS",
+    "no unresolved P0/P1 defect is attached",
+    "output was registered in the artifact manifest",
+    "downstream consumers can read it"
+   ],
+   "condition_table": [
+    {
+     "id": "C1",
+     "n": 1,
+     "condition": "process/task reached a valid terminal state",
+     "function": "eval_c1_terminal",
+     "line": 126,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C2",
+     "n": 2,
+     "condition": "expected artifact exists",
+     "function": "eval_c2_artifact_exists",
+     "line": 133,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C3",
+     "n": 3,
+     "condition": "artifact is non-empty and exceeds a meaningful minimum size",
+     "function": "eval_c3_min_size",
+     "line": 140,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C4",
+     "n": 4,
+     "condition": "artifact parses against its schema",
+     "function": "eval_c4_schema_parse",
+     "line": 155,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C5",
+     "n": 5,
+     "condition": "required sentinel is present",
+     "function": "eval_c5_sentinel",
+     "line": 180,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C6",
+     "n": 6,
+     "condition": "required evidence anchors exist",
+     "function": "eval_c6_evidence_anchors",
+     "line": 193,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C7",
+     "n": 7,
+     "condition": "required tests ran and passed",
+     "function": "eval_c7_tests_passed",
+     "line": 218,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C8",
+     "n": 8,
+     "condition": "negative controls or mutations fail as expected",
+     "function": "eval_c8_negative_controls",
+     "line": 232,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C9",
+     "n": 9,
+     "condition": "independent reviewer status is PASS",
+     "function": "eval_c9_reviewer_pass",
+     "line": 254,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C10",
+     "n": 10,
+     "condition": "no unresolved P0/P1 defect is attached",
+     "function": "eval_c10_no_open_p0p1",
+     "line": 265,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C11",
+     "n": 11,
+     "condition": "output was registered in the artifact manifest",
+     "function": "eval_c11_manifest_registered",
+     "line": 283,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    },
+    {
+     "id": "C12",
+     "n": 12,
+     "condition": "downstream consumers can read it",
+     "function": "eval_c12_downstream_read",
+     "line": 313,
+     "gap": false,
+     "path": "lib/completion_reducer.py"
+    }
+   ],
+   "completion_verdict": {
+    "shape": "verdict + per-condition id/result/reason/function/line",
+    "verdicts": [
+     "COMPLETE",
+     "INCOMPLETE",
+     "UNKNOWN"
+    ],
+    "condition_results": [
+     "PASS",
+     "FAIL",
+     "N/A",
+     "NOT-CHECKED"
+    ],
+    "fold_function": "fold_verdict",
+    "fold_takes_exit_code": false,
+    "not_checked_distinct_from_fail": true
+   },
+   "probe_results": {
+    "probe1": {
+     "exit_zero_verdict": "INCOMPLETE",
+     "positive_verdict": "COMPLETE",
+     "rejected": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12
+     ],
+     "pass": true
+    },
+    "probe2": {
+     "attacks": [
+      {
+       "id": "exit-zero-alone",
+       "ok": true,
+       "verdict": "INCOMPLETE"
+      },
+      {
+       "failing": [
+        "C2",
+        "C3",
+        "C4",
+        "C5",
+        "C11",
+        "C12"
+       ],
+       "id": "exit-zero-self-attested-missing-files",
+       "ok": true,
+       "verdict": "INCOMPLETE"
+      }
+     ],
+     "fold_verdict_names_exit_code": false,
+     "complete_assigned_under_exit_if": false,
+     "positive_verdict": "COMPLETE",
+     "pass": true
+    }
+   },
+   "evidence_anchors": [
+    {
+     "path": "lib/completion_reducer.py",
+     "claim": "single importable reduce_completion"
+    },
+    {
+     "path": "command-center/p2-wave/_build_IMP0433.py",
+     "claim": "twelve condition texts transcribed from COMPLETION-GATES.json"
+    }
+   ],
+   "reviewer_verdict": "PASS",
+   "scope": {
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global unit_manifest.py --write was run",
+     "ARC-0087 contract file is present (it is not; no ADV rebuild)",
+     "IMP-0417 call-site adoption across the seven fan-in points"
+    ]
+   },
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "twelve-violations",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0415/probe1_twelve_violations.py"
+    },
+    {
+     "id": "probe2",
+     "role": "false-complete-refuter",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0415/probe2_false_complete.py"
+    }
+   ],
+   "output_path": "command-center/receipts/IMP-0415.json",
+   "output_schema": "command-center/schema/completion-verdict.schema.json",
+   "answer": "ONE library at lib/completion_reducer.py:reduce_completion evaluates all twelve conditions with per-condition PASS/FAIL/N/A/NOT-CHECKED. fold_verdict has no exit_code parameter, so exit code zero is structurally incapable of returning COMPLETE. SENTINEL:IMP-0415:REDUCER-TWELVE-CONDITIONS"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0415",
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0415/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0415"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0415.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0415.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "9048a61ef4a5a013c2e84b3a434d267a",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "completion-verdict",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 11778,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0415.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ }
+}

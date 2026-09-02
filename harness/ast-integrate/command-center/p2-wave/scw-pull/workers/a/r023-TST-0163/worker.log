@@ -1,0 +1,18 @@
+I'll start from the existing TST-0163 probe tree, read the claim-verify-gate skill and any SUBAGENT-RETURN already on disk, then resume delivery for this unit only.The probe tree exists but has no SUBAGENT-RETURN yet. I'll read the handoff, cloud-ok artifacts, and the delivery measurer next so I resume from what's already there.Cloud-ok already left this BLOCKED; I'll inspect the catalog unit, a successful delivery template, `r2e_loop.py`, and the live receipt so we can implement the actual fan-in hash contract instead of flipping state.The catalog question is a real fan-in hash check, not a harvest flip. I'll inspect a delivered unit, the concurrency schema, `r2e_loop` completion, and `ready_units` next.The implementation path is clear: add live dispatch/fan-in hashes in `r2e_loop.py`, then restore named probes that re-run to exit 0. I'll confirm the catalog and input files first.I'll add write-once dispatch hashes and a typed fan-in `CONTRACT-DRIFT` compare in `r2e_loop.py`, then restore the named probes on top of that.Next I’ll restore the two named probes so they re-run against the live fan-in hash path and write honest raw logs.Probes re-ran green. I’ll pack a schema-valid SUCCESS receipt and the per-unit manifest from those live raws.**SUCCESS:delivered TST-0163** `predicate=delivered state=SUCCESS probes=2 raws=7 notes=probe_live_fanin.py:0,spec_hash_probe.py:0`
+
+Cloud-ok was right that harvest `UNIT-COMPLETE` was not delivery: the probe scripts were missing, live `r2e_loop.py` had no dispatch hash, and the receipt was `BLOCKED`. This pass answers the catalog question on the live fan-in instead of flipping that file.
+
+**What changed**
+- `command-center/p2-wave/r2e_loop.py` now write-once records per-unit spec and launcher hashes at dispatch, recomputes both in a `sha256sum` child at fan-in, and emits typed `CONTRACT-DRIFT` naming both hashes. A `UNIT-COMPLETE` tail is no longer accepted after a mid-run edit.
+- Restored named probes under `command-center/p2-wave/probes/TST-0163/`:
+  - `probe_live_fanin.py` — live `process_unit` both-states (unedited `NO-DRIFT`, edited `CONTRACT-DRIFT`)
+  - `spec_hash_probe.py` — independent comparator, including spec-only and launcher-only
+- Both re-run to exit 0. Regression seed is the PLAN.md “UNDER ~30 tool calls” vs “there is NO tool-call cap” split.
+- Receipt `command-center/receipts/TST-0163.json` is `state=SUCCESS`, schema 0 errors, `ready_units.artifact_delivered=True`.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/receipts/TST-0163.json` with LF sha256 `762872202f592da8d0f26e9b83ed426581314c191bc186f8d915f7ec7aace6bb`.
+- `SUBAGENT-RETURN.json` written. Existing CLOUD-OK files were kept.
+
+**Still residual, not a flip**
+Declared B07 / `_USER-PROMPTS.md` / `handled-ledger.mjs` / `rules/common/fan-out-contract.md` are absent on this tree. The measurable live fan-in is `r2e_loop.py`. Condition 11 uses the per-unit manifest (STRUCTURAL-CONDITION-11 option 1). Global `unit_manifest.py --write` was not run.
+
+**Constraints kept:** no git add/commit/push/stash/checkout/rebase; no global catalog `--write`; no key rotation; no `finish-everything-close` or `p2-cloud-ok-deliver` relaunch.

@@ -1,0 +1,94 @@
+{
+  "control_operator_id": "H-LVR-NEVER-FIRE",
+  "control_rationale": "Forces fired=False after detect. A working oracle must kill this mutant: drifted trees must still surface a warning. Named before any survival rate is computed.",
+  "operators": [
+    {
+      "applies_to": "hook",
+      "description": "Force the Stop-hook into the silent branch after a real detect() call.",
+      "find": "    result = detect(repo, live)\n    path = surface_warning(result)\n",
+      "id": "H-LVR-NEVER-FIRE",
+      "is_control": true,
+      "pit_analogue": "LVR",
+      "replace": "    result = detect(repo, live)\n    result = dict(result)\n    result[\"fired\"] = False\n    result[\"silent\"] = True\n    path = surface_warning(result)\n"
+    },
+    {
+      "applies_to": "hook",
+      "description": "Force the Stop-hook into the fire branch after a real detect() call.",
+      "find": "    result = detect(repo, live)\n    path = surface_warning(result)\n",
+      "id": "H-LVR-ALWAYS-FIRE",
+      "is_control": false,
+      "pit_analogue": "LVR",
+      "replace": "    result = detect(repo, live)\n    result = dict(result)\n    result[\"fired\"] = True\n    result[\"silent\"] = False\n    path = surface_warning(result)\n"
+    },
+    {
+      "applies_to": "hook",
+      "description": "Invert the fire predicate that decides whether WARNING.txt is written.",
+      "find": "    if payload.get(\"fired\"):\n",
+      "id": "H-ROR-INVERT-FIRE",
+      "is_control": false,
+      "pit_analogue": "ROR",
+      "replace": "    if not payload.get(\"fired\"):\n"
+    },
+    {
+      "applies_to": "hook",
+      "description": "Delete the statement that writes WARNING.txt.",
+      "find": "        SURFACE.write_text(text, encoding=\"utf-8\")\n",
+      "id": "H-SDL-DROP-WRITE",
+      "is_control": false,
+      "pit_analogue": "SDL",
+      "replace": "        pass  # H-SDL-DROP-WRITE\n"
+    },
+    {
+      "applies_to": "hook",
+      "description": "Delete the statement that clears a stale WARNING.txt.",
+      "find": "        SURFACE.unlink()\n",
+      "id": "H-SDL-DROP-UNLINK",
+      "is_control": false,
+      "pit_analogue": "SDL",
+      "replace": "        pass  # H-SDL-DROP-UNLINK\n"
+    },
+    {
+      "applies_to": "hook",
+      "description": "Swap detect() arguments (repo, live) -> (live, repo).",
+      "find": "    result = detect(repo, live)\n",
+      "id": "H-AOR-SWAP-ARGS",
+      "is_control": false,
+      "pit_analogue": "AOR",
+      "replace": "    result = detect(live, repo)\n"
+    },
+    {
+      "applies_to": "hook",
+      "description": "Comment-only no-op. Equivalent mutant by construction.",
+      "find": "def run(repo: Path | None = None, live: Path | None = None) -> dict:\n",
+      "id": "H-NOOP-COMMENT",
+      "is_control": false,
+      "pit_analogue": "NOOP",
+      "replace": "def run(repo: Path | None = None, live: Path | None = None) -> dict:  # H-NOOP-COMMENT\n"
+    }
+  ],
+  "published_at": "2026-08-24T00:00:00Z",
+  "published_before_any_rate": true,
+  "target_class": "hook",
+  "target_path": "command-center/p2-wave/probes/ARC-0005/stop_hook.py",
+  "unit_id": "RES-0090",
+  "unmeasured_skill_rule_operators": [
+    {
+      "applies_to": "skill",
+      "id": "S-MUST-TO-MAY",
+      "note": "Well-defined text transform (MUST -> MAY) but a survival rate is NOT-ESTABLISHED without a mechanical skill oracle.",
+      "pit_analogue": "LVR"
+    },
+    {
+      "applies_to": "skill",
+      "id": "S-DROP-CONSTRAINT",
+      "note": "Statement deletion on a skill constraint. Not scored: this worktree has no independent skill oracle.",
+      "pit_analogue": "SDL"
+    },
+    {
+      "applies_to": "rule",
+      "id": "R-NEGATE-PREDICATE",
+      "note": "Invert a MUST-NOT. Not scored: no mechanical rule oracle on this worktree.",
+      "pit_analogue": "ROR"
+    }
+  ]
+}

@@ -1,0 +1,3145 @@
+[
+  {
+    "id": "IMP-0385",
+    "title": "Capability index builder over all six capability roots",
+    "phase": "8",
+    "question_or_target": "Implement tools/router/index_build.py so ONE crawler enumerates every skill, plugin, command, workflow, hook and MCP tool from the six capability roots (~/.claude/skills, ~/.agents/skills, ~/.claude/plugins, ~/.claude/commands, repo skills/, repo workflows/) into a single capability-index.json keyed by a stable capability_id. Exact question: does the crawler's per-root count match an independent PowerShell Get-ChildItem census to within ZERO, and does it survive a root containing a file named NUL?",
+    "inputs": [
+      "~/.claude/skills",
+      "~/.agents/skills",
+      "~/.claude/plugins",
+      "~/.claude/commands",
+      "<REPO>/skills",
+      "<REPO>/workflows",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "dependencies": [
+      "IMP-0433",
+      "IMP-0467",
+      "B01",
+      "B06"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Grep",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0385.json",
+    "output_schema": "command-center/schema/capability-index.schema.json",
+    "evidence_requirement": "Per-root count parity table: python crawler count vs an independent PowerShell Get-ChildItem -Recurse census (mechanically different shell). Zero diff required. Plus the raw stderr of a run against a root seeded with a NUL-named file.",
+    "tests_required": "unit: crawler over a fixture tree carrying one known-present capability AND one known-absent sentinel id; assert 1 and 0 respectively (detector control). regression: os.path.relpath against a \\\\.\\NUL path must not abort the walk.",
+    "reviewer_requirement": "independent-claude-reviewer who did not write the crawler; must re-derive the census from a fresh PowerShell session",
+    "completion_sentinel": "SENTINEL:IMP-0385:CAPABILITY-INDEX-BUILT",
+    "retry_policy": "max 2 attempts, backoff 30s/120s; on the 2nd failure stop and enumerate >=2 alternative enumeration strategies before any 3rd attempt (AGENTS.md 4b)",
+    "failure_classification": "P1-blocking / classes: path-casing-collision, long-path-overflow, reserved-device-name, crawler-crash-swallowed-as-zero",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0386",
+    "title": "Heterogeneous descriptor normalizer into one CapabilityRecord",
+    "phase": "8",
+    "question_or_target": "Implement tools/router/normalize.py mapping four descriptor formats (SKILL.md YAML frontmatter, plugin.json, workflow module header, MCP tool JSON-Schema) onto one CapabilityRecord. Exact question: which of the four formats loses information in the mapping, and exactly which field is dropped? Emit a lossy-field register rather than silently discarding.",
+    "inputs": [
+      "command-center/receipts/IMP-0385.json",
+      "capability-index.json",
+      "<REPO>/schema/capability-record.schema.json"
+    ],
+    "dependencies": [
+      "IMP-0385"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0386.json",
+    "output_schema": "command-center/schema/capability-record.schema.json",
+    "evidence_requirement": "A lossy-field register listing every source key with no CapabilityRecord destination, one row per source format, each row citing a concrete source file:line where that key appears.",
+    "tests_required": "round-trip property test: normalize(parse(x)) preserves every key listed as lossless; a planted extra key in each of the four formats must appear in the lossy register (negative control).",
+    "reviewer_requirement": "independent-codex-reviewer via mcp__codex__codex with fresh context, given only the four raw formats and the schema",
+    "completion_sentinel": "SENTINEL:IMP-0386:CAPABILITY-RECORD-NORMALIZED",
+    "retry_policy": "max 2 attempts; a second schema-invalid outcome escalates to the contracts bucket rather than being retried",
+    "failure_classification": "P2-degraded / classes: schema-invalid, silent-field-drop",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0387",
+    "title": "Frontmatter load-semantics resolver (always-on vs path-scoped)",
+    "phase": "8",
+    "question_or_target": "Implement the loader-semantics resolver that decides, per capability file, whether it is injected at turn 0 or lazily on a path match. Exact target: reproduce the measured inversion - a rule with NO paths: frontmatter is ALWAYS-ON and adding paths:[\"**/*\"] DEMOTES it to lazy - and expose it as a queryable load_mode field so no future change 'arms' a file by adding frontmatter.",
+    "inputs": [
+      "~/.claude/rules/**",
+      "<REPO>/rules/**",
+      "capability-index.json",
+      "grok inspect --json output"
+    ],
+    "dependencies": [
+      "IMP-0386"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0387.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A two-column table of every rules file: predicted load_mode vs the load_mode reported by a direct measurement (grok inspect --json or equivalent instrument). Disagreements are the finding; the instrument wins.",
+    "tests_required": "both-states test: a fixture rule with no frontmatter must resolve ALWAYS-ON and the same file WITH paths:[\"**/*\"] must resolve LAZY. A resolver that returns the same answer for both fails.",
+    "reviewer_requirement": "independent-claude-reviewer; must confirm the inversion against the instrument, not against the prose",
+    "completion_sentinel": "SENTINEL:IMP-0387:LOAD-SEMANTICS-RESOLVED",
+    "retry_policy": "no automatic retry; a wrong answer here silently changes what loads at turn 0 - escalate",
+    "failure_classification": "P1-blocking / classes: inference-over-measurement, detector-silent-both-states",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0388",
+    "title": "Routing-description quality linter with negative-scope coverage",
+    "phase": "8",
+    "question_or_target": "Implement tools/router/desc_lint.py scoring every capability description on four axes: trigger enumeration, explicit negative scope (a do-NOT-use-for clause), disambiguation against its nearest sibling, and vocabulary that is enumerated rather than a bare tag name. Exact question: how many of the indexed capabilities have ZERO negative-scope clause, and which pair of capabilities is most confusable by description alone?",
+    "inputs": [
+      "capability-index.json",
+      "command-center/receipts/IMP-0386.json"
+    ],
+    "dependencies": [
+      "IMP-0386"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Bash:python"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0388.json",
+    "output_schema": "command-center/schema/desc-lint-report.schema.json",
+    "evidence_requirement": "Ranked confusability table (top 20 pairs) with the token-overlap score and both descriptions quoted; plus the exact count of zero-negative-scope capabilities with ids listed.",
+    "tests_required": "planted-mutant control: rename one capability and rewrite its description as a paraphrase of a sibling; the linter must surface that pair in the top 5 confusable pairs.",
+    "reviewer_requirement": "independent-claude-reviewer plus a cross-vendor codex critic on the top-5 confusable pairs only",
+    "completion_sentinel": "SENTINEL:IMP-0388:DESCRIPTION-LINT-COMPLETE",
+    "retry_policy": "max 3 attempts for transient provider 429/529 only; zero retries on a schema-invalid report",
+    "failure_classification": "P3-advisory / classes: lexical-only-similarity, paraphrase-blind-spot",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0389",
+    "title": "Deterministic rule-based matcher (first-stage router)",
+    "phase": "8",
+    "question_or_target": "Implement the deterministic first stage: a trigger table matching on literal keyword, glob path, cwd prefix, and tool-verb, with NO model call. Exact target: every selection this stage makes must be explainable by naming the exact table row that fired, and the stage must be able to return the empty set.",
+    "inputs": [
+      "capability-index.json",
+      "command-center/receipts/IMP-0388.json"
+    ],
+    "dependencies": [
+      "IMP-0385",
+      "IMP-0388"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0389.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "For a 60-query labelled corpus, a per-query trace naming the fired row id; and at least 8 queries where the correct answer is the empty set and the stage returns empty.",
+    "tests_required": "unit per matcher kind (keyword/glob/cwd/verb); negative control: 8 no-fit queries must yield zero rows, and a mutation that deletes one trigger row must turn exactly one labelled query red.",
+    "reviewer_requirement": "independent-claude-reviewer; must verify the empty-set path is reachable and not swallowed by a default",
+    "completion_sentinel": "SENTINEL:IMP-0389:RULE-MATCHER-DETERMINISTIC",
+    "retry_policy": "max 2 attempts, backoff 30s/120s; two-strikes pivot to a table-driven rewrite",
+    "failure_classification": "P2-degraded / classes: use-vs-mention (matching payload text instead of semantic role), always-fires-default",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0390",
+    "title": "Semantic matcher with pinned local embedding model and offline fallback",
+    "phase": "8",
+    "question_or_target": "Implement the second-stage semantic matcher over capability descriptions using a version-PINNED local embedding model, with a documented offline fallback when the model is unavailable. Exact question: does the semantic stage recover the paraphrase pairs that the lexical linter provably cannot, measured on the planted-mutant set from IMP-0388?",
+    "inputs": [
+      "capability-index.json",
+      "command-center/receipts/IMP-0388.json",
+      "pinned embedding model artifact"
+    ],
+    "dependencies": [
+      "IMP-0388",
+      "IMP-0389"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:uv"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0390.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Recall@5 on the planted-mutant paraphrase set for lexical vs semantic, same control set, same seed; plus the exact pinned model id and digest.",
+    "tests_required": "determinism test: same query + same pinned model + same seed yields byte-identical ranking twice. Offline test: with the model absent, the matcher must degrade LOUDLY (typed DEGRADED result), never silently return lexical results labelled as semantic.",
+    "reviewer_requirement": "independent-codex-reviewer, fresh context, must re-run the recall measurement",
+    "completion_sentinel": "SENTINEL:IMP-0390:SEMANTIC-MATCHER-PINNED",
+    "retry_policy": "max 3 attempts for model-fetch transients; zero retries on a nondeterministic ranking - that is a design defect",
+    "failure_classification": "P2-degraded / classes: unpinned-model-drift, silent-fallback-mislabel",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0391",
+    "title": "Rank fusion and confidence calibration across the two matcher stages",
+    "phase": "8",
+    "question_or_target": "Implement reciprocal-rank fusion of the deterministic and semantic stages and attach a CALIBRATED confidence to each returned capability. Exact question: on the labelled corpus, is the reported confidence calibrated - does the 0.9 band actually contain about 90 percent correct selections - or is it an uncalibrated score being displayed as a probability?",
+    "inputs": [
+      "command-center/receipts/IMP-0389.json",
+      "command-center/receipts/IMP-0390.json",
+      "labelled query corpus"
+    ],
+    "dependencies": [
+      "IMP-0389",
+      "IMP-0390"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0391.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A reliability diagram (bin, predicted confidence, observed accuracy, n) over the labelled corpus, with the Brier score; any bin whose observed accuracy is outside its band by more than 0.15 must be named.",
+    "tests_required": "calibration regression: a deliberately miscalibrated fusion weight must move at least one bin outside tolerance and turn the test red (mutation control).",
+    "reviewer_requirement": "2 independent reviewers: a correctness reviewer and an adversarial refuter who defaults to REFUTED on insufficient evidence",
+    "completion_sentinel": "SENTINEL:IMP-0391:FUSION-CALIBRATED",
+    "retry_policy": "max 2 attempts; a second uncalibrated result escalates - do not tune weights a third time without a fresh-context re-derivation",
+    "failure_classification": "P1-blocking / classes: uncalibrated-score-as-probability, overfit-to-corpus",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0392",
+    "title": "Top-k injection budgeter with a hard context-flood ceiling",
+    "phase": "8",
+    "question_or_target": "Implement the injection budgeter: a per-capability token-cost model, a hard total ceiling, and a refusal to inject past it. Exact target: reproduce and then prevent the measured skills-context-budget overflow that was the root cause of naive-session behavior, and prove the ceiling holds when 40 capabilities all score above threshold.",
+    "inputs": [
+      "capability-index.json",
+      "command-center/receipts/IMP-0391.json"
+    ],
+    "dependencies": [
+      "IMP-0391"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0392.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Measured injected-token count for the 40-above-threshold adversarial case, taken from a real tokenizer count of the emitted payload, not from an estimate.",
+    "tests_required": "ceiling test at k=40 must cap; a mutation raising the ceiling constant must turn the test red. Explicit test that the cap is enforced in the MAIN shell, not inside a command substitution where a counter mutation would be lost.",
+    "reviewer_requirement": "independent-claude-reviewer; must confirm the counter is not mutated inside a subshell",
+    "completion_sentinel": "SENTINEL:IMP-0392:INJECTION-BUDGET-ENFORCED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s; two-strikes pivot to a hard truncation strategy",
+    "failure_classification": "P1-blocking / classes: counter-lost-in-subshell, estimate-instead-of-measurement, context-flood",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0393",
+    "title": "Capability conflict resolution with most-specific-scope-wins",
+    "phase": "8",
+    "question_or_target": "Implement conflict resolution for a capability name that resolves to more than one record: directory-scoped versus unscoped variants, and the same skill present in two duplicated deployed trees. Exact question: for every duplicated name in the index, which record wins, and is the winner deterministic across two runs from different cwds?",
+    "inputs": [
+      "capability-index.json",
+      "~/.agents/skills",
+      "~/.claude/skills"
+    ],
+    "dependencies": [
+      "IMP-0385",
+      "IMP-0391"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0393.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Full list of duplicated capability names with both candidate paths, the winner, and the rule that decided it; plus a same-input-different-cwd determinism check.",
+    "tests_required": "fixture with a scoped and an unscoped variant of one name; assert most-specific wins from inside the scoped directory and unscoped wins outside it. Negative control: a name with no duplicate must not enter the resolution path at all.",
+    "reviewer_requirement": "independent-claude-reviewer; must check the two duplicated deployed trees specifically",
+    "completion_sentinel": "SENTINEL:IMP-0393:CONFLICTS-RESOLVED-DETERMINISTIC",
+    "retry_policy": "max 2 attempts; escalate on any nondeterministic winner",
+    "failure_classification": "P2-degraded / classes: duplicate-tree-shadowing, cwd-dependent-nondeterminism",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0394",
+    "title": "User override layer: pin, ban, and per-project precedence",
+    "phase": "8",
+    "question_or_target": "Implement the override layer so the owner can pin a capability always-on, ban one outright, and set per-project overrides, with an explicit precedence order. Exact target: an owner ban must beat every score the router can produce, and the precedence order must be printed, not implied.",
+    "inputs": [
+      "capability-index.json",
+      "~/.claude/settings.json",
+      "<PROJECT>/.claude/settings.json"
+    ],
+    "dependencies": [
+      "IMP-0393"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0394.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A precedence table with a worked example per level, and a demonstration that a banned capability scoring 0.99 is still excluded.",
+    "tests_required": "ban-beats-score test; pin-survives-budget test (a pinned capability must not be dropped by the IMP-0392 ceiling); per-project override must not leak into a sibling project (session/project keying).",
+    "reviewer_requirement": "independent-claude-reviewer plus owner-visible read of the precedence table",
+    "completion_sentinel": "SENTINEL:IMP-0394:OVERRIDES-PRECEDENCE-FIXED",
+    "retry_policy": "no automatic retry; an override bug silently disables owner control",
+    "failure_classification": "P1-blocking / classes: score-overrides-owner, cross-project-leak",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0395",
+    "title": "Selection-explanation emitter with near-miss disclosure",
+    "phase": "8",
+    "question_or_target": "Implement the explanation record: for each selection, why this capability, which rule or score produced it, and which capabilities were near-misses that did NOT make the cut. Exact question: can an owner reading only the explanation reconstruct the decision without re-running the router?",
+    "inputs": [
+      "command-center/receipts/IMP-0391.json",
+      "command-center/receipts/IMP-0394.json"
+    ],
+    "dependencies": [
+      "IMP-0391",
+      "IMP-0394"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/receipts/IMP-0395.json",
+    "output_schema": "command-center/schema/router-explanation.schema.json",
+    "evidence_requirement": "Three worked explanations from the labelled corpus, each independently reconstructed by a reviewer who was given only the explanation and the index.",
+    "tests_required": "reconstruction test: a script consuming only the explanation must reproduce the selected set exactly; if it cannot, the explanation is incomplete and the test fails.",
+    "reviewer_requirement": "independent-claude-reviewer performs the blind reconstruction",
+    "completion_sentinel": "SENTINEL:IMP-0395:EXPLANATION-RECONSTRUCTIBLE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P3-advisory / classes: explanation-omits-near-miss",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0396",
+    "title": "Explicit NO-CAPABILITY-FITS terminal verdict",
+    "phase": "8",
+    "question_or_target": "Implement the no-fit path so the router emits an explicit typed NO-CAPABILITY-FITS verdict with the closest rejected candidates, rather than injecting a weak match. Exact target: silence must be impossible - every route call returns a terminal state, either a selection or an explicit no-fit.",
+    "inputs": [
+      "command-center/receipts/IMP-0395.json",
+      "labelled no-fit query set"
+    ],
+    "dependencies": [
+      "IMP-0389",
+      "IMP-0395"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/receipts/IMP-0396.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Terminal-state audit: for 100 random queries, assert 100 terminal verdicts and zero empty or null returns.",
+    "tests_required": "no-fit corpus must all return NO-CAPABILITY-FITS; a mutation lowering the threshold so a weak match is injected must turn the test red.",
+    "reviewer_requirement": "independent-claude-reviewer; must attempt to construct a query that returns neither a selection nor a no-fit",
+    "completion_sentinel": "SENTINEL:IMP-0396:NO-FIT-TERMINAL",
+    "retry_policy": "max 2 attempts; two-strikes pivot",
+    "failure_classification": "P2-degraded / classes: weak-match-injected-as-fit, non-terminal-return",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0397",
+    "title": "Router telemetry: capability-breadth and task-success join",
+    "phase": "8",
+    "question_or_target": "Implement privacy-scrubbed router telemetry recording which capabilities were offered, which were used, and the eventual task outcome, joined on a session-scoped key. Exact question: what fraction of the indexed repertoire is ever offered in a month, and does offering a capability correlate with task success?",
+    "inputs": [
+      "command-center/events/EVENTS.jsonl",
+      "~/.claude/event-ledger/",
+      "capability-index.json"
+    ],
+    "dependencies": [
+      "IMP-0395",
+      "IMP-0455",
+      "IMP-0479"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0397.json",
+    "output_schema": "command-center/schema/router-telemetry.schema.json",
+    "evidence_requirement": "Breadth figure with its denominator stated (offered / total indexed), and the join key named; any record that could carry a path outside the estate must be shown scrubbed.",
+    "tests_required": "scrub test: a planted secret-shaped token and a planted absolute user path must both be absent from the emitted telemetry (negative control on the scrubber).",
+    "reviewer_requirement": "cross-vendor-codex-reviewer plus a claude privacy reviewer; both must PASS",
+    "completion_sentinel": "SENTINEL:IMP-0397:ROUTER-TELEMETRY-SCRUBBED",
+    "retry_policy": "no automatic retry on a scrub failure - that is a disclosure risk, escalate immediately",
+    "failure_classification": "P0-blocking / classes: telemetry-leak, unscoped-join-key",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0398",
+    "title": "Router regression corpus with mandatory negative queries",
+    "phase": "8",
+    "question_or_target": "Build the labelled router regression corpus: query, expected capability set, and rationale - with at least 25 percent NEGATIVE queries whose expected set is empty. Exact target: a corpus that cannot be satisfied by a router that always returns the top-3 most popular capabilities.",
+    "inputs": [
+      "capability-index.json",
+      "~/.claude/projects/**/transcripts (redacted)",
+      "command-center/receipts/IMP-0396.json"
+    ],
+    "dependencies": [
+      "IMP-0396"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0398.json",
+    "output_schema": "command-center/schema/router-corpus.schema.json",
+    "evidence_requirement": "Corpus size, negative-query fraction, and the measured score of an always-top-3 baseline on it; if that baseline scores well the corpus is too easy and must be rebuilt.",
+    "tests_required": "baseline-defeat test: the always-top-3 stub must score below the declared floor. Corpus schema test.",
+    "reviewer_requirement": "independent-claude-reviewer relabels a random 10 percent blind and must agree at kappa >= 0.7",
+    "completion_sentinel": "SENTINEL:IMP-0398:ROUTER-CORPUS-BASELINE-DEFEATING",
+    "retry_policy": "max 2 attempts; if the baseline still scores well after 2, redesign the corpus rather than re-tune",
+    "failure_classification": "P1-blocking / classes: corpus-too-easy, popularity-bias",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0399",
+    "title": "Router mutation harness proving the regression suite detects what it claims",
+    "phase": "8",
+    "question_or_target": "Implement the router mutation harness: programmatically corrupt one description, delete one trigger row, invert one precedence rule, and unpin the embedding model - and assert the regression suite goes RED for each. Exact question: how many of the four mutations SURVIVE the suite, and what exactly is unprotected for each survivor?",
+    "inputs": [
+      "command-center/receipts/IMP-0398.json",
+      "router source tree"
+    ],
+    "dependencies": [
+      "IMP-0398"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0399.json",
+    "output_schema": "command-center/schema/mutation-report.schema.json",
+    "evidence_requirement": "Mutation table: mutation, expected red, observed result, and for every survivor the exact behavior left unprotected. A suite that stays green on all four is a broken detector, not a passing suite.",
+    "tests_required": "the harness itself needs a control: one mutation known to be caught must be caught, proving the harness can observe redness at all.",
+    "reviewer_requirement": "adversarial refuter who defaults to REFUTED; must attempt a fifth mutation of their own design",
+    "completion_sentinel": "SENTINEL:IMP-0399:ROUTER-MUTATIONS-SCORED",
+    "retry_policy": "max 2 attempts; a harness that reports zero mutations caught is a detector failure - fix the harness before re-running",
+    "failure_classification": "P1-blocking / classes: mutation-survives, detector-silent-both-states",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0400",
+    "title": "Router-versus-live-baseline benchmark on breadth and precision",
+    "phase": "8",
+    "question_or_target": "Measure the new router against the CURRENT live selection behavior on the same corpus: precision@k, recall of relevant capabilities, and repertoire breadth. Exact question: does the new router beat the live baseline on breadth WITHOUT losing precision, and if it trades one for the other, by exactly how much?",
+    "inputs": [
+      "command-center/receipts/IMP-0398.json",
+      "live selection logs",
+      "router build artifact"
+    ],
+    "dependencies": [
+      "IMP-0398",
+      "IMP-0399"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0400.json",
+    "output_schema": "command-center/schema/benchmark-result.schema.json",
+    "evidence_requirement": "Paired comparison on identical queries with confidence intervals; the baseline must be captured BEFORE the router is armed, not reconstructed afterwards.",
+    "tests_required": "benchmark determinism: two runs on the same frozen corpus and pinned model must agree within the declared tolerance.",
+    "reviewer_requirement": "independent-codex-reviewer re-runs the benchmark from the receipt alone",
+    "completion_sentinel": "SENTINEL:IMP-0400:ROUTER-BENCHMARK-PAIRED",
+    "retry_policy": "max 3 attempts for provider transients only",
+    "failure_classification": "P2-degraded / classes: baseline-reconstructed-after-the-fact, benchmark-gaming",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0401",
+    "title": "Repo-versus-live capability presence gap detector",
+    "phase": "8",
+    "question_or_target": "Implement the detector for spec failure class 'skill exists in repo but not in live skill directory' as a ROUTER-visible defect: the index must flag any capability the router could select that cannot actually load. Exact question: how many indexed capabilities are repo-only, and how many are live-only?",
+    "inputs": [
+      "capability-index.json",
+      "<REPO>/skills",
+      "~/.claude/skills",
+      "~/.agents/skills"
+    ],
+    "dependencies": [
+      "IMP-0385",
+      "IMP-0393"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Glob",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0401.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Two disjoint lists (repo-only, live-only) with counts, produced by set difference over capability_id - a mechanical comparison, not a judgement call.",
+    "tests_required": "detector control: plant one repo-only and one live-only fixture capability; both must appear. A capability present in both must NOT appear.",
+    "reviewer_requirement": "independent-claude-reviewer re-computes the set difference independently",
+    "completion_sentinel": "SENTINEL:IMP-0401:PRESENCE-GAP-ENUMERATED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: selectable-but-unloadable, one-directional-comparison",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0402",
+    "title": "Index staleness invalidation keyed on content hash",
+    "phase": "8",
+    "question_or_target": "Implement cache invalidation for the capability index using content hash plus mtime, with an explicit corrupted-cache recovery path. Exact target: editing a capability description must change the router's answer on the very next call, and a truncated cache file must trigger a rebuild rather than a crash or a silently empty index.",
+    "inputs": [
+      "capability-index.json",
+      "router cache directory"
+    ],
+    "dependencies": [
+      "IMP-0385"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0402.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Timed edit-then-query trace showing the changed answer, plus the observed behavior on a deliberately truncated and a deliberately zero-byte cache file.",
+    "tests_required": "corrupted-cache test (truncated, zero-byte, wrong-schema); each must rebuild, and an EMPTY rebuilt index must be treated as a failure not a success.",
+    "reviewer_requirement": "independent-claude-reviewer; must specifically check that an empty index is not reported as OK",
+    "completion_sentinel": "SENTINEL:IMP-0402:INDEX-INVALIDATION-SAFE",
+    "retry_policy": "max 2 attempts; two-strikes pivot to unconditional rebuild",
+    "failure_classification": "P1-blocking / classes: stale-cache-masks-fix, empty-cache-reports-ok",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0403",
+    "title": "Owner-facing route dry-run CLI",
+    "phase": "8",
+    "question_or_target": "Ship an ast route CLI that answers, for an arbitrary query string, exactly what the router would select, with confidence, explanation and near-misses - WITHOUT injecting anything. Exact target: an owner can audit routing behavior without starting a session.",
+    "inputs": [
+      "command-center/receipts/IMP-0395.json",
+      "command-center/receipts/IMP-0396.json"
+    ],
+    "dependencies": [
+      "IMP-0395",
+      "IMP-0396"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0403.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Recorded terminal transcript of three dry runs including one no-fit query, showing exit code 0 and structured output on stdout.",
+    "tests_required": "CLI contract test: documented flags all parse; a documented example in the help text is executed verbatim by the test (documentation command test).",
+    "reviewer_requirement": "independent-claude-reviewer runs only the documented examples, nothing else",
+    "completion_sentinel": "SENTINEL:IMP-0403:ROUTE-CLI-SHIPPED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P3-advisory / classes: doc-command-drift, shell-quoting-corruption",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0404",
+    "title": "Router hook integration contract with guaranteed fail-open",
+    "phase": "8",
+    "question_or_target": "Wire the router into the harness hook surface (prompt-submit and pre-tool) so injection is additive-only and any router error exits 0. Exact question: with the router forced to raise on every call, does the session still function normally with zero blocked tools?",
+    "inputs": [
+      "~/.claude/hooks/_dispatch/manifest.json (repo source, NOT the deployed copy)",
+      "router build artifact"
+    ],
+    "dependencies": [
+      "IMP-0392",
+      "IMP-0396",
+      "IMP-0403"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0404.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A forced-exception run: router patched to raise, full session smoke passes, hook exit codes all 0, zero exit-2 events in the hook log.",
+    "tests_required": "fail-open test with a forced exception; block-never test asserting the router can never emit exit 2; edit-the-repo-source test asserting the deployed copy was not hand-edited.",
+    "reviewer_requirement": "independent-claude-reviewer plus a security reviewer confirming no new block path was introduced",
+    "completion_sentinel": "SENTINEL:IMP-0404:ROUTER-HOOK-FAIL-OPEN",
+    "retry_policy": "no automatic retry; a hook that can block is an availability risk - escalate",
+    "failure_classification": "P0-blocking / classes: hook-blocks-on-ambiguity, deployed-copy-edited-instead-of-source",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0405",
+    "title": "Capability tombstone and rename-redirect handling",
+    "phase": "8",
+    "question_or_target": "Implement tombstone records so a renamed or retired capability still resolves - the router must follow a redirect rather than returning a dead selection. Exact question: how many redirect tombstones exist in the current trees, and does each one resolve to a live target?",
+    "inputs": [
+      "capability-index.json",
+      "known tombstone skills (renamed/retired)"
+    ],
+    "dependencies": [
+      "IMP-0393",
+      "IMP-0401"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/receipts/IMP-0405.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Tombstone table: old id, new id, and a resolution probe result per row; any row resolving to a missing target is a defect, not a note.",
+    "tests_required": "redirect test on a real tombstone; cycle test asserting a tombstone chain cannot loop; negative control asserting a live capability is never treated as a tombstone.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0405:TOMBSTONES-RESOLVE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P3-advisory / classes: dead-redirect, tombstone-cycle",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0406",
+    "title": "Router shadow mode: log the would-be selection without injecting",
+    "phase": "8",
+    "question_or_target": "Ship the router in SHADOW mode first: it computes and logs what it WOULD have injected, and injects nothing, until calibration data justifies arming it. Exact target: a documented arming criterion expressed as a number, plus proof that shadow mode has zero effect on session behavior.",
+    "inputs": [
+      "command-center/receipts/IMP-0404.json",
+      "command-center/receipts/IMP-0397.json"
+    ],
+    "dependencies": [
+      "IMP-0397",
+      "IMP-0404"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0406.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A/B diff of two identical sessions, shadow on and shadow off, showing byte-identical injected context; plus the numeric arming criterion written into the config, not into prose.",
+    "tests_required": "zero-effect test: shadow mode must not change the injected payload by a single byte. Arming-gate test: with calibration below the criterion, arming must be refused.",
+    "reviewer_requirement": "independent-claude-reviewer plus owner sign-off before any transition out of shadow",
+    "completion_sentinel": "SENTINEL:IMP-0406:ROUTER-SHADOW-ZERO-EFFECT",
+    "retry_policy": "no automatic retry; arming the router is an owner decision, not a retry outcome",
+    "failure_classification": "P1-blocking / classes: shadow-mode-leaks-into-context, arming-without-criterion",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0407",
+    "title": "Session discovery across Claude and Codex on-disk state",
+    "phase": "9",
+    "question_or_target": "Implement session discovery that enumerates every live agent session from on-disk state (Claude projects transcripts, Codex thread state) into one session registry with vendor, session id, cwd and start time. Exact question: how many sessions does each vendor's own state directory report, and do the two enumerations disagree with the process table?",
+    "inputs": [
+      "~/.claude/projects/**",
+      "$CODEX_HOME session state",
+      "process table snapshot"
+    ],
+    "dependencies": [
+      "IMP-0433",
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0407.json",
+    "output_schema": "command-center/schema/session-registry.schema.json",
+    "evidence_requirement": "Three-column reconciliation: on-disk state count, process-table count, and registry count, with every disagreement named. A probe whose own command line matches its search pattern must be excluded and that exclusion demonstrated.",
+    "tests_required": "self-match control: the discovery probe must not report itself as a session (the CreationDate-equals-probe-runtime tell). Known-present control: a session started 60s earlier must appear.",
+    "reviewer_requirement": "independent-claude-reviewer re-enumerates from a mechanically different source (process table vs state files)",
+    "completion_sentinel": "SENTINEL:IMP-0407:SESSION-REGISTRY-RECONCILED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s; two-strikes pivot to a single-source registry with a declared blind spot",
+    "failure_classification": "P2-degraded / classes: probe-matches-itself, single-signal-enumeration",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0408",
+    "title": "Two-signal session liveness with an explicit no-mtime rule",
+    "phase": "9",
+    "question_or_target": "Implement liveness as an AND-gate of at least two mechanically independent signals (process CPU delta AND artifact byte-growth), and make mtime-only liveness unrepresentable in the API. Exact target: a long-finished session and a stalled session must be distinguishable, or the API must refuse to answer.",
+    "inputs": [
+      "command-center/receipts/IMP-0407.json",
+      "session artifact directories"
+    ],
+    "dependencies": [
+      "IMP-0407",
+      "IMP-0447"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0408.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Measured CPU delta over a 20s window plus byte growth for one live and one long-finished session; the two cases must produce different verdicts from the same code path.",
+    "tests_required": "both-states test: the liveness call must return ALIVE for a running fixture and NOT-ALIVE for a finished one. A stalled-versus-finished case must return UNDECIDABLE rather than guessing.",
+    "reviewer_requirement": "adversarial refuter; must try to make the detector report a finished session as stalled",
+    "completion_sentinel": "SENTINEL:IMP-0408:LIVENESS-TWO-SIGNAL",
+    "retry_policy": "no automatic retry; a wrong liveness verdict authorizes a kill - escalate",
+    "failure_classification": "P0-blocking / classes: mtime-only-stall-claim, single-signal-verdict",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0409",
+    "title": "Crash-safe work-claim protocol with TTL",
+    "phase": "9",
+    "question_or_target": "Implement claim acquire, renew and release for a work unit using atomic tmp-plus-rename with a TTL, so two sessions can never both hold the same unit. Exact question: under 50 concurrent acquire attempts on one unit id, how many claims are granted?",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/claims/"
+    ],
+    "dependencies": [
+      "IMP-0407",
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0409.json",
+    "output_schema": "command-center/schema/work-claim.schema.json",
+    "evidence_requirement": "Concurrency run output: 50 attempts, exactly 1 grant, 49 typed DENIED results with reason codes. Raw counts, not a summary sentence.",
+    "tests_required": "concurrency test at N=50; crash test where the holder is killed mid-claim and the TTL must eventually release it; a mutation removing the atomic rename must turn the concurrency test red.",
+    "reviewer_requirement": "independent-codex-reviewer, fresh context, re-runs the concurrency test",
+    "completion_sentinel": "SENTINEL:IMP-0409:CLAIMS-MUTUALLY-EXCLUSIVE",
+    "retry_policy": "max 2 attempts; a second double-grant is a design failure - redesign, do not retry",
+    "failure_classification": "P0-blocking / classes: double-grant, non-atomic-write, ttl-never-expires",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0410",
+    "title": "Advisory file-lease manager with renew and expiry",
+    "phase": "9",
+    "question_or_target": "Implement path leases so a session can declare the files it will write, renew while working, and release on exit. Exact target: a lease must be advisory and never block a write, but every write to a leased path by a non-holder must produce a logged conflict event.",
+    "inputs": [
+      "command-center/leases/",
+      "session registry"
+    ],
+    "dependencies": [
+      "IMP-0409"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0410.json",
+    "output_schema": "command-center/schema/file-lease.schema.json",
+    "evidence_requirement": "Event log excerpt showing a non-holder write producing a conflict event, and the same write still succeeding (advisory, not blocking).",
+    "tests_required": "expiry test; renew-extends test; advisory test asserting no write is ever refused; negative control asserting an unleased path produces no conflict event.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0410:LEASES-ADVISORY-LOGGED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: lease-blocks-write, lease-never-expires",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0411",
+    "title": "Glob-aware pairwise lease-overlap algorithm",
+    "phase": "9",
+    "question_or_target": "Implement the exact algorithm that decides whether two lease path-sets overlap, including glob patterns, case-insensitive Windows paths, and directory-versus-file containment. Exact target: this is a set-membership question - write the algorithm, do not ask a model to judge it.",
+    "inputs": [
+      "command-center/receipts/IMP-0410.json",
+      "lease path corpus"
+    ],
+    "dependencies": [
+      "IMP-0410"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0411.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Truth table over a 40-pair corpus including 10 case-only-differing pairs and 8 glob-versus-literal pairs, with the algorithm's verdict and the hand-verified answer side by side.",
+    "tests_required": "property test: overlap is symmetric and reflexive; a case-only-differing pair on Windows must overlap; a mutation making the comparison case-sensitive must turn the test red.",
+    "reviewer_requirement": "independent-claude-reviewer recomputes the 40-pair truth table by an independent method",
+    "completion_sentinel": "SENTINEL:IMP-0411:OVERLAP-ALGORITHM-EXACT",
+    "retry_policy": "max 2 attempts; escalate rather than special-casing failures",
+    "failure_classification": "P1-blocking / classes: case-sensitivity-mismatch, glob-containment-miss",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0412",
+    "title": "Duplicate-work suppression by normalized unit fingerprint",
+    "phase": "9",
+    "question_or_target": "Implement a fingerprint over the normalized work-unit target text plus its input set, so the same mechanism dispatched twice under different ids is caught at claim time. Exact question: applied to the assembled 2048-unit catalog, how many pairs collide, and is each collision a genuine duplicate or a false positive?",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/catalog-slices/*.json"
+    ],
+    "dependencies": [
+      "IMP-0409",
+      "IMP-0456"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0412.json",
+    "output_schema": "command-center/schema/duplicate-report.schema.json",
+    "evidence_requirement": "Collision list with both unit ids and the shared fingerprint, plus a manual adjudication column; false-positive rate stated with its denominator.",
+    "tests_required": "planted-duplicate control: inject one exact duplicate and one reworded duplicate; both must be caught. Planted-distinct control: two genuinely different units with similar vocabulary must NOT collide.",
+    "reviewer_requirement": "independent-claude-reviewer adjudicates a random sample of 20 collisions blind",
+    "completion_sentinel": "SENTINEL:IMP-0412:DUPLICATES-FINGERPRINTED",
+    "retry_policy": "max 3 attempts for batch transients; zero retries on a report that flags everything",
+    "failure_classification": "P2-degraded / classes: fingerprint-too-coarse, reworded-duplicate-missed",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0413",
+    "title": "Orphan claim and lease reaper gated on proof of death",
+    "phase": "9",
+    "question_or_target": "Implement the reaper that releases claims and leases held by dead sessions, gated on the two-signal liveness AND-gate. Exact target: the reaper must never release a claim held by a live-but-slow session, and must state which two signals it used for each release.",
+    "inputs": [
+      "command-center/claims/",
+      "command-center/leases/",
+      "command-center/receipts/IMP-0408.json"
+    ],
+    "dependencies": [
+      "IMP-0408",
+      "IMP-0409",
+      "IMP-0410"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0413.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Per-release record naming both liveness signals and their values; a release with only one signal recorded is a defect.",
+    "tests_required": "live-but-idle test: a session with zero file writes for 20 minutes but a live process must NOT be reaped. Dead-session test: must be reaped. Mutation removing one signal must turn the live-but-idle test red.",
+    "reviewer_requirement": "adversarial refuter plus a claude correctness reviewer; both must PASS",
+    "completion_sentinel": "SENTINEL:IMP-0413:REAPER-PROOF-OF-DEATH",
+    "retry_policy": "no automatic retry; a wrong reap destroys a peer session's work",
+    "failure_classification": "P0-blocking / classes: reaps-live-session, single-signal-death-verdict",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0414",
+    "title": "Typed handoff record replacing raw-output prefix passing",
+    "phase": "9",
+    "question_or_target": "Implement the structured handoff artifact - goal re-anchored at the top, typed sections, evidence anchors - and make raw upstream output physically unable to become the next agent's prefix context. Exact target: the handoff API must accept only typed sections; a raw string must be rejected at the boundary.",
+    "inputs": [
+      "AGENTS.md section 5",
+      "command-center/schema/handoff.schema.json"
+    ],
+    "dependencies": [
+      "IMP-0433",
+      "B06"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0414.json",
+    "output_schema": "command-center/schema/handoff.schema.json",
+    "evidence_requirement": "A rejected-raw-string trace showing the typed boundary refusing an untyped payload, and an accepted handoff showing the goal re-anchored as section 1.",
+    "tests_required": "boundary test: passing a raw transcript must raise. Section-completeness test: a handoff missing the re-anchored goal must fail validation.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0414:HANDOFF-TYPED-ONLY",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: raw-output-prefix, goal-drift-on-handoff",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0415",
+    "title": "Shared completion predicate implemented once as a library",
+    "phase": "4",
+    "question_or_target": "Implement the ONE shared completion reducer covering all twelve conditions at spec lines 10631-10644 as a single importable library with no per-caller variants. Exact target: exit code zero alone must be structurally incapable of returning COMPLETE.",
+    "inputs": [
+      "_USER-PROMPTS.md:10627-10648",
+      "command-center/schema/receipt.schema.json"
+    ],
+    "dependencies": [
+      "IMP-0433",
+      "IMP-0434",
+      "B06"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0415.json",
+    "output_schema": "command-center/schema/completion-verdict.schema.json",
+    "evidence_requirement": "A twelve-row condition table mapping each spec condition to the exact function and line that evaluates it; any condition with no implementing line is a gap, disclosed inline.",
+    "tests_required": "exit-zero-alone test must return INCOMPLETE. Each of the twelve conditions gets one violating fixture that must be rejected.",
+    "reviewer_requirement": "2 independent reviewers: correctness plus an adversarial refuter attempting to construct a false COMPLETE",
+    "completion_sentinel": "SENTINEL:IMP-0415:REDUCER-TWELVE-CONDITIONS",
+    "retry_policy": "no automatic retry; the reducer is the program's single point of epistemic failure",
+    "failure_classification": "P0-blocking / classes: exit-zero-as-success, condition-unimplemented, plausible-digest-as-receipt",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0416",
+    "title": "Negative-control fixture generator for the completion reducer",
+    "phase": "4",
+    "question_or_target": "Implement the generator that synthesizes, for each of the twelve completion conditions, an artifact that violates exactly that one condition and satisfies the other eleven. Exact question: does the reducer reject all twelve, and for any it accepts, which condition is unenforced?",
+    "inputs": [
+      "command-center/receipts/IMP-0415.json",
+      "completion reducer library"
+    ],
+    "dependencies": [
+      "IMP-0415"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0416.json",
+    "output_schema": "command-center/schema/mutation-report.schema.json",
+    "evidence_requirement": "Twelve-row results table: condition, fixture path, reducer verdict. Any ACCEPT row names the unenforced condition explicitly.",
+    "tests_required": "generator control: the all-conditions-satisfied fixture must be ACCEPTED, proving the generator can produce a passing artifact and the reducer is not simply rejecting everything.",
+    "reviewer_requirement": "adversarial refuter who defaults to REFUTED",
+    "completion_sentinel": "SENTINEL:IMP-0416:REDUCER-NEGATIVE-CONTROLS",
+    "retry_policy": "max 2 attempts; a reducer that rejects the positive control is a broken detector - fix before re-running",
+    "failure_classification": "P1-blocking / classes: rejects-everything, condition-unenforced",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0417",
+    "title": "Reducer call-site adoption and census across all seven fan-in points",
+    "phase": "4",
+    "question_or_target": "Replace every local completion check at the seven call sites the spec names (local runner, cloud dispatcher, monitor, harvester, workflow fan-in, cross-vendor adapter, final synthesis) with the shared library, and emit a census proving no site retains its own predicate. Exact question: how many independent completion checks exist in the tree before and after?",
+    "inputs": [
+      "command-center/receipts/IMP-0415.json",
+      "full source tree"
+    ],
+    "dependencies": [
+      "IMP-0415"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0417.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Before and after census counts from a grep over the tree, with every surviving non-library check listed by file:line and justified or removed.",
+    "tests_required": "import-graph test asserting all seven sites import the shared library; a planted local predicate must be caught by the census (detector control).",
+    "reviewer_requirement": "independent-claude-reviewer re-runs the census with a different pattern",
+    "completion_sentinel": "SENTINEL:IMP-0417:REDUCER-SINGLE-SOURCE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: shadow-predicate-survives, census-pattern-too-narrow",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0418",
+    "title": "Two-predicates-disagree differential oracle",
+    "phase": "4",
+    "question_or_target": "Implement the differential oracle for spec failure class 'two completion predicates disagree' at line 11314: run every call site against one shared artifact corpus and assert byte-identical verdicts. Exact question: on a 200-artifact corpus, do any two call sites disagree on even one artifact?",
+    "inputs": [
+      "command-center/receipts/IMP-0417.json",
+      "artifact corpus (200 mixed complete/incomplete)"
+    ],
+    "dependencies": [
+      "IMP-0416",
+      "IMP-0417"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0418.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Disagreement matrix across all call-site pairs over 200 artifacts; zero disagreements required, and the corpus must contain at least 40 borderline artifacts or the oracle is too easy.",
+    "tests_required": "planted-divergence control: patch one call site to use a laxer threshold; the oracle must fire. If it does not, the oracle measures nothing.",
+    "reviewer_requirement": "independent-codex-reviewer re-runs the oracle including the planted divergence",
+    "completion_sentinel": "SENTINEL:IMP-0418:PREDICATES-AGREE",
+    "retry_policy": "max 3 attempts for batch transients only",
+    "failure_classification": "P1-blocking / classes: predicate-divergence, oracle-corpus-too-easy",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0419",
+    "title": "Vendor capability descriptor and negotiated common subset",
+    "phase": "9",
+    "question_or_target": "Implement capability negotiation: each vendor adapter publishes a typed descriptor (available tools, context window, permission model, streaming support, schema support) and the dispatcher computes the negotiated common subset for a cross-vendor unit. Exact question: what capability does each vendor have that the other does not, and what does the intersection cost the unit?",
+    "inputs": [
+      "adapter descriptors",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "dependencies": [
+      "IMP-0414",
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0419.json",
+    "output_schema": "command-center/schema/vendor-capability.schema.json",
+    "evidence_requirement": "A side-by-side capability matrix with one row per capability and a VENDOR-ONLY marker; the intersection must be computed, not asserted.",
+    "tests_required": "negotiation test: a unit requiring a vendor-only capability must be refused for the other vendor, not silently downgraded.",
+    "reviewer_requirement": "independent-claude-reviewer plus a cross-vendor codex reviewer confirming the codex column is accurate",
+    "completion_sentinel": "SENTINEL:IMP-0419:CAPABILITY-NEGOTIATED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: false-interchangeability, silent-downgrade",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0420",
+    "title": "Anthropic-side work-unit adapter (synchronous, typed)",
+    "phase": "9",
+    "question_or_target": "Implement the Claude adapter that takes a catalog work unit and executes it as a subagent with the unit's declared tool_permissions and timeout, returning a typed result. Exact target: the adapter must enforce the unit's tool_permissions at dispatch, not merely document them.",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/receipts/IMP-0419.json"
+    ],
+    "dependencies": [
+      "IMP-0419"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0420.json",
+    "output_schema": "command-center/schema/work-result.schema.json",
+    "evidence_requirement": "A dispatch trace where a unit declaring read-only permissions attempts a write and is refused by the adapter, with the refusal recorded.",
+    "tests_required": "permission-boundary test per permission class; timeout test asserting the declared timeout is the one applied, not a default.",
+    "reviewer_requirement": "independent-claude-reviewer plus a security reviewer on the permission enforcement path",
+    "completion_sentinel": "SENTINEL:IMP-0420:CLAUDE-ADAPTER-ENFORCING",
+    "retry_policy": "max 2 attempts, backoff 30s/120s; escalate on any permission bypass",
+    "failure_classification": "P1-blocking / classes: permissions-documented-not-enforced, default-timeout-shadows-declared",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0421",
+    "title": "OpenAI-side work-unit adapter with prompt-by-file transport",
+    "phase": "9",
+    "question_or_target": "Implement the Codex adapter: blocking foreground invocation, prompt delivered by FILE not inline, --ignore-user-config, and an explicit output-last-message file. Exact target: a work-unit dispatch must be structurally unable to run detached, because a detached result is unreachable by the fan-in barrier.",
+    "inputs": [
+      "codex CLI",
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/receipts/IMP-0419.json"
+    ],
+    "dependencies": [
+      "IMP-0419"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/port-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:codex"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0421.json",
+    "output_schema": "command-center/schema/work-result.schema.json",
+    "evidence_requirement": "Recorded invocation showing the prompt file path on the command line (not the prompt body), the exit code, AND the non-empty parsed output-last-message file. Exit code alone is SEVERED, not SUCCESS.",
+    "tests_required": "AND-gate test: exit 0 with a missing or empty output file must classify as severed-stream, not success. Detached-invocation test: any attempt to background must raise at the API boundary.",
+    "reviewer_requirement": "independent-codex-reviewer, fresh context; must confirm the three-signal AND-gate",
+    "completion_sentinel": "SENTINEL:IMP-0421:CODEX-ADAPTER-BLOCKING",
+    "retry_policy": "max 1 retry ONLY on a win-arg-limit classification, re-invoked with --ignore-user-config; all other failures escalate immediately",
+    "failure_classification": "P0-blocking / classes: severed-stream, fire-and-forget, win-arg-limit, codex-exit-n, schema-invalid",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0422",
+    "title": "Adapter-emitted abstraction-leak register",
+    "phase": "9",
+    "question_or_target": "Make each adapter emit, at runtime, the list of unit fields it could NOT honor for this vendor - the abstraction leaks - into a machine-readable register. Exact target: the leak register must be produced by the adapter itself, so it cannot drift from the code the way a hand-written compatibility document does.",
+    "inputs": [
+      "command-center/receipts/IMP-0420.json",
+      "command-center/receipts/IMP-0421.json"
+    ],
+    "dependencies": [
+      "IMP-0420",
+      "IMP-0421"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0422.json",
+    "output_schema": "command-center/schema/abstraction-leak.schema.json",
+    "evidence_requirement": "A generated register from a real dispatch of the same unit through both adapters, with the per-field honored/leaked column filled by the adapters, not by an author.",
+    "tests_required": "drift test: adding a new unit field neither adapter supports must appear in the register automatically without any documentation edit.",
+    "reviewer_requirement": "independent-claude-reviewer compares the generated register against a hand audit of 5 fields",
+    "completion_sentinel": "SENTINEL:IMP-0422:LEAKS-SELF-REPORTED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: doc-code-drift, silent-field-ignore",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0423",
+    "title": "Degrade-loudly contract for capability mismatch",
+    "phase": "9",
+    "question_or_target": "Implement the degrade-loudly contract at spec line 10983: on a capability mismatch the dispatcher returns a typed DEGRADED result and PRESERVES the partial artifact, never a silent substitution and never a discard. Exact target: there must be no code path where a mismatch produces an ordinary-looking success.",
+    "inputs": [
+      "command-center/receipts/IMP-0419.json",
+      "command-center/receipts/IMP-0422.json"
+    ],
+    "dependencies": [
+      "IMP-0419",
+      "IMP-0422"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0423.json",
+    "output_schema": "command-center/schema/work-result.schema.json",
+    "evidence_requirement": "A forced-mismatch dispatch showing the DEGRADED verdict, the preserved partial artifact path, and its byte size.",
+    "tests_required": "mismatch test asserting DEGRADED not SUCCESS; artifact-preservation test asserting the partial file still exists after the failure; a mutation that discards the partial must turn the test red.",
+    "reviewer_requirement": "adversarial refuter; must attempt to produce a silent success from a mismatch",
+    "completion_sentinel": "SENTINEL:IMP-0423:DEGRADED-LOUD-AND-PRESERVED",
+    "retry_policy": "no automatic retry; retrying a capability mismatch cannot fix it",
+    "failure_classification": "P1-blocking / classes: silent-substitution, partial-artifact-discarded",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0424",
+    "title": "Windows command-line length guard for cross-process dispatch",
+    "phase": "9",
+    "question_or_target": "Implement the guard for spec failure class 'command-line length overflow' at line 11311: measure the marshalled command length before spawn and route to a file-based transport above a safe threshold. Exact question: what is the measured payload length at which this box's CreateProcess actually fails, and is the configured threshold below it?",
+    "inputs": [
+      "command-center/receipts/IMP-0421.json",
+      "Windows CreateProcess limit"
+    ],
+    "dependencies": [
+      "IMP-0421",
+      "IMP-0465"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0424.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A measured failure curve: payload lengths tried, the exact length at which the spawn errors, and the error text. The threshold must be justified by that measurement, not by a remembered constant.",
+    "tests_required": "over-threshold test asserting automatic file-transport fallback; under-threshold test asserting inline transport is still used (both-states).",
+    "reviewer_requirement": "independent-claude-reviewer re-measures the failure length independently",
+    "completion_sentinel": "SENTINEL:IMP-0424:ARG-LIMIT-MEASURED",
+    "retry_policy": "max 1 retry with the file transport; no third attempt inline",
+    "failure_classification": "P1-blocking / classes: win-arg-limit, remembered-constant-instead-of-measurement",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0425",
+    "title": "Fire-and-forget receipt rejection gate at the fan-in barrier",
+    "phase": "9",
+    "question_or_target": "Implement the fan-in gate that rejects any work result whose payload is a job receipt rather than a result - matching background-start and check-status phrasings - and classifies it as FAILED rather than accepting it. Exact target: a receipt string must never be able to satisfy a barrier.",
+    "inputs": [
+      "command-center/receipts/IMP-0421.json",
+      "historical fire-and-forget result samples"
+    ],
+    "dependencies": [
+      "IMP-0415",
+      "IMP-0421"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/receipts/IMP-0425.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Gate run over a corpus of real historical results containing at least 3 known receipt-shaped payloads; all 3 rejected, and a matched set of genuine results all accepted.",
+    "tests_required": "use-vs-mention control: a legitimate result that DISCUSSES background execution as its subject matter must be ACCEPTED; only a payload whose semantic role is a receipt is rejected. A gate that rejects both is a use-vs-mention defect.",
+    "reviewer_requirement": "adversarial refuter; must construct a false positive and a false negative",
+    "completion_sentinel": "SENTINEL:IMP-0425:RECEIPT-GATE-ROLE-AWARE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: use-vs-mention, receipt-satisfies-barrier",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0426",
+    "title": "Per-unit output-schema validation at the vendor boundary",
+    "phase": "9",
+    "question_or_target": "Enforce each unit's declared output_schema on the returned payload at the adapter boundary, before the result reaches any consumer. Exact question: with typed schemas active alongside an MCP inventory, does the typed-output path still function, or does it hit the known typed-schema-times-active-MCP interaction?",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/schema/*.json"
+    ],
+    "dependencies": [
+      "IMP-0420",
+      "IMP-0421",
+      "IMP-0434"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:codex"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0426.json",
+    "output_schema": "command-center/schema/work-result.schema.json",
+    "evidence_requirement": "One dispatch with MCP active and one with --ignore-user-config, both with a typed schema, with the observed outcome of each recorded verbatim.",
+    "tests_required": "schema-invalid payload must be classified schema-invalid and NOT retried; valid payload must pass. Both-states control on the MCP-active interaction.",
+    "reviewer_requirement": "independent-codex-reviewer, fresh context",
+    "completion_sentinel": "SENTINEL:IMP-0426:OUTPUT-SCHEMA-ENFORCED",
+    "retry_policy": "zero retries on schema-invalid; max 1 retry with --ignore-user-config if the failure is the MCP interaction",
+    "failure_classification": "P1-blocking / classes: schema-invalid, typed-schema-mcp-interaction",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0427",
+    "title": "Arrival-rate scheduler treating quota as a scheduler input",
+    "phase": "9",
+    "question_or_target": "Implement staggered dispatch with a token-bucket arrival rate and provider-side backoff, so quota and arrival rate are scheduler inputs rather than retry outcomes. Exact target: reproduce a 429 storm under a naive burst and show it does not occur under the scheduler, at the same total unit count.",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "provider rate observations"
+    ],
+    "dependencies": [
+      "IMP-0420",
+      "IMP-0421",
+      "IMP-0445"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0427.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Two runs at identical total unit count: burst versus staggered, with observed 429 counts for each. A run with zero 429s in BOTH arms proves nothing and must be re-run at higher load.",
+    "tests_required": "token-bucket unit tests; a both-states control proving the burst arm actually produces 429s, otherwise the comparison is vacuous.",
+    "reviewer_requirement": "independent-claude-reviewer; must confirm the burst arm was a real control",
+    "completion_sentinel": "SENTINEL:IMP-0427:ARRIVAL-RATE-SCHEDULED",
+    "retry_policy": "max 3 attempts for provider 429/529 transients only; never reduce concurrency permanently in response to a provider-side 529",
+    "failure_classification": "P2-degraded / classes: thundering-herd, vacuous-control",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0428",
+    "title": "Shared git-index contamination guard for concurrent sessions",
+    "phase": "9",
+    "question_or_target": "Implement the guard for concurrent agents sharing one git index: forbid broad staging, require a scoped path list, and verify the staged set against the unit's declared file scope before any commit is offered. Exact question: does a scoped stage plus a diff --cached check catch a sibling file that a broad add would have swept in?",
+    "inputs": [
+      "git index",
+      "command-center/WORK-UNIT-CATALOG.json declared file scopes"
+    ],
+    "dependencies": [
+      "IMP-0410",
+      "IMP-0411"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0428.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A staged-set-versus-declared-scope diff from a run with a sibling agent actively writing; any path outside the declared scope must be listed.",
+    "tests_required": "contamination test: with a planted sibling edit present, a broad add must be refused and a scoped add must exclude it. Negative control: a clean tree produces an empty out-of-scope list.",
+    "reviewer_requirement": "independent-claude-reviewer plus a security reviewer on the refusal path",
+    "completion_sentinel": "SENTINEL:IMP-0428:INDEX-SCOPE-GUARDED",
+    "retry_policy": "no automatic retry; a contaminated stage must be surfaced to the orchestrator, never auto-corrected",
+    "failure_classification": "P0-blocking / classes: sibling-work-swept-into-commit, broad-add",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0429",
+    "title": "Concurrent-append event writer for the program event log",
+    "phase": "4",
+    "question_or_target": "Implement the append-only EVENTS.jsonl writer that is safe under concurrent appends from multiple sessions on Windows. Exact question: under 8 concurrent writers emitting 500 events each, are all 4000 lines present and is any line interleaved or truncated?",
+    "inputs": [
+      "command-center/events/EVENTS.jsonl"
+    ],
+    "dependencies": [
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0429.json",
+    "output_schema": "command-center/schema/event.schema.json",
+    "evidence_requirement": "Line count and per-line JSON parse result after the 8x500 concurrency run: 4000 lines, 4000 parses, zero interleaved records.",
+    "tests_required": "concurrency test at 8x500; a mutation removing the atomic-append mode must produce torn lines and turn the test red.",
+    "reviewer_requirement": "independent-codex-reviewer re-runs the concurrency test on a cold file",
+    "completion_sentinel": "SENTINEL:IMP-0429:EVENT-LOG-APPEND-SAFE",
+    "retry_policy": "max 2 attempts; a torn line on the second run is a design failure",
+    "failure_classification": "P1-blocking / classes: torn-append, lost-event",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0430",
+    "title": "Session-scoped state keying audit against goal bleed",
+    "phase": "9",
+    "question_or_target": "Audit and fix every piece of harness state that must be SESSION-keyed rather than PROJECT-keyed - goal injection, ledger replay, claims, caches - because a project-keyed key bleeds one session's goal into a concurrent sibling. Exact question: which state stores are currently project-keyed, checked in the REPO source and not only in the deployed copy?",
+    "inputs": [
+      "<REPO>/hooks/**",
+      "<REPO>/agent-self/config/settings.json",
+      "~/.claude/hooks/**"
+    ],
+    "dependencies": [
+      "IMP-0407"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0430.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Per-store table: store, key shape, repo source file:line, deployed copy file:line. A store armed in the repo but absent from the live tree is still live for anyone who deploys - it must be listed, not dismissed.",
+    "tests_required": "bleed test: two concurrent fixture sessions in the same project must not read each other's goal. Repo-versus-live control asserting the audit read BOTH.",
+    "reviewer_requirement": "independent-claude-reviewer repeats the audit against the repo source specifically",
+    "completion_sentinel": "SENTINEL:IMP-0430:STATE-SESSION-KEYED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: goal-bleed, live-only-audit-misses-repo-armed-config",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0431",
+    "title": "Remote-harvest postcondition proving the harvest did something",
+    "phase": "9",
+    "question_or_target": "Implement the postcondition for spec failure class 'remote harvest silently does nothing' at line 11319: a harvest run must assert a nonzero delta in harvested artifacts, or terminate as FAILED. Exact target: a harvest that returns exit 0 having transferred nothing must be classified FAILED, not SUCCESS.",
+    "inputs": [
+      "remote job outputs",
+      "command-center/receipts/",
+      "harvester source"
+    ],
+    "dependencies": [
+      "IMP-0415",
+      "IMP-0421"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0431.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Before and after artifact counts plus total bytes for a real harvest; and one deliberately empty harvest showing the FAILED classification.",
+    "tests_required": "empty-harvest test must FAIL the run; nonempty-harvest test must pass. A harvester that passes both is not discriminating.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0431:HARVEST-POSTCONDITION",
+    "retry_policy": "max 2 attempts, backoff 30s/120s; escalate if the second harvest is also empty",
+    "failure_classification": "P1-blocking / classes: exit-zero-missing-artifact, silent-noop-harvest",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0432",
+    "title": "Worktree-target repository assertion before any write",
+    "phase": "9",
+    "question_or_target": "Implement the guard for spec failure class 'worktree points to the wrong repository' at line 11321: before any file write in a worktree, assert the resolved origin remote URL matches the pinned program repo. Exact target: a write into a worktree owned by a different repository must be impossible, not merely discouraged.",
+    "inputs": [
+      "worktree list",
+      "pinned repo origin URL"
+    ],
+    "dependencies": [
+      "IMP-0428",
+      "IMP-0446"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0432.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Per-worktree table: path, resolved origin URL, match verdict. Includes at least one deliberately wrong-repo path proving the guard refuses it.",
+    "tests_required": "wrong-repo test must refuse the write; right-repo test must permit it (both-states). A worktree with no origin must be refused, not defaulted to allowed.",
+    "reviewer_requirement": "independent-claude-reviewer plus a security reviewer; both must PASS before this guard is relied on",
+    "completion_sentinel": "SENTINEL:IMP-0432:WORKTREE-REPO-ASSERTED",
+    "retry_policy": "no automatic retry; a wrong-repo write can destroy another session's work",
+    "failure_classification": "P0-blocking / classes: wrong-repo-write, missing-origin-defaults-allow",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0433",
+    "title": "Author the absent receipt schema every work unit is contracted to satisfy",
+    "phase": "0",
+    "question_or_target": "Author command-center/schema/receipt.schema.json - the file that defaults.output_schema in WORK-UNIT-CATALOG.json already points at and that does not exist on disk. Exact target: a schema strict enough that a receipt missing its sentinel, its evidence anchors, or its reviewer verdict is INVALID, and permissive enough that all 103 existing catalog units can satisfy it.",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "_USER-PROMPTS.md:10605-10648"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0433.json",
+    "output_schema": "command-center/schema/meta/json-schema-draft.json",
+    "evidence_requirement": "Proof the referenced path was absent before this unit (directory listing) and present after; plus a validation pass over one synthetic receipt per catalog unit shape.",
+    "tests_required": "schema self-validation against its metaschema; twelve negative fixtures (one per completion condition) that must all be INVALID; one positive fixture that must be VALID.",
+    "reviewer_requirement": "independent-claude-reviewer plus a cross-vendor codex reviewer on strictness; both must PASS",
+    "completion_sentinel": "SENTINEL:IMP-0433:RECEIPT-SCHEMA-AUTHORED",
+    "retry_policy": "max 2 attempts; a second schema that admits an empty receipt is a design failure, escalate to the contracts bucket",
+    "failure_classification": "P0-blocking / classes: absent-output-substrate, schema-too-permissive",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0434",
+    "title": "Receipts directory and atomic receipt writer library",
+    "phase": "0",
+    "question_or_target": "Create command-center/receipts/ and implement the atomic writer (tmp plus rename) that every work unit uses to emit its receipt. Exact question: all 103 existing catalog output_path values point into a directory that does not exist - after this unit, can a unit actually emit a schema-valid receipt, verified by writing one and reading it back?",
+    "inputs": [
+      "command-center/receipts/ (absent)",
+      "command-center/receipts/IMP-0433.json"
+    ],
+    "dependencies": [
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0434.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Round-trip proof: write a receipt, read it back from disk, parse it, and validate it - with the on-disk byte count reported. A path printed in prose is not proof the file exists.",
+    "tests_required": "atomicity test: a writer killed mid-write must leave either the old file or nothing, never a half-file. Read-back test asserting the parsed content equals what was written.",
+    "reviewer_requirement": "independent-claude-reviewer performs the read-back independently",
+    "completion_sentinel": "SENTINEL:IMP-0434:RECEIPT-WRITER-ATOMIC",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P0-blocking / classes: absent-output-substrate, half-written-artifact",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0435",
+    "title": "Receipt validator command wired into the command-center CI gate",
+    "phase": "0",
+    "question_or_target": "Ship the receipt validator as a command and wire it into the existing command-center CI gate so an invalid or missing receipt turns the gate red. Exact question: with a deliberately invalid receipt committed, does the gate actually fail, or does it pass because the validator is invoked in a mode where the check is a no-op?",
+    "inputs": [
+      "command-center/receipts/IMP-0434.json",
+      "CI workflow definition",
+      "tools/command-center/validate.py"
+    ],
+    "dependencies": [
+      "IMP-0434"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:gh-readonly"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0435.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Both-states CI evidence: the gate red on a deliberately invalid receipt and green on a valid one, with the run ids and the failing step name for the red run.",
+    "tests_required": "both-states gate test; a no-op-mode test asserting the validator cannot be invoked in a mode where it validates nothing.",
+    "reviewer_requirement": "independent-claude-reviewer confirms the red run failed at the validator step and not elsewhere",
+    "completion_sentinel": "SENTINEL:IMP-0435:RECEIPT-GATE-BOTH-STATES",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: gate-is-noop, green-in-both-states",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0436",
+    "title": "Per-unit override semantics for the nine globally-defaulted catalog fields",
+    "phase": "0",
+    "question_or_target": "Implement per-unit override support in WORK-UNIT-CATALOG.json for the nine mandatory fields that today exist only in a single global defaults block with zero of 103 items overriding them (assignment, tool_permissions, execution_substrate, timeout_seconds, output_schema, tests_required, reviewer_requirement, retry_policy, failure_classification). Exact question: what is the precedence rule when a unit sets a field the defaults block also sets, and is it enforced by code or only described?",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "tools/command-center/catalog.py",
+      "_USER-PROMPTS.md:10605-10625"
+    ],
+    "dependencies": [
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0436.json",
+    "output_schema": "command-center/schema/work-unit.schema.json",
+    "evidence_requirement": "A resolved-view dump for three units - one taking all defaults, one overriding three fields, one overriding all nine - showing the effective value and its provenance (default or override) per field.",
+    "tests_required": "precedence test per field; a unit-level null must mean explicit-null, not fall-through-to-default; a mutation deleting the defaults block must be caught rather than silently leaving nine fields unset.",
+    "reviewer_requirement": "2 independent reviewers: a schema reviewer and an adversarial refuter probing the null semantics",
+    "completion_sentinel": "SENTINEL:IMP-0436:CATALOG-OVERRIDES-ENFORCED",
+    "retry_policy": "max 2 attempts; escalate to the owner-decision queue if the intent (deliberate scoping versus gap) is unresolved after 2",
+    "failure_classification": "P1-blocking / classes: nine-fields-not-per-unit, null-versus-absent-ambiguity",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0437",
+    "title": "Arm the disarmed work-unit field-completeness check in CI",
+    "phase": "0",
+    "question_or_target": "Arm tools/command-center/validate.py field completeness: require_complete defaults to False and CI invokes the tool bare, so deleting the ENTIRE defaults block exits 0 and passes the gate. Exact target: after this unit, that same deletion must turn CI red.",
+    "inputs": [
+      "tools/command-center/validate.py",
+      "CI workflow definition"
+    ],
+    "dependencies": [
+      "IMP-0436"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:gh-readonly"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0437.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Before: the defaults-block-deleted mutation exits 0. After: the same mutation exits nonzero. Both exit codes recorded verbatim from the same command line.",
+    "tests_required": "the defaults-deletion mutation is the test; it must fail the gate. A second control mutation (delete one field only) must also fail.",
+    "reviewer_requirement": "independent-claude-reviewer reproduces both the before and after exit codes",
+    "completion_sentinel": "SENTINEL:IMP-0437:FIELD-COMPLETENESS-ARMED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: gate-disarmed-by-default, flag-not-passed-in-ci",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0438",
+    "title": "Complete the validate.py mutation battery and close the surviving mutation",
+    "phase": "0",
+    "question_or_target": "Extend the validate.py mutation battery to cover every check the tool claims, and close the one mutation in sixteen that currently SURVIVES. Exact question: which check is unprotected, and after the fix does the full battery reach sixteen of sixteen caught?",
+    "inputs": [
+      "tools/command-center/validate.py",
+      "existing 16-mutation set"
+    ],
+    "dependencies": [
+      "IMP-0437"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0438.json",
+    "output_schema": "command-center/schema/mutation-report.schema.json",
+    "evidence_requirement": "Sixteen-row table: mutation, pre-fix result, post-fix result. The surviving mutation must be named and its unprotected behavior described before the fix is written.",
+    "tests_required": "the battery is the test; a control mutation known to be caught must remain caught after the fix (no regression in detection).",
+    "reviewer_requirement": "adversarial refuter designs a seventeenth mutation the battery has never seen",
+    "completion_sentinel": "SENTINEL:IMP-0438:MUTATION-BATTERY-COMPLETE",
+    "retry_policy": "max 2 attempts; if the seventeenth mutation also survives, expand the battery rather than declaring done",
+    "failure_classification": "P1-blocking / classes: mutation-survives, battery-incomplete",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0439",
+    "title": "Make the provenance hash read the committed blob, not the working tree",
+    "phase": "0",
+    "question_or_target": "Fix the command-center provenance check so it hashes the COMMITTED blob rather than working-tree bytes, making it runnable on a Windows checkout where core.autocrlf rewrites line endings. Exact question: after the fix, do the Windows and Linux runs produce the same digest for all fourteen manifest entries?",
+    "inputs": [
+      "tools/command-center/validate.py",
+      "command-center/ARTIFACT-MANIFEST.json",
+      ".gitattributes"
+    ],
+    "dependencies": [
+      "IMP-0440"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0439.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Per-file digest table with three columns - working-tree hash, blob hash, recorded provenance hash - across all fourteen manifest entries, taken on a Windows checkout.",
+    "tests_required": "platform-parity test asserting the blob route yields identical digests on a CRLF and an LF checkout; a control asserting the working-tree route DIFFERS, proving the fix changed something.",
+    "reviewer_requirement": "independent-claude-reviewer re-derives two digests by a different command than the implementation uses",
+    "completion_sentinel": "SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: crlf-portability, working-tree-hashed-as-blob",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0440",
+    "title": "Single blob-bytes helper and removal of the archive-based recipe everywhere",
+    "phase": "0",
+    "question_or_target": "Implement ONE blob_bytes(rev, path) helper on git cat-file, route every provenance, formatting and parity path through it, and remove every use of the archive-plus-extract recipe - which returns export-converted CRLF on this box, the OPPOSITE of the blob. Exact question: how many call sites and documents currently prescribe the wrong recipe, and are all of them corrected?",
+    "inputs": [
+      "<REPO> full tree",
+      "command-center/RELEASE-CHECKLIST.md",
+      "rules/common/windows-shell.md"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0440.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Three-route byte comparison on one file (archive+extract, cat-file, show) with byte counts and CRLF counts, plus a control proving all three are identical after LF normalization so the difference is purely line endings; then the grep census of remaining wrong-recipe call sites, which must be zero.",
+    "tests_required": "helper unit test on a known file; a repo-wide grep test asserting zero archive-based provenance recipes remain (detector control: plant one and confirm the grep finds it).",
+    "reviewer_requirement": "independent-claude-reviewer re-measures the three-route comparison on a DIFFERENT file",
+    "completion_sentinel": "SENTINEL:IMP-0440:BLOB-HELPER-SINGLE-SOURCE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: wrong-recipe-manufactures-false-confidence, doc-prescribes-defect",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0441",
+    "title": "EOL policy and a Windows-checkout green-gate proof",
+    "phase": "0",
+    "question_or_target": "Add the EOL attributes that make the command-center gates runnable on the primary development box, then prove both gates exit zero on a Windows working tree. Exact target: the machine the program is authored on must be able to run its own gates - today both exit nonzero purely from CRLF while being genuinely green in CI.",
+    "inputs": [
+      ".gitattributes",
+      "command-center/**",
+      "CI workflow definition"
+    ],
+    "dependencies": [
+      "IMP-0439",
+      "IMP-0440"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly",
+      "Bash:pwsh"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0441.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Exit codes of both gates on the Windows working tree before and after, plus confirmation that the Linux CI run stayed green across the change (a fix that greens Windows by reddening CI is a regression).",
+    "tests_required": "dual-platform gate test; a control asserting the pre-fix Windows run really was red, so the after-state is not silence in both states.",
+    "reviewer_requirement": "independent-claude-reviewer runs both gates from a clean re-clone on Windows",
+    "completion_sentinel": "SENTINEL:IMP-0441:GATES-GREEN-BOTH-PLATFORMS",
+    "retry_policy": "max 2 attempts; escalate rather than normalizing line endings destructively across the tree",
+    "failure_classification": "P1-blocking / classes: dev-box-cannot-run-own-gates, fix-greens-one-platform-reddens-other",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0442",
+    "title": "Work-unit dispatcher honoring the declared execution substrate",
+    "phase": "4",
+    "question_or_target": "Implement the dispatcher that reads the catalog and routes each unit to its declared execution_substrate, with local-serialized meaning strictly one at a time. Exact question: with a catalog containing units of all four substrates, does the observed simultaneous count for local-serialized ever exceed one?",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json",
+      "command-center/receipts/IMP-0436.json"
+    ],
+    "dependencies": [
+      "IMP-0436",
+      "IMP-0443"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0442.json",
+    "output_schema": "command-center/schema/dispatch-plan.schema.json",
+    "evidence_requirement": "A time-series of observed concurrent units per substrate across a 40-unit mixed dry run; the local-serialized series must be flat at one.",
+    "tests_required": "substrate-isolation test per substrate; a mutation removing the serial lock must show a concurrent count above one and turn the test red.",
+    "reviewer_requirement": "independent-claude-reviewer inspects the time-series, not the summary",
+    "completion_sentinel": "SENTINEL:IMP-0442:DISPATCH-SUBSTRATE-HONORED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: substrate-ignored, serial-lane-parallelized",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0443",
+    "title": "Resumable run-state ledger with idempotent replay",
+    "phase": "4",
+    "question_or_target": "Implement the append-only run ledger so an interrupted program resumes without re-running completed units and without double-counting. Exact question: after killing the runner at 60 percent and resuming, is the total set of executed units exactly the catalog with no unit executed twice?",
+    "inputs": [
+      "command-center/events/EVENTS.jsonl",
+      "command-center/receipts/"
+    ],
+    "dependencies": [
+      "IMP-0429",
+      "IMP-0434"
+    ],
+    "assigned_model_vendor_role": "gpt-5-codex/openai/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0443.json",
+    "output_schema": "command-center/schema/run-ledger.schema.json",
+    "evidence_requirement": "Kill-and-resume trace with executed-unit multiset before and after; any unit appearing twice is a defect and must be listed.",
+    "tests_required": "idempotent-replay property test; kill-at-N test for N in {10,50,90} percent; a mutation making replay non-idempotent must produce duplicates and turn the test red.",
+    "reviewer_requirement": "independent-codex-reviewer reproduces one kill-and-resume cycle",
+    "completion_sentinel": "SENTINEL:IMP-0443:LEDGER-RESUME-IDEMPOTENT",
+    "retry_policy": "max 2 attempts; a duplicate execution on the second attempt is a design failure",
+    "failure_classification": "P1-blocking / classes: duplicate-execution-on-resume, lost-completed-state",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0444",
+    "title": "Concurrency governor separating logical unit count from simultaneity",
+    "phase": "4",
+    "question_or_target": "Implement the governor enforcing spec line 10570 - do not launch all units simultaneously - with per-substrate ceilings, staggered arrivals, and a live simultaneous-count readout. Exact target: a 2048-unit catalog must be schedulable without the simultaneous count ever exceeding the configured per-substrate ceiling.",
+    "inputs": [
+      "command-center/receipts/IMP-0442.json",
+      "substrate ceiling config"
+    ],
+    "dependencies": [
+      "IMP-0442"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0444.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Peak observed simultaneity per substrate over a simulated 2048-unit schedule, sampled at 1Hz, against the configured ceiling.",
+    "tests_required": "ceiling-hold test under a burst arrival pattern; a mutation raising a ceiling must be visible in the readout (the readout must not be computed from the config it is meant to check).",
+    "reviewer_requirement": "independent-claude-reviewer confirms the readout is measured, not derived from the ceiling constant",
+    "completion_sentinel": "SENTINEL:IMP-0444:CONCURRENCY-CEILING-HELD",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: readout-derived-from-config, ceiling-exceeded-under-burst",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0445",
+    "title": "Commit-charge headroom guard preserving a rescue shell",
+    "phase": "4",
+    "question_or_target": "Implement the local-headroom guard that refuses to raise concurrency when the machine is near its commit-charge ceiling - the measured cause of full-box freezes, which is invisible in ordinary RAM readings. Exact question: which counter does the guard read, and does it fire before the box loses the ability to create a process?",
+    "inputs": [
+      "system commit charge counters",
+      "pagefile configuration",
+      "command-center/receipts/IMP-0444.json"
+    ],
+    "dependencies": [
+      "IMP-0444"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0445.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A recorded approach-to-ceiling run showing the commit counter rising, the guard firing, and a process spawn still succeeding after it fired. RAM-percent alone is NOT the signal and must be shown to be uninformative here.",
+    "tests_required": "threshold test with a synthetic commit-charge reading; a control proving RAM-percent alone would not have fired, so the guard is measuring the right counter.",
+    "reviewer_requirement": "independent-claude-reviewer plus owner sign-off, because this guard throttles the owner's own machine",
+    "completion_sentinel": "SENTINEL:IMP-0445:HEADROOM-GUARD-COMMIT-CHARGE",
+    "retry_policy": "no automatic retry; never respond to this guard by killing a shared service",
+    "failure_classification": "P0-blocking / classes: wrong-counter-read, guard-kills-shared-service",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0446",
+    "title": "Worktree-per-shard provisioner with content-preserving teardown",
+    "phase": "4",
+    "question_or_target": "Implement disposable worktree provisioning per implementation shard (spec line 10581) and a teardown that refuses to delete until the shard's content is proven preserved elsewhere. Exact target: because squash-merge makes a fully-merged branch report as AHEAD, commit ancestry must NOT be accepted as delete authorization - require merged-PR state or a byte-level content comparison.",
+    "inputs": [
+      "git worktree list",
+      "PR state",
+      "command-center/receipts/IMP-0432.json"
+    ],
+    "dependencies": [
+      "IMP-0442"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0446.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "For each teardown candidate: the preservation proof used (merged-PR state or content digest match) and the ancestry reading, shown side by side to demonstrate ancestry alone would have given the wrong answer at least once.",
+    "tests_required": "squash-merge fixture: a fully-merged branch reporting AHEAD must still be judged safe by the content route and unsafe by the ancestry route. Teardown must refuse when neither proof is available.",
+    "reviewer_requirement": "2 independent reviewers plus owner approval before any real teardown",
+    "completion_sentinel": "SENTINEL:IMP-0446:TEARDOWN-CONTENT-PROVEN",
+    "retry_policy": "no automatic retry; an incorrect teardown is unrecoverable data loss",
+    "failure_classification": "P0-blocking / classes: ancestry-as-delete-authorization, unproven-teardown",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0447",
+    "title": "Per-unit timeout enforcement with heartbeat hang detection",
+    "phase": "4",
+    "question_or_target": "Implement per-unit timeout and hang detection with a heartbeat, so a unit that stops producing output is classified STALLED and released rather than silently occupying a slot. Exact question: for a deliberately hung unit, how long until the runner classifies it, and does the classification require two signals?",
+    "inputs": [
+      "command-center/WORK-UNIT-CATALOG.json timeout_seconds",
+      "command-center/receipts/IMP-0442.json"
+    ],
+    "dependencies": [
+      "IMP-0442"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0447.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Time-to-classification for a hung fixture, with both signals recorded (no heartbeat AND no byte growth). A single-signal STALLED verdict is a defect.",
+    "tests_required": "hung-unit test; slow-but-alive test that must NOT be classified stalled; mutation removing the byte-growth signal must make the slow-but-alive test red.",
+    "reviewer_requirement": "adversarial refuter attempts to make a live slow unit be classified stalled",
+    "completion_sentinel": "SENTINEL:IMP-0447:HANG-DETECTION-TWO-SIGNAL",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: single-signal-stall, slow-unit-killed",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0448",
+    "title": "Retry-policy engine driven by typed failure classification",
+    "phase": "4",
+    "question_or_target": "Implement the retry engine so the retry decision is a pure function of the typed failure class, not of the raw error text. Exact target: a schema-invalid failure must be retried ZERO times, a provider transient up to its cap, and a second failure on the same fingerprint must trigger the two-strikes pivot rather than a third attempt.",
+    "inputs": [
+      "command-center/receipts/IMP-0449.json",
+      "catalog retry_policy fields"
+    ],
+    "dependencies": [
+      "IMP-0449"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0448.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Decision table: failure class, configured policy, observed attempt count. Any class whose observed count differs from its policy is a defect.",
+    "tests_required": "one test per failure class; a same-fingerprint repeat test asserting the pivot fires at strike two, not strike three.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0448:RETRY-CLASS-DRIVEN",
+    "retry_policy": "max 2 attempts to implement; the engine must not be able to retry its own failure indefinitely",
+    "failure_classification": "P2-degraded / classes: text-matching-instead-of-typing, infinite-grind",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0449",
+    "title": "Failure taxonomy and terminal-state result formatter",
+    "phase": "4",
+    "question_or_target": "Implement the closed failure taxonomy (severed-stream, adapter-exit-n, win-arg-limit, timeout, schema-invalid, partial-artifact, degraded, blocked) and a formatter that emits every tool result as an explicit terminal state. Exact target: an open-ended prose result must be structurally impossible; every result carries SUCCESS with an id or FAILED with an id and a reason.",
+    "inputs": [
+      "_USER-PROMPTS.md:11298-11347",
+      "adapter error corpus"
+    ],
+    "dependencies": [
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0449.json",
+    "output_schema": "command-center/schema/failure-taxonomy.schema.json",
+    "evidence_requirement": "Coverage table mapping each of the taxonomy classes to at least one real observed error string from the corpus; any class with no real example is speculative and must be labelled as such.",
+    "tests_required": "exhaustiveness test: an unclassifiable error must map to an explicit UNCLASSIFIED terminal state, never to a silent success or an empty return.",
+    "reviewer_requirement": "independent-claude-reviewer plus a cross-vendor codex reviewer supplying codex-side error strings",
+    "completion_sentinel": "SENTINEL:IMP-0449:TAXONOMY-CLOSED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: unclassified-becomes-success, empty-return",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0450",
+    "title": "Cockpit surface extending the existing monitor rather than a second control plane",
+    "phase": "4",
+    "question_or_target": "Extend the EXISTING monitor cockpit with a program pane reading EVENTS.jsonl and receipts read-only - explicitly NOT a new control plane, per spec line 10483. Exact question: after this unit, how many distinct control planes exist for program state, and is the answer one?",
+    "inputs": [
+      "existing monitor cockpit",
+      "command-center/events/EVENTS.jsonl",
+      "command-center/receipts/"
+    ],
+    "dependencies": [
+      "IMP-0434",
+      "IMP-0443"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0450.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A control-plane census before and after (count of independent state-mutating surfaces), plus a rendered screenshot or captured pane output proving the new pane displays live data.",
+    "tests_required": "read-only test asserting the pane cannot mutate program state; a census test asserting no second dispatcher was introduced.",
+    "reviewer_requirement": "independent-claude-reviewer plus an architecture reviewer on the duplicate-control-plane question",
+    "completion_sentinel": "SENTINEL:IMP-0450:COCKPIT-SINGLE-PLANE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: duplicate-control-plane, cockpit-mutates-state",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0451",
+    "title": "Stale-monitor and no-change-monitor detectors as a matched pair",
+    "phase": "4",
+    "question_or_target": "Implement both detectors from spec lines 11315-11316 together: a monitor that dies while remote work continues, and a live monitor that merely has nothing to report being mistaken for dead. Exact target: the two states must be distinguishable, and where they are not, the detector must return UNDECIDABLE rather than guessing.",
+    "inputs": [
+      "command-center/receipts/IMP-0450.json",
+      "monitor heartbeat stream"
+    ],
+    "dependencies": [
+      "IMP-0450"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0451.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Four-cell truth table (monitor alive/dead x work active/idle) with the detector verdict in each cell; any cell where the detector guesses instead of returning UNDECIDABLE is a defect.",
+    "tests_required": "all four cells as tests; a mutation collapsing the two signals into one must make two cells indistinguishable and turn the test red.",
+    "reviewer_requirement": "adversarial refuter constructs the hardest cell",
+    "completion_sentinel": "SENTINEL:IMP-0451:MONITOR-STATES-DISTINGUISHED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: idle-read-as-dead, dead-read-as-idle",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0452",
+    "title": "Per-unit pipeline so one hung unit cannot block a batch",
+    "phase": "4",
+    "question_or_target": "Replace phase-wide barriers with per-unit pipelines so a single hung unit cannot deadlock its cohort (spec line 11317). Exact question: with one unit deliberately hung forever in a 40-unit batch, do the other 39 still reach a terminal state?",
+    "inputs": [
+      "command-center/receipts/IMP-0442.json",
+      "command-center/receipts/IMP-0447.json"
+    ],
+    "dependencies": [
+      "IMP-0442",
+      "IMP-0447"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0452.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Terminal-state count for the 40-unit batch with one hung unit: 39 terminal plus 1 STALLED, with wall-clock time to completion of the 39.",
+    "tests_required": "hung-unit-in-batch test; a null-tolerant fan-in test asserting a null result from one unit does not poison the barrier for the rest.",
+    "reviewer_requirement": "independent-claude-reviewer re-runs the 40-unit batch",
+    "completion_sentinel": "SENTINEL:IMP-0452:PIPELINE-NO-COHORT-DEADLOCK",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: cohort-deadlock, null-poisons-barrier",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0453",
+    "title": "Partial-artifact preservation and INCOMPLETE classification",
+    "phase": "4",
+    "question_or_target": "Implement handling for spec line 11313 - an artifact that exists but carries no sentinel is INCOMPLETE, must be PRESERVED, and must never be deleted or reported as success. Exact target: a partial artifact must survive the failure that produced it, so a long unit that dies late is recoverable.",
+    "inputs": [
+      "command-center/receipts/",
+      "command-center/receipts/IMP-0415.json"
+    ],
+    "dependencies": [
+      "IMP-0415",
+      "IMP-0434"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0453.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A killed-late fixture run showing the partial file still on disk with its byte size, classified INCOMPLETE, and referenced from the run ledger.",
+    "tests_required": "kill-late test asserting the file survives; a mutation that cleans up partials on failure must turn the test red. Negative control: a complete artifact must not be classified INCOMPLETE.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0453:PARTIALS-PRESERVED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: partial-discarded, partial-reported-complete",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0454",
+    "title": "Automatic artifact-manifest registration at emit time",
+    "phase": "4",
+    "question_or_target": "Wire artifact-manifest registration into the writer so completion condition 11 (output registered in the artifact manifest) is satisfied by construction rather than by a later sweep. Exact question: can any artifact reach disk without a manifest entry, and what is the count of unregistered artifacts after a full run?",
+    "inputs": [
+      "command-center/ARTIFACT-MANIFEST.json",
+      "command-center/receipts/IMP-0434.json"
+    ],
+    "dependencies": [
+      "IMP-0434",
+      "IMP-0415"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0454.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Set difference between artifacts on disk and manifest entries after a full run; must be the empty set, computed mechanically.",
+    "tests_required": "bypass test: an artifact written by a direct file open (not the writer) must be caught by the reconciliation sweep as unregistered.",
+    "reviewer_requirement": "independent-claude-reviewer recomputes the set difference",
+    "completion_sentinel": "SENTINEL:IMP-0454:MANIFEST-AUTO-REGISTERED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: unregistered-artifact, writer-bypass",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0455",
+    "title": "Downstream-readability probe satisfying completion condition twelve",
+    "phase": "4",
+    "question_or_target": "Implement the probe for completion condition 12 - downstream consumers can read it - by having a real consumer open, parse and extract a required field from the artifact, not merely stat it. Exact target: existence is not readability; the probe must fail on a file that exists, parses, but lacks the field the consumer needs.",
+    "inputs": [
+      "command-center/receipts/",
+      "consumer modules"
+    ],
+    "dependencies": [
+      "IMP-0415",
+      "IMP-0454"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0455.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Probe output for three fixtures: readable, exists-but-unparseable, and parseable-but-missing-required-field. The third must FAIL, or the probe measures existence rather than readability.",
+    "tests_required": "three-fixture test as above; a mutation reducing the probe to os.path.exists must turn the third fixture green and thereby red the test.",
+    "reviewer_requirement": "adversarial refuter constructs a fourth fixture that passes the probe but breaks a real consumer",
+    "completion_sentinel": "SENTINEL:IMP-0455:DOWNSTREAM-READABLE-PROVEN",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: existence-mistaken-for-readability",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0456",
+    "title": "Catalog slice merge with duplicate-id and mechanism collision detection",
+    "phase": "4",
+    "question_or_target": "Implement the merger that assembles the catalog slices from every bucket into one WORK-UNIT-CATALOG.json and refuses on a duplicate id or an unfilled index gap (spec line 11320, duplicate units from colliding catalogs). Exact question: across all assembled slices, are the ids contiguous, unique, and exactly equal to the declared program count?",
+    "inputs": [
+      "command-center/catalog-slices/*.json",
+      "command-center/WORK-UNIT-CATALOG.json"
+    ],
+    "dependencies": [
+      "IMP-0436"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0456.json",
+    "output_schema": "command-center/schema/work-unit.schema.json",
+    "evidence_requirement": "Merge report: per-slice count, id range, gaps, duplicates, and the total against the declared program count. Any nonzero gap or duplicate blocks the merge.",
+    "tests_required": "planted-duplicate test must block the merge; planted-gap test must block; a clean slice set must merge (positive control, proving the merger is not simply refusing everything).",
+    "reviewer_requirement": "independent-claude-reviewer recounts each slice independently from the files on disk",
+    "completion_sentinel": "SENTINEL:IMP-0456:CATALOG-MERGE-CONTIGUOUS",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: duplicate-unit-id, index-gap, count-claimed-not-read",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0457",
+    "title": "Release-mode adaptation of the program stopping predicate",
+    "phase": "4",
+    "question_or_target": "Resolve the measured contradiction that under the binding PR-ONLY release mode, program stopping condition 13 (release or canary succeeds) is permanently unsatisfiable as written. Exact target: implement release-mode-aware evaluation so a condition that cannot apply resolves to an explicitly recorded NOT-APPLICABLE with an owner-visible justification, never to a silent pass and never to a permanent block.",
+    "inputs": [
+      "_USER-PROMPTS.md:11376-11398",
+      "command-center/OWNER-DECISIONS.md",
+      "command-center/receipts/IMP-0415.json"
+    ],
+    "dependencies": [
+      "IMP-0415"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0457.json",
+    "output_schema": "command-center/schema/completion-verdict.schema.json",
+    "evidence_requirement": "All twenty-one stopping conditions evaluated under PR-ONLY with a per-condition verdict of TRUE, FALSE, or NOT-APPLICABLE plus the recorded owner justification for every NOT-APPLICABLE.",
+    "tests_required": "mode test: under a canary release mode the same condition must be REQUIRED, not not-applicable (both-states). A NOT-APPLICABLE without a recorded justification must fail validation.",
+    "reviewer_requirement": "independent-claude-reviewer plus explicit owner approval of each NOT-APPLICABLE",
+    "completion_sentinel": "SENTINEL:IMP-0457:STOPPING-RULE-MODE-AWARE",
+    "retry_policy": "no automatic retry; this changes when the program is allowed to declare itself done",
+    "failure_classification": "P0-blocking / classes: unsatisfiable-stopping-condition, not-applicable-as-silent-pass",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0458",
+    "title": "Secret-scrub gate on the program artifact corpus",
+    "phase": "4",
+    "question_or_target": "Implement the gate for spec line 11345 - credentials or decrypted secrets entering an artifact bundle - scanning every receipt, event and packaged artifact before it is registered. Exact target: detection and REPORTING only; the gate must name the variable, the scope and the evidence, and must never itself rotate, revoke or unset any credential.",
+    "inputs": [
+      "command-center/receipts/",
+      "command-center/events/",
+      "release bundle staging"
+    ],
+    "dependencies": [
+      "IMP-0454"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/security-implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:gitleaks"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0458.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Scan results over the full corpus with zero-entropy prefixes only (never a secret value), plus a planted-canary run proving the scanner fires on a known-present synthetic credential.",
+    "tests_required": "canary test (must fire); false-positive control on a document that MENTIONS a credential variable name without containing a value (must NOT fire) - the use-versus-mention distinction; and an assertion that the gate has no code path that modifies a credential.",
+    "reviewer_requirement": "security reviewer plus an independent claude reviewer; both must PASS, and the no-rotation property must be verified by reading the code, not by testing",
+    "completion_sentinel": "SENTINEL:IMP-0458:SECRET-SCRUB-REPORT-ONLY",
+    "retry_policy": "no automatic retry on a positive finding; escalate to the owner immediately with the blast-radius trace",
+    "failure_classification": "P0-blocking / classes: secret-in-artifact, use-vs-mention-false-positive, gate-modifies-credential",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0459",
+    "title": "Strict-parser unknown-field policy for every shipped manifest",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11302 (strict plugin parser rejects unknown fields). Implement the emission policy so no shipped manifest ever contains a field the strictest supported client rejects, plus a forward-compatibility shim for reading manifests that do. Exact question: which manifest fields does the strictest client currently reject, measured by feeding it each field in isolation?",
+    "inputs": [
+      "plugin manifest",
+      "marketplace manifest",
+      "strictest supported client parser"
+    ],
+    "dependencies": [
+      "IMP-0433",
+      "B06"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0459.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Per-field acceptance matrix produced by feeding each candidate field to the real parser one at a time, with the verbatim rejection message for each rejected field.",
+    "tests_required": "strict-parse test on the emitted manifest; a planted unknown field must be rejected by the test (detector control) and must never reach the emitted artifact.",
+    "reviewer_requirement": "independent-claude-reviewer re-runs the per-field matrix",
+    "completion_sentinel": "SENTINEL:IMP-0459:MANIFEST-STRICT-CLEAN",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: strict-parser-rejects-unknown-field, schema-drift",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0460",
+    "title": "Positive hook-load verification, not installed-status inference",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11303 (plugin appears installed but hooks are unloaded). Implement a POSITIVE load probe: each hook emits a load marker the verifier reads, so installed status is never inferred from the presence of a config file. Exact question: how many declared hooks actually emit their load marker at session start, and does that number equal the declared count?",
+    "inputs": [
+      "hooks manifest (repo source)",
+      "live hook directory",
+      "session start log"
+    ],
+    "dependencies": [
+      "IMP-0449",
+      "IMP-0471"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0460.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Declared-versus-observed hook count with every missing marker named; a config-file listing is explicitly NOT accepted as evidence of loading.",
+    "tests_required": "both-states test: a deliberately malformed hook config must produce a LOWER observed count (proving the probe can see the broken state), and the repaired config must restore it. A probe silent in both states measures nothing.",
+    "reviewer_requirement": "independent-claude-reviewer verifies the broken-state reading specifically",
+    "completion_sentinel": "SENTINEL:IMP-0460:HOOKS-LOAD-VERIFIED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: installed-but-unloaded, silent-in-both-states",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0461",
+    "title": "Explicit interpreter resolution banning bare script invocation",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11304 (bare .sh invocation on Windows). Implement a launcher that resolves an explicit interpreter per script type and refuses bare invocation. Exact target: distinguish the MSYS bash from the Windows system bash, because the latter is WSL and mangles Windows paths and rejects CRLF - a resolver that reports only one of them is wrong.",
+    "inputs": [
+      "script launcher",
+      "interpreter discovery results from both shells"
+    ],
+    "dependencies": [
+      "IMP-0466"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0461.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Resolution table showing what each shell reports for the same interpreter name, with the resolved absolute path for each, demonstrating the two shells disagree.",
+    "tests_required": "CRLF script test under the real target interpreter, not under the tolerant one; a bare-invocation attempt must be refused. Both-shell control proving the resolver consulted both.",
+    "reviewer_requirement": "independent-claude-reviewer re-resolves from the other shell",
+    "completion_sentinel": "SENTINEL:IMP-0461:INTERPRETER-EXPLICIT",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: bare-script-invocation, wrong-bash-resolved, crlf-rejected-by-real-interpreter",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0462",
+    "title": "Two-directional divergence refusal in the repo-to-live synchronizer",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11305 (repository copy differs from live deployed copy). Implement the synchronizer so it REFUSES a one-directional copy whenever both sides hold unique content. Exact question: for the currently diverged rule tree, how many files differ in real content versus by line endings only, and how many are larger on each side?",
+    "inputs": [
+      "<REPO>/rules/**",
+      "~/.claude/rules/**",
+      "existing sync script"
+    ],
+    "dependencies": [
+      "IMP-0440"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Grep",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0462.json",
+    "output_schema": "command-center/schema/drift-report.schema.json",
+    "evidence_requirement": "Per-file classification into identical, EOL-only, repo-larger, live-larger, and diverged-both-unique, with counts. A one-directional summary that reports only which side is ahead is exactly the defect and is not acceptable evidence.",
+    "tests_required": "both-unique fixture must be REFUSED; a purely one-directional fixture must be permitted (both-states). Detector control: an EOL-only difference must not be classified as content divergence.",
+    "reviewer_requirement": "2 independent reviewers; the classification must be recomputed by a second differ",
+    "completion_sentinel": "SENTINEL:IMP-0462:SYNC-REFUSES-TWO-DIRECTIONAL",
+    "retry_policy": "no automatic retry; a one-directional sync over diverged content destroys the smaller side",
+    "failure_classification": "P0-blocking / classes: one-directional-overwrite, eol-phantom-drift",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0463",
+    "title": "Package cache invalidation that cannot mask a fixed package",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11306 (stale cache masks a fixed package). Implement content-addressed package caching plus an explicit refresh command. Exact question: after publishing a fixed package, how many client invocations does it take before the fix is observed, and is that number one?",
+    "inputs": [
+      "package cache directory",
+      "package publish pipeline"
+    ],
+    "dependencies": [
+      "IMP-0464"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0463.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A publish-then-observe trace with the observed version at each invocation; the fixed content must appear on the first invocation after publish.",
+    "tests_required": "stale-cache test: with a cached old package present, the new one must still be observed. Corrupt-cache test must rebuild rather than serve garbage or an empty package.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0463:CACHE-CANNOT-MASK-FIX",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: stale-cache-masks-fix, empty-cache-served-as-ok",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0464",
+    "title": "Package content gate with an explicit exclusion set and size ceiling",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11307 (package accidentally includes .git or huge unrelated files). Implement the packaging gate that enumerates the exact file list before packing and fails on any excluded path or on exceeding the declared size ceiling. Exact question: what is the packaged artifact size and file count, and which of the exclusion patterns actually matched something?",
+    "inputs": [
+      "package build pipeline",
+      "exclusion pattern set"
+    ],
+    "dependencies": [
+      "IMP-0458"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/security-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0464.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Full packed file list with total bytes, plus the per-pattern match count. A pattern matching zero files across every build is either dead or the detector is broken - it must be named either way.",
+    "tests_required": "planted .git directory, planted 200MB file, planted credential file - each must fail the gate independently. Clean build must pass (positive control).",
+    "reviewer_requirement": "security reviewer plus an independent claude reviewer; both must PASS",
+    "completion_sentinel": "SENTINEL:IMP-0464:PACKAGE-CONTENT-GATED",
+    "retry_policy": "no automatic retry on a credential match; escalate with a blast-radius trace",
+    "failure_classification": "P0-blocking / classes: git-dir-shipped, oversize-artifact, credential-in-package",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0465",
+    "title": "Quoting-safe command marshaller with file-based payload transport",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11308 (shell quoting corrupts script content). Implement a marshaller that never inlines a payload containing an apostrophe, a here-string terminator, or a control byte - routing all such content through a written file and a path argument. Exact question: at what payload shape does each transport break, measured rather than assumed?",
+    "inputs": [
+      "command dispatch layer",
+      "payload corpus with apostrophes, quotes and control bytes"
+    ],
+    "dependencies": [
+      "IMP-0466"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0465.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Transport failure matrix over the payload corpus: transport, payload shape, observed outcome. Include at least one payload whose BODY quotes a destructive command, because a payload can be scanned as if it were a command line.",
+    "tests_required": "round-trip integrity test asserting the received bytes equal the sent bytes for every corpus entry; a control payload known to break the naive transport must be shown breaking it.",
+    "reviewer_requirement": "independent-claude-reviewer re-runs the matrix from the other shell",
+    "completion_sentinel": "SENTINEL:IMP-0465:MARSHALLER-QUOTE-SAFE",
+    "retry_policy": "max 2 attempts; after the second quoting failure switch transport rather than escaping a third time",
+    "failure_classification": "P1-blocking / classes: quoting-corruption, payload-scanned-as-command, heredoc-backslash-mangling",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0466",
+    "title": "Argument-aware shell path-rewriting control",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11309 (PowerShell and Git Bash path rewriting). Implement path-conversion suppression that is COMMAND-aware and ARGUMENT-aware: applied around revision-shaped and device-path arguments, never globally, because a global suppression breaks legitimate POSIX path arguments and silently produces a no-op. Exact target: prove both failure directions are prevented, not just one.",
+    "inputs": [
+      "shell invocation layer",
+      "argument corpus (revisions, device paths, POSIX paths)"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0466.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Both-direction evidence: a revision argument surviving unconverted, AND a legitimate POSIX path argument still being converted correctly under the same configuration. A run showing only one direction is half a proof.",
+    "tests_required": "per-argument-shape test; a global-suppression fixture must FAIL the legitimate-path case, proving the scoped implementation is not equivalent to the global one.",
+    "reviewer_requirement": "independent-claude-reviewer plus an adversarial refuter on the silent-no-op direction",
+    "completion_sentinel": "SENTINEL:IMP-0466:PATHCONV-ARGUMENT-SCOPED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: global-suppression-breaks-paths, silent-noop-clone, redirect-truncates-target",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0467",
+    "title": "Path library for extended-length paths and reserved device names",
+    "phase": "5",
+    "question_or_target": "Implement the path library that handles Windows extended-length paths and reserved device names (NUL, CON, AUX, PRN) without aborting a directory walk. Exact question: does a tree containing a file named NUL still enumerate completely, and what does the relative-path computation return for it?",
+    "inputs": [
+      "path handling layer",
+      "fixture tree containing reserved names and a >260 char path"
+    ],
+    "dependencies": [
+      "B01"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Glob",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0467.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Enumeration count over the fixture tree with and without the reserved-name file present; the counts must differ by exactly one and neither run may raise.",
+    "tests_required": "reserved-name test; long-path test above 260 characters; a control asserting the walk does NOT silently swallow the exception and return zero entries.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0467:PATH-LIBRARY-WINDOWS-SAFE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: reserved-device-name-crash, crash-swallowed-as-zero, long-path-truncation",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0468",
+    "title": "Case-distinct key collision detector for configuration documents",
+    "phase": "4",
+    "question_or_target": "Anchor spec:11310 (case-insensitive parser collision on case-distinct JSON keys). Implement the detector that finds two keys differing only by case in any shipped config or manifest, before a case-insensitive consumer silently drops one. Exact question: how many such collisions exist across the shipped configuration surface today?",
+    "inputs": [
+      "all shipped JSON/YAML configs",
+      "manifest set"
+    ],
+    "dependencies": [
+      "IMP-0433"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Glob",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/receipts/IMP-0468.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Collision list with file, both keys, and the value each holds; a zero result must be accompanied by a planted-collision control proving the detector fires.",
+    "tests_required": "planted-collision control; nested-object coverage test; a control asserting keys that differ by more than case are not reported.",
+    "reviewer_requirement": "independent-claude-reviewer",
+    "completion_sentinel": "SENTINEL:IMP-0468:CASE-COLLISION-SCANNED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: case-insensitive-key-drop, zero-result-unverified-detector",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0469",
+    "title": "Stale-branch reversion guard on the commit-to-commit surface",
+    "phase": "9",
+    "question_or_target": "Anchor spec:11322 (stale branch would revert newer work). Implement the guard that measures the three-dot commit-to-commit diff against the integration base before any proposal is offered, and blocks when the surface contains mass deletions the branch did not author. Exact question: how many deletions does this branch propose, and how many of them are files it never touched?",
+    "inputs": [
+      "branch head",
+      "origin/main",
+      "git diff surface"
+    ],
+    "dependencies": [
+      "IMP-0428",
+      "IMP-0432"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:git-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0469.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Three-dot diff stat with files changed and deletions, alongside the two-dot number, showing they differ - the two-dot form folds in working-tree noise and is not the proposal surface.",
+    "tests_required": "stale-branch fixture must be blocked; a freshly-based branch must pass (both-states). A control asserting the guard reads the three-dot form specifically.",
+    "reviewer_requirement": "independent-claude-reviewer recomputes both diff forms",
+    "completion_sentinel": "SENTINEL:IMP-0469:STALE-BRANCH-GUARDED",
+    "retry_policy": "no automatic retry; a mass-deletion proposal must reach a human",
+    "failure_classification": "P0-blocking / classes: mass-deletion-proposal, two-dot-diff-misread-as-proposal-surface",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0470",
+    "title": "Semantic-role detector library replacing payload-text matching",
+    "phase": "4",
+    "question_or_target": "Anchor spec:11323 (false-positive prose and fixture detectors). Implement the shared library that classifies a match by its semantic ROLE - the tool-input verb, the JSON field, the AST position - rather than by the presence of a string in the payload, since a document describing a defect necessarily contains that defect's text. Exact question: on the historical false-positive corpus, what is the before-and-after false-positive rate?",
+    "inputs": [
+      "historical false-positive corpus",
+      "existing guard implementations"
+    ],
+    "dependencies": [
+      "IMP-0449"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0470.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Confusion matrix before and after on the historical corpus, with each surviving false positive shown as the raw record so the role-versus-text distinction is visible.",
+    "tests_required": "mention corpus (documents quoting a dangerous command) must produce zero fires; use corpus (actual invocation) must produce a fire on every entry. A library passing only one of the two corpora is not a fix.",
+    "reviewer_requirement": "adversarial refuter constructs a mention that the library still fires on and a use it misses",
+    "completion_sentinel": "SENTINEL:IMP-0470:ROLE-BASED-DETECTION",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: use-vs-mention, guard-fires-on-documentation",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0471",
+    "title": "Both-states detector-validation harness applied to every shipped detector",
+    "phase": "4",
+    "question_or_target": "Anchor spec:11324 (detector silent in both broken and fixed states). Implement the harness that, for every shipped detector, runs it against a known-BROKEN and a known-GOOD state and requires it to differ. Exact question: how many of the shipped detectors are silent in BOTH states and therefore measure nothing?",
+    "inputs": [
+      "all shipped detectors and guards",
+      "known-broken fixtures"
+    ],
+    "dependencies": [
+      "IMP-0470"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0471.json",
+    "output_schema": "command-center/schema/mutation-report.schema.json",
+    "evidence_requirement": "Per-detector two-state table: broken-state output, good-state output, and a DIFFERS verdict. Every detector with no known-broken fixture is NOT-CHECKED, not passing.",
+    "tests_required": "the harness needs its own control: a detector known to be two-state-valid must be reported valid, and a deliberately inert stub detector must be reported as measuring nothing.",
+    "reviewer_requirement": "adversarial refuter selects three detectors and constructs independent broken states",
+    "completion_sentinel": "SENTINEL:IMP-0471:DETECTORS-TWO-STATE-VALIDATED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: silent-in-both-states, no-known-broken-fixture",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0472",
+    "title": "Per-session process-multiplication guard for MCP-style child processes",
+    "phase": "9",
+    "question_or_target": "Anchor spec:11326 (eager per-session MCP process multiplication). Implement the guard that measures live child-process count per session and refuses to start a new session tier that would push the machine past its process budget, preferring a shared long-lived service over per-session duplication. Exact question: what is the current processes-per-session multiplier, measured from the process table?",
+    "inputs": [
+      "process table",
+      "MCP configuration (user scope and per-project)",
+      "session registry"
+    ],
+    "dependencies": [
+      "IMP-0407",
+      "IMP-0445"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/systems-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0472.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Measured multiplier from the process table (processes divided by sessions), and the configuration scope each server is actually enabled at - a setting present at the wrong scope is inert and must be shown to be inert, not assumed effective.",
+    "tests_required": "scope test asserting the guard reads the scope that actually takes effect; budget test asserting a new tier is refused at the ceiling. Control: the guard must still permit startup below the ceiling.",
+    "reviewer_requirement": "independent-claude-reviewer verifies the effective scope from the process table, not from the config file",
+    "completion_sentinel": "SENTINEL:IMP-0472:PROCESS-MULTIPLIER-BOUNDED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: inert-config-scope, per-session-duplication, commit-exhaustion",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0473",
+    "title": "Shared-service protection in the resource guard's termination path",
+    "phase": "9",
+    "question_or_target": "Anchor spec:11328 (kill-based memory guard terminates a live shared service). Implement an allowlist plus a proof-of-orphan requirement so the resource guard can only terminate a process it has proven to be an orphan of a dead session. Exact target: a live shared service must be unkillable by the guard even at the memory ceiling.",
+    "inputs": [
+      "resource guard implementation",
+      "shared service inventory",
+      "session registry"
+    ],
+    "dependencies": [
+      "IMP-0413",
+      "IMP-0445",
+      "IMP-0472"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/security-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0473.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "A ceiling-pressure run in which a shared service is present and survives, with the guard's per-candidate decision record showing why it was spared.",
+    "tests_required": "shared-service-survives test at the ceiling; orphan-is-reaped test; a mutation removing the allowlist must kill the shared service and turn the first test red.",
+    "reviewer_requirement": "security reviewer plus owner approval, because this guard can terminate the owner's running services",
+    "completion_sentinel": "SENTINEL:IMP-0473:GUARD-SPARES-SHARED-SERVICES",
+    "retry_policy": "no automatic retry; a wrong termination takes down a live service",
+    "failure_classification": "P0-blocking / classes: kills-shared-service, orphan-not-proven",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0474",
+    "title": "Rollback contract that cannot remove existing commands or user data",
+    "phase": "5",
+    "question_or_target": "Anchor spec:11347 (rollback removes existing commands or user data). Implement rollback as an additive-restore with a pre-rollback inventory and a post-rollback diff, so any command or user-data path present before and absent after is a hard failure. Exact question: what is the set difference of available commands and user-data paths across a real rollback, and is it empty?",
+    "inputs": [
+      "installed command inventory",
+      "user data paths",
+      "rollback implementation"
+    ],
+    "dependencies": [
+      "IMP-0477"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0474.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Before-and-after inventories with the computed set difference for both commands and user-data paths; a rollback rehearsal that was never actually executed is NOT-CHECKED, not passing.",
+    "tests_required": "rollback rehearsal on a disposable profile; a planted user-data file must survive; a mutation making rollback destructive must turn the test red.",
+    "reviewer_requirement": "2 independent reviewers plus owner approval before rollback is exercised against a real profile",
+    "completion_sentinel": "SENTINEL:IMP-0474:ROLLBACK-NON-DESTRUCTIVE",
+    "retry_policy": "no automatic retry; re-running a destructive rollback compounds the loss",
+    "failure_classification": "P0-blocking / classes: rollback-deletes-user-data, rehearsal-never-executed",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0475",
+    "title": "Marketplace package permission scanner for excessive and malicious grants",
+    "phase": "6",
+    "question_or_target": "Anchor spec:11346 (marketplace package has malicious or excessive permissions). Implement the scanner that compares a package's declared permissions against the minimum its code actually exercises, and flags every grant with no corresponding use. Exact question: for each fixture package, which declared permissions are never exercised by its code?",
+    "inputs": [
+      "package permission declarations",
+      "package source",
+      "test fixture marketplace"
+    ],
+    "dependencies": [
+      "IMP-0459",
+      "IMP-0464"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/security-implementer",
+    "tool_permissions": [
+      "Read",
+      "Grep",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:semgrep"
+    ],
+    "execution_substrate": "cloud-batch",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0475.json",
+    "output_schema": "command-center/schema/permission-scan.schema.json",
+    "evidence_requirement": "Per-package declared-versus-exercised permission table with the code anchor for each exercised permission; an unexercised grant with no anchor is the finding.",
+    "tests_required": "malicious fixture package (over-broad grants plus an exfiltration path) must be flagged; a minimal well-scoped package must NOT be flagged (both-states).",
+    "reviewer_requirement": "security reviewer plus a cross-vendor codex reviewer on the malicious fixture",
+    "completion_sentinel": "SENTINEL:IMP-0475:PERMISSIONS-SCANNED",
+    "retry_policy": "max 3 attempts for batch transients; zero retries on a scanner that flags every package",
+    "failure_classification": "P1-blocking / classes: excessive-permission-grant, scanner-flags-everything",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0476",
+    "title": "Health-check command built on two-signal probes only",
+    "phase": "5",
+    "question_or_target": "Implement the health-check command so every reported status is backed by two mechanically independent probes, and any single-probe check reports NOT-CHECKED rather than OK. Exact question: how many of the health checks can currently produce a green verdict from one probe alone?",
+    "inputs": [
+      "installed component inventory",
+      "command-center/receipts/IMP-0471.json"
+    ],
+    "dependencies": [
+      "IMP-0471",
+      "IMP-0460"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/tooling-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pwsh-readonly"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0476.json",
+    "output_schema": "command-center/schema/health-report.schema.json",
+    "evidence_requirement": "Per-check listing of BOTH probes with their outputs; a check declaring only one probe is a violation and must render as NOT-CHECKED in the report.",
+    "tests_required": "single-probe check must render NOT-CHECKED; a two-probe check with disagreeing probes must render DISAGREE, never OK. Positive control on a genuinely healthy component.",
+    "reviewer_requirement": "independent-claude-reviewer audits three checks for genuine probe independence",
+    "completion_sentinel": "SENTINEL:IMP-0476:HEALTH-TWO-SIGNAL",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: single-signal-green, undeclared-source-probe",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0477",
+    "title": "Versioned schema migration engine with a launcher freeze marker",
+    "phase": "5",
+    "question_or_target": "Implement the migration engine required by spec line 10660 - once the first implementation wave starts, launchers and schemas are frozen and any change requires a versioned migration. Exact target: an in-place schema edit after the freeze marker is set must be refused, and the only accepted path is a numbered migration with an executable down-step.",
+    "inputs": [
+      "command-center/schema/**",
+      "freeze marker",
+      "migration directory"
+    ],
+    "dependencies": [
+      "IMP-0433",
+      "IMP-0436"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/schema-author",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:pytest"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0477.json",
+    "output_schema": "command-center/schema/migration.schema.json",
+    "evidence_requirement": "A refused in-place edit after the freeze, and an accepted migration with its up and down steps both executed against a fixture corpus.",
+    "tests_required": "freeze test (in-place edit refused); round-trip test (up then down restores the original bytes); a migration with no down-step must be refused.",
+    "reviewer_requirement": "independent-claude-reviewer executes the down-step independently",
+    "completion_sentinel": "SENTINEL:IMP-0477:MIGRATIONS-VERSIONED",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P1-blocking / classes: post-freeze-inplace-edit, irreversible-migration",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0478",
+    "title": "Actionable error catalog covering every failure class",
+    "phase": "5",
+    "question_or_target": "Implement the user-facing error catalog mapping every class in the failure taxonomy to a message that names what failed, why, and the exact next command. Exact question: how many taxonomy classes currently have no user-facing message, and after this unit is that number zero?",
+    "inputs": [
+      "command-center/receipts/IMP-0449.json",
+      "failure taxonomy"
+    ],
+    "dependencies": [
+      "IMP-0449"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0478.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Coverage table: taxonomy class, message id, and the next command it recommends. Every recommended command must be executed verbatim by the documentation test.",
+    "tests_required": "coverage test asserting zero unmapped classes; documentation-command test executing every recommended next command; a control asserting a class added later is reported as unmapped.",
+    "reviewer_requirement": "independent-claude-reviewer runs three messages end to end as a naive user",
+    "completion_sentinel": "SENTINEL:IMP-0478:ERROR-CATALOG-COMPLETE",
+    "retry_policy": "max 2 attempts, backoff 30s/120s",
+    "failure_classification": "P2-degraded / classes: unmapped-failure-class, recommended-command-does-not-run",
+    "owner_approval_required": false
+  },
+  {
+    "id": "IMP-0479",
+    "title": "Telemetry and privacy contract implementation with an executable redaction proof",
+    "phase": "4",
+    "question_or_target": "Implement the telemetry and privacy contract from spec line 10819: what is recorded, what is redacted, where it is stored, how it is disabled. Exact target: redaction must be proven executably against planted canaries - a policy document is not an implementation, and an ephemeral channel is not exfiltration-safe.",
+    "inputs": [
+      "telemetry emission points",
+      "privacy policy draft",
+      "planted canary set"
+    ],
+    "dependencies": [
+      "IMP-0458"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/security-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python",
+      "Bash:gitleaks"
+    ],
+    "execution_substrate": "local-serialized",
+    "timeout_seconds": 2700,
+    "output_path": "command-center/receipts/IMP-0479.json",
+    "output_schema": "command-center/schema/telemetry-contract.schema.json",
+    "evidence_requirement": "Canary sweep results across every emission point: planted secret-shaped token, planted absolute home path, planted project name - each must be absent from the emitted stream, with the emission point named.",
+    "tests_required": "canary test per emission point; opt-out test asserting disabling telemetry emits literally nothing; a control proving the sweep can detect a canary that was NOT redacted.",
+    "reviewer_requirement": "security reviewer plus owner approval of the recorded-field list",
+    "completion_sentinel": "SENTINEL:IMP-0479:TELEMETRY-REDACTION-PROVEN",
+    "retry_policy": "no automatic retry on a canary leak; escalate with the blast-radius trace",
+    "failure_classification": "P0-blocking / classes: telemetry-leak, policy-without-implementation, opt-out-still-emits",
+    "owner_approval_required": true
+  },
+  {
+    "id": "IMP-0480",
+    "title": "Prompt-injection defence on the artifact-consumption boundary",
+    "phase": "9",
+    "question_or_target": "Anchor spec:11344 (an artifact injects instructions into a later stage). Implement the boundary that treats every consumed artifact - transcripts, fetched pages, peer results, participant outputs - as untrusted DATA, never as instructions, with a structural wrapper rather than a prompt-level plea. Exact question: does a planted instruction inside an artifact change the behavior of the consuming stage?",
+    "inputs": [
+      "artifact consumption points",
+      "planted-injection corpus"
+    ],
+    "dependencies": [
+      "IMP-0414",
+      "IMP-0470"
+    ],
+    "assigned_model_vendor_role": "opus/anthropic/security-implementer",
+    "tool_permissions": [
+      "Read",
+      "Write",
+      "Edit",
+      "Bash:python"
+    ],
+    "execution_substrate": "worktree-isolated",
+    "timeout_seconds": 3600,
+    "output_path": "command-center/receipts/IMP-0480.json",
+    "output_schema": "command-center/schema/receipt.schema.json",
+    "evidence_requirement": "Behavioral diff for each planted injection: consuming-stage output with and without the injection present. Identical outputs are the pass condition; any divergence names the injection that worked.",
+    "tests_required": "injection corpus covering role-spoof, ignore-previous-instructions, encoded payload, and a credential-read request; every one must produce an identical downstream output. Control: a benign artifact edit that SHOULD change the output must change it, proving the diff is sensitive.",
+    "reviewer_requirement": "security reviewer plus an adversarial refuter who authors three new injections the corpus has never seen",
+    "completion_sentinel": "SENTINEL:IMP-0480:INJECTION-BOUNDARY-HELD",
+    "retry_policy": "no automatic retry on a successful injection; escalate and widen the corpus",
+    "failure_classification": "P0-blocking / classes: artifact-injects-instructions, insensitive-behavioral-diff",
+    "owner_approval_required": false
+  }
+]

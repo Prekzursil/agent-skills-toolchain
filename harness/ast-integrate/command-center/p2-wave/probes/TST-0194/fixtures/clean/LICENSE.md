@@ -1,0 +1,2 @@
+# LICENSE
+clean-license

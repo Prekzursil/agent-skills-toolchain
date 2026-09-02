@@ -1,0 +1,351 @@
+{
+ "answer": "Yes on this fixture runner: after SIGKILL at ingest, transform, and fuse boundaries, resume produced a byte-identical artifact to the uninterrupted run (sha256=cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39), skipped exactly the completed stages, and did not replay side effects. Resume from an integrity-flipped checkpoint was refused (exit 2, REFUSED:corrupt-checkpoint) with no further stage execution. A known-broken redo-completed runner was detected by duplicate effect-log lines. Subject is the CNF-0079 fixture, not a production engine (none is present on this tree). SUCCESS:CNF-0079 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and three kill points were exercised and the corrupted-checkpoint control was refused. Any other terminal state is FAILED:CNF-0079 <classification> with the diagnostic tail attached.",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/confirmation/CNF-0079-resume-parity.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/determinism-report.schema.json",
+   "role": "contract"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0079/workflow.py",
+   "role": "fixture-runner"
+  }
+ ],
+ "claim_under_test": "Killing a resumable workflow at a stage boundary and resuming it produces the same final artifact as an uninterrupted run, skips completed stages, and refuses a corrupted checkpoint instead of a partial run.",
+ "comparisons": [
+  {
+   "differing_fields": [],
+   "equivalent": true,
+   "executed_on_resume": [
+    "transform",
+    "fuse",
+    "emit"
+   ],
+   "id": "kill-after-ingest",
+   "left_label": "uninterrupted-run",
+   "left_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+   "right_label": "kill-SIGKILL-after-ingest-then-resume",
+   "right_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+   "side_effect_replay": false,
+   "skipped_on_resume": [
+    "ingest"
+   ]
+  },
+  {
+   "differing_fields": [],
+   "equivalent": true,
+   "executed_on_resume": [
+    "fuse",
+    "emit"
+   ],
+   "id": "kill-after-transform",
+   "left_label": "uninterrupted-run",
+   "left_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+   "right_label": "kill-SIGKILL-after-transform-then-resume",
+   "right_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+   "side_effect_replay": false,
+   "skipped_on_resume": [
+    "ingest",
+    "transform"
+   ]
+  },
+  {
+   "differing_fields": [],
+   "equivalent": true,
+   "executed_on_resume": [
+    "emit"
+   ],
+   "id": "kill-after-fuse",
+   "left_label": "uninterrupted-run",
+   "left_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+   "right_label": "kill-SIGKILL-after-fuse-then-resume",
+   "right_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+   "side_effect_replay": false,
+   "skipped_on_resume": [
+    "ingest",
+    "transform",
+    "fuse"
+   ]
+  }
+ ],
+ "controls": [
+  {
+   "description": "Flip one hex digit of checkpoint integrity after a stop at transform, then resume. Require a clear refusal and no further stage execution.",
+   "effects_unchanged": true,
+   "exit_code": 2,
+   "expected_fired": true,
+   "fired": true,
+   "id": "corrupt-checkpoint-refuse",
+   "kind": "corrupt-checkpoint",
+   "result": "PASS",
+   "stages_unchanged": true,
+   "stderr_tail": "REFUSED:corrupt-checkpoint checkpoint integrity mismatch\n",
+   "tamper": "integrity-hex-flip"
+  },
+  {
+   "description": "Resume with redo_completed=True after ingest. The detector must fire on duplicate effect-log lines for a completed stage.",
+   "effects": {
+    "emit": 1,
+    "fuse": 1,
+    "ingest": 2,
+    "transform": 1
+   },
+   "executed_on_resume": [
+    "ingest",
+    "transform",
+    "fuse",
+    "emit"
+   ],
+   "expected_fired": true,
+   "fired": true,
+   "id": "silent-redo-detector",
+   "kind": "known-broken-runner",
+   "result": "PASS"
+  }
+ ],
+ "equivalent": true,
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0079/experiment.py:kill_then_resume",
+   "claim": "Three SIGKILL boundaries (ingest, transform, fuse) resume to the uninterrupted artifact hash.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0079/workflow.py:stage-skip",
+   "claim": "Resumed runs skip completed stages and do not replay append-only side effects.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0079/workflow.py:CorruptCheckpoint",
+   "claim": "A corrupted checkpoint is refused rather than partially executed.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0079/experiment.py:redo_completed_detected",
+   "claim": "The side-effect detector fires on a runner that silently redoes a completed stage.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "failure_classification_checked": [
+  "resume-divergence",
+  "side-effect-replay",
+  "corrupt-checkpoint-accepted"
+ ],
+ "fixture_note": "This tree has no production workflow engine. Confirmation is of a four-stage fixture with durable HMAC-signed checkpoints, append-only side-effect log, and SIGKILL at stage boundaries after fsync.",
+ "inputs": {
+  "records": [
+   {
+    "id": "a",
+    "value": 11
+   },
+   {
+    "id": "b",
+    "value": 23
+   },
+   {
+    "id": "c",
+    "value": 41
+   },
+   {
+    "id": "d",
+    "value": 7
+   }
+  ],
+  "routing_pin": "fixture-route-v1",
+  "seed": 20260824
+ },
+ "kill_points": [
+  {
+   "artifact_equivalent": true,
+   "boundary": "ingest",
+   "checkpoint_completed_stages": [
+    "ingest"
+   ],
+   "checkpoint_input_digest": "b0ef87be511089b8a5c1a3d1d8aff032ec603b1a9d2622c448b74e72d28efb58",
+   "checkpoint_integrity": "1ad3c7b760548f364643bb56539d19d193b84794024910b74e4907ceb2a49da0",
+   "child_return": -9,
+   "effects": {
+    "emit": 1,
+    "fuse": 1,
+    "ingest": 1,
+    "transform": 1
+   },
+   "executed_on_resume": [
+    "transform",
+    "fuse",
+    "emit"
+   ],
+   "expected_executed": [
+    "transform",
+    "fuse",
+    "emit"
+   ],
+   "expected_skipped": [
+    "ingest"
+   ],
+   "id": "kill-after-ingest",
+   "kill_signal": "SIGKILL",
+   "pass": true,
+   "side_effect_replay": false,
+   "skipped_on_resume": [
+    "ingest"
+   ],
+   "stage_receipts": {
+    "ingest": {
+     "effect_token": "d608c092fc48ee07169e1f03682729485e24e6551d1c61499520558c9eb6063c",
+     "output_sha256": "d608c092fc48ee07169e1f03682729485e24e6551d1c61499520558c9eb6063c"
+    }
+   }
+  },
+  {
+   "artifact_equivalent": true,
+   "boundary": "transform",
+   "checkpoint_completed_stages": [
+    "ingest",
+    "transform"
+   ],
+   "checkpoint_input_digest": "b0ef87be511089b8a5c1a3d1d8aff032ec603b1a9d2622c448b74e72d28efb58",
+   "checkpoint_integrity": "4e6f1b6412af6c4411bc2e70e7bd35b5b4a4d699b25554311ab68adbb5ae9e09",
+   "child_return": -9,
+   "effects": {
+    "emit": 1,
+    "fuse": 1,
+    "ingest": 1,
+    "transform": 1
+   },
+   "executed_on_resume": [
+    "fuse",
+    "emit"
+   ],
+   "expected_executed": [
+    "fuse",
+    "emit"
+   ],
+   "expected_skipped": [
+    "ingest",
+    "transform"
+   ],
+   "id": "kill-after-transform",
+   "kill_signal": "SIGKILL",
+   "pass": true,
+   "side_effect_replay": false,
+   "skipped_on_resume": [
+    "ingest",
+    "transform"
+   ],
+   "stage_receipts": {
+    "ingest": {
+     "effect_token": "d608c092fc48ee07169e1f03682729485e24e6551d1c61499520558c9eb6063c",
+     "output_sha256": "d608c092fc48ee07169e1f03682729485e24e6551d1c61499520558c9eb6063c"
+    },
+    "transform": {
+     "effect_token": "ae0efee34625a636d9f98be4cfd1196951f604adce6f0f65a75596e05089d0a1",
+     "output_sha256": "ae0efee34625a636d9f98be4cfd1196951f604adce6f0f65a75596e05089d0a1"
+    }
+   }
+  },
+  {
+   "artifact_equivalent": true,
+   "boundary": "fuse",
+   "checkpoint_completed_stages": [
+    "ingest",
+    "transform",
+    "fuse"
+   ],
+   "checkpoint_input_digest": "b0ef87be511089b8a5c1a3d1d8aff032ec603b1a9d2622c448b74e72d28efb58",
+   "checkpoint_integrity": "24824b38cbba2b80ee013150ff7f06a0a68c1927cc352aa1a29565e6abb13ff7",
+   "child_return": -9,
+   "effects": {
+    "emit": 1,
+    "fuse": 1,
+    "ingest": 1,
+    "transform": 1
+   },
+   "executed_on_resume": [
+    "emit"
+   ],
+   "expected_executed": [
+    "emit"
+   ],
+   "expected_skipped": [
+    "ingest",
+    "transform",
+    "fuse"
+   ],
+   "id": "kill-after-fuse",
+   "kill_signal": "SIGKILL",
+   "pass": true,
+   "side_effect_replay": false,
+   "skipped_on_resume": [
+    "ingest",
+    "transform",
+    "fuse"
+   ],
+   "stage_receipts": {
+    "fuse": {
+     "effect_token": "b275836906d4f80d1fed2c6f8062914109d3c30e965a14c591dcaeec4e45e5a0",
+     "output_sha256": "b275836906d4f80d1fed2c6f8062914109d3c30e965a14c591dcaeec4e45e5a0"
+    },
+    "ingest": {
+     "effect_token": "d608c092fc48ee07169e1f03682729485e24e6551d1c61499520558c9eb6063c",
+     "output_sha256": "d608c092fc48ee07169e1f03682729485e24e6551d1c61499520558c9eb6063c"
+    },
+    "transform": {
+     "effect_token": "ae0efee34625a636d9f98be4cfd1196951f604adce6f0f65a75596e05089d0a1",
+     "output_sha256": "ae0efee34625a636d9f98be4cfd1196951f604adce6f0f65a75596e05089d0a1"
+    }
+   }
+  }
+ ],
+ "kill_points_exercised": 3,
+ "question": "Does resume produce the same result as never having been interrupted? Kill a workflow mid-run, resume it, and compare the final artifact against an uninterrupted run of the same inputs. Question: are they equivalent, and does the resumed run redo work it should have skipped or skip work it should have redone?",
+ "report_kind": "determinism-report",
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "CNF-0079-probe1-kill-resume",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "second_reviewer": {
+  "independent": true,
+  "reviewer_id": "CNF-0079-probe2-corrupt-checkpoint",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:CNF-0079 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and three kill points were exercised and the corrupted-checkpoint control was refused. Any other terminal state is FAILED:CNF-0079 <classification> with the diagnostic tail attached.",
+ "state": "SUCCESS",
+ "subject": "command-center/p2-wave/probes/CNF-0079/workflow.py workflow_id=cnf-0079-resume-fixture",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0079/probe1_kill_resume.py",
+   "id": "three-kill-boundaries",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0079/probe2_corrupt_checkpoint.py",
+   "id": "corrupt-checkpoint-control",
+   "result": "PASS"
+  }
+ ],
+ "title": "Resume-after-kill parity against an uninterrupted run",
+ "uninterrupted_effects": {
+  "emit": 1,
+  "fuse": 1,
+  "ingest": 1,
+  "transform": 1
+ },
+ "uninterrupted_executed": [
+  "ingest",
+  "transform",
+  "fuse",
+  "emit"
+ ],
+ "uninterrupted_sha256": "cede12f2d2325869721715524c2189b56c6a1d243c37491928d19dbba8238a39",
+ "unit_id": "CNF-0079",
+ "verdict": "EQUIVALENT"
+}

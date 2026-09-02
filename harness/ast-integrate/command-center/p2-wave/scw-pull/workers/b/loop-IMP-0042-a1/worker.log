@@ -1,0 +1,27 @@
+
+===== launch 2026-08-20T08:58:53Z attempt=1 =====
+I'll start from the existing IMP-0042 probe tree (or create it if missing), then implement until the unit measure prints SUCCESS:delivered.I’ll inspect the IMP-0042 catalog entry, the measure contract, and a nearby delivered IMP unit so we can resume from the existing probe tree instead of starting over.IMP-0042 has no probe tree yet, so next I’ll pull the catalog contract and a delivered IMP unit as the implementation template.The unit is a real cache-policy implementation, so I’ll inspect the plugin cache, reaper, receipt schema, and a delivered IMP unit before writing anything.I’ll inspect the live plugin cache, CLI, receipt contract, and any reaper sources already in this tree.The plugin cache already has a bypass flag and byte-ceiling prune; next I’ll check CLI wiring, receipt schema, and whether the reaper still exists in history or fixtures.I’ll pull the rest of the reaper sources, the receipt contract, and a compact delivered IMP receipt so the implementation matches the live gate.SUCCESS receipts need reviewer and manifest-registration fields, so I’ll inspect a delivered receipt and the live schema resolver next.I have the contract. Next I’ll restore the reaper from git (no checkout), then add `--no-cache`, LRU retention, and the per-unit probes.I’ll update the cache, CLI, and reaper next, then add the policy tests and named probes.Measure printed SUCCESS:delivered. I’ll record that line in SUBAGENT-RETURN.json so the per-unit artifact matches the live gate.IMP-0042 is contract-green on this worktree.
+
+```
+SUCCESS:delivered IMP-0042 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe_lru.py:0,probe_no_cache.py:0,run_required_tests.py:0
+```
+
+The unit had no probe tree. It is implemented, not parked.
+
+**What landed**
+- Explicit `--no-cache` on `astplugin cache` (plus existing `--bypass` alias). Bypass recomputes from source, writes nothing, and increments an instrumentation counter.
+- Bounded LRU retention: `max_bytes` and `max_entries`. Oldest go first; newest survives.
+- Wired into the existing reaper task, not a second one: `ClaudePluginCacheReaper` still runs `tools/plugin-cache-reaper/reap.py`. `--retention-root` is an extra flag on that same action.
+- Catalog tests: `tools/plugin/tests/test_cache_policy.py` (bypass, byte-ceiling LRU, retention floor, newest-survives negative control, reaper reused).
+- Reaper mutation suite still kills 5/5.
+
+**Two independent `--no-cache` signals**
+1. Instrumentation: `recomputes` and the producer call count go up; writes stay 0.
+2. Out-of-band `os.walk` census: file set, count, and bytes are unchanged.
+
+**Artifacts**
+- Receipt: `command-center/receipts/IMP-0042.json` (`state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0042/UNIT-ARTIFACT-MANIFEST.json`
+- Return: `command-center/p2-wave/probes/IMP-0042/SUBAGENT-RETURN.json`
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no global `unit_manifest.py --write`, no key rotation, no finish-everything / cloud-ok relaunch. The reaper files were materialized with `git show` writes, not checkout.

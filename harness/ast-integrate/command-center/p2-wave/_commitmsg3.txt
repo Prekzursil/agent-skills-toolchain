@@ -1,0 +1,65 @@
+feat(command-center): deliver AUD-0051, AUD-0030 and AUD-0020 with both-states controls
+
+Three more phase-0 units, in the recorded OQ-2 order (ascending phase, then
+unblocking power). Same discipline as the previous commit: the writer validates
+against the declared output_schema BEFORE it writes and refuses to persist an
+artifact that fails, and every headline number is gated behind a control that is
+proven to fire on a known-broken state and stay silent on a known-good one.
+
+AUD-0051 coverage baseline (unblocks 5)
+  43 projects discovered, exactly 1 carries a .coverage-thresholds.json, 42 are
+  reported NOT-CHECKED rather than passed.
+
+  HEADLINE FINDING: the single coverage gate in this tree is INOPERABLE.
+  tools/editor/metaswarm/.coverage-thresholds.json declares
+  enforcement.command "pnpm test:coverage" with blockPRCreation:true and
+  blockTaskCompletion:true, but that project package.json has an EMPTY scripts
+  block. Two independent signals: the static read shows no test:coverage script,
+  and actually running the declared command exits 1. A blocking gate whose
+  command cannot run enforces nothing. Repo line and branch coverage are
+  therefore NOT-CHECKED -- not zero, not passing.
+
+  Control: feed the coverage extractor a real test run with no --coverage
+  instrumentation; it must return NOT-CHECKED and never 0. Rendering a missing
+  measurement as a real-but-bad number is the exact outcome this row bans.
+
+AUD-0030 import graph (unblocks 3)
+  679 modules, 265 internal edges, exactly 1 import cycle:
+  tools.crcp.crcp.sentinel <-> tools.crcp.crcp.write_path. Highest fan-in is
+  tools.monitorcore.monitorcore.redact at 10. The bounded runtime trace (25
+  modules, fresh interpreter each) found 17 modules pulling internal imports the
+  AST scan did not record, and 3 modules that do not import at all.
+
+  MY OWN DETECTOR WAS INERT AND THE CONTROL CAUGHT IT, disclosed rather than
+  dropped. The first run reported 0 cycles on a fixture that IS a two-module
+  cycle: the resolver matched only fully dotted repo paths, so a bare sibling
+  `import helper` -- the dominant shape under tools/ -- never resolved. Had the
+  control been one-sided, "0 cycles in tools/" would have shipped as a finding
+  from a detector that could not find one. After adding sibling resolution the
+  fixture yields exactly one SCC of length 2 and the acyclic twin yields zero.
+
+  The row names "tools/ and tools/lib/". Measured: tools/lib holds 0 Python
+  files, it is a JavaScript package. Recorded rather than silently reinterpreted.
+
+AUD-0020 python dependency inventory (unblocks 3)
+  23 manifests, 93 declared direct dependencies, 4 packages with a parsable
+  lockfile and 19 without. 0 out-of-range pins, 0 declared deps missing from a
+  lock, 0 undecidable constraints.
+
+  A zero here only means something because the differ is proven able to find one:
+  the control injects requests==1.2.3 under a declared >=2.31,<3 and requires
+  exactly that package to be flagged, then requires silence on the same manifest
+  with an in-range lock.
+
+  satisfies() returns None, surfaced as UNDECIDABLE-CONSTRAINT, for any PEP 440
+  form it does not implement, so the violation count is an honest LOWER bound
+  rather than a guess. Settling experiment named inline.
+
+ALL THREE ARE state=BLOCKED for the same structural reason as IMP-0433 and
+AUD-0041: receipt_core requires reviewer.verdict=PASS with independent=true for
+state SUCCESS, and every one of these rows names a fresh-context reviewer a build
+lane cannot supply without self-certifying. The measurements ran; the reviewer
+gate is what is open, and failure.blocked_on says so per unit.
+
+AUD-0051 carries one test with result FAIL by design: enforcement-command-executes
+is the finding, not a defect in the unit.

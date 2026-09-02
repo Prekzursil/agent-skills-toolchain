@@ -1,0 +1,9 @@
+# 06-PROGRAM-B-SCOPE-DOSSIER.md
+
+created_at: 2026-07-19T12:00:00Z
+
+Program B scope dossier.
+
+## lineage
+[cite:00-CURRENT-STATE-INVENTORY.md version=2026-07-15T00:00:00Z]
+[cite:05-ECOSYSTEM-AND-FRONTIER-RESEARCH.md version=2026-07-19T00:00:00Z]

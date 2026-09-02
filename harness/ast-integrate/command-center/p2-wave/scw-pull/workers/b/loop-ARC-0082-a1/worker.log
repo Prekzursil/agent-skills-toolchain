@@ -1,0 +1,18 @@
+
+===== launch 2026-08-20T07:43:06Z attempt=1 =====
+I'll start from the existing ARC-0082 probe tree, read any prior return, and implement until the per-unit measure prints SUCCESS.I'll pull the catalog contract, nearby delivered ARC units, and `artifact_delivered` so we implement the same shape.The catalog unit is a workflow-DSL contract. Next I’ll inspect delivered ARC peers, the fallback contract, and any existing workflow blueprint sources.There's already a workflow-DSL schema in platform. I'll read that plus blueprints, capability map, and similar contract artifacts so ARC-0082 can freeze the real contract.I'll add the shared helper and the named probes next, then pack the contract from their live outputs.**SUCCESS:delivered** for ARC-0082. This unit had no probe tree; it was built rather than parked on `predicate:absent`.
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0082` printed:
+
+`SUCCESS:delivered ARC-0082 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe1_expressibility.py:0,probe2_determinism.py:0,probe3_required_vs_optional.py:0,probe_common.py:0`
+
+**Contract.** `command-center/phase4/contracts/ARC-0082.json` is a freeze of the live Workflow DSL schema (`platform/schema/workflow-dsl.schema.json`) with `state=SUCCESS`, `completion_sentinel=SUCCESS:ARC-0082`, and `x_arc_0082_contract` (required vs optional, three-shape expressibility, two dry-run identity). LF sha256 `626ce9557da53363cb6065574d5893ef32fc0dfdb1c3438d8a16e7b6b727bf0a` (72495 bytes).
+
+**Named probes (all exit 0 on re-run).**
+- **Expressibility:** three different shapes encoded with 0 schema errors — `bp-arc-05` (meta-workflow task/gate/human_checkpoint), `bp-cnc-07` (workflow task/gate), `wf-full-coverage` (fanout/barrier/loop/repair/council). 24/24 capability-map pointers resolve. Unknown-root-key control fires on the bad state only.
+- **Determinism:** replayable blueprints (`bp-arc-05` seed 20260810, `wf-full-coverage` seed 20260809) produce identical canonical plans on two dry-runs. A clock-salt mutant diverges.
+- **Required vs optional:** `wf-minimal` is schema-valid but **not** certified-executable (`dry_run.supported` missing). Dropping `dsl_version`/`id`/`name`/`version`/`stages` rejects; dropping `roles`/`gates`/`estimate`/`lineage` does not.
+
+**Registration.** Per-unit `command-center/p2-wave/probes/ARC-0082/UNIT-ARTIFACT-MANIFEST.json` names the catalog `output_path` with that live sha256. `SUBAGENT-RETURN.json` is written with top-level `status=DELIVERED`. Global `unit_manifest.py --write` was not run.
+
+**Limits (disclosed, not folded).** Independent contract reviewer is NOT-CHECKED (same worker authored the freeze). Determinism is plan identity, not runtime journal replay. This sparse tree only has two library blueprints under `platform/workflows/`; the third shape is the existing conformance workhorse.

@@ -1,0 +1,72 @@
+"""TERMINAL-STATE rendering: every unit result is ``SUCCESS:<id>`` or ``FAILED:<id> <reason>``.
+
+Open-ended prose is the measured driver of repetitive-action loops, and a vague summary was how
+a severed dispatch got reported as done. So the shape is enforced, not merely recommended:
+``<id>`` may not contain whitespace (it would make the marker unparseable) nor any other
+control byte (it would render as an escape sequence in the console printing the marker), and
+``<reason>`` must be a member of the closed taxonomy.
+
+A SEVERED verdict renders ``FAILED:<id> severed-stream (<fine-reason>)`` — ``severed-stream``
+comes FIRST so a consumer that greps for it matches, while the operator still sees the fine
+cause.
+"""
+
+from __future__ import annotations
+
+import re
+
+from agentspec import wire
+from agentspec.taxonomy import is_reason
+
+TERMINAL_RE = re.compile(r"^(?:SUCCESS:\S+|FAILED:\S+ [^\s].*)$")
+"""Anchored at both ends: a line either IS a terminal marker or it is not."""
+
+
+def success_line(unit_id: str) -> str:
+    """Render ``SUCCESS:<id>``."""
+    return f"SUCCESS:{_checked_id(unit_id)}"
+
+
+def failure_line(unit_id: str, reason: str) -> str:
+    """Render ``FAILED:<id> <reason>`` with ``reason`` checked against the taxonomy."""
+    checked = _checked_id(unit_id)
+    if not is_reason(reason):
+        raise ValueError(f"reason {reason!r} is not in the closed taxonomy")
+    return f"FAILED:{checked} {reason}"
+
+
+def terminal_line(verdict: object) -> str:
+    """Render any :class:`agentspec.oracle.Verdict` as its terminal marker.
+
+    Typed as ``object`` on purpose: importing ``Verdict`` here would make
+    :mod:`agentspec.oracle` and this module mutually dependent, and duck-typing keeps the
+    renderer usable by a runtime that carries its own verdict record.
+    """
+    unit_id = str(getattr(verdict, "unit_id", ""))
+    if getattr(verdict, "ok", False):
+        return success_line(unit_id)
+    reason = str(getattr(verdict, "reason", "") or "")
+    if getattr(verdict, "severed", False):
+        return f"{failure_line(unit_id, 'severed-stream')} ({reason})"
+    return failure_line(unit_id, reason)
+
+
+def _checked_id(unit_id: str) -> str:
+    """Refuse an id that would corrupt the marker line or the terminal rendering it.
+
+    Whitespace makes ``FAILED:<id> <reason>`` unparseable. Any OTHER control byte (ESC/CSI,
+    OSC-8, NUL, DEL) renders as an escape sequence in the console that prints the marker —
+    the measured statusline class where a field defeated its own sanitizer. It is deliberately
+    NOT an ASCII check: a non-ASCII but printable id is valid.
+
+    The predicate is :func:`agentspec.wire.is_printable_id`, an EXPLICIT range table, and NOT
+    ``str.isprintable()``. ``isprintable`` consults THIS interpreter's Unicode tables and the JS
+    mirror's ``\p{C}`` consults the ENGINE's; measured, CPython 3.14 (Unicode 16.0.0) and
+    Node 24 (17.0) disagreed on 4,803 code points, and CI's Node 22 is a third table again. A
+    contract must not move when a runtime is upgraded.
+    """
+    if not wire.is_printable_id(unit_id):
+        raise ValueError(
+            f"unit_id must be non-empty, whitespace-free and printable, got {unit_id!r}"
+        )
+    return unit_id

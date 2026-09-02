@@ -1,0 +1,47 @@
+fix(slop): the detector control found itself -- a committed receipt no clone could reproduce
+
+Round-1 shipped `_b1_control.py` with a HARDCODED negative-control sentinel,
+`_zzz_control_no_such_probe_9f3a17.py`, and then committed both the script and its
+receipt. That put the "name that exists nowhere" into the very corpus the detector
+greps, so from that commit onward the control found ITSELF.
+
+Reproduced, pinned to fa87d1a2 so it stays reproducible forever
+(_r2_d2_reproduce.out.json, 9/9 checks, grep controlled both ways):
+
+  sentinel present in the shipping tree ......... 2 blobs (_b1_control.py + its receipt)
+  what the committed receipt asserts ........... quiet 0, fire 248, PASS
+  executing that same script, byte-unmodified .. rc 1, quiet 2, fire 256, FAIL
+
+The receipt was unreproducible on any clone, and the command SLOP-BUILD-R1.md:60
+publishes as the bucket-(c) regenerator exited nonzero and dirtied a tracked file
+every time it ran.
+
+Fix, three changes:
+
+  1. `--sentinel random` (default) generates the absent name at runtime, so no
+     committed byte can contain it.
+  2. `--sentinel legacy` reproduces the round-1 fixed name and is REQUIRED TO FAIL.
+     It is the permanent negative control for this fix and cannot silently start
+     passing: the legacy literal lives in _b1_control.py forever.
+  3. Writing the receipt is opt-in (--write). The default invocation is read-only,
+     so the published regenerator no longer touches a tracked file.
+
+Also de-rotted: fire_citer_count grows with the repo (248 -> 256 in two commits), so
+the checks now assert relations (fire >= 1, quiet == 0, fire > quiet) instead of a
+pinned number, and the receipt carries measured_at_rev.
+
+Verified both states (_r2_fix_verify.out.json, 12/12):
+
+  default (random) ......... rc 0, PASS, quiet 0, receipt byte-unchanged, tree clean
+  --sentinel legacy ........ rc 1, FAIL, quiet 2
+  --write .................. rc 0, receipt refreshed, contains no sentinel literal
+  default again ............ rc 0, byte-unchanged (idempotent)
+
+A fix verified only by "it passes now" cannot be told apart from a detector that
+always passes, which is why the legacy mode is committed alongside it.
+
+One self-inflicted defect recorded rather than hidden: the first version of
+_r2_d2_reproduce.py restored the receipt with `git checkout --` and silently ate this
+round's own already-fixed receipt, reverting it to the broken version. It now writes
+back the exact pre-existing bytes. Restoring "to HEAD" and restoring "to what was
+there" are different operations, and only the second is safe in a tree with live work.

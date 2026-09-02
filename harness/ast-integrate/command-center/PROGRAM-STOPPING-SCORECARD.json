@@ -1,0 +1,406 @@
+{
+  "schema": "program-stopping-scorecard/v1",
+  "unit": "synthesis/phase14",
+  "spec": "_USER-PROMPTS.md:11084-11098 (Phase 14) scored against :11376-11398 (the 21 stopping conditions)",
+  "generated_at": "2026-08-10",
+  "state": "COMPLETE - all 21 conditions scored",
+  "coverage": "21 of 21 conditions scored. 14 scored from measurements taken by THIS unit; 7 scored from sibling-lane executable receipts read on disk but not re-executed here (marked evidence_origin=sibling-receipt). No condition is scored from a digest alone.",
+  "tree_anchor": {
+    "commit": "04e4736c",
+    "branch": "main",
+    "vs_origin_main": "0 behind / 0 ahead (git rev-list --left-right --count origin/main...HEAD)",
+    "working_tree": "763 changed-or-untracked entries (git status --short -uall | wc -l); ALL Wave-4 output is untracked",
+    "note": "HEAD equals origin/main exactly, so every measurement below is against a pushed tree PLUS an uncommitted Wave-4 delta."
+  },
+
+  "headline": "2 TRUE / 19 FALSE / 0 NOT-CHECKED. The two TRUE are a numeric floor and a scoped rollback. The program is not stoppable, and the single most important result is condition 21: the shared completion predicate is self-certifying, so a TRUE there would have been evidence of nothing.",
+  "tally": {"TRUE": 2, "FALSE": 19, "NOT_CHECKED": 0},
+
+  "condition_13_reading": {
+    "text": "release/canary succeeds",
+    "status": "unsatisfiable as written",
+    "how_i_read_it": "Under a PR-ONLY release mode there is no canary to succeed, so I read condition 13 as 'a merged PR carrying this program's work, plus a local rollback rehearsal of the release artifact'. Scored FALSE on that reading: HEAD is 0-ahead of origin/main, `gh pr list` returns no open PR, and the entire Wave-4 output (P11/P12/P13/WAVE4-*/DELIVERY-RECONCILIATION) is untracked, so no PR carries it.",
+    "the_caveat_that_undercuts_my_own_reading": "PR-ONLY is itself an EXECUTOR ASSUMPTION, not a recorded owner selection. Spec line ~10524 still holds the literal placeholder '[PR-ONLY / PRIVATE CANARY / PUBLIC MARKETPLACE RELEASE ...]', OQ-3 (release mode) is OPEN, and OWNER-DECISIONS.md records that Phase 15 branches entirely on it. My own wave brief asserts 'Release mode PR-ONLY is binding'; I could find no owner decision record for that anywhere in command-center/. So the re-reading rests on an unrecorded premise, and I am flagging the contradiction rather than adopting either side.",
+    "settling_experiment": "Ask OQ-3 and record the answer via tools/command-center/close.py so it lands in events/EVENTS.jsonl."
+  },
+
+  "manifest_verification": {
+    "requirement": "spec :11098 - the final synthesis agent must verify the artifact manifest ON DISK before writing a completion report",
+    "performed": true,
+    "probe": "command-center/_p14_manifest_verify.py -> command-center/P14-MANIFEST-VERIFY.json",
+    "method": "os.stat + sha256 of the working-tree bytes AND sha256 of the same bytes LF-normalized, per path. Both forms are reported so a CRLF artifact cannot masquerade as content drift.",
+    "detector_control": "PASSED before any count - known-present path detected, known-absent control path not detected.",
+    "listed": 14,
+    "missing_on_disk": 0,
+    "sha_match_working_tree_bytes": 3,
+    "sha_match_LF_normalized": 9,
+    "self_entry_cannot_hash_itself": 1,
+    "SHA_MISMATCH": 1,
+    "verdict": "THE MANIFEST IS NOT VERIFIED ON DISK, while asserting \"verified_on_disk\": true.",
+    "the_one_mismatch": {
+      "path": "command-center/DEPENDENCY-GRAPH.json",
+      "manifest_records": {"bytes": 25317, "sha256": "d78b96db8ea644f74d51f5c4b05da34ff8d40b8f839da46b64cdb0c71380fb1d"},
+      "on_disk": {"bytes": 25261, "sha256_raw_and_lf": "eda257303bcbf0741590bca46da906f9cca48cf1c5a8de6892c1033c0f4cdbc2"},
+      "why_it_is_not_a_line_ending_artifact": "raw and LF-normalized digests are IDENTICAL for this file (no CRLF present), and the manifest's 25,317 bytes equals `git cat-file -p HEAD:command-center/DEPENDENCY-GRAPH.json | wc -c` EXACTLY. The manifest is recording the committed blob while the working tree holds an uncommitted edit.",
+      "root_cause": "tools/command-center/render.py write_all(): the manifest is rendered at :299-300 (hashing DEPENDENCY-GRAPH.json as it currently sits) and DEPENDENCY-GRAPH.json is only rewritten afterwards at :311-312.",
+      "corroborating_signal": "the program's OWN gate agrees: `python tools/command-center/render.py --check` prints 'ARTIFACT-MANIFEST.json does not match the files on disk' / 'FAILED:cc-render drift=1' and exits 1.",
+      "blast_radius": ".github/workflows/quality.yml:403 runs that exact check, so this working tree is CI-red on the command-center lane.",
+      "previously_normalized_away": "platform/DEFECT-D1-CROSS-VENDOR.md:12 attributes `cc-render drift=1` to 'a sibling's in-flight catalog' and :236 disowns it ('NOT this unit's'). The drift was seen twice and explained away both times."
+    },
+    "manifest_coverage_gap": {
+      "command_center_deliverable_files_on_disk": 386,
+      "registered_in_manifest": 14,
+      "unregistered": 372,
+      "note": "This is NOT automatically a defect: the manifest declares its own scope as the 13-file charter contract (_USER-PROMPTS.md:10590-10603). The consequence is what matters - completion-predicate condition 11 ('output was registered in the artifact manifest') has no registry to check the other 372 against, and the intersection of the 2,007 catalogued output_paths with this manifest is 0 (P13 signal S2b)."
+    }
+  },
+
+  "conditions": [
+    {
+      "id": 1,
+      "text": "every selected option is implemented, explicitly superseded, or explicitly rejected with owner-approved reasoning",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "sibling-receipt + my read of OWNER-DECISIONS.md",
+      "evidence": "No option was ever SELECTED, so the predicate has no subject. OWNER-DECISIONS.md records 27 of 27 owner questions OPEN, zero answered. The governing spec's three owner-input slots still hold literal placeholders: :10516 '[PASTE SELECTED OPTION IDS HERE]', :10520 '[PASTE OWNER OVERRIDES HERE]', ~:10524 the release-mode choice. OPTION-ID-RESOLUTION.json separately shows 283 options with a symmetric MD<->JSON difference of 0 and no silent drops - so the option set is intact and simply un-chosen.",
+      "settling_experiment": "Answer OQ-1 (option selection) and OQ-4 (whether the ~38-item harness tranche substitutes for the >=2,048-unit program); record both through close.py."
+    },
+    {
+      "id": 2,
+      "text": "all contracted artifacts exist and pass schema/manifest checks",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here",
+      "evidence": "Four independent failures. (a) ARTIFACT-MANIFEST.json fails its own on-disk check: 1 of 14 entries mismatches and `render.py --check` exits 1 (see manifest_verification). (b) `tools/marketplace/` is ABSENT and `.claude-plugin/marketplace.schema.json` is ABSENT - I confirmed both by direct test; `tools/plugin/schema/` holds exactly 18 files, so commit 47cd5c11 titled 'plugin AND marketplace schema documents' delivered only the plugin half, leaving 18 catalog output_schema tokens unresolvable. (c) 2 of 2,007 catalogued units have an artifact at their declared output_path (P13 S1 stat-walk and S2 set-intersection against 8,911 tracked files agree); DELIVERY-RECONCILIATION.json, a mechanically different filename/stem+unit-id scan, widens that to 30 of 2,007 = 1.49% in ANY form. (d) Phase 13's own contracted artifact class had zero instances before this wave: blindspot-register / contradiction-register / prior-art-register schemas ship with no instances.",
+      "settling_experiment": "Author tools/marketplace/schema/ (or retarget the 18 references), fix the render.py ordering defect, and add a disposition/receipt field to the 2,007-unit catalog so delivery is reconcilable."
+    },
+    {
+      "id": 3,
+      "text": "all P0/P1 defects are closed or proven externally blocked",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here (D1/D4) + sibling-receipt (open P1s)",
+      "evidence": "The two P0s I was briefed as OPEN are in fact CLOSED, and I verified both myself - see corrections_to_my_own_brief. But at least four P1s are live and unclosed: (1) the completion predicate reaches COMPLETE 12/12 on a forged receipt (P12 P1, executable); (2) the 12/12 mutation battery scores 0/12 at committed HEAD and its repair is an uncommitted orphan (P11 P1); (3) tools/marketplace/schema was never created, 18 references dangle (P11 P1); (4) the ARTIFACT-MANIFEST render-ordering defect, which is CI-red (measured here, P1 by blast radius).",
+      "settling_experiment": "Close each of the four, then re-run this scorecard."
+    },
+    {
+      "id": 4,
+      "text": "no required test is red",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here (Windows suite + render gate) + sibling-receipt (Linux suite)",
+      "evidence": "On Windows the platform suite is fully green - I ran `python -m pytest platform -q` from the repo root myself: '3922 passed, 14 skipped in 571.48s', EXIT=0, and 0 FAILED/ERROR lines (command-center/_p14_suite_platform.log). But a REQUIRED CI gate is red: `python tools/command-center/render.py --check` exits 1 and .github/workflows/quality.yml:403 runs it. And the same suite on Ubuntu 24.04 / Python 3.12.3 gives '24 failed, 3875 passed, 37 skipped', exit 1 (P13-LINUX-SUITE.json), 22 of the 24 in platform/routing. The deeper problem is that 'required' is undefined for this tree: platform/ appears 0 times in all 7 workflow files, so the 3,922-test suite is required by nobody.",
+      "settling_experiment": "Add a platform/ CI lane with ROUTING_HOME pointed at a committed fixture, then re-run both OS arms."
+    },
+    {
+      "id": 5,
+      "text": "mutation and negative-control coverage demonstrate detector validity",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "sibling-receipt (P11), mechanism corroborated by my read of the tree",
+      "evidence": "The program's flagship mutation battery scores 0/12 at committed HEAD: Wave 3's D1 fix made completion_predicate.py import vendor_identity at module top level, and platform/lib/_mutation_selfcheck.py still copies only two files into each mutant, so all 12 mutants fail to IMPORT and the tool emits FAILED:predicate-mutation-selfcheck survivors=[1..12], exit 1. The non-circular control: the same HEAD tool bytes score 12/12 killed against a reconstructed Wave-1 tree, so the regression is in the tree not the tool. The repair exists only as an uncommitted working-tree edit that the D1 lane explicitly disclaims ('NOT mine', D1-CLOSE-REGISTRY-GAP.md), and the tool appears in no .github/workflows or ci/ file. A fresh clone of HEAD gets 0/12. Counter-weight, stated because it is real: many INDIVIDUAL lanes do carry valid both-states controls - the D1 close matrix has two (I re-ran them), the marketplace lane has six, the routing lane four, and UNKNOWNS-REGISTER U-4 records that only 7 of 46 named failure classes are demonstrably seeded.",
+      "settling_experiment": "Commit the _mutation_selfcheck.py repair, wire it into a CI gate, and confirm it scores 12/12 on a fresh clone."
+    },
+    {
+      "id": 6,
+      "text": "clean install, update, rollback, and uninstall pass",
+      "verdict": "FALSE",
+      "qualifier": "PARTIAL - the five happy-path verbs are CONFIRMED; the failure paths are not clean",
+      "confidence": "likely",
+      "evidence_origin": "sibling-receipt (WAVE4-PLUGIN-LIFECYCLE-VERIFY, read not re-executed)",
+      "evidence": "An independent lane drove the shipped CLI and CONFIRMED build + install/update/repair/rollback/uninstall, with a deterministic package (95,093 B, 45 entries, byte-identical sha256 across two builds, byte-identical to the committed dist zip) and a conformance validator that fails 9/9 seeded mutants. Two reasons it is still not a pass: check 4 is PARTIAL - a hard kill mid-install leaves a BLOCKING LOCK behind - and check 5 is PARTIAL - the health check verifies existence, not integrity, and its own both-states control is not wired to the exit code. platform/plugin is 252/252 green while every one of those defects is live, which is the lane's own point: a green suite is not coverage of these paths.",
+      "settling_experiment": "Re-run the hard-kill arm and assert the lock is released; wire the health check's control to its exit code."
+    },
+    {
+      "id": 7,
+      "text": "cross-platform and cross-client matrices meet the selected support contract",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "sibling-receipt (P13) + measured here (CI grep)",
+      "evidence": "There is no support contract to meet (no owner decision - see condition 1), and every axis is short. Platforms: Linux measured at 24 failures; macOS never exercised by any route although the plugin manifest schema declares platforms enum [windows, macos, linux] at platform/plugin/schemas.py:711-716; all 13 CI jobs are runs-on: ubuntu-latest with no matrix, while the program was authored and exercised only on Windows. Clients: the plugin/marketplace surface names claude-code (12 occurrences) and antigravity (1); Codex/OpenAI is a first-class vendor throughout the program yet is not a tested install target; min_client/max_client semver gating exists at schemas.py:709-710 with no test exercising any client but claude-code; Cursor/Windsurf/Zed/Continue/Copilot have zero references and zero tests.",
+      "settling_experiment": "Add a CI matrix over {windows, ubuntu, macos} for platform/, and one install test per declared client."
+    },
+    {
+      "id": 8,
+      "text": "benchmark results show the intended improvement without material regression",
+      "verdict": "FALSE",
+      "confidence": "likely",
+      "evidence_origin": "sibling-receipt (WAVE4-ROUTING-PROBE) + measured here (no baseline artifact)",
+      "evidence": "The arithmetic reproduces and the conclusion still fails. An independent re-measurement agreed with the lane on 1,239 of 1,239 routing decisions, 0 disagreements, and reproduced all 12 tier-by-k precision/recall rows exactly - so the numbers are sound. But: (a) they are NOT PORTABLE - the corpus is discovered from the operator's LIVE ~/.claude tree, so '912 capabilities indexed' and every derived figure is a property of one box and cannot be reproduced on another host; (b) abstention does not generalise - on 36 negatives the router false-fires on 24, and 16 of those carry the calibrated band 'likely'; no floor value buys abstention without gutting recall (floor 0.35 -> abstain 0.694 but gold-hit collapses 0.645 -> 0.355); (c) the k=10 rung buys ZERO additional recall over k=5 at 1,968 B per (non-existent) extra correct selection - pure context cost; (d) I found no baseline-vs-after benchmark artifact for the platform as a whole, so 'the intended improvement' has no measured referent.",
+      "settling_experiment": "Point ROUTING_HOME at a committed fixture, re-run the benchmark on two different hosts, and require the two to agree before quoting any figure."
+    },
+    {
+      "id": 9,
+      "text": "independent confirmers pass",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "sibling-receipt (P11-CONFIRMATION)",
+      "evidence": "The confirmer RAN and did not pass. Phase 11 re-verified 26 claims from raw source at named commits: 18 CONFIRMED, 5 PARTIAL, 3 REFUTED. Its own pre-declared escalation threshold (>20% of a wave's claims REFUTED or PARTIAL) tripped in Wave 1 (3/8 = 37.5%) and Wave 3 (3/6 = 50%). The expansion that followed is the good news and I record it as such: every expanded sub-claim reproduced exactly, so the failure class is bounded to (i) exact counts asserted as stable against a tree ~20 agents were mutating and (ii) consequence sentences wider than the measurement behind them - not 'the audits are unreliable'.",
+      "settling_experiment": "Re-run P11's 26 probes after conditions 2/3/5 are closed and require 26 CONFIRMED."
+    },
+    {
+      "id": 10,
+      "text": "adversarial refuters cannot produce an unresolved load-bearing counterexample",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "sibling-receipt (P12) + mechanism confirmed by my own source read",
+      "evidence": "A refuter produced exactly that, it is executable, and it is unresolved. `python platform/lib/_p12_refute_predicate.py` builds a receipt in which no test process was ever started, no control ever ran, and the reviewer IS the author - and the shared predicate returns COMPLETE, satisfied=12/12, not_checked=0, emitting 'SUCCESS:ZZ-0001 predicate=COMPLETE satisfied=12/12'. I corroborated the mechanism independently in the source rather than taking the report's word: platform/lib/completion_predicate.py:804-843 `_c7_tests` accepts a record when `result == \"PASS\"` and `command` is a non-empty string - the command is never executed and no test log is consulted; :918-923 rejects only when `independent is not True`, a flag the receipt sets about itself. Separately 5 of the spec's 14 required refuter lenses (privacy, legality, supply chain, performance, synthesis distortion) were never run at all, and all 144 catalogued phase-12 units produced nothing.",
+      "settling_experiment": "Either make conditions 7/8/9/12 measured (the reducer executes the commands and consumer probes) or stop citing predicate=COMPLETE as evidence that those properties hold. This is an owner decision, surfaced not closed."
+    },
+    {
+      "id": 11,
+      "text": "security, privacy, legal, and supply-chain gates pass",
+      "verdict": "FALSE",
+      "confidence": "likely",
+      "sub_axes": {
+        "supply_chain": "FALSE - 2 CONFIRMED revocation escapes",
+        "security": "PARTIAL - crypto primitives verified with falsification controls; no STRIDE artifact",
+        "privacy": "NOT-CHECKED - no probe run by any lane",
+        "legal": "NOT-CHECKED - license records exist per candidate row, but no license-inventory deliverable"
+      },
+      "evidence_origin": "sibling-receipt (marketplace lane, P13) + measured here (artifact absence)",
+      "evidence": "The revocation channel - the load-bearing supply-chain control - blocks on every path reached EXCEPT two, both CONFIRMED by execution with good/bad states side by side: `mkt import` of a stale offline bundle SILENTLY DELETES the destination's revocation list, and a verify-always mirror serves a revoked version from its build-time snapshot. No STRIDE threat-model artifact exists anywhere - 'STRIDE' appears only in catalog declarations, never as a produced deliverable, and all 144 phase-12 ADV units produced nothing, so all 14 refuter lenses are unexecuted as catalogued. I searched for the Phase 15 supply-chain deliverables myself: SBOM machinery exists (platform/marketplace/mkt/sbom.py + schema/sbom.schema.json) but NO SBOM instance; no license inventory; no vulnerability-scan artifact; no platform CHANGELOG. Open owner decision, deliberately not gated by me: 239 of 261 units holding an mcp__ token are UNAPPROVED because tool_policy.require_owner_approval lists only Task and AskUserQuestion.",
+      "settling_experiment": "Fix the two revocation escapes and add a regression for each; emit an SBOM + license inventory + vuln scan for the 1.0.0 package; run a privacy and a legality refuter."
+    },
+    {
+      "id": 12,
+      "text": "docs and code agree",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here",
+      "evidence": "Five live mismatches, each a doc claim wider or staler than the code. (1) ARTIFACT-MANIFEST.json asserts \"verified_on_disk\": true while 1 of its 14 hashes does not match disk - and render_manifest's own docstring cites the spec line (:10646) about paths in text not proving existence. (2) completion_predicate.py's docstring says a receipt that could declare its own conditions inapplicable 'would be self-certifying, which is the failure this predicate exists to prevent' - conditions 7, 8, 9, 10 and 12 are exactly that. (3) RELEASE-CHECKLIST.md:19 instructs verifying formatter output 'against the LF blob (`git archive`)' - measured on this box, `git archive` applies export-time EOL conversion and returns CRLF, so the recipe verifies the wrong bytes; the correct route is `git cat-file -p <rev>:<path>`. (4) routing/index.py:446-450's comment ('the foundry writes a fused blueprint twice') documents the state the D4 fix removed - now stale, per that lane's own residual note. (5) 17-DECISION-LOG.md:175 still describes the M-NN id collision in the present tense after it was re-prefixed to MECH-NN. Structurally there are also TWO registers - a 103-item one with working disposition machinery (STATUS.md: '69 open / 103 total') and a 2,007-unit one with no disposition field at all - and no document reconciles them.",
+      "settling_experiment": "For each of the five, edit the doc to the measured scope; add a test that the manifest's verified_on_disk flag is only written when the check passes."
+    },
+    {
+      "id": 13,
+      "text": "release/canary succeeds",
+      "verdict": "FALSE",
+      "confidence": "likely",
+      "evidence_origin": "measured here",
+      "evidence": "See condition_13_reading for how I read this. On the re-reading ('a merged PR plus a local rollback rehearsal'): `git rev-list --left-right --count origin/main...HEAD` = 0 0, so HEAD carries nothing beyond origin/main; `gh pr list` returns no open PR; and all of Wave 4's output is untracked (763 changed-or-untracked entries under `git status --short -uall`). No PR carries this work. Phase 15's release deliverables are absent besides the package itself: no semantic-version bump record, no changelog, no migration guide, no signed artifact, no provenance attestation, no SBOM instance, no license inventory, no vuln scan, no compatibility matrix instance (only command-center/schema/compatibility-matrix.schema.json and tools/plugin/schema/compatibility.schema.json - schemas, not instances).",
+      "settling_experiment": "Answer OQ-3 to fix the release mode; then either open the PR or, if a canary is chosen, define what it deploys to."
+    },
+    {
+      "id": 14,
+      "text": "rollback is tested",
+      "verdict": "TRUE",
+      "qualifier": "SCOPED to the plugin package's rollback verb. NOT a repo-level revert rehearsal.",
+      "confidence": "likely",
+      "evidence_origin": "sibling-receipt (WAVE4-PLUGIN-LIFECYCLE-VERIFY) - read on disk, NOT re-executed by me",
+      "evidence": "An independent lane exercised rollback through the shipped CLI as part of the install/update/repair/rollback/uninstall sequence and CONFIRMED it, with exit codes quoted and probes under a temp prefix outside the repo. ROLLBACK-MANIFEST.md exists as the documented procedure. I am scoring this TRUE because the release artifact's rollback path was genuinely executed - but the honest scope is narrow, and I did not re-run it myself.",
+      "explicitly_NOT_CHECKED": "A `git revert` rehearsal of the D1 registry/schema data change (P11 lists this as NOT-CHECKED: rollback there was verified by tree reconstruction for W1-06 and by the commit chain for D4, not by reverting). Also untested: rollback after the hard-kill partial-install state that leaves a blocking lock (condition 6).",
+      "settling_experiment": "Re-run the plugin rollback verb from a clean clone, and separately rehearse `git revert` of the D1 data commit in a throwaway worktree."
+    },
+    {
+      "id": 15,
+      "text": "every residual unknown has a named settling experiment and an owner-visible impact statement",
+      "verdict": "FALSE",
+      "confidence": "likely",
+      "evidence_origin": "measured here",
+      "evidence": "The register is genuinely well-formed for what it contains - I read UNKNOWNS-REGISTER.md and all 13 rows (U-1..U-13) carry both a 'why it is not knowable today' column and a named settling experiment, several with a tracking id (R-A04, R-B08, R-H10, R-A19). It fails on completeness, not quality: not one of the 13 has been retired, and none of Wave 4's residuals were added. Missing from the register: the four open P1s of condition 3; P11's five owner decisions (registry counting rule, mutation-gate orphan, tools/marketplace, 85 untracked-and-unignored files of which 3 are deliverables, the 239/261 mcp__ authorization gap); P12's three (condition 9 vs CNF-0121, whether conditions 7/8/9/12 stay self-declared, one distinctness threshold or per-lane); P13's macOS/client gaps; and the render.py ordering defect. A register that is not updated as findings land cannot satisfy 'every residual unknown'.",
+      "settling_experiment": "Append the Wave-4 residuals to UNKNOWNS-REGISTER.md with settling experiments, then assert count(register rows) >= count(open findings) in a test."
+    },
+    {
+      "id": 16,
+      "text": "at least 160 workflow candidates/mechanisms have been researched and classified with provenance/license records",
+      "verdict": "TRUE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here",
+      "evidence": "I counted platform/registry/workflow-candidates-{1..5}.json myself: 164 rows total, of which 1 is a _manifest row, leaving 163 candidate rows; 164 distinct ids, 0 duplicate ids; and ALL 163 non-manifest rows carry a non-empty provenance value AND a license. 163 >= 160. Cross-check: P11 independently derived 161 kept rows at a named commit under a different rule (164 - 1 manifest - 2 self-marked rejects) - also >= 160. Floor MET under both counting rules.",
+      "detector_correction": "My first pass reported only 130 rows with provenance, because I tested `isinstance(provenance, dict)`. Measured types across the 164 rows: dict 130, LIST 33, missing 1 (the manifest row). The list-valued rows are fully populated; my type assumption was the bug. This is the same defect class P11 recorded as its own detector failure #3 (an isinstance(dict) test mislabelling JSON arrays), reproduced here - which is why I am recording it rather than silently fixing it.",
+      "owner_decision_surfaced": "The counting RULE is unresolved and it is decision-relevant, because a third rule fails the floor: P11 measured 157 under the audit's shell rule and 153 under a uniform one-row-per-upstream_repo rule. Its own 6-member anthropics/claude-plugins-official group shows upstream identity is not a duplication proof. This needs a ruling, not another measurement.",
+      "settling_experiment": "Owner picks the counting rule; encode it as a test so the floor is asserted, not argued."
+    },
+    {
+      "id": 17,
+      "text": "at least 96 materially distinct workflow blueprints are executable under the selected quality tiers",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here",
+      "evidence": "The count and the distinctness hold; the word 'executable' does not. Count: 97 top-level blueprints carrying an id under platform/workflows (plus 3 forged, 2 _shared; 126 json files, 102 distinct ids, 0 duplicates - my own scan with a planted-duplicate control that fired). Distinctness: an adversarial lane CONFIRMED material distinctness over all 4,656 pairs on two independent axes. But NO EXECUTOR EXISTS. `grep -rln 'def execute|def run_workflow|class WorkflowExecutor|def _execute_stage'` over platform/lib/wfdsl/, platform/workflows/ and platform/lib/*.py returns ZERO files, and platform/lib/wfdsl/ is authz_census, capabilities, expr, mutations, resolve, schemas, semantics, validate - static validation only. DETECTOR CONTROL: the same grep style for `def validate|def resolve` returns 3 files, so the zero is real and not a broken matcher. P12 reached the same conclusion structurally when it could not test prompt injection into a later stage: 'no executor exists'. 97 blueprints are VALIDATED, not executable, and 'the selected quality tiers' were never selected (condition 1).",
+      "settling_experiment": "Write an executor and demonstrate one blueprint running end to end; until then the claim should read '97 blueprints validate against the schema'."
+    },
+    {
+      "id": 18,
+      "text": "the workflow scout/forge, merge maps, benchmark tournament, and lineage/decomposition tests pass",
+      "verdict": "FALSE",
+      "confidence": "likely",
+      "evidence_origin": "measured here",
+      "evidence": "Three of the four exist and their tests pass; one does not exist. Present and green: platform/lib/foundry/ ships scout.py, forge.py, bench.py, mechanisms.py, model.py, registry.py with test_foundry.py, and I ran `pytest platform/lib/foundry platform/lib/councilspec platform/council -q` -> 267 passed in 36.37s. The judged tournament reproduces to the fourth decimal per P11, and the forge demonstrably both REJECTs and CERTIFIEs. ABSENT: merge/compatibility maps. `find platform -iname '*compat*'` returns NOTHING, and the only '*merge*' hits are a council preset about merge adjudication and a PR-shepherd workflow test - not a workflow merge/compatibility map. DETECTOR CONTROL: the same matcher finds 'tournament' in 3 platform JSON files, so the absence is real. Also: no dedicated lineage or decomposition test module exists (the tokens appear in 51 and 22 files respectively, but no test targets them). Residual from P11: forge raises an unhandled FileNotFoundError traceback on a bad --source instead of a terminal FAILED: marker (P3), and the Wave-2 audit's 'verbatim' forge transcript omits the now-required --source args, so the printed recipe exits 2.",
+      "settling_experiment": "Author the merge/compatibility map plus its test; add explicit lineage and decomposition test modules; make forge emit FAILED: on a bad --source."
+    },
+    {
+      "id": 19,
+      "text": "the universal council runtime, at least 48 protocols, 64 presets, anti-sycophancy controls, dissent preservation, Boolean stopping expressions, and council-of-councils tests pass",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here",
+      "evidence": "Every floor is MET and the tests pass, but the RUNTIME named first in the condition does not exist. Floors, measured by me with a structural CouncilSpec classifier that was control-tested (accepts a known-conforming spec, rejects a known-nonconforming one) before counting: platform/council/protocols = 52 json files, 48 CouncilSpec-shaped -> floor 48 MET exactly, zero margin; platform/council/presets = 77 json files, 69 CouncilSpec-shaped -> floor 64 MET. Named features are present in code: sycophancy in 12 files, dissent in 17, council_of_councils in 5, stopping_expression in 5. Tests pass: 267 green across foundry+councilspec+council. NO RUNTIME: `grep -rln 'class CouncilRuntime|def run_council|class CouncilCompiler|def compile_council|def deliberate'` over all of platform/ returns ZERO files; platform/lib/councilspec/ is expression.py, registry.py, semantics.py, validate.py, make_negatives.py - a validator and an expression evaluator, not a runtime. Same detector control as condition 17 applies. So the councils are SPECIFIED and VALIDATED; nothing deliberates.",
+      "settling_experiment": "Implement the council runtime and run one 48-protocol council end to end with dissent preserved in the transcript."
+    },
+    {
+      "id": 20,
+      "text": "the final synthesis has been meta-reviewed",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "self-referential - measured here",
+      "evidence": "Scored against my own unit, which is the honest reading. The spec at :11088-11090 requires MULTIPLE INDEPENDENT synthesis agents, then a meta-review OF THEM. I am a single synthesis agent, this document is the first Phase-14 artifact to exist, and nobody has reviewed it. The meta-review I performed is of the PROGRAM (the seven failure modes at :11092-11097), not of a sibling synthesis - there is no sibling synthesis to review. Anyone citing this scorecard should treat it as un-reviewed single-agent output.",
+      "settling_experiment": "Spawn a second, independent synthesis agent from the same artifacts, diff the two root-cause hierarchies, and have a third meta-review both for the seven named failure modes."
+    },
+    {
+      "id": 21,
+      "text": "the shared completion predicate returns true for the program",
+      "verdict": "FALSE",
+      "confidence": "almost-certain",
+      "evidence_origin": "measured here + sibling-receipt (P12)",
+      "evidence": "FALSE on its own terms and, more importantly, NOT A GATE. On its terms: predicate condition 11 requires that an output be registered in the artifact manifest, and the intersection of the 2,007 catalogued output_paths with ARTIFACT-MANIFEST.json is 0 (P13 signal S2b); condition 2 requires the artifact to exist, and 2 of 2,007 do at their declared path; condition 4 requires it to parse against its schema, and 18 referenced marketplace schemas do not exist. Any one of those makes the program-level predicate false. The deeper result is that a TRUE here would have proved nothing: 5 of the predicate's 12 conditions are satisfied by reading fields the receipt writes about itself, and a forged receipt reaches COMPLETE 12/12. This is the single most important line in the scorecard - the program's only shared definition of done cannot distinguish work that happened from work that claimed to.",
+      "settling_experiment": "Decide (owner) whether conditions 7/8/9/12 become measured - the reducer executing test commands and consumer probes - or stay self-declared with the citation practice changed. Then re-score."
+    }
+  ],
+
+  "corrections_to_my_own_brief": [
+    {
+      "briefed": "D1 NOT CLOSED - the fix OVER-CORRECTED: 13 of 45 pairs are NOT-COMPUTABLE because e.g. 'Anthropic PBC' normalises to 'anthropic-pbc', absent from platform/registry/VENDOR-REGISTRY.json, so the predicate returns NOT-CHECKED rather than SAME-VENDOR.",
+      "measured": "REFUTED - D1 IS CLOSED. I re-ran the lane's own re-runner at today's tree: `python command-center/d1_close_matrix.py --out ...` -> 'SUCCESS:d1-close-matrix all rows correct, both-states controls valid', and its tallies reproduce the stored D1-CLOSE-MATRIX.after.json exactly for both tally_audit45 and tally_all. The 45-row matrix now reads: same_vendor_rows 24, same_vendor_rows_ACCEPTED_as_cross_vendor 0, same_vendor_rows_NOT_COMPUTABLE 0, incorrect_rows 0, ALL_ROWS_CORRECT true. The 13 NOT-COMPUTABLE rows are EXACTLY the 13 refusal_rows - rows whose expected verdict IS a refusal - and all 13 are correctly blocked with 0 leaks. The registry grew to 21 canonical ids / 130 recognized tokens, which is what retired the over-correction. Both both-states controls are valid: the re-implemented pre-fix gate leaks 44 of 44 same-vendor rows while the shipped gate leaks 0; removing the normalization layer regresses 13 rows.",
+      "confidence": "almost-certain"
+    },
+    {
+      "briefed": "D4 NOT CLOSED - fused.cnc07-arc05.TOURNAMENT-WINNER.workflow.json and fused.cnc07-arc05.workflow.json still share one id.",
+      "measured": "REFUTED - D4 IS CLOSED. My own scan of platform/workflows/**/*.json: 126 files parsed, 0 unparseable, 102 distinct ids, 0 duplicate groups. fused.cnc07-arc05.TOURNAMENT-WINNER.workflow.json is ABSENT (deleted); only platform/workflows/forged/fused.cnc07-arc05.workflow.json remains. DETECTOR CONTROL: the same grouping logic finds a planted duplicate id, so the zero is real.",
+      "confidence": "almost-certain"
+    },
+    {
+      "briefed": "the platform suite is 3,026 passed / 14 skipped / 0 failed. If you quote a baseline, quote this one.",
+      "measured": "REFUTED - the platform-wide figure is 3,922 passed / 14 skipped / 0 failed. My own run: `python -m pytest platform -q` from the repo root -> '3922 passed, 14 skipped in 571.48s', EXIT=0 (command-center/_p14_suite_platform.log). This matches Wave 3's figure and P11's independent re-run exactly. Per P11 the disagreement is a SCOPE difference, not a regression: `cd platform/lib && pytest .` gives 3,118. So the pinned 3,026 is the fourth successive baseline correction in this program (2,767 -> 2,812 -> 3,026 -> 3,922) and should not be quoted.",
+      "confidence": "almost-certain"
+    },
+    {
+      "briefed": "ROUTING SELF-REPORTED - the audit's independent probe crashed with AttributeError: type object 'SemanticModel' has no attribute 'build', so precision/recall and bytes-per-query are the lane's own numbers.",
+      "measured": "PARTIAL - resolved, and the arithmetic is now independently corroborated. The crash was the PROBE's error, not the platform's: SemanticModel exposes fit(), not build(); Router.build() exists at router.py:279. A Wave-4 lane re-measured with the correct factory and agreed with the lane on 1,239 of 1,239 decisions, 0 disagreements, reproducing all 12 tier-by-k rows exactly. What remains true and worse than 'self-reported' is that the figures are MACHINE-SPECIFIC (condition 8), and abstention does not generalise (24 false-fires on 36 negatives).",
+      "confidence": "likely"
+    },
+    {
+      "briefed": "PLUGIN + MARKETPLACE UNVERIFIED - nobody has independently built the package, run install/upgrade/rollback/uninstall, or exercised publish -> install -> verify -> REVOKE -> refuse.",
+      "measured": "SUPERSEDED - both were independently verified this wave, and the briefed 'Wave 3 never reached those checks' is itself REFUTED by P11 (it confirmed the checks DID run). Plugin: 5 checks measured, deterministic package, all five lifecycle verbs CONFIRMED, 2 PARTIALs. Marketplace: 6 of 6 checks PASS with both-states controls, 162 tests green, and the revocation hunt covered 8 bypass paths - finding 2 CONFIRMED escapes. So the correct status is VERIFIED-WITH-DEFECTS, not UNVERIFIED.",
+      "confidence": "likely"
+    }
+  ],
+
+  "root_cause_hierarchy": {
+    "RC-0": {
+      "title": "APEX - the program has no execution ledger, so 'plan' and 'delivery' are disjoint namespaces that cannot be reconciled by any artifact in the repo",
+      "measured": "The 2,007-unit catalog carries 20 planning fields on 2007/2007 units and ZERO status/disposition/receipt field. 2 of 2,007 units have an artifact at their declared output_path (two independent signals: per-path stat walk, and set intersection against 8,911 git-tracked files); 30 of 2,007 = 1.49% in ANY form under a mechanically different filename/stem scan; intersection with ARTIFACT-MANIFEST.json = 0. Whole expected output directories were never created (receipts 1,021 units, adversarial 144, design/council 128, research 128, confirmation 127, audit 96, foundry 32, synthesis 25).",
+      "why_apex": "Delivered work is REAL - 8,911 tracked files, 3,922 green tests, plugin + marketplace + routing all shipped - it simply lands in a path namespace the catalog never references. With no ledger joining the two, 'done' can only ever be self-reported, which is what makes every downstream completion claim unfalsifiable rather than merely wrong.",
+      "children": ["RC-1", "RC-2", "RC-6"]
+    },
+    "RC-1": {
+      "title": "The shared completion predicate is SELF-CERTIFYING - the guard-converts-a-bug-into-a-green shape at program scale",
+      "measured": "5 of 12 conditions (7 tests, 8 mutations, 9 reviewer, 10 defects, 12 consumers) are satisfied by reading fields the receipt writes about itself. Confirmed in source by me: completion_predicate.py:804-843 accepts a test record on result==\"PASS\" plus a non-empty command string, never executing it; :918-923 rejects only when `independent is not True`. Executable proof from a refuter lane: a forged receipt where no test ran, no control ran and the reviewer is the author returns COMPLETE, satisfied=12/12, not_checked=0.",
+      "consequence": "Condition 21 is not merely FALSE - it is not a gate. Every 'predicate=COMPLETE' sentinel in the program is evidence of nothing about tests, controls, reviewer independence or consumers.",
+      "parent": "RC-0"
+    },
+    "RC-2": {
+      "title": "Verification instruments were built but never wired to a gate, so regressions are invisible on the committed tree",
+      "measured": "(a) platform/ appears 0 times in all 7 workflow files - detector control: the same grep finds command-center 5, monitorcore 22, mcpctl 28 - so the 3,922-test suite is required by no automated gate. (b) The 12/12 mutation battery scores 0/12 at committed HEAD because the D1 fix added a top-level import the mutant-builder does not copy; the repair is an uncommitted orphan disclaimed by the only lane that touched it, and the tool appears in no workflow. (c) The one CI job named for routing tests a DIFFERENT router (hooks/semantic-router), and its regression probe is continue-on-error: true. (d) The command-center's own render gate IS wired (quality.yml:403) and is currently RED.",
+      "consequence": "RC-2 is why RC-1, RC-3 and RC-5 could all persist undetected while the suite stayed green.",
+      "parent": "RC-0"
+    },
+    "RC-3": {
+      "title": "Static validation was mistaken for capability - the two headline runtimes do not exist",
+      "measured": "No workflow executor: grep for `def execute|def run_workflow|class WorkflowExecutor|def _execute_stage` over platform/lib/wfdsl, platform/workflows and platform/lib/*.py returns ZERO files. No council runtime: grep for `class CouncilRuntime|def run_council|class CouncilCompiler|def compile_council|def deliberate` over all of platform/ returns ZERO files. DETECTOR CONTROL: `def validate|def resolve` returns 3 files in the same tree, so both zeros are real.",
+      "consequence": "'97 executable blueprints' and 'universal council runtime' are schema-and-validator achievements. The artifacts and their tests are genuinely real and green; the verb is not earned. This is the C2 overclaim pattern - code correct, sentence wider than the evidence - at the level of the program's two flagship deliverables.",
+      "parent": "RC-1",
+      "relation": "Sibling of RC-1 in kind: both are a claim about behaviour resting on a structure that never executes."
+    },
+    "RC-4": {
+      "title": "Tests are coupled to the operator's LIVE machine, which simultaneously inflates the headline numbers and FORCES the missing CI",
+      "measured": "platform/routing/index.py:55 - `HOME = Path(os.environ.get(\"ROUTING_HOME\") or Path.home())` - indexes the live ~/.claude harness. Windows holds 27 agents / 71 commands / 79 skills -> 912 capabilities; Linux $HOME holds 0/0/0 -> 383 records, and the test's own implausibly-small floor fires (assert 383 > 800). Result: 24 failures on Ubuntu 24.04 (22 routing, 2 coordination) vs 0 on Windows. Control: platform/plugin on the same Linux interpreter gives 252 passed, so 'the build breaks on Linux' is REFUTED - the failures are localised.",
+      "consequence": "Two things at once: every Phase-8 figure is a property of one box and is not reproducible on another host (condition 8), and the absent platform/ CI lane is FORCED BY THE DESIGN rather than merely forgotten - those tests cannot pass on a runner with no ~/.claude. The fix seam already exists and no test uses it: ROUTING_HOME.",
+      "parent": "RC-2",
+      "credit": "The routing tests assert the POSITIVE form (N of N plus an explicit implausibly-small floor), which is precisely why this coupling surfaced instead of passing vacuously on a 383-record corpus.",
+      "IN_FLIGHT_AT_WRITE_TIME": "A sibling lane (routing-hermetic) added platform/routing/conftest.py (+111 lines) DURING my measurement window. It binds ROUTING_HOME to a committed fixture under platform/routing/fixtures/home/ and carries a both-states control (with the fixture the suite passes; with an empty directory the corpus floor fires) - exactly the seam RC-4 names. Consequence: RC-4 and conditions 4, 7 and 8 are anchored to commit 04e4736c plus the uncommitted delta present AT MY MEASUREMENT TIME, and that delta has since grown. I am deliberately NOT re-scoring against a still-moving reference; re-run this scorecard after that lane lands. The Linux 24-failure figure and the machine-specific-capabilities claim were true when measured and may be superseded."
+    },
+    "RC-5": {
+      "title": "An ORDERING defect makes the program's own artifact-integrity gate self-inconsistent - and a prior lane normalized the symptom away twice",
+      "measured": "tools/command-center/render.py write_all() renders ARTIFACT-MANIFEST.json at :299-300, hashing DEPENDENCY-GRAPH.json as it currently sits, and only rewrites DEPENDENCY-GRAPH.json afterwards at :311-312. So any catalog edit that changes the derived graph leaves the manifest holding the PREVIOUS graph's hash. Live now: manifest 25,317 B / d78b96db... (= `git cat-file -p HEAD:...DEPENDENCY-GRAPH.json | wc -c` exactly), disk 25,261 B / eda25730..., identical raw and LF digests so it is NOT a CRLF artifact. Three signals agree: my hash probe, `render.py --check` -> FAILED:cc-render drift=1 exit 1, and quality.yml:403 which runs that check.",
+      "consequence": "The manifest still writes \"verified_on_disk\": true. That is precisely the failure its own render_manifest docstring cites from spec :10646. The comment at :303-310 added the graph write TO MAKE THE PROCEDURE CONVERGE - it converted a V-GRAPH drift into an ARTIFACT-MANIFEST drift instead of removing it.",
+      "previously_explained_away": "platform/DEFECT-D1-CROSS-VENDOR.md:12 attributes cc-render drift=1 to 'a sibling's in-flight catalog' and :236 disowns it as 'NOT this unit's'. Seen twice, normalized twice - a Phase-13 'failures normalized away' instance found inside the tooling built to prevent it.",
+      "parent": "RC-2"
+    },
+    "RC-6": {
+      "title": "No owner decision was ever recorded, so the program's SCOPE is an executor assumption",
+      "measured": "27 of 27 owner questions OPEN, zero answered. The spec's three owner-input slots still hold literal placeholders at :10516, :10520 and ~:10524. OQ-3 (release mode) is OPEN and OWNER-DECISIONS.md records that Phase 15 branches entirely on it - yet PR-ONLY is treated as binding, including by my own brief, with no decision record anywhere in command-center/. OQ-4 (was the ~38-item harness tranche an approved substitute for the >=2,048-unit program?) has no approval record. work_units_meta records target 2048 / count 2007 / shortfall 41, a declared shortfall never closed on top of the 2,006 unexecuted.",
+      "consequence": "Condition 1 cannot be scored TRUE by any measurement, because nothing was ever SELECTED. Every downstream 'the selected quality tiers' / 'the selected support contract' clause in conditions 7 and 17 is likewise unscoreable on its own terms.",
+      "parent": "RC-0"
+    }
+  },
+
+  "meta_review": {
+    "method": "The seven failure modes named at spec :11092-11097, each scored against the program's artifacts with the strongest counter-example I could find.",
+    "unsupported_certainty": {
+      "verdict": "PRESENT but declining sharply, and the decline is measurable",
+      "evidence": "P11 found the failure class bounded to two shapes - exact counts asserted as stable against a tree ~20 agents were mutating, and consequence sentences wider than the measurement behind them - with 5 of 8 refutations being overclaims rather than broken code. The highest-value instances: the manifest's \"verified_on_disk\": true (false right now); completion_predicate.py's docstring claiming it prevents self-certification (it does not); 'D1/D4 CLOSED' asserted before they were (they are now); '97 EXECUTABLE blueprints' and 'universal council RUNTIME' where no executor or runtime exists. Counter-weight: Wave-4 lanes lead with their own detector failures and mark NOT-CHECKED rather than folding to a pass - that is the opposite failure mode and it is being avoided."
+    },
+    "omitted_dissent": {
+      "verdict": "LARGELY ABSENT - dissent is preserved better than any other axis",
+      "evidence": "P11 confirmed 9 architectures plus a verdict with 6-17 dissent mentions and 0 dropped. Every Wave-4 lane records its own refuted claims in place rather than deleting them (P12 records three of its own failed controls; P13 corrects two of its own over-counts; the routing lane records two of its own claims REFUTED by its own later probes). P13 explicitly flags a contradiction with its own wave brief over PR-ONLY rather than adopting either side. The one gap: no sibling synthesis exists to dissent from THIS document (condition 20)."
+    },
+    "duplicate_mechanisms": {
+      "verdict": "PRESENT - two registers and two routers",
+      "evidence": "(a) TWO work registers: a 103-item one with working disposition machinery (close.py + render.py, events log, STATUS.md '69 open / 103 total') and a 2,007-unit catalog with no disposition field that never used that pipeline. The machinery the program needed already existed and was re-implemented around. (b) TWO routers: platform/routing (the deliverable, zero CI) and hooks/semantic-router (pre-existing, the one CI actually gates, fail-open). Register item T-13's 'Phase 8 fully shipped' evidence cites the OLDER tree, so the completion evidence and the build point at different codebases."
+    },
+    "stale_evidence": {
+      "verdict": "PRESENT and it bit my own brief on four of five points",
+      "evidence": "My spawn brief carried four stale claims - D1 not closed, D4 not closed, the 3,026 suite baseline, and routing being self-reported - all four corrected above by measurement at today's tree. That is not a criticism of the brief's author so much as the program's signature hazard: a tree ~20 agents are mutating makes any pinned count stale within hours. Also stale on disk: routing/index.py:446-450's comment describing the state D4 removed; 17-DECISION-LOG.md:175's present-tense M-NN collision; RELEASE-CHECKLIST.md:19's `git archive` recipe, which returns CRLF on this box and so verifies the wrong bytes."
+    },
+    "missing_artifacts": {
+      "verdict": "PRESENT and it is the largest single gap",
+      "evidence": "2,005 of 2,007 declared output_paths absent. tools/marketplace/ absent with 18 dangling references. .claude-plugin/marketplace.schema.json absent. No STRIDE threat model. No SBOM instance (the machinery exists), no license inventory, no vuln scan, no platform changelog, no compatibility-matrix instance. Three register schemas shipped with zero instances until this wave. All 144 catalogued phase-12 adversarial units produced nothing, so 5 of the spec's 14 refuter lenses were never run."
+    },
+    "code_docs_mismatch": {
+      "verdict": "PRESENT - five live instances, enumerated under condition 12",
+      "evidence": "Ranked by blast radius: the manifest's verified_on_disk flag (CI-red now); the predicate docstring claiming to prevent exactly what it permits; RELEASE-CHECKLIST's git-archive recipe; the stale routing dedupe comment; the present-tense decision-log collision."
+    },
+    "completion_claims_not_backed_by_the_predicate": {
+      "verdict": "PRESENT, and this is the finding I would keep if I could keep only one",
+      "evidence": "Nothing in the program is backed by the shared predicate, in two distinct senses. First, mechanically: 2,007 units produced 0 receipts, so the predicate was never RUN for them - the intersection of declared output_paths with the manifest is 0. Second, and worse: where it IS run it cannot distinguish work that happened from work that claimed to, because 5 of its 12 conditions read self-declared fields and a forged receipt scores 12/12. So 'the shared completion predicate returns true' is simultaneously false for the program and, if it were true, uninformative. Every completion claim in the program therefore rests on lane-level evidence - which, on the Wave-4 sample, is frequently excellent - and not on the shared gate the spec designed to carry it."
+    }
+  },
+
+  "what_genuinely_works": [
+    "The platform suite: 3,922 passed / 14 skipped / 0 failed on Windows, re-run by me, exit 0.",
+    "D1 vendor identity: CLOSED, re-derived by me at today's tree, with two both-states controls valid (the pre-fix gate leaks 44/44, the shipped gate leaks 0).",
+    "D4 workflow-id uniqueness: CLOSED, 102 distinct ids over 126 files, 0 duplicates, planted-duplicate control fired.",
+    "The plugin package: deterministic (byte-identical sha256 across two builds, and byte-identical to the committed dist zip), 95,093 B / 45 entries, no .git or credentials or transcripts, conformance validator fails 9/9 seeded mutants, all five lifecycle verbs work including rollback and uninstall.",
+    "The marketplace: 6 of 6 required checks pass, each with a both-states control, 162 tests green, and an 8-path revocation bypass hunt that actually found two escapes.",
+    "Routing arithmetic: 1,239 of 1,239 decisions agreed on an independent re-measurement, 12 of 12 tier-by-k precision/recall rows reproduced exactly, four both-states controls valid including a flood control at 133x.",
+    "Numeric floors: 48 protocols, 69 presets, 97 blueprints, 163 candidates with provenance and license - all met, each counted with a control-tested classifier.",
+    "The Wave-4 audit lanes themselves: P11, P12, P13 and the three verify lanes each led with their own detector failures, marked NOT-CHECKED rather than folding to a pass, and corrected over-counts in place. That is the behaviour the spec's honesty instrumentation was asking for, and it is why this scorecard could be written at all."
+  ],
+
+  "owner_decisions_needed": [
+    "OQ-3 - the release mode. PR-ONLY is being treated as binding with no decision record; condition 13 and all of Phase 15 branch on it.",
+    "OQ-4 - was the ~38-item harness tranche an approved substitute for the >=2,048-unit program? No approval record exists. This is the owner-facing form of the RC-0 headline.",
+    "OQ-1 - select the option IDs. 283 options are intact and none is selected, which is why condition 1 is unscoreable.",
+    "Do completion-predicate conditions 7/8/9/12 become MEASURED (the reducer executes test commands and consumer probes - a large change in what a reducer is), or stay self-declared with the citation practice changed so predicate=COMPLETE is no longer cited as evidence that those four properties hold?",
+    "The candidate-registry counting rule: 163 / 161 / 157 / 153 depending on the rule; the floor of 160 is met by the first two and missed by the last two.",
+    "Commit the _mutation_selfcheck.py repair and wire it into CI, or delete it. Today it is an orphan and a fresh clone scores 0/12.",
+    "Author tools/marketplace/schema/ or retarget the 18 catalog references.",
+    "Track or explicitly gitignore the 85 untracked-and-unignored files; three are deliverables, so `git clean -xfd` destroys real work.",
+    "239 of 261 units holding an mcp__ token are UNAPPROVED - tool_policy.require_owner_approval lists only Task and AskUserQuestion.",
+    "Add a platform/ CI lane. It is absent today because platform/routing indexes the live ~/.claude tree; ROUTING_HOME is the existing seam."
+  ],
+
+  "residual_and_limits_of_this_unit": {
+    "not_checked_by_me": [
+      "I did not re-execute the plugin or marketplace lifecycle probes; conditions 6, 11 and 14 rest on sibling lanes' on-disk executable receipts that I read. I stat-ed those artifacts (they are in P14-MANIFEST-VERIFY.json's coverage walk) but a receipt I did not re-run is one signal, not two.",
+      "I did not run the Linux suite myself; condition 4's Linux arm and condition 7 rest on P13-LINUX-SUITE.json.",
+      "Coverage percentage anywhere: this project has no .coverage-thresholds.json, so coverage is NOT-CHECKED, never claimed.",
+      "Privacy and legality refuter lenses: no probe exists and I ran none.",
+      "I did not build a transcript read-ledger, so 'what files were never read' remains PARTIAL as P13 left it.",
+      "I did not verify the 2,007-unit catalog's schema conformance myself; I used P13's and the reconciliation lane's two independent scans."
+    ],
+    "single_agent_caveat": "This document is un-reviewed single-agent output. Condition 20 is FALSE about this very artifact, and that is the correct reading of the spec, not modesty.",
+    "why_a_scorecard_of_21_TRUE_would_be_the_thing_to_disbelieve": "Six of the 21 conditions (1, 7, 13, 17 and the tier/contract clauses inside them) reference owner selections that were never made, so they are not merely unmet - they are unscoreable on their own terms until OQ-1 and OQ-3 are answered. A 21/21 scorecard would necessarily have scored those by assumption."
+  }
+}

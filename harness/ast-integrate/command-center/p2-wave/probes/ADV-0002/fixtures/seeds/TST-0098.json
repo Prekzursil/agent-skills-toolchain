@@ -1,0 +1,1016 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0098.json",
+   "bytes": 28409,
+   "sha256": "3046550fd3862c51b0b7e1a3ceb9d2682c0ae9dd134ad17ddfb28b35d898657c",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0098 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0098.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0098.json",
+     "raw_output": "bytes=28409 sha256=3046550fd3862c51b0b7e1a3ceb9d2682c0ae9dd134ad17ddfb28b35d898657c",
+     "fingerprint": "eff473172e7890dc15d71947d9dbb30a",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0098",
+     "raw_output": "schema-check",
+     "fingerprint": "26c0f081c0e27cc71e4ee3247df485ef",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0098 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0098",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0098",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "ec5117e38cc8bb98fd586473e7f284ab",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0098",
+     "raw_output": "schema-valid",
+     "fingerprint": "c5f4d2641da2fc12957364d0e077dca9",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 256,
+ "report": {
+  "kind": "fault-injection-receipt",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+    "measured": 30,
+    "method": "live-localhost-fault-server-matrix",
+    "name": "typed_failure_cells"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0098/harness.py:matrix_ok",
+    "measured": 0,
+    "method": "classification-table",
+    "name": "empty_success_production_cells"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/TST-0098/harness.py:planted_empty_success_swallower",
+    "measured": "EMPTY_SUCCESS",
+    "method": "planted-empty-success-detector-control",
+    "name": "planted_swallower_classification"
+   }
+  ],
+  "control_ids": [
+   "planted_empty_success_swallower",
+   "healthy_both_states"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0098",
+ "spec_anchor": "_USER-PROMPTS.md:11007",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0098.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "TST-0098",
+ "extensions": {
+  "legacy_root": {
+   "boundaries": [
+    {
+     "id": "marketplace_registry_fetch",
+     "method": "GET",
+     "path": "/registry/index.json",
+     "role": "B07 marketplace registry index GET"
+    },
+    {
+     "id": "package_download",
+     "method": "GET",
+     "path": "/packages/demo.bin",
+     "role": "B07 package blob GET with digest"
+    },
+    {
+     "id": "research_fetch",
+     "method": "GET",
+     "path": "/research/note.json",
+     "role": "research/remote notes GET"
+    },
+    {
+     "id": "cloud_dispatch",
+     "method": "POST",
+     "path": "/jobs",
+     "role": "cloud job POST expecting ack"
+    },
+    {
+     "id": "cross_vendor_mcp_stream",
+     "method": "GET",
+     "path": "/mcp/stream",
+     "role": "cross-vendor MCP-like streaming GET"
+    }
+   ],
+   "detector_controls": {
+    "healthy_both_states": [
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "SUCCESS",
+      "ok": true
+     },
+     {
+      "boundary": "package_download",
+      "classification": "SUCCESS",
+      "ok": true
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "SUCCESS",
+      "ok": true
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "SUCCESS",
+      "ok": true
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "SUCCESS",
+      "ok": true
+     }
+    ],
+    "planted_empty_success_swallower": {
+     "classification": "EMPTY_SUCCESS",
+     "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:planted_empty_success_swallower",
+     "detected": true,
+     "empty_success": true
+    }
+   },
+   "empty_success_cells": [],
+   "failure_class": "empty-success-on-network-fault",
+   "faults": [
+    "dns_failure",
+    "connection_reset",
+    "tls_error",
+    "slow_loris",
+    "truncated_response",
+    "mid_stream_disconnect"
+   ],
+   "id": "TST-0098",
+   "injection": {
+    "method": "localhost-fault-server-plus-rfc2606-invalid-dns",
+    "target": "five fail-closed adapters: registry, package, research, cloud dispatch, cross-vendor MCP stream",
+    "when": "per-cell: pre-handshake (dns/tls/reset) or mid-body (slow-loris / truncated FIN / mid-stream RST)"
+   },
+   "inventory": {
+    "files_scanned": 1809,
+    "note": "String denylists (e.g. telemetry/netaudit.py FORBIDDEN_MODULES) are not clients; only import/call sites count.",
+    "product_http_client_count": 67,
+    "product_http_clients": [
+     {
+      "kind": "python-http-import",
+      "path": "tools/search-expansion/searxng_regional.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/search-expansion/rank_fusion.py"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/editor/ralph-orchestrator/vendor/frontend/ralph-web/src/rpc/client.ts"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/editor/metaswarm/scripts/beads-self-reflect.ts"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/editor/metaswarm/scripts/beads-fetch-pr-comments.ts"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/editor/metaswarm/skills/setup/scripts/beads-self-reflect.ts"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/editor/metaswarm/skills/setup/scripts/beads-fetch-pr-comments.ts"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/scholarly-access-mcp/tests/test_sources.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/scholarly-access-mcp/tests/test_logic.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/scholarly-access-mcp/scholarly_access/sources.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/scholarly-access-mcp/scholarly_access/logic.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/scholarly-access-mcp/scholarly_access/policy.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/taskwatch_monitor/core/adapters.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/tests/unit/test_cov_scanner.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/tests/unit/test_cov_github.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/packages/omniaudit/core/policy.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/packages/omniaudit/storage/s3.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/packages/omniaudit/modules/sitelint/scanner.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/packages/omniaudit/modules/github/client.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/omniaudit-mcp/packages/omniaudit/modules/github/auth.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcpapply/tests/test_server.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcpapply/mcpapply/server.py"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/mcpapply/mcpapply/static/app.js"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/tests/test_credential_egress_transport.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/tests/test_auth_sso.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/tests/test_reliability_regressions.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/databricks/crcp_chatgpt_relay.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/bridge.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/bus.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/live_bridge.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/__main__.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/auth_broker.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/auth_sso.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/write_path.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/auth.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/redact.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/http_secure.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/auth_deeplink.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/crcp/sentinel.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/scripts/apply_durable.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/scripts/prove_agent_mail_bus_http.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/scripts/inject_all_main_profiles.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/scripts/probe_sentinel_send.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/crcp/scripts/investigate_write_path.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/search-hub/usage.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/tiktok-mcp/server.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/social-hub/fb_timeline.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/schrodinger-mcp/server.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/patent-search-mcp/patent_api.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/linkedin-mcp/linkedin_core.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/rclone_launch.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/fb-messenger-mcp/fbmcp/graph.py"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/mcp/hacktricks-mcp-server/dist/defaults.js"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/mcp/hacktricks-mcp-server/src/defaults.ts"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/reverse-engineering-mcp-bundle/wrappers/hexstrike_mcp_launcher.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/mcp-http-host/tests/test_mcp_http_host.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/patent-search-mcp/tests/test_patent_api.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/tests/test_biomni_broker.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/biomni-mcp/autostart.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/biomni-mcp/refresher.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/biomni-mcp/server.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/biomni-mcp/broker.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/cloud-hub/compute-mcp/providers/_http.py"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/mcp/cloud-hub/ovh-mcp/src/ovh-client.ts"
+     },
+     {
+      "kind": "source-net-api",
+      "path": "tools/mcp/cloud-hub/ovh-mcp/src/tools/explorer.ts"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "tools/mcp/hexstrike-ai/scripts/hexstrike_mcp_launcher.py"
+     },
+     {
+      "kind": "python-http-import",
+      "path": "command-center/ssot/salvaged-at-risk/b5-toolchain/tools/mcp-manager/core/health.py"
+     }
+    ]
+   },
+   "matrix": {
+    "cells": [
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "DNS_FAILURE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "gaierror:[Errno -2] Name or service not known",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "dns_failure",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "CONNECTION_RESET",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "connection_reset",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "TLS_ERROR",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "SSLError:[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "tls_error",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "READ_TIMEOUT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "TimeoutError:timed out",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "slow_loris",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "TRUNCATED_RESPONSE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "FIN at 8/41",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "truncated_response",
+      "ok": false,
+      "staging_bytes": 8,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "marketplace_registry_fetch",
+      "classification": "MID_STREAM_DISCONNECT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "mid_stream_disconnect",
+      "ok": false,
+      "staging_bytes": 8,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "package_download",
+      "classification": "DNS_FAILURE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "gaierror:[Errno -2] Name or service not known",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "dns_failure",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "package_download",
+      "classification": "CONNECTION_RESET",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "connection_reset",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "package_download",
+      "classification": "TLS_ERROR",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "SSLError:[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "tls_error",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "package_download",
+      "classification": "READ_TIMEOUT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "TimeoutError:timed out",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "slow_loris",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "package_download",
+      "classification": "TRUNCATED_RESPONSE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "FIN at 64/1818",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "truncated_response",
+      "ok": false,
+      "staging_bytes": 64,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "package_download",
+      "classification": "MID_STREAM_DISCONNECT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "mid_stream_disconnect",
+      "ok": false,
+      "staging_bytes": 64,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "DNS_FAILURE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "gaierror:[Errno -2] Name or service not known",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "dns_failure",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "CONNECTION_RESET",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "connection_reset",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "TLS_ERROR",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "SSLError:[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "tls_error",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "READ_TIMEOUT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "TimeoutError:timed out",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "slow_loris",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "TRUNCATED_RESPONSE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "FIN at 8/36",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "truncated_response",
+      "ok": false,
+      "staging_bytes": 8,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "research_fetch",
+      "classification": "MID_STREAM_DISCONNECT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "mid_stream_disconnect",
+      "ok": false,
+      "staging_bytes": 8,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "DNS_FAILURE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "gaierror:[Errno -2] Name or service not known",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "dns_failure",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "CONNECTION_RESET",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "connection_reset",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "TLS_ERROR",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "SSLError:[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "tls_error",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "READ_TIMEOUT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "TimeoutError:timed out",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "slow_loris",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "TRUNCATED_RESPONSE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "FIN at 8/41",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "truncated_response",
+      "ok": false,
+      "staging_bytes": 8,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "classification": "MID_STREAM_DISCONNECT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "mid_stream_disconnect",
+      "ok": false,
+      "staging_bytes": 8,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "DNS_FAILURE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "gaierror:[Errno -2] Name or service not known",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "dns_failure",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "CONNECTION_RESET",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "connection_reset",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "TLS_ERROR",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "SSLError:[SSL: WRONG_VERSION_NUMBER] wrong version number (_ssl.c:1000)",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "tls_error",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "READ_TIMEOUT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "TimeoutError:timed out",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "slow_loris",
+      "ok": false,
+      "staging_bytes": 0,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "TRUNCATED_RESPONSE",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "FIN at 64/1200",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "truncated_response",
+      "ok": false,
+      "staging_bytes": 64,
+      "staging_promoted": false
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "classification": "MID_STREAM_DISCONNECT",
+      "code_path": "command-center/p2-wave/probes/TST-0098/harness.py:fetch_fail_closed",
+      "committed_unchanged": true,
+      "detail": "ConnectionResetError:[Errno 104] Connection reset by peer",
+      "empty_success": false,
+      "exception_type": "TypedFault",
+      "fault": "mid_stream_disconnect",
+      "ok": false,
+      "staging_bytes": 64,
+      "staging_promoted": false
+     }
+    ],
+    "total_cells": 30,
+    "typed_failure_cells": 30
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0098/probe1_typed_failure.py",
+     "id": "probe1"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0098/probe2_partial_work.py",
+     "id": "probe2"
+    }
+   ],
+   "observations": {
+    "harvest": {
+     "empty_success_production_cells": 0,
+     "planted_swallower": "EMPTY_SUCCESS",
+     "product_http_client_count": 67,
+     "typed_failure_cells": 30
+    },
+    "ledger_event_types": [
+     "TYPED_FAILURE",
+     "EMPTY_SUCCESS",
+     "PARTIAL_STAGING",
+     "COMMITTED_UNCHANGED"
+    ]
+   },
+   "p1_policy": "Any production cell classified EMPTY_SUCCESS is a P1 and the code_path is quoted. Detector-control EMPTY_SUCCESS is required.",
+   "partial_work": {
+    "all_committed_unchanged": true,
+    "any_staging_promoted_on_fault": false,
+    "mid_body_cells_with_staging": [
+     {
+      "boundary": "marketplace_registry_fetch",
+      "fault": "truncated_response",
+      "staging_bytes": 8
+     },
+     {
+      "boundary": "marketplace_registry_fetch",
+      "fault": "mid_stream_disconnect",
+      "staging_bytes": 8
+     },
+     {
+      "boundary": "package_download",
+      "fault": "truncated_response",
+      "staging_bytes": 64
+     },
+     {
+      "boundary": "package_download",
+      "fault": "mid_stream_disconnect",
+      "staging_bytes": 64
+     },
+     {
+      "boundary": "research_fetch",
+      "fault": "truncated_response",
+      "staging_bytes": 8
+     },
+     {
+      "boundary": "research_fetch",
+      "fault": "mid_stream_disconnect",
+      "staging_bytes": 8
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "fault": "truncated_response",
+      "staging_bytes": 8
+     },
+     {
+      "boundary": "cloud_dispatch",
+      "fault": "mid_stream_disconnect",
+      "staging_bytes": 8
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "fault": "truncated_response",
+      "staging_bytes": 64
+     },
+     {
+      "boundary": "cross_vendor_mcp_stream",
+      "fault": "mid_stream_disconnect",
+      "staging_bytes": 64
+     }
+    ]
+   },
+   "produced_at": "2026-08-25T00:29:50Z",
+   "question": "Inject DNS failure, connection reset, TLS error, slow loris, truncated response and mid-stream disconnect at every external boundary, asserting a typed failure and preserved partial work. Which boundary swallows a fault into an empty success?",
+   "question_or_target": "Inject DNS failure, connection reset, TLS error, slow loris, truncated response and mid-stream disconnect at every external boundary, asserting a typed failure and preserved partial work. Which boundary swallows a fault into an empty success?",
+   "receipt_kind": "network-fault-injection-matrix",
+   "scope_note": "B07 registry/package clients named by sibling TST-0129..TST-0135 are not present as modules on this worktree. TST-0122 delegates network fault primitives to this unit; the five adapters here are those primitives, fail-closed, under live localhost injection.",
+   "swallow_answer": "None of the five in-scope fail-closed adapters swallow a fault into empty success. Live-tree inventory found 67 product HTTP client import(s) outside p2-wave probes. The planted swallower at command-center/p2-wave/probes/TST-0098/harness.py:planted_empty_success_swallower is classified EMPTY_SUCCESS (P1 detector control), proving empty success is visible rather than scored as a pass.",
+   "timestamp_utc": "2026-08-25T00:29:50Z",
+   "title": "Network fault-injection matrix"
+  }
+ },
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0098/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0098"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0098.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0098.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "e5903a815308ef21a2bc4a73c7edfc69",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

@@ -1,0 +1,22 @@
+I'll start from the existing IMP-0440 probe tree and any SUBAGENT-RETURN, then resume delivery against the G-1 contract without touching git or the global catalog.The probe tree exists but has no SUBAGENT-RETURN yet. Next I’ll read the unit contract, measure script, and any prior receipt so I resume instead of rebuilding.The cloud-ok refute already names the real gap: no single `blob_bytes` helper and no live named probes. I’ll pull the catalog unit, receipt, and existing helper so we resume from that rather than start over.The catalog wants a single `blob_bytes(rev, path)` helper plus live named probes. I’ll inspect successful unit artifacts, the current helper tree, and remaining archive-recipe call sites before writing anything.This worktree is sparse: no `.git`, no `platform/`, no `measure-guard`. I’ll map what actually exists and how other delivered units satisfied G-1 here.There’s an existing `_build_IMP0440.py` plus blobread API notes in the mutants. I’ll read those next and resume from that implementation rather than invent a new one.Git archive on Linux still emits CRLF under `eol=crlf`, which is the three-route signal we need. Next I’ll scan remaining archive recipes, then land the helper and named probes.Zero remaining archive-recipe prescriptions in this projection. I’ll land the single `blob_bytes` helper, route the live defs through it, and add named probes that re-run to exit 0.The census treated a markdown mention as a real `git archive` prescription. I’ll tighten the classifier so only command-shaped invocations count, then re-run.The receipt failed schema validation on SUCCESS (6 errors)—the same SUCCESS-flip hole the earlier refute documented. I’ll pull the exact errors and fix the receipt against the live contract.Each CONFIRMED evidence row needs a source plus a verifier with a different method. I’ll add those pairs and make pack fail closed on schema errors.**SUCCESS:delivered IMP-0440**
+
+```
+SUCCESS:delivered IMP-0440 predicate=delivered state=SUCCESS probes=4 raws=3 notes=lib_imp0440.py:0,probe_three_route.py:0,probe_wrong_recipe_census.py:0,test_helper_known_file.py:0
+```
+
+G-1 is green for this unit only. Prior CLOUD-OK-REFUTE was left in place; this pass implemented the missing helper and live named probes instead of flipping SUCCESS on the old BLOCKED receipt.
+
+**What landed**
+- `tools/measure-guard/blobread.py` now exposes `blob_bytes(rev, path)` on `git cat-file -p`. `read_blob(path, rev=HEAD)` is a thin alias. Archive is refused as a blob-read path.
+- Four live local `blob_bytes` wrappers now call that helper: `verify_blob_parity.py`, `_b9_crlf_split.py`, `_i3_blobfmt.py`, `_av_probe3.py`.
+- Named probes re-run to exit 0:
+  - three-route on an isolated `eol=crlf` fixture: archive 23 B / 4 CRLF vs cat-file/show 19 B / 0 CRLF, identical after LF normalisation; same result on a different file
+  - wrong-recipe census of this projection: **0** provenance prescriptions; planted control fired, then went silent
+  - helper known-file test: 19 LF bytes, absent path raises `BlobReadError`
+
+**Artifacts**
+- Receipt: `command-center/receipts/IMP-0440.json` (`state=SUCCESS`, `SENTINEL:IMP-0440:BLOB-HELPER-SINGLE-SOURCE`, 21690 B)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0440/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `8e5c873b8c2e8b8b81536985b5591c3652c0eaf8279300ba968ac79471d0e847`)
+- Handoff: `command-center/p2-wave/probes/IMP-0440/SUBAGENT-RETURN.json`
+
+**Constraints kept:** no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no finish-everything / p2-cloud-ok-deliver relaunch. Cloud `ok=true` is not this delivery. This worktree still has no `.git`, so three-route is fixture-grounded, not a `HEAD:path` of the host tree.

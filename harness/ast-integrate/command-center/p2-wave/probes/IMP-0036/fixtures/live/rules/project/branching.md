@@ -1,0 +1,27 @@
+# rules/project/branching.md
+shared:rules/project/branching.md
+live-unique:rules/project/branching.md
+live-pad:rules/project/branching.md:0
+live-pad:rules/project/branching.md:1
+live-pad:rules/project/branching.md:2
+live-pad:rules/project/branching.md:3
+live-pad:rules/project/branching.md:4
+live-pad:rules/project/branching.md:5
+live-pad:rules/project/branching.md:6
+live-pad:rules/project/branching.md:7
+live-pad:rules/project/branching.md:8
+live-pad:rules/project/branching.md:9
+live-pad:rules/project/branching.md:10
+live-pad:rules/project/branching.md:11
+live-pad:rules/project/branching.md:12
+live-pad:rules/project/branching.md:13
+live-pad:rules/project/branching.md:14
+live-pad:rules/project/branching.md:15
+live-pad:rules/project/branching.md:16
+live-pad:rules/project/branching.md:17
+live-pad:rules/project/branching.md:18
+live-pad:rules/project/branching.md:19
+live-pad:rules/project/branching.md:20
+live-pad:rules/project/branching.md:21
+live-pad:rules/project/branching.md:22
+live-pad:rules/project/branching.md:23

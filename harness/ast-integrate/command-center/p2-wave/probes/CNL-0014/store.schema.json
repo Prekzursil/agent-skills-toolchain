@@ -1,0 +1,87 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://command-center.local/schema/council-calibration-store.v1.json",
+  "title": "Council calibration store v1 (minimum)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_id", "min_resolved_n", "records"],
+  "properties": {
+    "schema_id": { "const": "council-calibration-store/v1" },
+    "min_resolved_n": { "type": "integer", "minimum": 1 },
+    "records": {
+      "type": "array",
+      "items": { "$ref": "#/definitions/record" }
+    }
+  },
+  "definitions": {
+    "outcome": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "council_id",
+        "stated_confidence",
+        "resolution",
+        "resolved_correct",
+        "resolution_source"
+      ],
+      "properties": {
+        "council_id": { "type": "string", "minLength": 1 },
+        "stated_confidence": { "type": "number", "minimum": 0, "maximum": 1 },
+        "resolution": {
+          "type": "string",
+          "enum": ["SCOREABLE", "UNSCOREABLE"]
+        },
+        "resolved_correct": { "type": ["boolean", "null"] },
+        "resolution_source": { "type": ["string", "null"] }
+      }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "participant_id",
+        "task_class",
+        "resolved_n",
+        "outcomes",
+        "scoreable",
+        "brier",
+        "rank_class"
+      ],
+      "properties": {
+        "participant_id": { "type": "string", "minLength": 1 },
+        "task_class": { "type": "string", "minLength": 1 },
+        "resolved_n": { "type": "integer", "minimum": 0 },
+        "outcomes": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/outcome" }
+        },
+        "scoreable": { "type": "boolean" },
+        "brier": { "type": ["number", "null"] },
+        "rank_class": {
+          "type": "string",
+          "enum": ["RANK_ELIGIBLE", "UNRANKABLE"]
+        }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "scoreable": { "const": false } } },
+          "then": {
+            "properties": {
+              "brier": { "type": "null" },
+              "rank_class": { "const": "UNRANKABLE" }
+            }
+          }
+        },
+        {
+          "if": { "properties": { "scoreable": { "const": true } } },
+          "then": {
+            "properties": {
+              "brier": { "type": "number" },
+              "rank_class": { "const": "RANK_ELIGIBLE" }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

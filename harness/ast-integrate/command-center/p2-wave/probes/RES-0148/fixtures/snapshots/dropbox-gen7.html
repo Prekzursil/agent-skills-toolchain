@@ -1,0 +1,1097 @@
+<!doctype html>
+
+
+    
+    
+    
+
+    
+
+
+    
+    
+    
+    
+
+    
+    
+    
+    
+
+    <html lang="en" xml:lang="en" data-cms-lang="en-us">
+    <head>
+        
+<meta charset="utf-8"/>
+
+<title>Seventh-generation server hardware at Dropbox: our most efficient and capable architecture yet - Dropbox</title>
+
+
+
+
+<meta name="description" content="This generation represents our most efficient, capable, and scalable architecture yet—and it’ll help us as we continue to build AI products like Dropbox Dash."/>
+<meta name="data-tags" content="AI,Dash,Hardware,Infrastructure"/>
+<meta name="data-tagTaxonomy" content="AI; Dash; Hardware; Infrastructure;"/>
+<meta name="page-id" content="infrastructure-seventh-generation-server-hardware"/>
+<meta name="topic" content="Infrastructure"/>
+
+<meta name="publishDate" content="2025-07-02 09:00:00.000-0700"/>
+
+<meta name="author" content="Eric Shobe"/>
+
+<link rel="canonical" href="https://dropbox.tech/infrastructure/seventh-generation-server-hardware"/>
+
+
+
+
+<link rel="icon" href="/cms/content/dam/dropbox/aem/favicon32.ico" type="image/x-icon"/>
+
+
+
+
+
+<meta property="og:url" content="https://dropbox.tech/infrastructure/seventh-generation-server-hardware"/>
+<meta property="og:type" content="article"/>
+<meta property="og:title" content="Seventh-generation server hardware at Dropbox: our most efficient and capable architecture yet"/>
+<meta property="og:description" content="This generation represents our most efficient, capable, and scalable architecture yet—and it’ll help us as we continue to build AI products like Dropbox Dash."/>
+<meta property="og:image" content="https://aem.dropbox.com/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/social/Infrastructure-7thGenHardware-1200x628.png/_jcr_content/renditions/Infrastructure-7thGenHardware-1200x628.og.png"/>
+
+
+<meta name="twitter:card" content="summary_large_image"/>
+
+
+
+<meta content="width=device-width,initial-scale=1.0,user-scalable=no" name="viewport"/>
+
+
+
+
+  <link rel="alternate" hreflang="en-us" href="https://dropbox.tech/infrastructure/seventh-generation-server-hardware"/>
+
+
+
+
+  <!-- Adobe Launch Tag
+  <sly data-sly-test.launchScriptUrl="https://assets.adobedtm.com/7c31e7b46b8e/d19004ab8783/launch-9d6b92cf511d.min.js">
+      <script src="" async></script>
+  </sly>-->
+  <input type="hidden" id="launchurl" name="launchurl" value="https://assets.adobedtm.com/7c31e7b46b8e/d19004ab8783/launch-9d6b92cf511d.min.js"/>
+  
+    
+<script type="text/javascript" src="/cms/etc.clientlibs/settings/wcm/designs/adobe-launch.69d49deacff84e18078620ea5d69520e.js" defer></script>
+
+
+
+
+
+
+
+
+
+
+
+
+
+<!--/* Calling the tealium utag sync to avoid adobe target flickering */ -->
+
+
+
+
+    
+         
+          <!-- CMS-5456 : Optimizing target calls -->
+                
+         
+    
+
+<!-- /* Calling the tealium utag sync to avoid adobe target flickering */  -->
+
+    
+
+
+
+
+
+        
+
+        
+
+
+
+
+
+
+
+
+
+<!-- /* Enable rebrand styles  */
+<sly data-sly-use.inheritUtil="com.dropbox.aem.common.models.utils.InheritanceUtilUse"
+     data-sly-test.pageStyle="" /> -->
+
+     
+    
+<link rel="stylesheet" href="/cms/etc.clientlibs/settings/wcm/designs/dropbox-common/clientlib-cms-common.fe1280fde62f39dc26aa28abd1e11743.css" type="text/css">
+<link rel="stylesheet" href="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all.706c697ebfafea32e18a38f788e663e8.css" type="text/css">
+
+
+
+
+    
+<link rel="stylesheet" href="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content.853221554a5d292bfd31a6140d9662f9.css" type="text/css">
+
+
+
+    </head>
+    <body class="tech-blog-article-page__page    stormcrow-animate   " data-article-uuid="a5cfeaf6-b269-4970-8b5c-112c83fe638b">
+
+        
+
+        
+        <input type="hidden" id="wcmRunmode" name="wcmRunmode" value="publish,prod"/>
+        
+
+        
+        
+
+<header class="dr-header">
+
+
+
+
+<div class="dr-header__sticky-container">
+  <section class="dr-header__section dr-flex dr-flex--align-center dr-padding-right-40 dr-padding-left-40 dr-header__sticky-content-container dr-header__sticky-content-container--opened dr-container--surface">
+    <div class="dr-flex-1">
+      <a class="dr-link dr-link--no-underline dr-link--no-underline-hover dr-typography-t1" href="https://dropbox.tech/">Dropbox.Tech</a>
+    </div>
+    
+
+<button class="dr-header__item dr-nav__menu-toggle-button dr-button dr-hide-from-md dr-flex dr-flex-align-center dr-flex-justify-center" data-dr-tooltip="Menu" data-dr-tooltip-theme="white">
+  <svg viewBox="0 0 28 28" fill="none" xmlns="http://www.w3.org/2000/svg" class="dr-width-100 dr-height-100">
+    <rect x="0.501831" y="8" width="28" height="2" fill="white"></rect>
+    <rect x="0.500977" y="18" width="28" height="2" fill="white"></rect>
+  </svg>
+</button>
+<nav class="dr-show-block-from-md dr-nav__nav">
+  <button class="dr-button dr-nav__menu-close-button">
+    <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path fill-rule="evenodd" clip-rule="evenodd" d="M19.2875 2.15983L17.6683 0.566406L9.82597 8.28403L2.33211 0.909344L0.71294 2.50277L8.2068 9.87746L0.666992 17.2974L2.28617 18.8908L9.82597 11.4709L17.7143 19.2337L19.3334 17.6403L11.4451 9.87746L19.2875 2.15983Z" fill="white"/>
+    </svg>
+  </button>
+  <ul class="dr-unstyled-list dr-typography-t2 dr-flex dr-nav__nav-list">
+    <li class="dr-header__item dr-position-relative dr-header__item--with-subnav dr-header__list-item">
+      <button class="dr-button dr-button--link dr-header__link--with-subnav">Topics</button>
+      <ul class="dr-unstyled-list dr-display-none dr-header__subnav dr-position-absolute dr-container--surface dr-padding-top-30 dr-padding-left-40 dr-padding-bottom-20 dr-padding-right-40 dr-font-weight-500">
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/application" class="dr-display-block dr-link dr-link--no-underline dr-container--application dr-link--primary">Application</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/frontend" class="dr-display-block dr-link dr-link--no-underline dr-container--frontend dr-link--primary">Front End</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/infrastructure" class="dr-display-block dr-link dr-link--no-underline dr-container--infrastructure dr-link--primary">Infrastructure</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/machine-learning" class="dr-display-block dr-link dr-link--no-underline dr-container--machine-learning dr-link--primary">Machine Learning</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/mobile" class="dr-display-block dr-link dr-link--no-underline dr-container--mobile dr-link--primary">Mobile</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/security" class="dr-display-block dr-link dr-link--no-underline dr-container--security dr-link--primary">Security</a></li>
+      
+        <li class="dr-header__list-item dr-header__list-item--subnav"><a href="https://dropbox.tech/culture" class="dr-display-block dr-link dr-link--no-underline dr-container--culture dr-link--primary">Culture</a></li>
+      </ul>
+    </li>
+    <li class="dr-header__item dr-header__list-item">
+      <a href="https://dropbox.tech/developers" class="dr-link dr-link--no-underline dr-nav__main-category">Developers</a>
+    </li>
+    <li class="dr-header__item dr-header__list-item">
+      <a class="dr-link dr-link--no-underline dr-header__link" href="http://dropbox.com/jobs" target="_blank">Jobs</a>
+    </li>
+<li class="dr-header__item dr-header__list-item">
+      <a class="dr-link dr-link--no-underline dr-header__link" href="https://dash.dropbox.com/?utm=blogs" target="_self">Dash</a>
+    </li>
+
+  </ul>
+</nav>
+
+    <button data-dark-mode-switcher class="dr-header__item dr-header__dark-mode-switcher dr-button dr-button--link dr-cursor-pointer" data-dr-tooltip="Dark Mode" data-dr-tooltip-theme="white" type="button">
+      <img alt="" height="30" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all/resources/button_dark-mode-new.svg" width="30" class="dr-header__mode-image"/>
+    </button>
+    <button class="dr-header__item dr-header__search-button dr-button dr-button--link dr-cursor-pointer" data-dr-tooltip="Search" data-dr-tooltip-theme="white" type="button">
+      <img alt="" height="20" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all/resources/button_search-new.svg" width="20"/>
+    </button>
+    <!--search-result-page-only-->
+    
+    <!--search-result-page-only-->
+    <div class="dr-header__search dr-display-none">
+      <button class="dr-header__search-close-button dr-header__item dr-button dr-button--link dr-cursor-pointer" type="button">
+        <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <path fill-rule="evenodd" clip-rule="evenodd" d="M19.2875 2.15983L17.6683 0.566406L9.82597 8.28403L2.33211 0.909344L0.71294 2.50277L8.2068 9.87746L0.666992 17.2974L2.28617 18.8908L9.82597 11.4709L17.7143 19.2337L19.3334 17.6403L11.4451 9.87746L19.2875 2.15983Z" fill="white"/>
+        </svg>
+      </button>
+      <div class="dr-header__search-form-container">
+        <form class="dr-header__search-form dr-container__content dr-width-100" method="get" action="https://dropbox.tech/search-results">
+            <div class="coveo-search-section dr-header__search-input dr-header-search-input-white dr-typography-t3" data-coveo-api-url="https://dropboxproductionpmlw0l3v.org.coveo.com/rest/search" data-coveo-org-id="dropboxproductionpmlw0l3v" data-coveo-api-key="xx54717485-2fdc-4d24-afa3-0d3c9f69e01b" data-searchPage="https://dropbox.tech/search-results.html">
+               <div class="CoveoSearchbox" data-enable-omnibox="true" data-enable-query-suggest-addon="true" data-placeholder="Search" data-number-of-suggestions="5"></div>
+                <div class="CoveoStyleReplacer"></div>
+            </div>
+            <p class="dr-header__search-hint dr-margin-top-30 dr-margin-bottom-0 dr-typography-t5 dr-display-none">
+                // Press enter to search
+            </p>
+        </form>
+      </div>
+    </div>
+  </section>
+</div>
+</header>
+
+        
+
+        
+
+
+<!-- CMS-5220 : Fixing utag.js loading twice in our website
+<sly data-sly-include="/apps/dropbox-common/components/templates/base-page/partials/Analytics.html"/>
+-->
+        <div class="dr-article-hero">
+<div class="dr-article-hero__background-container dr-container--infrastructure">
+	<picture class="dr-article-hero__background dr-article-hero__background--regular">
+		<source media="( max-width: 375px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/headers/Infrastructure-7thGenHardware-375x150-light.png/_jcr_content/renditions/Infrastructure-7thGenHardware-375x150-light.webp"/>
+		<source media="( min-width: 376px ) and ( max-width: 1199px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/headers/Infrastructure-7thGenHardware-1024x25-light.png/_jcr_content/renditions/Infrastructure-7thGenHardware-1024x25-light.webp"/>
+		<img class="dr-article-hero__background-image" src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/headers/Infrastructure-7thGenHardware-1440x305-light.png/_jcr_content/renditions/Infrastructure-7thGenHardware-1440x305-light.webp" alt=""/>
+	</picture>
+
+	<picture class="dr-article-hero__background dr-article-hero__background--dark">
+		<source media="( max-width: 375px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/headers/Infrastructure-7thGenHardware-375x150-dark.png/_jcr_content/renditions/Infrastructure-7thGenHardware-375x150-dark.webp"/>
+		<source media="( min-width: 376px ) and ( max-width: 1199px )" srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/headers/Infrastructure-7thGenHardware-1024x25-dark.png/_jcr_content/renditions/Infrastructure-7thGenHardware-1024x25-dark.webp"/>
+		<img class="dr-article-hero__background-image" src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/headers/Infrastructure-7thGenHardware-1440x305-dark.png/_jcr_content/renditions/Infrastructure-7thGenHardware-1440x305-dark.webp" alt=""/>
+	</picture>
+</div>
+<section class="dr-container__content">
+	<span class="dr-article-hero__title-container dr-container--infrastructure">
+		<h1 class="dr-display-inline dr-typography-t15 dr-container--surface dr-article-hero__title">Seventh-generation server hardware at Dropbox: our most efficient and capable architecture yet</h1>
+	</span>
+	<div class="dr-typography-no-space dr-margin-top-10 dr-margin-md-top-20">
+        <span class="dr-typography-t5">// By Eric Shobe</span>
+    
+        <span class="dr-typography-t5">&nbsp;and Jared Mednick &bull; Jul 02, 2025</span>
+    </div>
+</section></div>
+<div class="dr-article-content">
+
+
+
+
+
+
+
+
+
+<div class="dr-article-content__scroll-tracker-container dr-container--infrastructure">
+    <div class="dr-article-content__scroll-tracker"></div>
+</div>
+<div class="dr-container__content">
+    <div class="dr-article-content__content-container dr-padding-md-left-80 dr-padding-md-right-80 dr-typography-t12">
+        <nav class="dr-article-content__side-nav dr-article-content__side-nav--initial dr-typography-t5">
+            <ol class="dr-article-content__side-nav-list dr-margin-0">
+                <li class="dr-article-content__side-nav-list-item dr-margin-bottom-5">
+                    <a href="#developing-our-strategy" class="dr-link dr-link--no-underline dr-article-content__side-nav-link">Developing our strategy</a>
+                </li>
+            
+                <li class="dr-article-content__side-nav-list-item dr-margin-bottom-5">
+                    <a href="#-a-look-under-the-hood-of-our-next-gen-hardware" class="dr-link dr-link--no-underline dr-article-content__side-nav-link"> A look under the hood of our next-gen hardware</a>
+                </li>
+            
+                <li class="dr-article-content__side-nav-list-item dr-margin-bottom-5">
+                    <a href="#-thermal-and-power-architecture" class="dr-link dr-link--no-underline dr-article-content__side-nav-link"> Thermal and power architecture</a>
+                </li>
+            
+                <li class="dr-article-content__side-nav-list-item dr-margin-bottom-5">
+                    <a href="#-what-we-learned-along-the-way" class="dr-link dr-link--no-underline dr-article-content__side-nav-link"> What we learned along the way</a>
+                </li>
+            
+                <li class="dr-article-content__side-nav-list-item dr-margin-bottom-5">
+                    <a href="#conclusion" class="dr-link dr-link--no-underline dr-article-content__side-nav-link">Conclusion</a>
+                </li>
+            </ol>
+        </nav>
+        <div class="dr-article-content__content">
+            
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>Fourteen years ago, Dropbox took its first steps toward building its own hardware infrastructure—and as our product and user base has grown, so has our infrastructure. What started with just a handful of servers has evolved into one of the largest custom-built storage systems in the world. We've scaled from a few dozen machines to tens of thousands of servers with millions of drives.</p>
+<p>That evolution didn’t happen by accident. It took years of iteration, close collaboration with suppliers, and a product-first mindset that treated infrastructure as a strategic advantage. Now we’re excited to share what’s next: the launch of our seventh-generation<b> </b>hardware platform, now<b> </b>featuring Crush, Dexter, and Sonic for our traditional compute, database, and storage workloads, and our newest GPU tiers, Gumby and Godzilla. To make this leap possible, we dramatically increased storage bandwidth, effectively doubled our available rack power, and introduced a next-gen storage chassis designed to even further minimize vibration and heat.</p>
+<p>This generation represents our most efficient, capable, and scalable architecture yet—and it’ll help us as we continue to build and scale helpful AI products like <a href="https://www.dash.dropbox.com/" target="_blank">Dropbox Dash</a>. Below, we’ll walk you through how we designed the latest version of our server hardware as well as key lessons we’ll carry into generations to come.</p>
+
+</div>
+<div class="experiencefragment aem-GridColumn aem-GridColumn--default--12">
+<div id="experiencefragment-3a2b4a1b83" class="cmp-experiencefragment cmp-experiencefragment--dash-cta-for-tech-blog">
+
+    
+
+
+
+<div class="xf-content-height">
+    
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="responsivegrid aem-GridColumn aem-GridColumn--default--12">
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    <div class="a08-html-embed c17-plain-html aem-GridColumn aem-GridColumn--default--12">
+
+<style type="text/css"> 
+
+@font-face {
+font-family: 'AtlasGrotesk';
+src: url('https://cdn.prod.website-files.com/65dcd70b48edc3a7b446950e/65dce019c63112e617513c94_AtlasGrotesk-Medium-Web-vfl38XiTL.woff2') format('woff2');
+font-weight: 500;
+font-style: normal;
+font-display: swap;
+}
+
+@font-face {
+font-family: 'AtlasGrotesk';
+src: url('https://cdn.prod.website-files.com/65dcd70b48edc3a7b446950e/65dce019711b648fd1ccd24a_AtlasGrotesk-Regular-Web-vflk7bxjs.woff2') format('woff2');
+font-weight: 400;
+font-style: normal;
+font-display: swap;
+}
+.xf-content-height {margin: 0;}
+#cta { font-family: AtlasGrotesk,sans-serif; font-size: .900rem; text-decoration: none; background: #f7f5f2; line-height: 1.69; box-sizing: border-box;}
+#cta-box { padding: 15px 20px 15px 20px; }
+#cta-hed {font-weight: 500;}
+#cta-indent {border-left: 5px solid #1e1919; padding-left:20px;}
+#cta a:link, #cta a:visited  {text-decoration: none;}
+#cta p { margin: 5px 0px 0px 0px; }
+
+.dr-theme-dark #cta {background: #000;}
+.dr-theme-dark #cta-box {border: 1px solid; border-bottom: 0;}
+.dr-theme-dark #cta-indent {border-left: 5px solid #f7f5f2;}
+.dr-theme-dark .button {background: #000;}
+
+.button {
+    background-color: #1e1919;
+    color:  #f7f5f2;
+    height: 2.5rem;
+    padding: 10px 5px 10px 20px;
+    font-size: 1rem;
+    font-weight: 500;
+    line-height: 1.2;
+    transition: all .3s;
+}
+
+.button:hover { background-color: #0061ff; }
+
+img {vertical-align: middle; padding: 0px 1px 2px 0px;}
+
+.c17-plain-html {margin-bottom: 50px}
+
+</style>
+
+<div id="cta">
+<div id="cta-box">
+<div id="cta-indent">
+
+<p id="cta-hed"><img src="https://cdn.prod.website-files.com/65dcd70b48edc3a7b446950e/670692ee7692f74d4834e4f4_Frame%201400006055.svg" loading="lazy"> Dropbox Dash: AI that understands your work
+</p>
+
+<p>Dash knows your context, your team, and your work, so your team can stay organized, easily find and share knowledge, and keep projects secure, all from one place. And soon, Dash is coming to Dropbox.</p>
+
+</div>
+</div>
+
+<a href="https://dash.dropbox.com/?utm=blogs" target="_blank"><div class="button">Learn more &#x2192;</div></a>
+
+</div>
+</div>
+
+    
+</div>
+</div>
+
+    
+</div>
+
+</div></div>
+
+    
+</div>
+<div class="section aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-article-content__section" id="developing-our-strategy">
+    <h2 class="dr-article-content__section-title">Developing our strategy</h2>
+</div>
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>To understand how we got to where we are today, it’s helpful to understand how we built the infrastructure foundation on which Dropbox runs. Back in 2015, we relocated all US customer data from off-premises hosts to on-site ones. The <a href="https://dropbox.tech/infrastructure/inside-the-magic-pocket" target="_blank">Magic Pocket</a> team executed a massive migration project, bringing the bulk of Dropbox’s file storage into our own <a href="https://dropbox.tech/infrastructure/magic-pocket-infrastructure" target="_blank">custom-built infrastructure</a>. Over 90% of the roughly 600PB of data we stored at the time was moved into data centers we managed ourselves—a turning point that enabled better performance, cost control, and scale.</p>
+<p>In the years following, we continued to grow—a <i>lot</i>. We ramped from 40PB of storage in 2012 to over 600PB by 2016. And today, we’re in our exabyte era, running on semi-custom hardware that we’ve designed to meet the unique needs of our platform. Along the way, we introduced new technologies such as <a href="https://dropbox.tech/infrastructure/four-years-of-smr-storage-what-we-love-and-whats-next" target="_blank">SMR</a> drives, which allow for higher storage density, and GPU accelerators for AI and compute-heavy tasks. And we’ve co-designed both hardware and software to serve our evolving workloads.</p>
+<p>So, before committing to any designs for our seventh-generation server hardware, we set some high-level goals that drew from both what we’d learned from <a href="https://dropbox.tech/infrastructure/sixth-generation-server-hardware" target="_blank">previous </a><a href="https://dropbox.tech/infrastructure/sixth-generation-server-hardware">generation</a><a href="https://dropbox.tech/infrastructure/sixth-generation-server-hardware">s</a> and opportunities from the latest hardware advancements in the industry. Three primary themes shaped our approach:</p>
+<p><b>Embracing emerging tech<br />
+ </b>Infrastructure hardware is evolving <i>fast</i>.<i> </i>CPUs are getting more powerful with higher core counts and better performance per core. AI workloads are growing rapidly. Networks are moving toward <a href="https://dropbox.tech/infrastructure/from-ai-to-sustainability-why-our-latest-data-centers-use-400g-networking">faster speeds</a><a href="https://dropbox.tech/infrastructure/from-ai-to-sustainability-why-our-latest-data-centers-use-400g-networking"> </a><a href="https://dropbox.tech/infrastructure/from-ai-to-sustainability-why-our-latest-data-centers-use-400g-networking">like</a><a href="https://dropbox.tech/infrastructure/from-ai-to-sustainability-why-our-latest-data-centers-use-400g-networking" target="_blank"> 200G and 400G</a>. And a new band of <a href="http://dropbox.tech/infrastructure/four-years-of-smr-storage-what-we-love-and-whats-next#:~:text=comes%20next%20-%20Dropbox-,After%20four%20years%20of%20SMR%20storage%2C%20here%27s%20what,love%E2%80%94and%20what%20comes%20next&amp;text=In%202018%2C%20Dropbox%20became%20the,fleet%20size%20was%20around%2025%25." target="_blank">storage areal density</a> has finally arrived. We used this moment to guide our strategy, aiming to harness these trends to improve our performance, efficiency, and scalability.</p>
+<p><b>Partnering with suppliers</b><br />
+For this generation, we partnered closely with suppliers to co-develop storage platforms that fit our needs. This gave us early access to technologies like higher-density drives and high-performance controllers—along with the opportunity to help tune firmware for our specific workloads. These partnerships enabled the optimizations we needed to tackle the acoustic, vibration, and thermal challenges that come with dense system designs. </p>
+<p>Strengthening these relationships also continues to give us a strategic edge: We get earlier access to emerging technology, deeper hardware customization, and a more stable platform. </p>
+<p><b>Designing with software in mind<br />
+ </b>We brought in our software teams early to find out what would actually move the needle for their services. That led to goals like packing more compute power into each rack, enabling GPU support for AI and video processing, and improving speed and responsiveness for our database systems. Co-designing was a central theme; we weren’t just designing servers, but building platforms that elevated our services.</p>
+<p>All of these goals converged around a central question: How big of a leap do we want to make, and what technologies will help get us there? Instead of maxing out everything just because we could, we focused on what matters most: better performance per watt, higher rack-level efficiency, and unlocking the right features to support our next chapter.</p>
+
+</div>
+<div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%201.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%201.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1736"
+             data-aem-asset-id="d3d2769c-eb9f-495a-bf58-48c76d953541:Diagram 1.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%201.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%201.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1736"
+             data-aem-asset-id="d3d2769c-eb9f-495a-bf58-48c76d953541:Diagram 1.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%201.png/_jcr_content/renditions/Diagram%201.webp" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%201.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="d3d2769c-eb9f-495a-bf58-48c76d953541:Diagram 1.png" data-trackable="true" height="1736" width="2880"/>
+    
+
+            <figcaption class="dr-typography-t5 dr-color-ink-60 dr-image-rte"><p style="text-align: center;">Dropbox seventh-generation hardware</p>
+</figcaption>
+        
+    </figure>
+</div></div>
+<div class="section aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-article-content__section" id="-a-look-under-the-hood-of-our-next-gen-hardware">
+    <h2 class="dr-article-content__section-title"> A look under the hood of our next-gen hardware</h2>
+</div>
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p><b>Performance</b><br />
+The first big step in building our next-gen Dropbox server hardware was refreshing our CPUs. These do a lot more than crunch numbers. They shape the entire system’s platform, power use, cooling needs, and more—so picking the right ones really mattered. We started with a wide field of over 100 processors. To whittle this number down, our criteria required:</p>
+<ul>
+<li>Maximizing system throughput at the server and rack level</li>
+<li>Reducing latency of individual processes</li>
+<li>Improving price-performance for Dropbox workloads</li>
+<li>Ensuring balanced I/O and memory bandwidth </li>
+</ul>
+<p>We ran tests using SPECintrate (a benchmark for multi-threaded workloads) and compared how each chip stacked up in performance per watt and per core. The CPU we picked stood out for both high throughput and strong per-core performance. It outperformed the previous generation by 40%.</p>
+
+</div>
+<div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%204.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%204.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1760"
+             data-aem-asset-id="0717b157-4f55-437e-9f29-39fb1a706561:Diagram 4.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%204.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%204.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1760"
+             data-aem-asset-id="0717b157-4f55-437e-9f29-39fb1a706561:Diagram 4.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%204.png/_jcr_content/renditions/Diagram%204.webp" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%204.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="0717b157-4f55-437e-9f29-39fb1a706561:Diagram 4.png" data-trackable="true" height="1760" width="2880"/>
+    
+
+            <figcaption class="dr-typography-t5 dr-color-ink-60 dr-image-rte"><p style="text-align: center;">Legend: Red dot indicates processor selected</p>
+</figcaption>
+        
+    </figure>
+</div></div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>Moving from our <a href="https://dropbox.tech/infrastructure/sixth-generation-server-hardware" target="_blank">sixth-generation</a> Cartman platform to the new Crush platform marked a big jump in compute power. At the heart of that upgrade was a shift from the 48-core AMD EPYC 7642 “Rome” processor to the 84-core AMD EPYC 9634 “Genoa.” This shift delivered some big gains:</p>
+<ul>
+<li><b>75% more cores per socket</b> (48 cores → 84 cores), improving bin packing for containerized services</li>
+<li><b>2x the memory capacity</b> (256GB → 512GB), boosting memory-heavy workloads</li>
+<li><b>DDR4 → DDR5</b>, delivering higher bandwidth </li>
+<li><b>25Gb → 100Gb networking</b>, aligning with growing internal traffic</li>
+<li><b>NVMe gen5</b>, speeding up local disk access and system boot times</li>
+</ul>
+<p>We did all of this while keeping the same compact 1U “pizza box” server design, allowing 46 servers per rack, with no extra space needed.</p>
+
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p><b>Databases<br />
+ </b>On the database side, we focused on boosting CPU performance. While our new Dexter platform keeps the same number of cores as the previous generation, it packs a punch with 30% more instructions per cycle (IPC) and an increased base frequency (from 2.1GHz to 3.25GHz). The shift from dual-socket to single-socket design also reduced delays from inter-socket communication. These upgrades led to up to 3.57x less replication lag—the delay between when data is written to a primary system and when it’s copied to a secondary one—which made a huge difference for high-demand workloads like Dynovault and Edgestore.</p>
+<p>Early on, we realized our database and compute platforms had a lot in common when it came to requirements. That opened the door for us to use the same platform from our system vendor for both. Consolidating like this helped us simplify our support stack, making it easier to manage components, firmware, drivers, and OS updates. The result was a versatile, dual-use platform that removed key scaling bottlenecks without sacrificing density or efficiency.</p>
+<p><b>Storage<br />
+ </b>Finally, on the storage front, our design goals evolved to keep pace with increasing drive capacities. As drives get bigger—some now hold over 30TB—we had to think ahead. One of our internal performance standards is 30Gbps per PB of data. But with future systems expected to push past 100Gbps, we aimed even higher: 200Gbps throughput. </p>
+<p>We also reworked our SAS topology to evenly allocate bandwidth to each drive and provide total system bandwidth past 200Gbps. And since this scale demanded stronger networking, we teamed up with our network engineering team to design a new <a href="https://dropbox.tech/infrastructure/from-ai-to-sustainability-why-our-latest-data-centers-use-400g-networking">400G-ready data center architecture</a>.</p>
+
+</div>
+<div class="section aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-article-content__section" id="-thermal-and-power-architecture">
+    <h2 class="dr-article-content__section-title"> Thermal and power architecture</h2>
+</div>
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>Upgrading to higher-core CPUs meant we had to rethink our approach to thermal and power management. Across the board, we saw power demands rise, so we needed a smarter way to stay within the limits of our existing data center infrastructure. First, we set a cap on processor thermal design power (TDP) to make sure we could pack in as many cores per rack as possible without blowing past our cooling or power budget.</p>
+<p>Rather than taking worst-case “nameplate” power measurements—manufacturer-listed maximums that often overestimate real usage—we modeled real-world system usage. The models showed our servers could draw over 16kW per cabinet, which would’ve been a dealbreaker under our old 15kW per-rack power budget. To make it work without overhauling our entire power infrastructure, we teamed up with our data center engineering team and made a major change: We switched from two PDUs to four PDUs per rack, using existing busways and adding more receptacles.</p>
+
+</div>
+<div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Image%201.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Image%201.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1880"
+             data-aem-asset-id="61fd1d7e-48bd-4888-936e-768831b0f915:Image 1.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Image%201.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Image%201.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1880"
+             data-aem-asset-id="61fd1d7e-48bd-4888-936e-768831b0f915:Image 1.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Image%201.png/_jcr_content/renditions/Image%201.webp" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Image%201.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="61fd1d7e-48bd-4888-936e-768831b0f915:Image 1.png" data-trackable="true" height="1880" width="2880"/>
+    
+
+            <figcaption class="dr-typography-t5 dr-color-ink-60 dr-image-rte"><p style="text-align: center;">Seventh-generation compute and storage (left); quad PDUs to meet higher power requirements (right)</p>
+</figcaption>
+        
+    </figure>
+</div></div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>This move effectively doubled our available rack power, giving us the breathing room to support current loads—and even future accelerator cards. Finally, we also worked closely with suppliers to improve airflow, upgrade heatsink designs, optimize fan curves, and test thermals under full-load conditions. It was a full-stack effort to keep things cool and efficient.</p>
+<p><b>Focus on storage<br />
+ </b>Our storage strategy is all about getting more out of the same physical space. We’ve steadily increased the capacity of our traditional 3.5” hard drives from around 14TB to over 30TB in just a few years. This density improvement brings benefits: For one, it lowers cost per terabyte—and also reduces power usage per terabyte.</p>
+<p>However, higher densities also heighten sensitivity to acoustic and vibrational interference. And for Dropbox, since over <a href="https://dropbox.tech/infrastructure/four-years-of-smr-storage-what-we-love-and-whats-next" target="_blank">99% of our storage fleet uses shingled magnetic recording (SMR) technology</a>—which packs data in even tighter—the margin for error is razor-thin.</p>
+
+</div>
+<div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%202.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%202.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1748"
+             data-aem-asset-id="459549f7-af28-4379-bc78-2a38bde3b4ac:Diagram 2.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%202.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%202.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1748"
+             data-aem-asset-id="459549f7-af28-4379-bc78-2a38bde3b4ac:Diagram 2.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%202.png/_jcr_content/renditions/Diagram%202.webp" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%202.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="459549f7-af28-4379-bc78-2a38bde3b4ac:Diagram 2.png" data-trackable="true" height="1748" width="2880"/>
+    
+
+            <figcaption class="dr-typography-t5 dr-color-ink-60 dr-image-rte"><p style="text-align: center;">Dropbox continues to leap up to the next available areal density curve</p>
+</figcaption>
+        
+    </figure>
+</div></div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>Here’s the challenge: the read/write head inside these drives operates with nanometer precision. Even a tiny vibration can knock it off track. And when you’ve got fans spinning at over 10,000 RPM to cool a dense server, vibrations (and noise) can quickly stack up. That leads to something called a position error signal (PES)—and, in the worst case, a write fault that forces the drive to retry. That slows things down, increasing latency and reducing IOPS.</p>
+<p>At the same time, we need that airflow to keep the drives cool. They operate best at around 40°C—and if things get too hot, drives age faster and error rates rise. This means we’re constantly balancing two opposing forces: cool enough to perform, quiet enough to be precise. To solve this, we co-developed our next-gen storage chassis with the system and drive suppliers. The key features we focused on were:</p>
+<ul>
+<li><b>Vibration control:</b> Acoustical isolation and damping </li>
+<li><b>Thermals:</b> Improved fan control and airflow redirection </li>
+<li><b>Future-proofing:</b> Compatibility with the next generation of large-capacity drives</li>
+</ul>
+
+</div>
+<div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/pH8djtfC.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/pH8djtfC.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="1800"
+             data-sly-attribute.height="688"
+             data-aem-asset-id="5188b6b9-ce1b-46a0-92f6-c9e3a6c3f3c8:pH8djtfC.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/pH8djtfC.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/pH8djtfC.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="1800"
+             data-sly-attribute.height="688"
+             data-aem-asset-id="5188b6b9-ce1b-46a0-92f6-c9e3a6c3f3c8:pH8djtfC.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/pH8djtfC.png/_jcr_content/renditions/pH8djtfC.webp" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/pH8djtfC.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="5188b6b9-ce1b-46a0-92f6-c9e3a6c3f3c8:pH8djtfC.png" data-trackable="true" height="688" width="1800"/>
+    
+
+            <figcaption class="dr-typography-t5 dr-color-ink-60 dr-image-rte"><p style="text-align: center;">Redirecting high-velocity air to augment cooling</p>
+</figcaption>
+        
+    </figure>
+</div></div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>That work paid off. We were one of the first to adopt Western Digital’s Ultrastar HC690, which provides up to a 32TB SMR drive that fits 11 platters into a standard 3.5” casing. That’s more than a 10% bump in capacity compared to the last generation. </p>
+<p><b>Leveling up with GPUs<br />
+ </b>To support Dash, our <a href="https://dash.dropbox.com/?utm_source=blog">universal search </a><a href="https://dash.dropbox.com/?utm_source=blog">and </a><a href="https://dash.dropbox.com/?utm_source=blog">knowledge management product</a>, it was clear we needed to bring GPUs into the mix. Features like intelligent previews, <a href="https://dropbox.tech/machine-learning/building-dash-rag-multi-step-ai-agents-business-users">document understanding</a>, <a href="https://dropbox.tech/infrastructure/multimedia-search-dropbox-dash-evolution">fast search</a>, and video processing (plus <a href="https://dropbox.tech/infrastructure/multimedia-search-dropbox-dash-evolution">more recent work</a> with large language models) all require serious computing muscle. </p>
+<p>These workloads demand high parallelism, massive memory bandwidth, and low-latency interconnects—requirements that traditional CPU-based servers can’t economically support. So as part of our seventh-generation hardware rollout, we introduced two new GPU-enabled server tiers: Gumby and Godzilla.</p>
+
+</div>
+<div class="image c04-image aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-image image cq-dd-image  ">
+    <figure class="dr-margin-0 dr-display-inline-block">
+        
+            
+    
+
+        
+
+        
+        
+        
+
+        
+        
+        
+
+        <!--optimized image webp-->
+        
+
+        
+        <!-- <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%203.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%203.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1680"
+             data-aem-asset-id="fcf1e5ff-5a64-4481-b585-38cc69097c36:Diagram 3.png"
+             data-trackable="true" />
+        <img data-sly-test.highRes="false"
+             srcset="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%203.png 2x,  1x"
+             src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%203.png"
+             aria-hidden=""
+             alt=""
+             class=""
+             data-sly-attribute.width="2880"
+             data-sly-attribute.height="1680"
+             data-aem-asset-id="fcf1e5ff-5a64-4481-b585-38cc69097c36:Diagram 3.png"
+             data-trackable="true" /> -->
+
+        
+         
+        <img src="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%203.png/_jcr_content/renditions/Diagram%203.webp" fallbackimage="/cms/content/dam/dropbox/tech-blog/en-us/2025/july/7th-gen-hardware/diagrams/Diagram%203.png" onerror="window.failedAttempts=0;this.setAttribute('src',this.getAttribute('fallbackimage'));window.failedAttempts++;if(window.failedAttempts == 1)this.onerror=null" aria-hidden="false" alt="" data-aem-asset-id="fcf1e5ff-5a64-4481-b585-38cc69097c36:Diagram 3.png" data-trackable="true" height="1680" width="2880"/>
+    
+
+            <figcaption class="dr-typography-t5 dr-color-ink-60 dr-image-rte"><p style="text-align: center;">GPU generations</p>
+</figcaption>
+        
+    </figure>
+</div></div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<ul>
+<li><b>Gumby </b>builds on our Crush compute platform but adds support for a wide range of GPU accelerators—hence the flexible name. It’s designed for flexibility, with support for TDPs ranging from 75W to 600W as well as both half-height half-length (HHHL) and full-height full-length (FHFL) PCIe form factors. Gumby is optimized for lightweight inference tasks like video transcoding, embedding generation, and other <a href="https://dropbox.tech/machine-learning/bringing-ai-powered-answers-and-summaries-to-file-previews-on-the-web" target="_blank">service-side machine learning enhancements</a>.</li>
+</ul>
+<ul>
+<li><b>Godzilla </b>is built for big jobs. It supports up to 8 interconnected GPUs, delivering the performance required for LLM testing, fine-tuning, and other high-throughput machine learning workflows.</li>
+</ul>
+<p>Together, Gumby and Godzilla allow Dropbox to scale AI across our products while maintaining control over performance, cost, and energy efficiency.</p>
+<p>Across compute, storage, and accelerators, we pushed performance while staying true to our principles: build right-sized, cost-efficient, and optimized systems tailored to our needs. This isn’t just next-gen tech—it’s hardware shaped by how Dropbox actually works.</p>
+
+</div>
+<div class="section aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-article-content__section" id="-what-we-learned-along-the-way">
+    <h2 class="dr-article-content__section-title"> What we learned along the way</h2>
+</div>
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p><b>Thermals and power are the new bottlenecks<br />
+ </b>No matter where we looked—compute, storage, or GPU platforms—one thing was clear: power demands are going up. To keep performance scaling, we had to rethink everything from airflow patterns to how power gets delivered at the rack level. That’s what led us to move from two to four PDUs per rack. The result? We can now support more power-hungry, high-density systems without compromising stability or performance. And while overall rack power increased, power consumption per petabyte and per core decreased, helping us stay on track with our <a href="https://dropbox.tech/infrastructure/making-dropbox-data-centers-carbon-neutral">sustainability goals</a>.</p>
+<p><b>Supplier collaboration accelerates innovation<br />
+ </b>Some of our biggest hardware wins came from teaming up early with suppliers. Whether it was redesigning hard drive acoustics, fine-tuning chassis layouts, or getting early access to cutting-edge components, collaboration made a huge difference. Instead of waiting for off-the-shelf solutions, we co-developed hardware that fits our needs—like vibration-optimized storage enclosures and systems that are ready for the next generation of storage technology.</p>
+<p><b>Taking a product-first approach pays off<br />
+ </b>The GPU tier is a prime example of where hardware strategy followed software needs. As AI-powered tools like Dash came online, we engaged early with our machine learning and video teams to understand what was needed. That early input helped us build platforms designed specifically for inference, video processing, and hosting large language models. This product-first mindset ensured the infrastructure was ready the moment the software needed it.</p>
+
+</div>
+<div class="section aem-GridColumn aem-GridColumn--default--12">
+<div class="dr-article-content__section" id="conclusion">
+    <h2 class="dr-article-content__section-title">Conclusion</h2>
+</div>
+</div>
+<div class="text parbase aem-GridColumn aem-GridColumn--default--12">
+<p>With our seventh-generation rollout, we’ve made our in-house server hardware more strategically valuable than ever. Our latest Crush and Dexter platforms are powered by cutting-edge CPUs that give us a big lift in performance—especially when it comes to IPC and transaction speed. On the storage side, we worked closely with vendors to develop Sonic, a new system that supports higher capacities. And as demand for AI products continues to grow, we introduced a dedicated hardware tier built specifically for these workloads. </p>
+<p>Looking ahead, we’re already gearing up for the next wave of infrastructure change. Technologies like heat-assisted magnetic recording (HAMR) promise huge capacity gains, and they’ll require us to get even more precise with acoustic and thermal management. Similarly, liquid cooling is transitioning from niche to necessity as compute densities continue to climb.</p>
+<p>This generation of infrastructure isn’t just about meeting today’s challenges—it’s a launchpad for what’s next. We’ve built tightly integrated platforms optimized for Dropbox, strengthened our supplier partnerships, and created the flexibility to keep evolving. The next generation is already underway.</p>
+<p style="text-align: left;"><i>Special thanks to Jesse Lee, Refugio Fernandez, Bobby Woolweaver, and Jeff Casazza, who also contributed to this story.</i></p>
+<p style="text-align: center;">~ ~ ~</p>
+<p><i>If building innovative products, experiences, and infrastructure excites you, come build the future with us! Visit </i><a href="https://dropbox.com/jobs" target="_blank"><i><u>dropbox.com/jobs</u></i></a><i> to see our open roles, and follow @LifeInsideDropbox on </i><a href="https://www.instagram.com/lifeinsidedropbox/?hl=en" target="_blank"><i><u>Instagram</u></i></a><i> and </i><a href="https://www.facebook.com/lifeinsidedropbox/" target="_blank"><i><u>Facebook</u></i></a><i> to see what it's like to create a more enlightened way of working. </i></p>
+
+</div>
+<div class="experiencefragment aem-GridColumn aem-GridColumn--default--12">
+
+
+    
+</div>
+
+    
+</div>
+
+        </div>
+        <hr class="dr-typography-t5 dr-margin-top-50 dr-article-content__divider"/>
+        <div class="dr-typography-t5">
+          
+        
+          
+        </div>
+        
+        <div class="dr-typography-t5 dr-margin-top-20">
+            // Tags <br/>
+            <ul class="dr-unstyled-list dr-margin-top-10 dr-typography-t4">
+                <li class="dr-container--infrastructure dr-display-inline-block dr-margin-right-10  dr-margin-bottom-10">
+                    <a class="dr-link dr-pill dr-pill--primary dr-link--no-underline" href="https://dropbox.tech/infrastructure">
+                        Infrastructure
+                    </a>
+                </li>
+                
+                    <li class="dr-display-inline-block dr-margin-right-10"><a class="dr-link dr-pill dr-link--no-underline" href="https://dropbox.tech/tag-results.hardware">Hardware</a></li>
+                
+                    <li class="dr-display-inline-block dr-margin-right-10"><a class="dr-link dr-pill dr-link--no-underline" href="https://dropbox.tech/tag-results.ai">AI</a></li>
+                
+                    <li class="dr-display-inline-block dr-margin-right-10"><a class="dr-link dr-pill dr-link--no-underline" href="https://dropbox.tech/tag-results.dash">Dash</a></li>
+                
+                    
+                
+            </ul>
+        </div>
+        
+        <div class="dr-article-content__knotch">
+            <div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+                <div class="plain-html c17-plain-html aem-GridColumn aem-GridColumn--default--12">
+                  <div class="knotch_placeholder"></div>
+                </div>
+            </div>
+        </div>
+        <div class="dr-typography-t5 dr-margin-top-20 dr-hide-from-md">
+            // Copy link <br/>
+            <div class="dr-article-content__social-links-tooltip dr-display-none">Link copied</div>
+            <button class="dr-button dr-button--link dr-link dr-link--no-underline dr-article-content__copy-link" data-dr-tooltip="Copy link">
+                <img alt="Copy link" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/copy.svg"/>
+            </button>
+        </div>
+        <div class="dr-article-content__social-links">
+            <ul class="dr-article-content__social-links-list dr-unstyled-list">
+                <li class="dr-margin-bottom-20">
+                    <div class="dr-article-content__social-links-tooltip dr-typography-t5 dr-display-none">Link copied</div>
+                    <button class="dr-button dr-display-block dr-link dr-link--no-underline dr-article-content__copy-link dr-button--link" data-dr-tooltip="Copy link" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw">
+                        <img alt="Copy link" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/copy.svg"/>
+                    </button>
+                </li>
+                <li class="dr-margin-bottom-20">
+                    <a class="dr-link dr-display-block dr-link--no-underline dr-article-content__share-link dr-article-content__twitter-link" data-dr-tooltip="Share on Twitter" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw" href="https://twitter.com/intent/tweet/?text=Seventh-generation%20server%20hardware%20at%20Dropbox%3A%20our%20most%20efficient%20and%20capable%20architecture%20yet&amp;url=https://dropbox.tech/infrastructure/seventh-generation-server-hardware" target="_blank">
+                        <img alt="Share on Twitter" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/twitter.svg"/>
+                    </a>
+                </li>
+                <li class="dr-margin-bottom-20">
+                    <a class="dr-link dr-display-block dr-link--no-underline dr-article-content__share-link dr-article-content__facebook-link" data-dr-tooltip="Share on Facebook" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw" href="https://facebook.com/sharer/sharer.php?u=https://dropbox.tech/infrastructure/seventh-generation-server-hardware" target="_blank">
+                        <img alt="Share on Facebook" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/facebook.svg"/>
+                    </a>
+                </li>
+                <li>
+                    <a class="dr-link dr-display-block dr-link--no-underline dr-article-content__share-link dr-article-content__linkedin-link" data-dr-tooltip="Share on Linkedin" data-dr-tooltip-position="cl" data-dr-tooltip-theme="bw" href="https://www.linkedin.com/shareArticle?mini=true&amp;url=https://dropbox.tech/infrastructure/seventh-generation-server-hardware&amp;title=Seventh-generation%20server%20hardware%20at%20Dropbox%3A%20our%20most%20efficient%20and%20capable%20architecture%20yet&amp;source=https://dropbox.tech/infrastructure/seventh-generation-server-hardware" target="_blank">
+                        <img alt="Share on Linkedin" class="dr-display-block dr-invert-on-theme-dark" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content/resources/linkedin.svg"/>
+                    </a>
+                </li>
+            </ul>
+        </div>
+    </div>
+</div>
+</div>
+
+
+
+<div class="aem-Grid aem-Grid--12 aem-Grid--default--12 ">
+    
+    
+    
+</div>
+
+
+        <footer class="dr-footer">
+<div class="dr-container--surface">
+  <section class="dr-container__content dr-footer__container">
+   <!--CMS-9789 Remove Mailchimp email signup from dropbox.tech (commenting out for now)
+     <sly data-sly-resource="newsletterSubscribe" /> 
+     -->
+    <div class="dr-grid dr-grid--md-2">
+      <div>
+        <a href="https://dropbox.com" target="_blank" class="dr-margin-bottom-20 dr-display-block">
+          <img alt="Dropbox" height="40" src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all/resources/logo_dropbox.svg" width="164"/>
+        </a>
+      </div>
+      
+      <ul class="dr-footer-links dr-unstyled-list dr-typography-t10 dr-grid dr-grid--2 dr-grid--column-gap-15">
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/about" target="_self">
+            About us
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://twitter.com/Dropbox" target="_blank">
+            X
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://dash.dropbox.com/" target="_self">
+            Dropbox Dash
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.linkedin.com/company/dropbox" target="_blank">
+            LinkedIn
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/jobs" target="_blank">
+            Jobs
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.instagram.com/dropbox" target="_blank">
+            Instagram
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/terms" target="_blank">
+            Privacy and terms
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://dropbox.tech/feed" target="_blank">
+            RSS feed
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://www.dropbox.com/ai-principles" target="_self">
+            AI principles
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://dropbox.tech/culture/our-updated-engineering-career-framework" target="_blank">
+            Engineering Career Framework
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline evidon-notice-link" href="https://dropbox.tech/#manage-cookies" target="_self">
+            Cookies and CCPA preferences
+          </a>
+        </li>
+      
+        <li>
+          <a class="dr-link dr-link--no-underline " href="https://blog.dropbox.com/" target="_blank">
+            Blog
+          </a>
+        </li>
+      </ul>
+    </div>
+  </section>
+</div>
+</footer>
+        
+
+        
+
+
+
+<!-- /*CMS-2358, include Coveo scripts*/ -->
+<script class="coveo-script" src="https://static.cloud.coveo.com/searchui/v2.10124/2/js/CoveoJsSearch.Lazy.min.js" integrity="sha512-TZ/h9PEDIZgO9TOpoJHlGGlz52ZqBl/B3wLmbpJ+q8Z6fIAUAkAOGPfx6Oy2camtVy6zLdVBA6H/2c8aUT40Qg==" crossorigin="anonymous"></script>
+<script src="https://static.cloud.coveo.com/searchui/v2.10124/2/js/templates/templates.js" integrity="sha512-CR0Yk/LIwgh1MsKqjecDp/r6F9ipKc6gA+4+E1pplT3N3r1pk+la/HaqyDiKtjOFwrwIIbIYBFrUJgPql93QHw==" crossorigin="anonymous"></script>
+
+    <script src="https://static.cloud.coveo.com/searchui/v2.10124/2/js/cultures/en.js" integrity="sha512-WwPseicWtWAxrdno8NVAcKvVezXUCAxIklKyGEptRepHDvt+hZ3UzJeUiUN0C1hc49SiHFoGj18pdyy4pR9NNA==" crossorigin="anonymous"></script>
+
+
+
+    
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-common/clientlib-jquery.618538b4ab9639d444e962729a927f15.js"></script>
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-common/clientlib-cms-common.68a837164e0eb431209ced45efb1615e.js"></script>
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-all.8227f364d7c883652f21f593dbc437a3.js"></script>
+
+
+
+
+
+    
+<script src="/cms/etc.clientlibs/settings/wcm/designs/dropbox-tech-blog/clientlib-article-content.698e752d4084220b3a6facc1645490f8.js"></script>
+
+
+
+
+
+ 
+<script>
+    window.utag_cfg_ovrd = window.utag_cfg_ovrd || {};
+    window.utag_cfg_ovrd.noview = true;
+    window.utag_data = window.utag_data || {};
+    window.utag_data.evidon_enabled = true;
+    if(window.utag_data.consent_categories == undefined){
+        window.utag_data.consent_categories = "";
+    }
+</script>
+<script src="https://www.dropbox.com/pithos/privacy_consent,top_frame_marketing_tracker,ux_analytics" async="true"></script>
+<script src="https://www.dropbox.com/pithos/zoom_chat_client" async=""></script>
+
+
+
+        
+        <script type="application/javascript">document.body.classList.remove('stormcrow-animate');</script>
+        <noscript><style>body.stormcrow-animate{opacity:1;}</style></noscript>
+
+          <!--/* CMS-3302 Automated Schema Markup for Components, Structure data changes-->
+       
+
+                 
+       
+    </body>
+    </html>

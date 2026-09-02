@@ -1,0 +1,377 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d33-harness-apply-gate-10",
+  "preset": "release_readiness_board",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Decide whether a proposed change may be applied to the LIVE harness trees, claim by claim, with a named rollback.",
+    "charter": "Ten seats adjudicate every claim in an apply-plan row independently. No opinion is admitted without an anchor; every seat runs its own probe BEFORE speaking. The gate is two-key: the judge must rule on the adjudicated claim record AND the owner must countersign. Acceptance of a claim is a live test flipping red->green with BOTH states measured, never a participant assertion.",
+    "risk_tier": "critical",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "every claim in the apply-plan row is individually adjudicated ACCEPT or REJECT",
+      "each accepted claim carries a both-states control: the probe fires in the known-broken state and is silent in the fixed state",
+      "a rollback command is named, dry-run, and recorded before any apply",
+      "the owner countersignature is present in the receipt"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.95,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "command_output",
+      "min_independent_sources": 2,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": true,
+      "forbidden_actions": [
+        "write to a live tree before the gate rules",
+        "git push --force",
+        "apply without a dry-run rollback"
+      ],
+      "deadline_minutes": 120
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact", "adversarial"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 10 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 5, "max_share_per_vendor": 0.7 },
+    "roster": [
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["evidence admission", "anchor validation"],
+        "role": "custom:evidence_clerk",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false, "may_call_experiment": true },
+        "source_access": ["repo", "transcripts"],
+        "effort": "high",
+        "context": { "briefing": "Admit or return every contribution. A returned contribution names the MISSING anchor, never a vague 'needs more evidence'." }
+      },
+      {
+        "participant_id": "implementer",
+        "display_name": "Change author (recused from the vote)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["the change under review"],
+        "role": "custom:implementer",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "source_access": ["repo"],
+        "effort": "high",
+        "conflicts": [
+          { "kind": "authored_artifact", "detail": "authored the change being gated", "recused": true }
+        ]
+      },
+      {
+        "participant_id": "sre",
+        "display_name": "Reliability / blast-radius seat",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["deploy transport", "rollback", "blast radius"],
+        "role": "custom:sre",
+        "authority": "voter",
+        "effort": "high",
+        "context": { "briefing": "Own the rollback. If you cannot name the exact command that undoes this, the gate cannot pass." }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security reviewer (key holder)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["secret exposure", "supply chain", "hook execution surface"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "effort": "xhigh"
+      },
+      {
+        "participant_id": "methodologist",
+        "display_name": "Methodologist (detector control)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["detector validation", "both-states testing", "mutation testing"],
+        "role": "custom:methodologist",
+        "authority": "voter",
+        "effort": "xhigh",
+        "context": { "briefing": "For every accepted claim, prove the detector FIRES on the known-broken state. A probe silent in both states measures nothing." }
+      },
+      {
+        "participant_id": "red-1",
+        "display_name": "Red team A",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["failure injection"],
+        "role": "red_team",
+        "authority": "voter",
+        "effort": "high",
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      },
+      {
+        "participant_id": "red-2",
+        "display_name": "Red team B",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": ["failure injection", "adversarial review"],
+        "role": "red_team",
+        "authority": "voter",
+        "effort": "high",
+        "independence": { "fresh_context": true, "sees_peers_before_first_position": false }
+      },
+      {
+        "participant_id": "judge",
+        "display_name": "Judge (first key)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["adjudication"],
+        "role": "judge",
+        "authority": "judge",
+        "effort": "max",
+        "context": { "briefing": "Rule ONLY on the admitted record. You may not re-find facts the clerk never admitted." }
+      },
+      {
+        "participant_id": "dissent-guardian",
+        "display_name": "Dissent guardian",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["minority report", "suppression detection"],
+        "role": "custom:dissent_guardian",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "effort": "high"
+      },
+      {
+        "participant_id": "owner-rep",
+        "display_name": "Owner (second key)",
+        "kind": "human",
+        "vendor": "human",
+        "expertise": ["estate ownership"],
+        "role": "custom:owner_rep",
+        "authority": "owner",
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true }
+      }
+    ],
+    "role_templates": ["custom:evidence_clerk", "security_reviewer", "red_team", "judge", "custom:dissent_guardian"],
+    "replacement": {
+      "enabled": true,
+      "triggers": ["inactivity", "role_collapse", "conflict_of_interest", "prompt_injection_detected"],
+      "preserve_prior_positions": true
+    },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "recuse_from_vote" }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "prep_time_minutes": 20,
+    "required_artifacts": ["evidence_pack", "risk_list"]
+  },
+  "topology": { "kind": "proposer_critic_judge" },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "probe-first",
+        "rounds": 1,
+        "independent": true,
+        "exit_when": { "metric": "all_participants_spoke", "op": "==", "value": true, "note": "No seat may skip its own probe; a silent seat blocks the stage." }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "claim-by-claim",
+        "custom_name": "P15 claim-by-claim adjudication: admit claim -> run both-states control -> rule ACCEPT/REJECT",
+        "rounds": 2,
+        "quotas": { "objections_per_participant": 1 }
+      },
+      { "kind": "cross_examination", "stage_id": "grill-the-receipt", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "authorize-or-refuse" }
+    ],
+    "speaking_order": "lowest_confidence_first",
+    "rounds": { "min": 3, "max": 3, "divergence_before_convergence": true },
+    "obligations": {
+      "must_respond_to_prior": true,
+      "must_cite_evidence": true,
+      "cross_examination": true,
+      "forced_dissent": true,
+      "declare_confidence": true,
+      "declare_conflicts": true
+    },
+    "critique_intensity": "maximally_adversarial",
+    "experiments": { "allowed": true, "required_before_decision": true, "max_experiments": 24, "runner": "sandbox" }
+  },
+  "budgets": {
+    "effort": "max",
+    "time_minutes": 120,
+    "turns": 40,
+    "experiments": 24,
+    "min_engagement_turns": 1,
+    "max_inactivity_rounds": 1
+  },
+  "targets": { "evidence_items": 10, "objections": 5 },
+  "voting": {
+    "method": "judge",
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "veto": {
+      "holders": ["security", "owner-rep"],
+      "scope": "safety_only",
+      "must_justify": true,
+      "overridable_by_owner": true
+    },
+    "abstention": { "allowed": true, "counts_toward_quorum": false, "must_justify": true, "strategic_abstention_check": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "threshold": 0.9,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 1 of 4 - 'every claim adjudicated'. Each admitted claim carries an explicit ACCEPT/REJECT ruling."
+        },
+        {
+          "metric": "executable_test_settled",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 2 of 4 - the both-states control. A red->green flip measured in BOTH states, not a self-report."
+        },
+        {
+          "metric": "owner_approved",
+          "op": "==",
+          "value": true,
+          "note": "DIAL 3 of 4 - the second key (P18 two-key dual control). Set false to run this council advisory-only."
+        },
+        {
+          "metric": "custom:rollback_plan_recorded",
+          "op": "==",
+          "value": true,
+          "value_type": "boolean",
+          "producer": "apply-plan preflight: records the exact undo command and its dry-run exit code",
+          "note": "DIAL 4 of 4 - 'rollback named'. Custom because the metric registry has no rollback metric."
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 10,
+      "min_minutes": 20,
+      "every_participant_spoke": true,
+      "min_evidence_items": 10,
+      "min_objections_addressed": 1
+    },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 120, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "irreducible_disagreement",
+      "proof_of_impossibility",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "the named rollback command has been dry-run and its exit code recorded",
+      "owner countersignature present in the receipt",
+      "the both-states control is re-run against the LIVE tree after apply, not only the staging copy"
+    ]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "repetition_similarity": 0.9, "circular_citation_check": true },
+    "resolution": ["run_experiment", "strongest_counterexample", "blind_re_evaluation", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": [
+      "instant_unanimity",
+      "sycophancy",
+      "evidence_free_majority",
+      "consensus_failing_executable_tests",
+      "circular_citation",
+      "hidden_conflict_of_interest",
+      "prompt_injection",
+      "lost_dissent",
+      "minority_suppression",
+      "strategic_abstention"
+    ],
+    "fast_unanimity_response": ["blind_re_evaluation"],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "transcript",
+      "claim_evidence_contradiction_graph",
+      "evidence_map",
+      "experiments",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage",
+      "action_plan",
+      "resumable_state"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "pii_policy": "forbid" },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "applying the change to a live harness tree",
+        "any write outside the staging copy",
+        "any git operation on a shared branch"
+      ]
+    },
+    "persistence": { "store": "both", "path": "platform/council/runs/c-d33/", "checkpoint_every_round": true },
+    "calibration": { "post_run": true, "score": "brier" }
+  },
+  "metadata": {
+    "title": "Harness apply gate (10 seats, two-key, binding)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: any change that will be written into a LIVE harness tree (~/.claude, ~/.agents, hooks, rules, MCP config). WHEN NOT TO USE: a repo-only PR that nothing deploys from - use C-D34 instead. EDITABLE DIALS (first ones an owner should touch): /stopping/expression/all_of/2/value (owner_approved - set the leaf's value to false to run advisory-only), /stopping/expression/all_of/3 (the rollback metric and its producer), /participants/roster (the 10 seats; the design's dials are claim_extractor and rollback_policy), /voting/veto/holders, /budgets/time_minutes, /stopping/hard_caps. STOPPING (human form): every_objection_addressed == true AND executable_test_settled == true AND owner_approved == true AND custom:rollback_plan_recorded == true. stopping.source_expression is deliberately ABSENT here: the reference parser cannot emit a `producer` key, so SEM-001 (source must parse to the identical tree) and SEM-012 (a custom metric should name its producer) cannot both be satisfied on one spec. Keeping `producer` was judged more valuable than keeping the prose duplicate. OUTCOME MAPPING LOSS: the design card allows DEFER and INSUFFICIENT_EVIDENCE as distinct outcomes; the CouncilSpec vocabulary collapses both onto `no_decision`, so the distinction must be carried in the receipt, not the outcome enum.",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1619",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:340",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:388",
+      "_USER-PROMPTS.md:11198",
+      "_USER-PROMPTS.md:11208"
+    ],
+    "lineage": [
+      "C-D33 deep-harness-apply-gate-10",
+      "P15 claim-by-claim-adjudication",
+      "P51 timeboxed-spike-council",
+      "P18 two-key-dual-control"
+    ]
+  }
+}

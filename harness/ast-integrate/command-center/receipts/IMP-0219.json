@@ -1,0 +1,158 @@
+{
+  "artifacts": [
+    {
+      "bytes": 3890,
+      "exists": true,
+      "path": "tools/agentspec/agentspec/fanout.py",
+      "role": "primary-implementation",
+      "sha256": "8e11f5104775f63cc0340043bd0198bddcf0ed91ac662edadda153984a00935b"
+    },
+    {
+      "bytes": 13977,
+      "exists": true,
+      "path": "tools/agentspec/agentspec/oracle.py",
+      "role": "primary-implementation",
+      "sha256": "da2c0cc9bc0b1393b2e2f8feda42ae6c875faafe5b8cd4089bad2cbfa08b9816"
+    },
+    {
+      "bytes": 4523,
+      "exists": true,
+      "path": "tools/agentspec/agentspec/progress.py",
+      "role": "primary-implementation",
+      "sha256": "2fc566e0a8039a44ac3c3ab18578d79f03f4c34a2d0231f07dbd31b552a57804"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0219",
+  "evidence": [
+    {
+      "anchor": "tools/agentspec/agentspec/fanout.py:expand_dynamic_fanout",
+      "claim": "exit-0 with a missing producer receipt expands to zero units and reports severed-stream; the healthy twin expands to 7 (both-states).",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0219/probe1_exit0_missing_receipt.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"bad\": {\n    \"cardinality\": 0,\n    \"expanded_ids\": [],\n    \"family\": \"severed-stream\",\n    \"ok\": false,\n    \"oracle\": {\n      \"detail\": \"producer receipt missing: /no/such/producer/receipt.json\",\n      \"exit_code\": 0,\n      \"family\": \"severed-stream\",\n      \"ok\": false,\n      \"parsed\": false,\n      \"progress_stream\": false,\n      \"reason\": \"severed-stream\",\n      \"receipt_present\": false\n    },\n    \"reason\": \"severed-stream\",\n    \"verdict\": \"severed-stream\"\n  },\n  \"expand_calls_oracle\": true,\n  \"expected_healthy_n\": 7,\n  \"good_cardinality\": 7,\n  \"good_items\": [\n    \"alpha\",\n    \"bravo\",\n    \"charlie\",\n    \"delta\",\n    \"echo\",\n    \"foxtrot\",\n    \"golf\"\n  ],\n  \"id\": \"exit0-missing-receipt-both-states\",\n  \"mutant_trust_exit_code_cardinality\": 1,\n  \"oracle_missing\": {\n    \"detail\": \"producer receipt missing: /no/such/producer/receipt.json\",\n    \"exit_code\": 0,\n    \"family\": \"severed-stream\",\n    \"ok\": false,\n    \"parsed\": false,\n    \"progress_stream\": false,\n    \"reason\": \"severed-stream\",\n    \"receipt_present\": false\n  },\n  \"pass\": true\n}\n{\n  \"both_states\": {\n    \"bad_zero_and_severed\": true,\n    \"expand_calls_oracle\": true,\n    \"good_expands_to_7\": true,\n    \"mutant_trusts_exit_0\": true\n  }\n}\nSUCCESS:IMP-0219-probe1 exit-0 missing receipt expands to zero + severed-stream",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/agentspec/agentspec/progress.py:is_progress_stream",
+      "claim": "A progress-stream body is never parsed as a result; the taxonomy reason string is severed-stream. A mutant that JSON-loads the progress body would expand to 5.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0219/probe2_progress_stream.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"classified_as_progress\": true,\n  \"expand_calls_oracle\": true,\n  \"expand_json_loads\": false,\n  \"id\": \"progress-stream-never-parsed-as-result\",\n  \"json_progress\": {\n    \"cardinality\": 0,\n    \"expanded_ids\": [],\n    \"family\": \"severed-stream\",\n    \"ok\": false,\n    \"oracle\": {\n      \"detail\": \"producer emitted a progress stream; not a receipt\",\n      \"exit_code\": 0,\n      \"family\": \"severed-stream\",\n      \"ok\": false,\n      \"parsed\": false,\n      \"progress_stream\": true,\n      \"reason\": \"severed-stream\",\n      \"receipt_present\": true\n    },\n    \"reason\": \"severed-stream\",\n    \"verdict\": \"severed-stream\"\n  },\n  \"line_progress\": {\n    \"cardinality\": 0,\n    \"expanded_ids\": [],\n    \"family\": \"severed-stream\",\n    \"ok\": false,\n    \"oracle\": {\n      \"detail\": \"producer emitted a progress stream; not a receipt\",\n      \"exit_code\": 0,\n      \"family\": \"severed-stream\",\n      \"ok\": false,\n      \"parsed\": false,\n      \"progress_stream\": true,\n      \"reason\": \"severed-stream\",\n      \"receipt_present\": true\n    },\n    \"reason\": \"severed-stream\",\n    \"verdict\": \"severed-stream\"\n  },\n  \"mutant_parse_progress_cardinality\": 5,\n  \"notes_mention_progress_not_stream\": true,\n  \"parsed_receipt_is_none\": true,\n  \"pass\": true,\n  \"taxonomy_reason\": \"severed-stream\"\n}\nSUCCESS:IMP-0219-probe2 progress-stream never parsed as result",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "IMP-0219",
+  "implementation": {
+    "executor": "tools/agentspec/agentspec/fanout.py:expand_dynamic_fanout",
+    "fanout_bytes": 3890,
+    "fanout_sha256": "8e11f5104775f63cc0340043bd0198bddcf0ed91ac662edadda153984a00935b",
+    "gate": "cardinality is read only from oracle.parsed_receipt after ok; exit_code==0 is never sufficient",
+    "healthy_cardinality": 7,
+    "healthy_expected": 7,
+    "missing_exit0": {
+      "cardinality": 0,
+      "family": "severed-stream",
+      "ok": false,
+      "reason": "severed-stream"
+    },
+    "node_type": "DynamicFanOut",
+    "oracle": "tools/agentspec/agentspec/oracle.py:evaluate_producer",
+    "oracle_bytes": 13977,
+    "oracle_sha256": "da2c0cc9bc0b1393b2e2f8feda42ae6c875faafe5b8cd4089bad2cbfa08b9816",
+    "progress": "tools/agentspec/agentspec/progress.py:is_progress_stream",
+    "progress_bytes": 4523,
+    "progress_sha256": "2fc566e0a8039a44ac3c3ab18578d79f03f4c34a2d0231f07dbd31b552a57804",
+    "progress_stream": {
+      "classified": true,
+      "ok": false,
+      "parsed": false,
+      "reason": "severed-stream"
+    },
+    "spec_bytes": 10806,
+    "spec_sha256": "341cbea0bf8dfb4fe0802f21ebd1aa9fcb8cd4d08e56b38d52f8e1e49344cfe0"
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0219/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "Missing receipt at exit 0 must report severed-stream with cardinality 0; a schema-valid 7-item twin must expand to 7. A mutant that trusts exit_code==0 expands to 1.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0219-C1-exit0-missing-both-states",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "A progress JSON object that carries an items list of 5 must not expand. Production reports severed-stream with parsed receipt None; the JSON-load mutant expands to 5.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0219-C2-progress-stream-not-a-result",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 IMP-0219: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0219",
+  "output_path": "command-center/receipts/IMP-0219.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "premise": {
+    "action": "Created the DynamicFanOut executor, shared completion oracle, and progress-stream detector on this sparse worktree. Did not exit on predicate:absent.",
+    "catalog_inputs": [
+      "IMP-0132 type",
+      "tools/agentspec/agentspec/oracle.py",
+      "tools/agentspec/agentspec/progress.py"
+    ],
+    "inputs_were_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is the progress-parse mutant plus AST scan that expand_dynamic_fanout calls evaluate_producer and does not json.loads the producer body; not a self-attested prose review.",
+    "reviewer_id": "IMP-0219-probe2-progress-stream-and-parse-mutant",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0219",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0219: expand a dynamic fan-out only after the producer receipt passes the shared completion oracle; exit-0 with missing or progress-stream receipt expands to ZERO units and reports severed-stream (:10646)",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0219/probe1_exit0_missing_receipt.py",
+      "exit_code": 0,
+      "id": "exit-0-missing-receipt-zero-expansion-severed-stream",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0219/probe2_progress_stream.py",
+      "exit_code": 0,
+      "id": "progress-stream-body-never-parsed-as-result",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:08:26Z",
+    "started_at": "2026-08-25T01:08:26Z"
+  },
+  "title": "Implement the DynamicFanOut executor with an oracle-gated producer receipt",
+  "unit_id": "IMP-0219"
+}

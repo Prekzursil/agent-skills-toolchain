@@ -1,0 +1,978 @@
+
+
+<!DOCTYPE html>
+
+<html lang="en-US">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=Edge">
+
+  <link rel="stylesheet" href="/assets/css/just-the-docs-default.css">
+
+  <link rel="stylesheet" href="/assets/css/just-the-docs-head-nav.css" id="jtd-head-nav-stylesheet">
+
+  <style id="jtd-nav-activation">
+  
+.site-nav ul li a {
+  background-image: none;
+}
+
+  </style>
+
+  
+
+  
+    <script src="/assets/js/vendor/lunr.min.js"></script>
+  
+
+  <script src="/assets/js/just-the-docs.js"></script>
+
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  
+
+
+
+  <!-- Begin Jekyll SEO tag v2.8.0 -->
+<title>How aider scored SOTA 26.3% on SWE Bench Lite | aider</title>
+<meta name="generator" content="Jekyll v3.10.0" />
+<meta property="og:title" content="How aider scored SOTA 26.3% on SWE Bench Lite" />
+<meta property="og:locale" content="en_US" />
+<meta name="description" content="Aider achieved this result mainly through its existing features that focus on static code analysis, reliable LLM code editing, and pragmatic UX for AI pair programming." />
+<meta property="og:description" content="Aider achieved this result mainly through its existing features that focus on static code analysis, reliable LLM code editing, and pragmatic UX for AI pair programming." />
+<link rel="canonical" href="https://aider.chat/2024/05/22/swe-bench-lite.html" />
+<meta property="og:url" content="https://aider.chat/2024/05/22/swe-bench-lite.html" />
+<meta property="og:site_name" content="aider" />
+<meta property="og:type" content="article" />
+<meta property="article:published_time" content="2024-05-22T00:00:00+00:00" />
+<meta name="twitter:card" content="summary" />
+<meta property="twitter:title" content="How aider scored SOTA 26.3% on SWE Bench Lite" />
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"BlogPosting","dateModified":"2024-05-22T00:00:00+00:00","datePublished":"2024-05-22T00:00:00+00:00","description":"Aider achieved this result mainly through its existing features that focus on static code analysis, reliable LLM code editing, and pragmatic UX for AI pair programming.","headline":"How aider scored SOTA 26.3% on SWE Bench Lite","mainEntityOfPage":{"@type":"WebPage","@id":"https://aider.chat/2024/05/22/swe-bench-lite.html"},"url":"https://aider.chat/2024/05/22/swe-bench-lite.html"}</script>
+<!-- End Jekyll SEO tag -->
+
+
+  
+<meta property="og:image" content="https://aider.chat/assets/swe_bench_lite.jpg">
+<meta property="twitter:image" content="https://aider.chat/assets/swe_bench_lite.jpg">
+
+
+<!-- Custom site title styling -->
+<style>
+  @font-face {
+    font-family: GlassTTYVT220;
+    src: local("Glass TTY VT220"), local("Glass TTY VT220 Medium"), url(/assets/Glass_TTY_VT220.ttf) format("truetype");
+  }
+  
+  .site-title {
+    font-size: 1.8rem;
+    font-weight: 700;
+    font-family: 'GlassTTYVT220', monospace;
+    color: #14b014; /* terminal green color */
+    text-decoration: none;
+    letter-spacing: 0.5px;
+  }
+  
+  /* For SVG logo inside site-title */
+  .site-title img {
+    height: 1.8rem;
+    vertical-align: middle;
+  }
+ 
+  /* Sidebar gradient styling to match hero section */
+  .side-bar { 
+    background: linear-gradient(135deg, #ffffff 0%, rgba(20, 176, 20, 0.01) 25%, rgba(20, 176, 20, 0.04) 40%, rgba(220, 230, 255, 0.4) 60%, rgba(205, 218, 255, 0.4) 80%, #F5F6FA 100%);
+  }
+
+  @media (max-width: 50em) {
+    .ea-ad--sidebar { display: none; }
+    .ea-ad--mobile { display: block; }
+  }
+</style>
+<link rel="alternate" type="application/rss+xml" title="RSS Feed" href="https://aider.chat/feed.xml">
+<link rel="preconnect" href="https://fonts.gstatic.com">
+<link rel="preload" href="https://fonts.googleapis.com/css?family=Open+Sans:400,700&display=swap" as="style" type="text/css" crossorigin>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+
+<!-- Logo Progressive Enhancement for Jekyll pages -->
+<script>
+  document.addEventListener('DOMContentLoaded', function() {
+    const siteTitle = document.querySelector('.site-title');
+    if (siteTitle) {
+      const textContent = siteTitle.textContent; // Save the text for fallback
+      
+      // Create new image element
+      const logoImg = new Image();
+      logoImg.src = '/assets/logo.svg';
+      logoImg.alt = 'Aider Logo';
+      logoImg.style.height = '1.8rem';
+      logoImg.style.verticalAlign = 'middle';
+      
+      // Only replace if image loads successfully
+      logoImg.onload = function() {
+        siteTitle.textContent = ''; // Clear text
+        siteTitle.appendChild(logoImg);
+      };
+      
+      // If image fails to load, do nothing (keep the text)
+      logoImg.onerror = function() {
+        console.log('SVG logo failed to load, keeping text fallback');
+      };
+    }
+  });
+</script>
+<meta name="theme-color" content="#157878">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="icon" type="image/png" sizes="32x32" href="/assets/icons/favicon-32x32.png">
+<link rel="icon" type="image/png" sizes="16x16" href="/assets/icons/favicon-16x16.png">
+<link rel="apple-touch-icon" sizes="180x180" href="/assets/icons/apple-touch-icon.png">
+<link rel="manifest" href="/assets/icons/site.webmanifest">
+<link rel="mask-icon" href="/assets/icons/safari-pinned-tab.svg" color="#5bbad5">
+<meta name="msapplication-TileColor" content="#da532c">
+<meta name="theme-color" content="#ffffff">
+
+
+
+
+</head>
+
+<body>
+  <a class="skip-to-main" href="#main-content">Skip to main content</a>
+  <svg xmlns="http://www.w3.org/2000/svg" class="d-none">
+  <symbol id="svg-link" viewBox="0 0 24 24">
+  <title>Link</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-link">
+    <path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"></path><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"></path>
+  </svg>
+</symbol>
+
+  <symbol id="svg-menu" viewBox="0 0 24 24">
+  <title>Menu</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-menu">
+    <line x1="3" y1="12" x2="21" y2="12"></line><line x1="3" y1="6" x2="21" y2="6"></line><line x1="3" y1="18" x2="21" y2="18"></line>
+  </svg>
+</symbol>
+
+  <symbol id="svg-arrow-right" viewBox="0 0 24 24">
+  <title>Expand</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-chevron-right">
+    <polyline points="9 18 15 12 9 6"></polyline>
+  </svg>
+</symbol>
+
+  <!-- Feather. MIT License: https://github.com/feathericons/feather/blob/master/LICENSE -->
+<symbol id="svg-external-link" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-external-link">
+  <title id="svg-external-link-title">(external link)</title>
+  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"></path><polyline points="15 3 21 3 21 9"></polyline><line x1="10" y1="14" x2="21" y2="3"></line>
+</symbol>
+
+  
+    <symbol id="svg-doc" viewBox="0 0 24 24">
+  <title>Document</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-file">
+    <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path><polyline points="13 2 13 9 20 9"></polyline>
+  </svg>
+</symbol>
+
+    <symbol id="svg-search" viewBox="0 0 24 24">
+  <title>Search</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-search">
+    <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+  </svg>
+</symbol>
+
+  
+  
+    <!-- Bootstrap Icons. MIT License: https://github.com/twbs/icons/blob/main/LICENSE.md -->
+<symbol id="svg-copy" viewBox="0 0 16 16">
+  <title>Copy</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard" viewBox="0 0 16 16">
+    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1h1a1 1 0 0 1 1 1V14a1 1 0 0 1-1 1H3a1 1 0 0 1-1-1V3.5a1 1 0 0 1 1-1h1v-1z"/>
+    <path d="M9.5 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3zm-3-1A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3z"/>
+  </svg>
+</symbol>
+<symbol id="svg-copied" viewBox="0 0 16 16">
+  <title>Copied</title>
+  <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-clipboard-check-fill" viewBox="0 0 16 16">
+    <path d="M6.5 0A1.5 1.5 0 0 0 5 1.5v1A1.5 1.5 0 0 0 6.5 4h3A1.5 1.5 0 0 0 11 2.5v-1A1.5 1.5 0 0 0 9.5 0h-3Zm3 1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-3a.5.5 0 0 1-.5-.5v-1a.5.5 0 0 1 .5-.5h3Z"/>
+    <path d="M4 1.5H3a2 2 0 0 0-2 2V14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V3.5a2 2 0 0 0-2-2h-1v1A2.5 2.5 0 0 1 9.5 5h-3A2.5 2.5 0 0 1 4 2.5v-1Zm6.854 7.354-3 3a.5.5 0 0 1-.708 0l-1.5-1.5a.5.5 0 0 1 .708-.708L7.5 10.793l2.646-2.647a.5.5 0 0 1 .708.708Z"/>
+  </svg>
+</symbol>
+
+  
+</svg>
+
+  <div class="side-bar">
+  <div class="site-header" role="banner">
+    <a href="/" class="site-title lh-tight">
+  aider
+
+</a>
+    <button id="menu-button" class="site-button btn-reset" aria-label="Toggle menu" aria-pressed="false">
+      <svg viewBox="0 0 24 24" class="icon" aria-hidden="true"><use xlink:href="#svg-menu"></use></svg>
+    </button>
+  </div>
+
+  <nav aria-label="Main" id="site-nav" class="site-nav">
+  
+  
+    <ul class="nav-list"><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Installation category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/install.html" class="nav-list-link">Installation</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/install/optional.html" class="nav-list-link">Optional steps</a></li><li class="nav-list-item"><a href="/docs/install/docker.html" class="nav-list-link">Aider with docker</a></li><li class="nav-list-item"><a href="/docs/install/codespaces.html" class="nav-list-link">GitHub Codespaces</a></li><li class="nav-list-item"><a href="/docs/install/replit.html" class="nav-list-link">Replit</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Usage category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/usage.html" class="nav-list-link">Usage</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/usage/tips.html" class="nav-list-link">Tips</a></li><li class="nav-list-item"><a href="/docs/usage/commands.html" class="nav-list-link">In-chat commands</a></li><li class="nav-list-item"><a href="/docs/usage/modes.html" class="nav-list-link">Chat modes</a></li><li class="nav-list-item"><a href="/docs/usage/tutorials.html" class="nav-list-link">Tutorial videos</a></li><li class="nav-list-item"><a href="/docs/usage/voice.html" class="nav-list-link">Voice-to-code with aider</a></li><li class="nav-list-item"><a href="/docs/usage/images-urls.html" class="nav-list-link">Images &amp; web pages</a></li><li class="nav-list-item"><a href="/docs/usage/caching.html" class="nav-list-link">Prompt caching</a></li><li class="nav-list-item"><a href="/docs/usage/watch.html" class="nav-list-link">Aider in your IDE</a></li><li class="nav-list-item"><a href="/docs/usage/notifications.html" class="nav-list-link">Notifications</a></li><li class="nav-list-item"><a href="/docs/usage/browser.html" class="nav-list-link">Aider in your browser</a></li><li class="nav-list-item"><a href="/docs/usage/conventions.html" class="nav-list-link">Specifying coding conventions</a></li><li class="nav-list-item"><a href="/docs/usage/copypaste.html" class="nav-list-link">Copy/paste with web chat</a></li><li class="nav-list-item"><a href="/docs/usage/lint-test.html" class="nav-list-link">Linting and testing</a></li><li class="nav-list-item"><a href="/docs/usage/not-code.html" class="nav-list-link">Editing config &amp; text files</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Connecting to LLMs category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/llms.html" class="nav-list-link">Connecting to LLMs</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/llms/openai.html" class="nav-list-link">OpenAI</a></li><li class="nav-list-item"><a href="/docs/llms/anthropic.html" class="nav-list-link">Anthropic</a></li><li class="nav-list-item"><a href="/docs/llms/gemini.html" class="nav-list-link">Gemini</a></li><li class="nav-list-item"><a href="/docs/llms/groq.html" class="nav-list-link">GROQ</a></li><li class="nav-list-item"><a href="/docs/llms/lm-studio.html" class="nav-list-link">LM Studio</a></li><li class="nav-list-item"><a href="/docs/llms/xai.html" class="nav-list-link">xAI</a></li><li class="nav-list-item"><a href="/docs/llms/azure.html" class="nav-list-link">Azure</a></li><li class="nav-list-item"><a href="/docs/llms/cohere.html" class="nav-list-link">Cohere</a></li><li class="nav-list-item"><a href="/docs/llms/deepseek.html" class="nav-list-link">DeepSeek</a></li><li class="nav-list-item"><a href="/docs/llms/ollama.html" class="nav-list-link">Ollama</a></li><li class="nav-list-item"><a href="/docs/llms/openai-compat.html" class="nav-list-link">OpenAI compatible APIs</a></li><li class="nav-list-item"><a href="/docs/llms/openrouter.html" class="nav-list-link">OpenRouter</a></li><li class="nav-list-item"><a href="/docs/llms/github.html" class="nav-list-link">GitHub Copilot</a></li><li class="nav-list-item"><a href="/docs/llms/vertex.html" class="nav-list-link">Vertex AI</a></li><li class="nav-list-item"><a href="/docs/llms/bedrock.html" class="nav-list-link">Amazon Bedrock</a></li><li class="nav-list-item"><a href="/docs/llms/other.html" class="nav-list-link">Other LLMs</a></li><li class="nav-list-item"><a href="/docs/llms/warnings.html" class="nav-list-link">Model warnings</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Configuration category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/config.html" class="nav-list-link">Configuration</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/config/api-keys.html" class="nav-list-link">API Keys</a></li><li class="nav-list-item"><a href="/docs/config/options.html" class="nav-list-link">Options reference</a></li><li class="nav-list-item"><a href="/docs/config/aider_conf.html" class="nav-list-link">YAML config file</a></li><li class="nav-list-item"><a href="/docs/config/dotenv.html" class="nav-list-link">Config with .env</a></li><li class="nav-list-item"><a href="/docs/config/editor.html" class="nav-list-link">Editor configuration</a></li><li class="nav-list-item"><a href="/docs/config/reasoning.html" class="nav-list-link">Reasoning models</a></li><li class="nav-list-item"><a href="/docs/config/adv-model-settings.html" class="nav-list-link">Advanced model settings</a></li><li class="nav-list-item"><a href="/docs/config/model-aliases.html" class="nav-list-link">Model Aliases</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Troubleshooting category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/troubleshooting.html" class="nav-list-link">Troubleshooting</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/troubleshooting/edit-errors.html" class="nav-list-link">File editing problems</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/warnings.html" class="nav-list-link">Model warnings</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/token-limits.html" class="nav-list-link">Token limits</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/aider-not-found.html" class="nav-list-link">Aider not found</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/imports.html" class="nav-list-link">Dependency versions</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/models-and-keys.html" class="nav-list-link">Models and API keys</a></li><li class="nav-list-item"><a href="/docs/troubleshooting/support.html" class="nav-list-link">Using /help</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Screen recordings category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/recordings/" class="nav-list-link">Screen recordings</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/recordings/tree-sitter-language-pack.html" class="nav-list-link">Add language support via tree-sitter-language-pack</a></li><li class="nav-list-item"><a href="/docs/recordings/auto-accept-architect.html" class="nav-list-link">Add –auto-accept-architect feature</a></li><li class="nav-list-item"><a href="/docs/recordings/dont-drop-original-read-files.html" class="nav-list-link">Don’t /drop read-only files added at launch</a></li><li class="nav-list-item"><a href="/docs/recordings/model-accepts-settings.html" class="nav-list-link">Warn when users apply unsupported reasoning settings</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Example chat transcripts category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/examples/README.html" class="nav-list-link">Example chat transcripts</a><ul class="nav-list"><li class="nav-list-item"><a href="/examples/hello-world-flask.html" class="nav-list-link">Create a simple flask app with aider</a></li><li class="nav-list-item"><a href="/examples/2048-game.html" class="nav-list-link">Modify an open source 2048 game with aider</a></li><li class="nav-list-item"><a href="/examples/complex-change.html" class="nav-list-link">A complex multi-file change, with debugging</a></li><li class="nav-list-item"><a href="/examples/add-test.html" class="nav-list-link">Create a “black box” test case</a></li><li class="nav-list-item"><a href="/examples/update-docs.html" class="nav-list-link">Automatically update docs with aider</a></li><li class="nav-list-item"><a href="/examples/pong.html" class="nav-list-link">Build pong with aider and pygame.</a></li><li class="nav-list-item"><a href="/examples/css-exercises.html" class="nav-list-link">Complete a css exercise with aider</a></li><li class="nav-list-item"><a href="/examples/census.html" class="nav-list-link">Download, analyze and plot US Census data</a></li><li class="nav-list-item"><a href="/examples/asciinema.html" class="nav-list-link">Editing an asciinema cast file with aider</a></li><li class="nav-list-item"><a href="/examples/hello.html" class="nav-list-link">Hello aider!</a></li><li class="nav-list-item"><a href="/examples/no-color.html" class="nav-list-link">Honor the NO_COLOR environment variable</a></li><li class="nav-list-item"><a href="/examples/chat-transcript-css.html" class="nav-list-link">Improve css styling of chat transcripts</a></li><li class="nav-list-item"><a href="/examples/semantic-search-replace.html" class="nav-list-link">Semantic search &amp; replace code with aider</a></li></ul></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in More info category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/more-info.html" class="nav-list-link">More info</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/git.html" class="nav-list-link">Git integration</a></li><li class="nav-list-item"><a href="/docs/languages.html" class="nav-list-link">Supported languages</a></li><li class="nav-list-item"><a href="/docs/repomap.html" class="nav-list-link">Repository map</a></li><li class="nav-list-item"><a href="/docs/scripting.html" class="nav-list-link">Scripting aider</a></li><li class="nav-list-item"><a href="/docs/more/infinite-output.html" class="nav-list-link">Infinite output</a></li><li class="nav-list-item"><a href="/docs/more/edit-formats.html" class="nav-list-link">Edit formats</a></li><li class="nav-list-item"><a href="/docs/more/analytics.html" class="nav-list-link">Analytics</a></li><li class="nav-list-item"><a href="/docs/legal/privacy.html" class="nav-list-link">Privacy policy</a></li></ul></li><li class="nav-list-item"><a href="/docs/faq.html" class="nav-list-link">FAQ</a></li><li class="nav-list-item"><a href="/HISTORY.html" class="nav-list-link">Release history</a></li><li class="nav-list-item"><button class="nav-list-expander btn-reset" aria-label="toggle items in Aider LLM Leaderboards category" aria-pressed="false">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><use xlink:href="#svg-arrow-right"></use></svg>
+    </button><a href="/docs/leaderboards/" class="nav-list-link">Aider LLM Leaderboards</a><ul class="nav-list"><li class="nav-list-item"><a href="/docs/leaderboards/edit.html" class="nav-list-link">Code editing leaderboard</a></li><li class="nav-list-item"><a href="/docs/leaderboards/refactor.html" class="nav-list-link">Refactoring leaderboard</a></li><li class="nav-list-item"><a href="/docs/leaderboards/by-release-date.html" class="nav-list-link">Scores by release date</a></li><li class="nav-list-item"><a href="/docs/leaderboards/notes.html" class="nav-list-link">Benchmark notes</a></li><li class="nav-list-item"><a href="/docs/leaderboards/contrib.html" class="nav-list-link">Contributing results</a></li></ul></li><li class="nav-list-item"><a href="/blog/" class="nav-list-link">Aider blog</a></li></ul>
+
+  <ul class="nav-list"><li class="nav-list-item external">
+          <a href="https://github.com/Aider-AI/aider" class="nav-list-link external"
+            
+          >
+            GitHub
+            <svg viewBox="0 0 24 24" aria-labelledby="svg-external-link-title"><use xlink:href="#svg-external-link"></use></svg>
+          </a>
+        </li><li class="nav-list-item external">
+          <a href="https://discord.gg/Y7X7bhMQFV" class="nav-list-link external"
+            
+          >
+            Discord
+            <svg viewBox="0 0 24 24" aria-labelledby="svg-external-link-title"><use xlink:href="#svg-external-link"></use></svg>
+          </a>
+        </li></ul>
+</nav>
+
+
+  
+  
+    <footer class="site-footer">
+    Aider is AI pair programming in your terminal.
+    Aider is on
+    <a href="https://github.com/Aider-AI/aider">GitHub</a>
+    and
+    <a href="https://discord.gg/Y7X7bhMQFV">Discord</a>.
+</footer>
+
+  
+</div>
+
+  <div class="main" id="top">
+    <div id="main-header" class="main-header">
+  
+    
+
+<div class="search" role="search">
+  <div class="search-input-wrap">
+    <input type="text" id="search-input" class="search-input" tabindex="0" placeholder="Search aider" aria-label="Search aider" autocomplete="off">
+    <label for="search-input" class="search-label"><svg viewBox="0 0 24 24" class="search-icon"><use xlink:href="#svg-search"></use></svg></label>
+  </div>
+  <div id="search-results" class="search-results"></div>
+</div>
+
+  
+  
+  
+    <nav aria-label="Auxiliary" class="aux-nav">
+  <ul class="aux-nav-list">
+    
+      <li class="aux-nav-list-item">
+        <a href="https://github.com/Aider-AI/aider" class="site-button"
+          
+        >
+          GitHub
+        </a>
+      </li>
+    
+      <li class="aux-nav-list-item">
+        <a href="https://discord.gg/Y7X7bhMQFV" class="site-button"
+          
+        >
+          Discord
+        </a>
+      </li>
+    
+      <li class="aux-nav-list-item">
+        <a href="/blog/" class="site-button"
+          
+        >
+          Blog
+        </a>
+      </li>
+    
+  </ul>
+</nav>
+
+  
+</div>
+
+    <div class="main-content-wrap">
+      
+      <div id="main-content" class="main-content">
+        <main>
+          
+            <p class="post-date">May 22, 2024</p>
+<h1 id="how-aider-scored-sota-263-on-swe-bench-lite">
+  
+  
+    <a href="#how-aider-scored-sota-263-on-swe-bench-lite" class="anchor-heading" aria-labelledby="how-aider-scored-sota-263-on-swe-bench-lite"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> How aider scored SOTA 26.3% on SWE Bench Lite
+  
+  
+</h1>
+    
+
+<p><a href="https://github.com/swe-bench/experiments/pull/7">Aider scored 26.3%</a>
+on the
+<a href="https://www.swebench.com">SWE Bench Lite benchmark</a>,
+achieving a state-of-the-art result. 
+The previous top leaderboard entry was 20.3%
+from Amazon Q Developer Agent.</p>
+
+<p>See also <a href="https://aider.chat/2024/06/02/main-swe-bench.html">aider’s SOTA result on the main SWE Bench</a>.</p>
+
+<p><a href="https://aider.chat/assets/swe_bench_lite.svg"><img src="/assets/swe_bench_lite.svg" alt="SWE Bench Lite results" /></a></p>
+
+<p><strong>All of aider’s results reported here are pass@1 results,
+obtained without using the SWE Bench <code class="language-plaintext highlighter-rouge">hints_text</code>.</strong>
+All results in the above chart are unhinted pass@1 results.
+Please see the <a href="#references">references</a>
+for details on the data presented in this chart.
+It was corrected on 5/30/24 to reflect apples-to-apples comparisons,
+using pass@1 results from AutoCodeRover
+and results from OpenDevin that don’t use hints.
+The <a href="https://www.swebench.com">official SWE Bench Lite leaderboard</a>
+only accepts pass@1 results that do not use hints.</p>
+<h2 id="interactive-not-agentic">
+  
+  
+    <a href="#interactive-not-agentic" class="anchor-heading" aria-labelledby="interactive-not-agentic"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Interactive, not agentic
+  
+  
+</h2>
+    
+
+<p>Aider achieved this result mainly through its existing features that focus on static code analysis, reliable LLM code editing, and pragmatic UX for AI pair programming.
+Aider intentionally has quite limited and narrow “agentic behavior”
+to avoid long delays, high token costs
+and the need for users to repeatedly code review incorrect solutions.
+It’s also worth noting that aider currently does not use
+RAG, vector search, tools or give the LLM access to search the web
+or unilaterally execute code.</p>
+
+<p>Aider is first and foremost an interactive tool for engineers to get real work done in
+real code bases using a chat interface.
+Aider provides a pair programming UX where users can ask for a change
+and see the edits performed in real-time.
+Aider can also offer additional help like fixing lint or test errors,
+but the user is always in full interactive control.
+This lets them quickly steer misunderstandings back on course and
+avoid wasting time and token costs.</p>
+<h2 id="benchmark-methodology">
+  
+  
+    <a href="#benchmark-methodology" class="anchor-heading" aria-labelledby="benchmark-methodology"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Benchmark methodology
+  
+  
+</h2>
+    
+
+<p>For the benchmark, 
+aider was launched in each problem’s git repository
+with the problem statement
+submitted as the opening chat message from “the user.”
+After that aider runs as normal, with the following modifications:</p>
+
+<ul>
+  <li>Aider’s suggestions were always accepted without user approval.</li>
+  <li>A simple harness was used to retry the SWE Bench problem if aider produced code that wasn’t <em>plausibly correct</em>.
+Plausibly correct means that aider reported that it had successfully edited the repo
+without causing syntax errors or breaking any <em>pre-existing</em> tests.</li>
+  <li>If the solution isn’t plausible, the harness launches aider to try again from scratch,
+alternating between using aider with GPT-4o and Opus.</li>
+  <li>If no plausible solution is found after six tries, the harness picks the solution
+with the fewest edit/lint/test problems.</li>
+</ul>
+
+<p>It’s important to be clear that
+<em>aider and the benchmark harness
+only had access to the pre-existing tests in each problem’s repo</em>.
+The held out “acceptance tests” were <em>only</em> used
+after benchmarking to compute statistics on which problems aider
+correctly resolved.</p>
+
+<p>The <a href="https://github.com/Aider-AI/aider-swe-bench">full harness to run aider on SWE Bench Lite is available on GitHub</a>.</p>
+
+<p>The benchmarking process was similar to how a developer might use aider to
+resolve a GitHub issue:</p>
+
+<ul>
+  <li>They could launch aider in their repo with the command below, which
+tells aider they want to accept every suggestion
+and to use pytest to run tests.
+    <ul>
+      <li><code class="language-plaintext highlighter-rouge">aider --yes --test-cmd pytest</code></li>
+    </ul>
+  </li>
+  <li>They could start the chat by pasting in the URL or text of a GitHub issue.
+Aider will pull in the URL’s content and then try and solve the issue.</li>
+  <li>If aider doesn’t produce code that lints and tests clean, the user might decide to revert the changes and try again, maybe using aider with a different LLM this time.
+<a href="https://aider.chat/docs/git.html">Aider is tightly integrated with git</a>,
+so it’s always easy to revert AI changes that don’t pan out.</li>
+</ul>
+
+<p>Outside a benchmark setting, it’s probably
+unwise or at least highly inefficient
+to let <em>any</em> AI agent run unsupervised on your code base.
+The reason aider is intended to be used interactively
+is so that the user can participate and direct aider’s work and approve suggestions.
+This way the user can offer immediate feedback or corrections if their initial
+instructions turn out to be ambiguous,
+or if the AI starts going down a wrong path.</p>
+<h2 id="aider-with-gpt-4o-alone-was-sota">
+  
+  
+    <a href="#aider-with-gpt-4o-alone-was-sota" class="anchor-heading" aria-labelledby="aider-with-gpt-4o-alone-was-sota"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Aider with GPT-4o alone was SOTA
+  
+  
+</h2>
+    
+
+<p>Running the benchmark harness
+only using aider with GPT-4o to find plausible solutions
+achieved a score of 25.0%.
+This was itself matching the state-of-the-art, before being surpassed by the main
+result being reported here
+that used aider with both GPT-4o &amp; Opus.</p>
+
+<p>As noted below, a single attempt using Aider with GPT-4o tied
+the current top entry on the leaderboard.</p>
+<h2 id="aider-with-gpt-4o--opus">
+  
+  
+    <a href="#aider-with-gpt-4o--opus" class="anchor-heading" aria-labelledby="aider-with-gpt-4o--opus"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Aider with GPT-4o &amp; Opus
+  
+  
+</h2>
+    
+
+<p>The benchmark harness alternated between running aider with GPT-4o and Opus.
+The harness proceeded in a fixed order, always starting with GPT-4o and
+then alternating with Opus until a plausible solution was found for each
+problem.</p>
+
+<p>The table below breaks down the plausible solutions that
+were found for the 300 problems.
+It also provides details on the 79 that were ultimately
+verified as correctly resolving their issue.
+Some noteworthy observations:</p>
+
+<ul>
+  <li><em>Just the first attempt</em> of Aider with GPT-4o resolved 20.3% of the problems, which ties the Amazon Q Developer Agent currently atop the official leaderboard.</li>
+  <li>Including the second attempt, Aider with GPT-4o and Opus scored 23.6% on the benchmark.
+These first two attempts obtained ~75% of all plausible and ~90% of all resolved solutions.</li>
+  <li>A long tail of solutions continued to be found using both models including one correctly resolved solution on the final, sixth attempt of that problem.</li>
+</ul>
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th style="text-align: center">Attempt</th>
+      <th>Agent</th>
+      <th style="text-align: right">Number of<br />plausible<br />solutions</th>
+      <th style="text-align: right">Percent of<br />plausible<br />solutions</th>
+      <th style="text-align: right">Number of<br />correctly<br />resolved<br />solutions</th>
+      <th style="text-align: right">Percent of<br />correctly<br />resolved<br />solutions</th>
+      <th style="text-align: right">Score on<br />SWE Bench<br />Lite</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td style="text-align: center">1</td>
+      <td>Aider with GPT-4o</td>
+      <td style="text-align: right">208</td>
+      <td style="text-align: right">69.3%</td>
+      <td style="text-align: right">61</td>
+      <td style="text-align: right">77.2%</td>
+      <td style="text-align: right">20.3%</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">2</td>
+      <td>Aider with Opus</td>
+      <td style="text-align: right">49</td>
+      <td style="text-align: right">16.3%</td>
+      <td style="text-align: right">10</td>
+      <td style="text-align: right">12.7%</td>
+      <td style="text-align: right">3.3%</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">3</td>
+      <td>Aider with GPT-4o</td>
+      <td style="text-align: right">20</td>
+      <td style="text-align: right">6.7%</td>
+      <td style="text-align: right">3</td>
+      <td style="text-align: right">3.8%</td>
+      <td style="text-align: right">1.0%</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">4</td>
+      <td>Aider with Opus</td>
+      <td style="text-align: right">9</td>
+      <td style="text-align: right">3.0%</td>
+      <td style="text-align: right">2</td>
+      <td style="text-align: right">2.5%</td>
+      <td style="text-align: right">0.7%</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">5</td>
+      <td>Aider with GPT-4o</td>
+      <td style="text-align: right">11</td>
+      <td style="text-align: right">3.7%</td>
+      <td style="text-align: right">2</td>
+      <td style="text-align: right">2.5%</td>
+      <td style="text-align: right">0.7%</td>
+    </tr>
+    <tr>
+      <td style="text-align: center">6</td>
+      <td>Aider with Opus</td>
+      <td style="text-align: right">3</td>
+      <td style="text-align: right">1.0%</td>
+      <td style="text-align: right">1</td>
+      <td style="text-align: right">1.3%</td>
+      <td style="text-align: right">0.3%</td>
+    </tr>
+    <tr>
+      <td style="text-align: center"><strong>Total</strong></td>
+      <td> </td>
+      <td style="text-align: right"><strong>300</strong></td>
+      <td style="text-align: right"><strong>100%</strong></td>
+      <td style="text-align: right"><strong>79</strong></td>
+      <td style="text-align: right"><strong>100%</strong></td>
+      <td style="text-align: right"><strong>26.3%</strong></td>
+    </tr>
+  </tbody>
+</table></div>
+
+<p>If we break down the solutions solely by model,
+we can see that aider with GPT-4o outperforms Opus.
+This isn’t a fair and direct comparison, because GPT-4o always took the first
+turn and therefore got first crack at all the “easiest” problems.
+Aider with Opus only ever saw problems that GPT-4o failed to
+find plausible solutions for on its first try.</p>
+
+<p>Aider with GPT-4o was producing higher quality plausible solutions,
+with a greater chance of going on to be accepted as resolving the issue.
+Again, this is biased by the turn ordering.
+But other anecdotal evidence from earlier runs of the benchmark
+also supports the observation that aider with GPT-4o is significantly stronger than Opus
+for this benchmark.</p>
+
+<div class="table-wrapper"><table>
+  <thead>
+    <tr>
+      <th>Agent</th>
+      <th style="text-align: right">Number of<br />plausible<br />solutions</th>
+      <th style="text-align: right">Number of<br />correctly<br />resolved<br />solutions</th>
+      <th style="text-align: right">Percent of<br />plausible<br />which<br />correctly<br />resolved<br /></th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td>Aider with GPT-4o</td>
+      <td style="text-align: right">239</td>
+      <td style="text-align: right">66</td>
+      <td style="text-align: right">27.6%</td>
+    </tr>
+    <tr>
+      <td>Aider with Opus</td>
+      <td style="text-align: right">61</td>
+      <td style="text-align: right">13</td>
+      <td style="text-align: right">21.3%</td>
+    </tr>
+    <tr>
+      <td><strong>Total</strong></td>
+      <td style="text-align: right"><strong>300</strong></td>
+      <td style="text-align: right"><strong>79</strong></td>
+      <td style="text-align: right"><strong>26.3%</strong></td>
+    </tr>
+  </tbody>
+</table></div>
+<h2 id="repository-map-not-rag">
+  
+  
+    <a href="#repository-map-not-rag" class="anchor-heading" aria-labelledby="repository-map-not-rag"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Repository map, not RAG
+  
+  
+</h2>
+    
+
+<p>The crucial first step in solving a SWE Bench problem is figuring out
+which parts of the repo are relevant and which files need to be edited.
+Most coding agents use some combination of RAG, vector search
+and providing the LLM with
+tools to interactively explore the code base.</p>
+
+<p>Aider instead uses a
+<a href="https://aider.chat/2023/10/22/repomap.html">repository map</a>
+to help the LLM understand the 
+layout, code structure, and content of a git repo.
+The repo map is created through static analysis of the code’s
+abstract syntax tree and call graph
+to provide a compact and powerful summary of the entire code base.
+The map is constantly
+tailored to show
+repo context that is relevant to the current state of the chat conversation.
+This is done by performing a graph optimization on the code’s call graph.</p>
+
+<p>When the user asks for a change to their code, the LLM can use the repo map
+to decide which files to edit.
+The LLM simply returns a normal text response explaining which files
+it needs to edit and why.
+Aider notices when the LLM mentions filenames from the repo,
+and asks the user if they should be added to the chat.
+Adding a file to the chat allows the LLM to see the full contents
+of the file and edit it.</p>
+
+<div class="chat-transcript">
+<h4 id="please-add-a-new-factorialn-endpoint">
+  
+  
+    <a href="#please-add-a-new-factorialn-endpoint" class="anchor-heading" aria-labelledby="please-add-a-new-factorialn-endpoint"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Please add a new /factorial/N endpoint.
+  
+  
+</h4>
+    
+
+  <p>To add a new /factorial/N endpoint, the most likely file that needs to be edited is app.py.
+Please add app.py to the chat so I can proceed with the changes.</p>
+
+  <blockquote>
+    <p>app.py<br />
+Add these files to the chat? yes</p>
+  </blockquote>
+
+</div>
+
+<p>This is a convenient and natural workflow for interactive chat,
+and it worked well for the SWE Bench problems.
+Aider successfully identified the correct file to edit
+in 70.3% of the benchmark tasks.</p>
+
+<p>We can determine which file needs to be edited using the “gold” patch
+which is associated with each SWE Bench task.
+This patch was created by a human developer
+to solve the issue, and therefore reveals a file which can
+be edited to solve the problem.
+Of course aider is not able to see or use the gold patch
+or the file names it contains in any way.
+This information was only used to compute
+statistics outside the benchmarking process.</p>
+<h2 id="reliable-code-editing">
+  
+  
+    <a href="#reliable-code-editing" class="anchor-heading" aria-labelledby="reliable-code-editing"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Reliable code editing
+  
+  
+</h2>
+    
+
+<p>Once files have been selected for editing,
+the next step is of course to edit the source code to fix the problem.</p>
+
+<p>Aider goes to great lengths to ensure that LLMs can not just write code,
+but reliably <em>edit</em> code.
+Aider has a collection of prompting strategies and code editing backends which have
+been honed through
+<a href="https://aider.chat/docs/leaderboards/">extensive benchmarking</a>.
+These foundational capabilities help ensure that aider can
+properly integrate code from LLMs into an existing code base and source files.</p>
+
+<p>The repository map helps here too, making sure that the LLM
+can see relevant classes, functions and variables from the entire repo.
+This helps ensure that the project’s existing APIs and conventions are
+respected and utilized when new code is added.</p>
+
+<p>Regardless, there are still cases where aider may be unable to cleanly
+complete the edits specified by the LLM.
+This is usually because the LLM has failed to conform to the editing
+instructions in its system prompt.
+When aider completes, it returns an editing outcome that indicates
+whether it was able to successfully apply all edits.
+The benchmark harness uses this editing status as
+one criteria to determine if aider has
+created a plausible solution.</p>
+<h2 id="linting-and-fixing">
+  
+  
+    <a href="#linting-and-fixing" class="anchor-heading" aria-labelledby="linting-and-fixing"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Linting and fixing
+  
+  
+</h2>
+    
+
+<p>Another key criteria for a plausible solution is that it passes basic
+linting, which means that the code has no syntax
+or other fatal errors.
+<a href="https://aider.chat/2024/05/22/linting.html">Aider lints code</a>
+after every LLM edit and offers to automatically fix
+any problems.</p>
+
+<p>Aider ships with built-in linters based on tree-sitter
+which work with most popular programming languages.
+Aider shows linting errors to the LLM in a novel format,
+using the abstract syntax tree to display relevant code context for each
+error.
+This context helps LLMs understand the problem and
+make the correct changes to resolve it.</p>
+
+<div class="chat-transcript">
+
+  <div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>app.py:23:36: F821 undefined name 'num'  
+  
+app.py:  
+...⋮...  
+  6│class LongNum:  
+...⋮...  
+ 19│    def expound(self, threshold):  
+ 20│        number = self.basis  
+ 21│        while number &lt; threshold:  
+ 22│            number *= self.factor  
+ 23█        return num  
+ 24│  
+ 25│  
+...⋮...  
+</code></pre></div>  </div>
+
+  <blockquote>
+    <p>Attempt to fix lint errors? yes</p>
+  </blockquote>
+
+</div>
+
+<p>In the benchmark, these linting suggestions are always accepted.
+At completion,
+aider reports a linting outcome that
+indicates if it was able to produce
+code without any outstanding linting errors.
+The benchmark harness uses this status as
+one of the criteria to determine if aider has
+created a plausible solution.</p>
+<h2 id="testing-and-fixing">
+  
+  
+    <a href="#testing-and-fixing" class="anchor-heading" aria-labelledby="testing-and-fixing"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Testing and fixing
+  
+  
+</h2>
+    
+
+<p>The final crtieria for a plausible solution is that 
+all tests must be passing.
+Aider can be configured with the command to run tests for a repo,
+and will automatically attempt to fix any test failures.</p>
+
+<p>A user working on a python project might configure testing
+by launching aider like this:</p>
+
+<div class="language-plaintext highlighter-rouge"><div class="highlight"><pre class="highlight"><code>aider --test-cmd pytest
+</code></pre></div></div>
+
+<p>For the benchmark, aider is configured with a test command that will run the
+tests that already exist in each problem’s repository.
+SWE Bench problems are based on repositories from large open
+source projects with extensive existing test suites.
+This means that
+testing will fail if aider has broken any of these
+pre-existing tests or if any new
+tests that it created aren’t passing.</p>
+
+<p>As with editing and linting, aider reports a testing outcome
+that indicates if it completed with any outstanding failing tests.
+The benchmark harness uses this status when deciding if aider
+has produced a plausible solution.</p>
+
+<p>To be clear, <em>aider cannot run or even see the held out “acceptance tests”</em> that
+are used to judge if a proposed solution correctly
+resolves the problem.
+Those tests are only run outside of aider and the benchmark harness,
+to compute the final benchmark statistics.</p>
+<h2 id="finding-a-plausible-solution">
+  
+  
+    <a href="#finding-a-plausible-solution" class="anchor-heading" aria-labelledby="finding-a-plausible-solution"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Finding a plausible solution
+  
+  
+</h2>
+    
+
+<p>Each time aider executes, it reports
+the outcome of the editing, linting, and testing
+steps.
+Each of these steps may complete successfully or
+return a status that indicates that there were outstanding
+problems that remain unresolved.</p>
+
+<p>The benchmark harness uses these outcomes to determine if
+aider has produced a plausible
+solution to the current SWE Bench task.
+A plausible solution is one where aider
+returns saying that it 
+edited the repo with no outstanding
+edit, lint, or test errors.
+In this case, aider’s changes are recorded
+as the SWE Bench <code class="language-plaintext highlighter-rouge">model_patch</code> to be evaluated later with the
+acceptance tests.</p>
+
+<p>If the solution is not plausible, another
+instance of aider is launched again from scratch on the same problem.
+The harness alternates launching aider with GPT-4o and Opus to solve the problem,
+and gives each model three attempts – for a total of six attempts.
+As soon as a plausible solution is found, it is accepted and the
+harness moves on to the next SWE Bench instance.</p>
+
+<p>It’s worth noting that repositories may have lint or test errors
+present before aider even starts to edit them.
+Whether unresolved errors were caused by aider or were pre-existing,
+there will be instances where
+no plausible solution is
+found after six tries.</p>
+
+<p>If all six attempts fail to produce a plausible solution,
+then the “best” solution available is selected as the
+<code class="language-plaintext highlighter-rouge">model_patch</code>.
+Which of the non-plausible solutions to use is determined
+by ignoring the testing outcome
+and prioritizing solutions in the following order:</p>
+
+<ul>
+  <li>Pick a solution where editing and linting were completed successfully.</li>
+  <li>Pick a solution where editing was at least partially successful and linting succeeded.</li>
+  <li>Pick a solution where editing was successful.</li>
+  <li>Pick a solution where editing was at least partially successful.</li>
+</ul>
+<h2 id="computing-the-benchmark-score">
+  
+  
+    <a href="#computing-the-benchmark-score" class="anchor-heading" aria-labelledby="computing-the-benchmark-score"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Computing the benchmark score
+  
+  
+</h2>
+    
+
+<p>The benchmark harness produced a plausible solution for each of the 300
+SWE Bench Lite instances and saved it as the <code class="language-plaintext highlighter-rouge">model_patch</code>.</p>
+
+<p>A separate evaluation script was used to
+test each of these solutions with the full test suite,
+including the held out acceptance tests.
+For this final acceptance testing, any edits that aider made to tests
+are discarded.
+This ensures that the correct,
+unmodified test suite is used for acceptance testing.
+The evaluation script compares the test results
+with results from testing
+the “gold” patch that was developed by a human to correctly solve the issue.
+If they match, the candidate solution has correctly resolved the issue.</p>
+
+<p>These acceptance tests are only ever run outside of aider
+and the benchmark harness, and only to compute the number of
+correctly resolved instances.
+They are never run, used, or even visible during aider’s attempts to solve the problems.</p>
+
+<p>Aider correctly resolved 79 out of 300 SWE Bench Lite instances, or 26.3%.</p>
+<h2 id="acknowledgments">
+  
+  
+    <a href="#acknowledgments" class="anchor-heading" aria-labelledby="acknowledgments"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> Acknowledgments
+  
+  
+</h2>
+    
+
+<p>Much thanks to the team behind the
+<a href="https://www.swebench.com">SWE Bench</a>
+family of AI coding benchmarks.
+Also thanks to Albert Örwall who has
+<a href="https://github.com/aorwall/SWE-bench-docker">dockerized the SWE Bench evaluation scripts</a>
+making it faster, easier, and more reliable to run the acceptance tests.</p>
+<h2 id="references">
+  
+  
+    <a href="#references" class="anchor-heading" aria-labelledby="references"><svg viewBox="0 0 16 16" aria-hidden="true"><use xlink:href="#svg-link"></use></svg></a> References
+  
+  
+</h2>
+    
+
+<p>All of aider’s results reported here are pass@1 results,
+obtained without using the SWE Bench <code class="language-plaintext highlighter-rouge">hints_text</code>.</p>
+
+<p>The “aider agent” internally makes multiple “attempts” at solving the problem,
+but it picks and returns one single candidate solution.
+Only that one candidate solution is evaluated with the acceptance tests
+and contributes to the benchmark score.
+Thus it is a pass@1 result.</p>
+
+<p>This is contrast to a pass@N result for N&gt;1, where N attempts are made
+and all N solutions are evaluated by the acceptance tests.
+If <em>any</em> of the N solution pass, that counts as a pass@N success.</p>
+
+<p>Below are the references for the other pass@1 unhinted SWE-Bench results
+displayed in the graph at the beginning of this article.</p>
+
+<ul>
+  <li><a href="https://www.swebench.com">20.3% Amazon Q Developer Agent (v20240430-dev)</a></li>
+  <li><a href="https://www.swebench.com/">19.0% AutoCodeRover</a></li>
+  <li><a href="https://www.swebench.com">18.0% SWE-Agent + GPT-4</a></li>
+  <li><a href="https://github.com/OpenDevin/OpenDevin/issues/2149">16.7% OpenDevin</a></li>
+  <li><a href="https://www.swebench.com">11.7% SWE-Agent + Opus</a></li>
+</ul>
+
+<p>Note, the graph was corrected on 5/30/24 as follows.</p>
+
+<p>The graph now contains AutoCodeRover’s average pass@1 results.
+Previously it displayed pass@3 results, which are
+not comparable
+to the pass@1 results for aider being reported here.
+The <a href="https://github.com/nus-apr/auto-code-rover">AutoCodeRover GitHub page</a>
+features pass@3 results
+without being clearly labeled.</p>
+
+<p>The graph now contains the best OpenDevin results obtained without using
+the SWE Bench <code class="language-plaintext highlighter-rouge">hints_text</code> to provide hints to the agent.
+The previous graph contained their hinted result,
+which is not comparable
+to the unhinted aider results being reported here.
+<a href="https://x.com/gneubig/status/1791498953709752405">OpenDevin reported hinted results</a>
+without noting that hints were used.</p>
+
+          
+
+          
+        </main>
+        
+
+
+      </div>
+    </div>
+    
+      
+
+<div class="search-overlay"></div>
+
+    
+  </div>
+
+  
+</body>
+</html>
+

@@ -1,0 +1,27 @@
+# rules/project/testing.md
+shared:rules/project/testing.md
+live-unique:rules/project/testing.md
+live-pad:rules/project/testing.md:0
+live-pad:rules/project/testing.md:1
+live-pad:rules/project/testing.md:2
+live-pad:rules/project/testing.md:3
+live-pad:rules/project/testing.md:4
+live-pad:rules/project/testing.md:5
+live-pad:rules/project/testing.md:6
+live-pad:rules/project/testing.md:7
+live-pad:rules/project/testing.md:8
+live-pad:rules/project/testing.md:9
+live-pad:rules/project/testing.md:10
+live-pad:rules/project/testing.md:11
+live-pad:rules/project/testing.md:12
+live-pad:rules/project/testing.md:13
+live-pad:rules/project/testing.md:14
+live-pad:rules/project/testing.md:15
+live-pad:rules/project/testing.md:16
+live-pad:rules/project/testing.md:17
+live-pad:rules/project/testing.md:18
+live-pad:rules/project/testing.md:19
+live-pad:rules/project/testing.md:20
+live-pad:rules/project/testing.md:21
+live-pad:rules/project/testing.md:22
+live-pad:rules/project/testing.md:23

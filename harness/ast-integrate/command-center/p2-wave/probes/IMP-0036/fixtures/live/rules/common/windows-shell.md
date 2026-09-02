@@ -1,0 +1,27 @@
+# rules/common/windows-shell.md
+shared:rules/common/windows-shell.md
+live-unique:rules/common/windows-shell.md
+live-pad:rules/common/windows-shell.md:0
+live-pad:rules/common/windows-shell.md:1
+live-pad:rules/common/windows-shell.md:2
+live-pad:rules/common/windows-shell.md:3
+live-pad:rules/common/windows-shell.md:4
+live-pad:rules/common/windows-shell.md:5
+live-pad:rules/common/windows-shell.md:6
+live-pad:rules/common/windows-shell.md:7
+live-pad:rules/common/windows-shell.md:8
+live-pad:rules/common/windows-shell.md:9
+live-pad:rules/common/windows-shell.md:10
+live-pad:rules/common/windows-shell.md:11
+live-pad:rules/common/windows-shell.md:12
+live-pad:rules/common/windows-shell.md:13
+live-pad:rules/common/windows-shell.md:14
+live-pad:rules/common/windows-shell.md:15
+live-pad:rules/common/windows-shell.md:16
+live-pad:rules/common/windows-shell.md:17
+live-pad:rules/common/windows-shell.md:18
+live-pad:rules/common/windows-shell.md:19
+live-pad:rules/common/windows-shell.md:20
+live-pad:rules/common/windows-shell.md:21
+live-pad:rules/common/windows-shell.md:22
+live-pad:rules/common/windows-shell.md:23

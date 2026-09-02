@@ -1,0 +1,24 @@
+I'll start from the existing ADV-0121 probe tree, read the unit return and contract, and resume from what's already built rather than scrap it.The probe tree is already populated. Next I’ll read the existing return, manifest, and the measurement script so we resume from that state.Existing return already claims delivered; I’ll re-run the named probes and the measure gate against the live receipt rather than trust that claim.I’ll inspect the catalog unit and live receipt, then re-run both named probes and the measure gate.I’ll re-run the named probes and the measure gate live, and check whether schema resolution or the platform tree has changed since the last lock.Repo-root `platform/` is present now, so I’ll compare it with the vendored copy and re-run the named probes against the live implementation.I’ll inspect the files that differ under `platform/plugin`, then re-run the probes and the delivery measure.I’ll re-run the existing named probes as-is, then pack and measure from those live results.Both named probes exited 0. I’ll re-pack the receipt from these live raws so the hash and manifest match this run.Measure is green. I’ll write the honest per-unit return, then re-run the gate so the final claim is from this lock.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/ADV-0121/` (did not scrap it). Both named probes re-ran to exit 0 on this Linux worktree (`Python 3.10.12`):
+
+- `probe1_migration_matrix.py` → `SUCCESS:ADV-0121-probe1` (pristine N-2 control passed; silent-loss count 0)
+- `probe2_semantic_diff.py` → `SUCCESS:ADV-0121-probe2` (semantic diffs empty on all six variants; silent-discard control 0→1)
+
+The catalog receipt was re-packed from those live raws only after the greens. It is non-BLOCKED `state=SUCCESS`, schema-valid (`schema_resolver` 0 errors; kind mutant 3), and registered in the per-unit manifest:
+
+| Artifact | Live LF sha256 | Bytes |
+|---|---|---|
+| `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` | `6f46fc89776f1b5c5cf271ee7873886603d88dbcc006a3b0c862b20e96249287` | 24880 |
+| per-unit `UNIT-ARTIFACT-MANIFEST.json` row | same hash, match=true | 24880 |
+
+Cloud-ok `UNIT-COMPLETE` is not this delivery. Harvest still sits in `CLOUD-OK-REFUTE.json` as `state=BLOCKED` with named probes then absent.
+
+Science remains **PARTIAL**: six variants are byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are fail-open migrate then fail-closed parser (`E_MANIFEST`). That is a measured boundary, not a product patch.
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver.

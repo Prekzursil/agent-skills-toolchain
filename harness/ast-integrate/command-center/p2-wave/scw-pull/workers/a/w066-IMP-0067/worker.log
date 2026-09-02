@@ -1,0 +1,19 @@
+I'll start from the existing IMP-0067 probe tree, read any SUBAGENT-RETURN, and resume from what's already built rather than starting over.The probe tree is only a cloud-ok remnant. Next I’ll read the catalog entry, measure contract, and any existing return artifacts so I know what G-1 actually requires.Catalog lookup missed IMP-0067, so I’ll find the unit definition, the receipt, and a successful peer delivery as the template.This worktree is a sparse P2 subset with no `.git` and no live marketplace index. I’ll recover the index from clone copies and inspect a successful delivery plus the receipt contract.GitHub still has the 18495-byte tracked index (hash `41b616a1…`). I’ll inspect that file and the receipt contract, then restore the schema and probes around it.I’ll restore the canonical index, author the additive schema and tests, and add two independent validators plus controls that exit 0 with no args.The resolver is live; two receipt-schema errors are blocking delivery. I’ll fix those fields and re-pack.**SUCCESS:delivered IMP-0067** `predicate=delivered state=SUCCESS probes=3 raws=8 notes=probe1_python_jsonschema.py:0,probe2_jsonschema_rs.py:0,run_controls.py:0`
+
+G-1 for this unit is green. Cloud `ok=true` was not treated as delivery.
+
+What was implemented:
+- Restored the canonical live index at `.claude-plugin/marketplace.json` (18495 B, sha256 `41b616a12a4e716062ce0ac40c41dd1f91ec8d9b910e3d90308edf8df38890f2`) — the GitHub HEAD blob, unedited.
+- Authored `.claude-plugin/marketplace.schema.json` as an additive extension: existing `name`/`owner`/`description`/`plugins` stay required; optional `packages`, `digests`, `channels`, and `provenance` are allowed. No second index file.
+- Landed `tools/marketplace/tests/test_index_schema.py::test_current_marketplace_json_validates` (pytest 7 passed; the catalog node 1 passed).
+- Two independent validators both report 0 errors on the unedited live index: python-jsonschema 4.25.1 and jsonschema-rs 0.49.9.
+- Six mutants fail on six distinct keywords (`required`, `pattern`, `uniqueItems`, `additionalProperties`, `minItems`, `type`). Weakening `additionalProperties` makes the unknown-key mutant pass (control goes red).
+- Old-client projection of an in-memory extended copy still returns the same plugin names.
+
+Honest limit: JSON Schema `uniqueItems` is deep-equal only. Same-name/different-body is accepted by both schema implementations and rejected by `unique_plugin_names` in `tools/marketplace/validate_index.py`. That is recorded, not papered over.
+
+Constraints kept: no git write, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok strike scripts were moved to `cloud-ok-era/`, not deleted.
+
+Written:
+- `command-center/p2-wave/probes/IMP-0067/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/IMP-0067/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; live LF sha256 `4ecab8896964d60575dec9beafa938372c176eb1868d10e22d519be9c4e06cba`)

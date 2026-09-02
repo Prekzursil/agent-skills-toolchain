@@ -1,0 +1,507 @@
+{
+  "artifacts": [
+    {
+      "bytes": 39614,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json",
+      "role": "primary",
+      "sha256": "dd6dc4272f7ed62b9548722156bf99267206e9b2f372d06a69bd94c087c4f61b"
+    }
+  ],
+  "defects": [
+    {
+      "id": "ADV-0025-D1",
+      "severity": "P3",
+      "status": "open",
+      "summary": "Linter coverage gap (NOT an install bypass): default mkt lint <manifest> passes trust_policy=None (cli.py:141), so MKT-L08 checks only the permission grammar, not the trust ceiling. Contained: lint with a policy fires MKT-L08 and the installer enforces MKT-I05 regardless."
+    },
+    {
+      "id": "ADV-0025-D2",
+      "severity": "P3",
+      "status": "open",
+      "summary": "Linter coverage gap (NOT an execution bypass): no linter rule inspects payload files for script-ness, so a working script file in the payload lints PASS. Contained: the installer is copy-only (no subprocess/exec/import token in install.py), so a payload script is inert at install time."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json",
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json",
+        "exit_code": 0,
+        "fingerprint": "a0e7d14adf3b89b84245bfbe",
+        "method": "schema-validate",
+        "raw_output": "SCHEMA-VALID:ADV-0025 (layer 1 only - this is NOT a completion verdict)",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "platform/marketplace/mkt/lint.py:111; platform/marketplace/mkt/install.py:254; lint.py:649",
+      "claim": "CONTROL (negative control): the linter is NOT a reject-everything linter -- a benign package PASSES the linter (verdict=PASS) AND installs cleanly (outcome=SUCCESS) into a disposable site. lint.self_test payload-digest: good=PASS broken=FAIL detector_usable=True.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(hello-skill/manifest.json, trust_policy=<fixture>, index=<full>)",
+          "exit_code": 0,
+          "fingerprint": "378cba3f0fa885ccf9e3cb93",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter on the benign package).\n{\n  \"findings\": [],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L07\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\",\n    \"MKT-L20\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/fx/registry/packages/hello-skill/1.0.0/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"PASS\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "Installer(root, disposable-site, policy).install(hello-skill, =1.0.0, channel=stable)",
+          "exit_code": 0,
+          "fingerprint": "b5c4d5f19b0443477ea35f71",
+          "method": "test-run",
+          "raw_output": "PROBE 2 (installer into a disposable temp site).\n{\n  \"action\": \"install\",\n  \"at\": \"2026-08-10T09:00:00Z\",\n  \"gates\": [\n    {\n      \"detail\": \"registry reg:fixture-local\",\n      \"gate\": \"index-signature\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"pub:alpha-tools key:e647315ae19a0667\",\n      \"gate\": \"publisher-known\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"key:e647315ae19a0667\",\n      \"gate\": \"manifest-signature\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 revocation(s) checked, none match\",\n      \"gate\": \"revocation\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"1 permission(s) within ceiling\",\n      \"gate\": \"permissions\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"win32/claude-code 2.1.0\",\n      \"gate\": \"compatibility\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 open advisory/ies, none above ceiling\",\n      \"gate\": \"advisory\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"90 >= 60\",\n      \"gate\": \"conformance-score\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b\",\n      \"gate\": \"payload-digest\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"3/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=0\",\n      \"gate\": \"sbom\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"aggregate MIT; 1 component licence(s) admissible\",\n      \"gate\": \"license\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 dependency/ies\",\n      \"gate\": \"dependencies\",\n      \"outcome\": \"SKIP\"\n    },\n    {\n      \"detail\": \"1 pinned package(s)\",\n      \"gate\": \"lockfile\",\n      \"outcome\": \"PASS\"\n    }\n  ],\n  \"installed_files\": 3,\n  \"name\": \"hello-skill\",\n  \"outcome\": \"SUCCESS\",\n  \"payload_digest\": \"sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b\",\n  \"receipt_id\": \"rcpt:cbed7f3074c4e3ef\",\n  \"registry_id\": \"reg:fixture-local\",\n  \"schema_version\": \"1.0.0\",\n  \"version\": \"1.0.0\"\n}\ninstalled_files=['packages/hello-skill/1.0.0/LICENSE', 'packages/hello-skill/1.0.0/README.md', 'packages/hello-skill/1.0.0/hello.py'] all_within_pkg_root=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "platform/marketplace/mkt/cli.py:141; mkt/lint.py:236-263; mkt/install.py:342-359",
+      "claim": "PARTIAL (target 1, excessive permissions): default mkt lint path passes trust_policy=None (cli.py:141), so MKT-L08 checks only permission GRAMMAR and the package lints PASS; supply a trust policy and MKT-L08 fires (FAIL, rules=['MKT-L08', 'MKT-L08', 'MKT-L08', 'MKT-L08', 'MKT-L08']); the installer independently REFUSES with REFUSED:MKT-I05. A linter coverage gap, not an end-to-end bypass (no install occurs; site_files_after=[]).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(evil-perms/manifest.json, trust_policy=None) ; lint.lint_package(..., trust_policy=<fixture>)",
+          "exit_code": 0,
+          "fingerprint": "6c9b1498945fcb078a470bdc",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter, two entry points). NOTE: local temp paths redacted to <WORK>/<HOME>.\n\n[A] default mkt lint (trust_policy=None) -> verdict=PASS:\n{\n  \"findings\": [],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t1-evil-perms/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"PASS\"\n}\n\n[B] mkt lint with trust_policy -> verdict=FAIL:\n{\n  \"findings\": [\n    {\n      \"message\": \"excessive permission 'secrets:read:**': forbidden by policy pattern 'secrets:read'\",\n      \"rule\": \"MKT-L08\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"excessive permission 'net:egress:**': net:egress at universal ('**') width requires an EXACT explicit grant, not a wildcard ceiling\",\n      \"rule\": \"MKT-L08\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"excessive permission 'exec:process:**': forbidden by policy pattern 'exec:process'\",\n      \"rule\": \"MKT-L08\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"excessive permission 'fs:write:**': fs:write at universal ('**') width requires an EXACT explicit grant, not a wildcard ceiling\",\n      \"rule\": \"MKT-L08\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"excessive permission 'hook:register:PreToolUse': not subsumed by any ceiling or publisher grant\",\n      \"rule\": \"MKT-L08\",\n      \"severity\": \"error\"\n    }\n  ],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t1-evil-perms/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"FAIL\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "Installer(reg_forced, disposable-site, policy).install(evil-overreach, =1.0.0)",
+          "exit_code": 0,
+          "fingerprint": "27ac5ea9381878366c2b6206",
+          "method": "test-run",
+          "raw_output": "PROBE 2 (install oracle: over-permissioned package forced into a signed index, disposable site).\noutcome=REFUSED:MKT-I05\nInstallRefused code=MKT-I05 gate=permissions :: MKT-I05 [permissions] excessive permissions ['exec:process:**', 'fs:write:**', 'hook:register:PreToolUse', 'net:egress:**', 'secrets:read:**']: exec:process:** -> forbidden by policy pattern 'exec:process'; fs:write:** -> fs:write at universal ('**') width requires an EXACT explicit grant, not a wildcard ceiling; hook:register:PreToolUse -> not subsumed by any ceiling or publisher grant; net:egress:** -> net:egress at universal ('**') width requires an EXACT explicit grant, not a wildcard ceiling; secrets:read:** -> forbidden by policy pattern 'secrets:read'\nsite_files_after=[]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "PARTIAL"
+    },
+    {
+      "anchor": "platform/marketplace/schema/package-manifest.schema.json; platform/marketplace/mkt/install.py:438-459",
+      "claim": "PARTIAL (target 2, install-time script): a manifest-DECLARED install hook is rejected by MKT-L01 (verdict=FAIL), but a working script FILE in the payload lints PASS (no script-ness rule). The installer is copy-only: after install marker=False; marker appears only when the installed script is executed directly (marker=True, rc=0). installer exec tokens=[].",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(manifest+scripts, trust_policy=None) ; lint.lint_package(published hooked-skill/manifest.json)",
+          "exit_code": 0,
+          "fingerprint": "1fa7eb82c894412904531043",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter, two forms).\n\n[A] manifest-declared hook field -> verdict=FAIL:\n{\n  \"findings\": [\n    {\n      \"message\": \"$: Additional properties are not allowed ('scripts' was unexpected)\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t2a-manifest-hook/manifest.json\",\n      \"rule\": \"MKT-L01\",\n      \"severity\": \"error\"\n    }\n  ],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t2a-manifest-hook/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"FAIL\"\n}\n\n[B] payload script FILE, published -> verdict=PASS:\n{\n  \"findings\": [],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L07\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\",\n    \"MKT-L20\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/reg-t2/packages/hooked-skill/1.0.0/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"PASS\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "Installer(reg, disposable-site, policy).install(hooked-skill, =1.0.0); then exec installed run_me.py",
+          "exit_code": 0,
+          "fingerprint": "5d514d626797aa9496f2ed78",
+          "method": "test-run",
+          "raw_output": "PROBE 2 (install accepted script-file variant into disposable site, then exec installed run_me.py).\noutcome=SUCCESS\n{\n  \"action\": \"install\",\n  \"at\": \"2026-08-10T09:00:00Z\",\n  \"gates\": [\n    {\n      \"detail\": \"registry reg:fixture-local\",\n      \"gate\": \"index-signature\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"pub:alpha-tools key:e647315ae19a0667\",\n      \"gate\": \"publisher-known\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"key:e647315ae19a0667\",\n      \"gate\": \"manifest-signature\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 revocation(s) checked, none match\",\n      \"gate\": \"revocation\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"1 permission(s) within ceiling\",\n      \"gate\": \"permissions\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"win32/claude-code 2.1.0\",\n      \"gate\": \"compatibility\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 open advisory/ies, none above ceiling\",\n      \"gate\": \"advisory\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"85 >= 60\",\n      \"gate\": \"conformance-score\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"sha256:713ecfcf335d04e743fc910c9f6f21207ba4c4f3983fc6b0659e510a2f54e5f4\",\n      \"gate\": \"payload-digest\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"2/2 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=0\",\n      \"gate\": \"sbom\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"aggregate MIT; 1 component licence(s) admissible\",\n      \"gate\": \"license\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 dependency/ies\",\n      \"gate\": \"dependencies\",\n      \"outcome\": \"SKIP\"\n    },\n    {\n      \"detail\": \"1 pinned package(s)\",\n      \"gate\": \"lockfile\",\n      \"outcome\": \"PASS\"\n    }\n  ],\n  \"installed_files\": 2,\n  \"name\": \"hooked-skill\",\n  \"outcome\": \"SUCCESS\",\n  \"payload_digest\": \"sha256:713ecfcf335d04e743fc910c9f6f21207ba4c4f3983fc6b0659e510a2f54e5f4\",\n  \"receipt_id\": \"rcpt:852723c846e4a9ab\",\n  \"registry_id\": \"reg:fixture-local\",\n  \"schema_version\": \"1.0.0\",\n  \"version\": \"1.0.0\"\n}\nmarker_after_install=False marker_after_direct_exec=True direct_exec_rc=0 installer_exec_tokens=[]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "PARTIAL"
+    },
+    {
+      "anchor": "platform/marketplace/mkt/lint.py:130-135; platform/marketplace/schema/package-manifest.schema.json",
+      "claim": "REFUTED (target 3, shadow field): the linter REJECTS a manifest field that shadows a platform field (verdict=FAIL, rules=['MKT-L01']). MKT-L01 fires because package-manifest.schema.json is additionalProperties:false at top level and nested, so an injected trusted field is a hard schema error.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(manifest+{trusted:true}, trust_policy=None)",
+          "exit_code": 0,
+          "fingerprint": "3b466fcd103226dfde2c1d0b",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter).\nverdict=FAIL\n{\n  \"findings\": [\n    {\n      \"message\": \"$: Additional properties are not allowed ('trusted' was unexpected)\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t3-shadow/manifest.json\",\n      \"rule\": \"MKT-L01\",\n      \"severity\": \"error\"\n    }\n  ],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t3-shadow/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"FAIL\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "schemas.errors_for(package-manifest, mutated) (top-level and nested)",
+          "exit_code": 0,
+          "fingerprint": "9e779556d80aa7250adba75c",
+          "method": "schema-validate",
+          "raw_output": "PROBE 2 (direct schema validation, mechanically different from the linter).\ntop-level errors=[\"$: Additional properties are not allowed ('trusted' was unexpected)\"]\nnested-field errors=[\"$.compatibility: Additional properties are not allowed ('shadow' was unexpected)\"]",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "REFUTED"
+    },
+    {
+      "anchor": "platform/marketplace/schema/common.schema.json; platform/marketplace/mkt/canon.py:140-158; mkt/install.py:444-448",
+      "claim": "REFUTED (target 4, writes outside root): the linter REJECTS a package that declares a payload path outside its own root (verdict=FAIL, rules=['MKT-L01']). MKT-L01 fires via the relative_path pattern (forbids .., leading /, backslash); ensure_within independently raises ContainmentError; installer copy uses ensure_within=True.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(manifest+payload ../escape.txt, trust_policy=None)",
+          "exit_code": 0,
+          "fingerprint": "8a7fb7bc415420e87cd8ff7d",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter).\nverdict=FAIL\n{\n  \"findings\": [\n    {\n      \"message\": \"$.payload.files[3].path: '../escape.txt' does not match '^(?!/)(?!.*[.][.])[A-Za-z0-9._/@-]+$'\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t4-traversal/manifest.json\",\n      \"rule\": \"MKT-L01\",\n      \"severity\": \"error\"\n    }\n  ],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t4-traversal/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"FAIL\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "canon.ensure_within(payload_root, ../escape.txt)",
+          "exit_code": 0,
+          "fingerprint": "54fc59db8779a1977a99962c",
+          "method": "test-run",
+          "raw_output": "PROBE 2 (containment primitive, mechanically different).\nContainmentError: path escapes its root: '../escape.txt' -> /tmp/adv0025-p2-tu8w9n88/t4-traversal/escape.txt (root /tmp/adv0025-p2-tu8w9n88/t4-traversal/payload)\ninstaller_copy_uses_ensure_within=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "REFUTED"
+    },
+    {
+      "anchor": "platform/marketplace/mkt/lint.py:139-205; platform/marketplace/mkt/sbom.py",
+      "claim": "REFUTED (target 5, declared vs actual differ): the linter REJECTS a package whose declared and actual contents differ. Payload byte drift verdict=FAIL rules=['MKT-L02', 'MKT-L02', 'MKT-L02', 'MKT-L06']; undeclared extra file verdict=FAIL rules=['MKT-L06']. Independent SBOM byte-compare: sbom_ok=False summary=2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(edited-payload/manifest.json) ; lint.lint_package(extra-file/manifest.json)",
+          "exit_code": 0,
+          "fingerprint": "ed5de65a7740382d9d5b90f2",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter, two forms).\n\n[A] payload byte drift vs signed manifest -> verdict=FAIL:\n{\n  \"findings\": [\n    {\n      \"message\": \"payload digest mismatch for hello.py: sha256:36bccbe650da3651c2f09136f1b2b2430ba41db8d3af2bc17d94e3138ce990d6 != sha256:bdda0dd5fdb08af70533baabf5dff9d27a8ca2b38f50e2c88c66edbd9a4867ba\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t5-drift/payload/hello.py\",\n      \"rule\": \"MKT-L02\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"payload byte count mismatch for hello.py\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t5-drift/payload/hello.py\",\n      \"rule\": \"MKT-L02\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"payload.digest is sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b, recomputes to sha256:ae498dfbd33f76d8b69f934cca6f62be3e8d8dbbe9589319cb041fdfe6a4a6b4\",\n      \"rule\": \"MKT-L02\",\n      \"severity\": \"error\"\n    },\n    {\n      \"message\": \"SBOM/payload mismatch: 2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t5-drift/sbom.json\",\n      \"rule\": \"MKT-L06\",\n      \"severity\": \"error\"\n    }\n  ],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t5-drift/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"FAIL\"\n}\n\n[B] undeclared extra payload file -> verdict=FAIL:\n{\n  \"findings\": [\n    {\n      \"message\": \"SBOM/payload mismatch: 3/4 components matched; missing_from_disk=0 missing_from_sbom=1 hash_mismatch=0\",\n      \"path\": \"/tmp/adv0025-p2-tu8w9n88/t5b-extra/sbom.json\",\n      \"rule\": \"MKT-L06\",\n      \"severity\": \"error\"\n    }\n  ],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t5b-extra/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"FAIL\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "sbom.verify(sbom_doc, payload_root, declared=manifest.payload.files)",
+          "exit_code": 0,
+          "fingerprint": "abfeb4d4caa1430e2e90a6a8",
+          "method": "byte-compare",
+          "raw_output": "PROBE 2 (SBOM byte-compare, mechanically different).\nsbom_ok=False summary=2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "REFUTED"
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "ADV-0025",
+    "manifest_path": "command-center/p2-wave/probes/ADV-0025/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-19T12:05:24Z"
+  },
+  "min_bytes_threshold": 4096,
+  "negative_controls": [
+    {
+      "bad_state_output": "self_test known-broken verdict=FAIL findings=['MKT-L02', 'MKT-L02', 'MKT-L02', 'MKT-L06']",
+      "description": "The linter must PASS a benign package and the installer must install it, so a reject-everything linter cannot be mistaken for secure. Bad state = the self_test-tampered payload (FAIL); good state = the benign package (PASS + install).",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign lint verdict=PASS ; install outcome=SUCCESS",
+      "id": "NC1-benign-not-reject-everything",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "evil lint(with policy) verdict=FAIL rules=['MKT-L08', 'MKT-L08', 'MKT-L08', 'MKT-L08', 'MKT-L08']",
+      "description": "MKT-L08 must fire on excessive permissions when a trust policy is supplied and be silent on the benign package.",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign lint(with policy+index) verdict=PASS findings=0",
+      "id": "NC2-L08-excessive-perms-with-policy",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "forced evil install outcome=REFUSED:MKT-I05",
+      "description": "The installer permission gate (MKT-I05) must REFUSE the over-permissioned package even forced into a signed index, and install the benign one.",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign install outcome=SUCCESS",
+      "id": "NC3-installer-permission-ceiling",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "manifest-hook lint verdict=FAIL rules=['MKT-L01']",
+      "description": "MKT-L01 (additionalProperties:false) must fire on an undeclared manifest hook field and be silent on the benign manifest.",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign lint verdict=PASS",
+      "id": "NC4-L01-manifest-hook-field",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "marker present after DIRECT exec of installed run_me.py = True",
+      "description": "Marker detector: firing == the payload script executed. FIRES when run_me.py is executed directly; SILENT after install (copy-only).",
+      "fired_on_bad_state": true,
+      "good_state_output": "marker present after install = False ; installer exec tokens = []",
+      "id": "NC5-install-executes-nothing",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "shadow lint verdict=FAIL rules=['MKT-L01']",
+      "description": "MKT-L01 must fire on a manifest carrying a shadow field and be silent on the benign manifest.",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign lint verdict=PASS",
+      "id": "NC6-L01-shadow-field",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "traversal lint verdict=FAIL rules=['MKT-L01']",
+      "description": "MKT-L01 (relative_path pattern) must fire on a payload path that traverses outside root and be silent on benign payload paths.",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign lint verdict=PASS",
+      "id": "NC7-L01-traversal-path",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "drift lint verdict=FAIL rules=['MKT-L02', 'MKT-L02', 'MKT-L02', 'MKT-L06']",
+      "description": "MKT-L02 (digest) and MKT-L06 (SBOM) must fire on payload byte drift vs the signed manifest and be silent on the intact benign payload.",
+      "fired_on_bad_state": true,
+      "good_state_output": "benign lint verdict=PASS",
+      "id": "NC8-L02-L06-content-drift",
+      "kind": "adversarial-payload",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "known_broken verdict=FAIL findings=['MKT-L02', 'MKT-L02', 'MKT-L02', 'MKT-L06']",
+      "description": "lint.self_test payload-digest mutation: FAILs on the known-broken copy, PASSes on the known-good original -- the detector is usable.",
+      "fired_on_bad_state": true,
+      "good_state_output": "known_good verdict=PASS findings=0",
+      "id": "NC9-linter-self-test",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok",
+    "role": "security-exploit-engineer",
+    "vendor": "xai"
+  },
+  "profile": "exploit-proof",
+  "report": {
+    "answer": "Independently re-derived 2026-08-16 (fresh fixture marketplace, one-abuse-per-variant, disposable install oracle). Of the 5 abuses the linter cleanly REJECTS 3: a shadow manifest field (MKT-L01), a payload path outside root (MKT-L01 relative_path + ensure_within), and declared-vs-actual drift (MKT-L02 + MKT-L06). Two are PARTIAL linter gaps that are NOT end-to-end bypasses: (1) excessive permissions lint PASS in the DEFAULT no-policy mkt lint path but FAIL with a policy and the installer REFUSES them (MKT-I05); (2) a working script FILE in the payload lints PASS but the installer is copy-only and never executes it. No abuse achieved an install-time escape or code execution. Benign control PASSES the linter and installs.",
+    "control_ids": [
+      "NC1-benign-not-reject-everything",
+      "NC2-L08-excessive-perms-with-policy",
+      "NC3-installer-permission-ceiling",
+      "NC4-L01-manifest-hook-field",
+      "NC5-install-executes-nothing",
+      "NC6-L01-shadow-field",
+      "NC7-L01-traversal-path",
+      "NC8-L02-L06-content-drift",
+      "NC9-linter-self-test"
+    ],
+    "kind": "exploit-proof",
+    "observations": [
+      {
+        "anchor": "platform/marketplace/mkt/lint.py:111; platform/marketplace/mkt/install.py:254",
+        "measured": true,
+        "method": "lint PASS + install into disposable site",
+        "name": "control_benign_pass_and_install"
+      },
+      {
+        "anchor": "platform/marketplace/mkt/cli.py:141; mkt/lint.py:236-263; mkt/install.py:342-359",
+        "measured": "PARTIAL",
+        "method": "lint no-policy(PASS) vs with-policy(FAIL MKT-L08) + forced-install (REFUSED MKT-I05)",
+        "name": "target1_excessive_permissions"
+      },
+      {
+        "anchor": "platform/marketplace/mkt/install.py:438-459",
+        "measured": "PARTIAL",
+        "method": "lint manifest-hook(FAIL MKT-L01) vs script-file(PASS) + install marker oracle (no exec)",
+        "name": "target2_install_time_script"
+      },
+      {
+        "anchor": "platform/marketplace/schema/package-manifest.schema.json",
+        "measured": "REFUTED",
+        "method": "lint(FAIL MKT-L01) + direct schema-validate",
+        "name": "target3_shadow_field"
+      },
+      {
+        "anchor": "platform/marketplace/schema/common.schema.json; mkt/canon.py:140-158",
+        "measured": "REFUTED",
+        "method": "lint(FAIL MKT-L01) + ensure_within containment",
+        "name": "target4_writes_outside_root"
+      },
+      {
+        "anchor": "platform/marketplace/mkt/lint.py:139-205",
+        "measured": "REFUTED",
+        "method": "lint(FAIL MKT-L02+MKT-L06) + SBOM byte-compare",
+        "name": "target5_declared_vs_actual_differ"
+      },
+      {
+        "anchor": "platform/marketplace/mkt/lint.py:649",
+        "measured": true,
+        "method": "lint.self_test payload-digest mutation",
+        "name": "detector_usable_both_states"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0025/probe2-effect.json disposable_only",
+        "measured": true,
+        "method": "site roots recorded under mkdtemp; live plugin tree not a target",
+        "name": "installs_disposable_only"
+      }
+    ],
+    "question": "Which of the following does the marketplace linter fail to reject: excessive permission requests, an install-time script, a manifest field that shadows a platform field, a package that writes outside its own root, and a package whose declared and actual contents differ?",
+    "target_detail": {
+      "control_benign": {
+        "all_within_pkg_root": true,
+        "install_outcome": "SUCCESS",
+        "installed_files": [
+          "packages/hello-skill/1.0.0/LICENSE",
+          "packages/hello-skill/1.0.0/README.md",
+          "packages/hello-skill/1.0.0/hello.py"
+        ],
+        "lint_verdict": "PASS"
+      },
+      "control_self_test": {
+        "detector_usable": true,
+        "known_broken_findings": [
+          "MKT-L02",
+          "MKT-L02",
+          "MKT-L02",
+          "MKT-L06"
+        ],
+        "known_broken_verdict": "FAIL",
+        "known_good_findings": 0,
+        "known_good_verdict": "PASS",
+        "mutation": "payload-digest"
+      },
+      "target1_excessive_permissions": {
+        "probe1_lint_no_policy_verdict": "PASS",
+        "probe1_lint_with_policy_rules_fired": [
+          "MKT-L08"
+        ],
+        "probe1_lint_with_policy_verdict": "FAIL",
+        "probe2_install_outcome": "REFUSED:MKT-I05",
+        "probe2_site_files_after": []
+      },
+      "target2_install_time_script": {
+        "probe1a_manifest_hook_verdict": "FAIL",
+        "probe1a_rules_fired": [
+          "MKT-L01"
+        ],
+        "probe1b_script_file_verdict": "PASS",
+        "probe2_install_outcome": "SUCCESS",
+        "probe2_installer_exec_tokens": [],
+        "probe2_marker_after_direct_exec": true,
+        "probe2_marker_after_install": false
+      },
+      "target3_shadow_field": {
+        "probe1_rules_fired": [
+          "MKT-L01"
+        ],
+        "probe1_verdict": "FAIL",
+        "probe2_nested_errors": [
+          "$.compatibility: Additional properties are not allowed ('shadow' was unexpected)"
+        ],
+        "probe2_top_level_errors": [
+          "$: Additional properties are not allowed ('trusted' was unexpected)"
+        ]
+      },
+      "target4_writes_outside_root": {
+        "probe1_rules_fired": [
+          "MKT-L01"
+        ],
+        "probe1_verdict": "FAIL",
+        "probe2_containment_raw": "ContainmentError: path escapes its root: '../escape.txt' -> /tmp/adv0025-p2-tu8w9n88/t4-traversal/escape.txt (root /tmp/adv0025-p2-tu8w9n88/t4-traversal/payload)",
+        "probe2_installer_copy_uses_ensure_within": true
+      },
+      "target5_declared_vs_actual_differ": {
+        "probe1a_drift_verdict": "FAIL",
+        "probe1a_rules_fired": [
+          "MKT-L02",
+          "MKT-L06"
+        ],
+        "probe1b_extra_verdict": "FAIL",
+        "probe1b_rules_fired": [
+          "MKT-L06"
+        ],
+        "probe2_sbom_ok": false,
+        "probe2_sbom_summary": "2/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=1"
+      }
+    }
+  },
+  "residual_unknowns": [
+    {
+      "claim": "artifacts[0].sha256 is the sha256 of the DIGEST BASIS (this file with the 64-hex value at artifacts[0].sha256 replaced by 64 zero characters), not the raw self-hash -- a file cannot contain its own hash. bytes is the true on-disk size.",
+      "settling_experiment": "b=OUT.read_bytes(); basis=re.sub(rb'(\\\"sha256\\\": \\\")[0-9a-f]{64}', rb'\\\\g<1>'+b'0'*64, b, count=1); assert hashlib.sha256(basis).hexdigest()==recorded_sha",
+      "verdict": "PARTIAL"
+    },
+    {
+      "claim": "Probe 2 used a disposable LOCAL temp site root (never the live plugin tree), not a Modal sandbox. A local ephemeral site is the direct filesystem effect oracle; Modal would run the identical copy-only install code.",
+      "settling_experiment": "Re-run the two accepted-variant installs (evil-overreach, hooked-skill) inside mcp__cloud-hub__modal_sandbox_exec and confirm identical outcome codes (MKT-I05 refuse; SUCCESS + no marker).",
+      "verdict": "PARTIAL"
+    },
+    {
+      "claim": "The two PARTIAL verdicts are linter COVERAGE gaps, not end-to-end bypasses: the installer independently blocks excessive-perms (MKT-I05) and never executes the script (copy-only). A reviewer could argue excessive-perms should be REFUTED because policy-supplied lint rejects it; that split is escalated to the owner.",
+      "settling_experiment": "Cross-vendor refuter decides whether the linter means default no-policy mkt lint (gap present) or the policy-supplied invocation (no gap); escalate the split.",
+      "verdict": "PARTIAL"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): no hypothesis failed twice; each of the 5 variants is a distinct attack vector, not a retry of the same one."
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Independent live re-derivation on this Linux worktree: python command-center/p2-wave/probes/ADV-0025/run_probes.py exited 0 against real mkt.lint.lint_package and mkt.install.Installer. Science matches the stored matrix (CONTROL CONFIRMED; T1/T2 PARTIAL; T3/T4/T5 REFUTED). Not a rubber-stamp of stored Windows raw_output.",
+    "reviewed_at": "2026-08-19T12:05:24Z",
+    "reviewer_id": "grok-p2-wave-ADV-0025-linux-rerun",
+    "vendor": "grok",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:ADV-0002-timeout-016",
+  "spec_anchor": "_USER-PROMPTS.md:11346, 10871",
+  "state": "TIMEOUT",
+  "tests": [
+    {
+      "assertions": 1,
+      "command": "lint.lint_package(hello-skill/manifest.json, trust_policy=<fixture>, index=<full>)",
+      "id": "T1-benign-lint-pass",
+      "output_tail": "verdict=PASS",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "Installer(root, site, policy).install(hello-skill, =1.0.0, channel=stable)",
+      "id": "T2-benign-install-clean",
+      "output_tail": "outcome=SUCCESS all_within_pkg_root=True",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "lint.self_test(hello-skill, mutate=payload-digest)",
+      "id": "T3-linter-self-test-usable",
+      "output_tail": "detector_usable=True good=PASS broken=FAIL",
+      "result": "PASS"
+    },
+    {
+      "assertions": 3,
+      "command": "install hooked-skill into disposable site; assert marker absent; exec installed run_me.py; assert marker present",
+      "id": "T4-install-no-exec",
+      "output_tail": "marker_after_install=False marker_after_direct_exec=True",
+      "result": "PASS"
+    },
+    {
+      "assertions": 1,
+      "command": "every Installer.install targets a fresh temp site root under mkdtemp; live plugin tree never a target",
+      "id": "T5-installation-in-disposable-sandbox-only",
+      "output_tail": "site roots = ['/tmp/adv0025-p2-tu8w9n88/site-benign', '/tmp/adv0025-p2-tu8w9n88/site-t1', '/tmp/adv0025-p2-tu8w9n88/site-t2'] (disposable temp; live tree untouched)",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 450.0,
+    "ended_at": "2026-08-19T12:05:24Z",
+    "started_at": "2026-08-19T11:57:54Z"
+  },
+  "unit_id": "ADV-0002-timeout-016"
+}

@@ -1,0 +1,646 @@
+
+===== launch 2026-08-19T18:04:09Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the unit's current artifacts, then resume only what's still needed for a contract-green delivery.The probe tree is already populated. Next I’ll read the existing return, the per-unit manifest, and the measure script so I can resume rather than rebuild.The return file already claims DELIVERED; I’ll check whether the live probes, receipt, and measure still match that claim.The receipt already says SUCCESS; I’ll read the remaining pack/probe logic and `ready_units`, then re-run the live probes instead of trusting that claim.Probe raws are newer than the packed receipt. I’ll re-run the named probes, then pack from those live results so the artifact and manifest match.I’m starting a timed live re-run of both named probes so the packed receipt can be rebuilt from this session’s counts.The census finished in 39s with exit 0. Next I’ll re-run the control probe, pack the receipt from these live files, then measure.The packed receipt matches the live census. I’ll write `SUBAGENT-RETURN.json`, then run the official measure.Measure printed `SUCCESS:delivered`. I’ll check whether the measure re-run drifted the live counts, then lock the return file to that line.Measure passed. The tree grew by one file during that re-walk; I’ll record both the packed census and the measure-time counts instead of chasing the moving tree.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing AUD-0085 probe tree (did not scrap `encoding_census.py` / `control_check.py`). This session re-ran both named probes (exit 0), packed a non-BLOCKED SUCCESS receipt from those live files, and wrote the per-unit manifest. Cloud-ok is not the delivery signal.
+
+| Item | Result |
+|---|---|
+| Live Probe 1 | `encoding_census.py` 38.85s, exit 0 |
+| Live Probe 2 / control | `control_check.py` exit 0; production fires on the double-decoded fixture, silent on correct non-ASCII and U+00D7 U+00A5; any-non-ASCII mutant goes red |
+| Catalog artifact | `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` `state=SUCCESS` 50511 B `sha256=588fdb522af35d12fa01c5bfb39a202469af8de165c7870f747789bc11b93906` |
+| Per-unit manifest | `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` names that path with the matching LF sha256 |
+| Official measure | `python command-center/p2-wave/_measure_one_delivered.py AUD-0085` → **SUCCESS:delivered** |
+
+Packed census (receipt headline): decode-attempted **32029**, invalid UTF-8 **279** (text-scope **2**), BOM **11**, read errors **0**, parse-first mojibake **8** (all path-specific strict consumers), plugin manifests **427** / anomalies **0**. The measure re-walk saw one extra concurrent file (`32030` / `280`); that was recorded, not chased.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:09:36Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the return artifact if present, and resume toward contract-green without touching git or the global catalog.Existing return already claims DELIVERED; I’ll re-measure live, inspect the catalog unit and probes, and only pack if the gate is actually green.Catalog row and probe scripts are already in place. I’ll validate the current receipt, re-run the named probes live, then pack and measure.Controls still discriminate. Next I’ll re-run the full encoding census, pack from those live outputs, then measure.Three read errors are concurrent ADV-0121 fixtures that vanished mid-walk, not a detector failure. I’ll make the packer record those paths honestly, then pack and measure.Measure printed `SUCCESS:delivered`. I’ll write the return artifact from these live hashes and note the concurrent-tree drift without chasing it.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+AUD-0085 is G-1 contract-green on this worktree. Existing named probes were resumed, not rebuilt from scratch.
+
+Live re-runs both exited 0:
+- `encoding_census.py` — Probe 1 (strict UTF-8 + BOM per regular file) and Probe 2 (parse-first characteristic-prefix mojibake)
+- `control_check.py` — fires on the double-decoded fixture, stays silent on correct non-ASCII and on U+00D7 U+00A5, any-non-ASCII mutant goes red
+
+Packed receipt (not a one-word SUCCESS flip):
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50554 bytes, sha256 `388658ab2de43fcc659bd38f1907f42b9791b0f2670dacfa2ec533144f7b12b7`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` names that path with the same LF sha256 (STRUCTURAL-CONDITION-11 option 1)
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json` written
+
+Headline from the pack walk: decode-attempted **32030**, invalid UTF-8 **280** (2 text-scope), BOM **11**, parse-first mojibake **8** (all path-specific consumers; extension-only **0**). Three ADV-0121 fixture paths vanished mid-walk (`FileNotFoundError`); the measure re-walk saw the same 32030/280 with those three readable again. That concurrent-tree noise was recorded, not chased.
+
+cloud `ok=true` is not this delivery. No git mutation, no global `unit_manifest.py --write`.
+
+===== launch 2026-08-19T18:15:27Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the return artifact if it exists, and resume toward G-1 without scraping built probes.The probe tree is already populated. Next I’ll read the return artifact, catalog row, and measurement contract so we resume from the real gap.Prior return already claims DELIVERED. I’ll read the measure script and live probes so we re-verify instead of trusting that receipt.The measure gate re-runs probe `.py` files with a 180s cap. I’ll inspect default probe entrypoints and the ready-units predicate next.Live probe1 already drifted from the packed receipt. I’ll validate the schema and re-run named probes so the artifact matches this session.I’ll re-run the named probes live, then pack from those outputs so the receipt is not the stale prior pack.The census is still running past the default timeout, so I’m waiting on it and will speed up the no-args path if it can’t finish inside the 180s measure cap.Live census is green: 32030 files, 280 invalid UTF-8, 0 read errors. I’ll re-run the control, pack from those outputs, then measure.Measure is green. I’ll drop the leftover “0 files vanished” residual so the receipt stays honest, then re-pack and re-measure.Measure printed `SUCCESS:delivered`. I’ll confirm the manifest still matches the receipt, then write this session’s return artifact.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 for this unit is green. Named probes were resumed, not rebuilt: `encoding_census.py` and `control_check.py` both exited 0 on a live re-run (~39.5s). Cloud-ok harvest `UNIT-COMPLETE` around `state=BLOCKED` was left as a refute, not treated as delivery.
+
+This-session census (scope excludes the probe tree and the catalog output file):
+
+| Signal | Count |
+|---|---|
+| files decode-attempted | 32030 |
+| UTF-8 ok | 31750 |
+| invalid UTF-8 | 280 (2 text-scope) |
+| BOM | 11 |
+| read errors | 0 |
+| parse-first mojibake | 8, all path-specific strict consumers |
+| plugin manifests | 427, anomalies 0 |
+
+The detector still fires on the double-decoded fixture, stays silent on correct non-ASCII and on U+00D7 U+00A5, and the any-non-ASCII mutant goes red.
+
+Packed artifacts:
+
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 bytes, sha256 `8fd35c1b2d76de949ea491357f0b8abf123570845aed6f85f106aea23640e6fd`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit Condition 11 row, hash matches
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Global `unit_manifest.py --write` was not run. Git was not mutated.
+
+===== launch 2026-08-19T18:22:31Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and resume from `SUBAGENT-RETURN.json` rather than rebuilding.Existing probe files are in place. Next I’ll read the return artifact, measure script, and unit catalog so we resume from the last honest state.Prior return says DELIVERED, but counts may have drifted. I’ll inspect the catalog unit, probe scripts, and packing path before a live re-run.Catalog and schema details next, then I’ll re-run the named probes against the live tree.The receipt already schema-validates. Next I’ll re-run the named probes live, then pack from those results.The census is still walking the tree; I’ll wait on that run rather than restarting it.Census exited 0 with stable counts. Next I’ll run the control validator and pack the receipt from those live files.Live hashes match. I’ll write the return artifact, then run the delivery measure.SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+
+Resumed the existing probe tree. Live named probes re-ran and both exited 0:
+
+- `encoding_census.py` — 39.12s, `PROBE-1-COMPLETE` / `PROBE-2-COMPLETE`, production detector fires on the double-decoded fixture, silent on correct non-ASCII and U+00D7 U+00A5
+- `control_check.py` — `SUCCESS:AUD-0085-control-validator`
+
+Live census (stable vs the prior packed run): 32030 files, utf8_ok=31750, utf8_error=280, invalid_text=2, BOM=11, read_errors=0, parse-first mojibake=8 with extension-only=0.
+
+Packed an honest `state=SUCCESS` receipt (schema errors=0, 50258 bytes, sha256 `d8e656814ac732ff557da475c9cfc45660f0d67a0b3a782fe90b560dec6effcf`) and registered it only on the per-unit `UNIT-ARTIFACT-MANIFEST.json` (STRUCTURAL-CONDITION-11 option 1). Global `unit_manifest.py --write` was not invoked. Cloud-ok harvest wrapping BLOCKED is still not delivery.
+
+===== launch 2026-08-19T18:27:36Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the claim-verify-gate skill, then measure what still blocks G-1.I'll read the existing return artifacts and the measure script so we resume from the current probe state, not a fresh rebuild.Prior return claims DELIVERED; I'll inspect the catalog predicate, probe scripts, and receipt before re-running the live named probes.Catalog lookup for AUD-0085 came up empty, so I'll check `ready_units` and the prior worker sessions before re-running probes.Control check passed. Next I’ll confirm the delivery predicate, refresh the census probe, then pack and measure.The census probe is still running; I’ll wait for it and check whether the 180s measure timeout is the real blocker.Census re-run exited 0 with stable counts. I'll pack the receipt from those live sidecars, then run the delivery measure.Measure printed `SUCCESS:delivered`. I'll record that line in `SUBAGENT-RETURN.json` and confirm the per-unit manifest hash still matches.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 is contract-green for this unit. Resumed the existing probe tree; did not scrap it. Cloud-ok harvest wrapping `state=BLOCKED` was left as STILL-OPEN and is not delivery.
+
+Live named probes (this session):
+- `python -B command-center/p2-wave/probes/AUD-0085/encoding_census.py` exit 0 in 38.55s — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, `CONTROL-PASS:PRODUCTION-DETECTOR`, `EXPECTED-RED:NONASCII-MUTANT`, `COLLISION-SILENT:U+00D7-U+00A5`
+- `python -B command-center/p2-wave/probes/AUD-0085/control_check.py` exit 0 — both-states control plus mutant plus required-control markers
+
+Census (stable vs prior packed run): `path_count=32030` `utf8_ok=31750` `utf8_error=280` `invalid_text=2` `bom=11` `read_errors=0` `mojibake=8` `proven_strict=8` `extension_only=0`
+
+Written:
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, schema errors=0, 50258 bytes, sha256 `8e2c55ad033a1b05f217f855e53db562f90b372ad6651890d8b5401675feb7ee`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit row, hash matches live LF bytes (STRUCTURAL-CONDITION-11 option 1)
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Constraints kept: no git mutations, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:38:41Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the return artifact, and resume from what's already built instead of scrapping it.Existing probes and receipts are in place. Next I’ll read the catalog unit, current artifacts, and the G-1 gate so we resume from that tree instead of rebuilding.The prior return already claims DELIVERED. I’ll re-measure live state and inspect the catalog unit, probes, and `ready_units` so we don’t trust that claim.The prior receipt looks complete on paper. I’ll confirm the catalog row, schema, packer, and a live measure so we don’t treat that as delivery.I’ll pull the catalog row and run a live measure now, then re-run the named probes if that gate is still red.Current receipt already validates. I’ll re-run the named probes live, then repack so this session’s measure isn’t resting on stale sidecars.The census is still running past the prior 38s, which would fail the 180s measure gate. I’ll inspect progress and where the walk is spending time.Census re-ran in 39s with the same counts. Next I’ll run the control validator, pack from those live files, and measure.Controls and independent falsification both passed. Packing the receipt from those live sidecars next, then measuring.Measure printed `SUCCESS:delivered`. I’ll capture live hashes and write the honest return artifacts.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/AUD-0085/` (did not scrap it). Cloud-ok `UNIT-COMPLETE` wrapping `state=BLOCKED` is still not delivery.
+
+Live named probes this session:
+- `python -B command-center/p2-wave/probes/AUD-0085/encoding_census.py` — exit 0 in 39.07s
+- `python -B command-center/p2-wave/probes/AUD-0085/control_check.py` — exit 0
+
+Headline census (stable vs prior pack): **32030** files, **31750** UTF-8 ok, **280** invalid UTF-8, **2** invalid text-scope, **11** BOM, **0** read errors, **8** parse-first mojibake (all path-specific strict consumers; extension-only=0). Production detector fires on the double-decoded fixture and stays silent on correct non-ASCII and U+00D7 U+00A5; the any-non-ASCII mutant goes red.
+
+Packed `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` (`state=SUCCESS`, 50258 bytes, sha256 `7e088feb53b63a37764421826864a9bdae1f2a4f18e52b4e6ec0de5d25b3dd25`). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching LF sha256. Global `unit_manifest.py --write` was not invoked. Git was not mutated.
+
+Catalog Claude-reviewer requirement remains a recorded PARTIAL residual; this remasure used live re-runs plus filesystem re-decode/reparse of the headline locators, not a unused-context Claude falsifier.
+
+===== launch 2026-08-19T18:47:34Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the claim-verify-gate skill, then resume what's already built instead of scrapping it.I'll read the existing return/manifest plus the measure script so we resume from the current unit state instead of rebuilding.Existing artifacts claim DELIVERED; I’ll inspect the catalog contract and live probes next, then re-run rather than trust that receipt.The probe tree is already in place. Next I’ll pull the catalog unit and `ready_units` contract, then re-run the live probes.I'll re-run the existing named probes and pack from those live results, then measure. The prior DELIVERED claim is not trusted until this session's measure prints `SUCCESS:delivered`.The census is still running after the default timeout; I’ll wait for it to finish and then pack from those live outputs.Census exited 0 with the same headline counts plus 15 vanished-file read errors. Next I’ll run the control check and independently re-derive those counts.Control check passed. I’ll independently re-derive the headline counts from the live probe JSON, then pack.Independent falsify held. Next I’ll pack the receipt and per-unit manifest, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this session’s live re-runs, pack, and independent falsify.**SUCCESS:delivered** AUD-0085 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (Alternative A). Did not rebuild ADV/AUD/PVP, did not hand-flip the CLOUD-OK harvest, and did not run `unit_manifest.py --write`.
+
+Live named probes this session:
+- `encoding_census.py` exit 0 (39.14s) — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production control pass, mutant red, U+00D7 U+00A5 silent
+- `control_check.py` exit 0 — self-test + required-control SUCCESS
+
+Independent falsify of the headline locators also passed: `32030 = 31735 + 280 + 15` at pack time; both invalid text-scope files still fail UTF-8; all 11 BOM paths still carry a BOM; all 8 mojibake files re-parse with spans; `claimed_strict == proven_strict == 8`; extension-only = 0.
+
+Packed honest non-BLOCKED receipt + per-unit manifest:
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50561 bytes, sha256 `1999976de041d6c9e3e17d812e82d678c33571a238acc6f99214011f408f605a`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — same sha256
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Census headline: 32030 files, 280 invalid UTF-8 (2 text-scope), 11 BOM, 8 parse-first mojibake with path-specific consumers. Pack-time Probe 1 saw 15 vanished files from concurrent sibling trees (recorded as PARTIAL, not decode failures); the later measure re-run recorded `read_errors=0` with the same 280/2/11/8 headline.
+
+CLOUD-OK `ok=true` is still not delivery. Residual: catalog asked for an unused-context Claude falsifier; this remasure used grok re-derivation plus filesystem re-decode/reparse.
+
+===== launch 2026-08-19T18:52:54Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the measurement contract so we can resume rather than rebuild.Existing probes are in place; next I’ll read the catalog entry, SUBAGENT-RETURN, and the delivery predicate so we resume from the real failure.Prior session claimed DELIVERED; I’ll re-run the live measure and inspect the probes and predicate instead of trusting that receipt.I’ll inspect the packer and census entrypoints, then run the live measure.I’ll re-run the named probes live, independently check the headline counts, then pack and measure.Census is still running past the prior 39s; I’ll check whether the walk is stuck or the tree grew past the 180s measure cap.Named census exited 0 in 39s. Next I’ll re-run the control script and independently re-check the headline counts.Controls and independent falsify both passed. I’ll pack the receipt and per-unit manifest next.Measure printed `SUCCESS:delivered`. I’ll write an honest SUBAGENT-RETURN from this session’s live re-runs.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 for this unit is green on `/opt/p2/ast-integrate`. Cloud-ok wrapping `BLOCKED` was not treated as delivery. Existing probes were resumed, not rebuilt.
+
+**Live named probes (exit 0)**
+- `python -B command-center/p2-wave/probes/AUD-0085/encoding_census.py` — 39.01s; `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production detector PASS, non-ASCII mutant RED, U+00D7 U+00A5 silent
+- `python -B command-center/p2-wave/probes/AUD-0085/control_check.py` — both-states + mutant + live raws PASS
+
+**Independent falsify (did not import `encoding_census.py`)**
+- `31750+280+0 = 32030`
+- two text-scope invalid UTF-8 files still fail on re-decode
+- 11 BOM rows re-checked, 0 mismatches
+- 8 mojibake files re-parsed with leaf spans; claimed_strict = proven_strict = 8; extension-only = 0
+
+**Artifacts**
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 bytes, sha256 `b2db7f449431e70c47a9e04ce879685977eeea1a46540f5d6e127a4b50707ca0`, schema errors 0, contract discriminates
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit row matches live LF sha256 (STRUCTURAL-CONDITION-11 option 1; global `unit_manifest.py --write` not run)
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+**Honesty residual:** catalog asked for a fresh-context Claude falsifier. This pass used grok re-derivation plus independent filesystem re-decode/reparse. That is recorded as PARTIAL, not as a Claude review.
+
+===== launch 2026-08-19T18:59:14Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the delivery contract, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return artifact, the unit catalog row, and the measurement script so I know what “delivered” actually requires.Prior session already marked this DELIVERED. I’ll inspect the catalog contract and probes, then re-run the live measure so we know whether that still holds.The probe scripts look complete. I’ll read the rest of the census runner and the current receipt, then re-run the named probes from this tree.The tree already has a SUCCESS receipt; I’ll re-run the live probes and independently check the contract so we don’t treat the old pack as delivery.Control already passes and the receipt still validates. Next I’ll re-run the full census and independently re-derive the headline counts so packing isn’t just a copy of last session.The census exceeded 180s, which is also the measure-script timeout. I’ll watch the run and, if needed, speed the walker so a live re-run can still exit 0.Census re-ran clean in 39s with the same headline counts. Next I’ll independently re-derive those counts, then pack and measure.Pack is green with a new hash. I’ll write the return artifact, confirm the per-unit manifest row, then run the delivery measure.The per-unit manifest now matches the live receipt hash. I’ll write `SUBAGENT-RETURN.json` and run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll record that live result in `SUBAGENT-RETURN.json`.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+AUD-0085 is G-1 contract-green on this worktree. The existing probe tree was resumed; named scripts were re-run, not rebuilt.
+
+What this session did:
+- Re-ran `encoding_census.py` (exit 0, 39.36s): `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production control pass, non-ASCII mutant red, U+00D7 U+00A5 silent.
+- Independently re-derived headline counts without importing `encoding_census`: `32030 = 31750 + 280 + 0`; both invalid text-scope files still fail UTF-8; 11 BOMs match; 8 mojibake files reparse with leaf spans; claimed=proven=8; extension-only=0.
+- Re-ran `control_check.py` (exit 0).
+- Packed a non-BLOCKED `state=SUCCESS` receipt (`schema_errors=0`, 50258 bytes, sha256 `9a1cf870db6b45379934043c716aa2da2b3f76cc62aabd97c6687059bf941c8c`).
+- Wrote the per-unit `UNIT-ARTIFACT-MANIFEST.json` row (STRUCTURAL-CONDITION-11 option 1). Did not run global `unit_manifest.py --write`.
+
+Artifacts:
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json`
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json`
+
+Honesty residual: the catalog asks for a fresh-context Claude falsifier. This remasure used a grok re-derivation plus filesystem re-decode/reparse. Cloud-ok harvest `UNIT-COMPLETE` wrapping `state=BLOCKED` is still not delivery.
+
+===== launch 2026-08-19T19:05:08Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the unit contract, then resume from whatever is already built rather than starting over.The probe tree is already populated. Next I’ll read the return file, the per-unit manifest, and the measurement contract so I can resume from the last honest state.Prior session already claimed DELIVERED; I’ll inspect the probe scripts, current receipt, and the delivery predicate so I can re-run and measure honestly rather than trust that claim.Measure re-runs the probe scripts after hashing, so I need to confirm whether a no-args run rewrites the receipt and would desync the per-unit manifest.Probes already exist and look complete. I’ll re-run them live, independently check the headline counts, then pack and measure.Census is still running past the default timeout. I’ll wait for it and time the run, because the measure gate fails if a named probe exceeds 180s.Census exited 0 in 38.7s with the same headline counts. Next I’ll re-run the control validator and independently re-derive those counts without importing the probe module.Independent falsify passed, and both named probes exited 0. I’ll pack the receipt and per-unit manifest next, then run the delivery measure.Receipt and per-unit manifest are packed. I’ll write this session’s SUBAGENT-RETURN, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll record that result in SUBAGENT-RETURN so the unit artifact matches what this session actually measured.**SUCCESS:delivered** AUD-0085 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 for this unit only is green. Cloud `ok=true` was not treated as delivery.
+
+What was done (resumed the existing probe tree; no rebuild circle):
+
+- Re-ran `encoding_census.py` (exit 0, 38.69s) and `control_check.py` (exit 0).
+- Independent falsify (no import of `encoding_census`): `31750 + 280 + 0 = 32030`; both invalid-text files still fail UTF-8; 11 BOMs match; 8 mojibake files reparsed with spans; production detector fires on the double-decoded fixture and stays silent on correct non-ASCII and U+00D7 U+00A5; any-non-ASCII mutant goes red.
+- Packed `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` with `state=SUCCESS` (50258 bytes, sha256 `0fb02ab10de383af6b2e41399f7b7572a41d1eea248a4640adbe3d679c7eef07`).
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` registers that path/hash (STRUCTURAL-CONDITION-11 option 1). Global `unit_manifest.py --write` was not invoked.
+
+Live census: 32030 files, 280 invalid UTF-8 (2 text-scope), 11 BOMs, 8 parse-first mojibake all with path-specific strict consumers, extension-only=0.
+
+Residual (honest, not BLOCKED): catalog asked for a fresh-context Claude falsifier; this remasure used grok plus filesystem re-decode/reparse.
+
+===== launch 2026-08-19T19:09:45Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read any return artifact, and resume from what's already built rather than scrap it.The probe tree is already populated. Next I’ll read the return artifact, the measure contract, and the unit’s current status so we resume instead of rebuilding.Prior return already claims DELIVERED. I’ll verify the live receipt, probes, and catalog contract before trusting that or packing a new one.The catalog receipt is already `state=SUCCESS`, but the primary hash looks like a placeholder. I’ll inspect how packing and `encoding_census.py` write that file before re-running anything.Current receipt already validates and matches the per-unit manifest. I’ll re-run the named probes so delivery is live, then pack and measure.The census is still running past the previous ~39s timing. I’ll wait on it and check whether the tree or I/O load is what’s slowing the probes.Census re-ran cleanly with the same headlines. Next I’ll re-run the control validator and independently re-check those locators without importing the census script.Controls and independent falsify both passed. I’ll pack the receipt and per-unit manifest, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll confirm the per-unit manifest still matches the live receipt, then write `SUBAGENT-RETURN.json`.**SUCCESS:delivered** for AUD-0085.
+
+```
+SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+```
+
+Resumed the existing probe tree (did not scrap it). Live named probes re-ran exit 0:
+
+| Probe | Command | Exit | Markers |
+|---|---|---|---|
+| Probe 1+2 | `encoding_census.py` | 0 in 38.21s | `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, both-states + mutant + U+00D7/U+00A5 |
+| Control | `control_check.py` | 0 | `SUCCESS:AUD-0085-control-validator` |
+
+Independent falsify (does **not** import `encoding_census.py`) re-decoded the two invalid-text files, re-parsed all 8 mojibake locators with spans, and confirmed arithmetic `utf8_ok + utf8_error + read_errors == path_count`. Result: `SUCCESS:independent-falsify-pass`.
+
+Catalog receipt is honest non-BLOCKED:
+
+- path: `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json`
+- `state=SUCCESS`, schema errors=0, `registered=true` on the **per-unit** manifest
+- sha256 `119a75b4b7ac1717fc2476cb47700918a4cb493879eaf69952d4083bb409d98b` matches `UNIT-ARTIFACT-MANIFEST.json`
+
+Live headlines: 32030 files, 280 invalid UTF-8 (2 text-scope), 11 BOM, 8 parse-first mojibake with proven strict consumers, extension-only=0.
+
+Constraints kept: no git mutations, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok harvest remains `STILL-OPEN` and is not this delivery.
+
+Residual (recorded, not hidden): catalog asks for a fresh-context Claude falsifier; this session used grok plus filesystem re-decode/reparse.
+
+===== launch 2026-08-19T19:16:23Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the claim-verify gate, then resume whatever is already built rather than scrap it.Existing artifacts are in place; next I’ll read the return, the per-unit manifest, and the measure script so I can resume from the real state.Prior receipt claims DELIVERED; I’ll inspect the named probes, catalog row, and packer, then re-run them live instead of trusting that file.I'll read the rest of the census probe, the catalog unit, and `ready_units` so the live re-run matches the G-1 contract.Catalog row and current receipt are next; then I’ll re-run the named probes from the existing tree.Probes are already built. I’ll re-run them live, independently check the headline counts, then pack and measure.Independent falsify already passed on the existing locators. Waiting on the live census re-run, then I’ll re-check the new counts.Census exited 0 with the same headline counts. Next I’ll run the control probe, pack the receipt, and remasure.Receipt and per-unit manifest hashes match. Running the official G-1 measure next.Measure printed `SUCCESS:delivered`. I’ll write this session’s return file and confirm the receipt hash still matches the per-unit manifest.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 is green for this unit. Existing named probes were resumed and re-run, not rebuilt.
+
+**Live probes (exit 0)**
+- `encoding_census.py` — 38.47s: `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, `CONTROL-PASS:PRODUCTION-DETECTOR`, `EXPECTED-RED:NONASCII-MUTANT`, `COLLISION-SILENT:U+00D7-U+00A5`
+- `control_check.py`: self-test + required-control + validator all SUCCESS
+
+**Census (this remasure)**
+| count | value |
+|---|---|
+| decode-attempted | 32030 |
+| utf8_ok / utf8_error / read_errors | 31750 / 280 / 0 |
+| invalid UTF-8 text-scope | 2 |
+| BOM | 11 |
+| parse-first mojibake (all path-specific strict) | 8 |
+| extension-only strict | 0 |
+
+Independent falsify did **not** import `encoding_census.py`. Arithmetic closed, both invalid text files still fail UTF-8, all 8 mojibake locators still have leaf spans, BOM signatures still match, U+00D7 U+00A5 stays silent, any-non-ASCII mutant goes red.
+
+**Artifacts**
+- Receipt: `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 B, sha256 `bf8050d7dff348a5809f501b910371d8d059bc826583abf6a9a7d54dc90dba29`
+- Per-unit row: `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` (hash matches; global `unit_manifest.py --write` not invoked)
+- Return: `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Cloud-ok harvest (`UNIT-COMPLETE` wrapping `BLOCKED`) is still not delivery. Catalog reviewer residual remains **PARTIAL**: this remasure used an independent grok re-derivation, not an unused-context Claude falsifier. No git writes, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T19:22:15Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the claim-verify gate, then resume rather than rebuild.Existing AUD-0085 artifacts are present. I'll read the return file, unit manifest, and the delivery measurer next.Prior return claims DELIVERED; I'll re-run the live probes and the delivery measure instead of trusting that receipt.I'll check the live receipt against the gate, then re-run the named probes and the delivery measure.I'll re-run the live named probes and independently re-derive the headline counts in parallel.The census is still running past the previous ~38s. I'll wait for it and check whether it can stay inside the 180s measure timeout.Named census probes exited 0. Next I'll re-run the control check and independently re-derive the headline counts.Independent falsify passed. I'll pack the receipt and per-unit manifest, then run the official delivery measure.Measure printed `SUCCESS:delivered`. I'll write this session's return file and confirm the per-unit manifest still matches the live receipt.**SUCCESS:delivered** AUD-0085.
+
+G-1 for this unit is green. I resumed the existing probe tree instead of rebuilding it. `python command-center/p2-wave/_measure_one_delivered.py AUD-0085` printed:
+
+`SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+**This session**
+- Re-ran `encoding_census.py` (exit 0, 38.67s) and `control_check.py` (exit 0).
+- Independent falsify did **not** import `encoding_census.py`: walk count 32030 matches; `utf8_ok + utf8_error + read_errors = path_count`; both invalid text files still fail UTF-8; 11 BOM rows still match; all 8 mojibake files still have leaf spans; U+00D7 U+00A5 stays silent; the any-non-ASCII mutant goes red.
+- Packed an honest `state=SUCCESS` receipt (schema errors 0) and the per-unit manifest.
+
+**Live census**
+| Field | Value |
+|---|---|
+| path_count | 32030 |
+| utf8_ok / utf8_error / read_errors | 31750 / 280 / 0 |
+| invalid UTF-8 text-scope | 2 |
+| BOM | 11 |
+| parse-first mojibake / proven strict / extension-only | 8 / 8 / 0 |
+
+**Artifacts**
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 bytes, sha256 `7a155a8bb6090bff4a0e218607b2ddc70836cd68169501e3124dbcd4aec5a40d`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — same path/hash
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Constraints held: no git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` is still not treated as delivery. Catalog Claude-reviewer requirement remains a recorded residual, not a hand-flip.
+
+===== launch 2026-08-19T19:26:54Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the unit's current artifacts so I can resume rather than rebuild.Existing AUD-0085 artifacts and the measure script are next so I can see what already ran and what G-1 still requires.The probe tree is already there; I’ll read the catalog unit, packer, and probe scripts so we can re-run them instead of rebuilding.The catalog lookup missed AUD-0085, so I’m locating the actual catalog and checking whether the current receipt still measures as delivered.Catalog unit and probes are in place. I'll re-run the named probes live, then pack and measure.The census is still walking the tree. I’ll pull the G-1 contract and a delivered-unit return format while that finishes.Named census exited 0. Next I’ll re-run the control validator, independently re-derive the headline counts, then pack the receipt.Both probes and the independent re-derivation passed. Packing the receipt next, then I’ll run the official measure.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` with this session’s live results.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+AUD-0085 is G-1 contract-green on this worktree. Existing probes were resumed, not rebuilt. Cloud `ok=true` was not treated as delivery.
+
+Live re-runs (exit 0):
+- `encoding_census.py` — Probe 1/2 complete; production detector fires on the double-decoded fixture, stays silent on correct non-ASCII and U+00D7 U+00A5; any-non-ASCII mutant goes red
+- `control_check.py` — both-states + required-control SUCCESS
+
+Headline counts (independently re-derived without importing `encoding_census.py`): 32,030 files decoded; 280 invalid UTF-8 (2 text-scope); 11 BOM; 8 parse-first mojibake, all path-specific strict consumers; extension-only=0.
+
+Packed catalog artifact `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` is `state=SUCCESS`, 50258 bytes, sha256 `fd43edaae04b094771dae36b9c786d0f74bd0cca603b34584a729c36925ac8c2`, matching the per-unit `UNIT-ARTIFACT-MANIFEST.json` row.
+
+Written:
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git mutate, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Residual recorded honestly: catalog asked for a fresh-context Claude falsifier; this session used an independent grok re-derivation.
+
+===== launch 2026-08-19T19:32:22Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the measurement contract so we resume rather than rebuild.The probe tree is already there. Next I’ll read the return artifact, the measurement script, and the unit’s existing findings.The prior return already claims DELIVERED. I’ll inspect the live receipt, probe scripts, and `ready_units` predicate before re-running the measure.I'll pull the catalog unit, delivery predicate, and remaining probe/pack code so we can re-run against the live contract.Probes and a SUCCESS receipt already exist. I’ll re-run the live named probes in this session, then pack and measure.Predicate already matches. I’ll inspect the reviewer contract, then re-run the named probes live and pack a fresh receipt.The census is still walking the tree. I’ll draft the independent falsify while that finishes.Census re-ran cleanly. Next I’ll run the control check and the independent falsify, then pack the receipt.Independent walk saw one extra file — the falsify helper I added after the census. I’ll move that script out of the tree and re-measure.The `/tmp` copy lost the repo-relative path. I’ll pin the worktree root and re-run the falsify.Measure printed `SUCCESS:delivered`. I’ll write this session’s `SUBAGENT-RETURN.json` and confirm the per-unit manifest still matches.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+AUD-0085 is G-1 contract-green for this unit. Existing named probes were resumed, not rebuilt.
+
+**Live re-runs (exit 0)**
+- `encoding_census.py` — Probe 1/2 complete; production detector fires on the double-decoded fixture, stays silent on correct non-ASCII and U+00D7 U+00A5; any-non-ASCII mutant goes red
+- `control_check.py` — self-test and required-control SUCCESS
+- Independent falsify (does not import `encoding_census`) — path set, BOM, invalid-text, and 8 parse-first mojibake rows all match
+
+**Headline (this tree)**  
+32,030 files decoded: 31,750 UTF-8 ok, 280 invalid, 2 text-scope invalid, 11 BOM, 8 mojibake with path-specific strict consumers, extension-only=0.
+
+**Artifacts**
+- Catalog receipt `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, schema errors=0, 50258 bytes, sha256 `3a7622eed1f59cc1a51e09bba40124c869f5d1657afa3114322f2cfa330372b7`
+- Per-unit `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — sha256 matches
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Cloud-ok harvest wrapping `BLOCKED` is still not delivery. Global `unit_manifest.py --write` was not invoked. Catalog still asks for a fresh-context Claude falsifier; this session recorded that as a PARTIAL residual, not a hand-flip.
+
+===== launch 2026-08-19T19:39:18Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and return artifact, then measure what still blocks G-1.Existing return claims DELIVERED; I’ll read the measure script, per-unit manifest, and catalog so I can re-run live instead of trusting that.Prior return already claims SUCCESS. I’ll inspect the catalog unit, live probes, and receipt so this session can remasure instead of inheriting that claim.I'll inspect the receipt, schema, `artifact_delivered`, and remaining census code before a live remasure.Named probes already exist; I’ll re-run the census live and independently check headline counts instead of trusting the prior SUCCESS.Census is still walking the tree. I’ll draft the independent falsify and check progress while it runs.Census re-ran exit 0 with the same headline counts. Next I’ll re-run the control script and independently re-derive those counts without importing the census module.Controls and independent falsify both passed. Packing the receipt and per-unit manifest next.Receipt is packed and the per-unit manifest matches. Running the official deliver measure next.Hashes still match. Writing this session's SUBAGENT-RETURN.**SUCCESS:delivered** AUD-0085 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (did not rebuild ADV/AUD/PVP; cloud-ok harvest remains STILL-OPEN and is not this delivery).
+
+Live remasure this session:
+- `encoding_census.py` exit 0 in 38.94s — Probe 1/2 complete, production detector PASS, non-ASCII mutant RED, U+00D7 U+00A5 silent
+- `control_check.py` exit 0 — self-test, required-control, and validator SUCCESS
+- Independent walk (did not import `encoding_census`) matched claimed `path_count=32030` and `path_set_sha256`; both invalid-text JSON files still fail UTF-8; 11 BOM paths re-checked; 8 mojibake files re-parsed with spans; claimed=proven strict, extension-only=0
+- Packed catalog receipt + per-unit manifest (`schema_errors=0`, sha256 `f74d7854afa8f88fdef5794674128023fccde1e1bd2d4bd8dc47ac4c272306d2`)
+
+Headline: 32030 files, 280 invalid UTF-8 (2 text-scope), 11 BOM, 8 parse-first mojibake all with path-specific consumers.
+
+Honesty residual: catalog asked for a fresh-context Claude falsifier; this remasure used an independent grok re-derivation. Global `unit_manifest.py --write` was not invoked.
+
+===== launch 2026-08-19T19:45:12Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, resume whatever is already there, and drive this unit to G-1 contract-green without touching git or the global catalog.The probe tree is already populated. Next I’ll read the catalog contract, current return files, and the measure script so we resume instead of rebuilding.Prior session already claimed delivered; I’ll inspect the live artifact, probe scripts, and `ready_units` predicate, then re-run named probes and measure.I’ll inspect the rest of the probe and pack scripts, then re-run the named probes live.The probe scripts are already in place. I’ll re-run the named probes live, then pack and measure so this session’s delivery isn’t just the prior claim.The census is still running past the default timeout. I’ll check progress and whether it can finish inside the 180s measure window.Named census exited 0 with the same headline counts. Next I’ll re-run the control, independently falsify those counts without importing the census module, then pack.Control and independent falsify both passed. I’ll pack the receipt and per-unit manifest, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll lock the per-unit manifest and write this session’s SUBAGENT-RETURN from the live hashes and probe results.Hashes match. I’ll write this session’s SUBAGENT-RETURN from the live probe, pack, and measure results.**SUCCESS:delivered** AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+
+AUD-0085 is G-1 contract-green for this unit. Existing named probes were resumed, not rebuilt.
+
+Live re-runs this session:
+- `encoding_census.py` exit 0 in 38.72s (`PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production detector PASS, non-ASCII mutant RED, U+00D7 U+00A5 silent)
+- `control_check.py` exit 0
+- Independent falsify (did not import `encoding_census`) matched path_count=32030, path-set SHA-256, 2 still-invalid text files, 11 BOM, 8 parse-first mojibake with proven strict consumers, extension-only=0
+- `_pack_receipt.py` exit 0, schema_errors=0
+
+Receipt: `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` state=SUCCESS, 50258 bytes, sha256 `77d4068acd1a30dcee664bf2bc934c2ec4260b16abf203513cf512a0efb77bab`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches that hash. Global `unit_manifest.py --write` was not invoked. Cloud-ok harvest remains STILL-OPEN and was not treated as delivery.
+
+===== launch 2026-08-19T19:51:17Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the return artifact, and resume from there instead of rebuilding.Prior return claims DELIVERED; I’ll inspect the catalog, probes, and receipt, then re-run live instead of trusting that.The receipt’s primary artifact still has a dummy hash — I’ll check how `artifact_delivered` treats that before re-running probes.Re-running the named census probe live, then I’ll pack from those results instead of the prior receipt.Census exited 0 with the same headline counts. Next I’ll re-run the control validator and independently re-derive those locators.Controls and independent re-derivation both passed. Packing the receipt next, then writing the per-unit manifest.Measure printed `SUCCESS:delivered`. I’ll confirm the per-unit manifest still matches, then write `SUBAGENT-RETURN.json`.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 is green for this unit. Existing named probes were resumed, not rebuilt.
+
+Live re-runs (exit 0):
+- `encoding_census.py` — Probe 1 decode/BOM census + Probe 2 parse-first mojibake detector
+- `control_check.py` — both-states control, any-non-ASCII mutant goes red, U+00D7 U+00A5 silent
+
+Headline (independently re-derived without importing `encoding_census`): 32030 files, 280 invalid UTF-8 (2 text-scope), 11 BOMs, 8 parse-first mojibake hits, all 8 path-specific strict consumers, extension-only=0.
+
+Artifacts:
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 bytes, sha256 `2ab7652f3ab983029673e00b85325c17375cd58539cf46bd37924f793b856c0f`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit row matches live LF sha256
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Cloud-ok harvest remains STILL-OPEN and is not this delivery. Global `unit_manifest.py --write` was not invoked. Catalog still asks for a fresh-context Claude falsifier; this session recorded that as PARTIAL, not a Claude review.
+
+===== launch 2026-08-19T19:57:10Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the unit contract, then resume whatever is already built instead of starting over.There's already a full AUD-0085 probe tree. Next I’ll read the return files, catalog contract, and measure script so I know what “delivered” actually requires.Prior session already claims DELIVERED. I’ll re-check the catalog contract and the measure script so this run is judged on live probes, not that claim.I’ll inspect the current receipt, `ready_units` predicate, and probe scripts next so we can re-run the live named probes instead of trusting the prior DELIVERED stamp.The receipt is already `state=SUCCESS`. I’ll read the packer, the rest of the census script, and the schema so a live re-run can be packed honestly.Existing probes look complete. I’ll re-run them live, independently check the headline counts, then pack and measure.The census walk is still running and already past 120s — that will miss the measure script’s 180s cap, so I’m checking runtime while I look at a single-pass walk.Census is green at 38.5s; counts moved to 32031 files and 281 UTF-8 errors. Next I’ll re-run the control, independently check those headlines, then pack.Controls passed. I’ll independently re-walk the tree and re-check BOM, UTF-8, and mojibake headlines without importing the census module.The independent check treated `extension_only_strict_count=0` as missing. I’ll fix that falsy-zero bug and re-run.Independent falsify passed. Packing the live receipt and per-unit manifest next.Measure printed `SUCCESS:delivered`. I’ll confirm the receipt hash still matches the per-unit manifest, then write `SUBAGENT-RETURN.json`.**SUCCESS:delivered** AUD-0085 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+AUD-0085 is G-1 contract-green for this unit. Existing probes were resumed, not rebuilt.
+
+Live named probes re-ran exit 0:
+- `encoding_census.py` — 38.5s, `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production detector fire/silent, mutant red, U+00D7 U+00A5 silent
+- `control_check.py` — both-states + required-control SUCCESS
+
+Headline counts (independent walk, no `encoding_census` import): 32031 files, SHA `01de40aa…`, 281 invalid UTF-8 (2 text-scope, both still fail on re-decode), 11 BOM, 8 parse-first mojibake, extension-only=0.
+
+Honest non-BLOCKED receipt:
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 B, sha256 `1a08392a2c8341f6ca7cb14bbdba2ff64ebe77d729b85d05de647b7c311bf6c8`
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` row matches that hash (STRUCTURAL-CONDITION-11 option 1)
+- Global `unit_manifest.py --write` was not invoked
+- Cloud-ok harvest remains STILL-OPEN and is not this delivery
+
+Residual recorded as PARTIAL: catalog asked for a fresh-context Claude falsifier; this remasure used an independent grok re-walk/re-decode.
+
+===== launch 2026-08-19T20:02:28Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the unit's current artifacts, then resume delivery without touching git or the global catalog.The probe tree is already populated. Next I’ll read the catalog unit, current return files, and how delivery is judged.Prior return claims DELIVERED — I’ll re-run the live probes and the measure gate instead of trusting that receipt.I'll inspect the rest of the pack/census scripts and re-run the named probes on this worktree.Existing probes look complete. I’ll re-run them live, then pack and measure so the gate is based on this worktree, not the prior receipt.The catalog artifact already validates. Next I’ll re-run the named probes on this tree so the delivery gate is live, then pack and measure.The census is still walking the tree. I’ll wait for it to finish rather than restarting the probes.Census re-ran clean with the same headlines. Next I’ll run the control check, independent falsify, and pack.Measure printed `SUCCESS:delivered`. I’ll confirm the per-unit manifest hash still matches the live artifact, then write `SUBAGENT-RETURN.json`.Manifest hash matches the live receipt. I’ll write this session’s `SUBAGENT-RETURN.json` from the live re-runs, not the prior claim.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (did not scrap it). Cloud-ok harvest remains `STILL-OPEN` and is not this delivery.
+
+Live named probes this session:
+- `encoding_census.py` exit 0 — Probe 1/2 complete; production detector fires on the double-decoded fixture and stays silent on correct non-ASCII and U+00D7 U+00A5
+- `control_check.py` exit 0 — both-states, mutant, and required-control all SUCCESS
+- Independent falsify (does not import `encoding_census`) also passed
+
+Live census: 32031 files, 281 invalid UTF-8 (2 text-scope), 11 BOM, 8 parse-first mojibake with proven strict consumers, extension-only=0.
+
+Artifacts:
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 bytes, sha256 `5f81908962f8983103b63f6b847606a6ee74431eabe7a25dd93ef3f661934d34`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit row matches that hash
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Constraints kept: no git, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Catalog Claude reviewer was not dispatched; that residual is recorded as PARTIAL.
+
+===== launch 2026-08-19T20:07:16Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and the unit measurement contract, then resume rather than rebuild.Existing probes are present. Next I’ll read the return file, catalog row, and current artifacts so we resume from that state.Prior return claims DELIVERED. I’ll re-run the live probes and the official measure instead of trusting that file.Probes and packer are already in the tree. I’ll re-run the named census and control scripts, then pack and measure from those live results.Census is still walking the tree. I’ll wait on that run and inspect current probe outputs in parallel.Census exited 0. Next I’ll run the control checker, independent falsify, and packer from those live outputs.Named probes passed; independent walk drifted by one file under concurrent writers. I’ll pack from the live probe outputs and retry the falsify.Independent falsify is a 1-file walk race, not a detector failure. I’ll record that residual, re-pack, then run the official measure.Measure printed `SUCCESS:delivered`. Writing this session’s `SUBAGENT-RETURN.json` against the already-packed per-unit manifest.**SUCCESS:delivered** AUD-0085.
+
+Resumed the existing probe tree (no rebuild, no cloud-ok flip). Live named probes re-ran exit 0, the catalog artifact is honest `state=SUCCESS` (not BLOCKED), and the per-unit manifest row matches the live LF sha256.
+
+Official measure:
+
+```text
+SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+```
+
+| Gate | Result |
+|---|---|
+| Probe 1 `encoding_census.py` | exit 0, `PROBE-1-COMPLETE:AUD-0085` |
+| Probe 2 / control `control_check.py` | exit 0, both-states + mutant + U+00D7 U+00A5 |
+| Artifact | `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` `state=SUCCESS` |
+| Per-unit manifest | `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` sha256 match |
+| Global `unit_manifest.py --write` | not invoked |
+
+Live census packed into the receipt: **32032** files, **281** invalid UTF-8, **2** invalid text-scope, **11** BOM, **8** parse-first mojibake (all path-specific strict consumers; extension-only=0). Production detector fires on the double-decoded fixture and stays silent on correct non-ASCII and on U+00D7 U+00A5.
+
+Independent falsify (does not import `encoding_census`) re-verified those locators and controls, but the full-tree re-walk was **32031 vs 32032** under concurrent sibling writers. That is recorded as a PARTIAL residual, not a second structural cloud-ok refute, and the unit was not parked. Catalog reviewer remains the unused-context Claude falsifier (also PARTIAL). Cloud-ok harvest is still not delivery.
+
+===== launch 2026-08-19T20:13:33Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the return artifact if it's there, and resume rather than rebuild.Existing probes and return artifacts are in place. Next I’ll read those files and the measurement contract so we resume from the real state.The prior return already claims DELIVERED, so I’ll inspect the catalog, packer, and probes, then re-run them instead of trusting that claim.Catalog lookup missed the unit in the obvious file, so I’m locating the live catalog row and starting a fresh probe re-run.The catalog slice has AUD-0085; I’m checking whether the live catalog that `ready_units` reads includes it, then I’ll re-run the named probes.Current receipt already validates. I'll re-run the named probes this session, then pack and measure.The census is still walking the tree. I’ll wait on it and inspect the independent falsifier in the meantime.Census exited 0. Next I’ll run the control check and independent falsify, then pack.Independent falsify now matches the live walk. Packing the receipt and writing the per-unit artifacts next.Measure printed `SUCCESS:delivered`. I’ll write this session’s return artifact and confirm the per-unit manifest still matches.**SUCCESS:delivered** for AUD-0085.
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0085` printed:
+
+`SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree. Did not scrap scripts, did not treat cloud-ok as delivery, and did not rebuild ADV/AUD/PVP.
+
+**This session**
+- `encoding_census.py` exit 0 — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production detector PASS, non-ASCII mutant RED, U+00D7 U+00A5 silent
+- `control_check.py` exit 0 — self-test, required-control, validator SUCCESS
+- `_pack_independent_falsify.py` exit 0 — walk matches probe1 (`32031` / `32031`, sha256 match); 2 invalid-text files still fail UTF-8; 11 BOM rows rematch; 8 mojibake leaves re-confirmed
+- `_pack_receipt.py` wrote a schema-valid `state=SUCCESS` receipt (not BLOCKED)
+
+**Live census:** 32031 files decoded; 281 invalid UTF-8 (2 text-scope); 11 BOM; 8 parse-first mojibake, all path-specific strict consumers; extension-only=0.
+
+**Artifacts**
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — 50258 B, sha256 `f10127ba6163f7effcc0b3a2a58ac3dbf3e51e90adbad93a5f01e638606be791`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — same path/hash
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no wave relaunch. Cloud-ok harvest remains STILL-OPEN and is not this delivery.
+
+===== launch 2026-08-19T20:18:30Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the return artifact, and resume from what's already built rather than rebuilding.I'll read the current return artifacts and the measurement contract so we resume from the real gap, not a rebuild.Existing probes claim DELIVERED; I’ll check the catalog unit, packer, and live measure so we know whether that’s still true.I’ll inspect the receipt and `ready_units` predicate, then run a live measure to see whether the prior DELIVERED claim still holds.Hashes still match and the receipt is SUCCESS. Next I’ll re-run the named probes live, then pack and measure.Census is still walking the tree; I’ll wait on that run, then pack from its live output.Census completed with one extra path versus the prior receipt. I’ll re-run the control and independent falsify, then pack from these live numbers.Both named probes and the independent falsify passed. Packing the receipt from these live counts next.Measure printed `SUCCESS:delivered`. I’ll write the return artifact from this session’s live commands and counts.**SUCCESS:delivered** for AUD-0085.
+
+Resumed the existing probe tree (did not scrap scripts). Cloud-ok harvest `UNIT-COMPLETE` wrapping `BLOCKED` is not this delivery.
+
+Live re-runs this session:
+- `encoding_census.py` exit 0 (38.69s) — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production detector PASS, non-ASCII mutant RED, U+00D7 U+00A5 silent
+- `control_check.py` exit 0 — self-test + required-control PASS
+- `_pack_independent_falsify.py` exit 0 — did not import `encoding_census`; path_count and `path_set_sha256` matched
+
+Packed catalog receipt `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json`:
+- `state=SUCCESS`, schema errors 0
+- 32032 decode attempts, 281 invalid UTF-8, 2 text-scope, 11 BOM, 8 parse-first mojibake (all path-specific strict consumers)
+- sha256 `59850c69325aefad547447fb557a9a667253ed755903420909434c6d54e83ece`
+
+Registration is the per-unit `UNIT-ARTIFACT-MANIFEST.json` (STRUCTURAL-CONDITION-11 option 1). Global `unit_manifest.py --write` was not invoked.
+
+```
+SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+```
+
+Catalog residual: unused-context Claude falsifier was not dispatched; independent grok re-walk passed.
+
+===== launch 2026-08-19T20:23:37Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read any SUBAGENT-RETURN, and resume toward G-1 contract-green without touching git or the global catalog.Prior session already claimed DELIVERED; I’ll inspect the catalog, probe scripts, and current receipt, then re-run live probes instead of trusting that claim.Catalog lookup and `artifact_delivered` next; then I’ll re-run the live named probes instead of trusting the prior SUCCESS receipt.Catalog membership is the first gate: if AUD-0085 isn’t in `WORK-UNIT-CATALOG.json`, measure fails before probes matter.Current receipt is schema-valid and `artifact_delivered` is true. Next I’ll re-run the named probes live, then pack and measure.Census exited 0 with controls discriminating. Next: control validator, independent falsify, then pack.Packed receipt matches the per-unit manifest. Running the delivery measure next; it re-runs both named probes.Measure printed `SUCCESS:delivered`. Writing the session return next so the probe tree records the live run, not the prior claim.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (no rebuild, no git, no global `unit_manifest.py --write`). Live named probes both exited 0:
+
+| Probe | Result |
+|---|---|
+| `encoding_census.py` | 38.73s, exit 0 — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production control PASS, mutant RED, U+00D7 U+00A5 silent |
+| `control_check.py` | exit 0 — self-test + required-control SUCCESS |
+
+Headline from this walk: **32,032** files, **281** invalid UTF-8, **2** text-scope invalid, **11** BOM, **8** parse-first mojibake with path-specific consumers (extension-only=0). Independent falsify (did not import `encoding_census`) matched `path_count` and `path_set_sha256`.
+
+Packed `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` as **state=SUCCESS**, schema errors=0, **50,258** bytes, sha256 `f9b23089773d85ca27750db54df683be9225bb019479989ef0d3b84d0309550c`, registered on the per-unit `UNIT-ARTIFACT-MANIFEST.json`. Cloud-ok harvest remains STILL-OPEN and was not treated as delivery.
+
+Residual (honest, not blocking G-1): catalog still asks for an unused-context Claude falsifier; this remasure used grok re-derivation plus `_pack_independent_falsify.py`.
+
+===== launch 2026-08-19T20:29:24Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the unit's return artifact, and resume from there instead of rebuilding.The probe tree is already populated. Next I’ll read the return artifact, the measure script, and the catalog row so I know what “delivered” actually requires.Prior return already claims DELIVERED; I’ll inspect the probe scripts and the live receipt so a re-run can confirm that instead of trusting it.I’ll read the delivery predicate and the rest of the pack/probe scripts so the re-run hits the same gate the measure script uses.I’ll re-run the named probes live, and while they run I’ll check the schema and detector so packing stays honest.The census overran 180s, which would fail the measure timeout. I’ll inspect progress and where the walk is spending time.Census finished in 39s with both named probes complete. Next I’ll re-run the control validator and the independent falsify, then pack.Receipt and per-unit manifest match. Running the official delivered-measure next — that re-runs both named probes.Measure printed `SUCCESS:delivered`. I’ll capture the live hashes and write the return artifact from this session, not the prior claim.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree. Did not scrap scripts, did not rebuild ADV/AUD/PVP, and did not treat cloud `ok=true` as delivery.
+
+Live named probes this session, both exit 0:
+
+| Probe | Command | Result |
+|---|---|---|
+| Probe 1+2 + controls | `python -B command-center/p2-wave/probes/AUD-0085/encoding_census.py` | 38.94s, `PROBE-1-COMPLETE` / `PROBE-2-COMPLETE` |
+| Required control | `python -B command-center/p2-wave/probes/AUD-0085/control_check.py` | both-states, mutant-red, U+00D7 U+00A5 silent |
+
+Headline counts (independent falsify did not import `encoding_census.py`; path set matched):
+
+- `path_count=32032` `utf8_ok=31751` `utf8_error=281` `invalid_text=2` `bom=11` `read_errors=0`
+- parse-first mojibake=`8`, all path-specific strict consumers, `extension_only=0`
+
+Receipt `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` is `state=SUCCESS`, schema errors 0, LF sha256 `f9626c6d3c899ab3db9793dc659db906ff45558bedb6ccbf2296f145073b695f`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching hash. Global `unit_manifest.py --write` was not invoked.
+
+Honest residual: the catalog still asks for a fresh-context Claude falsifier of the headline count. That reviewer was not dispatched. Independent grok re-derivation passed; it is not a substitute for that catalog line.
+
+===== launch 2026-08-19T20:35:34Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and resume from whatever is already built, then drive this unit to contract-green without touching git or the global catalog.Prior session already claims DELIVERED; I’ll inspect the catalog unit, probes, and receipt so we can re-run live rather than trust that claim.The receipt is already SUCCESS and schema-clean; I’ll re-run the named probes live, then pack and measure so delivery isn’t just the prior write.Census completed in 38.46s with both probe markers. Next I’ll run the control check and independent falsify, then pack the receipt.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` from this session’s live numbers and confirm the per-unit manifest still matches.**SUCCESS:delivered** AUD-0085 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+G-1 is green for this unit. Named probes were resumed, re-run live, packed into a non-BLOCKED receipt, and `_measure_one_delivered.py AUD-0085` exited 0.
+
+| Gate | Result |
+|---|---|
+| `encoding_census.py` | exit 0 in 38.46s (`PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production/mutant/collision controls) |
+| `control_check.py` | exit 0 (`SUCCESS:AUD-0085-control-validator`) |
+| Independent falsify (does not import the census) | `SUCCESS:independent-falsify-pass`; path_count and `path_set_sha256` match |
+| Pack | schema_errors=0, `state=SUCCESS`, 50258 bytes |
+| Measure | `SUCCESS:delivered` in 38.92s |
+
+Live census: **32032** files decoded; **281** invalid UTF-8 (2 text-scope); **11** BOM; **8** parse-first mojibake, all path-specific strict consumers; U+00D7 U+00A5 silent.
+
+Written:
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` (sha256 `42c6f5af7e5a11cec969f468c0a84e646e60471137cb0eecbf26869a71be4c52`)
+
+Constraints kept: no git mutations, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok harvest wrapping `state=BLOCKED` is still not delivery. Residual recorded honestly: catalog still asks for an unused-context Claude falsifier; this remasure used grok plus the independent re-walk.
+
+===== launch 2026-08-19T20:41:52Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, resume whatever is already there, and drive this unit to contract-green without touching git or the global catalog.I'll read the existing return artifacts, the measure script, and the unit contract so we resume from what's already built.The prior return already claims DELIVERED; I’ll inspect the catalog, probe scripts, and current receipt, then re-run live rather than trust that claim.I’ll pull the catalog unit, packer, and remaining probe logic next so the live re-run matches the contract.Catalog lookup missed the unit ID in the obvious file, so I’ll locate the catalog entry and the rest of the probe entrypoints before re-running.The slice has AUD-0085; I’ll confirm it is in the live catalog the measure script actually reads, then re-run the named probes.Catalog row is present. Next I’ll re-run the named probes live, then pack and measure.Named census probes exited 0. I’ll run the control checker, independent falsify, and packer next.Pack succeeded with a new live hash. I’ll refresh the return artifacts from those results, then run the delivery measure.Per-unit manifest already matches the packed receipt. I’ll write `SUBAGENT-RETURN.json`, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll record that result in `SUBAGENT-RETURN.json` so the artifact matches the live gate.**SUCCESS:delivered** for AUD-0085.
+
+```
+SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+```
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/AUD-0085/` (did not scrap it; did not treat cloud-ok as delivery). Live named probes were re-run and packed:
+
+| Step | Result |
+|---|---|
+| `encoding_census.py` | exit 0; `PROBE-1-COMPLETE` / `PROBE-2-COMPLETE`; production detector fires on the double-decoded fixture and stays silent on correct non-ASCII and U+00D7 U+00A5 |
+| `control_check.py` | exit 0; self-test + required-control PASS |
+| `_pack_independent_falsify.py` | exit 0; did not import `encoding_census.py`; `path_count=32032` and `path_set_sha256` match |
+| `_pack_receipt.py` | schema_errors=0; receipt `state=SUCCESS`; 50258 bytes; sha256 `0eb9c6fb0d11e38adb23c04595f912c1577b0ca13d867fa97b3ebca5e2fc3a15` |
+
+Live census: 32032 files decode-attempted; 281 invalid UTF-8 (2 text-scope); 11 BOM; 8 parse-first mojibake hits, all with path-specific strict consumers (`extension_only=0`).
+
+Wrote:
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` (per-unit Condition 11 row; global `unit_manifest.py --write` not invoked)
+
+Constraints kept: no git mutations, no key rotation, no wave relaunch. Catalog residual remains PARTIAL: the unused-context Claude falsifier was not dispatched; this remasure used grok re-derivation plus the independent falsify script.
+
+===== launch 2026-08-19T20:47:03Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, read the unit contract and any prior return artifact, then resume only what's needed for a contract-green delivery.The probe tree is already populated. Next I’ll read the return artifact, catalog contract, and measure script so we resume instead of rebuilding.Prior return claims DELIVERED; I’ll confirm the catalog contract and re-run the named probes rather than trust that claim.Catalog lives in a slice, not the root file. I’ll read the unit contract and the rest of the packer so the live re-run matches the gate.I’ll read the rest of the census and packer so the live re-run stays compatible with the measure gate.Prior probes exist and already claim SUCCESS; I’ll re-run them live now so this session’s delivery is measured, not inherited.Predicate is already green; I’m re-running the named census and control live, then packing and measuring.The census is still walking the tree; I’ll wait for it to finish rather than restarting it.Census exited 0. Next I’ll re-run the control, independent falsify, and packer, then write the return artifacts.Named probes and the independent falsify all exited 0. I’ll pack the receipt and then run the delivery measure.Return artifact is on disk. Running the official one-unit delivery measure next.Measure printed `SUCCESS:delivered`. I’ll record that result in the return artifact and close the unit.**SUCCESS:delivered AUD-0085** predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+
+Resumed the existing probe tree (did not scrap it, did not rebuild ADV/AUD/PVP). Live named probes re-ran and both exited 0:
+
+| Probe | Result |
+|---|---|
+| `encoding_census.py` | exit 0, `PROBE-1-COMPLETE` / `PROBE-2-COMPLETE`, 39s |
+| `control_check.py` | exit 0, production fires, good non-ASCII silent, U+00D7 U+00A5 silent, mutant red |
+| `_pack_independent_falsify.py` | exit 0, did not import `encoding_census`, path_count/path_set_sha256 match |
+| `_pack_receipt.py` | exit 0, schema_errors=0 |
+
+Live census: **32032** files, **281** invalid UTF-8, **2** text-scope invalid, **11** BOM, **8** parse-first mojibake with proven strict consumers, extension-only=0.
+
+Artifacts:
+
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, sha256 `c924d1b2c992f6553c3db380d548b8b1456ef6389a156e1ad69389b0c5f1ebb0`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit row, sha256 match
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Cloud-ok harvest remains STILL-OPEN and is not this delivery. Catalog Claude-falsifier residual is recorded as PARTIAL; G-1 measure does not require it. No git, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T20:53:31Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, resume whatever is already there, and only treat the unit as delivered if the named measure prints `SUCCESS:delivered`.The probe tree is already populated. Next I’ll read the return files, catalog row, and measure script so we resume from the real contract instead of rebuilding.The last return already claims DELIVERED. I’ll inspect the live artifact, probe scripts, and measure gate so we re-run rather than trust that claim.The catalog artifact is already SUCCESS-shaped. I’ll read the probe exit rules, packer, and schema next so a live re-run does not quietly fail the measure.I’ll inspect the remaining probe main path, the independent falsify packer, and the audit-finding schema so a live re-run stays contract-legal.The census is still running past the previous 39s baseline. I’ll wait on that live run and check whether it stays under the 180s measure timeout.Named census probes exited 0 with the same path set. Next I’ll re-run the control and independent falsify, then pack the receipt.Measure printed `SUCCESS:delivered`. I’ll write this session’s return file and confirm the per-unit manifest hash still matches the live artifact.**SUCCESS:delivered** for AUD-0085.
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/AUD-0085/` (did not scrap it, did not rebuild ADV/AUD/PVP). Cloud `ok=true` was not treated as delivery.
+
+Live named probes this session, both exit 0:
+
+- `encoding_census.py` — 39.35s, `PROBE-1-COMPLETE` / `PROBE-2-COMPLETE`, production detector PASS, non-ASCII mutant RED, U+00D7 U+00A5 silent
+- `control_check.py` — self-test, required-control, and validator all SUCCESS
+
+Independent falsify (does not import `encoding_census.py`) also passed: path_count 32032, path-set sha256 match, BOM rematch, 8 mojibake leaves reparsed, claimed==proven, extension-only=0.
+
+Packed honest `state=SUCCESS` receipt (schema errors=0, 50258 bytes, sha256 `b2a2fef69f955e265eb12e664c164966f45d6121527cfd4d9e093eab1eeeeb74`) and per-unit `UNIT-ARTIFACT-MANIFEST.json` via STRUCTURAL-CONDITION-11 option 1. Global `unit_manifest.py --write` was not run. Git was not mutated.
+
+```
+SUCCESS:delivered AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0
+```
+
+Residual recorded as PARTIAL, not BLOCKED: catalog asks for a fresh-context Claude falsifier; this remasure used grok plus the independent walker. That does not fail G-1 measure-one.
+
+===== launch 2026-08-19T20:58:58Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree, resume whatever is already there, and drive this unit to a contract-green G-1 without touching git or the global catalog.The probe tree is already populated. Next I’ll read the existing return, catalog contract, and measurement script so I resume instead of rebuilding.Prior return claims DELIVERED, but this session still has to re-run live probes and pass the measure. I’ll inspect the contract, receipt, and probe scripts next.I’ll inspect the packer, schema, and remaining probe/receipt pieces so the live re-run matches the contract instead of the previous handoff.Prior delivery is on disk, but G-1 still needs a live re-run of the named probes. I’ll execute those scripts, pack, then measure.Census is still running in the background. I’ll wait on it and check whether the measure’s 180s cap will be a problem.Census re-ran in 39s, exit 0, same headlines. Next I’ll run the control check, independent falsify, and pack.Controls and independent falsify both passed. Packing the receipt next, then I’ll re-verify a few locators before measuring.Receipt is SUCCESS, schema-clean, and registered on the per-unit manifest. Writing the return file after the delivery measure.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (did not scrap it). Live named probes re-ran exit 0:
+
+| Probe | Result |
+|---|---|
+| `encoding_census.py` | exit 0 in 39.2s — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, both-states + mutant + U+00D7 U+00A5 collision |
+| `control_check.py` | exit 0 — self-test and required-control SUCCESS |
+| `_pack_independent_falsify.py` | exit 0 — did not import `encoding_census`; path_count and `path_set_sha256` match |
+
+Live census: **32032** files, **281** invalid UTF-8 (2 text-scope), **11** BOM, **8** parse-first mojibake (extension-only=0). Independent re-decode still fails the two `accounts.json` locators; production detector fires on the double-decoded fixture and stays silent on correct non-ASCII and `×¥`.
+
+Receipt is honest non-BLOCKED:
+
+- `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` — `state=SUCCESS`, 50258 bytes, sha256 `868be86c3605c6a91d27d0d589bc9ff5b174cb28ff2f13c4bc87807e787b284f`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` — per-unit row, hash match
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+
+Cloud-ok harvest remains STILL-OPEN and was not treated as delivery. Global `unit_manifest.py --write` was not invoked. Git was not mutated. Catalog still asks for an unused-context Claude falsifier; this session used grok plus the independent re-walk (recorded as PARTIAL).
+
+===== launch 2026-08-19T21:05:37Z attempt=1 =====
+I'll resume AUD-0085 from the existing probe tree and check the current artifacts before running the named probes.Prior session already marked this delivered; I’ll inspect the catalog, probes, and artifact, then re-run the live named probes on this worktree.Catalog lookup failed on the first pass; I'll locate the live CATALOG path and then re-run the named probes.I'll re-run the live named probes from the existing tree, then pack the receipt and measure.The census walk is still running; I’ll wait for it to finish before packing.Census exited 0 with the same headline counts. Next I’ll run the control check, independent falsify, and pack.Pack succeeded. I'll confirm the per-unit manifest, then run the delivery measure.Measure printed `SUCCESS:delivered`. I'll independently recheck the headline locators, then write `SUBAGENT-RETURN.json`.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (no rebuild of ADV/AUD/PVP). Live named probes re-ran exit 0, the catalog artifact is honest `state=SUCCESS` (not BLOCKED), and the per-unit manifest row matches the live LF sha256.
+
+| Gate | Result |
+|---|---|
+| `encoding_census.py` | exit 0, `PROBE-1-COMPLETE` / `PROBE-2-COMPLETE`, 38.85s |
+| `control_check.py` | exit 0, both-states + mutant + U+00D7 U+00A5 |
+| `_pack_independent_falsify.py` | `SUCCESS:independent-falsify-pass` (did not import `encoding_census`) |
+| `_pack_receipt.py` | schema_errors=0, 50258 bytes |
+| `_measure_one_delivered.py AUD-0085` | exit 0 |
+
+Live census: **32032** files (`path_set_sha256=81354ab43a5ec42a09743dab747efa2c0919a1c3f21d176a7eb1c9ba119df54e`), 281 invalid UTF-8 (2 text-scope), 11 BOM, 8 parse-first mojibake with proven strict consumers, extension-only=0.
+
+Wrote:
+- `command-center/p2-wave/probes/AUD-0085/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; sha256 `c4086c00832d73297ffa7243513346181fac93c78d1f992941bf83e6b503ea0e`)
+
+cloud ok=true was not treated as delivery. Global `unit_manifest.py --write` was not invoked. No git add/commit/push/stash/checkout/rebase.
+
+===== launch 2026-08-19T21:11:18Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and unit contract, then resume whatever is already built instead of scrapping it.The probe tree is already populated. Next I’ll read the unit contract, current return/manifest, and the measurement script so I resume from the real fail reason.Prior session claimed DELIVERED; I’ll verify the catalog contract, current receipt, and probe scripts before re-running the live named probes.Catalog lookup missed AUD-0085 in the obvious files; I’ll locate the actual work-unit definition next, then re-run the named probes.Catalog unit is confirmed. I’ll re-run the named probes live, then pack the receipt and measure.The census is still running past the last-session 39s, so I’ll wait on it and inspect the log instead of restarting.Named census exited 0. Next I’ll re-run the control validator and the independent falsify, then pack.Receipt packed with matching per-unit manifest. Next I’ll run the official delivery measure, then write SUBAGENT-RETURN from that live result.Measure printed `SUCCESS:delivered`. I’ll confirm hashes still match, then write the session return file.**SUCCESS:delivered** `AUD-0085 predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree under `command-center/p2-wave/probes/AUD-0085/` (did not scrap it, did not rebuild ADV/AUD/PVP). Cloud-ok harvest wrapping `state=BLOCKED` is still not delivery.
+
+Live named probes this session, both exit 0:
+
+- `python -B command-center/p2-wave/probes/AUD-0085/encoding_census.py` — `PROBE-1-COMPLETE`, `PROBE-2-COMPLETE`, production detector fires on the double-decoded fixture, silent on correct non-ASCII and U+00D7 U+00A5, any-non-ASCII mutant goes red
+- `python -B command-center/p2-wave/probes/AUD-0085/control_check.py` — `SUCCESS:AUD-0085-control-validator`
+
+Independent re-walk (`_pack_independent_falsify.py`, does not import `encoding_census`) matched `path_count=32032` and `path_set_sha256`. Invalid-text rows still fail UTF-8; BOM rows rematch; 8 parse-first mojibake leaves still have characteristic-prefix spans.
+
+Honest non-BLOCKED artifact: `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json` (`state=SUCCESS`, 50258 bytes, sha256 `b3e807027049a7d6c27c6cdb416df0c8da11ecd3b69ef25512210ab1e89954cb`). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching hash. Global `unit_manifest.py --write` was not invoked.
+
+Residual recorded, not hidden: catalog still asks for an unused-context Claude falsifier; this remasure used grok re-derivation plus the independent walk.
+
+===== launch 2026-08-19T21:30:58Z attempt=1 =====
+I'll start from the existing AUD-0085 probe tree and measure the current contract, then resume rather than rebuild.Existing probes and receipts are in place. Next I’ll read the catalog, measure script, and current SUBAGENT-RETURN so we resume from the live contract rather than rebuild.The last return already claims DELIVERED; I’ll check the catalog, receipt, and measure gate next so we can re-run live instead of trusting that write.

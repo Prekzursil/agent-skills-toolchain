@@ -1,0 +1,305 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1131,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/audit-detector-control.schema.json",
+   "role": "supporting",
+   "sha256": "bfc5318ac90c756a1be9673e9f3de615355148fcf5dbae17abf8bf38995e8bea"
+  },
+  {
+   "bytes": 15071,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0092/engine.py",
+   "role": "supporting",
+   "sha256": "0a86b47211e952b445b955a9ba128f56924707887dae60db4bd5edae2af95071"
+  },
+  {
+   "bytes": 4401,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0092/probe1_backup_manifest.py",
+   "role": "supporting",
+   "sha256": "52690b2df73b303e03589181f04673bc684d5816d833d0ff4ff08c7b8f4f9cfa"
+  },
+  {
+   "bytes": 3605,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0092/probe2_restore_compare.py",
+   "role": "supporting",
+   "sha256": "5cfd38880d962b888901fa632dfd84ac10ea6c08f9bf1d121816c57e023632c5"
+  },
+  {
+   "bytes": 257,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0092/fixtures/keep-me.txt",
+   "role": "fixture",
+   "sha256": "1369977e5783c6dad0f99626ccead48ed5136add0f5f5be17e52fa76447fb3d2"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0092-rollback-backup-rehearsal.json",
+   "consumer": "jsonschema.Draft7Validator+disk-store",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "schema_offline.make_validator(audit-detector-control.schema.json)",
+    "exit_code": 0,
+    "fingerprint": "0db7167a0dd5a4b4d7232fa7058175bef9f084fe268863aeda77a775251b516b",
+    "method": "schema-validate",
+    "raw_output": "offline Draft7Validator errors=0; garbage rejected; kind mutant red",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "/var/tmp/p2-aud-0092-rollback/MANIFEST.json",
+   "claim": "An outside-corpus backup of this host's mutation tree exists with a per-file sha256 MANIFEST; keep-me.txt is present; secret-named files including a planted .env canary are excluded.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0092/probe1_backup_manifest.py",
+     "exit_code": 0,
+     "fingerprint": "5fa22e67510739e2210b2498716069aee2381e59b033142cf676e1a63b03eba2",
+     "method": "command",
+     "raw_output": "backup dest=/var/tmp/p2-aud-0092-rollback files=13090 excluded=2 manifest_sha256=3442014e5a1cb153ec1996167a2f1190331082a9d8561a2a2092b2d034022d9a",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0092/probe2_restore_compare.py",
+     "exit_code": 1,
+     "fingerprint": "b11a9597cca1cf9f2efa8ebfbe0776847333bf9fcd60a42a20f49ea80c1dbb56",
+     "method": "byte-compare",
+     "raw_output": "intact equal=True rc=0 damaged equal=False rc=1 missing_n=1",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0092/fixtures/keep-me.txt",
+   "claim": "A scratch restore byte-compares equal to the backup snapshot; deleting keep-me.txt from the scratch restore turns the comparison RED; an always-green mutant stays green on the damaged restore.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0092/probe2_restore_compare.py",
+     "exit_code": 1,
+     "fingerprint": "b11a9597cca1cf9f2efa8ebfbe0776847333bf9fcd60a42a20f49ea80c1dbb56",
+     "method": "byte-compare",
+     "raw_output": "intact equal=True rc=0 damaged equal=False rc=1 missing_n=1",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0092/probe1_backup_manifest.py",
+     "exit_code": 0,
+     "fingerprint": "5fa22e67510739e2210b2498716069aee2381e59b033142cf676e1a63b03eba2",
+     "method": "command",
+     "raw_output": "backup dest=/var/tmp/p2-aud-0092-rollback files=13090 excluded=2 manifest_sha256=3442014e5a1cb153ec1996167a2f1190331082a9d8561a2a2092b2d034022d9a",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/AUD-0092/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"equal\": false, \"exit_code\": 1}",
+   "description": "Delete keep-me.txt from the scratch restore and confirm byte-compare turns RED. A comparison that still reports success is measuring nothing.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"equal\": true, \"exit_code\": 0}",
+   "id": "damaged-restore-turns-red",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "A runtime-planted .env canary tree outside the corpus is excluded from the backup; secret-named files are absent from the backup destination.",
+   "fired_on_bad_state": true,
+   "id": "planted-secret-not-copied",
+   "kind": "adversarial-payload",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "An always-green comparator reports success on the damaged restore; the honest comparator does not, so the RED is not vacuous.",
+   "fired_on_bad_state": true,
+   "id": "always-green-mutant-fails-to-discriminate",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok",
+  "role": "auditor",
+  "vendor": "xai"
+ },
+ "report": {
+  "backup": {
+   "destination": "/var/tmp/p2-aud-0092-rollback",
+   "excluded_count": 2,
+   "excluded_secret_paths": [
+    ".npmrc",
+    ".env"
+   ],
+   "file_count": 13090,
+   "files": [
+    {
+     "bytes": 257,
+     "path": "command-center/p2-wave/probes/AUD-0092/fixtures/keep-me.txt",
+     "sha256": "1369977e5783c6dad0f99626ccead48ed5136add0f5f5be17e52fa76447fb3d2",
+     "tree_id": "ast-integrate"
+    }
+   ],
+   "live_env_excluded": [],
+   "live_file_count": 13090,
+   "manifest_bytes": 3591776,
+   "manifest_path": "/var/tmp/p2-aud-0092-rollback/MANIFEST.json",
+   "manifest_sha256": "3442014e5a1cb153ec1996167a2f1190331082a9d8561a2a2092b2d034022d9a",
+   "outside_corpus": true,
+   "skipped_sibling_probe_scratch": true
+  },
+  "both_states": {
+   "discriminates": true,
+   "known_broken": {
+    "blocked": true,
+    "equal": false,
+    "exit_code": 1,
+    "missing_head": [
+     "command-center/p2-wave/probes/AUD-0092/fixtures/keep-me.txt"
+    ],
+    "missing_n": 1,
+    "name": "keep-me-deleted-from-scratch"
+   },
+   "known_good": {
+    "blocked": false,
+    "equal": true,
+    "exit_code": 0,
+    "mismatch_n": 0,
+    "missing_n": 0,
+    "name": "intact-scratch-restore"
+   }
+  },
+  "control_ids": [
+   "damaged-restore-turns-red",
+   "planted-secret-not-copied",
+   "always-green-mutant-fails-to-discriminate"
+  ],
+  "detector": {
+   "fires_on": "a scratch restore that is missing keep-me.txt (or any backed-up path); byte-compare vs snapshot exits non-zero",
+   "name": "restore-byte-compare",
+   "silent_on": "a full restore of the non-secret backup into scratch whose per-file sha256 set matches the source snapshot"
+  },
+  "kind": "audit-detector-control",
+  "mutant_always_green_on_damaged_equal": true,
+  "observations": [
+   {
+    "anchor": "/var/tmp/p2-aud-0092-rollback/MANIFEST.json",
+    "measured": 13090,
+    "method": "copy non-secret files to outside-corpus dest and sha256 each",
+    "name": "backup_file_count"
+   },
+   {
+    "anchor": "/var/tmp/p2-aud-0092-restore-scratch",
+    "measured": true,
+    "method": "byte-compare scratch restore vs backup snapshot",
+    "name": "intact_restore_equal"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0092/fixtures/keep-me.txt",
+    "measured": false,
+    "method": "delete keep-me.txt from scratch then byte-compare",
+    "name": "damaged_restore_equal"
+   },
+   {
+    "anchor": "/tmp/p2-aud-0092-canary-tree",
+    "measured": true,
+    "method": "plant .env canary outside corpus; secret-name filter",
+    "name": "planted_secret_excluded"
+   },
+   {
+    "anchor": "/var/tmp/p2-aud-0092-rollback",
+    "measured": true,
+    "method": "assert dest is not under the worktree",
+    "name": "backup_outside_corpus"
+   }
+  ],
+  "question": "Create a restorable backup of every tree this program will mutate, then PROVE it restores by rehearsing a full restore into a scratch location and byte-comparing the result.",
+  "restore": {
+   "damaged_equal": false,
+   "damaged_rel": "command-center/p2-wave/probes/AUD-0092/fixtures/keep-me.txt",
+   "intact_equal": true,
+   "outside_corpus": true,
+   "scratch": "/var/tmp/p2-aud-0092-restore-scratch"
+  },
+  "secrets_not_copied_into_backup": true,
+  "secrets_not_copied_into_corpus_artifact": true,
+  "sibling_worktrees": "NOT-CHECKED",
+  "title": "Create rollback backups and rehearse a restore, copying no secrets into the corpus",
+  "trees": [
+   {
+    "backed_up": true,
+    "id": "linux-worktree-ast-integrate",
+    "note": "sibling unit probe scratch under p2-wave/probes excluded except AUD-0092",
+    "path": "/opt/p2/ast-integrate",
+    "present": true,
+    "role": "live-mutation-tree"
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Sibling owner worktrees on the Windows host were included in this host's outside-corpus backup.",
+   "settling_experiment": "On the owner Windows box, list ~/Documents/GitHub and ~/.claude/agent-worktrees and re-run this rehearsal against those trees.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "command-center/p2-wave/probes sibling-unit scratch (~3.5GiB) was copied into the rollback backup.",
+   "settling_experiment": "If a full-tree backup of every concurrent unit probe dir is required, raise the named-probe timeout above 180s and drop the probes/ prune.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Mechanical re-run of restore + damaged-restore RED control. Not a same-probe re-read.",
+  "reviewer_id": "AUD-0092-probe2-restore-byte-compare",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0092 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0092",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0092/probe1_backup_manifest.py",
+   "id": "T1-backup-manifest-sha256",
+   "name": "outside-corpus MANIFEST has per-file sha256; secrets excluded",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0092/probe2_restore_compare.py",
+   "id": "T2-restore-byte-compare-both-states",
+   "name": "intact restore GREEN; keep-me deleted RED",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:09:35Z",
+  "started_at": "2026-08-25T01:09:26Z"
+ },
+ "unit_id": "AUD-0092"
+}

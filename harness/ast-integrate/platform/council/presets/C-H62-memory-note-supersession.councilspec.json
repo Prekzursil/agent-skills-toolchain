@@ -1,0 +1,153 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-h62-memory-note-supersession",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Supersede a memory note correctly: the old note gains a superseded_by pointer and the new note gains a valid_as_of date, so recall surfaces current truth.",
+    "charter": "MANDATE. Temporal validity must be recorded on BOTH sides or the vault silently keeps two live answers. When a fact is superseded, the OLD note gets superseded_by pointing at the replacement, and the NEW note gets valid_as_of. Writing only the new note leaves the stale one fully retrievable and equally confident, which is how a dead end gets re-walked months later; writing only the pointer leaves the replacement undated and unrankable. This is the smallest council in the lane on purpose - two seats, one round, five minutes - because the work is bookkeeping, not judgement, and a heavier protocol would just make the correct action less likely to happen.",
+    "risk_tier": "low",
+    "desired_output": "specification",
+    "success_criteria": [
+      "the old note carries superseded_by pointing at the new note",
+      "the new note carries valid_as_of",
+      "the old note is retained, not deleted - a retired dead end is evidence",
+      "both edits are confirmed by reading the notes back, not by asserting the write"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "forbidden_actions": [
+        "delete the superseded note instead of marking it",
+        "claim the write succeeded without reading the note back"
+      ],
+      "deadline_minutes": 5
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": ["exact"],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": { "mode": "exact", "exact_n": 2, "min": 2, "max": 2 },
+    "diversity": { "min_distinct_expertise": 2 },
+    "roster": [
+      {
+        "participant_id": "evidence-clerk",
+        "display_name": "Evidence clerk - decides that the old fact is genuinely superseded",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["temporal validity", "note lineage"],
+        "role": "custom:evidence_clerk",
+        "authority": "judge",
+        "rights": { "may_speak": true, "may_vote": true },
+        "source_access": ["internal_docs", "transcripts"],
+        "context": {
+          "briefing": "Confirm the new fact actually contradicts the old one rather than merely postdating it. Two notes that are both true at different scopes should both stay live, with scope stated - superseding one of them would delete real knowledge."
+        }
+      },
+      {
+        "participant_id": "scribe",
+        "display_name": "Scribe - performs both edits and reads them back",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["vault mechanics", "read-back verification"],
+        "role": "scribe",
+        "authority": "contributor",
+        "rights": { "may_speak": true, "may_vote": false },
+        "source_access": ["internal_docs"],
+        "context": {
+          "briefing": "After writing, READ BACK both notes and quote the two fields. A write that reports success is a claim; the read-back is the receipt."
+        }
+      }
+    ],
+    "conflicts_policy": { "disclosure_required": false, "on_conflict": "disclose_only" },
+    "replacement": { "enabled": false }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": false,
+    "min_sources": 1,
+    "required_artifacts": ["position_memo"]
+  },
+  "topology": { "kind": "flat" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "confirm-supersession", "custom_name": "confirm the new fact contradicts rather than merely postdates the old", "rounds": 1, "participants": ["evidence-clerk"] },
+      { "kind": "custom", "stage_id": "write-both-sides", "custom_name": "write superseded_by on the old note and valid_as_of on the new, then read both back", "rounds": 1, "participants": ["scribe"] },
+      { "kind": "synthesis", "stage_id": "confirm", "rounds": 1 }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": { "min": 1, "max": 1 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": false },
+    "critique_intensity": "gentle",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 1, "runner": "local" }
+  },
+  "budgets": { "effort": "low", "time_minutes": 5, "turns": 4 },
+  "targets": { "evidence_items": 2 },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true },
+    "tie_break": "no_decision"
+  },
+  "consensus": {
+    "measure": "agreement_index",
+    "minority_report": "forbidden",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "source_expression": "custom:old_note_has_superseded_by == true AND custom:new_note_has_valid_as_of == true",
+    "expression": {
+      "all_of": [
+        { "metric": "custom:old_note_has_superseded_by", "op": "==", "value": true, "value_type": "boolean" },
+        { "metric": "custom:new_note_has_valid_as_of", "op": "==", "value": true, "value_type": "boolean" }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "every_participant_spoke": true, "min_evidence_items": 2 },
+    "hard_caps": { "max_rounds": 1, "max_minutes": 5, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1 },
+    "resolution": ["narrow_scope", "escalate_to_owner", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": false, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["weak_synthesis", "premature_convergence"],
+    "injection_defense": { "treat_artifacts_as_data": true, "quarantine_untrusted_sources": true }
+  },
+  "outputs": {
+    "required": ["evidence_map", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": false,
+    "resume": false,
+    "determinism": "deterministic_where_possible",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["deleting any note"] },
+    "persistence": { "store": "ledger", "path": "platform/council/runs/c-h62", "checkpoint_every_round": false },
+    "calibration": { "post_run": false, "score": "none" }
+  },
+  "metadata": {
+    "title": "Memory-note supersession (micro, advisory)",
+    "owner": "Prekzursil",
+    "lineage": ["C-H62", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#preset-index", "protocol P15"],
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:2059", "_USER-PROMPTS.md:11200-11225"],
+    "notes": "SOURCE DESIGN: C-H62 `memory-note-supersession`, global ordinal 62, tier micro, protocol P15, 2 seats, 1 round, default binding ADVISORY, OWNER-DECISION NO. || EDITABLE DIALS: (1) vault -> the write-both-sides stage and the scribe seat's source_access; point it at the note store in use. Secondary dials: budgets.time_minutes (5 - this council must stay cheap or it will be skipped), participants.count.exact_n (2), protocol.rounds.max (1). || VOCABULARY MAP (design term -> CouncilSpec enum): voting `clerk` -> voting.method `synthesis_only` with the clerk seat holding authority `judge`; there is no `clerk` ballot enum and no vote is actually cast, so the clerk's ruling IS the synthesis. The scribe deliberately has may_vote false: it executes and verifies, it does not adjudicate. roles `evidence_clerk` -> custom:evidence_clerk, `scribe` -> scribe (enum). Outcome names map CONSENSUS -> decision and DEFER -> no_decision; the design allows only those two, so outcomes.allowed is exactly ['decision','no_decision'] - notably WITHOUT conditional_decision, because there is no half-superseded note. consensus.minority_report is `forbidden` to stay coherent with that: SEM-009 would error if a required minority report had no matching outcome, and with two seats a minority report is not a meaningful artifact. `evidence standard: assertion_with_pointer` -> anchor_style `any` with citation_required true. || CUSTOM METRICS AND THEIR PRODUCERS: custom:old_note_has_superseded_by (boolean; produced by the scribe READING BACK the old note and quoting the field) and custom:new_note_has_valid_as_of (boolean; produced the same way on the new note). Both are read-back receipts rather than write confirmations, which is the point. Producers cannot live on the leaves: SEM-001 compares parse(source_expression) with the tree by dict equality and parse() emits no `producer` key - both-states probe at platform/council/_probe_note_vs_source_expression.py. The SEM-012 WARN is expected and non-blocking. || WHY THIS RULE HAS EXACTLY TWO CLAUSES: the schema requires all_of to hold at least two operands, and this council genuinely has exactly two obligations. Adding a third for symmetry with the larger presets would be padding, and a padded stopping rule is harder to edit correctly."
+  }
+}

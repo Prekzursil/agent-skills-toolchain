@@ -1,0 +1,19 @@
+{
+  "unit_id": "TST-0323",
+  "name": "blind-spot-audit-of-benchmark-verdicts",
+  "purpose": "Re-adjudicate a stratified sample of the platform's own benchmark verdicts. Gold is recorded blind to the platform verdict. Disagreement is an error. A stratum whose sampled error rate exceeds the pre-registered threshold expands to a census of that class.",
+  "blinding": {
+    "adjudicator_sees_platform_verdict": false,
+    "adjudicator_sees_case_id": true,
+    "adjudicator_sees_oracle_type": true,
+    "adjudicator_sees_case_inputs_and_rubric": true
+  },
+  "gold_rule": {
+    "deterministic": "gold equals the output of the named exact oracle; the platform must match it. A judged score used in place of an available oracle is itself an error under TST-0309, recorded separately from verdict disagreement.",
+    "judged": "gold equals the human application of the published rubric, recorded before the platform verdict is revealed."
+  },
+  "error": "a non-blocked row whose platform_verdict disagrees with human_gold",
+  "blocked": "excluded from the error-rate denominator so a BLOCKED row cannot silently improve or inflate the rate",
+  "escalation": "when a stratum's sampled error rate is strictly greater than the pre-registered threshold, enqueue every case_id in that stratum's population (the whole class), not merely the sampled ids",
+  "why_stratify": "a platform that is accurate on passes and wrong on failures has a specific, fixable bias that an unstratified sample averages away"
+}

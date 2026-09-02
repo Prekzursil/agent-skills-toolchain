@@ -1,0 +1,245 @@
+{
+  "unit_id": "TST-0141",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "scheduler_report",
+  "title": "Token-bucket accounting is race-free under N concurrent takers",
+  "question": "Under 64 concurrent takers, can the token bucket ever go negative or issue more permits than its capacity in any window? PASS requires zero violations across a randomized property run and a deterministic replay of any counterexample.",
+  "answer": "NO: 10_000 randomized 64-taker interleavings of the CAS bucket produced zero negative balances and zero over-capacity windows. An independent recompute of the issued-permit log agrees. Removing the CAS compare makes a 2-taker colliding schedule over-issue; the shrinker reduces a padded counterexample and the replay still fails.",
+  "sentinel": "SUCCESS:TST-0141",
+  "completion_sentinel": "SUCCESS:TST-0141",
+  "min_bytes_threshold": 2048,
+  "cloud_ok": false,
+  "registered": true,
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "catalog_output_schema": "command-center/schema/receipt.schema.json#/$defs/scheduler_report",
+  "property": {
+    "n": 10000,
+    "n_takers": 64,
+    "runs_completed": 10000,
+    "failures": [],
+    "granted_histogram": {
+      "1": 1000,
+      "8": 8093,
+      "9": 69,
+      "10": 84,
+      "11": 89,
+      "12": 80,
+      "13": 79,
+      "14": 74,
+      "15": 62,
+      "16": 157,
+      "17": 52,
+      "18": 50,
+      "19": 33,
+      "20": 30,
+      "21": 15,
+      "22": 12,
+      "23": 7,
+      "24": 14
+    },
+    "seed": 1410141,
+    "ok": true
+  },
+  "mutation": {
+    "ok": true,
+    "crafted_violations": [
+      "negative_tokens:-1",
+      "internal_invariant:negative tokens=-1 window=0",
+      "external_audit_over_issue:{'0': 2}"
+    ],
+    "crafted_tokens": -1,
+    "crafted_granted": 2,
+    "crafted_audit": {
+      "ok": false,
+      "capacity": 1,
+      "per_window": {
+        "0": 2
+      },
+      "over_capacity_windows": {
+        "0": 2
+      },
+      "total_granted": 2,
+      "windows": 1
+    },
+    "padded_len": 12,
+    "shrunk_len": 4,
+    "shrunk_schedule": [
+      [
+        "step",
+        1
+      ],
+      [
+        "step",
+        4
+      ],
+      [
+        "step",
+        1
+      ],
+      [
+        "step",
+        4
+      ]
+    ],
+    "shrunk_violations": [
+      "negative_tokens:-1",
+      "internal_invariant:negative tokens=-1 window=0",
+      "external_audit_over_issue:{'0': 2}"
+    ],
+    "cas_control_ok": true,
+    "cas_granted": 1,
+    "cas_tokens": 0,
+    "lock_cas_removed": true
+  },
+  "live_threads": {
+    "n_takers": 64,
+    "capacity": 8,
+    "granted": 8,
+    "tokens": 0,
+    "ok": true,
+    "independent_audit": {
+      "ok": true,
+      "capacity": 8,
+      "per_window": {
+        "0": 8
+      },
+      "over_capacity_windows": {},
+      "total_granted": 8,
+      "windows": 1
+    }
+  },
+  "tests": [
+    {
+      "id": "property-10000-randomized-interleavings",
+      "requirement": "property test with 10,000 randomized interleavings; any counterexample must shrink to a minimal reproducing schedule",
+      "verdict": "PASS",
+      "evidence": "n=10000 n_takers=64 runs_completed=10000 failures=[] seed=1410141"
+    },
+    {
+      "id": "mutation-remove-lock-cas",
+      "requirement": "mutation control: remove the lock/CAS and confirm the property fails",
+      "verdict": "PASS",
+      "evidence": "mutant granted=2 tokens=-1 violations=['negative_tokens:-1', 'internal_invariant:negative tokens=-1 window=0', \"external_audit_over_issue:{'0': 2}\"] padded_len=12 shrunk_len=4 cas_control_ok=True cas_granted=1"
+    }
+  ],
+  "controls": {
+    "internal_invariant": {
+      "pass": true,
+      "note": "SimBucket.cas and TokenBucket.take assert 0 <= tokens <= capacity after every successful mutation and record trips on the mutant."
+    },
+    "external_permit_log_audit": {
+      "pass": true,
+      "note": "audit_permits() never reads the bucket's token field; it sums amount per window_id from the issued-permit log.",
+      "live_audit": {
+        "ok": true,
+        "capacity": 8,
+        "per_window": {
+          "0": 8
+        },
+        "over_capacity_windows": {},
+        "total_granted": 8,
+        "windows": 1
+      },
+      "mutant_audit": {
+        "ok": false,
+        "capacity": 1,
+        "per_window": {
+          "0": 2
+        },
+        "over_capacity_windows": {
+          "0": 2
+        },
+        "total_granted": 2,
+        "windows": 1
+      }
+    },
+    "cas_vs_mutant_same_schedule": {
+      "pass": true,
+      "schedule": [
+        [
+          "step",
+          0
+        ],
+        [
+          "step",
+          1
+        ],
+        [
+          "step",
+          0
+        ],
+        [
+          "step",
+          1
+        ]
+      ],
+      "mutant_ok": false,
+      "cas_ok": true
+    }
+  },
+  "evidence": [
+    {
+      "kind": "internal-invariant",
+      "path": "command-center/p2-wave/probes/TST-0141/token_bucket.py",
+      "note": "Invariant trips live on SimBucket.invariant_trips / TokenBucket.invariant_trips. CAS 10_000-run min_tokens stayed >= 0 (granted histogram {'1': 1000, '8': 8093, '9': 69, '10': 84, '11': 89, '12': 80, '13': 79, '14': 74, '15': 62, '16': 157, '17': 52, '18': 50, '19': 33, '20': 30, '21': 15, '22': 12, '23': 7, '24': 14})."
+    },
+    {
+      "kind": "external-permit-log-audit",
+      "path": "command-center/p2-wave/probes/TST-0141/token_bucket.py",
+      "note": "Independent audit of the 64-thread permit log: ok=True per_window={'0': 8} total_granted=8 over_capacity_windows={}."
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0141-probe2-permit-log-audit",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 2 recomputes window totals from the permit log without reading the bucket token field, and requires the CAS-removed mutant to over-issue on a colliding 2-taker schedule while the same schedule is clean with CAS. Shrinker must shorten a padded counterexample and replay still fails."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "property-10000-interleavings",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0141/probe1_property.py"
+    },
+    {
+      "id": "probe2",
+      "role": "permit-log-audit-mutation",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0141/probe2_audit.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0141.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/test-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0141/token_bucket.py",
+      "exists": true,
+      "role": "implementation"
+    }
+  ],
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "receipt.schema.json#/$defs/scheduler_report exists on this tree"
+    ],
+    "proof_surface": "deterministic 10_000-seed interleavings of 64 takers; independent permit-log audit; CAS-removed colliding schedule plus shrink/replay"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "scheduler-tester",
+    "execution_substrate": "linux-local"
+  },
+  "measured_at": "2026-08-24T19:01:23Z",
+  "n_interleavings": 10000,
+  "n_takers": 64
+}

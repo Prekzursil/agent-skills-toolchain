@@ -1,0 +1,23 @@
+# rules/repo-larger/file-19.md
+shared prefix
+REPO-ONLY unique behaviour line 19.
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra
+repo extra

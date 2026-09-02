@@ -1,0 +1,162 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0018/council-design-note.schema.json",
+  "title": "CNL-0018 vendor-diversity-under-quota design note (unit-local; catalog schema is a generated $ref shim)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answers",
+    "quota_exhaustion_control",
+    "diversity_control",
+    "claims",
+    "evidence",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0018" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0018" },
+    "completion_sentinel": { "type": "string", "const": "SUCCESS:CNL-0018" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answers": {
+      "type": "object",
+      "required": [
+        "diversity_objective",
+        "mandatory_from_risk_tier",
+        "quota_exhaustion"
+      ],
+      "properties": {
+        "diversity_objective": { "type": "string", "minLength": 24 },
+        "mandatory_from_risk_tier": { "type": "string", "const": "high-stakes" },
+        "quota_exhaustion": { "type": "string", "minLength": 24 },
+        "worth_the_spend": { "type": "string", "minLength": 16 }
+      }
+    },
+    "quota_exhaustion_control": {
+      "type": "object",
+      "required": [
+        "declared_before_scoring",
+        "bad_fired",
+        "good_silent",
+        "turns_preserved_on_bad",
+        "reseated_same_vendor",
+        "substitution_refused"
+      ],
+      "properties": {
+        "declared_before_scoring": { "type": "object" },
+        "bad_fired": { "type": "boolean", "const": true },
+        "good_silent": { "type": "boolean", "const": true },
+        "turns_preserved_on_bad": { "type": "integer", "minimum": 1 },
+        "reseated_same_vendor": { "type": "boolean", "const": false },
+        "substitution_refused": { "type": "boolean", "const": true }
+      }
+    },
+    "diversity_control": {
+      "type": "object",
+      "required": [
+        "same_base_twice_flagged",
+        "diverse_accepted",
+        "cross_vendor_same_base_flagged"
+      ],
+      "properties": {
+        "same_base_twice_flagged": { "type": "boolean", "const": true },
+        "diverse_accepted": { "type": "boolean", "const": true },
+        "cross_vendor_same_base_flagged": { "type": "boolean", "const": true }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "verdict"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string" },
+          "reason": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["path", "kind", "claim"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "line": { "type": "integer", "minimum": 1 },
+          "snippet": { "type": "string" },
+          "kind": { "type": "string", "minLength": 3 },
+          "claim": { "type": "string", "minLength": 8 },
+          "anchor": { "type": "string" }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "rejects", "verbatim"],
+        "properties": {
+          "id": { "type": "string" },
+          "rejects": { "type": "string", "minLength": 8 },
+          "verbatim": { "type": "string", "minLength": 24 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,56 @@
+{
+ "description": "Argument corpus for IMP-0466: revisions, device paths, POSIX paths. msys_would_convert is the MSYS-on (no suppression) behaviour, not a wish.",
+ "unit_id": "IMP-0466",
+ "arguments": [
+  {
+   "id": "rev-refs",
+   "arg": "/refs/heads/main",
+   "shape": "revision",
+   "command": "git",
+   "subcommand": "show",
+   "argv": ["git", "show", "/refs/heads/main"],
+   "msys_would_convert": true,
+   "why": "MSYS rewrites /refs/heads/main to C:\\msys64\\refs\\heads\\main (root-relative POSIX), which is not a git ref"
+  },
+  {
+   "id": "rev-colon-path",
+   "arg": "origin/main:src/lib/pathconv.py",
+   "shape": "revision",
+   "command": "git",
+   "subcommand": "show",
+   "argv": ["git", "show", "origin/main:src/lib/pathconv.py"],
+   "msys_would_convert": false,
+   "why": "colon rev:path is not POSIX-absolute; still excluded by policy"
+  },
+  {
+   "id": "dev-null",
+   "arg": "/dev/null",
+   "shape": "device",
+   "command": "git",
+   "subcommand": "diff",
+   "argv": ["git", "diff", "--no-index", "/dev/null", "/c/Users/probe/file.txt"],
+   "msys_would_convert": true,
+   "why": "MSYS special-cases /dev/null to NUL, destroying the Unix-device token"
+  },
+  {
+   "id": "posix-clone-dest",
+   "arg": "/c/Users/probe/repo",
+   "shape": "posix-path",
+   "command": "git",
+   "subcommand": "clone",
+   "argv": ["git", "clone", "https://example.invalid/repo.git", "/c/Users/probe/repo"],
+   "msys_would_convert": true,
+   "why": "legitimate /c/Users path must convert or clone silently no-ops"
+  },
+  {
+   "id": "posix-redirect",
+   "arg": "/c/Users/probe/out.txt",
+   "shape": "posix-path",
+   "command": "redirect",
+   "subcommand": null,
+   "argv": ["tee", "/c/Users/probe/out.txt"],
+   "msys_would_convert": true,
+   "why": "redirect target must convert; unconverted write truncates the wrong file"
+  }
+ ]
+}

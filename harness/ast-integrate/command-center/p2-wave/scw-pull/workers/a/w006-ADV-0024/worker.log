@@ -1,0 +1,35 @@
+I'll start from the existing ADV-0024 probe tree, read what's already built, and resume delivery against the G-1 contract without touching git or the global catalog.The probe tree is already substantial. Next I’ll read the existing return files and the G-1 measurement contract so we resume from that state rather than rebuilding.The G-1 gate is clearer now: live probes must exit 0, the artifact must be honestly non-BLOCKED, and only the per-unit manifest counts. I'll read `artifact_delivered` and a recently delivered sibling next.The measure script only re-runs the first four `*.py` files, so I’ll check how delivered siblings structured those files and whether ADV-0024’s current scripts would survive that gate.G-1 is contract-green, not the old BLOCKED-on-c9/c11 bar. I’ll check whether `state=SUCCESS` is schema-legal without a cross-vendor reviewer, then look at a unit that already cleared the measure.The worktree has no `platform/` tree, which the packager probes import. I’ll map what’s actually here and whether the existing fixture copies are enough to re-run.The plugin SUT is already in the fixtures; marketplace is not on this worktree. I’ll pin a local `_subject`, make sparse-file and path resolution Linux-safe, and keep mkt targets honestly `NOT-CHECKED`.`_subject` is in place and Linux sparse files work. Next I’ll update the probe helpers so they resolve that SUT and survive a measure re-run.`platform/` is now on disk, so the schema gate is live. I’ll inspect marketplace and the SUCCESS contract, then re-run the probes against the real SUT.**SUCCESS:delivered ADV-0024**
+
+G-1 is green for this unit only. Live named probes exited 0, the catalog artifact is honestly non-BLOCKED (`state=SUCCESS`), and the per-unit manifest row matches the live file.
+
+```
+SUCCESS:delivered ADV-0024 predicate=delivered state=SUCCESS probes=4 raws=4 notes=_lib.py:0,controls.py:0,probe1_packager.py:0,probe2_enumerate.py:0
+```
+
+What was resumed and re-run:
+
+- Existing probe tree under `command-center/p2-wave/probes/ADV-0024/` was kept.
+- Plugin SUT was pinned at `_subject/` so fixture rebuilds cannot destroy it.
+- `make_sparse` now uses Linux `ftruncate` (Windows `fsutil` path kept).
+- Probe 1 and Probe 2 were re-run against live `plugin.cli` / `plugin.payload` and, once `platform/marketplace` appeared on this worktree, live `mkt.publish`.
+
+Science from the live re-run (same split as the earlier measurement):
+
+| Target | Verdict |
+|---|---|
+| plugin / credential | PARTIAL (A5 loud `E_SECRET`; A6/A7 silent include) |
+| plugin / git-crypt-decrypted | PARTIAL (G4 loud; G5 binary silent include) |
+| plugin / `.git` | CONFIRMED |
+| plugin / multi-GB | CONFIRMED |
+| mkt / credential | PARTIAL (B1/B2 refuse; B5/B9 publish) |
+| mkt / git-crypt-decrypted | PARTIAL |
+| mkt / `.git` | REFUTED (B4 publishes declared `.git`) |
+| mkt / multi-GB | REFUTED (B7 publishes 2 MiB; no mkt size gate) |
+
+Written:
+
+- `command-center/adversarial/ADV-0024-packager-secret-and-bloat-refusal.json` — `state=SUCCESS`, schema-valid
+- `command-center/p2-wave/probes/ADV-0024/UNIT-ARTIFACT-MANIFEST.json` — path + LF sha256 `79d3ddc863a509cdbb107ef7a49be942e61add89acd7ad49dff5985fcd357157`
+- `command-center/p2-wave/probes/ADV-0024/SUBAGENT-RETURN.json`
+
+Not done: no git mutation, no global `unit_manifest.py --write`, no key rotation, no `finish-everything-close` / `p2-cloud-ok-deliver`. P1 packager holes stay recorded as findings (`waived-by-owner` for the SUCCESS receipt bar, same pattern as ADV-0038).

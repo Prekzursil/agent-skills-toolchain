@@ -1,0 +1,222 @@
+{
+  "artifact_paths": [
+    "command-center/receipts/TST-0190.json",
+    "tools/plugin/pathconv_guard.py",
+    "tools/plugin/tests/test_pathconv_guard.py",
+    "command-center/p2-wave/probes/TST-0190/lab.py",
+    "command-center/p2-wave/probes/TST-0190/echo_argv.py",
+    "command-center/p2-wave/probes/TST-0190/write_marker.py",
+    "command-center/p2-wave/probes/TST-0190/probe1_scoped_argv_and_fs.py",
+    "command-center/p2-wave/probes/TST-0190/probe2_global_suppress_control.py"
+  ],
+  "artifacts": [
+    {
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/TST-0190.json",
+      "role": "primary"
+    },
+    {
+      "bytes": 7187,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/plugin/pathconv_guard.py",
+      "role": "supporting",
+      "sha256": "efb212428dabe8041ed417d131ac6cdd0afa1eb1da04776788aa9318d7d22223"
+    },
+    {
+      "bytes": 3938,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/plugin/tests/test_pathconv_guard.py",
+      "role": "supporting",
+      "sha256": "4fb972f834b02e7898f1ec96632e9ac59a2365d6964d56a846fce278b0fa91a7"
+    },
+    {
+      "bytes": 6475,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0190/lab.py",
+      "role": "supporting",
+      "sha256": "f02a33a127dc3316b8644d873f99aa9218975df31376da5ca1445c979be9ae4e"
+    },
+    {
+      "bytes": 189,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0190/echo_argv.py",
+      "role": "supporting",
+      "sha256": "d9efc95a3e5156d7392fc6b55389634a28e4afcfeabbf0f0530b9820fc7478a1"
+    },
+    {
+      "bytes": 510,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0190/write_marker.py",
+      "role": "supporting",
+      "sha256": "4295d599214fe89f4032595158511b49b557f364dff4db5e564a4c772da36591"
+    },
+    {
+      "bytes": 2323,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0190/probe1_scoped_argv_and_fs.py",
+      "role": "supporting",
+      "sha256": "2a974777e98d7d990d316a487e86f0d81c5c254432c9450869936c990463730d"
+    },
+    {
+      "bytes": 2912,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0190/probe2_global_suppress_control.py",
+      "role": "supporting",
+      "sha256": "cd307c76353cd6f0e5474051c5eb4b2cd86b97690021053ec02a5df143b3a28c"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0190",
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/TST-0190.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "executed": false,
+      "notes": "Measure runs after emit; named probes re-execute live.",
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/plugin/pathconv_guard.py:apply_guard",
+      "claim": "Signal (a) child argv under scoped mode: revision 'origin/main:path/to/file' arrived byte-identical and POSIX path '/c/Users/tst0190/out' was rewritten to 'C:\\\\Users\\\\tst0190\\\\out'. Observed argv=['git-show-equiv', 'origin/main:path/to/file', 'C:\\\\Users\\\\tst0190\\\\out'].",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0190/probe1_scoped_argv_and_fs.py",
+          "exit_code": 0,
+          "fingerprint": "44843c06ac37057a444b05c2025a41ea",
+          "method": "command",
+          "raw_output": "[\"git-show-equiv\", \"origin/main:path/to/file\", \"C:\\\\Users\\\\tst0190\\\\out\"]",
+          "role": "source"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/plugin/pathconv_guard.py:spawn_write",
+      "claim": "Signal (b) filesystem effect: scoped path-carrying write created payload at sandbox mapping of '/c/Users/tst0190/clone-dest' (payload_ok=True). Global MSYS_NO_PATHCONV=1 left that sandbox path absent (sandbox_exists=False), which is the catalog both-states inversion (windows-shell.md:11 global suppression skipped a clone).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0190/probe2_global_suppress_control.py",
+          "exit_code": 0,
+          "fingerprint": "878d451a369c777ce527dc17b7cdecdd",
+          "method": "command",
+          "raw_output": "{\"dest_out\": \"/c/Users/tst0190/clone-dest\", \"marker_sandbox\": \"/tmp/tst0190-glob-dn7itevx/sandbox/Users/tst0190/clone-dest\", \"sandbox_exists\": false, \"payload_ok\": false, \"returncode\": 0, \"stderr_tail\": \"\"}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "measurement": {
+    "bash_observed_argv": [
+      "git-show-equiv",
+      "origin/main:path/to/file",
+      "C:\\Users\\tst0190\\out"
+    ],
+    "checks": {
+      "bash_ok": true,
+      "global_argv_inverted": true,
+      "global_fs_failed": true,
+      "pathspec_ok": true,
+      "scoped_argv_ok": true,
+      "scoped_fs_ok": true
+    },
+    "clone_posix": "/c/Users/tst0190/clone-dest",
+    "converted_path": "C:\\Users\\tst0190\\out",
+    "global_fs_sandbox_exists": false,
+    "global_msys_no_pathconv": "1",
+    "global_observed_argv": [
+      "git-show-equiv",
+      "origin/main:path/to/file",
+      "/c/Users/tst0190/out"
+    ],
+    "host": "linux",
+    "pathspec_scoped": "/README.md",
+    "pathspec_unguarded": "C:\\Program Files\\Git\\README.md",
+    "posix_path": "/c/Users/tst0190/out",
+    "revision": "origin/main:path/to/file",
+    "scoped_fs_payload_ok": true,
+    "scoped_msys_no_pathconv_global": false,
+    "scoped_observed_argv": [
+      "git-show-equiv",
+      "origin/main:path/to/file",
+      "C:\\Users\\tst0190\\out"
+    ]
+  },
+  "min_bytes_threshold": 2048,
+  "negative_control_ids": [
+    "TST-0190-NC-global-MSYS_NO_PATHCONV",
+    "TST-0190-NC-unguarded-repo-pathspec"
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/shell_report (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "produced_by": {
+    "execution_substrate": "linux-local",
+    "model": "cursor-grok",
+    "role": "shell-portability-tester",
+    "vendor": "local"
+  },
+  "profile": "shell_report",
+  "question": "Is MSYS_NO_PATHCONV applied ONLY around revision/pathspec arguments, leaving genuine /c/Users/... path arguments to convert normally? PASS requires both: a revision argument survives intact AND a POSIX path argument still resolves.",
+  "report_kind": "shell_report",
+  "residual_unknowns": [
+    {
+      "claim": "Native Git-for-Windows MSYS argv rewriting was not observed on this Linux worktree. The converter in pathconv_guard.py simulates `/c/Users` -> `C:\\Users` and sandbox-maps the converted path so the filesystem signal is live here.",
+      "id": "TST-0190-R1",
+      "settling_experiment": "Re-run probe1 and probe2 under Git Bash and pwsh7 on Windows against a real MSYS rewriter, without the simulator.",
+      "verdict": "DISCLOSED"
+    }
+  ],
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Probe 2 re-runs the live experiment and re-observes argv through bash -lc as a second shell. Native Git-Bash MSYS rewriting is not present on this Linux host; the SUT is the documented converter plus the scoped guard.",
+    "reviewer_id": "TST-0190-probe2-global-suppress-control",
+    "verdict": "PASS"
+  },
+  "reviewer_verdict": "PASS",
+  "schema_version": 1,
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "native Git-Bash MSYS conversion was observed on Windows"
+    ]
+  },
+  "sentinel": "SUCCESS:TST-0190",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0190",
+  "state": "SUCCESS",
+  "test_ids": [
+    "TST-0190-T1-revision-intact-and-posix-path-converted",
+    "TST-0190-T2-global-suppress-clone-skipped"
+  ],
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0190/probe1_scoped_argv_and_fs.py",
+      "id": "TST-0190-T1",
+      "name": "revision survives intact AND POSIX path still resolves",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0190/probe2_global_suppress_control.py",
+      "id": "TST-0190-NC1",
+      "name": "both-states: global MSYS_NO_PATHCONV makes path-carrying command fail",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:03:39Z",
+    "started_at": "2026-08-25T01:03:38Z"
+  },
+  "title": "MSYS path conversion is scoped to revisions, never suppressed globally",
+  "unit_id": "TST-0190"
+}

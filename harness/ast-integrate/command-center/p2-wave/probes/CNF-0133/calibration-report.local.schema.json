@@ -1,0 +1,105 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CNF-0133 calibration report (local, probe-facing)",
+  "$comment": "The catalog output_schema is a generated shim that $refs https://ast-integrate.invalid/platform/schema/artifact-class-profiles.schema.json#/$defs/calibration-report. That URI is not resolvable on this jsonschema 4.10 install (no network, no referencing registry). This local schema is the contract the named probes actually read: top-level planted_items, confusion_matrix raw counts, false_pass_rate numerator/denominator, both-set stability, two reviewers. Garbage documents must fail.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "planted_items",
+    "confusion_matrix",
+    "false_pass_rate",
+    "per_set",
+    "tests",
+    "reviewer",
+    "confirmation_records_set_a",
+    "confirmation_records_set_b"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNF-0133" },
+    "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+    "sentinel": { "type": "string", "pattern": "SUCCESS:CNF-0133" },
+    "planted_items": {
+      "type": "array",
+      "minItems": 8,
+      "items": {
+        "type": "object",
+        "required": [
+          "claim_id",
+          "set_id",
+          "oracle_label",
+          "confirmer_verdict",
+          "operator_class"
+        ]
+      }
+    },
+    "confusion_matrix": {
+      "type": "object",
+      "required": [
+        "true_positive",
+        "false_positive",
+        "false_negative",
+        "true_negative"
+      ],
+      "properties": {
+        "true_positive": { "type": "integer", "minimum": 0 },
+        "false_positive": { "type": "integer", "minimum": 0 },
+        "false_negative": { "type": "integer", "minimum": 0 },
+        "true_negative": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "false_pass_rate": {
+      "type": "object",
+      "required": ["numerator", "denominator", "value"],
+      "properties": {
+        "numerator": { "type": "integer", "minimum": 0 },
+        "denominator": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "per_set": {
+      "type": "object",
+      "required": ["set_a", "set_b"],
+      "properties": {
+        "set_a": { "$ref": "#/definitions/set_block" },
+        "set_b": { "$ref": "#/definitions/set_block" }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent", "planting_blind", "arithmetic"],
+      "properties": {
+        "independent": { "type": "boolean", "const": true },
+        "verdict": { "type": "string", "const": "PASS" },
+        "planting_blind": { "type": "object", "required": ["reviewer_id", "verdict"] },
+        "arithmetic": { "type": "object", "required": ["reviewer_id", "verdict"] }
+      }
+    },
+    "confirmation_records_set_a": { "type": "array", "minItems": 1 },
+    "confirmation_records_set_b": { "type": "array", "minItems": 1 }
+  },
+  "definitions": {
+    "set_block": {
+      "type": "object",
+      "required": ["confusion_matrix", "false_pass_rate"],
+      "properties": {
+        "false_pass_rate": {
+          "type": "object",
+          "required": ["numerator", "denominator", "value"]
+        }
+      }
+    }
+  }
+}

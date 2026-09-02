@@ -1,0 +1,28 @@
+I'll start from the existing TST-0218 probe tree and the measurement contract, then resume whatever is already there instead of rebuilding.The probe tree already has a return file and cloud-ok leftovers. Next I’ll read those plus the measure script so I know what “delivered” actually requires.Cloud-ok already parked this unit; delivery still needs live probes, an honest non-BLOCKED receipt, and a per-unit manifest. I'll inspect the receipt schema and nearby delivered TST units next.The receipt is blocked because production linting never reports confusable names. I’ll inspect `lint.py` and the receipt shape so we can add a real check and live probes instead of another file-only flip.I have the original 50+50 corpus. Next I’ll prove a cheap clone-and-re-sign path against the real linter, then rebuild the two named probes on top of it.I have a working clone-and-re-sign path against the real linter. Next I’ll write the two named probes plus the shared corpus/oracle, then assemble the receipt.Probes match the original corpus: production 0/50, independent 50/50, both-states distinguished. I’ll pack a schema-valid SUCCESS receipt and the per-unit manifest next.**SUCCESS:delivered TST-0218**
+
+`python command-center/p2-wave/_measure_one_delivered.py TST-0218` printed:
+
+`SUCCESS:delivered TST-0218 predicate=delivered state=SUCCESS probes=2 raws=4 notes=probe_a_linter_flags.py:0,probe_b_independent_mapping.py:0`
+
+G-1 for this unit only: live named probes re-run exit 0, honest non-BLOCKED receipt, per-unit manifest row. Cloud-ok was not treated as delivery.
+
+What was restored and measured
+
+The existing tree only had the cloud-ok refute (2 strikes, `state=BLOCKED`, 25 claimed probe files absent). Alternative A was executed: named probes were rebuilt and re-run against the real `lint_package`.
+
+| Signal | Result |
+|---|---|
+| Probe A — production `lint.py::lint_package` on 50 confusable + 50 distinct names | **REFUTED** the catalog property: tp=0, fn=50, fp=0 |
+| Probe B — independent NFKC + confusable table + underscore-fold + Levenshtein (no marketplace import) | **CONFIRMED** corpus truth: tp=50, fn=0, fp=0 |
+| Both-states FP ceiling (0/50 on production; 2 injected FPs → 4% > 2%) | silent on good, fires on bad |
+| Corpus/name control | red on production 0-recall, green on scoped 50/50 |
+
+Production still has no installed-set confusability rule. The 18 edit-distance-1 names lint **PASS** with empty findings. The 16 homoglyph and 16 hyphen-underscore names fail **MKT-L01** (package-name charset) and never report the confused-with name. That gap is finding `TST0218-F1` (P1) in the security report. `lint.py` was not modified.
+
+Artifacts
+
+- `command-center/receipts/TST-0218.json` — 135793 B, `state=SUCCESS`, schema-valid `security_report`
+- `command-center/p2-wave/probes/TST-0218/UNIT-ARTIFACT-MANIFEST.json` — sha256 `2b6e846d396ae5e8eca70c3342cf16e30bc3b9f4995d783f4982fc52462578cd` matches the live LF hash
+- `command-center/p2-wave/probes/TST-0218/SUBAGENT-RETURN.json`
+
+Constraints kept: no git mutate, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok files were left in place.

@@ -1,0 +1,27 @@
+# rules/common/testing.md
+shared:rules/common/testing.md
+repo-unique:rules/common/testing.md
+repo-pad:rules/common/testing.md:0
+repo-pad:rules/common/testing.md:1
+repo-pad:rules/common/testing.md:2
+repo-pad:rules/common/testing.md:3
+repo-pad:rules/common/testing.md:4
+repo-pad:rules/common/testing.md:5
+repo-pad:rules/common/testing.md:6
+repo-pad:rules/common/testing.md:7
+repo-pad:rules/common/testing.md:8
+repo-pad:rules/common/testing.md:9
+repo-pad:rules/common/testing.md:10
+repo-pad:rules/common/testing.md:11
+repo-pad:rules/common/testing.md:12
+repo-pad:rules/common/testing.md:13
+repo-pad:rules/common/testing.md:14
+repo-pad:rules/common/testing.md:15
+repo-pad:rules/common/testing.md:16
+repo-pad:rules/common/testing.md:17
+repo-pad:rules/common/testing.md:18
+repo-pad:rules/common/testing.md:19
+repo-pad:rules/common/testing.md:20
+repo-pad:rules/common/testing.md:21
+repo-pad:rules/common/testing.md:22
+repo-pad:rules/common/testing.md:23

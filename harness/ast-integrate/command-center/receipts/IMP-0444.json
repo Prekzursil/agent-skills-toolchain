@@ -1,0 +1,229 @@
+{
+  "artifacts": [
+    {
+      "bytes": 12763,
+      "exists": true,
+      "path": "tools/command-center/concurrency_governor.py",
+      "role": "primary-implementation",
+      "sha256": "eef29e0300e105672254c0db008bbdaf95a42e4ed98928f230b570e3872fd770"
+    }
+  ],
+  "completion_sentinel": "SENTINEL:IMP-0444:CONCURRENCY-CEILING-HELD",
+  "evidence": [
+    {
+      "anchor": "tools/command-center/concurrency_governor.py:ConcurrencyGovernor.can_admit",
+      "claim": "Under a 2048-unit burst (all ready_at=0) the measured 1Hz peak per substrate is <= the configured ceiling, saturates the ceiling, and is far below logical N=2048. An ungated control exceeds every ceiling (both-states for ceiling-exceeded-under-burst).",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0444/probe1_ceiling_hold_burst.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"all_ran\": true,\n  \"both_states\": {\n    \"gated_held\": true,\n    \"ungated_exceeds\": true\n  },\n  \"ceilings\": {\n    \"cloud-batch\": 16,\n    \"local-parallel\": 4,\n    \"local-serialized\": 1,\n    \"worktree-isolated\": 8\n  },\n  \"config_path\": \"command-center/config/substrate-ceilings.json\",\n  \"counts\": {\n    \"cloud-batch\": 768,\n    \"local-parallel\": 512,\n    \"local-serialized\": 256,\n    \"worktree-isolated\": 512\n  },\n  \"defaults_match_file\": true,\n  \"held\": true,\n  \"logical_not_simultaneous\": true,\n  \"makespan_ticks\": 1024,\n  \"n_samples\": 1025,\n  \"n_units\": 2048,\n  \"pass\": true,\n  \"peaks_gated\": {\n    \"cloud-batch\": 16,\n    \"local-parallel\": 4,\n    \"local-serialized\": 1,\n    \"worktree-isolated\": 8\n  },\n  \"peaks_ungated\": {\n    \"cloud-batch\": 768,\n    \"local-parallel\": 512,\n    \"local-serialized\": 256,\n    \"worktree-isolated\": 512\n  },\n  \"probe\": \"probe1-ceiling-hold-burst\",\n  \"receipt\": {\n    \"ok\": true,\n    \"present\": false,\n    \"skipped\": true\n  },\n  \"sampled_1hz\": true,\n  \"saturated\": true,\n  \"serialized_is_one\": true,\n  \"stagger_held\": true,\n  \"stagger_min_gap_cloud_batch\": 2,\n  \"ungated_exceeds\": true,\n  \"unit_id\": \"IMP-0444\"\n}\nSUCCESS:IMP-0444-probe1 ceiling held under 2048-unit burst",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/command-center/concurrency_governor.py:LiveReadout.peak",
+      "claim": "The live readout is measured from running-set cardinality, not derived from the ceiling constant. AST audit of LiveReadout is silent; a planted mutant that returns ceilings FIRES readout-derived-from-config. Raising local-parallel's ceiling raises the measured peak; mutating ceilings after a run does not rewrite stored samples.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0444/probe2_readout_not_from_config.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"base_peaks\": {\n    \"cloud-batch\": 16,\n    \"local-parallel\": 4,\n    \"local-serialized\": 1,\n    \"worktree-isolated\": 8\n  },\n  \"both_states\": {\n    \"bad_fires\": true,\n    \"good_silent\": true,\n    \"mutant_copies_ceiling\": true,\n    \"posthoc_config_does_not_rewrite_readout\": true,\n    \"raise_visible\": true,\n    \"zero_samples_not_ceiling\": true\n  },\n  \"derived_peaks\": {\n    \"cloud-batch\": 16,\n    \"local-parallel\": 4,\n    \"local-serialized\": 1,\n    \"worktree-isolated\": 8\n  },\n  \"honest_findings\": [],\n  \"pass\": true,\n  \"planted_findings\": [\n    {\n      \"class\": \"LiveReadout\",\n      \"function\": \"__init__\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 13,\n      \"name\": \"ceilings\"\n    },\n    {\n      \"class\": \"LiveReadout\",\n      \"function\": \"__init__\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 13,\n      \"name\": \"ceilings\"\n    },\n    {\n      \"class\": \"LiveReadout\",\n      \"function\": \"peak\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 20,\n      \"name\": \"ceilings\"\n    },\n    {\n      \"class\": \"LiveReadout\",\n      \"function\": \"peaks\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 23,\n      \"name\": \"ceilings\"\n    },\n    {\n      \"class\": \"LiveReadout\",\n      \"function\": \"live_at\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 26,\n      \"name\": \"ceilings\"\n    },\n    {\n      \"class\": \"ConcurrencyGovernor\",\n      \"function\": \"live_counts\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 34,\n      \"name\": \"ceilings\"\n    },\n    {\n      \"class\": \"ConcurrencyGovernor\",\n      \"function\": \"sample\",\n      \"id\": \"readout-derived-from-config\",\n      \"label\": \"command-center/p2-wave/probes/IMP-0444/fixtures/derived_readout_mutant.py\",\n      \"lineno\": 37,\n      \"name\": \"ceilings\"\n    }\n  ],\n  \"planted_ids\": [\n    \"readout-derived-from-config\"\n  ],\n  \"probe\": \"probe2-readout-not-from-config\",\n  \"raised_ceiling_local_parallel\": 8,\n  \"raised_peaks\": {\n    \"cloud-batch\": 16,\n    \"local-parallel\": 8,\n    \"local-serialized\": 1,\n    \"worktree-isolated\": 8\n  },\n  \"receipt\": {\n    \"ok\": true,\n    \"present\": false,\n    \"skipped\": true\n  },\n  \"snapshot_uses_len\": true,\n  \"unit_id\": \"IMP-0444\",\n  \"zero_peaks\": {\n    \"cloud-batch\": 0,\n    \"local-parallel\": 0,\n    \"local-serialized\": 0,\n    \"worktree-isolated\": 0\n  }\n}\nSUCCESS:IMP-0444-probe2 readout is measured; ceiling raise is visible",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "evidence_requirement": "Peak observed simultaneity per substrate over a simulated 2048-unit schedule, sampled at 1Hz, against the configured ceiling.",
+  "id": "IMP-0444",
+  "implementation": {
+    "catalog_n": 2048,
+    "ceilings": {
+      "cloud-batch": 16,
+      "local-parallel": 4,
+      "local-serialized": 1,
+      "worktree-isolated": 8
+    },
+    "config_path": "command-center/config/substrate-ceilings.json",
+    "governor_bytes": 12763,
+    "governor_path": "tools/command-center/concurrency_governor.py",
+    "governor_sha256": "eef29e0300e105672254c0db008bbdaf95a42e4ed98928f230b570e3872fd770",
+    "readout": "LiveReadout.peak is max(sample.live); ConcurrencyGovernor.live_counts is len(_running). can_admit reads ceilings; readout does not.",
+    "sample_hz": 1,
+    "stagger": "per-substrate min ticks between launches (stagger_ticks)",
+    "substrate_counts": {
+      "cloud-batch": 768,
+      "local-parallel": 512,
+      "local-serialized": 256,
+      "worktree-isolated": 512
+    }
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0444/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "negative_controls": [
+    {
+      "description": "Ceilings of 10^6 admit the whole per-substrate cohort at t=0; measured peaks equal cohort size and exceed the real ceilings.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0444-C1-ungated-burst-exceeds-ceiling",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "fixtures/derived_readout_mutant.py returns self.ceilings from peak/peaks/live_counts; AST auditor FIRES readout-derived-from-config. Honest LiveReadout is silent.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0444-C2-derived-readout-mutant",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "After a run, assigning 9999 into result.ceilings leaves readout.peaks() unchanged. Raising the ceiling before a re-run increases the measured peak.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0444-C3-posthoc-ceiling-mutation-does-not-rewrite-samples",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 IMP-0444: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SENTINEL:IMP-0444:CONCURRENCY-CEILING-HELD",
+  "output_path": "command-center/receipts/IMP-0444.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "premise": {
+    "IMP-0442_receipt_present": false,
+    "action": "IMP-0442 receipt absent on this worktree; governor accepts a unit list with execution_substrate directly. Created tools/command-center/concurrency_governor.py and command-center/config/substrate-ceilings.json. Did not exit on predicate:absent.",
+    "catalog_inputs": [
+      "command-center/receipts/IMP-0442.json",
+      "substrate ceiling config"
+    ]
+  },
+  "produced_by": {
+    "execution_substrate": "worktree-isolated",
+    "model": "grok-4.6",
+    "role": "systems-implementer",
+    "vendor": "cursor"
+  },
+  "question": "Implement the governor enforcing spec line 10570 \u2014 do not launch all units simultaneously \u2014 with per-substrate ceilings, staggered arrivals, and a live simultaneous-count readout. Exact target: a 2048-unit catalog must be schedulable without the simultaneous count ever exceeding the configured per-substrate ceiling.",
+  "residual_unknowns": [
+    {
+      "claim": "IMP-0442 dispatcher receipt is absent; this unit simulated substrate labels rather than consuming a live dispatch plan.",
+      "settling_experiment": "Re-run run_schedule on IMP-0442's dispatch plan once that unit lands.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Catalog reviewer_requirement is an independent Claude reviewer in a fresh context. Mechanical probes ran; that human review did not.",
+      "settling_experiment": "Independent reviewer starts from the 1Hz sample series, not the summary.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "independent": true,
+    "notes": "Independent of the governor author: AST audit plus a planted derived-readout mutant; not a self-attested prose review. Confirms the readout is measured, not derived from the ceiling constant.",
+    "reviewer_id": "IMP-0444-probe2-readout-not-from-config",
+    "verdict": "PASS"
+  },
+  "schedule": {
+    "ceilings": {
+      "cloud-batch": 16,
+      "local-parallel": 4,
+      "local-serialized": 1,
+      "worktree-isolated": 8
+    },
+    "held": true,
+    "logical_count": 2048,
+    "makespan_ticks": 1024,
+    "n_samples": 1025,
+    "n_units": 2048,
+    "peaks_gated": {
+      "cloud-batch": 16,
+      "local-parallel": 4,
+      "local-serialized": 1,
+      "worktree-isolated": 8
+    },
+    "peaks_ungated": {
+      "cloud-batch": 768,
+      "local-parallel": 512,
+      "local-serialized": 256,
+      "worktree-isolated": 512
+    },
+    "sample_head_tail": [
+      {
+        "live": {
+          "cloud-batch": 16,
+          "local-parallel": 4,
+          "local-serialized": 1,
+          "worktree-isolated": 8
+        },
+        "tick": 0
+      },
+      {
+        "live": {
+          "cloud-batch": 16,
+          "local-parallel": 4,
+          "local-serialized": 1,
+          "worktree-isolated": 8
+        },
+        "tick": 1
+      },
+      {
+        "live": {
+          "cloud-batch": 16,
+          "local-parallel": 4,
+          "local-serialized": 1,
+          "worktree-isolated": 8
+        },
+        "tick": 2
+      },
+      {
+        "live": {
+          "cloud-batch": 0,
+          "local-parallel": 0,
+          "local-serialized": 1,
+          "worktree-isolated": 0
+        },
+        "tick": 1023
+      },
+      {
+        "live": {
+          "cloud-batch": 0,
+          "local-parallel": 0,
+          "local-serialized": 0,
+          "worktree-isolated": 0
+        },
+        "tick": 1024
+      }
+    ],
+    "sample_hz": 1,
+    "sum_of_peaks": 29
+  },
+  "schema_version": 1,
+  "sentinel": "SENTINEL:IMP-0444:CONCURRENCY-CEILING-HELD",
+  "spec_anchor": "_USER-PROMPTS.md:10570-10583",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0444/probe1_ceiling_hold_burst.py",
+      "exit_code": 0,
+      "id": "ceiling-hold-burst-2048",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0444/probe2_readout_not_from_config.py",
+      "exit_code": 0,
+      "id": "readout-not-from-config",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:27:47Z",
+    "started_at": "2026-08-25T01:27:47Z"
+  },
+  "title": "Concurrency governor separating logical unit count from simultaneity",
+  "unit_id": "IMP-0444"
+}

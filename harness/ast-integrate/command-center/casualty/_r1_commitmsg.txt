@@ -1,0 +1,53 @@
+casualty: finish ADV-0021 + ADV-0022, fix three detector defects, census the wave
+
+Both units died at the artifact-ASSEMBLY step with all measurement complete. Their probe
+captures survived and were re-executed rather than trusted: adv0021_probe1 and
+adv0022_probe2 reproduced BYTE-IDENTICAL; the other two differ only in a subprocess pid,
+two %TEMP% names, an ephemeral port and an env label, with all 24 and all 8 outcomes
+identical (RERUN-EQUIVALENCE.json).
+
+ADV-0021 (171,343 B): 7 trust boundaries x 6 STRIDE = 42 cells, 0 without a disposition,
+every unmitigated cell routed to a NAMED existing catalog unit. version_dir applies no
+containment to a manifest version string (proven by executing the traversal); no expansion
+bound (1029x archive cleared the preflight budget by 503,316,480 B); no publisher
+authentication.
+
+ADV-0022 (105,357 B): a component declaring [Read,Grep,Glob] escaped 4/4 while the required
+wide-permission control ran unimpeded. tool_permissions is metadata; nothing reads it at
+call time.
+
+Three detector defects caught and recorded, not quietly fixed:
+  1. _probe_liveness.py declared SIX FALSE casualties (ADV-0031/0032/0035/0036/0039/0042,
+     all complete 6/6 artifacts). It reads G1 from a census FILE with no freshness check, so
+     it gets worse as a wave ages. liveness_v2.py recomputes G1 in-process.
+  2. my own AST test-gap matcher over-matched: "ratio" inside "migration" produced 3 false
+     hits. Fixed with word-boundary + conjunctive matching, control still returns 4.
+  3. my own git verifier matched its own lane's tracked files, inflating controls 219->208
+     and 12->8. Pathspec now excludes the lane.
+
+Also corrected two OVERCLAIMS before they shipped: "zero signature verification" (there is
+one callsite, Cache.verify, a content re-hash - scoped precisely), and "traversal untested"
+(it is tested elsewhere, just not at the version-string boundary). And found a caller the
+dead agent's scanner missed: wave3_floor_audit.py:456 invokes the authz function via
+getattr, invisible to literal-call matching.
+
+Census at 2026-08-12T06:35:11Z, multi-pair control (6 pairs, all separate, 6/6 vs 0/6):
+40 artifacts, effective {5:4, 6:36}. Liveness at 09:37:45+03:00: {SUBSTANTIVE 38,
+RECOVERED 2}, with a three-state selftest proving the gate can still fire CASUALTY.
+The 9 units the grounding lane saw at score 0-1 were MID-FLIGHT, not dead; all completed.
+
+ADV-0002 and ADV-0038 were NEVER DISPATCHED (40 dispatched / 40 artifacts, perfect 1:1).
+Revised the grounding lane's "READY snapshotted at launch" explanation from likely-65% down
+to NOT-CHECKED: ADV-0038 has no ADV-* dependency, and three dispatched units DO depend on
+in-wave ADV units.
+
+Scope expansion built as proposed: recover_failed_agents_v2.py fixes both measured defects
+in the recovery tool (over-match 62/90 -> 2; and "WROTE NOTHING" false-total-loss, which
+told the reader to re-run two hours of completed measurement). The original file is outside
+this lane's scope and was NOT edited; v2 documents the exact patch.
+
+Artifacts are at command-center/casualty/ rather than their catalog output_path because this
+lane is forbidden from writing into command-center/adversarial/; each receipt records its
+canonical path. Neither unit has a reviewer, and ADV-0022's disposable-sandbox clause is
+PARTIAL (Modal unauthenticated; no credential created per AGENTS.md 9). Both disclosed
+inline, neither self-certified.

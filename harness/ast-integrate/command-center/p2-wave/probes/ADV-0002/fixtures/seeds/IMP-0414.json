@@ -1,0 +1,174 @@
+{
+ "artifacts": [
+  {
+   "bytes": 15759,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/command-center/handoff.py",
+   "role": "implementation",
+   "sha256": "8e621f59ad408dd998a84507ec0e76ca8f6aa5e756cca49b4dd317b3771475e7"
+  },
+  {
+   "bytes": 5340,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/schema/handoff.schema.json",
+   "role": "schema",
+   "sha256": "e497a5fdb82f3a20814c097b99f1e34d08b45e31266b697c7efccded3fb2d757"
+  },
+  {
+   "bytes": 3724,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0414/probe1_raw_transcript_raises.py",
+   "role": "named-probe",
+   "sha256": "c1af75f374559d4bec87bbe508668f2e3029a28834a71f7ea4c2f20b01f1ab31"
+  },
+  {
+   "bytes": 4047,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0414/probe2_missing_goal_fails.py",
+   "role": "named-probe",
+   "sha256": "4b63dd5adb8056fa23e46380b4a1520846bde4c7fc2aebf8767e02a4cc4ae131"
+  }
+ ],
+ "claim_under_test": "The handoff API accepts only typed sections; a raw string is rejected at the boundary; missing re-anchored goal fails validation.",
+ "from_agent": "IMP-0414-implementer",
+ "kind": "typed-handoff",
+ "notes": "G-1 IMP-0414: typed handoff API refuses raw transcripts; goal is re-anchored as section 1 even when passed last. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+ "produced_by": "command-center/p2-wave/probes/IMP-0414/emit.py",
+ "question": "Implement the structured handoff artifact \u2014 goal re-anchored at the top, typed sections, evidence anchors \u2014 and make raw upstream output physically unable to become the next agent's prefix context.",
+ "rejected_raw_trace": {
+  "boundary": "typed-handoff",
+  "error_type": "HandoffBoundaryError",
+  "payload_preview_len": 140,
+  "payload_type": "str",
+  "reason": "accept_handoff refuses raw str; typed sections only \u2014 raw upstream output cannot become prefix context",
+  "refused": true,
+  "refused_kind": "raw-string"
+ },
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 does not reuse probe 1's exception path. It builds a typed-looking document whose first section is not a goal and requires both the API and the schema to reject it.",
+  "reviewer_id": "IMP-0414-probe2-missing-goal",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sections": [
+  {
+   "body": {
+    "exact_target": "the handoff API must accept only typed sections; a raw string must be rejected at the boundary.",
+    "reanchored": true,
+    "statement": "Implement the structured handoff artifact \u2014 goal re-anchored at the top, typed sections, evidence anchors \u2014 and make raw upstream output physically unable to become the next agent's prefix context."
+   },
+   "evidence_anchors": [
+    {
+     "claim": "IMP-0414 requires typed sections and a refused raw string",
+     "path": "command-center/WORK-UNIT-CATALOG.json"
+    },
+    {
+     "claim": "accept_handoff raises HandoffBoundaryError on str/bytes",
+     "path": "tools/command-center/handoff.py"
+    }
+   ],
+   "id": "goal",
+   "kind": "goal",
+   "ordinal": 1,
+   "title": "Re-anchored goal: typed handoff only"
+  },
+  {
+   "body": {
+    "failure_classes": [
+     "raw-output-prefix",
+     "goal-drift-on-handoff"
+    ],
+    "prefix_type": "tuple of typed section objects, never str",
+    "replaced_practice": "raw-output prefix passing"
+   },
+   "evidence_anchors": [
+    {
+     "claim": "prefix_for_next_agent accepts only a Handoff instance",
+     "path": "tools/command-center/handoff.py"
+    }
+   ],
+   "id": "context",
+   "kind": "context",
+   "ordinal": 2,
+   "title": "What this unit replaces"
+  },
+  {
+   "body": {
+    "expected_section_1_kind": "goal",
+    "goal_was_passed_after_context": true,
+    "prefix_refusal": {
+     "boundary": "typed-handoff",
+     "error_type": "HandoffBoundaryError",
+     "payload_preview_len": 140,
+     "payload_type": "str",
+     "reason": "prefix_for_next_agent refuses raw str; typed sections only \u2014 raw upstream output cannot become prefix context",
+     "refused": true,
+     "refused_kind": "raw-string"
+    },
+    "rejected_raw_trace": {
+     "boundary": "typed-handoff",
+     "error_type": "HandoffBoundaryError",
+     "payload_preview_len": 140,
+     "payload_type": "str",
+     "reason": "accept_handoff refuses raw str; typed sections only \u2014 raw upstream output cannot become prefix context",
+     "refused": true,
+     "refused_kind": "raw-string"
+    }
+   },
+   "evidence_anchors": [
+    {
+     "claim": "schema type=object; a string root is invalid",
+     "path": "command-center/schema/handoff.schema.json"
+    }
+   ],
+   "id": "evidence",
+   "kind": "evidence",
+   "ordinal": 3,
+   "title": "Rejected-raw-string trace and accepted re-anchored handoff"
+  },
+  {
+   "body": {
+    "not_checked": [
+     "Vendor adapters IMP-0419+ have not yet been wired to this API.",
+     "AGENTS.md section 5 is named as an input but is not in this worktree; the catalog question_or_target is the operative contract."
+    ]
+   },
+   "evidence_anchors": [],
+   "id": "residual",
+   "kind": "residual",
+   "ordinal": 4,
+   "title": "What this unit does not close"
+  }
+ ],
+ "sentinel": "SENTINEL:IMP-0414:HANDOFF-TYPED-ONLY",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0414/probe1_raw_transcript_raises.py",
+   "id": "boundary-raw-transcript",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0414/probe2_missing_goal_fails.py",
+   "id": "section-completeness-goal",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/tests/test_handoff.py",
+   "id": "pytest-handoff-api",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:58:08Z",
+  "started_at": "2026-08-24T18:58:08Z"
+ },
+ "to_agent": "next-agent",
+ "unit_id": "IMP-0414"
+}

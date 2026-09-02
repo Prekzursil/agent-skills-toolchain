@@ -1,0 +1,111 @@
+{
+  "id": "wfa0049-intake-review",
+  "title": "Worked LangGraph StateGraph described from published source (no runtime import)",
+  "source": {
+    "runtime": "langgraph.graph.state.StateGraph",
+    "commit": "644815f9e5bc52ad8f7a5227a456227e9c3e639b",
+    "license": "MIT",
+    "imported": false
+  },
+  "state_schema": [
+    {
+      "key": "topic",
+      "reducer": "last_value",
+      "value_kind": "str"
+    },
+    {
+      "key": "tags",
+      "reducer": "operator.add",
+      "value_kind": "list"
+    },
+    {
+      "key": "flags",
+      "reducer": "custom:unique_append",
+      "value_kind": "list",
+      "callable_source": "def unique_append(left, right): seen=list(left or []); [seen.append(x) for x in (right or []) if x not in seen]; return seen"
+    },
+    {
+      "key": "verdict",
+      "reducer": "last_value",
+      "value_kind": "str"
+    },
+    {
+      "key": "human_note",
+      "reducer": "last_value",
+      "value_kind": "str"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "ingest",
+      "writes": {
+        "tags": ["ingested"],
+        "flags": ["ingested"]
+      }
+    },
+    {
+      "id": "route",
+      "writes": {
+        "tags": ["routed"]
+      }
+    },
+    {
+      "id": "draft",
+      "writes": {
+        "tags": ["drafted"],
+        "flags": ["drafted"]
+      }
+    },
+    {
+      "id": "escalate",
+      "writes": {
+        "tags": ["escalated"],
+        "flags": ["escalated"]
+      }
+    },
+    {
+      "id": "human_review",
+      "writes": {
+        "human_note": "approved",
+        "tags": ["reviewed"]
+      }
+    },
+    {
+      "id": "finalize",
+      "writes": {
+        "verdict": "done",
+        "tags": ["finalized"]
+      }
+    }
+  ],
+  "edges": [
+    {"from": "__start__", "to": "ingest"},
+    {"from": "ingest", "to": "route"},
+    {"from": "draft", "to": "human_review"},
+    {"from": "escalate", "to": "human_review"},
+    {"from": "human_review", "to": "finalize"},
+    {"from": "finalize", "to": "__end__"}
+  ],
+  "conditional_edges": [
+    {
+      "source": "route",
+      "path": "topic_contains_urgent",
+      "path_map": {
+        "urgent": "escalate",
+        "normal": "draft"
+      }
+    }
+  ],
+  "compile": {
+    "checkpointer": "InMemorySaver",
+    "interrupt_before": ["human_review"],
+    "interrupt_after": []
+  },
+  "named_path_predicates": {
+    "topic_contains_urgent": "if 'urgent' appears in topic (case-insensitive) return 'urgent' else 'normal'"
+  },
+  "cases": {
+    "urgent": {"topic": "urgent-x", "tags": [], "flags": []},
+    "normal": {"topic": "plain-note", "tags": [], "flags": []}
+  }
+}

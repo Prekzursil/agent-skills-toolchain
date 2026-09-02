@@ -1,0 +1,90 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/ARC-0099/schemas/ARC-0087.schema.json",
+  "title": "Completion predicate result (ARC-0087 catalog-derived stand-in)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unit_id",
+    "exit_code",
+    "overall",
+    "conditions"
+  ],
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "minLength": 3
+    },
+    "exit_code": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "overall": {
+      "type": "string",
+      "enum": [
+        "PASS",
+        "FAIL",
+        "UNKNOWN"
+      ]
+    },
+    "conditions": {
+      "type": "array",
+      "minItems": 12,
+      "maxItems": 12,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "applicable",
+          "result"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 2
+          },
+          "applicable": {
+            "type": "boolean"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS",
+              "FAIL",
+              "UNKNOWN",
+              "NA"
+            ]
+          }
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "conditions": {
+        "contains": {
+          "type": "object",
+          "properties": {
+            "result": {
+              "const": "FAIL"
+            }
+          },
+          "required": [
+            "result"
+          ]
+        }
+      }
+    }
+  },
+  "then": {
+    "properties": {
+      "overall": {
+        "type": "string",
+        "not": {
+          "const": "PASS"
+        }
+      }
+    }
+  }
+}

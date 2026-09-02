@@ -1,0 +1,23 @@
+I'll start from the existing TST-0221 probe tree, read the return artifact if it's there, and resume rather than rebuild.The probe tree is present but has no `SUBAGENT-RETURN.json` yet. Next I’ll read the unit contract, measure script, and the existing probe files.The cloud-ok harvest is already refuted. Next I’ll read the catalog contract, a delivered unit’s probe pattern, and the marketplace surface this unit actually tests.I'll pull the catalog unit, the security-report schema, `ready_units` delivery rules, and a delivered TST probe as the pattern.The catalog PASS is real marketplace behavior, not a harvest flag. I’ll inspect the CLI/installer and a delivered TST receipt so the probes can test the contract, not the old harvest.The r2e tarball has the full `mkt` package. I’ll restore it, then add health-check and user-data preservation so the named probes can actually run.I'll restore the marketplace, add the health-check verb, and keep owner files across remove/rollback so the named probes can pass the catalog contract.Next I’ll add the two named probes that exercise the live CLI and the user-data hash contract.1.1.0 is on the beta channel, so the probes were asking stable for the wrong version. I’ll point those installs at beta and catch `InstallRefused` so a miss is a probe failure, not a traceback.Both probes passed. I’ll pack a SUCCESS receipt from the live outputs, then write the per-unit manifest.**SUCCESS:delivered TST-0221** — `python command-center/p2-wave/_measure_one_delivered.py TST-0221` printed:
+
+`SUCCESS:delivered TST-0221 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe_a_health.py:0,probe_b_userdata.py:0`
+
+Harvest `ok=true` / `UNIT-COMPLETE` was not treated as delivery. The existing CLOUD-OK refute was right: this tree had no runnable named probes, no `health-check` verb, and `remove` used `shutil.rmtree` on the version directory.
+
+What this pass actually did:
+
+1. **Restored** `platform/marketplace` from the local `p2-r2e-mirror.tgz` (it was missing on this stripped worktree).
+2. **Implemented** `mkt health-check` so a live revocation is visible on the next check with no manual refresh.
+3. **Changed** remove / rollback / re-install so they delete only signed payload paths and leave owner-authored files on the same paths (`OWNER_DATA_BOUNDARY=package-local-non-payload`).
+4. **Wrote and re-ran** the named probes:
+   - `probe_a_health.py` — flags `hello-skill@1.0.0`, does not flag `hello-skill@1.1.0`
+   - `probe_b_userdata.py` — pre/post owner-tree hashes match after remove and after rollback
+5. **Set** `command-center/receipts/TST-0221.json` to `SUCCESS` only after those probes exited 0.
+6. **Wrote** the per-unit `UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `b1ec538237340a4e879c6d5f14ccb9348598cd7d7bed49fe0c13dd7a14fa056a`).
+
+Return artifacts:
+
+- `command-center/p2-wave/probes/TST-0221/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/TST-0221/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no key rotation, no wave relaunch.

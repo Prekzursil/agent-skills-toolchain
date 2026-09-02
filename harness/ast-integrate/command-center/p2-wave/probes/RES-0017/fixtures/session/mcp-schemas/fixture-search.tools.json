@@ -1,0 +1,80 @@
+{
+  "server": "fixture-search",
+  "tools": [
+    {
+      "name": "search_corpus",
+      "description": "Search the planted corpus. Unique marker RES0017-MCP-SEARCH-SCHEMA. This schema is turn-0 occupancy; the sibling mcp-server.js body is not.",
+      "inputSchema": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["query"],
+        "properties": {
+          "query": {
+            "type": "string",
+            "minLength": 1,
+            "description": "Full-text query. Occupancy counts this JSON, not character/4."
+          },
+          "mode": {
+            "type": "string",
+            "enum": ["keyword", "semantic", "hybrid", "regex"],
+            "description": "Retrieval mode."
+          },
+          "limit": {
+            "type": "integer",
+            "minimum": 1,
+            "maximum": 100,
+            "description": "Maximum hits."
+          },
+          "filters": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "path_glob": { "type": "string" },
+              "mtime_after": { "type": "string" },
+              "language": {
+                "type": "string",
+                "enum": ["python", "javascript", "markdown", "json", "other"]
+              },
+              "exclude_tests": { "type": "boolean" }
+            }
+          },
+          "include_snippets": { "type": "boolean" },
+          "snippet_chars": { "type": "integer", "minimum": 0, "maximum": 4000 }
+        }
+      }
+    },
+    {
+      "name": "search_explain",
+      "description": "Explain why a document ranked. Marker RES0017-MCP-SEARCH-EXPLAIN.",
+      "inputSchema": {
+        "type": "object",
+        "required": ["doc_id"],
+        "properties": {
+          "doc_id": { "type": "string" },
+          "query": { "type": "string" },
+          "top_k_features": { "type": "integer", "minimum": 1, "maximum": 50 }
+        }
+      }
+    },
+    {
+      "name": "search_related",
+      "description": "Related documents. Padding properties increase schema tokens relative to a tiny always-on skill.",
+      "inputSchema": {
+        "type": "object",
+        "properties": {
+          "doc_id": { "type": "string" },
+          "neighbors": { "type": "integer" },
+          "weights": {
+            "type": "object",
+            "properties": {
+              "title": { "type": "number" },
+              "body": { "type": "number" },
+              "path": { "type": "number" },
+              "recency": { "type": "number" }
+            }
+          }
+        }
+      }
+    }
+  ]
+}

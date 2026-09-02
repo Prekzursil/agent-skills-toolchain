@@ -1,0 +1,502 @@
+{
+  "answer": "SUCCESS:RES-0150. Quota is a quality-gated floor, not a raw objection-count: required_n = max(2, ceil(0.25 * qualifying_total)), where qualifying_total is supporting+unfavorable items that pass the floor (anti-suppression: dropping supporting evidence cannot inflate share). An unfavorable item counts only if it cites a corpus DISCONFIRM document, carries live url+fetched_at+sha256 lineage, names a falsifier, is not a claim restatement, and is mechanism-distinct from already accepted objections. Padded items are rejected, never counted. When genuine counterevidence does not exist after exhausted search, the only legal verdict is UNDER-QUOTA-HONEST; filling is the failure this unit exists to prevent. Live: claim G QUOTA-MET unfavorable=4 required=2; claim N UNDER-QUOTA-HONEST unfavorable=0 padded_rejected=4; mutant on N QUOTA-MET (would have filled). Padding detector both_states=True genuine_unflagged=True padded_flagged=True.",
+  "claims": [
+    {
+      "claim": "A raw count quota on objection-shaped sentences is a Goodhart target; the quality-gated floor plus forbidden filling is the non-gamed definition.",
+      "confidence_band": "almost certain",
+      "id": "C-QUOTA-GOODHART",
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py && PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe2_honest_under_quota.py",
+      "signals": [
+        {
+          "id": "S1-goodhart-fetch",
+          "kind": "http-fetch",
+          "locator": "command-center/p2-wave/probes/RES-0150/captures/goodhart-wikipedia.body"
+        },
+        {
+          "id": "S2-catalog-row",
+          "kind": "worktree-file",
+          "locator": "command-center/WORK-UNIT-CATALOG.json"
+        }
+      ]
+    },
+    {
+      "claim": "The quality floor (DISCONFIRM citation, lineage, falsifier, non-restatement, mechanism distinctness) stops Campbell-style corruption of the unfavorable-evidence indicator.",
+      "confidence_band": "almost certain",
+      "id": "C-QUALITY-FLOOR",
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py",
+      "signals": [
+        {
+          "id": "S1-campbell-fetch",
+          "kind": "http-fetch",
+          "locator": "command-center/p2-wave/probes/RES-0150/captures/campbell-wikipedia.body"
+        },
+        {
+          "id": "S2-live-detector",
+          "kind": "executable-control",
+          "locator": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py"
+        }
+      ]
+    },
+    {
+      "claim": "When a closed corpus contains zero DISCONFIRM documents, the run must emit UNDER-QUOTA-HONEST with qualifying_unfavorable=0; a counter that counts any disconfirming-shaped filler reports QUOTA-MET.",
+      "confidence_band": "certain",
+      "id": "C-HONEST-UNDER",
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe2_honest_under_quota.py",
+      "signals": [
+        {
+          "id": "S1-closed-corpus-N",
+          "kind": "executable-control",
+          "locator": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe2_honest_under_quota.py"
+        },
+        {
+          "id": "S2-mutant-fills",
+          "kind": "executable-negative-control",
+          "locator": "engine.mutant_count_all_disconfirming"
+        }
+      ]
+    },
+    {
+      "claim": "The padding detector flags every planted padded objection and is silent on every genuine DISCONFIRM citation.",
+      "confidence_band": "certain",
+      "id": "C-DETECTOR-BOTH-STATES",
+      "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py",
+      "signals": [
+        {
+          "id": "S1-padded-flagged",
+          "kind": "executable-control",
+          "locator": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py"
+        },
+        {
+          "id": "S2-genuine-silent",
+          "kind": "executable-control",
+          "locator": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py"
+        }
+      ]
+    }
+  ],
+  "completion_sentinel": "SUCCESS:RES-0150",
+  "design": {
+    "honest_under_quota_path": {
+      "must_not": "Must not add vacuous, restated, unsourced, or duplicate objections to reach QUOTA-MET. Filling is the failure this unit exists to prevent.",
+      "verdict": "UNDER-QUOTA-HONEST",
+      "when": "Search is exhausted and qualifying unfavorable count is still below required_n, including after rejecting padding."
+    },
+    "padding_detector": {
+      "both_states": true,
+      "flags": [
+        "PAD-NEAR-DUP",
+        "PAD-MECH-COLLAPSE",
+        "PAD-VACUOUS",
+        "PAD-RESTATE",
+        "PAD-NO-LINEAGE",
+        "PAD-POLARITY",
+        "PAD-NOT-IN-CORPUS",
+        "PAD-SUPPORT-CITED-AS-DISCONFIRM"
+      ],
+      "id": "PAD-RES-0150-dual-space",
+      "procedure": "Accept genuine disconfirming items first. Each later candidate is flagged if vacuous, restating, unlined, not in corpus, citing SUPPORT as DISCONFIRM, mechanism-subset of an accepted item, or Jaccard >= 0.5 with an accepted item. Flags reject; they do not fill."
+    },
+    "quality_floor": [
+      {
+        "id": "QF-POLARITY",
+        "rule": "Item polarity must be disconfirming to count toward the unfavorable quota."
+      },
+      {
+        "id": "QF-CORPUS-DISCONFIRM",
+        "rule": "Item must cite a corpus document labeled DISCONFIRM; SUPPORT cited as disconfirm is padding."
+      },
+      {
+        "id": "QF-LINEAGE",
+        "rule": "Resolved url, fetched_at, and sha256 of the fetched bytes must match the live file."
+      },
+      {
+        "id": "QF-FALSIFIER",
+        "rule": "Named falsifier at least 24 characters; hedge-only text without a mechanism is vacuous."
+      },
+      {
+        "id": "QF-NON-RESTATE",
+        "rule": "Objection text must not be a high-Jaccard restatement of the claim."
+      },
+      {
+        "id": "QF-MECHANISM-DISTINCT",
+        "rule": "Mechanism key must not collapse into an already accepted objection."
+      },
+      {
+        "id": "QF-KENT-BAND",
+        "rule": "Each counted objection carries a Sherman-Kent estimative band."
+      },
+      {
+        "id": "QF-INDEPENDENT-PATH",
+        "rule": "Each counted objection names a verification path a second agent can re-run."
+      }
+    ],
+    "quota_definition": {
+      "anti_suppression": true,
+      "filling_forbidden": true,
+      "formula": "required_n = max(min_n, ceil(min_share * qualifying_total)); qualifying_total includes all quality-passing polarities; padded rejects never enter the numerator",
+      "honest_verdict_token": "UNDER-QUOTA-HONEST",
+      "min_qualifying_unfavorable": 2,
+      "min_share": 0.25,
+      "name": "quality-gated-unfavorable-share-with-honest-under-quota"
+    }
+  },
+  "detector_control": {
+    "both_states": true,
+    "genuine": [
+      {
+        "flags": [],
+        "id": "u-ostrich"
+      },
+      {
+        "flags": [],
+        "id": "u-penguin"
+      },
+      {
+        "flags": [],
+        "id": "u-kiwi"
+      },
+      {
+        "flags": [],
+        "id": "u-moa"
+      }
+    ],
+    "genuine_unflagged": true,
+    "n_genuine": 4,
+    "n_padded": 7,
+    "padded": [
+      {
+        "flags": [
+          "PAD-MECH-COLLAPSE"
+        ],
+        "id": "p-ostrich-reword"
+      },
+      {
+        "flags": [
+          "PAD-MECH-COLLAPSE"
+        ],
+        "id": "p-emu-as-ostrich"
+      },
+      {
+        "flags": [
+          "PAD-VACUOUS",
+          "PAD-NO-LINEAGE",
+          "PAD-NOT-IN-CORPUS"
+        ],
+        "id": "p-vacuous"
+      },
+      {
+        "flags": [
+          "PAD-RESTATE",
+          "PAD-NO-LINEAGE",
+          "PAD-NOT-IN-CORPUS"
+        ],
+        "id": "p-restate"
+      },
+      {
+        "flags": [
+          "PAD-NO-LINEAGE",
+          "PAD-NOT-IN-CORPUS",
+          "PAD-MECH-COLLAPSE"
+        ],
+        "id": "p-unsourced"
+      },
+      {
+        "flags": [
+          "PAD-SUPPORT-CITED-AS-DISCONFIRM"
+        ],
+        "id": "p-support-as-disconfirm"
+      },
+      {
+        "flags": [
+          "PAD-NO-LINEAGE",
+          "PAD-NOT-IN-CORPUS"
+        ],
+        "id": "p-invented-source"
+      }
+    ],
+    "padded_flagged": true
+  },
+  "live_quota": {
+    "claim_G": {
+      "accepted_ids": [
+        "u-ostrich",
+        "u-penguin",
+        "u-kiwi",
+        "u-moa"
+      ],
+      "anti_suppression": true,
+      "claim_id": "G-all-birds-fly",
+      "filled_with_padding": false,
+      "min_n": 2,
+      "min_share": 0.25,
+      "padded_rejected": 7,
+      "qualifying_supporting": 2,
+      "qualifying_total": 6,
+      "qualifying_unfavorable": 4,
+      "queries": [
+        "flightless bird taxon ostrich penguin kiwi moa",
+        "powered flight universal avian claim counterexample"
+      ],
+      "rejected": [
+        {
+          "flags": [
+            "PAD-MECH-COLLAPSE"
+          ],
+          "id": "p-ostrich-reword"
+        },
+        {
+          "flags": [
+            "PAD-MECH-COLLAPSE"
+          ],
+          "id": "p-emu-as-ostrich"
+        },
+        {
+          "flags": [
+            "PAD-VACUOUS",
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS"
+          ],
+          "id": "p-vacuous"
+        },
+        {
+          "flags": [
+            "PAD-RESTATE",
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS"
+          ],
+          "id": "p-restate"
+        },
+        {
+          "flags": [
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS",
+            "PAD-MECH-COLLAPSE"
+          ],
+          "id": "p-unsourced"
+        },
+        {
+          "flags": [
+            "PAD-SUPPORT-CITED-AS-DISCONFIRM"
+          ],
+          "id": "p-support-as-disconfirm"
+        },
+        {
+          "flags": [
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS"
+          ],
+          "id": "p-invented-source"
+        }
+      ],
+      "required_n": 2,
+      "search_exhausted": true,
+      "share": 0.6666666666666666,
+      "source_classes_exhausted": [
+        "constructed-corpus-G-disconfirm-docs",
+        "constructed-corpus-G-support-docs"
+      ],
+      "verdict": "QUOTA-MET"
+    },
+    "claim_N": {
+      "accepted_ids": [],
+      "anti_suppression": true,
+      "claim_id": "N-closed-token-corpus",
+      "filled_with_padding": false,
+      "min_n": 2,
+      "min_share": 0.25,
+      "padded_rejected": 4,
+      "qualifying_supporting": 5,
+      "qualifying_total": 5,
+      "qualifying_unfavorable": 0,
+      "queries": [
+        "FIXTURE-RES-0150-UNIQUE-9f3a DISCONFIRM",
+        "corpus N documents missing token"
+      ],
+      "rejected": [
+        {
+          "flags": [
+            "PAD-VACUOUS",
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS"
+          ],
+          "id": "pn-maybe-missing"
+        },
+        {
+          "flags": [
+            "PAD-SUPPORT-CITED-AS-DISCONFIRM"
+          ],
+          "id": "pn-false-absent"
+        },
+        {
+          "flags": [
+            "PAD-VACUOUS",
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS"
+          ],
+          "id": "pn-reword"
+        },
+        {
+          "flags": [
+            "PAD-NO-LINEAGE",
+            "PAD-NOT-IN-CORPUS"
+          ],
+          "id": "pn-unsourced"
+        }
+      ],
+      "required_n": 2,
+      "search_exhausted": true,
+      "share": 0.0,
+      "source_classes_exhausted": [
+        "constructed-corpus-N-all-five-docs"
+      ],
+      "verdict": "UNDER-QUOTA-HONEST"
+    },
+    "mutant_N": {
+      "filled_with_padding": true,
+      "name": "mutant-count-any-disconfirming-shape",
+      "qualifying_unfavorable": 4,
+      "required_n": 3,
+      "verdict": "QUOTA-MET"
+    }
+  },
+  "measured_at": "2026-09-02T00:40:57Z",
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py",
+      "id": "probe1"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe2_honest_under_quota.py",
+      "id": "probe2"
+    }
+  ],
+  "negative_control": {
+    "filled": false,
+    "id": "N-closed-token-corpus",
+    "mutant_verdict": "QUOTA-MET",
+    "mutant_would_fill": true,
+    "padded_rejected": 4,
+    "qualifying_unfavorable": 0,
+    "search_exhausted": true,
+    "verdict": "UNDER-QUOTA-HONEST"
+  },
+  "output_path": "command-center/research/evidence-quality/RES-0150-unfavorable-evidence-quota-mechanism.json",
+  "output_schema": "command-center/schema/design-spec.schema.json",
+  "positive_control": {
+    "accepted_ids": [
+      "u-ostrich",
+      "u-penguin",
+      "u-kiwi",
+      "u-moa"
+    ],
+    "id": "G-all-birds-fly",
+    "padded_rejected": 7,
+    "qualifying_unfavorable": 4,
+    "required_n": 2,
+    "verdict": "QUOTA-MET"
+  },
+  "question": "How can a research run be required to return a minimum share of disconfirming evidence without creating an incentive to fabricate weak objections - what quota definition, what quality floor per objection, and what detector catches padded objections?",
+  "report_kind": "design-spec",
+  "reviewer": {
+    "default": "REFUTED",
+    "independent": true,
+    "notes": "Probe2 recomputes the no-counterevidence run and fails if the engine filled. Probe1 is the detector both-states control.",
+    "reviewer_id": "RES-0150-probe2-honest-under-quota",
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:RES-0150 in the artifact AND a quota that reports UNDER-QUOTA-HONEST on a claim with no real counterevidence rather than filling it",
+  "sherman_kent_bands": [
+    "certain",
+    "almost certain",
+    "probable",
+    "chances about even",
+    "probably not",
+    "almost certainly not",
+    "impossible"
+  ],
+  "source_lineage": [
+    {
+      "bytes": 172810,
+      "fetched_at": "2026-08-24T21:17:23Z",
+      "http_status": 200,
+      "id": "goodhart-wikipedia",
+      "kind": "http-fetch",
+      "must_contain": "when a measure becomes a target",
+      "needle_present": true,
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0150/captures/goodhart-wikipedia.body",
+      "requested_url": "https://en.wikipedia.org/wiki/Goodhart%27s_law",
+      "resolved_url": "https://en.wikipedia.org/wiki/Goodhart%27s_law",
+      "sha256": "83ad2093938ad688ad5377092466e98e7d1fe9abadf4b8bc2ba90d29d28c86b0"
+    },
+    {
+      "bytes": 125100,
+      "fetched_at": "2026-08-24T21:17:23Z",
+      "http_status": 200,
+      "id": "campbell-wikipedia",
+      "kind": "http-fetch",
+      "must_contain": "quantitative social indicator",
+      "needle_present": true,
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0150/captures/campbell-wikipedia.body",
+      "requested_url": "https://en.wikipedia.org/wiki/Campbell%27s_law",
+      "resolved_url": "https://en.wikipedia.org/wiki/Campbell%27s_law",
+      "sha256": "aa39d2ff899e26329a3d68a608c9c7c4b627e4abba31ddf65c05feb349f30ab3"
+    },
+    {
+      "bytes": 184420,
+      "fetched_at": "2026-08-24T21:17:23Z",
+      "http_status": 200,
+      "id": "kent-wep-wikipedia",
+      "kind": "http-fetch",
+      "must_contain": "Sherman Kent",
+      "needle_present": true,
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0150/captures/kent-wep-wikipedia.body",
+      "requested_url": "https://en.wikipedia.org/wiki/Words_of_estimative_probability",
+      "resolved_url": "https://en.wikipedia.org/wiki/Words_of_estimative_probability",
+      "sha256": "8a2b4fccc138e612399bd0cdba7ce9d8c92475c66d0564663811a1d86d806c97"
+    },
+    {
+      "bytes": 182702,
+      "fetched_at": "2026-08-24T21:17:23Z",
+      "http_status": 200,
+      "id": "ioannidis-plos",
+      "kind": "http-fetch",
+      "must_contain": "Why Most Published Research Findings Are False",
+      "needle_present": true,
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0150/captures/ioannidis-plos.body",
+      "requested_url": "https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124",
+      "resolved_url": "https://journals.plos.org/plosmedicine/article?id=10.1371/journal.pmed.0020124",
+      "sha256": "38b1ddfad0cedec290496fa13ea6738a715f2f4bcf42bad65df56ab61e4fbb9c"
+    },
+    {
+      "bytes": 5284323,
+      "fetched_at": "2026-08-12T22:28:46Z",
+      "http_status": 200,
+      "id": "catalog-RES-0150",
+      "kind": "worktree-file",
+      "note": "Estate catalog names the quota, quality floor, padding detector, and UNDER-QUOTA-HONEST path.",
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "requested_url": "file://command-center/WORK-UNIT-CATALOG.json",
+      "resolved_url": "file://command-center/WORK-UNIT-CATALOG.json",
+      "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+    }
+  ],
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe1_padding_set.py",
+      "id": "padding-set-both-states",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0150/probe2_honest_under_quota.py",
+      "id": "honest-under-quota-no-fill",
+      "result": "PASS"
+    }
+  ],
+  "title": "Enforce an unfavourable-evidence quota without manufacturing it",
+  "unit_id": "RES-0150"
+}

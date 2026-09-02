@@ -1,0 +1,39 @@
+{
+  "id": "wf.cycle.root",
+  "description": "Invalid: root embeds inner, inner embeds root.",
+  "tools": ["Read"],
+  "timeout_seconds": 30,
+  "stop_rule": {
+    "max_stages": 4,
+    "on_error": "halt"
+  },
+  "stages": [
+    {
+      "id": "call-inner",
+      "type": "subworkflow",
+      "subworkflow": "wf.cycle.inner",
+      "timeout_seconds": 10,
+      "tools": []
+    }
+  ],
+  "subworkflows": {
+    "wf.cycle.inner": {
+      "id": "wf.cycle.inner",
+      "tools": ["Read"],
+      "timeout_seconds": 20,
+      "stop_rule": {
+        "max_stages": 2,
+        "on_error": "halt"
+      },
+      "stages": [
+        {
+          "id": "call-root",
+          "type": "subworkflow",
+          "subworkflow": "wf.cycle.root",
+          "timeout_seconds": 10,
+          "tools": []
+        }
+      ]
+    }
+  }
+}

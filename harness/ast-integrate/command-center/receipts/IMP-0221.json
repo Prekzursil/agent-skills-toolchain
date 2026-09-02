@@ -1,0 +1,326 @@
+{
+ "answer": "When a rail returns 429, the scheduler treats measured quota (remaining / Retry-After, capped) and observed arrival rate as admission inputs, then delegates retry to agentspec.retry.plan_retry (rate-limited, bounded exponential backoff). A synthetic token-bucket 429 storm completed 40/40 units with 0 lost (naive drop lost 38). Perpetual 429 terminated with 12/12 typed rate-limited terminals; huge Retry-After waits are capped at 4000ms. 529 does not reduce max_concurrency. SUCCESS:IMP-0221",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0221.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "tools/agentspec/agentspec/retry.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/agentspec/agentspec/quota.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/agentspec/agentspec/admission.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/agentspec/agentspec/clock.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/agentspec/agentspec/rails.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/agentspec/agentspec/scheduler.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0221/probe1_accounting.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0221/probe2_bounded_backoff.py",
+   "role": "supporting"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0221",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0221.json",
+   "consumer": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0221/probe1_accounting.py",
+   "executed": false,
+   "note": "Named probe1 re-runs after this emit."
+  },
+  {
+   "artifact_path": "command-center/receipts/IMP-0221.json",
+   "consumer": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0221/probe2_bounded_backoff.py",
+   "executed": false,
+   "note": "Named probe2 re-runs after this emit."
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/agentspec/agentspec/scheduler.py",
+   "claim": "Synthetic 429 storm accounting accounted=40 lost=0 pct=100.0 naive_lost=38",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/retry.py",
+   "claim": "Bounded backoff: perpetual 429 terminated=True rate_limited=12 max_wait_ms=4000 cap=4000 plan_retry_exhausted_retry=False",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/admission.py",
+   "claim": "Quota and arrival rate are admission inputs; 429/529 did not reduce max_concurrency (429 unchanged=True, 529 held=True). Throughput degraded storm_elapsed=37.0 healthy_elapsed=1.0.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_requirement": "Two signals: (1) unit accounting after a synthetic storm sums to 100% (completed + typed failures); (2) backoff is bounded - the run terminates rather than retrying indefinitely.",
+ "failure_classification": [
+  "rate-limited",
+  "uncontrolled-silence"
+ ],
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0221/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measurements": {
+  "admission_module": "tools/agentspec/agentspec/admission.py",
+  "backoff_cap_ms": 4000,
+  "backoff_capped": true,
+  "concurrency_held_on_429": true,
+  "concurrency_held_on_529": true,
+  "healthy": {
+   "accounted": 40,
+   "accounting_pct": 100.0,
+   "backoff_cap_ms": 4000,
+   "completed": 40,
+   "concurrency_unchanged": true,
+   "dispatch_retry_grants": 0,
+   "error": 0,
+   "lost": 0,
+   "max_attempts_seen": 1,
+   "max_concurrency_end": 8,
+   "max_concurrency_start": 8,
+   "max_wait_ms_seen": 0,
+   "overload": 0,
+   "rate_limited": 0,
+   "rate_limited_max_retries": 4,
+   "submitted": 40,
+   "terminated": true,
+   "virtual_elapsed_s": 1.0
+  },
+  "huge_retry_after": {
+   "accounted": 2,
+   "accounting_pct": 100.0,
+   "backoff_cap_ms": 4000,
+   "completed": 0,
+   "concurrency_unchanged": true,
+   "dispatch_retry_grants": 8,
+   "error": 0,
+   "lost": 0,
+   "max_attempts_seen": 5,
+   "max_concurrency_end": 8,
+   "max_concurrency_start": 8,
+   "max_wait_ms_seen": 4000,
+   "overload": 0,
+   "rate_limited": 2,
+   "rate_limited_max_retries": 4,
+   "submitted": 2,
+   "terminated": true,
+   "virtual_elapsed_s": 32.0
+  },
+  "naive": {
+   "accounted": 2,
+   "accounting_pct": 5.0,
+   "backoff_cap_ms": 4000,
+   "completed": 2,
+   "concurrency_unchanged": true,
+   "dispatch_retry_grants": 0,
+   "error": 0,
+   "lost": 38,
+   "max_attempts_seen": 1,
+   "max_concurrency_end": 0,
+   "max_concurrency_start": 0,
+   "max_wait_ms_seen": 0,
+   "overload": 0,
+   "rate_limited": 0,
+   "rate_limited_max_retries": 4,
+   "submitted": 40,
+   "terminated": true,
+   "virtual_elapsed_s": 0.0
+  },
+  "naive_loses_units": true,
+  "overload_529": {
+   "accounted": 2,
+   "accounting_pct": 100.0,
+   "backoff_cap_ms": 4000,
+   "completed": 0,
+   "concurrency_unchanged": true,
+   "dispatch_retry_grants": 0,
+   "error": 0,
+   "lost": 0,
+   "max_attempts_seen": 1,
+   "max_concurrency_end": 4,
+   "max_concurrency_start": 4,
+   "max_wait_ms_seen": 0,
+   "overload": 2,
+   "rate_limited": 0,
+   "rate_limited_max_retries": 4,
+   "submitted": 2,
+   "terminated": true,
+   "virtual_elapsed_s": 0.0
+  },
+  "perpetual_429": {
+   "accounted": 12,
+   "accounting_pct": 100.0,
+   "backoff_cap_ms": 4000,
+   "completed": 0,
+   "concurrency_unchanged": true,
+   "dispatch_retry_grants": 48,
+   "error": 0,
+   "lost": 0,
+   "max_attempts_seen": 5,
+   "max_concurrency_end": 8,
+   "max_concurrency_start": 8,
+   "max_wait_ms_seen": 2000,
+   "overload": 0,
+   "rate_limited": 12,
+   "rate_limited_max_retries": 4,
+   "submitted": 12,
+   "terminated": true,
+   "virtual_elapsed_s": 96.0
+  },
+  "perpetual_terminated": true,
+  "plan_retry_exhausted": {
+   "delay_ms": 0,
+   "retry": false
+  },
+  "plan_retry_first": {
+   "delay_ms": 1000,
+   "retry": true
+  },
+  "rate_limited_max_retries": 4,
+  "retry_module": "tools/agentspec/agentspec/retry.py",
+  "scheduler_module": "tools/agentspec/agentspec/scheduler.py",
+  "storm": {
+   "accounted": 40,
+   "accounting_pct": 100.0,
+   "backoff_cap_ms": 4000,
+   "completed": 40,
+   "concurrency_unchanged": true,
+   "dispatch_retry_grants": 1,
+   "error": 0,
+   "lost": 0,
+   "max_attempts_seen": 2,
+   "max_concurrency_end": 8,
+   "max_concurrency_start": 8,
+   "max_wait_ms_seen": 1000,
+   "overload": 0,
+   "rate_limited": 0,
+   "rate_limited_max_retries": 4,
+   "submitted": 40,
+   "terminated": true,
+   "virtual_elapsed_s": 37.0
+  },
+  "storm_accounting_100": true,
+  "throughput_degraded": true,
+  "unbounded_control": {
+   "hit_tripwire": true,
+   "iterations": 80,
+   "tripwire": 80
+  },
+  "unbounded_hits_tripwire": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0221/probe1_accounting.py",
+   "id": "probe1",
+   "role": "synthetic-429-storm-accounting"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0221/probe2_bounded_backoff.py",
+   "id": "probe2",
+   "role": "bounded-backoff-termination"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "naive_lost=38",
+   "description": "Naive drop-on-429 loses units. Quota-aware admission must keep 100% accounting on the same token-bucket rail.",
+   "fired_on_bad_state": true,
+   "good_state_output": "storm_lost=0",
+   "id": "IMP0221-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\"hit_tripwire\": true, \"iterations\": 80, \"tripwire\": 80}",
+   "description": "Ignoring plan_retry under perpetual 429 hits a tripwire. The shipped scheduler must terminate with typed terminals.",
+   "fired_on_bad_state": true,
+   "good_state_output": "terminated=True rate_limited=12",
+   "id": "IMP0221-C2",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "question": "Question: how should the scheduler behave when a rail starts returning 429? Target: feed measured quota and arrival rate back into admission with bounded backoff. Acceptance: a synthetic 429 storm degrades throughput but produces ZERO lost work units - every unit either completes or carries a typed rate-limited terminal record.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0220 staggered-arrival clock injection is a declared dependency and is not claimed delivered here. FakeClock in this package is the local injected clock used for deterministic 429-storm measurement.",
+   "settling_experiment": "Deliver IMP-0220 and re-run this storm with the shared agentspec clock if it lands on this tree.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "bounded backoff on rate-limited; two strikes otherwise"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Named probe2 independently runs perpetual 429, huge Retry-After, 529 concurrency, and an unbounded tripwire control.",
+  "reviewer_id": "IMP-0221-probe2-bounded-backoff",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0221",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0221",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0221/probe1_accounting.py",
+   "id": "synthetic-429-storm-zero-lost",
+   "name": "synthetic 429 storm: zero lost units (accounting sums to 100%)",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0221/probe2_bounded_backoff.py",
+   "id": "backoff-bounded-terminal",
+   "name": "backoff bounded; the run reaches a terminal state",
+   "result": "PASS"
+  }
+ ],
+ "tests_required": [
+  "synthetic 429 storm: zero lost units (accounting sums to 100%)",
+  "backoff bounded; the run reaches a terminal state"
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:08:03Z",
+  "started_at": "2026-08-25T01:08:03Z"
+ },
+ "title": "Make quota and observed arrival rate first-class scheduler inputs",
+ "unit_id": "IMP-0221"
+}

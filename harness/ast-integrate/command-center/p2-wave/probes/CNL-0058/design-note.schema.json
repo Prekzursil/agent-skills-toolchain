@@ -1,0 +1,149 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "title": "CNL-0058 majority/supermajority/quorum design note",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "decision",
+    "claims",
+    "evidence",
+    "tests",
+    "both_states",
+    "negative_controls",
+    "reviewer",
+    "measured",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0058" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "pattern": "^SUCCESS:CNL-0058" },
+    "title": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 40 },
+    "decision": { "type": "string", "minLength": 40 },
+    "both_states": {
+      "type": "object",
+      "required": ["fires_on", "silent_on", "verbatim_fire", "verbatim_silent"],
+      "properties": {
+        "fires_on": { "type": "string", "minLength": 8 },
+        "silent_on": { "type": "string", "minLength": 8 },
+        "verbatim_fire": { "type": "string", "minLength": 8 },
+        "verbatim_silent": { "type": "string", "minLength": 8 }
+      }
+    },
+    "measured": {
+      "type": "object",
+      "required": ["supermajority"],
+      "properties": {
+        "supermajority": {
+          "type": "object",
+          "required": [
+            "planted-bad",
+            "known-good",
+            "quorum-void",
+            "death-unreplaced"
+          ],
+          "additionalProperties": {
+            "type": "object",
+            "required": ["yes", "freeze_n", "shrunk_n", "detector", "outcome"],
+            "properties": {
+              "yes": { "type": "integer" },
+              "freeze_n": { "type": "integer" },
+              "shrunk_n": { "type": "integer" },
+              "detector": { "type": "string", "enum": ["FIRE", "SILENT"] },
+              "outcome": { "type": "string", "enum": ["PASS", "FAIL", "NO_QUORUM"] }
+            }
+          }
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "verdict", "anchor"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "mechanism", "anchor", "verbatim"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "mechanism": { "type": "string", "minLength": 4 },
+          "anchor": { "type": "string", "minLength": 3 },
+          "verbatim": { "type": "string", "minLength": 4 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "rejects", "observed"],
+        "properties": {
+          "id": { "type": "string" },
+          "rejects": { "type": "string", "minLength": 8 },
+          "observed": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent", "method"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true },
+        "method": { "type": "string", "minLength": 8 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

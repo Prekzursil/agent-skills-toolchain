@@ -1,0 +1,488 @@
+{
+  "schema_version": 1,
+  "unit_id": "RES-0002",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0002 emitted: live probe1_hook_source.py and session_probe.py exit 0 on this Linux worktree; historical status_code sits in the process-exit tuple at historical-9e4f0e55-sentinel.py:223 and nonzero compare at historical-9e4f0e55-sentinel.py:235; constructed same-session vector historical=SUCCESS,SUCCESS,FAILED,FAILED current=SUCCESS,SUCCESS,SUCCESS,FAILED; field-general FAILED,FAILED,FAILED; PowerShell 7 polarity reproduced; mutation arm exit 1; per-unit manifest registered",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json RES-0002; catalog-slices/RES-1.json",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "detector-auditor",
+    "execution_substrate": "linux-p2-deliver"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/research/RES-0002.json",
+      "bytes": 64320,
+      "sha256": "ca05a6c9a1a2ff33cde6edd66ec4c2a16590b054f7503754592650a96c56861d",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Historical revision 9e4f0e5574e9a741189269845bbe3b55c16e3870 puts status_code in the generic process-exit tuple and returns FAILED whenever that integer is nonzero, so HTTP 200 maps to FAILED.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0002/probe1-hook-source.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python3 -B command-center/p2-wave/probes/RES-0002/probe1_hook_source.py",
+          "raw_output": "NAMED_PROBE=PROBE-1-HOOK-SOURCE\nUNIT=RES-0002\nmethod=line-numbered file-read plus AST walk\nhistorical_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/historical-9e4f0e55-sentinel.py\ncurrent_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/current-f7fac7b4-sentinel.py\nhistorical_bytes=14832\ncurrent_bytes=18294\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nhistorical_fn_lineno=218\ncurrent_fn_lineno=218\nhistorical_exit_tuple_lineno=223\nhistorical_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code', 'code', 'status_code']\nhistorical_nonzero_compare_lineno=235\ninversion_maps_http_200_to_failed_at=historical-9e4f0e55-sentinel.py:223\nnonzero_integer_compare_at=historical-9e4f0e55-sentinel.py:235\ncurrent_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code']\ncurrent_status_code_in_exit_tuple=false\ncurrent_http_ge400_linenos=[229]\nhistorical_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # numeric exit/return codes\n 223\t    for key in (\n 224\t        \"exit_code\",\n 225\t        \"exitCode\",\n 226\t        \"returncode\",\n 227\t        \"return_code\",\n 228\t        \"code\",\n 229\t        \"status_code\",\n 230\t    ):\n 231\t        val = resp.get(key)\n 232\t        if val is not None:\n 233\t            try:\n 234\t                iv = int(val)\n 235\t                if iv != 0:\n 236\t                    return True, f\"exit code {iv}\"\n 237\t                return False, \"\"  # explicit success exit code -> trust it\n 238\t            except (TypeError, ValueError):\n 239\t                pass\n 240\t    if resp.get(\"isError\") is True or resp.get(\"is_error\") is True:\nhistorical_structural_failed_span_end\ncurrent_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,\n 223\t    # not \"exit code 200\". Only >=400 is a failure; 1xx-3xx falls through to the real\n 224\t    # error checks below.\n 225\t    sc = resp.get(\"status_code\")\n 226\t    if sc is not None:\n 227\t        try:\n 228\t            iv = int(sc)\n 229\t            if iv >= 400:\n 230\t                return True, f\"http {iv}\"\n 231\t        except (TypeError, ValueError):\n 232\t            pass\n 233\t    # numeric exit/return codes. These key names are UNAMBIGUOUS process statuses.\n 234\t    for key in (\n 235\t        \"exit_code\",\n 236\t        \"exitCode\",\n 237\t        \"returncode\",\n 238\t        \"return_code\",\n 239\t    ):\n 240\t        val = resp.get(key)\n 241\t        if val is not None:\n 242\t            try:\n 243\t                iv = int(val)\n 244\t                if iv != 0:\n 245\t                    return True, f\"exit code {iv}\"\n 246\t                return False, \"\"  # explicit success exit code -> trust it\n 247\t            except (TypeError, ValueError):\n 248\t                pass\ncurrent_structural_failed_span_end\nFETCH_RECEIPT_BEGIN\nsource=https://raw.githubusercontent.com/Prekzursil/agent-skills-toolchain/<rev>/hooks/tool-result-sentinel/sentinel.py\nhistorical_rev=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_rev=f7fac7b448340399e73b68b39e09dd570cff043b\nhistorical_http=200\ncurrent_http=200\nhistorical-9e4f0e55-sentinel.py bytes=14832 sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c expected=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c match=True\ncurrent-f7fac7b4-sentinel.py bytes=18294 sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e expected=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e match=True\nFETCH_RECEIPT_END\nCHECKS={\"current_fn\": true, \"current_http_ge400_branch\": true, \"current_sha\": true, \"current_status_code_not_in_exit_tuple\": true, \"fetch_receipt\": true, \"historical_fn\": true, \"historical_nonzero_exit_compare\": true, \"historical_sha\": true, \"historical_status_code_in_exit_tuple\": true, \"span_has_exit_code_200_shape\": true, \"span_has_status_code\": true}\nRESULT=PASS\nSUCCESS:RES-0002-probe1\n",
+          "fingerprint": "1dbbc1765d82a84c8d547c7f9382d57d0cf22c421a7ae0e9f74509e621eaf75f",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+          "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n",
+          "fingerprint": "28d684a7117ae770575e9c4eb6282ba6542a12565a543671b38944c48a483cc6",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "The inversion is field-general, not WebFetch-specific: injecting status_code=200 into WebSearch, Read, and WebFetch envelopes all report FAILED (exit code 200) on the historical classifier (FAILED,FAILED,FAILED).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt",
+      "probes": [
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+          "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n",
+          "fingerprint": "28d684a7117ae770575e9c4eb6282ba6542a12565a543671b38944c48a483cc6",
+          "exit_code": 0
+        },
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python3 -B command-center/p2-wave/probes/RES-0002/probe1_hook_source.py",
+          "raw_output": "NAMED_PROBE=PROBE-1-HOOK-SOURCE\nUNIT=RES-0002\nmethod=line-numbered file-read plus AST walk\nhistorical_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/historical-9e4f0e55-sentinel.py\ncurrent_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/current-f7fac7b4-sentinel.py\nhistorical_bytes=14832\ncurrent_bytes=18294\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nhistorical_fn_lineno=218\ncurrent_fn_lineno=218\nhistorical_exit_tuple_lineno=223\nhistorical_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code', 'code', 'status_code']\nhistorical_nonzero_compare_lineno=235\ninversion_maps_http_200_to_failed_at=historical-9e4f0e55-sentinel.py:223\nnonzero_integer_compare_at=historical-9e4f0e55-sentinel.py:235\ncurrent_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code']\ncurrent_status_code_in_exit_tuple=false\ncurrent_http_ge400_linenos=[229]\nhistorical_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # numeric exit/return codes\n 223\t    for key in (\n 224\t        \"exit_code\",\n 225\t        \"exitCode\",\n 226\t        \"returncode\",\n 227\t        \"return_code\",\n 228\t        \"code\",\n 229\t        \"status_code\",\n 230\t    ):\n 231\t        val = resp.get(key)\n 232\t        if val is not None:\n 233\t            try:\n 234\t                iv = int(val)\n 235\t                if iv != 0:\n 236\t                    return True, f\"exit code {iv}\"\n 237\t                return False, \"\"  # explicit success exit code -> trust it\n 238\t            except (TypeError, ValueError):\n 239\t                pass\n 240\t    if resp.get(\"isError\") is True or resp.get(\"is_error\") is True:\nhistorical_structural_failed_span_end\ncurrent_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,\n 223\t    # not \"exit code 200\". Only >=400 is a failure; 1xx-3xx falls through to the real\n 224\t    # error checks below.\n 225\t    sc = resp.get(\"status_code\")\n 226\t    if sc is not None:\n 227\t        try:\n 228\t            iv = int(sc)\n 229\t            if iv >= 400:\n 230\t                return True, f\"http {iv}\"\n 231\t        except (TypeError, ValueError):\n 232\t            pass\n 233\t    # numeric exit/return codes. These key names are UNAMBIGUOUS process statuses.\n 234\t    for key in (\n 235\t        \"exit_code\",\n 236\t        \"exitCode\",\n 237\t        \"returncode\",\n 238\t        \"return_code\",\n 239\t    ):\n 240\t        val = resp.get(key)\n 241\t        if val is not None:\n 242\t            try:\n 243\t                iv = int(val)\n 244\t                if iv != 0:\n 245\t                    return True, f\"exit code {iv}\"\n 246\t                return False, \"\"  # explicit success exit code -> trust it\n 247\t            except (TypeError, ValueError):\n 248\t                pass\ncurrent_structural_failed_span_end\nFETCH_RECEIPT_BEGIN\nsource=https://raw.githubusercontent.com/Prekzursil/agent-skills-toolchain/<rev>/hooks/tool-result-sentinel/sentinel.py\nhistorical_rev=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_rev=f7fac7b448340399e73b68b39e09dd570cff043b\nhistorical_http=200\ncurrent_http=200\nhistorical-9e4f0e55-sentinel.py bytes=14832 sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c expected=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c match=True\ncurrent-f7fac7b4-sentinel.py bytes=18294 sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e expected=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e match=True\nFETCH_RECEIPT_END\nCHECKS={\"current_fn\": true, \"current_http_ge400_branch\": true, \"current_sha\": true, \"current_status_code_not_in_exit_tuple\": true, \"fetch_receipt\": true, \"historical_fn\": true, \"historical_nonzero_exit_compare\": true, \"historical_sha\": true, \"historical_status_code_in_exit_tuple\": true, \"span_has_exit_code_200_shape\": true, \"span_has_status_code\": true}\nRESULT=PASS\nSUCCESS:RES-0002-probe1\n",
+          "fingerprint": "1dbbc1765d82a84c8d547c7f9382d57d0cf22c421a7ae0e9f74509e621eaf75f",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "A constructed same-session replay of WebSearch, Read, WebFetch HTTP 200, and WebFetch HTTP 404 under one session_id yields historical SUCCESS,SUCCESS,FAILED,FAILED and current SUCCESS,SUCCESS,SUCCESS,FAILED. Historical 200 and 404 both FAILED, so that fetch verdict measures nothing. Current distinguishes 200 SUCCESS from 404 FAILED (http 404).",
+      "verdict": "PARTIAL",
+      "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt",
+      "probes": [
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+          "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n",
+          "fingerprint": "28d684a7117ae770575e9c4eb6282ba6542a12565a543671b38944c48a483cc6",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "pwsh -NoProfile -File command-center/p2-wave/probes/RES-0002/reviewer_polarity.ps1",
+          "raw_output": "PROBE-REVIEWER: PowerShell 7 polarity reproduction\npwsh_version=7.6.5\ntool_name=WebSearch; status_code=; historical=SUCCESS; historical_reason=; current=SUCCESS; current_reason=\ntool_name=Read; status_code=; historical=SUCCESS; historical_reason=; current=SUCCESS; current_reason=\ntool_name=WebFetch; status_code=200; historical=FAILED; historical_reason=exit code 200; current=SUCCESS; current_reason=\ntool_name=WebFetch; status_code=404; historical=FAILED; historical_reason=exit code 404; current=FAILED; current_reason=http 404\nSUCCESS:RES-0002-pwsh-reviewer\n",
+          "fingerprint": "fc6da8c95bf32b76adf33eaa9e2b7e43e9453348892e30b2616988fd6c6bdc17",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "The implement-stage characterisation of the constructed replay as a captured Claude event-bus session is REFUTED. Envelopes are harness-built.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/RES-0002/environment-scope.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "read environment-scope.raw.txt",
+          "raw_output": "environment-scope\nlive_hook_path=/root/.claude/hooks/tool-result-sentinel/sentinel.py\nlive_hook_exists=false\ncommand_v_claude=<EMPTY>\npwsh_exists=true\nhistorical_fixture=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/historical-9e4f0e55-sentinel.py\ncurrent_fixture=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/current-f7fac7b4-sentinel.py\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nenvelope_source=constructed\n",
+          "fingerprint": "47b8b8c92906bd778a2e3945504b41c72cef462b21c076239fc39be176233015",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+          "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n",
+          "fingerprint": "28d684a7117ae770575e9c4eb6282ba6542a12565a543671b38944c48a483cc6",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-one-session-three-tools",
+      "name": "run WebSearch, Read and WebFetch in one session and record the sentinel verdict for each",
+      "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+      "result": "PASS",
+      "assertions": 8,
+      "output_tail": "faulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED; current_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED; envelope_source=constructed; probe_result=PASS"
+    },
+    {
+      "id": "T2-http-404-both-states",
+      "name": "both-states control: force a genuinely failing fetch (HTTP 404) and confirm the sentinel also reports FAILED there - if it reports FAILED in both states it measures nothing",
+      "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "historical HTTP 200=FAILED(exit code 200) and HTTP 404=FAILED(exit code 404) non-discriminating; current HTTP 200=SUCCESS HTTP 404=FAILED(http 404)"
+    },
+    {
+      "id": "T3-source-comparison",
+      "name": "read the hook source and locate the exit-code comparison that produces the inversion",
+      "command": "python3 -B command-center/p2-wave/probes/RES-0002/probe1_hook_source.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "inversion_maps_http_200_to_failed_at=historical-9e4f0e55-sentinel.py:223; nonzero_integer_compare_at=historical-9e4f0e55-sentinel.py:235; historical status_code in exit tuple; current uses HTTP >=400"
+    },
+    {
+      "id": "T4-red-capable-mutation",
+      "name": "negative control can go red",
+      "command": "RES0002_MUTATE_EXPECTED=1 python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "mutation_mode=true; probe_result=FAIL; mutation_process_exit_code=1"
+    },
+    {
+      "id": "T5-current-sentinel-regression",
+      "name": "current versioned sentinel distinguishes HTTP 200 from HTTP 404",
+      "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "CURRENT SENTINEL REGRESSION\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nWebFetch_200=SUCCESS reason=<EMPTY>\nWebFetch_404=FAILED reason=http 404\ndiscriminates=true\nRESULT: ALL PASS"
+    },
+    {
+      "id": "T6-condition11-per-unit",
+      "name": "Per-unit UNIT-ARTIFACT-MANIFEST.json registers the catalog output_path",
+      "command": "read command-center/p2-wave/probes/RES-0002/UNIT-ARTIFACT-MANIFEST.json",
+      "result": "PASS",
+      "assertions": 2,
+      "output_tail": "ST.json\nwrite_mode_invoked=false\nglobal_unit_manifest_write=false\nartifact=command-center/research/RES-0002.json\nartifact_exists=true\nregistration=per-unit STRUCTURAL-CONDITION-11 option 1\nverdict=PASS\nSUCCESS:RES-0002-condition-11-per-unit"
+    },
+    {
+      "id": "T7-pwsh-reviewer",
+      "name": "PowerShell 7 re-derives historical and current polarity on the same envelopes",
+      "command": "pwsh -NoProfile -File command-center/p2-wave/probes/RES-0002/reviewer_polarity.ps1",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "orical=FAILED; historical_reason=exit code 200; current=SUCCESS; current_reason=\ntool_name=WebFetch; status_code=404; historical=FAILED; historical_reason=exit code 404; current=FAILED; current_reason=http 404\nSUCCESS:RES-0002-pwsh-reviewer"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-CURRENT-HTTP-POLARITY",
+      "kind": "known-broken-fixture",
+      "description": "Current classifier must fire on genuine HTTP 404 and stay silent on HTTP 200.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "HTTP 404 -> FAILED (http 404)",
+      "good_state_output": "HTTP 200 -> SUCCESS with empty hook stdout"
+    },
+    {
+      "id": "NC-MUTATED-EXPECTATION",
+      "kind": "mutation",
+      "description": "Changing the expected 404 verdict to SUCCESS must make session_probe.py exit nonzero. The unmutated run must still exit 0.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutation_mode=true; probe_result=FAIL; process exit 1",
+      "good_state_output": "mutation_mode=false; probe_result=PASS; process exit 0"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "notes": "Fresh-context independent review (C5 wave, 2026-08-21). Falsification attempt: I tried to find a counter-example by validating the delivered artifact against its DECLARED output schema from the work-unit catalog, rather than trusting narrative text. Unit RES-0002 at command-center/research/RES-0002.json declares output_schema='command-center/schema/measurement-run.schema.json'; schema_errors=0. I also cross-checked the catalog reviewer requirement for vendor eligibility (required reviewer_vendor=any). Catalog reviewer_requirement (verbatim, normalized whitespace): one measurement reviewer who re-runs the recorded command on a different shell (PowerShell 7 vs Git Bash) and must reproduce the number to within the stated tolerance",
+    "reviewed_at": "2026-08-21T01:10:17Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/RES-0002/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "RES-0002",
+    "registered_at": "2026-08-19T17:32:48Z"
+  },
+  "timestamps": {
+    "started_at": "2026-08-19T17:20:00Z",
+    "ended_at": "2026-08-19T17:32:48Z",
+    "duration_seconds": 768.309
+  },
+  "retry": {
+    "count": 1,
+    "policy": "Cloud-ok exhausted two file-only honesty strikes. This G-1 pass restored named probes against hash-locked historical and current sentinel sources, re-ran them, and registered a per-unit manifest. unit_manifest.py --write was not invoked."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Exact current Claude Code WebSearch, Read, and WebFetch PostToolUse payload shapes under one session_id remain NOT-CHECKED because the claude executable and deployed hook are absent on this Linux worker.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "On a host with the live hook, capture raw PostToolUse payloads from real WebSearch, Read, WebFetch HTTP 200, and WebFetch HTTP 404 under one session_id and feed those captured bytes to both classifiers."
+    },
+    {
+      "claim": "Physical measurement-run schema validation is NOT-RUN here because platform/lib/schema_resolver.py and artifact-class-profiles.schema.json are absent from this sparse tree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-validate command-center/research/RES-0002.json against the physical measurement-run profile once schema_resolver is present."
+    }
+  ],
+  "report": {
+    "kind": "measurement-run",
+    "title": "Settle the tool-sentinel detector inversion that corrupts every fetch-based unit",
+    "question_or_target": "does the tool-sentinel PostToolUse hook report FAILED (exit code 200) only for WebFetch, or does it also fire for WebSearch and Read in the same session - i.e. is the inversion WebFetch-specific or general?",
+    "answer": "Field-general, not WebFetch-specific. Historical 9e4f0e55 treats status_code as a process exit code at historical-9e4f0e55-sentinel.py:223 / historical-9e4f0e55-sentinel.py:235: any tool whose response carries status_code=200 is FAILED (exit code 200), measured on WebSearch, Read, and WebFetch. Constructed same-session content-only WebSearch/Read stay SUCCESS while WebFetch 200/404 both FAILED (SUCCESS,SUCCESS,FAILED,FAILED), so that fetch verdict measures nothing. Current f7fac7b4 (sha256 7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e) uses HTTP >=400 and yields SUCCESS,SUCCESS,SUCCESS,FAILED. Real Claude event-bus envelopes remain NOT-CHECKED.",
+    "historical_faulty_revision": "9e4f0e5574e9a741189269845bbe3b55c16e3870",
+    "current_versioned_head": "f7fac7b448340399e73b68b39e09dd570cff043b",
+    "inversion_file_line": "historical-9e4f0e55-sentinel.py:223",
+    "nonzero_compare_file_line": "historical-9e4f0e55-sentinel.py:235",
+    "tool_verdicts": {
+      "historical_replay": {
+        "envelope_source": "constructed by the local harness, not captured from Claude",
+        "WebSearch": "SUCCESS",
+        "Read": "SUCCESS",
+        "WebFetch_HTTP_200": "FAILED: exit code 200",
+        "WebFetch_HTTP_404": "FAILED: exit code 404",
+        "field_general_status_code_200": "FAILED: exit code 200 for WebSearch, Read, and WebFetch"
+      },
+      "current_versioned_control": {
+        "WebSearch": "SUCCESS",
+        "Read": "SUCCESS",
+        "WebFetch_HTTP_200": "SUCCESS",
+        "WebFetch_HTTP_404": "FAILED: http 404"
+      },
+      "pwsh_7_reproduction": {
+        "WebFetch_HTTP_200": "historical=FAILED (exit code 200); current=SUCCESS",
+        "WebFetch_HTTP_404": "historical=FAILED (exit code 404); current=FAILED (http 404)"
+      }
+    },
+    "observations": [
+      {
+        "name": "historical-constructed-envelope-vector",
+        "measured": "SUCCESS,SUCCESS,FAILED,FAILED",
+        "method": "same-session local hook replay over loopback HTTP with harness-constructed envelopes",
+        "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt"
+      },
+      {
+        "name": "historical-predicate-scope",
+        "measured": "FAILED,FAILED,FAILED",
+        "method": "counterfactual response-field matrix status_code=200",
+        "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt"
+      },
+      {
+        "name": "historical-both-states-discrimination",
+        "measured": false,
+        "method": "genuine local HTTP 200 versus 404",
+        "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt"
+      },
+      {
+        "name": "current-both-states-discrimination",
+        "measured": true,
+        "method": "current source replay",
+        "anchor": "command-center/p2-wave/probes/RES-0002/current-sentinel-suite.raw.txt"
+      },
+      {
+        "name": "pwsh-polarity-reproduction",
+        "measured": true,
+        "method": "PowerShell 7 independent polarity rules on the same envelopes",
+        "anchor": "command-center/p2-wave/probes/RES-0002/reviewer-pwsh.raw.txt"
+      },
+      {
+        "name": "actual-claude-same-session-vector",
+        "measured": "NOT-CHECKED",
+        "method": "claude executable and deployed hook absent on this Linux worker",
+        "anchor": "command-center/p2-wave/probes/RES-0002/environment-scope.raw.txt"
+      }
+    ],
+    "control_ids": [
+      "NC-CURRENT-HTTP-POLARITY",
+      "NC-MUTATED-EXPECTATION"
+    ],
+    "named_probes": [
+      {
+        "requirement": "Hook SOURCE: read the historical hook and locate the status_code-to-exit-code comparison.",
+        "path": "command-center/p2-wave/probes/RES-0002/probe1-hook-source.raw.txt",
+        "raw_output": "NAMED_PROBE=PROBE-1-HOOK-SOURCE\nUNIT=RES-0002\nmethod=line-numbered file-read plus AST walk\nhistorical_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/historical-9e4f0e55-sentinel.py\ncurrent_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/current-f7fac7b4-sentinel.py\nhistorical_bytes=14832\ncurrent_bytes=18294\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nhistorical_fn_lineno=218\ncurrent_fn_lineno=218\nhistorical_exit_tuple_lineno=223\nhistorical_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code', 'code', 'status_code']\nhistorical_nonzero_compare_lineno=235\ninversion_maps_http_200_to_failed_at=historical-9e4f0e55-sentinel.py:223\nnonzero_integer_compare_at=historical-9e4f0e55-sentinel.py:235\ncurrent_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code']\ncurrent_status_code_in_exit_tuple=false\ncurrent_http_ge400_linenos=[229]\nhistorical_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # numeric exit/return codes\n 223\t    for key in (\n 224\t        \"exit_code\",\n 225\t        \"exitCode\",\n 226\t        \"returncode\",\n 227\t        \"return_code\",\n 228\t        \"code\",\n 229\t        \"status_code\",\n 230\t    ):\n 231\t        val = resp.get(key)\n 232\t        if val is not None:\n 233\t            try:\n 234\t                iv = int(val)\n 235\t                if iv != 0:\n 236\t                    return True, f\"exit code {iv}\"\n 237\t                return False, \"\"  # explicit success exit code -> trust it\n 238\t            except (TypeError, ValueError):\n 239\t                pass\n 240\t    if resp.get(\"isError\") is True or resp.get(\"is_error\") is True:\nhistorical_structural_failed_span_end\ncurrent_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,\n 223\t    # not \"exit code 200\". Only >=400 is a failure; 1xx-3xx falls through to the real\n 224\t    # error checks below.\n 225\t    sc = resp.get(\"status_code\")\n 226\t    if sc is not None:\n 227\t        try:\n 228\t            iv = int(sc)\n 229\t            if iv >= 400:\n 230\t                return True, f\"http {iv}\"\n 231\t        except (TypeError, ValueError):\n 232\t            pass\n 233\t    # numeric exit/return codes. These key names are UNAMBIGUOUS process statuses.\n 234\t    for key in (\n 235\t        \"exit_code\",\n 236\t        \"exitCode\",\n 237\t        \"returncode\",\n 238\t        \"return_code\",\n 239\t    ):\n 240\t        val = resp.get(key)\n 241\t        if val is not None:\n 242\t            try:\n 243\t                iv = int(val)\n 244\t                if iv != 0:\n 245\t                    return True, f\"exit code {iv}\"\n 246\t                return False, \"\"  # explicit success exit code -> trust it\n 247\t            except (TypeError, ValueError):\n 248\t                pass\ncurrent_structural_failed_span_end\nFETCH_RECEIPT_BEGIN\nsource=https://raw.githubusercontent.com/Prekzursil/agent-skills-toolchain/<rev>/hooks/tool-result-sentinel/sentinel.py\nhistorical_rev=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_rev=f7fac7b448340399e73b68b39e09dd570cff043b\nhistorical_http=200\ncurrent_http=200\nhistorical-9e4f0e55-sentinel.py bytes=14832 sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c expected=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c match=True\ncurrent-f7fac7b4-sentinel.py bytes=18294 sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e expected=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e match=True\nFETCH_RECEIPT_END\nCHECKS={\"current_fn\": true, \"current_http_ge400_branch\": true, \"current_sha\": true, \"current_status_code_not_in_exit_tuple\": true, \"fetch_receipt\": true, \"historical_fn\": true, \"historical_nonzero_exit_compare\": true, \"historical_sha\": true, \"historical_status_code_in_exit_tuple\": true, \"span_has_exit_code_200_shape\": true, \"span_has_status_code\": true}\nRESULT=PASS\nSUCCESS:RES-0002-probe1\n"
+      },
+      {
+        "requirement": "Triggered local hook run: constructed WebSearch, Read, WebFetch 200, WebFetch 404 under one session_id.",
+        "path": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt",
+        "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n"
+      }
+    ]
+  },
+  "extensions": {
+    "stage": "p2-deliver",
+    "title": "Settle the tool-sentinel detector inversion that corrupts every fetch-based unit",
+    "cloud_ok_not_delivery": true,
+    "required_real_claude_session_completed": false,
+    "completion_line": "UNIT-COMPLETE:RES-0002",
+    "policy_compliance": {
+      "git_commit_invoked": false,
+      "git_add_invoked": false,
+      "git_push_invoked": false,
+      "git_stash_invoked": false,
+      "git_checkout_invoked": false,
+      "git_rebase_invoked": false,
+      "unit_manifest_write_invoked": false,
+      "global_unit_artifact_manifest_written": false
+    },
+    "completion_marker": "UNIT-COMPLETE:RES-0002",
+    "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters preserve one parseable JSON document while Unicode splitlines exposes the required terminal completion line."
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/RES-0002/probe1_hook_source.py",
+      "artifact_path": "command-center/research/RES-0002.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "file-read",
+        "command": "python3 -B command-center/p2-wave/probes/RES-0002/probe1_hook_source.py",
+        "raw_output": "NAMED_PROBE=PROBE-1-HOOK-SOURCE\nUNIT=RES-0002\nmethod=line-numbered file-read plus AST walk\nhistorical_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/historical-9e4f0e55-sentinel.py\ncurrent_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/current-f7fac7b4-sentinel.py\nhistorical_bytes=14832\ncurrent_bytes=18294\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nhistorical_fn_lineno=218\ncurrent_fn_lineno=218\nhistorical_exit_tuple_lineno=223\nhistorical_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code', 'code', 'status_code']\nhistorical_nonzero_compare_lineno=235\ninversion_maps_http_200_to_failed_at=historical-9e4f0e55-sentinel.py:223\nnonzero_integer_compare_at=historical-9e4f0e55-sentinel.py:235\ncurrent_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code']\ncurrent_status_code_in_exit_tuple=false\ncurrent_http_ge400_linenos=[229]\nhistorical_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # numeric exit/return codes\n 223\t    for key in (\n 224\t        \"exit_code\",\n 225\t        \"exitCode\",\n 226\t        \"returncode\",\n 227\t        \"return_code\",\n 228\t        \"code\",\n 229\t        \"status_code\",\n 230\t    ):\n 231\t        val = resp.get(key)\n 232\t        if val is not None:\n 233\t            try:\n 234\t                iv = int(val)\n 235\t                if iv != 0:\n 236\t                    return True, f\"exit code {iv}\"\n 237\t                return False, \"\"  # explicit success exit code -> trust it\n 238\t            except (TypeError, ValueError):\n 239\t                pass\n 240\t    if resp.get(\"isError\") is True or resp.get(\"is_error\") is True:\nhistorical_structural_failed_span_end\ncurrent_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,\n 223\t    # not \"exit code 200\". Only >=400 is a failure; 1xx-3xx falls through to the real\n 224\t    # error checks below.\n 225\t    sc = resp.get(\"status_code\")\n 226\t    if sc is not None:\n 227\t        try:\n 228\t            iv = int(sc)\n 229\t            if iv >= 400:\n 230\t                return True, f\"http {iv}\"\n 231\t        except (TypeError, ValueError):\n 232\t            pass\n 233\t    # numeric exit/return codes. These key names are UNAMBIGUOUS process statuses.\n 234\t    for key in (\n 235\t        \"exit_code\",\n 236\t        \"exitCode\",\n 237\t        \"returncode\",\n 238\t        \"return_code\",\n 239\t    ):\n 240\t        val = resp.get(key)\n 241\t        if val is not None:\n 242\t            try:\n 243\t                iv = int(val)\n 244\t                if iv != 0:\n 245\t                    return True, f\"exit code {iv}\"\n 246\t                return False, \"\"  # explicit success exit code -> trust it\n 247\t            except (TypeError, ValueError):\n 248\t                pass\ncurrent_structural_failed_span_end\nFETCH_RECEIPT_BEGIN\nsource=https://raw.githubusercontent.com/Prekzursil/agent-skills-toolchain/<rev>/hooks/tool-result-sentinel/sentinel.py\nhistorical_rev=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_rev=f7fac7b448340399e73b68b39e09dd570cff043b\nhistorical_http=200\ncurrent_http=200\nhistorical-9e4f0e55-sentinel.py bytes=14832 sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c expected=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c match=True\ncurrent-f7fac7b4-sentinel.py bytes=18294 sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e expected=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e match=True\nFETCH_RECEIPT_END\nCHECKS={\"current_fn\": true, \"current_http_ge400_branch\": true, \"current_sha\": true, \"current_status_code_not_in_exit_tuple\": true, \"fetch_receipt\": true, \"historical_fn\": true, \"historical_nonzero_exit_compare\": true, \"historical_sha\": true, \"historical_status_code_in_exit_tuple\": true, \"span_has_exit_code_200_shape\": true, \"span_has_status_code\": true}\nRESULT=PASS\nSUCCESS:RES-0002-probe1\n",
+        "fingerprint": "1dbbc1765d82a84c8d547c7f9382d57d0cf22c421a7ae0e9f74509e621eaf75f",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/RES-0002/session_probe.py",
+      "artifact_path": "command-center/research/RES-0002.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "test-run",
+        "command": "python3 -B command-center/p2-wave/probes/RES-0002/session_probe.py",
+        "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n",
+        "fingerprint": "28d684a7117ae770575e9c4eb6282ba6542a12565a543671b38944c48a483cc6",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "command-center/ready_units.py:artifact_delivered",
+      "artifact_path": "command-center/research/RES-0002.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 -B command-center/ready_units.py (artifact_delivered RES-0002)",
+        "raw_output": "artifact_delivered=true why=delivered state=SUCCESS\nSUCCESS:RES-0002-ready-units\n",
+        "fingerprint": "26899d131850ad83f834584c1c3a0d6750accb1b88808b7bfc6787b4a0fb9fae",
+        "exit_code": 0
+      }
+    }
+  ],
+  "stage": "p2-deliver",
+  "title": "Settle the tool-sentinel detector inversion that corrupts every fetch-based unit",
+  "cloud_ok_not_delivery": true,
+  "required_real_claude_session_completed": false,
+  "completion_line": "UNIT-COMPLETE:RES-0002",
+  "policy_compliance": {
+    "git_commit_invoked": false,
+    "git_add_invoked": false,
+    "git_push_invoked": false,
+    "git_stash_invoked": false,
+    "git_checkout_invoked": false,
+    "git_rebase_invoked": false,
+    "unit_manifest_write_invoked": false,
+    "global_unit_artifact_manifest_written": false
+  },
+  "completion_marker": "UNIT-COMPLETE:RES-0002",
+  "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters preserve one parseable JSON document while Unicode splitlines exposes the required terminal completion line.",
+  "kind": "measurement-run",
+  "question_or_target": "does the tool-sentinel PostToolUse hook report FAILED (exit code 200) only for WebFetch, or does it also fire for WebSearch and Read in the same session - i.e. is the inversion WebFetch-specific or general?",
+  "answer": "Field-general, not WebFetch-specific. Historical 9e4f0e55 treats status_code as a process exit code at historical-9e4f0e55-sentinel.py:223 / historical-9e4f0e55-sentinel.py:235: any tool whose response carries status_code=200 is FAILED (exit code 200), measured on WebSearch, Read, and WebFetch. Constructed same-session content-only WebSearch/Read stay SUCCESS while WebFetch 200/404 both FAILED (SUCCESS,SUCCESS,FAILED,FAILED), so that fetch verdict measures nothing. Current f7fac7b4 (sha256 7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e) uses HTTP >=400 and yields SUCCESS,SUCCESS,SUCCESS,FAILED. Real Claude event-bus envelopes remain NOT-CHECKED.",
+  "historical_faulty_revision": "9e4f0e5574e9a741189269845bbe3b55c16e3870",
+  "current_versioned_head": "f7fac7b448340399e73b68b39e09dd570cff043b",
+  "inversion_file_line": "historical-9e4f0e55-sentinel.py:223",
+  "nonzero_compare_file_line": "historical-9e4f0e55-sentinel.py:235",
+  "tool_verdicts": {
+    "historical_replay": {
+      "envelope_source": "constructed by the local harness, not captured from Claude",
+      "WebSearch": "SUCCESS",
+      "Read": "SUCCESS",
+      "WebFetch_HTTP_200": "FAILED: exit code 200",
+      "WebFetch_HTTP_404": "FAILED: exit code 404",
+      "field_general_status_code_200": "FAILED: exit code 200 for WebSearch, Read, and WebFetch"
+    },
+    "current_versioned_control": {
+      "WebSearch": "SUCCESS",
+      "Read": "SUCCESS",
+      "WebFetch_HTTP_200": "SUCCESS",
+      "WebFetch_HTTP_404": "FAILED: http 404"
+    },
+    "pwsh_7_reproduction": {
+      "WebFetch_HTTP_200": "historical=FAILED (exit code 200); current=SUCCESS",
+      "WebFetch_HTTP_404": "historical=FAILED (exit code 404); current=FAILED (http 404)"
+    }
+  },
+  "observations": [
+    {
+      "name": "historical-constructed-envelope-vector",
+      "measured": "SUCCESS,SUCCESS,FAILED,FAILED",
+      "method": "same-session local hook replay over loopback HTTP with harness-constructed envelopes",
+      "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt"
+    },
+    {
+      "name": "historical-predicate-scope",
+      "measured": "FAILED,FAILED,FAILED",
+      "method": "counterfactual response-field matrix status_code=200",
+      "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt"
+    },
+    {
+      "name": "historical-both-states-discrimination",
+      "measured": false,
+      "method": "genuine local HTTP 200 versus 404",
+      "anchor": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt"
+    },
+    {
+      "name": "current-both-states-discrimination",
+      "measured": true,
+      "method": "current source replay",
+      "anchor": "command-center/p2-wave/probes/RES-0002/current-sentinel-suite.raw.txt"
+    },
+    {
+      "name": "pwsh-polarity-reproduction",
+      "measured": true,
+      "method": "PowerShell 7 independent polarity rules on the same envelopes",
+      "anchor": "command-center/p2-wave/probes/RES-0002/reviewer-pwsh.raw.txt"
+    },
+    {
+      "name": "actual-claude-same-session-vector",
+      "measured": "NOT-CHECKED",
+      "method": "claude executable and deployed hook absent on this Linux worker",
+      "anchor": "command-center/p2-wave/probes/RES-0002/environment-scope.raw.txt"
+    }
+  ],
+  "control_ids": [
+    "NC-CURRENT-HTTP-POLARITY",
+    "NC-MUTATED-EXPECTATION"
+  ],
+  "named_probes": [
+    {
+      "requirement": "Hook SOURCE: read the historical hook and locate the status_code-to-exit-code comparison.",
+      "path": "command-center/p2-wave/probes/RES-0002/probe1-hook-source.raw.txt",
+      "raw_output": "NAMED_PROBE=PROBE-1-HOOK-SOURCE\nUNIT=RES-0002\nmethod=line-numbered file-read plus AST walk\nhistorical_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/historical-9e4f0e55-sentinel.py\ncurrent_path=/opt/p2/ast-integrate/command-center/p2-wave/probes/RES-0002/fixtures/current-f7fac7b4-sentinel.py\nhistorical_bytes=14832\ncurrent_bytes=18294\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nhistorical_fn_lineno=218\ncurrent_fn_lineno=218\nhistorical_exit_tuple_lineno=223\nhistorical_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code', 'code', 'status_code']\nhistorical_nonzero_compare_lineno=235\ninversion_maps_http_200_to_failed_at=historical-9e4f0e55-sentinel.py:223\nnonzero_integer_compare_at=historical-9e4f0e55-sentinel.py:235\ncurrent_exit_tuple_keys=['exit_code', 'exitCode', 'returncode', 'return_code']\ncurrent_status_code_in_exit_tuple=false\ncurrent_http_ge400_linenos=[229]\nhistorical_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # numeric exit/return codes\n 223\t    for key in (\n 224\t        \"exit_code\",\n 225\t        \"exitCode\",\n 226\t        \"returncode\",\n 227\t        \"return_code\",\n 228\t        \"code\",\n 229\t        \"status_code\",\n 230\t    ):\n 231\t        val = resp.get(key)\n 232\t        if val is not None:\n 233\t            try:\n 234\t                iv = int(val)\n 235\t                if iv != 0:\n 236\t                    return True, f\"exit code {iv}\"\n 237\t                return False, \"\"  # explicit success exit code -> trust it\n 238\t            except (TypeError, ValueError):\n 239\t                pass\n 240\t    if resp.get(\"isError\") is True or resp.get(\"is_error\") is True:\nhistorical_structural_failed_span_end\ncurrent_structural_failed_span_begin\n 218\tdef _structural_failed(resp) -> tuple[bool, str]:\n 219\t    \"\"\"Structural FAILED signals usable for ANY tool (incl. Bash).\"\"\"\n 220\t    if not isinstance(resp, dict):\n 221\t        return False, \"\"\n 222\t    # HTTP status codes use HTTP semantics, NOT exit-code semantics: 200 is success,\n 223\t    # not \"exit code 200\". Only >=400 is a failure; 1xx-3xx falls through to the real\n 224\t    # error checks below.\n 225\t    sc = resp.get(\"status_code\")\n 226\t    if sc is not None:\n 227\t        try:\n 228\t            iv = int(sc)\n 229\t            if iv >= 400:\n 230\t                return True, f\"http {iv}\"\n 231\t        except (TypeError, ValueError):\n 232\t            pass\n 233\t    # numeric exit/return codes. These key names are UNAMBIGUOUS process statuses.\n 234\t    for key in (\n 235\t        \"exit_code\",\n 236\t        \"exitCode\",\n 237\t        \"returncode\",\n 238\t        \"return_code\",\n 239\t    ):\n 240\t        val = resp.get(key)\n 241\t        if val is not None:\n 242\t            try:\n 243\t                iv = int(val)\n 244\t                if iv != 0:\n 245\t                    return True, f\"exit code {iv}\"\n 246\t                return False, \"\"  # explicit success exit code -> trust it\n 247\t            except (TypeError, ValueError):\n 248\t                pass\ncurrent_structural_failed_span_end\nFETCH_RECEIPT_BEGIN\nsource=https://raw.githubusercontent.com/Prekzursil/agent-skills-toolchain/<rev>/hooks/tool-result-sentinel/sentinel.py\nhistorical_rev=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_rev=f7fac7b448340399e73b68b39e09dd570cff043b\nhistorical_http=200\ncurrent_http=200\nhistorical-9e4f0e55-sentinel.py bytes=14832 sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c expected=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c match=True\ncurrent-f7fac7b4-sentinel.py bytes=18294 sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e expected=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e match=True\nFETCH_RECEIPT_END\nCHECKS={\"current_fn\": true, \"current_http_ge400_branch\": true, \"current_sha\": true, \"current_status_code_not_in_exit_tuple\": true, \"fetch_receipt\": true, \"historical_fn\": true, \"historical_nonzero_exit_compare\": true, \"historical_sha\": true, \"historical_status_code_in_exit_tuple\": true, \"span_has_exit_code_200_shape\": true, \"span_has_status_code\": true}\nRESULT=PASS\nSUCCESS:RES-0002-probe1\n"
+    },
+    {
+      "requirement": "Triggered local hook run: constructed WebSearch, Read, WebFetch 200, WebFetch 404 under one session_id.",
+      "path": "command-center/p2-wave/probes/RES-0002/probe2-live-session.raw.txt",
+      "raw_output": "PROBE 2: one-session PostToolUse local hook replay\nsession_id=res0002-ac977d586b19\nfaulty_revision=9e4f0e5574e9a741189269845bbe3b55c16e3870\ncurrent_revision=f7fac7b448340399e73b68b39e09dd570cff043b\ntransport=loopback ThreadingHTTPServer + urllib.request\nenvelope_source=constructed by this harness; not captured from Claude event bus\nhistorical_sha256=d712f14e571329315907879461bd52cd9a332b192302643e913509d03f56e35c\ncurrent_sha256=7ec7f9b172c818670b2ccfa5c27a1ab36c7de68861621b6681359e59f63c444e\nmutation_mode=false\nloopback_base=http://127.0.0.1:41269\nhistorical_faulty_run_begin\nclassifier=historical-9e4f0e55\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 200\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=exit code 404\nhook_exit_code=0\nfaulty_verdict_vector=SUCCESS,SUCCESS,FAILED,FAILED\nhistorical_faulty_run_end\nfield_general_counterfactual_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=FAILED; sentinel_reason=exit code 200\nfield_general_counterfactual_end\ncurrent_fixed_control_begin\nclassifier=current-f7fac7b4\nevent=1\ntool_name=WebSearch\nmeasurement=local_http_status=200; host-facing response carries content, not status_code\ntool_response={\"content\": [{\"type\": \"text\", \"text\": \"{\\\"results\\\": [{\\\"title\\\": \\\"sentinel result\\\", \\\"url\\\": \\\"local://result\\\"}]}\"}]}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=2\ntool_name=Read\nmeasurement=local_file_read=success; host-facing response carries content, not status_code\ntool_response={\"content\": \"# Repository Guidelines\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=3\ntool_name=WebFetch\nmeasurement=local_http_status=200\ntool_response={\"status_code\": 200, \"body\": \"known-good fetched body\"}\nsentinel_verdict=SUCCESS\nsentinel_reason=<EMPTY>\nhook_exit_code=0\nevent=4\ntool_name=WebFetch\nmeasurement=local_http_status=404; genuine HTTP 404 negative control\ntool_response={\"status_code\": 404, \"body\": \"known-broken missing resource\"}\nsentinel_verdict=FAILED\nsentinel_reason=http 404\nhook_exit_code=0\ncurrent_verdict_vector=SUCCESS,SUCCESS,SUCCESS,FAILED\ncurrent_fixed_control_end\ncurrent_field_general_begin\ntool_name=WebSearch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=Read; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ntool_name=WebFetch; response_field=status_code; value=200; sentinel_verdict=SUCCESS; sentinel_reason=<EMPTY>\ncurrent_field_general_end\ncurrent_field_general_vector=SUCCESS,SUCCESS,SUCCESS\npwsh_exit_code=0\nchecks={\"current_discriminates\": true, \"current_sha\": true, \"current_vector\": true, \"field_general\": true, \"historical_both_states_non_discriminating\": true, \"historical_sha\": true, \"historical_vector\": true, \"http_200_live\": true, \"http_404_live\": true, \"mutation_went_red\": true, \"pwsh_reproduced\": true, \"search_http_200\": true}\nprobe_result=PASS\nSUCCESS:RES-0002-session-probe\n"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:RES-0002 in the receipt AND a recorded verdict per tool type PLUS the file:line of the comparison that maps HTTP 200 to FAILED, or an explicit REFUTED if no such line exists"
+}

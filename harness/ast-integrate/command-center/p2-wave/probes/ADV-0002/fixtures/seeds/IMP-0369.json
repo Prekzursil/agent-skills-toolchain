@@ -1,0 +1,283 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0369.json",
+  "tools/router/lazy.py",
+  "tools/router/__init__.py",
+  "command-center/p2-wave/probes/IMP-0369/scenario.py",
+  "command-center/p2-wave/probes/IMP-0369/probe1_eager_vs_lazy.py",
+  "command-center/p2-wave/probes/IMP-0369/probe2_always_on_trace.py",
+  "command-center/p2-wave/probes/IMP-0369/fixtures/capability-index.json"
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:IMP-0369",
+ "evidence": [
+  {
+   "anchor": "tools/router/lazy.py:measure_turn_zero",
+   "claim": "On the same six-capability fixture index, measured turn-zero payload tokens are lazy=1088 vs eager=5508 (delta=4420) using tokenizer imp-0369-regex-v1 on the injected payload, not an estimate.",
+   "id": "E1-eager-vs-lazy-turn-zero-tokens",
+   "measured": {
+    "eager_payload_sha256": "c68e4f9558a5e8587693c6402a276a2460fba4b9ecdca439727f413277d025c6",
+    "eager_turn_zero_bytes": 16502,
+    "eager_turn_zero_tokens": 5508,
+    "lazy_payload_sha256": "5b9fdad55586c4f1d5a636ee87076d3a7c12cc64fbcfc7698ad412e0452a56f7",
+    "lazy_turn_zero_bytes": 3350,
+    "lazy_turn_zero_tokens": 1088,
+    "probe1": {
+     "always_on_ids": [
+      "skill.gamma"
+     ],
+     "cli_lazy_turn_zero_tokens": 1088,
+     "eager_turn_zero_body_ids": [
+      "skill.alpha",
+      "skill.beta",
+      "skill.gamma",
+      "skill.delta",
+      "workflow.epsilon",
+      "hook.zeta"
+     ],
+     "eager_turn_zero_bytes": 16502,
+     "eager_turn_zero_tokens": 5508,
+     "index_capability_count": 6,
+     "lazy_after_select_tokens": 1972,
+     "lazy_turn_zero_body_ids": [
+      "skill.gamma"
+     ],
+     "lazy_turn_zero_bytes": 3350,
+     "lazy_turn_zero_tokens": 1088,
+     "len4_guess_rejected": true,
+     "module_path": "tools/router/lazy.py",
+     "select_id": "skill.alpha",
+     "token_delta_eager_minus_lazy": 4420,
+     "tokenizer_id": "imp-0369-regex-v1"
+    },
+    "token_delta_eager_minus_lazy": 4420,
+    "tokenizer_id": "imp-0369-regex-v1"
+   },
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/router/lazy.py:GatewayLoader.turn_zero",
+   "claim": "The lazy turn-zero load trace lists body loads only for ['skill.gamma']. After select(skill.alpha) the loaded set is ['skill.gamma', 'skill.alpha'].",
+   "id": "E2-load-event-trace",
+   "measured": {
+    "accidental_eager_ids": [],
+    "eager_turn_zero_body_ids": [
+     "skill.alpha",
+     "skill.beta",
+     "skill.gamma",
+     "skill.delta",
+     "workflow.epsilon",
+     "hook.zeta"
+    ],
+    "lazy_after_select_body_ids": [
+     "skill.gamma",
+     "skill.alpha"
+    ],
+    "lazy_load_trace": [
+     {
+      "bytes": 110,
+      "capability_id": "skill.alpha",
+      "kind": "index-card",
+      "mode": "lazy",
+      "tokens": 30,
+      "trigger": "turn-zero-index"
+     },
+     {
+      "bytes": 113,
+      "capability_id": "skill.beta",
+      "kind": "index-card",
+      "mode": "lazy",
+      "tokens": 29,
+      "trigger": "turn-zero-index"
+     },
+     {
+      "bytes": 122,
+      "capability_id": "skill.gamma",
+      "kind": "index-card",
+      "mode": "lazy",
+      "tokens": 33,
+      "trigger": "turn-zero-index"
+     },
+     {
+      "bytes": 120,
+      "capability_id": "skill.delta",
+      "kind": "index-card",
+      "mode": "lazy",
+      "tokens": 29,
+      "trigger": "turn-zero-index"
+     },
+     {
+      "bytes": 121,
+      "capability_id": "workflow.epsilon",
+      "kind": "index-card",
+      "mode": "lazy",
+      "tokens": 29,
+      "trigger": "turn-zero-index"
+     },
+     {
+      "bytes": 114,
+      "capability_id": "hook.zeta",
+      "kind": "index-card",
+      "mode": "lazy",
+      "tokens": 30,
+      "trigger": "turn-zero-index"
+     },
+     {
+      "bytes": 2581,
+      "capability_id": "skill.gamma",
+      "kind": "body",
+      "mode": "lazy",
+      "tokens": 884,
+      "trigger": "turn-zero-always-on"
+     }
+    ],
+    "lazy_turn_zero_body_ids": [
+     "skill.gamma"
+    ]
+   },
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0369",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0369/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "negative_control_ids": [
+  "IMP-0369-NC-always-on-visible-in-trace",
+  "IMP-0369-NC-demote-always-on-silent"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "demote to LAZY must drop skill.gamma from the trace",
+   "description": "Mark skill.gamma ALWAYS-ON. The lazy turn-zero load trace must list its body, proving the trace can detect an eager load.",
+   "fired_on_bad_state": true,
+   "good_state_output": "body_ids=['skill.gamma']",
+   "id": "IMP-0369-NC-always-on-visible-in-trace",
+   "kind": "eager-load-detector",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Demoting skill.gamma to LAZY must empty the turn-zero body trace. A detector that always emits every id would fail this state.",
+   "fired_on_bad_state": true,
+   "id": "IMP-0369-NC-demote-always-on-silent",
+   "kind": "constant-fire-guard",
+   "probe2": {
+    "always_on_event_tokens": 884,
+    "always_on_id": "skill.gamma",
+    "bad_demoted_body_ids": [],
+    "eager_trace_detects_body": true,
+    "fired_on_always_on": true,
+    "good_turn_zero_body_ids": [
+     "skill.gamma"
+    ],
+    "lazy_sibling_id": "skill.alpha",
+    "probe": "probe2-always-on-trace",
+    "silent_after_demote": true,
+    "unit_id": "IMP-0369"
+   },
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json profile=router-loader-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "profile": "router-loader-module",
+ "report": {
+  "falsifiable_answer": "Turn zero costs 1088 tokens lazy vs 5508 eager on the fixture index. No LAZY body loaded at turn zero; ALWAYS-ON skill.gamma did.",
+  "index_fixture": {
+   "bytes": 17537,
+   "capability_count": 6,
+   "path": "command-center/p2-wave/probes/IMP-0369/fixtures/capability-index.json",
+   "sha256": "0674f9994510ca383ceb84af02d1b4116b4c5c0b449b94f3a20e857985893dff"
+  },
+  "kind": "router-lazy-gateway",
+  "module": {
+   "bytes": 12218,
+   "path": "tools/router/lazy.py",
+   "sha256": "416b2a82d741ddb7fcea57bc70c69f7b9ab4c7f3c1fba25cc4ef71c1c8ebe746"
+  },
+  "turn_zero": {
+   "eager_body_ids": [
+    "skill.alpha",
+    "skill.beta",
+    "skill.gamma",
+    "skill.delta",
+    "workflow.epsilon",
+    "hook.zeta"
+   ],
+   "eager_bytes": 16502,
+   "eager_tokens": 5508,
+   "lazy_body_ids": [
+    "skill.gamma"
+   ],
+   "lazy_bytes": 3350,
+   "lazy_tokens": 1088,
+   "tokenizer_id": "imp-0369-regex-v1"
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0385 capability-index builder is not delivered. Measurement uses a six-record fixture index with the same record shape (capability_id, summary, body, load_mode), not a live six-root census.",
+   "settling_experiment": "After IMP-0385, pass capability-index.json through measure_turn_zero and republish the token table.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "IMP-0392 injection budgeter is absent. The loader does not cap injected tokens; it only withholds unselected bodies.",
+   "settling_experiment": "After IMP-0392, compose GatewayLoader with the budgeter ceiling.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "IMP-0402 index cache invalidation is absent. GatewayLoader is in-memory for one turn; it does not persist or hash-check a cache file.",
+   "settling_experiment": "After IMP-0402, rebuild on truncated cache and re-measure turn zero.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Tokenizer imp-0369-regex-v1 is a pinned regex instrument on the injected payload. tiktoken/cl100k is not installed on this host, so counts are not vendor-LLM tokens.",
+   "settling_experiment": "Install a pinned tiktoken encoding, re-count the same payloads, and require lazy still strictly cheaper than eager.",
+   "verdict": "CONFIRMED-AS-RESIDUAL"
+  }
+ ],
+ "reviewer": {
+  "independent": true,
+  "notes": "Probe 2 re-runs the loader, requires ALWAYS-ON in the trace, requires a LAZY sibling absent, and requires the demoted record to disappear. A second human in a fresh context was not obtained on this worktree.",
+  "reviewer_id": "IMP-0369-probe2-always-on-trace",
+  "starts_from": "catalog tests_required, not the author summary",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "sentinel": "SUCCESS:IMP-0369",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0369 question_or_target: Implement tools/router/lazy.py so a capability's full body loads only when selected, keeping turn-zero cost to the index summary.",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "test_ids": [
+  "IMP-0369-eager-vs-lazy-tokens",
+  "IMP-0369-always-on-trace"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0369/probe1_eager_vs_lazy.py",
+   "exit_code": 0,
+   "id": "IMP-0369-eager-vs-lazy-tokens",
+   "output_tail": "{\"always_on_ids\": [\"skill.gamma\"], \"cli_lazy_turn_zero_tokens\": 1088, \"eager_turn_zero_body_ids\": [\"skill.alpha\", \"skill.beta\", \"skill.gamma\", \"skill.delta\", \"workflow.epsilon\", \"hook.zeta\"], \"eager_turn_zero_bytes\": 16502, \"eager_turn_zero_tokens\": 5508, \"index_capability_count\": 6, \"lazy_after_select_tokens\": 1972, \"lazy_turn_zero_body_ids\": [\"skill.gamma\"], \"lazy_turn_zero_bytes\": 3350, \"lazy_turn_zero_tokens\": 1088, \"len4_guess_rejected\": true, \"module_path\": \"tools/router/lazy.py\", \"select_id\": \"skill.alpha\", \"token_delta_eager_minus_lazy\": 4420, \"tokenizer_id\": \"imp-0369-regex-v1\"}\nturn_zero lazy_tokens=1088 eager_tokens=5508 delta=4420 lazy_bodies=['skill.gamma']\nSUCCESS:IMP-0369-probe1 measured eager vs lazy turn-zero tokens",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0369/probe2_always_on_trace.py",
+   "exit_code": 0,
+   "id": "IMP-0369-always-on-trace",
+   "output_tail": "{\"always_on_event_tokens\": 884, \"always_on_id\": \"skill.gamma\", \"bad_demoted_body_ids\": [], \"eager_trace_detects_body\": true, \"fired_on_always_on\": true, \"good_turn_zero_body_ids\": [\"skill.gamma\"], \"lazy_sibling_id\": \"skill.alpha\", \"probe\": \"probe2-always-on-trace\", \"silent_after_demote\": true, \"unit_id\": \"IMP-0369\"}\nalways_on=skill.gamma in_trace=['skill.gamma'] demoted_ids=[] eager_detects=True\nSUCCESS:IMP-0369-probe2 ALWAYS-ON visible in load trace; demote is silent",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:56:58Z"
+ },
+ "title": "Lazy capability activation and gateway loader",
+ "unit_id": "IMP-0369"
+}

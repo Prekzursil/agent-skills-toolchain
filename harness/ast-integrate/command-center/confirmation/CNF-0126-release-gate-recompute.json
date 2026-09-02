@@ -1,0 +1,583 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0126",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0126 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every promotion condition has a computed state derived from named receipts, and unsatisfiable conditions are escalated rather than dropped. Any other terminal state is FAILED:CNF-0126 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=CNF-0126]",
+  "min_bytes_threshold": 2048,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "release-gate-auditor",
+    "execution_substrate": "linux-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/confirmation/CNF-0126-release-gate-recompute.json",
+      "bytes": 27318,
+      "sha256": "0f2a9507545be8f08203ba2157af53998f32e1dfff36e5250a415a48504ceb19",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/release-gate-report.schema.json",
+      "bytes": 1052,
+      "sha256": "7187c5281ff09b3b1d6a07426d7f2ae1eea6ead05cfdfaab45f3b88ebc305266",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "A promotion condition with no supporting receipt is NOT-CHECKED and is never assumed SATISFIED. A present wrong-schema receipt is FALSE, not SATISFIED. A present well-formed success receipt can SATISFY a control condition.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0126/evaluate.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "evaluate(PR-ONLY, map_lookup(ok+wrong-schema fixtures), control trio)",
+          "raw_output": "{\"PG-CONTROL-NO-RECEIPT\": \"NOT-CHECKED\", \"PG-CONTROL-SATISFIABLE\": \"SATISFIED\", \"PG-CONTROL-WRONG-SCHEMA\": \"FALSE\"}",
+          "fingerprint": "f27354ea908a9d7ea301cb9d32a8b3768646e23a83f4a46ba9053d1702645c6b",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "disk_lookup live tree; PG-11132 receipts_consulted REL-0008 absent",
+          "raw_output": "{\"live_not_checked\": [\"PG-11126-unquoted\", \"PG-11127-unquoted\", \"PG-11128-unquoted\", \"PG-11129-all-required-gates-pass\", \"PG-11130-fp-fn-telemetry\", \"PG-11132-no-data-loss\", \"PG-11133-unquoted\"], \"promotion_verdict\": \"NO-GO\"}",
+          "fingerprint": "7e2c35d94f7b4b5cfaf9b4b03dc5d49d55238a0a867b12f59ec1f289ac8d5bf3",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "Under PR-ONLY, PG-11125 and PG-11131 are UNSATISFIABLE-AS-WRITTEN, remain in the condition table, and are escalated with the OQ-9 substitute rather than dropped. A satisfied substitute does not rewrite the as-written unsat row. Under PRIVATE-CANARY the same rows are NOT-CHECKED, not silently SATISFIED.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json owner_questions[id=OQ-9]",
+      "probes": [
+        {
+          "role": "source",
+          "method": "static-analysis",
+          "command": "evaluate(PR-ONLY, disk_lookup(REPO), PROMOTION_CONDITIONS, OQ-9)",
+          "raw_output": "{\"escalation_count\": 2, \"silently_dropped\": false, \"unsatisfiable_ids\": [\"PG-11125-private-canary-first\", \"PG-11131-canary-succeeds\"]}",
+          "fingerprint": "31a107bf91b967fbcf27a89fa5c714586d544321175f09faefa756de828a45b7",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "evaluate(PRIVATE-CANARY) plus substitute-present PR-ONLY; assert as-written unsat kept",
+          "raw_output": "{\"as_written_kept\": [\"PG-11125-private-canary-first\", \"PG-11131-canary-succeeds\"], \"output_ids_match\": true, \"private_canary_unsat\": []}",
+          "fingerprint": "80c9505ad73198ed01141d484503c2730c18c738a968753980478e8191d731df",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "missing-receipt-is-not-checked",
+      "name": "a condition with no supporting receipt is NOT-CHECKED, never assumed satisfied",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0126/probe1_missing_receipt.py",
+      "result": "PASS",
+      "assertions": 4
+    },
+    {
+      "id": "unsat-escalated-not-dropped",
+      "name": "an unsatisfiable-as-written condition must be escalated to the owner with a proposed substitute, not silently dropped",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0126/probe2_unsatisfiable_escalation.py",
+      "result": "PASS",
+      "assertions": 5
+    },
+    {
+      "id": "compute-only",
+      "name": "this unit does not create, merge or publish anything; it only computes state",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0126/evaluate.py",
+      "result": "PASS",
+      "assertions": 1
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-missing-receipt",
+      "kind": "absent-input",
+      "description": "Named receipt absent must compute NOT-CHECKED, never SATISFIED.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "PG-CONTROL-NO-RECEIPT computed_state=NOT-CHECKED",
+      "good_state_output": "PG-CONTROL-SATISFIABLE computed_state=SATISFIED"
+    },
+    {
+      "id": "NC-wrong-schema",
+      "kind": "malformed-input",
+      "description": "A present unparseable-as-success receipt must not count as SATISFIED.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "PG-CONTROL-WRONG-SCHEMA computed_state=FALSE",
+      "good_state_output": "PG-CONTROL-SATISFIABLE computed_state=SATISFIED"
+    },
+    {
+      "id": "NC-unsat-not-dropped",
+      "kind": "mutation",
+      "description": "Unsatisfiable-as-written rows stay in the table and in escalations; substitute SATISFIED must not rewrite the as-written state.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "PR-ONLY unsat retained and escalated; silently_dropped=false",
+      "good_state_output": "PRIVATE-CANARY unsat=[]; output_ids preserved; as-written unsat kept when substitute receipts SATISFY"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0126-probe2-unsatisfiable-escalation",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "xai",
+    "notes": "Named probe2 re-runs the evaluator under PR-ONLY and under PRIVATE-CANARY, checks unsat rows are retained and escalated, and schema-validates the live artifact. Catalog owner sign-off on a GO is not claimed; this unit computes state only.",
+    "reviewed_at": "2026-08-25T01:00:02Z"
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0126/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0126",
+    "registered_at": "2026-08-25T01:00:02Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "json.loads readback of catalog output_path",
+      "artifact_path": "command-center/confirmation/CNF-0126-release-gate-recompute.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "file-read",
+        "command": "json.loads(command-center/confirmation/CNF-0126-release-gate-recompute.json)",
+        "raw_output": "parse_ok=true promotion_verdict=NO-GO compute-only=true",
+        "fingerprint": "b20c2e65ee7b73696cd90c359d54cf6aa65cc3cb7bc7c2b2a3e5a4f2f790946f",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:00:02Z",
+    "ended_at": "2026-08-25T01:00:02Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Spec lines 11126, 11127, 11128, and 11133 are inside the promote-only-after span but are not quoted in the catalog and _USER-PROMPTS.md is absent on this worktree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Place _USER-PROMPTS.md on the worktree and re-evaluate those four lines against the quoted wording."
+    },
+    {
+      "claim": "OQ-9 substitute is not SATISFIED on this worktree: WAVE4-PLUGIN-LIFECYCLE-VERIFY.json is present but does not support the evaluator's success shape, and REL-0004/0005/0006 are absent.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Land REL-0004/0005/0006 and a WAVE4 receipt whose checks are a list of pass:true (or state SUCCESS), then recompute; as-written canary rows must stay UNSATISFIABLE-AS-WRITTEN."
+    }
+  ],
+  "report": {
+    "kind": "release-gate-report",
+    "observations": [
+      {
+        "name": "promotion_verdict",
+        "measured": "NO-GO",
+        "method": "recompute-from-named-receipts",
+        "anchor": "command-center/p2-wave/probes/CNF-0126/evaluate.py"
+      },
+      {
+        "name": "unsatisfiable_as_written_count",
+        "measured": 2,
+        "method": "evaluate(PR-ONLY)",
+        "anchor": "command-center/WORK-UNIT-CATALOG.json owner_questions[id=OQ-3]"
+      },
+      {
+        "name": "not_checked_count",
+        "measured": 7,
+        "method": "evaluate(PR-ONLY)",
+        "anchor": "command-center/p2-wave/probes/CNF-0126/conditions.py"
+      },
+      {
+        "name": "spec_file_present",
+        "measured": false,
+        "method": "path.is_file",
+        "anchor": "_USER-PROMPTS.md"
+      }
+    ],
+    "control_ids": [
+      "NC-missing-receipt",
+      "NC-wrong-schema",
+      "NC-unsat-not-dropped"
+    ],
+    "title": "Release-gate confirmation recomputed from receipts under the PR-ONLY release mode",
+    "question": "Are the release promotion conditions actually met, recomputed from receipts rather than asserted? Evaluate each promotion condition and answer honestly for the ones that PR-ONLY makes unsatisfiable: with no canary channel, the canary-succeeds condition cannot be satisfied as written, so is it superseded by an owner-approved substitute or is the program permanently unable to satisfy its own stopping rule?",
+    "answer": "Release mode is PR-ONLY (catalog owner_questions OQ-3). As written, PG-11125 (private canary first) and PG-11131 (canary succeeds) are UNSATISFIABLE-AS-WRITTEN because there is no canary channel; they stay in the condition table and are escalated with OQ-9's recorded substitute (green CI install->upgrade->rollback rehearsal / WAVE4 5/5 plus REL-0004/0005/0006), not dropped and not rewritten to SATISFIED. OQ-9 is ANSWERED as a delegated default, so the program is not permanently unable to satisfy a stopping rule \u2014 the substitute exists as an owner-recorded pass condition. On this worktree WAVE4-PLUGIN-LIFECYCLE-VERIFY.json is present but does not support SATISFIED (status is COMPLETE, checks is an object with PARTIAL rows, not a list of pass:true). REL-0004/0005/0006 are absent. The substitute is therefore FALSE, not SATISFIED. Every other promotion-span condition is NOT-CHECKED (missing REL receipts or unquoted spec lines with no _USER-PROMPTS.md). Promotion verdict is NO-GO. This unit created, merged and published nothing. SUCCESS:CNF-0126 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every promotion condition has a computed state derived from named receipts, and unsatisfiable conditions are escalated rather than dropped. Any other terminal state is FAILED:CNF-0126 <classification> with the diagnostic tail attached.",
+    "output_path": "command-center/confirmation/CNF-0126-release-gate-recompute.json",
+    "output_schema": "command-center/schema/release-gate-report.schema.json",
+    "release_mode": "PR-ONLY",
+    "release_mode_receipt": {
+      "id": "OQ-3",
+      "state": "ANSWERED",
+      "answer": "PR-ONLY.",
+      "answer_detail": "Release mode is PR-ONLY: propose changes as pull requests, never a private canary and never a public marketplace release. Phase 15 branches on this and now has its branch.",
+      "answered_on": "2026-08-10",
+      "answer_provenance": "owner statement in session 30bd50d4 (spoken, not previously committed - this record is the fix for that gap)",
+      "release_mode": "PR-ONLY",
+      "receipt_path": "command-center/WORK-UNIT-CATALOG.json",
+      "receipt_field": "owner_questions[id=OQ-3]"
+    },
+    "owner_decisions_md_present": true,
+    "promotion_verdict": "NO-GO",
+    "promotion_verdict_rule": "GO only when every condition is SATISFIED, or UNSATISFIABLE-AS-WRITTEN with an owner-recorded substitute whose own receipts SATISFIED. NOT-CHECKED blocks as hard as FALSE. Unsat is never a silent pass.",
+    "promotion_verdict_reason": "NOT-CHECKED and FALSE block as hard as unsat; PG-11125-private-canary-first:unsat-without-satisfied-substitute; PG-11126-unquoted:NOT-CHECKED; PG-11127-unquoted:NOT-CHECKED; PG-11128-unquoted:NOT-CHECKED; PG-11129-all-required-gates-pass:NOT-CHECKED; PG-11130-fp-fn-telemetry:NOT-CHECKED; PG-11131-canary-succeeds:unsat-without-satisfied-substitute; PG-11132-no-data-loss:NOT-CHECKED; PG-11133-unquoted:NOT-CHECKED",
+    "conditions": [
+      {
+        "id": "PG-11125-private-canary-first",
+        "spec_anchor": "_USER-PROMPTS.md:11125",
+        "wording": "private canary first / shadow mode or private canary first",
+        "wording_provenance": "catalog quotes: REL-0004 inputs; IMP/REL units naming 11125; OQ-9 text ('Spec :11125 and promotion gate :11131')",
+        "computed_state": "UNSATISFIABLE-AS-WRITTEN",
+        "reason": "with no canary channel, the private-canary-first condition cannot be satisfied as written",
+        "receipts_consulted": [
+          {
+            "path": "command-center/receipts/REL-0004.json",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": "PR-ONLY",
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11126-unquoted",
+        "spec_anchor": "_USER-PROMPTS.md:11126",
+        "wording": "UNQUOTED: line is inside promote-only-after span 11125-11133; the catalog corpus has no verbatim quote and the spec file is not on this worktree",
+        "wording_provenance": "span membership from REL-0003 inputs (11125-11133)",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "_USER-PROMPTS.md",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11127-unquoted",
+        "spec_anchor": "_USER-PROMPTS.md:11127",
+        "wording": "UNQUOTED: line is inside promote-only-after span 11125-11133; the catalog corpus has no verbatim quote and the spec file is not on this worktree",
+        "wording_provenance": "span membership from REL-0003 inputs (11125-11133)",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "_USER-PROMPTS.md",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11128-unquoted",
+        "spec_anchor": "_USER-PROMPTS.md:11128",
+        "wording": "UNQUOTED: line is inside promote-only-after span 11125-11133; the catalog corpus has no verbatim quote and the spec file is not on this worktree",
+        "wording_provenance": "span membership from REL-0003 inputs (11125-11133)",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "_USER-PROMPTS.md",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11129-all-required-gates-pass",
+        "spec_anchor": "_USER-PROMPTS.md:11129",
+        "wording": "all required gates pass",
+        "wording_provenance": "catalog quotes: REL-0014 inputs; ADV-0016 spec_anchor",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "command-center/receipts/REL-0014.json",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          },
+          {
+            "path": "command-center/receipts/REL-0018.json",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11130-fp-fn-telemetry",
+        "spec_anchor": "_USER-PROMPTS.md:11130",
+        "wording": "false-positive and false-negative telemetry acceptable",
+        "wording_provenance": "catalog quotes: REL-0019 inputs",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "command-center/receipts/REL-0019.json",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11131-canary-succeeds",
+        "spec_anchor": "_USER-PROMPTS.md:11131",
+        "wording": "canary succeeds (promotion gate)",
+        "wording_provenance": "catalog OQ-9 text names promotion gate :11131 as a canary that PR-ONLY does not have; stopping condition 13 at :11390 uses the same canary-succeeds wording",
+        "computed_state": "UNSATISFIABLE-AS-WRITTEN",
+        "reason": "with no canary channel, the canary-succeeds condition cannot be satisfied as written",
+        "receipts_consulted": [
+          {
+            "path": "command-center/receipts/REL-0004.json",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          },
+          {
+            "path": "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.json",
+            "present": true,
+            "bytes": 11994,
+            "sha256": "2dd96470216d6e88441bc2c3c84175d80168d643f7fd7b272bc86bdc740edcb0"
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": "PR-ONLY",
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11132-no-data-loss",
+        "spec_anchor": "_USER-PROMPTS.md:11132",
+        "wording": "no data loss occurs",
+        "wording_provenance": "catalog quotes: REL-0008 question_or_target",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "command-center/receipts/REL-0008.json",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      },
+      {
+        "id": "PG-11133-unquoted",
+        "spec_anchor": "_USER-PROMPTS.md:11133",
+        "wording": "UNQUOTED: line is inside promote-only-after span 11125-11133; the catalog corpus has no verbatim quote and the spec file is not on this worktree",
+        "wording_provenance": "span membership from REL-0003 inputs (11125-11133)",
+        "computed_state": "NOT-CHECKED",
+        "reason": "no supporting receipt on disk; never assumed satisfied",
+        "receipts_consulted": [
+          {
+            "path": "_USER-PROMPTS.md",
+            "present": false,
+            "bytes": 0,
+            "sha256": null
+          }
+        ],
+        "derived_from_named_receipts": true,
+        "unsatisfiable_under": null,
+        "release_mode_applied": "PR-ONLY"
+      }
+    ],
+    "escalations": [
+      {
+        "condition_id": "PG-11125-private-canary-first",
+        "classification": "unsatisfiable-condition",
+        "exact_wording_that_makes_it_so": "with no canary channel, the private-canary-first condition cannot be satisfied as written",
+        "proposed_substitute": {
+          "owner_question_id": "OQ-9",
+          "owner_question_state": "ANSWERED",
+          "owner_approved_substitute_recorded": true,
+          "text": "A green CI install/upgrade/rollback rehearsal stands in for the canary (delegated default).",
+          "detail": "Substitute pass condition: a green CI run on the PR head exercising install -> upgrade -> rollback against a throwaway prefix, plus the documented rollback procedure - i.e. what WAVE4-PLUGIN-LIFECYCLE-VERIFY.json already measures at 5/5 checks - standing in for the canary gate. No deployment target is created, consistent with OQ-3 = PR-ONLY.",
+          "receipt_path": "command-center/WORK-UNIT-CATALOG.json",
+          "substitute_receipts": [
+            {
+              "path": "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.json",
+              "present": true,
+              "bytes": 11994,
+              "sha256": "2dd96470216d6e88441bc2c3c84175d80168d643f7fd7b272bc86bdc740edcb0"
+            },
+            {
+              "path": "command-center/receipts/REL-0004.json",
+              "present": false,
+              "bytes": 0,
+              "sha256": null
+            },
+            {
+              "path": "command-center/receipts/REL-0005.json",
+              "present": false,
+              "bytes": 0,
+              "sha256": null
+            },
+            {
+              "path": "command-center/receipts/REL-0006.json",
+              "present": false,
+              "bytes": 0,
+              "sha256": null
+            }
+          ],
+          "substitute_computed_state": "FALSE",
+          "reason": "named receipt present but does not support the condition (supporting=0 present=1 rejected=1)",
+          "does_not_silently_rewrite_as_written": true
+        },
+        "silently_dropped": false
+      },
+      {
+        "condition_id": "PG-11131-canary-succeeds",
+        "classification": "unsatisfiable-condition",
+        "exact_wording_that_makes_it_so": "with no canary channel, the canary-succeeds condition cannot be satisfied as written",
+        "proposed_substitute": {
+          "owner_question_id": "OQ-9",
+          "owner_question_state": "ANSWERED",
+          "owner_approved_substitute_recorded": true,
+          "text": "A green CI install/upgrade/rollback rehearsal stands in for the canary (delegated default).",
+          "detail": "Substitute pass condition: a green CI run on the PR head exercising install -> upgrade -> rollback against a throwaway prefix, plus the documented rollback procedure - i.e. what WAVE4-PLUGIN-LIFECYCLE-VERIFY.json already measures at 5/5 checks - standing in for the canary gate. No deployment target is created, consistent with OQ-3 = PR-ONLY.",
+          "receipt_path": "command-center/WORK-UNIT-CATALOG.json",
+          "substitute_receipts": [
+            {
+              "path": "command-center/WAVE4-PLUGIN-LIFECYCLE-VERIFY.json",
+              "present": true,
+              "bytes": 11994,
+              "sha256": "2dd96470216d6e88441bc2c3c84175d80168d643f7fd7b272bc86bdc740edcb0"
+            },
+            {
+              "path": "command-center/receipts/REL-0004.json",
+              "present": false,
+              "bytes": 0,
+              "sha256": null
+            },
+            {
+              "path": "command-center/receipts/REL-0005.json",
+              "present": false,
+              "bytes": 0,
+              "sha256": null
+            },
+            {
+              "path": "command-center/receipts/REL-0006.json",
+              "present": false,
+              "bytes": 0,
+              "sha256": null
+            }
+          ],
+          "substitute_computed_state": "FALSE",
+          "reason": "named receipt present but does not support the condition (supporting=0 present=1 rejected=1)",
+          "does_not_silently_rewrite_as_written": true
+        },
+        "silently_dropped": false
+      }
+    ],
+    "reconstruction_limits": {
+      "spec_file": "_USER-PROMPTS.md",
+      "spec_file_present": false,
+      "span": "11125-11133",
+      "quoted_lines": [
+        "11125",
+        "11129",
+        "11130",
+        "11131",
+        "11132"
+      ],
+      "unquoted_lines": [
+        "11126",
+        "11127",
+        "11128",
+        "11133"
+      ],
+      "unquoted_classification": "NOT-CHECKED"
+    },
+    "scope": {
+      "actions": [
+        "compute-state"
+      ],
+      "created_merged_or_published": false,
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global unit_manifest.py --write was run",
+        "a canary channel exists under PR-ONLY",
+        "WAVE4-PLUGIN-LIFECYCLE-VERIFY.json is present on this worktree",
+        "OWNER-DECISIONS.md was written by this unit"
+      ]
+    },
+    "owner_approval": {
+      "required_by_catalog": true,
+      "release_mode_binding": "OQ-3 ANSWERED PR-ONLY",
+      "substitute_binding": "OQ-9 ANSWERED delegated default",
+      "signoff_on_this_recompute_go": false,
+      "reason": "promotion_verdict is NO-GO; compute-only unit does not request a GO"
+    }
+  },
+  "extensions": {
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "missing-receipt-not-checked",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0126/probe1_missing_receipt.py"
+      },
+      {
+        "id": "probe2",
+        "role": "unsat-escalated-not-dropped",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0126/probe2_unsatisfiable_escalation.py"
+      }
+    ],
+    "tests_required": [
+      "a condition with no supporting receipt is NOT-CHECKED, never assumed satisfied",
+      "an unsatisfiable-as-written condition must be escalated to the owner with a proposed substitute, not silently dropped",
+      "this unit does not create, merge or publish anything; it only computes state"
+    ],
+    "evidence_requirement": "per condition: the receipts consulted, the computed state, and for unsatisfiable conditions the exact wording that makes it so",
+    "failure_classification": [
+      "unsatisfiable-condition",
+      "not-checked-folded-into-pass",
+      "missing-receipt"
+    ],
+    "cloud_ok": false,
+    "registered": true
+  }
+}

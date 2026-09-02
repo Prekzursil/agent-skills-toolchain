@@ -1,0 +1,233 @@
+{
+ "answer": "RegistryClient schedules a batch on arrival_slot_s with independent per-item RNG jitter, sleeps at least Retry-After (plus independent jitter), uses full-jitter exponential backoff when Retry-After is absent, and raises RateLimitStorm(condition='429-storm') cancelling remaining URLs. Against a fake server: Retry-After 1.5s produced gap=1.516192s (honoured=True); 50-item staggered burst_fraction=0.04 vs unstaggered burst_fraction=1.0 (discriminates=True); jitter ok=True; storm cancelled=7 remaining after 6 attempts. SUCCESS:IMP-0122",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/IMP-0122.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "tools/marketplace/rate_limit_client.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "tools/marketplace/tests/test_rate_limit_client.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0122/probe1_retry_after.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0122/probe2_batch_stagger.py",
+   "role": "supporting"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0122",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0122.json",
+   "consumer": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0122/probe1_retry_after.py",
+   "executed": false,
+   "note": "Named probe1 re-runs the Retry-After fake-server measure after this emit."
+  },
+  {
+   "artifact_path": "command-center/receipts/IMP-0122.json",
+   "consumer": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0122/probe2_batch_stagger.py",
+   "executed": false,
+   "note": "Named probe2 re-runs the 50-item stagger vs burst measure after this emit."
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/rate_limit_client.py:RegistryClient.get",
+   "claim": "Against a fake server returning 429 with Retry-After: 1.5, observed inter-arrival gap=1.516192s (attempts=2, status=200). Gap is >= Retry-After and within the declared extra-jitter cap.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/rate_limit_client.py:RegistryClient.batch_get",
+   "claim": "Server-side first-arrival histogram for a 50-item batch: staggered burst_fraction=0.04 span=2.4220s occupied_bins=39; unstaggered control burst_fraction=1.0 span=0.0 max_count=50. Client-side intent is not this signal; arrivals are recorded by ScriptedTransport.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/rate_limit_client.py:FixedOffsetRng",
+   "claim": "Two distinct RNG seeds produce different arrival vectors (distinct_seeds_differ=True); random residual stddev=0.014395; FixedOffsetRng residuals are constant (fixed_is_constant=True). Jitter is not a fixed offset that re-synchronises the herd.",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/rate_limit_client.py:RateLimitStorm",
+   "claim": "A perpetual-429 fake server raises 429-storm after 6 attempts and cancels 7 remaining URLs; server_hits=6 equals attempts (not a per-item cascade).",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "evidence_requirement": "TWO independent signals: (1) against a fake server returning 429 with Retry-After, the observed inter-request intervals match the declared policy within tolerance; (2) the request arrival histogram for a 50-item batch shows staggering rather than a single burst, measured server-side. Client-side intent is not evidence of server-side arrival shape.",
+ "failure_classification": [
+  "uncontrolled-silence",
+  "detector-failure",
+  "green-not-live"
+ ],
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0122/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measurements": {
+  "batch_histograms": {
+   "burst": {
+    "burst_fraction": 1.0,
+    "max_count": 50,
+    "n": 50,
+    "occupied_bins": 1,
+    "span": 0.0
+   },
+   "discriminates": true,
+   "n": 50,
+   "staggered": {
+    "burst_fraction": 0.04,
+    "max_count": 2,
+    "n": 50,
+    "occupied_bins": 39,
+    "span": 2.4220192762892196
+   }
+  },
+  "jitter": {
+   "distinct_seeds_differ": true,
+   "fixed_is_constant": true,
+   "fixed_offset_stddev": 5.309245824218716e-17,
+   "fixed_residual_sample": [
+    0.025,
+    0.02500000000000001,
+    0.024999999999999994
+   ],
+   "n": 40,
+   "ok": true,
+   "random_is_not_constant": true,
+   "random_residual_range": [
+    0.0001705483480145542,
+    0.04955211417271621
+   ],
+   "random_residual_stddev": 0.014395028051496945,
+   "seed_a_equals_seed_b": false,
+   "unused_other_seed_residuals_n": 40
+  },
+  "retry_after": {
+   "attempts": 2,
+   "gap": 1.516191638241658,
+   "honoured": true,
+   "policy_extra_jitter_s": 0.05,
+   "retry_after_s": 1.5,
+   "status": 200,
+   "times": [
+    0.0,
+    1.516191638241658
+   ],
+   "within_jitter_cap": true
+  },
+  "storm": {
+   "attempts": 6,
+   "cancelled_remaining": 7,
+   "condition": "429-storm",
+   "not_a_cascade": true,
+   "raised": true,
+   "server_hits": 6
+  }
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0122/probe1_retry_after.py",
+   "id": "probe1",
+   "role": "retry-after-server-clock"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0122/probe2_batch_stagger.py",
+   "id": "probe2",
+   "role": "batch-stagger-vs-burst"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"n\": 50, \"span\": 0.0, \"max_count\": 50, \"burst_fraction\": 1.0, \"occupied_bins\": 1}",
+   "description": "A client with stagger disabled must produce a burst histogram on the same fake server. A detector that reports stagger for both arms cannot see the difference.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"n\": 50, \"span\": 2.4220192762892196, \"max_count\": 2, \"burst_fraction\": 0.04, \"occupied_bins\": 39}",
+   "id": "IMP0122-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "fixed_offset_stddev=5.309245824218716e-17",
+   "description": "FixedOffsetRng produces constant residuals (herd re-sync). random.Random residuals must not be constant.",
+   "fired_on_bad_state": true,
+   "good_state_output": "random_residual_stddev=0.014395028051496945",
+   "id": "IMP0122-C2",
+   "kind": "fixed-offset-jitter",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "question": "Implement the network client so a batch of installs staggers its arrivals, honours Retry-After, backs off exponentially with jitter, and surfaces a 429 storm as a named condition rather than as a cascade of individual failures \u2014 treating arrival rate as a scheduler input per the scaling doctrine.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0074 typed registry API contract is not on this tree. This client speaks HTTP status + Retry-After against an injectable transport; it does not claim to implement the typed index schema.",
+   "settling_experiment": "Deliver IMP-0074 and point RegistryClient.transport at a conformance fake that speaks the typed registry API.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "the unit's own policy under test; implementation retries are bounded exponential with jitter, max 5, then a named 429-storm condition"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Named probe2 independently measures a 50-item server-side histogram and a FixedOffsetRng both-states control. That is the catalog reviewer requirement (jitter is not a fixed offset), not a second human author.",
+  "reviewer_id": "IMP-0122-probe2-batch-stagger",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0122",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 4,
+   "command": "python3 tools/marketplace/tests/test_rate_limit_client.py",
+   "id": "test_retry_after_is_honoured",
+   "name": "Retry-After is honoured on the fake-server clock",
+   "result": "PASS"
+  },
+  {
+   "assertions": 5,
+   "command": "python3 tools/marketplace/tests/test_rate_limit_client.py",
+   "id": "test_batch_arrivals_are_staggered",
+   "name": "50-item batch arrivals are staggered server-side",
+   "result": "PASS"
+  },
+  {
+   "assertions": 3,
+   "command": "python3 tools/marketplace/tests/test_rate_limit_client.py",
+   "id": "NEGATIVE-CONTROL-unstaggered-burst",
+   "name": "A client without staggering produces a burst histogram",
+   "result": "PASS"
+  }
+ ],
+ "tests_required": [
+  "tools/marketplace/tests/test_rate_limit_client.py::test_retry_after_is_honoured",
+  "tools/marketplace/tests/test_rate_limit_client.py::test_batch_arrivals_are_staggered",
+  "NEGATIVE CONTROL: a client without staggering must produce a burst histogram, proving the measurement discriminates"
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:56:46Z"
+ },
+ "title": "Rate-limit-aware registry client with jittered arrival staggering",
+ "unit_id": "IMP-0122"
+}

@@ -1,0 +1,163 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0038/research-registry.schema.json",
+  "title": "Official MCP registry teardown (RES-0038): schema, publish flow, trust signals",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "question",
+    "required_metadata",
+    "publish_flow",
+    "signal_table",
+    "recomputed_signal",
+    "claims",
+    "evidence_rails",
+    "tests",
+    "reviewer",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "pattern": "^RES-[0-9]{4}$" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "minLength": 8 },
+    "completion_sentinel": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "required_metadata": {
+      "type": "object",
+      "required": ["server_detail_required", "package_required", "source"],
+      "properties": {
+        "server_detail_required": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "package_required": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "source": { "type": "string", "minLength": 8 }
+      }
+    },
+    "publish_flow": {
+      "type": "object",
+      "required": ["steps", "verifies"],
+      "properties": {
+        "steps": {
+          "type": "array",
+          "minItems": 4,
+          "items": { "type": "object" }
+        },
+        "verifies": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "signal_table": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id", "signal", "class", "justification"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "signal": { "type": "string", "minLength": 8 },
+          "class": {
+            "type": "string",
+            "enum": ["client-verifiable", "display-only"]
+          },
+          "justification": { "type": "string", "minLength": 16 },
+          "recomputed_end_to_end": { "type": "boolean" }
+        }
+      }
+    },
+    "recomputed_signal": {
+      "type": "object",
+      "required": ["signal_id", "method", "outcome", "computed_not_asserted"],
+      "properties": {
+        "signal_id": { "type": "string", "minLength": 3 },
+        "method": { "type": "string", "minLength": 16 },
+        "outcome": { "type": "string", "minLength": 3 },
+        "computed_not_asserted": { "type": "boolean", "const": true }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "claim", "verdict", "evidence_tier", "rails"],
+        "properties": {
+          "id": { "type": "string" },
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "E3-NOT-FACT"]
+          },
+          "evidence_tier": { "type": "string", "enum": ["E1", "E2", "E3", "E4"] },
+          "rails": { "type": "array", "minItems": 1 }
+        }
+      }
+    },
+    "evidence_rails": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "permalink", "fetched_at", "sha256"],
+        "properties": {
+          "id": { "type": "string" },
+          "kind": { "type": "string", "enum": ["structured-api", "prose-source"] },
+          "permalink": { "type": "string", "minLength": 8 },
+          "fetched_at": { "type": "string", "minLength": 10 },
+          "http_status": { "type": ["integer", "null"] },
+          "sha256": { "type": "string", "minLength": 64, "maxLength": 64 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

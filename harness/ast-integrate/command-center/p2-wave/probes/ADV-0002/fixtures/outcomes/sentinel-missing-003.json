@@ -1,0 +1,771 @@
+{
+  "artifacts": [
+    {
+      "bytes": 70410,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/adversarial/ADV-0009-detector-both-states-control-audit.json",
+      "role": "primary",
+      "sha256": "9fb42e52db8e8f7831d4fae914262fe7e38639738911021d671c3958e800216a"
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/adversarial/ADV-0009-detector-both-states-control-audit.json",
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --schema-only C:\\Users\\Prekzursil\\source\\ast-integrate\\command-center\\adversarial\\ADV-0009-detector-both-states-control-audit.json",
+        "exit_code": 0,
+        "fingerprint": "4b06c161c159a96ac114f698b87690783895e95ea8467eac71a6857fcd4074e2",
+        "method": "schema-validate",
+        "raw_output": "SCHEMA-VALID:ADV-0009 (layer 1 only - this is NOT a completion verdict)",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/command-center/validate.py:85,303",
+      "claim": "META-CONTROL: tools/command-center/validate.py V-FIELDS under the bare invocation (require_complete default False) is SILENT IN BOTH STATES. Deleting the entire defaults block leaves exit 0 + XSUCCESS:cc-validate while the same run prints work_unit_fields_unresolved=1133. The armed twin --require-complete exits 1 with 1133 V-FIELDS violations.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "exit_code": 0,
+          "fingerprint": "eb1a4b67316b954dfe645695757a9913afbd05fad81e771d026e53e0c8ca2fef",
+          "method": "command",
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nXSUCCESS:cc-validate items=103 open=58 reachable=all",
+          "role": "source"
+        },
+        {
+          "command": "read tools/command-center/validate.py:85 and :303",
+          "fingerprint": "6a12484935265d082ff8cd5001613446c86d742a2f718c4d4cfb2d77586e0a33",
+          "method": "file-read",
+          "raw_output": "line 85: require_complete: bool = False,\nline 303: if unresolved and require_complete:\nGOOD twin raw: cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/ADV-0009/pairs.json",
+      "claim": "22 both-states pairs were executed. Classification: DECORATIVE=1 (D01 V-FIELDS bare, the mandated meta-control) and VALID=21. Zero FALSE-POSITIVE-MACHINE after harness retries on D14/D17/D20. The audit did not classify the known-disarmed detector as VALID.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python command-center/p2-wave/probes/ADV-0009/run_both_states.py && python command-center/p2-wave/probes/ADV-0009/reprobe_d14_d17_d20.py",
+          "exit_code": 0,
+          "fingerprint": "a2ec54019091173c9ee3318da13e8556abf9e341ada52a199c8023e7bfde4a3c",
+          "method": "test-run",
+          "raw_output": "XSUCCESS:adv0009-runner pairs=22 meta=True counts={VALID: 19, DECORATIVE: 1, FALSE-POSITIVE-MACHINE: 2, INVERTED: 0, NOT-CHECKED: 0}\nXSUCCESS:adv0009-reprobe {D14: VALID, D17: VALID, D20: VALID} {VALID: 21, DECORATIVE: 1, FALSE-POSITIVE-MACHINE: 0, INVERTED: 0, NOT-CHECKED: 0}",
+          "role": "source"
+        },
+        {
+          "command": "count classification values in command-center/p2-wave/probes/ADV-0009/pairs.json after reprobe",
+          "fingerprint": "abc162f14d0677f3801370274989ed718e79faff581835afa3f18bb392d68911",
+          "method": "static-analysis",
+          "raw_output": "{\"DECORATIVE\": 1, \"FALSE-POSITIVE-MACHINE\": 0, \"INVERTED\": 0, \"NOT-CHECKED\": 0, \"VALID\": 21}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/ADV-0009/classifier-calibration.txt",
+      "claim": "The audit classifier is not a constant: on synthetic detectors whose true label is known by construction it returned DECORATIVE / FALSE-POSITIVE-MACHINE / VALID, 3/3.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "classifier_calibration() in run_both_states.py",
+          "exit_code": 0,
+          "fingerprint": "37a7997aca46384fd7d817c61181fd464e5f6931b6596b61d9abc28465bee499",
+          "method": "test-run",
+          "raw_output": "always-exit-0: good=0 bad=0 -> DECORATIVE (expected DECORATIVE) OK\nalways-exit-1: good=1 bad=1 -> FALSE-POSITIVE-MACHINE (expected FALSE-POSITIVE-MACHINE) OK\nexit-by-input: good=0 bad=1 -> VALID (expected VALID) OK",
+          "role": "source"
+        },
+        {
+          "command": "read command-center/p2-wave/probes/ADV-0009/classifier-calibration.txt",
+          "fingerprint": "ec4e96b55a3dbd355fb6538d9d91aed5b30a56db763f2f1227f3f01bed052c43",
+          "method": "file-read",
+          "raw_output": "always-exit-0: good=0 bad=0 -> DECORATIVE (expected DECORATIVE) OK\nalways-exit-1: good=1 bad=1 -> FALSE-POSITIVE-MACHINE (expected FALSE-POSITIVE-MACHINE) OK\nexit-by-input: good=0 bad=1 -> VALID (expected VALID) OK",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "failure": {
+    "blocked_on": "condition 9: two different-vendor reviewers must independently reproduce the D01 counterexample; condition 11: orchestrator must run tools/command-center/unit_manifest.py --write so this receipt row appears in command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "classification": [
+      "single-signal",
+      "green-not-live"
+    ],
+    "reason": "Measurement is complete and no detector verdict is downgraded. Terminal state is BLOCKED rather than SUCCESS because two schema-mandated SUCCESS conditions cannot be satisfied honestly: condition 9 (independent cross-vendor reviewers have not run) and condition 11 (this agent is forbidden to run unit_manifest.py --write against the live UNIT-ARTIFACT-MANIFEST.json). Asserting either would be the fabrication this unit exists to detect."
+  },
+  "manifest_registration": {
+    "entry_id": "ADV-0009",
+    "global_unit_manifest_write_invoked": false,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0009/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-19T11:51:06Z",
+    "route": "STRUCTURAL-CONDITION-11 per-unit manifest"
+  },
+  "min_bytes_threshold": 256,
+  "negative_controls": [
+    {
+      "bad_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nXSUCCESS:cc-validate items=103 open=58 reachable=all",
+      "description": "Mandated meta-control. Entire defaults block deleted from a copy of WORK-UNIT-CATALOG.json. validate.py invoked bare (no --require-complete). Required outcome: silent in both states. Measured: silent in both states.",
+      "fired_on_bad_state": false,
+      "good_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all",
+      "id": "META-CONTROL-VFIELDS-BARE",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1",
+      "description": "Negative control that the harness is not failing everything. V-EMPTY must fire on an empty catalog and stay silent on the good catalog.",
+      "fired_on_bad_state": true,
+      "good_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all",
+      "id": "HARNESS-NOT-ALWAYS-RED-VEMPTY",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "OK [exit 0]",
+      "description": "Synthetic always-exit-0 gate; classifier must label DECORATIVE.",
+      "fired_on_bad_state": false,
+      "good_state_output": "OK [exit 0]",
+      "id": "CLASSIFIER-DECORATIVE",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "BOOM [exit 1]",
+      "description": "Synthetic always-exit-1 gate; classifier must label FALSE-POSITIVE-MACHINE.",
+      "fired_on_bad_state": true,
+      "good_state_output": "BOOM [exit 1]",
+      "id": "CLASSIFIER-FALSE-POSITIVE",
+      "kind": "mutation",
+      "silent_on_good_state": false
+    },
+    {
+      "bad_state_output": "BOOM [exit 1]",
+      "description": "Synthetic exit-by-input gate; classifier must label VALID.",
+      "fired_on_bad_state": true,
+      "good_state_output": "OK [exit 0]",
+      "id": "CLASSIFIER-VALID",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-build",
+    "role": "paired-independent-refuter",
+    "vendor": "grok"
+  },
+  "report": {
+    "classification_counts": {
+      "DECORATIVE": 1,
+      "FALSE-POSITIVE-MACHINE": 0,
+      "INVERTED": 0,
+      "NOT-CHECKED": 0,
+      "VALID": 21
+    },
+    "control_ids": [
+      "META-CONTROL-VFIELDS-BARE",
+      "HARNESS-NOT-ALWAYS-RED-VEMPTY",
+      "CLASSIFIER-DECORATIVE",
+      "CLASSIFIER-FALSE-POSITIVE",
+      "CLASSIFIER-VALID"
+    ],
+    "detectors": [
+      {
+        "classification": "DECORATIVE",
+        "detector": "cc-validate V-FIELDS @ BARE invocation (META-CONTROL)",
+        "fires_on_known_broken": false,
+        "id": "D01",
+        "note": "require_complete defaults False. CI invokes this script bare. The audit MUST classify this pair DECORATIVE.",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nXSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "cc-validate V-FIELDS @ --require-complete (armed form)",
+        "fires_on_known_broken": true,
+        "id": "D02",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json --require-complete",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "V-FIELDS D-01: work-unit field 'assignment' unresolved\n  V-FIELDS D-01: work-unit field 'tool_permissions' unresolved\n  V-FIELDS D-01: work-unit field 'execution_substrate' unresolved\n  V-FIELDS D-01: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS D-01: work-unit field 'output_schema' unresolved\n  V-FIELDS D-01: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS D-01: work-unit field 'tests_required' unresolved\n  V-FIELDS D-01: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS D-01: work-unit field 'retry_policy' unresolved\n  V-FIELDS D-01: work-unit field 'failure_classification' unresolved\n  V-FIELDS D-01: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS D-02: work-unit field 'assignment' unresolved\n  V-FIELDS D-02: work-unit field 'tool_permissions' unresolved\n  V-FIELDS D-02: work-unit field 'execution_substrate' unresolved\n  V-FIELDS D-02: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS D-02: work-unit field 'output_schema' unresolved\n  V-FIELDS D-02: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS D-02: work-unit field 'tests_required' unresolved\n  V-FIELDS D-02: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS D-02: work-unit field 'retry_policy' unresolved\n  V-FIELDS D-02: work-unit field 'failure_classification' unresolved\n  V-FIELDS D-02: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS D-03: work-unit field 'assignment' unresolved\n  V-FIELDS D-03: work-unit field 'tool_permissions' unresolved\n  V-FIELDS D-03: work-unit field 'execution_substrate' unresolved\n  V-FIELDS D-03: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS D-03: work-unit field 'output_schema' unresolved\n  V-FIELDS D-03: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS D-03: work-unit field 'tests_required' unresolved\n  V-FIELDS D-03: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS D-03: work-unit field 'retry_policy' unresolved\n  V-FIELDS D-03: work-unit field 'failure_classification' unresolved\n  V-FIELDS D-03: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS R-A01: work-unit field 'assignment' unresolved\n  V-FIELDS R-A01: work-unit field 'tool_permissions' unresolved\n  V-FIELDS R-A01: work-unit field 'execution_substrate' unresolved\n  V-FIELDS R-A01: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS R-A01: work-unit field 'output_schema' unresolved\n  V-FIELDS R-A01: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS R-A01: work-unit field 'tests_required' unresolved\n  V-FIELDS R-A01: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS R-A01: work-unit field 'retry_policy' unresolved\n  V-FIELDS R-A01: work-unit field 'failure_classification' unresolved\n  V-FIELDS R-A01: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS R-A02: work-unit field 'assignment' unresolved\n  V-FIELDS R-A02: work-unit field 'tool_permissions' unresolved\n  V-FIELDS R-A02: work-unit field 'execution_substrate' unresolved\n  V-FIELDS R-A02: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS R-A02: work-unit field 'output_schema' unresolved\n  V-FIELDS R-A02: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS R-A02: work-unit field 'tests_required' unresolved\n  V-FIELDS R-A02: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS R-A02: work-unit field 'retry_policy' unresolved\n  V-FIELDS R-A02: work-unit field 'failure_classification' unresolved\n  V-FIELDS R-A02: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS R-A03: work-unit field 'assignment' unresolved\n  V-FIELDS R-A03: work-unit field 'tool_permissions' unresolved\n  V-FIELDS R-A03: work-unit field 'execution_substrate' unresolved\n  V-FIELDS R-A03: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS R-A03: work-unit field 'output_schema' unresolved\n  V-FIELDS R-A03: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS R-A03: work-unit field 'tests_required' unresolved\n  V-FIELDS R-A03: work-unit fiel\n... [clipped 65146 chars by ADV-0009 runner] ...\nwork-unit field 'tests_required' unresolved\n  V-FIELDS T-21: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-21: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-21: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-21: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-22: work-unit field 'assignment' unresolved\n  V-FIELDS T-22: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-22: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-22: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-22: work-unit field 'output_schema' unresolved\n  V-FIELDS T-22: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-22: work-unit field 'tests_required' unresolved\n  V-FIELDS T-22: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-22: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-22: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-22: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-23: work-unit field 'assignment' unresolved\n  V-FIELDS T-23: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-23: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-23: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-23: work-unit field 'output_schema' unresolved\n  V-FIELDS T-23: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-23: work-unit field 'tests_required' unresolved\n  V-FIELDS T-23: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-23: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-23: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-23: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-24: work-unit field 'assignment' unresolved\n  V-FIELDS T-24: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-24: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-24: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-24: work-unit field 'output_schema' unresolved\n  V-FIELDS T-24: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-24: work-unit field 'tests_required' unresolved\n  V-FIELDS T-24: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-24: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-24: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-24: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-25: work-unit field 'assignment' unresolved\n  V-FIELDS T-25: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-25: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-25: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-25: work-unit field 'output_schema' unresolved\n  V-FIELDS T-25: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-25: work-unit field 'tests_required' unresolved\n  V-FIELDS T-25: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-25: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-25: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-25: work-unit field 'owner_approval_required' unresolved\n  V-FIELDS T-26: work-unit field 'assignment' unresolved\n  V-FIELDS T-26: work-unit field 'tool_permissions' unresolved\n  V-FIELDS T-26: work-unit field 'execution_substrate' unresolved\n  V-FIELDS T-26: work-unit field 'timeout_seconds' unresolved\n  V-FIELDS T-26: work-unit field 'output_schema' unresolved\n  V-FIELDS T-26: work-unit field 'evidence_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'tests_required' unresolved\n  V-FIELDS T-26: work-unit field 'reviewer_requirement' unresolved\n  V-FIELDS T-26: work-unit field 'retry_policy' unresolved\n  V-FIELDS T-26: work-unit field 'failure_classification' unresolved\n  V-FIELDS T-26: work-unit field 'owner_approval_required' unresolved\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nFAILED:cc-validate violations=1133"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json --require-complete",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "cc-validate V-GRAPH derived-graph parity",
+        "fires_on_known_broken": true,
+        "id": "D03",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=1"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "cc-validate REACH-1 dangling dependency",
+        "fires_on_known_broken": true,
+        "id": "D04",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-dangling-dep.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "REACH-1 R-A01: dependency 'R-99999' does not exist\n  V-GRAPH -: committed DEPENDENCY-GRAPH.json != build_graph(catalog); re-run seed/close\ncc-validate items=103 open=58 closed=45 edges=19 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nFAILED:cc-validate violations=2"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "cc-validate V-EMPTY fail-closed on zero items",
+        "fires_on_known_broken": true,
+        "id": "D05",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-empty.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nXSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "cc render.py --check drift (STATUS.md overwritten)",
+        "fires_on_known_broken": true,
+        "id": "D06",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\render.py --check --root C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\cc_bad --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "STATUS.md differs from its rendering\n  ARTIFACT-MANIFEST.json does not match the files on disk\nFAILED:cc-render drift=2"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\render.py --check --root C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\cc_good --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:cc-render no drift"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "measure-guard suitefloor.py --suite command-center",
+        "fires_on_known_broken": true,
+        "id": "D07",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\sf_bad\\tools\\measure-guard\\suitefloor.py --suite command-center",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\sf_bad",
+          "exit_code": 1,
+          "raw_output": "FAIL command-center: collected NOTHING (floor 55); tail: no tests collected in 0.37s\nFAILED:suite-floor 1 suite(s) below floor"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\measure-guard\\suitefloor.py --suite command-center",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "OK   command-center: collected 67 >= floor 55\nXSUCCESS:suite-floor 1 suite(s) at or above floor"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "measure-guard refcheck.py (15 sources; BAD has one dangling)",
+        "fires_on_known_broken": true,
+        "id": "D08",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\rc_bad\\tools\\measure-guard\\refcheck.py",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\rc_bad",
+          "exit_code": 1,
+          "raw_output": "DANGLING wf/DOES-NOT-EXIST.py  <- wf/main.json (declared as s0)\nFAILED:refcheck 1 of 15 subworkflows[].source reference(s) do not resolve; a committed document depends on a path a fresh clone will not have"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\rc_good\\tools\\measure-guard\\refcheck.py",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\rc_good",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:refcheck 15 subworkflows[].source reference(s) all resolve"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "measure-guard wudeps.py (200 units given a bogus dependency)",
+        "fires_on_known_broken": true,
+        "id": "D09",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\wd_bad\\tools\\measure-guard\\wudeps.py",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\wd_bad",
+          "exit_code": 1,
+          "raw_output": "units=2007  dangling=241  zero-member-bucket-refs=876  cycles=0  self-deps=0\n  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\n  REGRESSED dangling_refs: 241 > baseline 41 (+200)\nFAILED:wudeps 1 metric(s) worse than the recorded baseline"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\measure-guard\\wudeps.py",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "units=2007  dangling=41  zero-member-bucket-refs=876  cycles=0  self-deps=0\n  buckets with zero members: B01, B03, B05, B06, B07, B08, B09, B11, B12, B13\nXSUCCESS:wudeps no work-unit dependency metric regressed against the baseline"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "measure-guard jsonparse.py (900 tracked json; BAD has one extra token)",
+        "fires_on_known_broken": true,
+        "id": "D10",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\jp_bad\\tools\\measure-guard\\jsonparse.py",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\jp_bad",
+          "exit_code": 1,
+          "raw_output": "UNPARSEABLE data/ok0.json\n              Extra data: line 2 column 1 (char 10)\nFAILED:jsonparse 1 of 900 tracked .json files do not parse"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\jp_good\\tools\\measure-guard\\jsonparse.py",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\jp_good",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:jsonparse 900 tracked .json files parse (0 git-crypt encrypted skipped, 0 oversized skipped)"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "platform completion predicate (BAD = declared artifact absent)",
+        "fires_on_known_broken": true,
+        "id": "D11",
+        "note": "GOOD twin is --schema-only on a schema-valid BLOCKED fixture (layer 1 silence). BAD is the full predicate against a missing path.",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --repo-root C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\receipt_root C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\receipt_root\\bad_missing_receipt.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "FAILED:TST-0001 predicate-unsatisfied c1=UNSATISFIED,c2=UNSATISFIED,c3=UNSATISFIED,c5=UNSATISFIED,c6=UNSATISFIED,c7=UNSATISFIED,c8=UNSATISFIED,c9=UNSATISFIED,c11=UNSATISFIED,c12=UNSATISFIED\n  [FAIL]  1. process/task reached a valid terminal state\n           -> state=BLOCKED is terminal but not a completion\n  [FAIL]  2. expected artifact exists\n           -> absent on disk: ['out/NEVER-WRITTEN.json']\n  [FAIL]  3. artifact is non-empty and exceeds a meaningful minimum size\n           -> declared bytes/sha256 disagree with disk: ['out/NEVER-WRITTEN.json: absent']\n  [  ok]  4. artifact parses against its schema\n  [FAIL]  5. required sentinel is present\n           -> sentinel is a FAILED marker\n  [FAIL]  6. required evidence anchors exist\n           -> 1 evidence item(s); two mechanically independent signals required\n  [FAIL]  7. required tests ran and passed\n           -> no tests recorded\n  [FAIL]  8. negative controls or mutations fail as expected\n           -> no negative control; a detector unproven against a known-broken state measures nothing\n  [FAIL]  9. independent reviewer status is PASS\n           -> no reviewer block\n  [  ok] 10. no unresolved P0/P1 defect is attached\n  [FAIL] 11. output was registered in the artifact manifest\n           -> no manifest_registration block\n  [FAIL] 12. downstream consumers can read it\n           -> no downstream consumer probe; condition 12 would be decorative"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --schema-only C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\receipt_root\\good_receipt.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "SCHEMA-VALID:TST-0001 (layer 1 only - this is NOT a completion verdict)"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "platform receipt_schema_gate.py --schema-only (BAD drops sha256 + min_bytes=-5)",
+        "fires_on_known_broken": true,
+        "id": "D12",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --schema-only C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\receipt_root\\bad_schema_receipt.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "FAILED:TST-0001 schema-invalid (2 error(s))\n    - artifacts/0: 'sha256' is a required property\n    - min_bytes_threshold: -5 is less than the minimum of 1"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --schema-only C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\receipt_root\\good_receipt.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "SCHEMA-VALID:TST-0001 (layer 1 only - this is NOT a completion verdict)"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "platform single_reducer_gate.py (BAD defines CONDITIONS/NON_WAIVABLE/evaluate)",
+        "fires_on_known_broken": true,
+        "id": "D13",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\coordination\\single_reducer_gate.py C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\rival",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "FAILED:single-reducer rival.py:1 CONDITIONS - module-level definition of 'CONDITIONS' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer rival.py:2 NON_WAIVABLE - module-level definition of 'NON_WAIVABLE' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer rival.py:3 evaluate - module-level definition of 'evaluate' is the delegate's decision surface; import it from completion_predicate instead of defining it\nFAILED:single-reducer modules=1 violations=3 delegate=completion_predicate"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\coordination\\single_reducer_gate.py C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\coordination",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:single-reducer modules=33 delegate=completion_predicate violations=0"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "tools/command-center/unit_manifest.py derive/check (absent artifact must fail closed)",
+        "fires_on_known_broken": true,
+        "harness_retries": "retry 2: first attempt was a harness defect (wrong invocation or non-good twin)",
+        "id": "D14",
+        "note": "Imported detector functions with explicit root=temp. Live --write was not invoked.",
+        "probe_1_known_broken_fixture": {
+          "command": "python -c unit_manifest.derive(um_bad); unit_manifest.check(um_bad)",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009r2_psquv4i1\\um_bad",
+          "exit_code": 1,
+          "raw_output": "FAILED:unit-manifest receipt command-center/receipts/TST-0001.json names absent artifact does-not-exist.txt\ncheck() exit=1"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "python -c unit_manifest.write(um_good); unit_manifest.check(um_good)",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009r2_psquv4i1\\um_good",
+          "exit_code": 0,
+          "raw_output": "write() exit=0\ncheck() exit=0"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "ruff check (CI gate-lint-format)",
+        "fires_on_known_broken": true,
+        "id": "D15",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\Scripts\\ruff.EXE check .",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\lint_bad",
+          "exit_code": 1,
+          "raw_output": "\u001b[1m\u001b[91m\u001b]8;;https://docs.astral.sh/ruff/rules/unused-import\u001b\\F401\u001b]8;;\u001b\\ \u001b[0m[\u001b[1m\u001b[96m*\u001b[0m] \u001b[1m`os` imported but unused\u001b[0m\n \u001b[1m\u001b[94m-->\u001b[0m m.py:1:8\n  \u001b[1m\u001b[94m|\u001b[0m\n\u001b[1m\u001b[94m1 |\u001b[0m import os\n  \u001b[1m\u001b[94m|\u001b[0m        \u001b[1m\u001b[91m^^\u001b[0m\n\u001b[1m\u001b[94m2 |\u001b[0m import sys\n  \u001b[1m\u001b[94m|\u001b[0m\n\u001b[1m\u001b[96mhelp\u001b[0m: \u001b[1mRemove unused import: `os`\u001b[0m\n\n\u001b[1m\u001b[91m\u001b]8;;https://docs.astral.sh/ruff/rules/unused-import\u001b\\F401\u001b]8;;\u001b\\ \u001b[0m[\u001b[1m\u001b[96m*\u001b[0m] \u001b[1m`sys` imported but unused\u001b[0m\n \u001b[1m\u001b[94m-->\u001b[0m m.py:2:8\n  \u001b[1m\u001b[94m|\u001b[0m\n\u001b[1m\u001b[94m1 |\u001b[0m import os\n\u001b[1m\u001b[94m2 |\u001b[0m import sys\n  \u001b[1m\u001b[94m|\u001b[0m        \u001b[1m\u001b[91m^^^\u001b[0m\n\u001b[1m\u001b[94m3 |\u001b[0m\n\u001b[1m\u001b[94m4 |\u001b[0m def add(a, b):\n  \u001b[1m\u001b[94m|\u001b[0m\n\u001b[1m\u001b[96mhelp\u001b[0m: \u001b[1mRemove unused import: `sys`\u001b[0m\n\n\u001b[1m\u001b[91m\u001b]8;;https://docs.astral.sh/ruff/rules/unused-variable\u001b\\F841\u001b]8;;\u001b\\ \u001b[0m\u001b[1mLocal variable `x` is assigned to but never used\u001b[0m\n \u001b[1m\u001b[94m-->\u001b[0m m.py:5:5\n  \u001b[1m\u001b[94m|\u001b[0m\n\u001b[1m\u001b[94m4 |\u001b[0m def add(a, b):\n\u001b[1m\u001b[94m5 |\u001b[0m     x = 1\n  \u001b[1m\u001b[94m|\u001b[0m     \u001b[1m\u001b[91m^\u001b[0m\n\u001b[1m\u001b[94m6 |\u001b[0m     return a + b\n  \u001b[1m\u001b[94m|\u001b[0m\n\u001b[1m\u001b[96mhelp\u001b[0m: \u001b[1mRemove assignment to unused variable `x`\u001b[0m\n\nFound 3 errors.\n[\u001b[36m*\u001b[0m] 2 fixable with the `--fix` option (1 hidden fix can be enabled with the `--unsafe-fixes` option)."
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\Scripts\\ruff.EXE check .",
+          "cwd": "C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\lint_good",
+          "exit_code": 0,
+          "raw_output": "\u001b[1;32mAll checks passed!\u001b[0m"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "ci/check_skill_vendor_substitution.py (BAD plants current Codex model)",
+        "fires_on_known_broken": true,
+        "id": "D16",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\ci\\check_skill_vendor_substitution.py --root C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\vs_bad\\skills",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "FAILED:skill-vendor-substitution vendor-substitution demo [C:/Users/PREKZU~1/AppData/Local/Temp/adv0009_lcczq3l9/vs_bad/skills] -- demo/SKILL.md:3 contains 'current Codex model'\nscanned 1 files across 1 skills\nFAILED:skill-vendor-substitution violations=1"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\ci\\check_skill_vendor_substitution.py --root C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\vs_good\\skills",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:skill-vendor-substitution scanned 1 files across 1 skills"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "ci/check_skill_vendor_substitution.py --self-test",
+        "fires_on_known_broken": true,
+        "id": "D16b",
+        "note": "Gate-owned both-states self-test. Exit 0 means red-on-bad and green-on-good.",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\ci\\check_skill_vendor_substitution.py --self-test",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:skill-vendor-substitution-self-test red on bad, green on clean, closed on empty, red on exemption growth"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\ci\\check_skill_vendor_substitution.py --self-test",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:skill-vendor-substitution-self-test red on bad, green on clean, closed on empty, red on exemption growth\n[self-test encodes both states in one invocation]"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "ci/gen_skill_index.py --check --fail-on-drift",
+        "fires_on_known_broken": true,
+        "harness_retries": "retry 2: first attempt was a harness defect (wrong invocation or non-good twin)",
+        "id": "D17",
+        "note": "GOOD is a constructed tree with 010-editor + matching marketplace, not the live dirty tree.",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\ci\\gen_skill_index.py --repo C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009r2_psquv4i1\\si_empty --check --fail-on-drift",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 2,
+          "raw_output": "FAILED: enumerator did not find known-present '010-editor' under .agents/skills \u2014 wrong --repo, moved control, or broken walk. Refusing to report drift from an unvalidated detector."
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\ci\\gen_skill_index.py --repo C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009r2_psquv4i1\\si_good --check --fail-on-drift",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "canonical (.agents/skills): 1\n  projection (skills): 0\n  projection (skills-claude-only): 0\n  on-disk union            : 1\n  declared in marketplace  : 1\n  dangling (declared, absent): 0 []\n  undeclared (on disk)     : 0\n  canonical NOT declared   : 0\n  INDEX DRIFT: no"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "unit_manifest.py --self-test (producer red-proof)",
+        "fires_on_known_broken": true,
+        "id": "D14b",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\unit_manifest.py --self-test",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:unit-manifest wrote 1 entries to command-center/UNIT-ARTIFACT-MANIFEST.json\nFAILED:unit-manifest drift in command-center/UNIT-ARTIFACT-MANIFEST.json\nXSUCCESS:unit-manifest wrote 1 entries to command-center/UNIT-ARTIFACT-MANIFEST.json\nXSUCCESS:unit-manifest command-center/UNIT-ARTIFACT-MANIFEST.json matches derived receipt corpus\nFAILED:unit-manifest discovered ZERO receipts (empty walk)\nFAILED:unit-manifest receipt command-center/receipts/TST-MISSING.json names absent artifact does-not-exist.txt\nFAILED:unit-manifest receipt command-center/receipts/TST-MISSING.json names absent artifact does-not-exist.txt\nXSUCCESS:unit-manifest-self-test red on bad, green on clean, closed on empty, closed on missing"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\unit_manifest.py --self-test",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "XSUCCESS:unit-manifest wrote 1 entries to command-center/UNIT-ARTIFACT-MANIFEST.json\nFAILED:unit-manifest drift in command-center/UNIT-ARTIFACT-MANIFEST.json\nXSUCCESS:unit-manifest wrote 1 entries to command-center/UNIT-ARTIFACT-MANIFEST.json\nXSUCCESS:unit-manifest command-center/UNIT-ARTIFACT-MANIFEST.json matches derived receipt corpus\nFAILED:unit-manifest discovered ZERO receipts (empty walk)\nFAILED:unit-manifest receipt command-center/receipts/TST-MISSING.json names absent artifact does-not-exist.txt\nFAILED:unit-manifest receipt command-center/receipts/TST-MISSING.json names absent artifact does-not-exist.txt\nXSUCCESS:unit-manifest-self-test red on bad, green on clean, closed on empty, closed on missing\n[self-test encodes both states in one invocation]"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "hooks/no-force-push/hook.py (PreToolUse force-push tripwire)",
+        "fires_on_known_broken": true,
+        "id": "D18",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\hooks\\no-force-push\\hook.py",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 2,
+          "raw_output": "Tripwire: refusing git push --force. Force-push can destroy remote history; AGENTS.md section 9 requires explicit user approval. If approved, re-run with FORGE_NO_FORCE_PUSH_OFF=1."
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\hooks\\no-force-push\\hook.py",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": ""
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "measure-guard launchpath.py (monitor liveness; empty git tree is known-broken)",
+        "fires_on_known_broken": true,
+        "id": "D19",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\measure-guard\\launchpath.py --repo C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\mon_empty",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "FAILED:launchpath git ls-files listed NOTHING in C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\mon_empty; discovery is broken, not the tree"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\measure-guard\\launchpath.py --repo C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "LAUNCHED .agents/skills/monitor-launcher/monitors.toml:[codexmon] -> .agents/skills/workflow-monitor/codex_monitor.py (72 files, exit 0, marker present)\n  LAUNCHED .agents/skills/monitor-launcher/monitors.toml:[cockpit] -> .agents/skills/workflow-monitor/unified_board.py (72 files, exit 0, marker present)\n  LAUNCHED .agents/skills/monitor-launcher/monitors.toml:[agentmon] -> .agents/skills/run-agent-monitor/agentmon.py (78 files, import-render marker present)\n  LAUNCHED .agents/skills/monitor-launcher/monitors.toml:[csmon] -> .agents/skills/claude-science-local/cs_monitor.py (2 files, import-render marker present)\n  LAUNCHED skills/monitor-launcher/monitors.toml:[codexmon] -> skills/workflow-monitor/codex_monitor.py (72 files, exit 0, marker present)\n  LAUNCHED skills/monitor-launcher/monitors.toml:[cockpit] -> skills/workflow-monitor/unified_board.py (72 files, exit 0, marker present)\n  LAUNCHED skills/monitor-launcher/monitors.toml:[agentmon] -> skills/run-agent-monitor/agentmon.py (78 files, import-render marker present)\n  LAUNCHED skills/monitor-launcher/monitors.toml:[csmon] -> skills/claude-science-local/cs_monitor.py (2 files, import-render marker present)\n  NOT-CHECKED [crcp]: committed entry runpys an estate-absolute path at import time; this gate must not import or exec it\n  NOT-CHECKED [wfmon]: registered entry ignores argv and enters a Textual poll loop; no --once; import requires textual (absent from the stdlib-only CI step); not folded into PASS\nXSUCCESS:launchpath 8 launch(es) from committed blobs across 2 registry mirror(s); 2 NOT-CHECKED (not PASS)"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "measure-guard blobread.py (missing path vs tracked validate.py --compare)",
+        "fires_on_known_broken": true,
+        "harness_retries": "retry 2: first attempt was a harness defect (wrong invocation or non-good twin)",
+        "id": "D20",
+        "note": "Retry 2: invoke the real CLI (path + optional --compare). --repo is not a flag.",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\measure-guard\\blobread.py path/that/is/not/tracked-by-git.txt",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "FAILED:blobread 'path/that/is/not/tracked-by-git.txt' is not readable at 'HEAD': fatal: path 'path/that/is/not/tracked-by-git.txt' does not exist in 'HEAD'"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\measure-guard\\blobread.py --compare tools/command-center/validate.py",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "{\n  \"path\": \"tools/command-center/validate.py\",\n  \"rev\": \"HEAD\",\n  \"routes\": {\n    \"git_cat_file\": {\n      \"bytes\": 15876,\n      \"crlf\": 0,\n      \"sha256_12\": \"d3b8f5751819\"\n    },\n    \"git_show\": {\n      \"bytes\": 15876,\n      \"crlf\": 0,\n      \"sha256_12\": \"d3b8f5751819\"\n    },\n    \"working_tree\": {\n      \"bytes\": 16272,\n      \"crlf\": 396,\n      \"sha256_12\": \"b6c464e9caa9\"\n    },\n    \"git_archive\": {\n      \"bytes\": 16272,\n      \"crlf\": 396,\n      \"sha256_12\": \"b6c464e9caa9\"\n    }\n  },\n  \"control_identical_after_lf_normalisation\": true,\n  \"lf_normalised_digests\": {\n    \"git_cat_file\": \"d3b8f5751819\",\n    \"git_show\": \"d3b8f5751819\",\n    \"working_tree\": \"d3b8f5751819\",\n    \"git_archive\": \"d3b8f5751819\"\n  },\n  \"verdict\": \"the routes differ ONLY in line endings\"\n}\nXSUCCESS:blobread three-route report for tools/command-center/validate.py"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      }
+    ],
+    "harness_retries_applied": [
+      "D14: live --check was a cwd-vs-__file__ miss; retry imported derive/check with explicit temp roots.",
+      "D17: live tree is INDEX DRIFT=yes; retry used a 1-skill constructed good tree.",
+      "D20: --repo is not a blobread flag; retry used path + --compare."
+    ],
+    "headline": "22 locally executable detectors, 22 both-states pairs. 21 VALID (fires on broken, silent on good). EXACTLY ONE DECORATIVE: validate.py V-FIELDS under the bare invocation - and that one is the unit mandated meta-control, so the audit passed its calibration case rather than failing it. Zero FALSE-POSITIVE-MACHINEs after harness retries on D14/D17/D20.",
+    "kind": "refutation-record",
+    "meta_control_outcome": "PASS - D01 classified DECORATIVE (silent-in-both), which is what the unit requires. Had this audit classified it VALID, the audit itself would be broken and every other verdict here would be void.",
+    "method": "For each detector: build a known-BROKEN fixture carrying the defect the detector claims to catch, and a known-GOOD twin; run the detector actual invocation against both; record command, cwd, exit, verbatim output. VALID requires (fires, silent). Mutations landed in %TEMP%.",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0009/pairs.json",
+        "measured": 22,
+        "method": "test-run",
+        "name": "detectors_probed"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0009/pairs.json",
+        "measured": 21,
+        "method": "test-run",
+        "name": "classified_VALID"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0009/pairs.json#D01",
+        "measured": 1,
+        "method": "test-run",
+        "name": "classified_DECORATIVE_silent_in_both"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0009/reprobe-d14-d17-d20.json",
+        "measured": 0,
+        "method": "test-run",
+        "name": "classified_FALSE_POSITIVE_MACHINE"
+      },
+      {
+        "anchor": "tools/command-center/validate.py:303",
+        "measured": true,
+        "method": "test-run",
+        "name": "meta_control_passed"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/ADV-0009/classifier-calibration.txt",
+        "measured": true,
+        "method": "test-run",
+        "name": "classifier_calibration_3of3"
+      }
+    ],
+    "question": "For every detector, gate, validator and probe in the program, does it FIRE on a known-broken input and stay SILENT on a known-good input - or is it silent in both states and therefore measuring nothing?",
+    "scope": "Locally executable detectors named by the unit inputs: validate.py checks, measure-guard gates, receipt_schema_gate, single_reducer_gate, unit_manifest, render --check, skill-index, vendor-substitution, ruff, launchpath, blobread, and the no-force-push hook. Network/CI-runner gates are residual NOT-CHECKED, not folded into a pass."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Coverage is 22 both-states pairs over locally executable detectors. This is NOT every detector in the program. Unprobed: CI gate-types (basedpyright), gate-sast (opengrep), gate-secrets (gitleaks), gate-deps (osv-scanner), per-package coverage gates, REACH-2/3/4/5/6 as standalone pairs, and hook guards other than no-force-push.",
+      "settling_experiment": "For each unprobed gate, build a fixture carrying the defect the gate names and its clean twin, then run the gate exact CI command against both.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "The live gen_skill_index.py --check --fail-on-drift against the worktree currently reports INDEX DRIFT: yes (undeclared_on_disk=1). That live-red was NOT used as the known-good twin (harness retry 2 used a constructed 1-skill tree). The live drift is an incidental observation, not a both-states classification of the detector.",
+      "settling_experiment": "Identify the one undeclared on-disk skill and either declare it in .claude-plugin/marketplace.json or remove it, then re-run --check.",
+      "verdict": "PARTIAL"
+    },
+    {
+      "claim": "unit_manifest.py live --check is drift-red because UNIT-ARTIFACT-MANIFEST.json is the 3-entry _adv0041_register.py document, not the derive() corpus. This unit did not run --write against the live tree.",
+      "settling_experiment": "Orchestrator runs python tools/command-center/unit_manifest.py --write after this receipt exists, then --check, then sets manifest_registration.registered=true.",
+      "verdict": "BLOCKED"
+    }
+  ],
+  "retry": {
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "harness-wrong-invocation-or-live-red-as-good",
+        "outcome": "FAILED"
+      },
+      {
+        "attempt": 2,
+        "error_fingerprint": "none",
+        "outcome": "SUCCESS"
+      }
+    ],
+    "count": 2,
+    "pivot_alternatives": [
+      "import detector functions with an explicit temp root instead of relying on cwd",
+      "construct a known-good fixture instead of treating a dirty live tree as good"
+    ],
+    "policy": "retry ONLY with a mechanically different probe; re-running the identical probe is banned. Max 3 attempts, each with a distinct instrument."
+  },
+  "reviewer": {
+    "independent": false,
+    "notes": "Catalog requires two reviewers from DIFFERENT vendors to each independently reproduce the D01 counterexample. Neither has run. The D01 pair is fully reproducible from the recorded commands.",
+    "reviewer_id": "NOT-ASSIGNED",
+    "verdict": "NOT-REVIEWED"
+  },
+  "schema_version": 1,
+  "spec_anchor": "_USER-PROMPTS.md:10658, 11324",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "assertions": 1,
+      "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+      "id": "META-CONTROL",
+      "name": "the audit must classify the known-disarmed detector (validate.py V-FIELDS, require_complete defaulting to False, invoked bare) as silent-in-both",
+      "output_tail": "D01 classified as DECORATIVE; good exit=0, bad exit=0. required=DECORATIVE.",
+      "result": "PASS"
+    },
+    {
+      "assertions": 3,
+      "command": "classifier_calibration() in run_both_states.py",
+      "id": "CLASSIFIER-CALIBRATION",
+      "name": "3-way calibration of the audit own classifier",
+      "output_tail": "always-exit-0: good=0 bad=0 -> DECORATIVE (expected DECORATIVE) OK\nalways-exit-1: good=1 bad=1 -> FALSE-POSITIVE-MACHINE (expected FALSE-POSITIVE-MACHINE) OK\nexit-by-input: good=0 bad=1 -> VALID (expected VALID) OK",
+      "result": "PASS"
+    },
+    {
+      "assertions": 2,
+      "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-empty.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+      "id": "HARNESS-NOT-ALWAYS-RED",
+      "name": "negative control: V-EMPTY fires on empty catalog and is silent on the live catalog",
+      "output_tail": "V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1",
+      "result": "PASS"
+    },
+    {
+      "assertions": 1,
+      "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --schema-only C:\\Users\\Prekzursil\\source\\ast-integrate\\command-center\\adversarial\\ADV-0009-detector-both-states-control-audit.json",
+      "id": "SCHEMA-GATE",
+      "name": "output_path parses against refutation-record / receipt_core",
+      "output_tail": "SCHEMA-VALID:ADV-0009 (layer 1 only - this is NOT a completion verdict)",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-16T14:25:29Z",
+    "started_at": "2026-08-16T14:19:42Z"
+  },
+  "unit_id": "ADV-0002-sentinel-missing-003"
+}

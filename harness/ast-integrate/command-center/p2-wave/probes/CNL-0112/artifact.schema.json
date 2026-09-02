@@ -1,0 +1,207 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/schema/council-preset.schema.json",
+  "title": "Council preset design artifact (typed delta over CouncilSpec, not a fork)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "preset",
+    "nearest_sibling",
+    "answers",
+    "instantiation",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "library",
+    "artifacts"
+  ],
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "pattern": "^CNL-[0-9]{4}$"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": {
+      "type": "string",
+      "minLength": 8
+    },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "preset": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "kind",
+        "relation",
+        "base_spec",
+        "extends_c_ids",
+        "roles",
+        "voting",
+        "stopping",
+        "protocol_schedule",
+        "editable_dials",
+        "non_editable_dials",
+        "default_binding"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 8 },
+        "kind": { "type": "string", "const": "typed_delta" },
+        "relation": { "type": "string", "enum": ["delta", "extends"] },
+        "base_spec": {
+          "type": "object",
+          "required": ["id", "version"],
+          "properties": {
+            "id": { "type": "string", "minLength": 4 },
+            "version": { "type": "string", "minLength": 1 }
+          }
+        },
+        "extends_c_ids": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "roles": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["id", "obligation"],
+            "properties": {
+              "id": { "type": "string", "minLength": 2 },
+              "obligation": { "type": "string", "minLength": 8 }
+            }
+          }
+        },
+        "voting": {
+          "type": "object",
+          "required": ["method", "quorum"],
+          "properties": {
+            "method": { "type": "string", "minLength": 4 },
+            "quorum": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "stopping": {
+          "type": "object",
+          "required": ["expression", "max_rounds"],
+          "properties": {
+            "expression": { "type": "string", "minLength": 8 },
+            "max_rounds": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "protocol_schedule": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 2 }
+        },
+        "editable_dials": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "non_editable_dials": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 3 }
+        },
+        "default_binding": { "type": "string", "minLength": 4 }
+      }
+    },
+    "nearest_sibling": {
+      "type": "object",
+      "required": ["id", "named", "source", "library_bytes_read"],
+      "properties": {
+        "id": { "type": "string", "minLength": 8 },
+        "named": { "type": "boolean", "const": true },
+        "source": { "type": "string", "minLength": 8 },
+        "library_bytes_read": { "type": "boolean" }
+      }
+    },
+    "answers": {
+      "type": "object",
+      "minProperties": 3
+    },
+    "instantiation": {
+      "type": "object",
+      "required": ["task_id", "roster_ids", "protocol_schedule", "voting", "stopping"],
+      "properties": {
+        "task_id": { "type": "string", "minLength": 4 },
+        "roster_ids": {
+          "type": "array",
+          "minItems": 3,
+          "items": { "type": "string" }
+        },
+        "protocol_schedule": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string" }
+        },
+        "voting": { "type": "object" },
+        "stopping": { "type": "object" }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "rejects", "on_that_state", "verbatim"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "rejects": { "type": "string", "minLength": 8 },
+          "on_that_state": { "type": "string", "minLength": 8 },
+          "verbatim": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "library": {
+      "type": "object",
+      "required": ["on_this_worktree", "presets_compared_from_disk"],
+      "properties": {
+        "on_this_worktree": { "type": "boolean" },
+        "presets_compared_from_disk": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "role": { "type": "string" }
+        }
+      }
+    }
+  }
+}

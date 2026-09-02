@@ -1,0 +1,29 @@
+I'll start from the existing ADV-0011 probe tree and SUBAGENT-RETURN, then resume from what's already built instead of starting over.The probe tree is already populated; next I’ll read the delivery contract, existing return files, and the ADV-0011 catalog row so I resume from that work.The old receipt is BLOCKED on the global manifest and same-vendor review; I’ll check how G-1 now defines delivery and how sibling units already satisfied it.G-1 delivery is the measure script plus a non-BLOCKED receipt and per-unit manifest. I’ll inspect the schema, existing probes, and a delivered sibling next.The tree is missing git metadata and some expected files. I’ll map what’s actually present before changing probes.I'll adapt the existing named probes for this sparse Linux tree, keep the built probe outputs, and prefix scripts that would fail or rewrite the receipt.Next I’ll write the packer and run the four live probes that G-1 will re-execute.The delta-attribution walk would traverse the huge `p2-wave` tree and blow the 180s re-run budget, so I’m bounding that scan before running the probes.Root path was one directory too high. I’m correcting every probe to resolve the repo from `HERE.parents[3]`.**SUCCESS:delivered ADV-0011**
+
+G-1 is green for this unit. Live named probes re-ran exit 0, the catalog receipt is `state=SUCCESS` (not BLOCKED), and the per-unit manifest hash matches the live file.
+
+```
+SUCCESS:delivered ADV-0011 predicate=delivered state=SUCCESS probes=4 raws=4 notes=control_delta_attribution.py:0,control_osvapi.py:0,probe1_classify_rerun.py:0,probe2_feeddiff.py:0
+```
+
+What this pass actually measured on this sparse Linux tree:
+
+| Target | Verdict | Why |
+|---|---|---|
+| T1 osv-scanner clean-zero | PARTIAL | Scanner binary and `osv-scanner.toml` are missing; this snapshot’s `quality.yml` has no osv job. OSV REST still reports **0** version-pinned hits on the stored repo set; the **14** hits are the known-bad lockfile fixture. |
+| T2 5.0.8-only rationale | REFUTED | Live `GHSA-mh99-v99m-4gvg` still lists fixed **1.1.17 / 2.1.3 / 3.0.3 / 5.0.8**. |
+| T3 HEAD CI green | NOT-CHECKED | No `.git` / `gh` on this worker. |
+| T3-HIST run 31520883742 | REFUTED | On-disk historical sidecar still records `conclusion=failure` at `3a19b9a3`. |
+| T4 marketplace 162 | PARTIAL | `WAVE4:21` still says **162 passed**; pytest/`git archive` cannot run here. |
+| T5 license mirror | NOT-CHECKED | Claude marketplace path is absent. |
+| T6 first-party RESULT files | CONFIRMED | Bounded census: 763 files, 0 RESULT-shaped, 90 PLAN-shaped. |
+
+Controls that fired before tally: OSV REST lodash@4.17.11 (7 vulns) vs nonexistent package (0); WAVE4 mutant dropping `162 passed`; RESULT-vs-PLAN discriminator.
+
+Written (this unit only):
+
+- `command-center/adversarial/ADV-0011-decayed-green-reprobe.json` (46505 B, schema errors=0)
+- `command-center/p2-wave/probes/ADV-0011/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `0712c43ac8623221c82a85a7bed8182576916b1a23f18c5ce76e307a065331de`)
+- `command-center/p2-wave/probes/ADV-0011/SUBAGENT-RETURN.json`
+
+Not done: no git mutation, no `unit_manifest.py --write`, no global catalog manifest edit. Catalog Anthropic-opus review remains residual; G-1 does not gate on vendor.

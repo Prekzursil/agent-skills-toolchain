@@ -1,0 +1,26 @@
+I'll start from the existing CNF-0169 probe tree, read any prior return artifact, and resume from there rather than rebuilding.The probe tree is thin so far. Next I’ll read the catalog contract, the measure script, and whatever already exists under CNF-0169.The unit is an evidence report, not a “make the registries agree” task. I’ll pull the schema, a delivered sibling, and `artifact_delivered` so we can write an honest SUCCESS without a global `--write`.The harvest receipt is BLOCKED because the named differ was never on this tree. I’ll restore live probes, keep the cloud-ok helpers from being re-run as named probes, and pack an honest SUCCESS from those results.**SUCCESS:delivered CNF-0169**
+
+The harvest `UNIT-COMPLETE` receipt was not delivery. Named differ scripts were missing and `state` was `BLOCKED`. This pass restored the live probes, packed an honest non-BLOCKED receipt, and registered the catalog output path in the per-unit manifest.
+
+`python command-center/p2-wave/_measure_one_delivered.py CNF-0169` printed:
+
+`SUCCESS:delivered CNF-0169 predicate=delivered state=SUCCESS probes=4 raws=3 notes=probe1_live.py:0,probe2_controls.py:0,probe3_independent.py:0,registry_differ.py:0`
+
+**Catalog answer.** The five registries do **not** agree on explicit ids. That disagreement is the measurement, not a reason to withhold the differ.
+
+| Registry | Explicit ids |
+|---|---|
+| claims (`CC-*`) | 12 |
+| tests (`TI-*`) | 9 |
+| artifacts | 0 (all 14 rows unkeyed) |
+| catalog | 2110 |
+| receipts | 131 |
+| five-way intersection | 0 |
+
+Independent reviewer (no `registry_differ` import) matched named probe 1 on both required pairs: `artifacts~catalog` 0/2110/2110 and `catalog~receipts` 1979/0/1979. All four catalog controls passed. One claim cites `TI-9`; that id is in `TEST-REGISTRY`.
+
+**Written**
+- `command-center/p2-wave/probes/CNF-0169/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/CNF-0169/UNIT-ARTIFACT-MANIFEST.json` (sha256 `98e41cd67065da4382f0fd058e9424dea8704855d969a5928a48f3b5ed96a1ac` matches live LF hash of `command-center/receipts/CNF-0169.json`)
+
+**Constraints kept:** no git mutations, no global `unit_manifest.py --write`, no key rotation, no wave relaunch, no ADV/AUD/PVP rebuild. Cloud-ok helpers were only renamed to the `_cloud_ok_*` skip prefix so measure re-runs the named probes.

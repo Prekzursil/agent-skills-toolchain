@@ -1,0 +1,169 @@
+# 2026-03-11 VS Code extension inventory
+
+Generated from `code --list-extensions --show-versions` plus workstation-specific keep/optional/review heuristics. This is an audit-and-signoff inventory; it is not an uninstall script.
+
+- Total installed extensions: **145**
+- Classified keep: **28**
+- Classified optional: **94**
+- Candidate-remove: **23**
+- Keep means actively useful for the current Windows-first Codex / MCP workflow.
+- Candidate-remove means overlap, likely noise, or low value pending owner signoff.
+- Optional means domain-specific or preference-driven.
+
+## Highest-signal cleanup targets
+- Keep `github.vscode-github-actions`; review-remove `me-dutour-mathieu.vscode-github-actions`.
+- Review-remove extra AI assistants: `google.geminicodeassist`, `rainlei.superpower-copilot`.
+- Review-remove remote repo browsing overlap: `github.remotehub`, `ms-vscode.remote-repositories`.
+- Review-remove `wallabyjs.dingo-vscode` and `firefox-devtools.vscode-firefox-debug` if not actively used.
+- Keep one icon theme only: `pkief.material-icon-theme` or `vscode-icons-team.vscode-icons`.
+
+## Keep
+- `alefragnani.project-manager@13.0.1`
+- `charliermarsh.ruff@2026.36.0`
+- `christian-kohler.path-intellisense@2.10.0`
+- `codacy-app.codacy@1.11.16`
+- `codecov.codecov@0.1.1`
+- `davidanson.vscode-markdownlint@0.61.1`
+- `dbaeumer.vscode-eslint@3.0.24`
+- `digitarald.agent-memory@0.1.66` — keep: useful memory surface for current workflow
+- `docker.docker@0.18.0` — keep: pairs with Docker-backed MCP workflow
+- `eamodio.gitlens@17.11.0`
+- `editorconfig.editorconfig@0.18.1`
+- `figma.figma-vscode-extension@0.4.4` — keep if Figma implementation remains active
+- `github.copilot@1.388.0`
+- `github.copilot-chat@0.35.3`
+- `github.vscode-github-actions@0.31.0` — keep as the preferred GitHub Actions extension
+- `github.vscode-pull-request-github@0.126.0`
+- `ms-azuretools.vscode-azure-mcp-server@1.0.2`
+- `ms-azuretools.vscode-containers@2.4.1`
+- `ms-dotnettools.csdevkit@2.10.3`
+- `ms-dotnettools.csharp@2.120.3`
+- `ms-dotnettools.vscode-dotnet-runtime@3.0.0`
+- `ms-edgedevtools.vscode-edge-devtools@2.1.10` — keep: browser diagnostics alongside Chrome DevTools MCP
+- `ms-ossdata.vscode-pgsql@1.18.0`
+- `ms-python.python@2026.2.0`
+- `ms-python.vscode-pylance@2026.1.1`
+- `ms-vscode-remote.remote-containers@0.447.0`
+- `ms-vscode-remote.remote-ssh@0.122.0`
+- `ms-vscode-remote.remote-ssh-edit@0.87.0`
+- `ms-vscode-remote.remote-wsl@0.104.3`
+- `ms-vscode.cmake-tools@1.22.28`
+- `ms-vscode.cpptools@1.31.1`
+- `ms-vscode.makefile-tools@0.12.17`
+- `ms-vscode.powershell@2025.4.0`
+- `ms-vscode.remote-explorer@0.5.0`
+- `openai.chatgpt@26.5309.21912` — keep: primary Codex/ChatGPT integration surface
+- `redhat.vscode-yaml@1.21.0`
+- `semgrep.semgrep@1.16.0` — keep, but repair: CLI now installed locally and settings were tuned quieter
+- `sonarsource.sonarlint-vscode@4.44.0`
+- `teamsdevapp.vscode-ai-foundry@0.16.1`
+- `the0807.uv-toolkit@0.1.8`
+
+## Optional
+- `1tontech.angular-material@0.13.0`
+- `aaron-bond.better-comments@3.0.2`
+- `amlovey.amlovey-omnishader-vsc@1.1.5`
+- `amlovey.shaderlabvscodefree@2.0.0`
+- `analysis-services.powerbi-modeling-mcp@0.4.0`
+- `analysis-services.tmdl@1.6.3`
+- `bradlc.vscode-tailwindcss@0.14.29`
+- `christian-kohler.npm-intellisense@1.4.5`
+- `d-biehl.robotcode@2.2.0`
+- `dart-code.dart-code@3.130.1`
+- `dbcode.dbcode@1.28.15` — optional: overlaps PostgreSQL and DB viewer tooling
+- `devprod.vulnerability-extension@1.2026.304002`
+- `donjayamanne.githistory@0.6.20`
+- `formulahendry.auto-close-tag@0.5.15`
+- `formulahendry.auto-rename-tag@0.1.10`
+- `gerhardbrueckl.fabricstudio@2.18.1`
+- `gerhardbrueckl.onelake-vscode@0.2.1`
+- `github.codespaces@1.18.5`
+- `github.github-vscode-theme@6.3.5`
+- `golang.go@0.52.2`
+- `googlecloudtools.cloudcode@2.37.0`
+- `graphql.vscode-graphql-syntax@1.3.8`
+- `hediet.vscode-drawio@1.9.0`
+- `jasonnicolini.powerbi-translation-workspace@1.3.0`
+- `johnpapa.angular2@18.0.2`
+- `johnpapa.vscode-peacock@4.2.2`
+- `johnpapa.winteriscoming@1.4.4`
+- `k--kato.intellij-idea-keybindings@1.7.7`
+- `keploy.keployio@2.1.7`
+- `mathiasfrohlich.kotlin@1.7.1`
+- `maziac.binary-file-viewer@1.12.1`
+- `mhutchie.git-graph@1.30.0`
+- `midudev.better-svg@0.4.4`
+- `mikestead.dotenv@1.0.1`
+- `ms-azuretools.azure-dev@0.10.0`
+- `ms-azuretools.vscode-azure-github-copilot@1.0.176`
+- `ms-azuretools.vscode-azureappservice@0.26.4`
+- `ms-azuretools.vscode-azurecontainerapps@0.11.0`
+- `ms-azuretools.vscode-azurefunctions@1.20.3`
+- `ms-azuretools.vscode-azureresourcegroups@0.12.2`
+- `ms-azuretools.vscode-azurestaticwebapps@0.13.2`
+- `ms-azuretools.vscode-azurestorage@0.17.1`
+- `ms-azuretools.vscode-azurevirtualmachines@0.6.10`
+- `ms-azuretools.vscode-cosmosdb@0.30.2`
+- `ms-kubernetes-tools.vscode-kubernetes-tools@1.3.29`
+- `ms-python.debugpy@2025.18.0`
+- `ms-python.mypy-type-checker@2025.2.0`
+- `ms-python.pylint@2025.2.0`
+- `ms-toolsai.datawrangler@1.24.0`
+- `ms-toolsai.jupyter@2025.9.1`
+- `ms-toolsai.jupyter-keymap@1.1.2`
+- `ms-toolsai.jupyter-renderers@1.3.0`
+- `ms-toolsai.vscode-jupyter-cell-tags@0.1.9`
+- `ms-toolsai.vscode-jupyter-slideshow@0.1.6`
+- `ms-vscode.azure-repos@0.40.0`
+- `ms-vscode.cpp-devtools@0.3.6`
+- `ms-vscode.cpptools-themes@2.0.0`
+- `ms-vscode.notepadplusplus-keybindings@1.0.7`
+- `ms-vscode.remote-server@1.5.3`
+- `ms-windows-ai-studio.windows-ai-studio@0.30.1`
+- `naumovs.color-highlight@2.8.0`
+- `pkief.material-icon-theme@5.32.0` — optional: keep one icon theme only
+- `qezhu.gitlink@1.2.6`
+- `quantum.qsharp-lang-vscode@1.26.1`
+- `randomfractalsinc.vscode-data-table@1.14.0`
+- `redhat.java@1.53.0`
+- `redhat.vscode-xml@0.29.0`
+- `segerdekort.angular-cli@0.0.19`
+- `shardulm94.trailing-spaces@0.4.1`
+- `slevesque.shader@1.1.5`
+- `swmansion.react-native-ide@1.3.0`
+- `tomoki1207.pdf@1.2.2`
+- `vadimcn.vscode-lldb@1.12.1`
+- `vscjava.vscode-gradle@3.17.2`
+- `vscjava.vscode-java-debug@0.58.5`
+- `vscjava.vscode-java-dependency@0.27.0`
+- `vscjava.vscode-java-test@0.44.0`
+- `vscjava.vscode-maven@0.45.1`
+- `vue.volar@3.2.5`
+- `wholroyd.jinja@0.0.8`
+- `wix.vscode-import-cost@3.3.0`
+- `wmaurer.change-case@1.0.0`
+
+## Candidate-remove
+- `applitools.mcp-vscode-extension@0.1.0`
+- `cpulvermacher.lgtm@1.2.2`
+- `firefox-devtools.vscode-firefox-debug@2.15.0`
+- `gerhardbrueckl.powerbi-vscode-extensionpack@0.4.0`
+- `github.remotehub@0.64.0` — review: remote repo browsing overlap with remote-repositories
+- `google.geminicodeassist@2.74.0` — review: extra AI assistant and likely UI/process noise source
+- `jorgelbg.vscode-seo-rich-snippets@1.0.0`
+- `kevinrose.vsc-python-indent@1.21.0`
+- `me-dutour-mathieu.vscode-github-actions@3.0.1` — review: duplicates official GitHub Actions support
+- `mjstudio.db-viewer@1.0.3` — review: lowest-value DB overlap candidate
+- `ms-vscode-remote.vscode-remote-extensionpack@0.26.0`
+- `ms-vscode.cpptools-extension-pack@1.5.1`
+- `ms-vscode.live-server@0.5.2026012801`
+- `ms-vscode.remote-repositories@0.42.0` — review: remote repo browsing overlap with remotehub
+- `ms-vscode.vscode-github-issue-notebooks@0.0.134`
+- `ms-vscode.vscode-node-azure-pack@1.8.0`
+- `ms-vscode.vscode-websearchforcopilot@0.1.4`
+- `rainlei.superpower-copilot@3.0.0` — review: overlaps Copilot and OpenAI chat surfaces
+- `sqrtt.prophet@1.4.76`
+- `vscjava.vscode-java-pack@0.30.5`
+- `vscode-icons-team.vscode-icons@12.17.0` — review: duplicate icon theme with material-icon-theme
+- `wallabyjs.dingo-vscode@1.0.13` — review: remove if Wallaby is not part of active workflow
+- `zitup.classnametocss@0.0.7`

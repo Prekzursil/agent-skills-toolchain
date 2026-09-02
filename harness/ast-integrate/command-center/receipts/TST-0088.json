@@ -1,0 +1,268 @@
+{
+ "adv_rebuild_circle": false,
+ "answer": "YES: a live SIGKILL in the streaming hold window leaves a parseable, plausible file (4244 bytes, sha256=9a0c29f29a38\u2026) that fan-in classifies FAILED at condition 5 (required sentinel is present), never SUCCESS. An absent path fails at condition 2 (TST-0004), not 5. Atomic tmp+rename publish leaves the destination invisible under the same SIGKILL. SUCCESS:TST-0088",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0088.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/fault-injection-receipt.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/fixtures/truncated-partial.json",
+   "role": "fixture"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/fanin.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/writers.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/kill_harness.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/scenario.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/probe1_truncated_failed.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/probe2_atomic_invisible.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0088/victim.schema.json",
+   "role": "supporting"
+  }
+ ],
+ "atomic_fix": {
+  "destination_visible_after_sigkill": false,
+  "published_partial": false,
+  "tmp_leftover": true,
+  "uninterrupted_verdict": "SUCCESS"
+ },
+ "both_states": {
+  "absent_condition_id": 2,
+  "atomic_complete_verdict": "SUCCESS",
+  "complete_streaming_verdict": "SUCCESS",
+  "truncated_verdict": "FAILED"
+ },
+ "classification": {
+  "condition_id": 5,
+  "condition_name": "required sentinel is present",
+  "conditions": [
+   {
+    "basis": "artifact.state='SUCCESS' is a valid terminal",
+    "n": 1,
+    "name": "process/task reached a valid terminal state",
+    "outcome": "SATISFIED"
+   },
+   {
+    "basis": "path exists=True bytes=4244",
+    "n": 2,
+    "name": "expected artifact exists",
+    "outcome": "SATISFIED"
+   },
+   {
+    "basis": "bytes=4244 min_bytes=64",
+    "n": 3,
+    "name": "artifact is non-empty and exceeds a meaningful minimum size",
+    "outcome": "SATISFIED"
+   },
+   {
+    "basis": "json parses and satisfies victim schema (sentinel not required by schema)",
+    "n": 4,
+    "name": "artifact parses against its schema",
+    "outcome": "SATISFIED"
+   },
+   {
+    "basis": "file exists but does not carry the completion sentinel in the typed sentinel field (observed=None, expected='SUCCESS:VICTIM-0088') - partial artifact without sentinel is INCOMPLETE (spec 11313, condition 5)",
+    "n": 5,
+    "name": "required sentinel is present",
+    "outcome": "UNSATISFIED"
+   }
+  ],
+  "expected_sentinel": "SUCCESS:VICTIM-0088",
+  "never_success": true,
+  "observed_sentinel": null,
+  "sentinel_present": false,
+  "truncated_exists": true,
+  "truncated_looks_plausible": true,
+  "truncated_parses": true,
+  "verdict": "FAILED"
+ },
+ "completion_sentinel": "SUCCESS:TST-0088",
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0088/fixtures/truncated-partial.json:1",
+   "claim": "SIGKILL of the streaming writer after a fsync'd parseable prefix leaves a file that exists, parses, looks like SUCCESS, and is 4244 bytes, with no typed sentinel.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe1_truncated_failed.py",
+     "method": "command",
+     "raw_output": "{\"bytes\": 4244, \"condition_id\": 5, \"signal\": \"SIGKILL\", \"verdict\": \"FAILED\"}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0088/fanin.py:127",
+   "claim": "Fan-in classifies that truncated file FAILED at condition 5 (required sentinel is present), never SUCCESS. An absent path fails at condition 2, proving the reject is not 'fail everything at 5'.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe1_truncated_failed.py",
+     "method": "command",
+     "raw_output": "{\"absent_condition_id\": 2, \"complete_verdict\": \"SUCCESS\", \"truncated_condition_id\": 5}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0088/writers.py:74",
+   "claim": "The stronger fix holds: tmp+rename atomic publish under the same SIGKILL leaves the destination path unreadable as a partial. Uninterrupted atomic write is SUCCESS.",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe2_atomic_invisible.py",
+     "method": "command",
+     "raw_output": "{\"atomic_complete\": \"SUCCESS\", \"destination_visible\": false}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "injection": {
+  "distinct_from": "TST-0004 artifact wholly absent (condition 2)",
+  "failure_classes": [
+   "11009",
+   "11313",
+   "partial-artifact",
+   "severed-stream"
+  ],
+  "kill_issued": true,
+  "method": "SIGKILL-after-partial-flush",
+  "ready_token": "partial-flushed",
+  "returncode": -9,
+  "saw_ready": true,
+  "signal": "SIGKILL",
+  "signal_number": 9
+ },
+ "manifest_registration": {
+  "global_catalog_write": false,
+  "manifest_path": "command-center/p2-wave/probes/TST-0088/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe1_truncated_failed.py",
+   "id": "probe1",
+   "role": "truncated-failed-at-condition-5"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe2_atomic_invisible.py",
+   "id": "probe2",
+   "role": "atomic-partial-invisible"
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "verdict=FAILED condition_id=5",
+   "description": "Uninterrupted streaming write is classified SUCCESS",
+   "fired_on_bad_state": true,
+   "good_state_output": "verdict=SUCCESS",
+   "id": "TST-0088-NC-COMPLETE-STREAMING",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "absent condition_id=2",
+   "description": "A missing path fails at condition 2, not condition 5",
+   "fired_on_bad_state": true,
+   "good_state_output": "truncated condition_id=5",
+   "id": "TST-0088-NC-ABSENT-IS-CONDITION-2",
+   "kind": "distinct-from-TST-0004",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "streaming dest exists bytes=4244",
+   "description": "Non-atomic streaming writer leaves a readable partial, proving the kill landed in the write window",
+   "fired_on_bad_state": true,
+   "good_state_output": "atomic dest visible=False",
+   "id": "TST-0088-NC-STREAMING-LEAKS",
+   "kind": "detector-control",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-local",
+  "model": "grok-4.6",
+  "role": "fault-injection-engineer",
+  "vendor": "xai"
+ },
+ "question": "Failure classes :11009 and :11313. Target: SIGKILL a unit while it is streaming its artifact and assert the fan-in classifies the truncated file FAILED at condition 5, never SUCCESS. Distinct from TST-0004 (artifact wholly absent): here the file exists, parses partially, and looks plausible.",
+ "required_fix": null,
+ "retry": {
+  "count": 0,
+  "policy": "NO retry. A retry masks the exact instability this unit exists to measure; a failed run is the datum, re-run only with a changed hypothesis recorded first"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Mechanically different from probe 1: tmp+rename atomicity plus detector control that the streaming writer still leaks a partial. Does not re-use probe 1's SUCCESS claim; it re-runs SIGKILL and asserts destination invisibility.",
+  "reviewer_id": "TST-0088-probe2-atomic-independence",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0088",
+ "spec_anchor": "_USER-PROMPTS.md:11009,11313",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe1_truncated_failed.py",
+   "id": "test_truncated_artifact_is_failed_not_success",
+   "name": "SIGKILL mid-stream; truncated file exists, parses, looks plausible; fan-in FAILED at condition 5, never SUCCESS",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0088/probe2_atomic_invisible.py",
+   "id": "test_atomic_write_prevents_the_partial_from_being_visible_at_all",
+   "name": "Atomic tmp+rename: SIGKILL leaves destination absent; streaming writer is the detector control that DOES leak a partial",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:58:25Z",
+  "started_at": "2026-08-24T18:35:00Z"
+ },
+ "title": "Partial artifact without a sentinel: kill a unit mid-write",
+ "truncated_fixture": {
+  "bytes": 4244,
+  "looks_plausible": true,
+  "parses": true,
+  "path": "command-center/p2-wave/probes/TST-0088/fixtures/truncated-partial.json",
+  "sentinel_present": false,
+  "sha256": "9a0c29f29a3817b560b93db714ca5148fdfe75604cdb17ca204bbceaddc22ca4"
+ },
+ "unit_id": "TST-0088"
+}

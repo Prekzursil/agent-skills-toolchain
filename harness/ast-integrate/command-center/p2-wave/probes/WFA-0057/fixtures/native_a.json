@@ -1,0 +1,67 @@
+{
+  "id": "wf-saved-catalog-discovery",
+  "name": "catalog-class discovery-only (MIT host)",
+  "licence_class": "mit",
+  "roles": [
+    {
+      "id": "scanner",
+      "title": "repo scanner"
+    }
+  ],
+  "stages": [
+    {
+      "id": "discover",
+      "kind": "static-scan",
+      "inputs": ["repo"],
+      "outputs": ["candidates.json"]
+    },
+    {
+      "id": "record",
+      "kind": "write-config",
+      "inputs": ["candidates.json"],
+      "outputs": ["blueprint.json"]
+    }
+  ],
+  "gates": [
+    {
+      "id": "human-approve",
+      "when": "before-record"
+    }
+  ],
+  "tool_policy": {
+    "id": "read-only-fs",
+    "allow": ["Read", "Grep"]
+  },
+  "fan_out": {
+    "id": "per-package",
+    "barrier": "join-packages"
+  },
+  "barrier": {
+    "id": "join-packages"
+  },
+  "loop": {
+    "id": "until-stable",
+    "convergence": "no-new-candidates",
+    "max_iterations": 3
+  },
+  "checkpoint": {
+    "id": "owner-look",
+    "human": true
+  },
+  "retry": {
+    "id": "discover-retry",
+    "max_attempts": 2
+  },
+  "resume": {
+    "id": "from-record",
+    "cursor": "record"
+  },
+  "stop": {
+    "id": "halt-on-error",
+    "expression": "error || max_stages>=2"
+  },
+  "lineage": {
+    "id": "lineage-root",
+    "from": "harness-restore"
+  }
+}

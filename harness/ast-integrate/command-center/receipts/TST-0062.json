@@ -1,0 +1,189 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0062",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:TST-0062",
+  "spec_anchor": "rules/common/windows-shell.md#2",
+  "min_bytes_threshold": 2048,
+  "question": "Measured: `git rev-parse v1.4.1^{commit}` is corrupted in PowerShell because ^ is the escape character. Target: a lint that flags unquoted ^ in any ref passed from PowerShell, plus the sanctioned alternative (`git rev-list -n 1 <tag>` or a single-quoted ref) proven equivalent.",
+  "title": "PowerShell caret escaping mangles git refs",
+  "report_kind": "test-receipt",
+  "seed": {
+    "value": "v1.4.1^{commit}",
+    "recorded": true
+  },
+  "cloud_ok": false,
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "platform-test-engineer",
+    "execution_substrate": "linux-local-with-pwsh-7.4.6"
+  },
+  "timestamps": {
+    "started_at": "2026-08-25T01:01:20+00:00",
+    "ended_at": "2026-08-25T01:01:21+00:00"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot"
+  },
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "output_schema_present": true,
+  "output_schema_garbage_rejected": 3,
+  "dependencies_on_this_tree": {
+    "TST-0060": false,
+    "rules/common/windows-shell.md": true
+  },
+  "scope": {
+    "implemented": "PowerShell git-caret lint with quote/comment awareness, plus a live annotated-tag peel proving git rev-list -n 1 <tag> and a quoted peel resolve to the same commit in bash and pwsh.",
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "Windows PowerShell 5.1 or cmd.exe wrapping was executed (this box is Linux)",
+      "rules/common/windows-shell.md exists at repo root (only fixture census copies do)",
+      "a second human Windows-platform specialist re-ran the probes"
+    ],
+    "proof_surface": "shipped lint on fixture .ps1 files (use vs mention); live git in a throwaway annotated-tag repo; live pwsh 7 unquoted vs quoted when present"
+  },
+  "lint": {
+    "module": "command-center/p2-wave/probes/TST-0062/caret_lint.py",
+    "unquoted_peel_findings": 1,
+    "unquoted_parent_findings": 1,
+    "quoted_silent": true,
+    "rev_list_silent": true,
+    "mention_silent": true,
+    "naive_grep_flags_mention": true,
+    "bash_not_in_scope": true,
+    "inline_unquoted": "git rev-parse v1.4.1^{commit}"
+  },
+  "live_peel": {
+    "tag": "v1.4.1",
+    "peel_form": "v1.4.1^{commit}",
+    "commit_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "tag_object_sha": "5329a4bb42b66a7dbaadd709662586610bab4d2a",
+    "tag_object_differs_from_commit": true,
+    "bash_quoted_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "bash_rev_list_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "argv_peel_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "argv_rev_list_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "pwsh_path": "/tmp/tst0062-pwsh/pwsh",
+    "pwsh_version": "7.4.13",
+    "pwsh_unquoted_returncode": 1,
+    "pwsh_unquoted_stderr_tail": "fatal: ambiguous argument 'YwBvAG0AbQBpAHQA': unknown revision or path not in the working tree.\nUse '--' to separate paths from revisions, like this:\n'git <command> [<revision>...] -- [<file>...]'",
+    "pwsh_single_quoted_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "pwsh_rev_list_sha": "eb39f7aa6c1f736475f2f52774fd369de4b4df32",
+    "leftover_argv": "v1.4.1^",
+    "leftover_returncode": 0,
+    "cmd_unescaped_argv": "v1.4.1{commit}",
+    "cmd_unescaped_returncode": 128,
+    "measured_mechanism": "On this box pwsh 7 parses unquoted v1.4.1^{commit} as argv v1.4.1^ plus a scriptblock {commit}; git then errors. cmd.exe caret-unescape (v1.4.1{commit}) also fails against the same repo. Quoted peel and git rev-list -n 1 v1.4.1 return the peeled commit."
+  },
+  "tests": [
+    {
+      "id": "test_caret_ref_is_flagged_by_the_lint",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0062/probe1_lint_flags_caret.py",
+      "result": "PASS",
+      "assertions": 6,
+      "output_tail": "unquoted peel and HEAD^ flagged; quoted peel, rev-list, and comment mention silent; naive caret grep fires on mention"
+    },
+    {
+      "id": "test_corrected_form_resolves_to_the_same_object_in_both_shells",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0062/probe2_corrected_form_equivalent.py",
+      "result": "PASS",
+      "assertions": 4,
+      "output_tail": "commit=eb39f7aa6c1f bash_quoted=eb39f7aa6c1f bash_rev_list=eb39f7aa6c1f pwsh_quoted=eb39f7aa6c1f pwsh_unquoted_rc=1"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "TST0062-C1",
+      "kind": "use-vs-mention",
+      "description": "A comment that names git rev-parse v1.4.1^{commit} must not satisfy the lint; a naive '^' substring check does.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "TST0062-C2",
+      "kind": "both-states-peel",
+      "description": "Unquoted pwsh peel / leftover argv v1.4.1^ does not return the commit; quoted peel and rev-list do, and the annotated tag object SHA differs from that commit.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "lint-both-states",
+      "claim": "Unquoted git peel refs from PowerShell are flagged by the lint; quoted peels, rev-list, and comment mentions are not.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0062/caret_lint.py:lint_text"
+    },
+    {
+      "kind": "live-peel-two-shells",
+      "claim": "On this box, unquoted git rev-parse v1.4.1^{commit} under pwsh does not return the peeled commit, while git rev-list -n 1 v1.4.1 and a single-quoted peel do, matching bash.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/p2-wave/probes/TST-0062/peel_measure.py:live_measure"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "TST-0062-probe2-live-peel",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 1 re-runs the lint on fixtures without trusting this file's self-report. Probe 2 rebuilds a fresh annotated-tag repo and re-runs bash plus pwsh (when present)."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/TST-0062/UNIT-ARTIFACT-MANIFEST.json",
+    "note": "per-unit only; global unit_manifest.py --write was not run"
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "lint-both-states-use-vs-mention",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0062/probe1_lint_flags_caret.py"
+    },
+    {
+      "id": "probe2",
+      "role": "live-peel-two-shells",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0062/probe2_corrected_form_equivalent.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0062.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0062/caret_lint.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0062/peel_measure.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/schema/test-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Windows PowerShell 5.1 reconstructing a cmd.exe command line was not executed here. cmd.exe caret-unescape was applied as argv to real git (v1.4.1{commit}) and failed, but that is not a Windows console host.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run probe2_corrected_form_equivalent.py under Windows PowerShell 5.1 and Git Bash and diff argv/SHA against this receipt."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/TST-0062.json",
+      "executed": false,
+      "read_ok": true,
+      "exit_code": null,
+      "note": "measure runs after this emit; probes re-run live"
+    }
+  ]
+}

@@ -1,0 +1,33 @@
+casualty round 2: one-command verification runner, plus the five detector failures I caught in myself
+
+r2_verify_all.py executes all twelve round-2 checks as real subprocesses and records their
+verbatim output in R2-FINAL-VERIFICATION.json. Nothing in it reads a claim.
+
+  SUCCESS:r2-verify-all 12 steps executed, all pass   (head 676a65db)
+
+Steps: the 5 both-states defect controls; the 12-condition gate vector on both receipts; the
+elided self-digests plus the empty-input fail-closed check; the real fresh clone (digest from the
+clone object store AND the clone checkout); the lane blob EOL scan; the census with its control
+pairs; the liveness gate with its three-state control on the same invocation as the tally; the
+liveness mutation proving that control is not inert; the widened all-projects ADV-0002 sweep; and
+the ADV-0022 git verifier.
+
+Two of those steps exist because the runner itself was wrong first:
+
+  * the git-verifier step PASSED while every git query inside it had failed. `bash` from a Python
+    subprocess resolves to C:\WINDOWS\system32\bash.exe = WSL, which sees /mnt/c and dies with
+    "fatal: not a git repository" - but the needle (ADV0022_GITV_END) prints regardless. A needle
+    that cannot fail is not a check. Now uses Git Bash explicitly and asserts the C1 control is
+    non-zero and no "fatal:" appears.
+  * the gate step asserted the SATISFIED vector with a literal "[  ok] 2." while the gate
+    right-aligns to "[  ok]  2.", failing both gates on formatting alone. The parser now requires
+    all twelve conditions to be seen, and is itself controlled: True for these two receipts,
+    False for sibling ADV-0010 and False for the 1,818 B skeleton at the canonical path.
+
+LANE-CASUALTY-ROUND2.md section R2-H lists all five detector failures I caught in my own round-2
+instruments, including one where the D4 control reproduced the very defect it was testing by
+comparing a frozen capture against a live recount. Section R2-G scopes what is still NOT done:
+no reviewer on either unit (and I am same-vendor, so I cannot be one), both receipts still parked
+outside their canonical output_path, the sandbox clause still PARTIAL, the recovery tool still
+unpatched upstream, census axes tuned rather than derived, the ADV-0002 cause still unknown, and
+the liveness watchdog still unwired into the wave harness.

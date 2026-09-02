@@ -1,0 +1,41 @@
+{
+  "format": "foreign.linear-dag.v1",
+  "id": "wf-foreign-review-ship",
+  "start": "ingest",
+  "nodes": [
+    {
+      "id": "ingest",
+      "kind": "task",
+      "next": "gate-score"
+    },
+    {
+      "id": "gate-score",
+      "kind": "if",
+      "predicate": { "field": "score", "op": "gte", "value": 7 },
+      "on_true": "review",
+      "on_false": "halt"
+    },
+    {
+      "id": "review",
+      "kind": "task",
+      "next": "gate-approved"
+    },
+    {
+      "id": "gate-approved",
+      "kind": "if",
+      "predicate": { "field": "approved", "op": "eq", "value": true },
+      "on_true": "ship",
+      "on_false": "halt"
+    },
+    {
+      "id": "ship",
+      "kind": "task",
+      "next": null
+    },
+    {
+      "id": "halt",
+      "kind": "stop",
+      "reason": "gate_fail"
+    }
+  ]
+}

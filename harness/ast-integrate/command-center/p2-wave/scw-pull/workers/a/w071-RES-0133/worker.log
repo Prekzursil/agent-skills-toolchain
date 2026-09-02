@@ -1,0 +1,16 @@
+I'll start from the existing RES-0133 probe tree and the unit contract, then resume whatever is already built rather than starting over.The probe tree is only the cloud-ok leftovers plus HANDOFF. Next I’ll read those plus the measure script and a delivered unit so I know the exact contract.The harvest receipt is BLOCKED and the named probe scripts are missing. I'll pull the catalog contract, a delivered unit's shape, and any leftover generator/scanner sources.ADV-0002 is the delivery pattern: real probes, live SUCCESS, per-unit manifest. I’ll pull the schema, scanner tools, and the rest of the receipt next.Original probe sources may still be on this box under `/opt/p2`. I'll search those trees and start pulling the pinned scanners.Pinned scanner hashes match the harvest. Next I’ll extract the binaries and read the gitleaks rules so the corpus tokens actually match.Pinned scanners match the harvest checksums. I’m writing the four live probes and the packer next, then I’ll run them.Live scanner counts match the harvest: Gitleaks 40/40, TruffleHog 24/40. Running the independent recount and the GitHub availability probe next.Recount and mutation both went red on the bad state. Next I’ll pack the receipt from those live probe files and write the per-unit manifest.Pack wrote SUCCESS but the schema rejected two fields. I’ll pull the full validator messages and fix those rows.SUCCESS forbids leftover `NOT-RUN` tests, and one evidence row is missing a verifier. I’ll fix both and pack again.**SUCCESS:delivered RES-0133** `predicate=delivered state=SUCCESS probes=4 raws=5 notes=generate_corpus.py:0,probe_github_hosted.py:0,run_scanners.py:0,verify_counts.py:0`
+
+G-1 for this unit only. The cloud-ok harvest was not delivery: `CLOUD-OK-REFUTE.json` was right that the named scripts were missing and `state` was `BLOCKED`. This pass implemented Alternative A from that refute (restore probes and remesure). It did not hand-flip SUCCESS, did not rebuild in a circle, and did not treat harvest `ok=true` as proof.
+
+**Live measurement (counts only; no planted values printed):**
+- Corpus: 40 format-valid synthetic positives × 10 providers × 4 contexts, plus 5 lookalike controls
+- Gitleaks 8.30.1: 40/40 TP, 5/5 FP, recall 1.000000, precision 0.888889
+- TruffleHog 3.97.0 `--no-verification`: 24/40 TP, 4/5 FP, 1 TN, recall 0.600000, precision 0.857143. The 16 misses are four whole provider formats (`pypi_upload`, `shopify_access`, `stripe_test`, `twilio_api`), six per context — not a prose/prompt/JSONL/fence gap
+- Independent recount: 102 checks, 0 failed; 40→41 mutation exited 1
+- GitHub hosted corpus rate: **NOT-MEASURED** (no auth, corpus not uploaded)
+
+**Written**
+- `command-center/p2-wave/probes/RES-0133/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/RES-0133/UNIT-ARTIFACT-MANIFEST.json` (per-unit only; catalog `output_path` sha256 `771cf0e5f034b0139d41c4ea4c1402cd8aa40c465a8397d94117af7aaef868b5`, 128752 B)
+
+**Constraints kept:** no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation or printing; no relaunch of finish-everything-close or p2-cloud-ok-deliver.

@@ -1,0 +1,133 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-center/schema/council-design-note.schema.json",
+  "title": "Council design note (Phase 2C CNL)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "question",
+    "answer",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "artifacts",
+    "evidence"
+  ],
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "pattern": "^CNL-[0-9]{4}$"
+    },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": {
+      "type": "string",
+      "minLength": 8
+    },
+    "title": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "distinction": { "type": "string", "minLength": 24 },
+    "irreducible_verdict_requirements": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 8 }
+    },
+    "taxonomy": {
+      "type": "object",
+      "required": ["id", "axis", "closed", "classes"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "axis": { "type": "string", "minLength": 3 },
+        "closed": { "type": "boolean" },
+        "classes": {
+          "type": "array",
+          "minItems": 2,
+          "items": {
+            "type": "object",
+            "required": ["id", "interest"],
+            "properties": {
+              "id": { "type": "string", "minLength": 2 },
+              "interest": { "type": "string", "minLength": 8 }
+            }
+          }
+        }
+      }
+    },
+    "metric": {
+      "type": "object",
+      "required": ["id", "formula", "decision", "I_star"],
+      "properties": {
+        "id": { "type": "string", "minLength": 3 },
+        "formula": { "type": "string", "minLength": 8 },
+        "decision": { "type": "string", "minLength": 8 },
+        "I_star": { "type": "integer", "minimum": 0 }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "items": { "type": "object" }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "object" }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    }
+  }
+}

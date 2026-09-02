@@ -1,0 +1,565 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-center/phase4/contracts/ARC-0085.json",
+  "title": "ARC-0085 canonical claim record",
+  "description": "Phase 4 formal contract for the Phase 1 canonical claim record: stable claim id, canonical mechanism, duplicate-of / support / contradiction edges, source lineage, Sherman-Kent confidence band, verification status, implementation impact, and the EXACT settling probe. Ranking is by independent evidence and decision impact, never by how many agents repeated the same mechanism. SUCCESS:ARC-0085",
+  "$comment": "Edge semantics: duplicate_of means the same canonical_mechanism (collapse, do not vote). supports means independent evidence for a different mechanism. contradicts means the two propositions cannot both be CONFIRMED. A duplicate-of cycle is invalid. An UNVERIFIED record with no settling_probe is invalid. CLAIM-REGISTRY.json is the intended instance store; when absent, live phase-3 claim-bearing artifacts are the encoding source. SUCCESS:ARC-0085",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "claim_id",
+    "canonical_mechanism",
+    "duplicate_of",
+    "supports",
+    "contradicts",
+    "source_lineage",
+    "confidence_band",
+    "verification_status",
+    "implementation_impact",
+    "settling_probe"
+  ],
+  "properties": {
+    "claim_id": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 96,
+      "pattern": "^[A-Z][A-Z0-9_-]{5,95}$",
+      "description": "Stable claim id. Not a slug of the latest authoring agent."
+    },
+    "canonical_mechanism": {
+      "type": "string",
+      "minLength": 24,
+      "maxLength": 2000,
+      "description": "Canonical mechanism statement: the proposition that would be true or false in the world, independent of who repeated it."
+    },
+    "duplicate_of": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 96,
+        "pattern": "^[A-Z][A-Z0-9_-]{5,95}$",
+        "description": "Stable claim id. Not a slug of the latest authoring agent."
+      },
+      "uniqueItems": true,
+      "description": "Ids this record aliases. Empty on the canonical survivor after collapse. Same mechanism + different authors is a duplicate, not extra rank weight."
+    },
+    "supports": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 96,
+        "pattern": "^[A-Z][A-Z0-9_-]{5,95}$",
+        "description": "Stable claim id. Not a slug of the latest authoring agent."
+      },
+      "uniqueItems": true,
+      "description": "Ids whose truth would raise confidence in this mechanism."
+    },
+    "contradicts": {
+      "type": "array",
+      "default": [],
+      "items": {
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 96,
+        "pattern": "^[A-Z][A-Z0-9_-]{5,95}$",
+        "description": "Stable claim id. Not a slug of the latest authoring agent."
+      },
+      "uniqueItems": true,
+      "description": "Ids whose CONFIRMED status cannot coexist with this record CONFIRMED. Not a duplicate: different mechanisms that cannot both be true."
+    },
+    "source_lineage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "author",
+          "path",
+          "line"
+        ],
+        "properties": {
+          "author": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 128
+          },
+          "path": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 512
+          },
+          "line": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "snippet": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 500
+          },
+          "sha256": {
+            "type": "string",
+            "pattern": "^[a-f0-9]{64}$"
+          },
+          "url": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1024
+          },
+          "fetched_at": {
+            "type": "string",
+            "minLength": 10,
+            "maxLength": 40
+          },
+          "probe": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "tool",
+              "engine",
+              "shell",
+              "field"
+            ],
+            "properties": {
+              "tool": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "engine": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              },
+              "shell": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 64
+              },
+              "field": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 128
+              }
+            }
+          }
+        }
+      },
+      "description": "Every authoring or confirming observation. Two lineage rows with the same independence key (tool, engine, shell, field) are one signal, even if the authors differ."
+    },
+    "confidence_band": {
+      "type": "string",
+      "enum": [
+        "almost-certain",
+        "likely",
+        "roughly-even",
+        "unlikely",
+        "remote"
+      ],
+      "description": "Sherman-Kent vocabulary. Closed. No free-text hedges."
+    },
+    "verification_status": {
+      "type": "string",
+      "enum": [
+        "UNVERIFIED",
+        "CONFIRMED",
+        "REFUTED",
+        "PARTIAL",
+        "NOT-CHECKED",
+        "BLOCKED"
+      ],
+      "description": "Closed verification vocabulary. UNVERIFIED requires a nonempty settling_probe."
+    },
+    "implementation_impact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "severity",
+        "blocks_downstream"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "none",
+            "docs",
+            "test",
+            "implementation",
+            "architecture",
+            "operator-decision"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "none",
+            "P0",
+            "P1",
+            "P2",
+            "P3"
+          ]
+        },
+        "blocks_downstream": {
+          "type": "boolean"
+        }
+      }
+    },
+    "settling_probe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "command"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 96
+        },
+        "command": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1024
+        },
+        "independence_class": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 256
+        }
+      },
+      "description": "The EXACT settling probe. An UNVERIFIED claim without this object is invalid."
+    }
+  },
+  "if": {
+    "properties": {
+      "verification_status": {
+        "const": "UNVERIFIED"
+      }
+    },
+    "required": [
+      "verification_status"
+    ]
+  },
+  "then": {
+    "required": [
+      "settling_probe"
+    ],
+    "properties": {
+      "settling_probe": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "id",
+          "command"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 2,
+            "maxLength": 96
+          },
+          "command": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 1024
+          },
+          "independence_class": {
+            "type": "string",
+            "minLength": 8,
+            "maxLength": 256
+          }
+        },
+        "description": "The EXACT settling probe. An UNVERIFIED claim without this object is invalid."
+      }
+    }
+  },
+  "$defs": {
+    "claimId": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 96,
+      "pattern": "^[A-Z][A-Z0-9_-]{5,95}$",
+      "description": "Stable claim id. Not a slug of the latest authoring agent."
+    },
+    "settlingProbe": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "command"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 96
+        },
+        "command": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1024
+        },
+        "independence_class": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 256
+        }
+      },
+      "description": "The EXACT settling probe. An UNVERIFIED claim without this object is invalid."
+    },
+    "sourceLineageEntry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "author",
+        "path",
+        "line"
+      ],
+      "properties": {
+        "author": {
+          "type": "string",
+          "minLength": 2,
+          "maxLength": 128
+        },
+        "path": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 512
+        },
+        "line": {
+          "type": "integer",
+          "minimum": 1
+        },
+        "snippet": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 500
+        },
+        "sha256": {
+          "type": "string",
+          "pattern": "^[a-f0-9]{64}$"
+        },
+        "url": {
+          "type": "string",
+          "minLength": 8,
+          "maxLength": 1024
+        },
+        "fetched_at": {
+          "type": "string",
+          "minLength": 10,
+          "maxLength": 40
+        },
+        "probe": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": [
+            "tool",
+            "engine",
+            "shell",
+            "field"
+          ],
+          "properties": {
+            "tool": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "engine": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            },
+            "shell": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 64
+            },
+            "field": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 128
+            }
+          }
+        }
+      }
+    },
+    "implementationImpact": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "class",
+        "severity",
+        "blocks_downstream"
+      ],
+      "properties": {
+        "class": {
+          "type": "string",
+          "enum": [
+            "none",
+            "docs",
+            "test",
+            "implementation",
+            "architecture",
+            "operator-decision"
+          ]
+        },
+        "severity": {
+          "type": "string",
+          "enum": [
+            "none",
+            "P0",
+            "P1",
+            "P2",
+            "P3"
+          ]
+        },
+        "blocks_downstream": {
+          "type": "boolean"
+        }
+      }
+    },
+    "confidenceBand": {
+      "type": "string",
+      "enum": [
+        "almost-certain",
+        "likely",
+        "roughly-even",
+        "unlikely",
+        "remote"
+      ]
+    },
+    "verificationStatus": {
+      "type": "string",
+      "enum": [
+        "UNVERIFIED",
+        "CONFIRMED",
+        "REFUTED",
+        "PARTIAL",
+        "NOT-CHECKED",
+        "BLOCKED"
+      ]
+    },
+    "claimRegistry": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "schema_version",
+        "unit_id",
+        "claims"
+      ],
+      "properties": {
+        "schema_version": {
+          "const": 1
+        },
+        "unit_id": {
+          "const": "ARC-0085"
+        },
+        "claims": {
+          "type": "array",
+          "minItems": 10,
+          "items": {
+            "$ref": "#"
+          }
+        }
+      }
+    }
+  },
+  "x-ranking": {
+    "rule": "rank_score = independent_evidence_score * decision_impact_score. independent_evidence_score is the count of DISTINCT source_lineage probe keys (tool, engine, shell, field). Missing probe keys fall back to (path, line) only, still not to author identity. decision_impact_score is severity weight (P0=8,P1=4,P2=2,P3=1,none=0) multiplied by class weight (architecture=2, operator-decision=2, implementation=1, test=1, docs=1, none=0).",
+    "forbidden_inputs": [
+      "author_count",
+      "agent_repeat_count",
+      "lineage_row_count_without_independence_key",
+      "how_many_agents_repeated_the_mechanism"
+    ],
+    "collapse": "Records with the same NFKC/casefold/whitespace-collapsed canonical_mechanism collapse to one canonical claim_id (lexicographically smallest) carrying the union of source_lineage rows. Aliases keep duplicate_of=[canonical]."
+  },
+  "x-unit": {
+    "id": "ARC-0085",
+    "sentinel": "SUCCESS:ARC-0085",
+    "output_path": "command-center/phase4/contracts/ARC-0085.json",
+    "tests_required": [
+      "Repetition-immunity: same mechanism, different authors -> one canonical claim, two lineage entries",
+      "Settling-probe: UNVERIFIED with no settling_probe fails validation"
+    ]
+  },
+  "x-reviewers": {
+    "independent_contract_reviewer": "command-center/p2-wave/probes/ARC-0085/probe1_repetition_immunity.py",
+    "consumer_call_site": "command-center/p2-wave/probes/ARC-0085/validator.py"
+  },
+  "unit_id": "ARC-0085",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0085",
+  "x-encoding": {
+    "source": "command-center/CLAIM-REGISTRY.json",
+    "encoded": 14,
+    "claim_ids": [
+      "CLAIM-CC-1-SOURCE",
+      "CLAIM-CC-1-VERIFIER",
+      "CLAIM-CC-2",
+      "CLAIM-CC-3",
+      "CLAIM-CC-4",
+      "CLAIM-CC-5",
+      "CLAIM-CC-6",
+      "CLAIM-CC-7",
+      "CLAIM-CC-8",
+      "CLAIM-CC-10",
+      "CLAIM-CC-11",
+      "CLAIM-CC-12",
+      "CLAIM-CC-9-CLOSED",
+      "CLAIM-CC-9-REMAIN-OPEN"
+    ],
+    "duplicate_pair": [
+      "CLAIM-CC-1-SOURCE",
+      "CLAIM-CC-1-VERIFIER"
+    ],
+    "contradiction_pair": [
+      "CLAIM-CC-9-CLOSED",
+      "CLAIM-CC-9-REMAIN-OPEN"
+    ],
+    "note": "Live CLAIM-REGISTRY.json mapped into this schema (raw CC-* rows are not claim-record instances). phase3 DESIGN/REFUTATION absent."
+  },
+  "examples": [
+    {
+      "claim_id": "CLAIM-CC-1-SOURCE",
+      "canonical_mechanism": "The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.",
+      "duplicate_of": [],
+      "supports": [],
+      "contradicts": [],
+      "source_lineage": [
+        {
+          "author": "CLAIM-REGISTRY-source",
+          "path": "command-center/CLAIM-REGISTRY.json",
+          "line": 13,
+          "snippet": "The catalog holds every row of the register snapshot: 103 items, 69 open, split A-toolchain 32 / HARNESS 10 / MONITOR 19 / B-workflow_design 8.",
+          "sha256": "fb99416df3d11b45316e89ec53804e7344b09e0286273887d751255b0934bd21",
+          "probe": {
+            "tool": "python3",
+            "engine": "claim-registry",
+            "shell": "bash",
+            "field": "claims[CC-1].claim"
+          }
+        }
+      ],
+      "confidence_band": "almost-certain",
+      "verification_status": "CONFIRMED",
+      "implementation_impact": {
+        "class": "architecture",
+        "severity": "P2",
+        "blocks_downstream": false
+      },
+      "settling_probe": {
+        "id": "registry-CC-1-verdict",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json; d=json.load(open('command-center/CLAIM-REGISTRY.json',encoding='utf-8')); c=next(x for x in d['claims'] if x['id']=='CC-1'); assert c['verdict']=='CONFIRMED'\"",
+        "independence_class": "assert live CLAIM-REGISTRY.json verdict"
+      }
+    }
+  ]
+}

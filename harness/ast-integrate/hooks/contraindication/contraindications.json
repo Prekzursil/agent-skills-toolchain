@@ -1,0 +1,46 @@
+{
+  "version": 1,
+  "comment": "Drug-drug interaction table for tool/action combinations. Each row documents a REAL documented disaster. Add a row for every 'X + Y broke Z' you discover. check.py matches tool_name + serialised tool_input (and optional bg-registry state) against each row and injects harm + safe_alternative when a row fires.",
+  "rows": [
+    {
+      "id": "PARA-GIT-ADD",
+      "tool_pattern": "Bash|PowerShell",
+      "input_pattern": "git\\s+add\\s+(-A|\\.|--all\\b)",
+      "require_bg_active": true,
+      "harm": "Parallel file-disjoint subagents share one git index. 'git add -A' / 'git add .' / 'git add --all' sweeps sibling work-unit files into the wrong commit, silently contaminating unrelated branches. This has caused repeated commit-scope corruption in the metaswarm orchestrated workflow.",
+      "safe_alternative": "Use Agent(isolation:worktree) so each parallel subagent owns its own git index. If worktrees are not available, stage only specific files ('git add <file>') and run 'git diff --cached' to verify scope before committing."
+    },
+    {
+      "id": "BC-MITM-CACHEBUSTED",
+      "tool_pattern": "Bash|PowerShell",
+      "input_pattern": "\\b(mitmproxy|mitmdump|mitmweb)\\b",
+      "require_bg_active": false,
+      "harm": "Running a MITM proxy (mitmproxy/mitmdump) while Battle Cats also has its local .dat cache cleared corrupts BC's date state — the date-drift guard sub_525AB0 trips the HGT (Hack Guard Trap), applying a 99-day half-XP penalty that persists until recovery. The combination is HGT-orthogonal: the event injection goal is fine; the delivery method is the problem.",
+      "safe_alternative": "Patch event_0.dat in place: AES-128-ECB decrypt (key = md5('battlecats')[:8].hex), edit, re-encrypt, write back. Never run a live MITM proxy or clear BC cached .dat files while testing event injection."
+    },
+    {
+      "id": "SEMGREP-PRO-MCP-RAM",
+      "tool_pattern": "Bash|PowerShell|mcp__.*semgrep.*",
+      "input_pattern": "plugin:semgrep|semgrep.*--pro\\b|semgrep.*pro.engine|semgrep.*--engine.*pro",
+      "require_bg_active": false,
+      "harm": "The semgrep Pro engine (loaded via the plugin:semgrep MCP server) keeps approximately 920 MB of osemgrep-pro RESIDENT per session. With multiple concurrent Claude Code sessions the combined RSS exceeds available RAM, causing system-wide OOM. Confirmed on CC #28860.",
+      "safe_alternative": "Remove plugin:semgrep from .mcp.json and run the plain semgrep CLI (OSS engine) directly via Bash. If Pro-engine analysis is needed, isolate it to a single dedicated session and kill it when done."
+    },
+    {
+      "id": "FRIDA-HOTPATH-HOOK",
+      "tool_pattern": "mcp__frida-mcp__create_simple_hook|mcp__frida-mcp__execute_in_session",
+      "input_pattern": "per.?frame|every.?frame|high.?freq|render.?thread|getGlobal|scene.?transition",
+      "require_bg_active": false,
+      "harm": "A Frida Interceptor.attach on a high-frequency render-thread function (e.g. getGlobal) crashes the process on scene transitions: hooks are torn down under load and leave the process in a broken state. Confirmed crash vector in Battle Cats RE work.",
+      "safe_alternative": "Use a periodic JS write/poll pattern (setInterval reading a memory offset) or a one-shot patchCode instead of a per-frame Interceptor.attach hook. For sampling use Stalker, not per-frame interception."
+    },
+    {
+      "id": "MSYS-DEVICE-REDIR",
+      "tool_pattern": "Bash",
+      "input_pattern": ">\\s*/dev/(?!null\\b|zero\\b|random\\b|urandom\\b|stdin\\b|stdout\\b|stderr\\b)",
+      "require_bg_active": false,
+      "harm": "MSYS/Git-Bash on Windows mistranslates /dev/ device paths for non-standard devices (e.g. /dev/sda, /dev/tty, Android ADB block devices). Redirecting output to such a path silently produces a 0-byte file instead of writing to the intended device, corrupting the target without any error.",
+      "safe_alternative": "Use native Windows write methods: PowerShell Set-Content / Out-File, or for ADB device writes use the 'cat > <path>' syntax inside an explicit 'adb shell' session preserving uid and SELinux context."
+    }
+  ]
+}

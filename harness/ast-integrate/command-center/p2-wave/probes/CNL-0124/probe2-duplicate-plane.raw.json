@@ -1,0 +1,98 @@
+{
+  "probe": "probe2-duplicate-plane",
+  "unit_id": "CNL-0124",
+  "reviewer_id": "CNL-0124-probe2-duplicate-plane",
+  "independent": true,
+  "control_executed": true,
+  "recount": {
+    "n_capabilities": 20,
+    "n_mapped": 17,
+    "n_required_extension": 3,
+    "n_unmapped": 0,
+    "mapped_ids": [
+      "CAP-ROSTER",
+      "CAP-INFO-PARTITION",
+      "CAP-BUDGET",
+      "CAP-STOPPING",
+      "CAP-REPLAY",
+      "CAP-CHAIR",
+      "CAP-JURY",
+      "CAP-NESTED",
+      "CAP-TURN-TAKING",
+      "CAP-PROTOCOL-SEQ",
+      "CAP-PROTOCOL-SPLICE",
+      "CAP-PROTOCOL-NEST",
+      "CAP-PROTOCOL-REPEAT",
+      "CAP-DIVERGE-CONVERGE",
+      "CAP-ORACLE",
+      "CAP-MINORITY",
+      "CAP-ROUTING"
+    ],
+    "extension_ids": [
+      "CAP-ANONYMITY",
+      "CAP-VOTING",
+      "CAP-STANDING"
+    ],
+    "unmapped_ids": [],
+    "required_extensions_named": [
+      "BallotReduce",
+      "BlindEnvelope",
+      "Watch"
+    ],
+    "no_home_ids": [
+      "CAP-STANDING"
+    ],
+    "no_home_capability": "CAP-STANDING",
+    "ok": true
+  },
+  "both_states": {
+    "silent_on_good": true,
+    "fired_on_own_scheduler": true,
+    "fired_on_langgraph": true,
+    "silent_on_standing_watch_named_extension": true,
+    "fired_on_standing_own_loop": true,
+    "nested_is_subworkflow": true
+  },
+  "counterexample": {
+    "id": "cx-own-turn-engine",
+    "claim_refuted": "any object titled council is automatically a workflow type on the single control plane",
+    "instance": "fixtures/own-scheduler.json",
+    "observed_gate": "FIRE",
+    "why": "CNL-0047 requires turn-taking as one shared primitive. A council-owned round_runner is a second scheduler. The duplicate-control-plane probe names that feature explicitly and FIRE.",
+    "status": "COUNTEREXAMPLE-PRODUCED"
+  },
+  "human_checkpoint_cannot_wake": {
+    "wake_signal": "etag",
+    "owner_present": false,
+    "default_if_unanswered": null,
+    "human_checkpoint_outcome": "terminate",
+    "wakes": false,
+    "needed_extension": "Watch",
+    "refutes": "HumanCheckpoint is a home for standing-watch"
+  },
+  "barrier_is_not_irv": {
+    "barrier_default_join": "all-complete",
+    "irv_requires": "elimination rounds over ranked ballots at roster 3-15",
+    "same_mechanism": false,
+    "needed_extension": "BallotReduce",
+    "refutes": "Barrier is a home for IRV/majority tabulation"
+  },
+  "scheduler_features_named_explicitly": [
+    "non-home-scheduler",
+    "own-round-dispatcher",
+    "standing-event-loop"
+  ],
+  "negative_control": {
+    "id": "NC-OWN-SCHEDULER",
+    "on_state": "council.own-turn-engine: scheduler=council-runtime, dispatch_loop=true, round_runner=council.engine.turn_taking",
+    "rejects": "a council that is a parallel engine: own round dispatcher / second orchestration runtime (spec :10727 and :10483)",
+    "observed": "gate=FIRE over_one=True plane_count=2 introduced_planes=['council-runtime'] features=['non-home-scheduler', 'own-round-dispatcher']",
+    "verbatim": "{\"fixture\": \"own-scheduler\", \"gate\": \"FIRE\", \"introduced_planes\": [\"council-runtime\"], \"over_one\": true, \"parallel_engine\": true, \"plane_count\": 2, \"scheduler_features_named\": [{\"id\": \"non-home-scheduler\", \"plane\": \"council-runtime\", \"why\": \"scheduler/runtime='council-runtime' is not the agentspec plane\"}, {\"id\": \"own-round-dispatcher\", \"plane\": \"council-runtime\", \"why\": \"CNL-0047 names turn-taking as one shared primitive; a council-owned round dispatcher is a second orchestration runtime.\"}]}",
+    "does_on_reject_state": "The check FIRES; plane_count rises above one; introduced_planes names council-runtime; emit as a workflow type is refused. It does not return silent/PASS."
+  },
+  "langgraph_planes": [
+    "langgraph"
+  ],
+  "no_home": "CAP-STANDING",
+  "refuted_not_attempted": false
+}

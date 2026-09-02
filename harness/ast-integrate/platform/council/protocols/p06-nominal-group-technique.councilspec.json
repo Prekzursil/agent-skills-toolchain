@@ -1,0 +1,418 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p06-nominal-group-technique",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Enumerate the option space for a decision before any evaluation happens, then rank it independently.",
+    "charter": "Nominal Group Technique (Delbecq / Van de Ven). Silent independent generation -> round-robin one-idea-at-a-time posting with no critique -> clarification-only round -> independent ranking -> aggregate.",
+    "risk_tier": "low",
+    "desired_output": "ranked_options",
+    "success_criteria": [
+      "at least 60 unique ideas survive de-duplication",
+      "no evaluative sentence was uttered during the clarification round",
+      "every seat submitted an independent ranking"
+    ],
+    "consensus_intent": "elicit_distribution",
+    "confidence_target": 0.7,
+    "evidence_requirements": {
+      "citation_required": false,
+      "anchor_style": "any",
+      "min_independent_sources": 0,
+      "evidence_outranks_votes": false
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "model_diverse"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6,
+      "min": 6,
+      "max": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "ngt-facilitator",
+        "display_name": "Facilitator (rejects evaluative sentences in clarification)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "facilitation",
+          "NGT"
+        ],
+        "role": "facilitator",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      },
+      {
+        "participant_id": "gen-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "platform design"
+        ],
+        "role": "proposer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "gen-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "tooling"
+        ],
+        "role": "proposer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "gen-3",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "expertise": [
+          "research methods"
+        ],
+        "role": "proposer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "gen-4",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "adjacent-domain transfer"
+        ],
+        "role": "proposer",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "anonymous": true,
+        "independence": {
+          "sees_peers_before_first_position": false,
+          "fresh_context": true
+        }
+      },
+      {
+        "participant_id": "dedup-clerk",
+        "display_name": "De-duplication clerk",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "clustering",
+          "similarity scoring"
+        ],
+        "role": "verifier",
+        "authority": "contributor",
+        "rights": {
+          "may_speak": true,
+          "may_vote": false
+        }
+      }
+    ],
+    "anonymity": {
+      "mode": "pseudonymous",
+      "reveal_after_round": 2
+    },
+    "duplicate_detection": {
+      "enabled": true,
+      "dimensions": [
+        "prompt",
+        "position_similarity"
+      ],
+      "max_similarity": 0.8
+    }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 0
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "nominal_group",
+        "stage_id": "silent-generation",
+        "rounds": 2,
+        "anonymous": true,
+        "independent": true,
+        "quotas": {
+          "ideas_per_participant": 8,
+          "novel_ideas_per_round": 4
+        }
+      },
+      {
+        "kind": "round_robin",
+        "stage_id": "posting",
+        "rounds": 2,
+        "quotas": {
+          "ideas_per_participant": 4
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "clarification",
+        "custom_name": "clarification_only_no_critique",
+        "rounds": 1,
+        "exit_when": {
+          "metric": "custom:evaluative_sentences_in_clarification",
+          "op": "==",
+          "value": 0,
+          "value_type": "number",
+          "producer": "ngt-facilitator clarification screen"
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "ranking",
+        "custom_name": "independent_ranking",
+        "anonymous": true,
+        "independent": true
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "aggregate"
+      }
+    ],
+    "speaking_order": "round_robin",
+    "rounds": {
+      "min": 3,
+      "max": 8,
+      "divergence_before_convergence": true
+    },
+    "turn": {
+      "max_words": 250
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": false,
+      "cross_examination": false,
+      "rebuttal_required": false,
+      "steelman_before_rebuttal": false,
+      "declare_confidence": true
+    },
+    "critique_intensity": "gentle"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 120,
+    "tool_calls": 90,
+    "sources": 10,
+    "turns": 48,
+    "speaking_quota_per_participant": 12,
+    "min_engagement_turns": 4,
+    "max_inactivity_rounds": 1
+  },
+  "targets": {
+    "unique_ideas": 60,
+    "raw_ideas": 96,
+    "categories": 8,
+    "novelty_ratio": 0.6,
+    "diversity_index": 0.7,
+    "coverage_score": 0.85,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.8,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "ranked_choice",
+    "quorum": {
+      "min_voters": 4,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "belief_aggregation": {
+      "method": "median",
+      "require_confidence_per_vote": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.6,
+    "measure": "pairwise_agreement",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true,
+      "min_dissenters_to_block": 1
+    },
+    "irreducible_disagreement_allowed": true,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "expression": {
+      "all_of": [
+        {
+          "metric": "unique_ideas",
+          "op": ">=",
+          "value": 60
+        },
+        {
+          "metric": "novelty_ratio",
+          "op": ">=",
+          "value": 0.6
+        },
+        {
+          "metric": "no_new_idea_rounds",
+          "op": ">=",
+          "value": 2
+        },
+        {
+          "metric": "custom:evaluative_sentences_in_clarification",
+          "op": "==",
+          "value": 0,
+          "value_type": "number",
+          "producer": "ngt-facilitator clarification screen"
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 3,
+      "min_independent_positions": 4,
+      "every_participant_spoke": true
+    },
+    "hard_caps": {
+      "max_rounds": 8,
+      "max_minutes": 120,
+      "on_cap": "synthesize_best_effort"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.8
+    },
+    "resolution": [
+      "narrow_scope",
+      "split_question",
+      "recruit_independent_critic",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "chair"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "idea_count_gaming",
+      "duplicate_novelty",
+      "premature_convergence",
+      "silence",
+      "echo_chamber",
+      "lost_dissent"
+    ],
+    "fast_unanimity_response": [
+      "blind_re_evaluation",
+      "forced_dissent",
+      "recruit_independent_critic"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "idea_ledger",
+      "idea_catalog",
+      "option_cards",
+      "transcript",
+      "votes_by_round",
+      "dissent_minority_report",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 60,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P06 nominal group technique",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:189",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:202"
+    ],
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#P06"
+    ],
+    "notes": "DELIBERATIVE. Generation is silent AND ranking is independent - that pair is what distinguishes NGT from a loud brainstorming swarm. The card's failure mode (the clarification round leaks critique) is enforced twice: as the clarification stage's exit_when and again as a top-level stopping conjunct.\n\nanti-failure controls, each mapped to the field implementing it:\n  idea_count_gaming -> targets.dedup.trivial_variant_policy=reject with max_similarity 0.8, and the stopping rule counts unique_ideas and novelty_ratio, not raw_ideas\n  duplicate_novelty -> participants.duplicate_detection on position_similarity + targets.novelty_ratio >= 0.6 as a closing precondition\n  premature_convergence -> generation is silent and independent (nominal_group stage, anonymous+independent) so no seat can anchor another before ideas are on the table\n  silence -> quotas.ideas_per_participant=8 per seat in the nominal_group stage; a silent seat fails its quota\n  echo_chamber -> the clarification round is clarification-ONLY: custom:evaluative_sentences_in_clarification == 0 must hold at close, which is what stops critique leaking in early\n  lost_dissent -> ranking is independent (voting.method=ranked_choice) and consensus.minority_report=required"
+  }
+}

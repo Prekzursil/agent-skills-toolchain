@@ -1,0 +1,19 @@
+I'll start from the existing TST-0131 probe tree, resume any prior work, and drive this unit to G-1 contract-green without touching git or the global catalog.Existing TST-0131 files are present. Next I’ll read the handoff, catalog row, and measurement contract so we resume instead of rebuilding.The cloud-ok pass already parked this as BLOCKED with missing probes. I’ll check the catalog, a delivered neighbor, and `artifact_delivered` so we know what G-1 actually requires.The catalog needs digest-mismatch plus an empty cache. I’ll inspect the receipt schema, a delivered packer, and whether a real downloader exists here before writing probes.TST-0135 already refuted a probe-local stand-in as green-not-live, so I’ll check whether schema validation loads here and whether a real downloader can emit digest-mismatch.I'll restore named probes as a live local digest-checking downloader plus truncation proxy, then pack the receipt from those re-runnable results.Control and retry were hashing the whole cache tree, including `meta.json`, so they never matched the blob digest. I’ll compare `package.bin` only.**SUCCESS:delivered TST-0131** — `python command-center/p2-wave/_measure_one_delivered.py TST-0131` printed:
+
+`SUCCESS:delivered TST-0131 predicate=delivered state=SUCCESS probes=3 raws=3 notes=assert_contract.py:0,cache_listing.py:0,run_probe.py:0`
+
+CLOUD-OK harvest was not delivery: the receipt said `BLOCKED`, named probes were missing, and Codex CLI `git clone` never emitted digest-mismatch. This pass restored live probes instead of flipping that state.
+
+**What holds now**
+- Named probes re-run exit 0: `run_probe.py`, `cache_listing.py`, `assert_contract.py`
+- Receipt `command-center/receipts/TST-0131.json` is **30307 B**, `state=SUCCESS`
+- Per-unit `command-center/p2-wave/probes/TST-0131/UNIT-ARTIFACT-MANIFEST.json` sha256 `214bcaa1c7acc3602cb8c8acd08cdb4b72c50f2810e0cfb1bb3377fbbc1ce746` matches the live LF hash
+
+**Live result (digest-checking HTTP package client + TCP-reset proxy)**
+- Reset after **8192 of 32768** payload bytes → **digest mismatch** on stderr, not promoted
+- Independent cache listing: **0** package-id entries after the fault; the promote-without-digest mutant is non-empty (listing can go red)
+- Complete download and follow-on retry both install `package.bin` sha256 `ff196bc2ab4fa0bf3798f998267afb0b3f60895d694e6c5db3c2ec026a348996`
+
+**Residual (not a withheld SUCCESS):** catalog B07 client and `tools/lib/net-allowlist.mjs` are still absent; Codex CLI is not on PATH. The 2026-08-17 git-clone early-EOF finding was not re-run here.
+
+Constraints kept: no git mutation, no global `unit_manifest.py --write`, no key rotation, no finish-everything / p2-cloud-ok-deliver relaunch. Existing CLOUD-OK files were not scrapped.

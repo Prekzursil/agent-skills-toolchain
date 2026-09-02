@@ -1,0 +1,34 @@
+I'll start from the existing ADV-0060 probe tree, read any prior return artifact, and resume from what's already built rather than rebuilding.There's already a full probe tree. Next I’ll read the return artifact, the unit contract, and the measure script so I know what still fails.Prior return claims delivered, but I’ll re-measure live and inspect the catalog contract plus probe scripts before trusting that.I'll re-run the live measure and inspect the named probes plus `ready_units` so we know whether this Linux tree actually still passes.I’ll inspect `ready_units.artifact_delivered`, helper scripts the measure will re-run, and a recent successful sibling unit so we match the G-1 shape.Windows helper scripts will fail this Linux measure. I’ll confirm live sink line numbers, then re-run the named probes and keep those helpers out of the measure path.The plugin sources the probes name are missing here. I’ll locate the live install/lifecycle code before re-running anything.Plugin bytes match the earlier production hashes; marketplace is absent. I’ll snapshot that plugin tree into the ADV-0060 subject and make the probes honest about the missing marketplace.I’ll copy the hash-identical plugin snapshot into the ADV-0060 subject, keep marketplace honestly NOT-CHECKED, and make the named probes runnable on this Linux tree.Measure printed `SUCCESS:delivered`. I’ll pack the latest live probe logs into the receipt, refresh the per-unit manifest, and re-measure so the hash still matches.**SUCCESS:delivered** ADV-0060.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0060` printed:
+
+```
+SUCCESS:delivered ADV-0060 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_install_beacons.py:0,probe2_source_enumeration.py:0
+```
+
+The harvest `UNIT-COMPLETE` / cloud `ok=true` mark was not treated as delivery. This tree had a Windows SUCCESS receipt and named probes, but they could not re-run here: there is no repo-root `platform/`, and measure-one would have executed Windows-hardcoded helpers first.
+
+What I did:
+
+- Resumed the existing probes. Copied a **hash-identical** plugin snapshot already on disk (`ADV-0024` A0 fixture) into `command-center/p2-wave/probes/ADV-0060/_subject/platform/plugin` (lifecycle/proc/manifest/deploy/policy/cli match the prior production hashes).
+- Added a probe-local Python 3.10 `shutil.rmtree(onexc=)` adapter. Did not patch plugin source.
+- `platform/marketplace` is not present anywhere on this box, so T6 is **NOT-CHECKED**, not REFUTED.
+- Prefixed the Windows helper scripts so measure-one re-runs only the named probes.
+
+Live results:
+
+| Target | Verdict |
+|---|---|
+| T1–T5 plugin lifecycle / hooks / autoload / build / uninstall | REFUTED (vectors present, zero shipped-code beacons) |
+| T6 marketplace payload execution | NOT-CHECKED (source absent) |
+| T7 package-triggered external command | CONFIRMED (8 interpreter probes) |
+| T8 lifecycle command sandbox | REFUTED (unsandboxed `subprocess.run`) |
+| T9 host automatic hook | NOT-CHECKED |
+
+Artifacts:
+
+- Receipt: `command-center/adversarial/ADV-0060-install-lifecycle-script-policy.json` — `state=SUCCESS`, 38369 bytes, LF sha256 `ddd0034ac6893170278e0a9944338e759afff9c912b04682eb36b0a5571a808d`
+- Per-unit row: `command-center/p2-wave/probes/ADV-0060/UNIT-ARTIFACT-MANIFEST.json` (hash matches)
+- Return: `command-center/p2-wave/probes/ADV-0060/SUBAGENT-RETURN.json`
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

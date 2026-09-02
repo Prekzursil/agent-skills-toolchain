@@ -1,0 +1,79 @@
+{
+  "artifacts": [
+    {
+      "bytes": 39614,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json",
+      "role": "primary",
+      "sha256": "dd6dc4272f7ed62b9548722156bf99267206e9b2f372d06a69bd94c087c4f61b"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:ADV-0002-partial-016 delivered",
+  "defects": [
+    {
+      "id": "ADV-0025-D1",
+      "severity": "P3",
+      "status": "open",
+      "summary": "Linter coverage gap (NOT an install bypass): default mkt lint <manifest> passes trust_policy=None (cli.py:141), so MKT-L08 checks only the permission grammar, not the trust ceiling. Contained: lint with a policy fires MKT-L08 and the installer enforces MKT-I05 regardless."
+    },
+    {
+      "id": "ADV-0025-D2",
+      "severity": "P3",
+      "status": "open",
+      "summary": "Linter coverage gap (NOT an execution bypass): no linter rule inspects payload files for script-ness, so a working script file in the payload lints PASS. Contained: the installer is copy-only (no subprocess/exec/import token in install.py), so a payload script is inert at install time."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json",
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python platform/lib/receipt_schema_gate.py --schema-only --fragment generic_report command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json",
+        "exit_code": 0,
+        "fingerprint": "a0e7d14adf3b89b84245bfbe",
+        "method": "schema-validate",
+        "raw_output": "SCHEMA-VALID:ADV-0025 (layer 1 only - this is NOT a completion verdict)",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "platform/marketplace/mkt/lint.py:111; platform/marketplace/mkt/install.py:254; lint.py:649",
+      "claim": "CONTROL (negative control): the linter is NOT a reject-everything linter -- a benign package PASSES the linter (verdict=PASS) AND installs cleanly (outcome=SUCCESS) into a disposable site. lint.self_test payload-digest: good=PASS broken=FAIL detector_usable=True.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(hello-skill/manifest.json, trust_policy=<fixture>, index=<full>)",
+          "exit_code": 0,
+          "fingerprint": "378cba3f0fa885ccf9e3cb93",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter on the benign package).\n{\n  \"findings\": [],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L07\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\",\n    \"MKT-L20\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/fx/registry/packages/hello-skill/1.0.0/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"PASS\"\n}",
+          "role": "source"
+        },
+        {
+          "command": "Installer(root, disposable-site, policy).install(hello-skill, =1.0.0, channel=stable)",
+          "exit_code": 0,
+          "fingerprint": "b5c4d5f19b0443477ea35f71",
+          "method": "test-run",
+          "raw_output": "PROBE 2 (installer into a disposable temp site).\n{\n  \"action\": \"install\",\n  \"at\": \"2026-08-10T09:00:00Z\",\n  \"gates\": [\n    {\n      \"detail\": \"registry reg:fixture-local\",\n      \"gate\": \"index-signature\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"pub:alpha-tools key:e647315ae19a0667\",\n      \"gate\": \"publisher-known\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"key:e647315ae19a0667\",\n      \"gate\": \"manifest-signature\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 revocation(s) checked, none match\",\n      \"gate\": \"revocation\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"1 permission(s) within ceiling\",\n      \"gate\": \"permissions\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"win32/claude-code 2.1.0\",\n      \"gate\": \"compatibility\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 open advisory/ies, none above ceiling\",\n      \"gate\": \"advisory\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"90 >= 60\",\n      \"gate\": \"conformance-score\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b\",\n      \"gate\": \"payload-digest\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"3/3 components matched; missing_from_disk=0 missing_from_sbom=0 hash_mismatch=0\",\n      \"gate\": \"sbom\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"aggregate MIT; 1 component licence(s) admissible\",\n      \"gate\": \"license\",\n      \"outcome\": \"PASS\"\n    },\n    {\n      \"detail\": \"0 dependency/ies\",\n      \"gate\": \"dependencies\",\n      \"outcome\": \"SKIP\"\n    },\n    {\n      \"detail\": \"1 pinned package(s)\",\n      \"gate\": \"lockfile\",\n      \"outcome\": \"PASS\"\n    }\n  ],\n  \"installed_files\": 3,\n  \"name\": \"hello-skill\",\n  \"outcome\": \"SUCCESS\",\n  \"payload_digest\": \"sha256:8c8d599815daf1b10c7fbd7d530593fc8bdd1ec377c0632817bd91364b6d385b\",\n  \"receipt_id\": \"rcpt:cbed7f3074c4e3ef\",\n  \"registry_id\": \"reg:fixture-local\",\n  \"schema_version\": \"1.0.0\",\n  \"version\": \"1.0.0\"\n}\ninstalled_files=['packages/hello-skill/1.0.0/LICENSE', 'packages/hello-skill/1.0.0/README.md', 'packages/hello-skill/1.0.0/hello.py'] all_within_pkg_root=True",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "platform/marketplace/mkt/cli.py:141; mkt/lint.py:236-263; mkt/install.py:342-359",
+      "claim": "PARTIAL (target 1, excessive permissions): default mkt lint path passes trust_policy=None (cli.py:141), so MKT-L08 checks only permission GRAMMAR and the package lints PASS; supply a trust policy and MKT-L08 fires (FAIL, rules=['MKT-L08', 'MKT-L08', 'MKT-L08', 'MKT-L08', 'MKT-L08']); the installer independently REFUSES with REFUSED:MKT-I05. A linter coverage gap, not an end-to-end bypass (no install occurs; site_files_after=[]).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "lint.lint_package(evil-perms/manifest.json, trust_policy=None) ; lint.lint_package(..., trust_policy=<fixture>)",
+          "exit_code": 0,
+          "fingerprint": "6c9b1498945fcb078a470bdc",
+          "method": "static-analysis",
+          "raw_output": "PROBE 1 (linter, two entry points). NOTE: local temp paths redacted to <WORK>/<HOME>.\n\n[A] default mkt lint (trust_policy=None) -> verdict=PASS:\n{\n  \"findings\": [],\n  \"linted_at\": \"2026-08-19T11:57:54Z\",\n  \"rules_evaluated\": [\n    \"MKT-L01\",\n    \"MKT-L02\",\n    \"MKT-L03\",\n    \"MKT-L04\",\n    \"MKT-L05\",\n    \"MKT-L06\",\n    \"MKT-L08\",\n    \"MKT-L09\",\n    \"MKT-L10\",\n    \"MKT-L11\",\n    \"MKT-L12\",\n    \"MKT-L13\",\n    \"MKT-L14\",\n    \"MKT-L15\"\n  ],\n  \"rules_total\": 20,\n  \"schema_version\": \"1.0.0\",\n  \"target\": \"/tmp/adv0025-p2-tu8w9n88/t1-evil-perms/manifest.json\",\n  \"target_kind\": \"package\",\n  \"verdict\": \"PASS\"\n

@@ -1,0 +1,17 @@
+I'll start from the existing IMP-0021 probe tree, read any prior return artifact, and resume from what's already built.The probe tree is present but has no `SUBAGENT-RETURN.json` yet. Next I’ll read the unit contract, the measure script, and prior handoff so we resume instead of rebuilding.The receipt is still BLOCKED and the probe dir has no runnable named probes. I’ll inspect a delivered unit, `ready_units`, `fsops.py`, and the harvest tree so we can resume against the real contract.PowerShell is on this box at `/usr/local/bin/pwsh`. I’ll inspect a SUCCESS receipt, the schema gate, and whether we can land the helper plus catalog tests here.I'll implement the helper, catalog tests, and two named probes next, then pack a SUCCESS receipt from live reruns.I have the contract and a working Get-Item path. Next I’ll land the helper, catalog tests, and the two named probes.Probes and catalog tests passed. I’ll pack the SUCCESS receipt from the live raw logs and write the per-unit manifest.**SUCCESS:delivered IMP-0021** `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe_getitem.py:0,probe_round_trip.py:0`
+
+Harvest `UNIT-COMPLETE` / cloud-ok `ok=true` was not treated as delivery. The live receipt had `state=BLOCKED`: PowerShell missing, catalog tests absent, and `\\.\NUL` accepted because `splitdrive` ate the device spelling. This pass implements the helper and re-runs the named probes.
+
+**What landed**
+- Helper: `tools/plugin/fsops.py` — `\\?\` prefix when length > 260; reserved-device refusal **before** `splitdrive` and before the length early-return (the `\\.\NUL` false negative is closed).
+- Catalog tests: `tools/plugin/tests/test_longpath_fs.py::test_300_char_path_round_trip` and `test_reserved_names.py::test_NUL_named_file_does_not_crash_enumeration` (8 pytest passed, including the pre-fix `ntpath.relpath` negative control).
+- Named probes (re-run exit 0): `probe_round_trip.py` (300-char write/read/delete) and `probe_getitem.py` (`pwsh Get-Item -LiteralPath`, `ExactPathMatch=True`, FullName length 300).
+
+**Contract artifacts**
+- Receipt `command-center/receipts/IMP-0021.json`: 31435 B, `state=SUCCESS`.
+- Per-unit `command-center/p2-wave/probes/IMP-0021/UNIT-ARTIFACT-MANIFEST.json`: sha256 `f7cb85a6fdb28f75d7fd9ea7938ba6aea51da7cabea41b58e47d31baaa182df6` matches the live LF hash.
+- `command-center/p2-wave/probes/IMP-0021/SUBAGENT-RETURN.json`
+
+**Constraints kept:** no git write, no `unit_manifest.py --write`, no global catalog rewrite, no key rotation, no wave relaunch.
+
+**Residual (disclosed, not a G-1 blocker here):** native Windows/NTFS kernel I/O of the `\\?\` prefix was not re-run on this POSIX worker; the prefix is applied in Windows-path translation and the 300-char round-trip + Get-Item ran on Linux.

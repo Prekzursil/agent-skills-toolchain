@@ -1,0 +1,28 @@
+
+===== launch 2026-08-20T08:57:37Z attempt=1 =====
+I'll start from the existing IMP-0011 probe tree and unit contract, then implement whatever is still missing until the measure script reports delivered.IMP-0011 has no probe tree yet, so I’ll read the catalog contract and a delivered IMP unit to match the expected shape.The packer already produces matching Linux digests. Next I’ll wire `plugin-repro` as the release gate, then add probes, tests, and the receipt.Tests that take pytest’s `tmp_path` won’t run without pytest, so I’ll switch them to stdlib tempdirs and add the named probes.Probes are green. Next I’ll pack the receipt and per-unit manifest from the live probe outputs.**SUCCESS:delivered IMP-0011** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0011` printed:
+
+`SUCCESS:delivered IMP-0011 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe_ci_wiring.py:0,probe_double_build.py:0,run_required_tests.py:0`
+
+The unit had no probe tree. Double-build byte-equality is now a release gate, not a local habit.
+
+**Gate**
+- `tools/plugin/repro_check.py` is the digest oracle on Linux CI and Windows local
+- `.github/workflows/plugin-repro.yml` job `plugin-repro`: two uncached Linux `--once` steps (`BUILD-1`, `BUILD-2`), then `--compare`
+- `windows-latest` runs the same script once; `plugin-repro-cross-os` requires those digests to match
+- `tools/plugin/repro_check.ps1` is the local Windows launcher
+- `tools/plugin/tests/test_plugin_repro.py` covers two-build equality, timestamp mutant, CRLF regime, and CI wiring
+
+**Live on this Linux worker**
+- Two distinct packer runs: sha256 `586e1c7a9249e790d065afd725a8cc5f687b346800377d450778da693d9cfaae`
+- 42-file CRLF-staged tree matches that digest after documented LF normalisation
+- Timestamp extra member (`BUILD-STAMP.txt`) makes the comparator go red
+
+This worker did not execute `windows-latest`. The Windows digest is produced by the same script and is required in CI; the line-ending half of the OS-boundary claim was measured here via CRLF staging.
+
+**Artifacts**
+- Receipt: `command-center/receipts/IMP-0011.json` (`state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0011/UNIT-ARTIFACT-MANIFEST.json`
+- Handoff: `command-center/p2-wave/probes/IMP-0011/SUBAGENT-RETURN.json`
+
+No git add/commit/push, no global `unit_manifest.py --write`, no key rotation, no finish-everything / p2-cloud-ok-deliver relaunch.

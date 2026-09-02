@@ -1,0 +1,147 @@
+{
+  "artifacts": [
+    {
+      "path": "tools/research_blueprints/watchlist.py",
+      "role": "primary-implementation"
+    },
+    {
+      "path": "tools/research_blueprints/contradiction.py",
+      "role": "primary-implementation"
+    },
+    {
+      "path": "tools/research_blueprints/archival.py",
+      "role": "primary-implementation"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0237",
+  "evidence": [
+    {
+      "anchor": "tools/research_blueprints/watchlist.py:tick",
+      "claim": "A repeated watchlist run produces zero duplicate findings (computed id-set equality) and watchlist is the only scheduled blueprint of the three.",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0237/probe1_watchlist_idempotence.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"archival\": {\n    \"pass\": true,\n    \"record_count\": 1,\n    \"resumable\": false\n  },\n  \"contract\": {\n    \"omission_ids\": {\n      \"example\": \"runnable_example\",\n      \"preset\": \"preset\",\n      \"stopping_rules\": \"stopping_rules\"\n    },\n    \"pass\": true,\n    \"registered\": [\n      \"research.archival\",\n      \"research.contradiction-negative-result\",\n      \"research.watchlist\"\n    ]\n  },\n  \"id\": \"watchlist-idempotence\",\n  \"pass\": true,\n  \"schedule\": {\n    \"count\": 3,\n    \"kinds\": {\n      \"research.archival\": \"one-shot\",\n      \"research.contradiction-negative-result\": \"one-shot\",\n      \"research.watchlist\": \"scheduled\"\n    },\n    \"pass\": true,\n    \"scheduled\": [\n      \"research.watchlist\"\n    ]\n  },\n  \"watchlist\": {\n    \"first_duplicates\": 0,\n    \"first_new\": 3,\n    \"id_equal\": true,\n    \"pass\": true,\n    \"resume_all\": 3,\n    \"resume_duplicates\": 0,\n    \"resume_resumed\": true,\n    \"second_duplicates\": 0,\n    \"second_new\": 0,\n    \"source_count\": 3\n  }\n}\nfirst_new=3 second_new=0 duplicates=0 scheduled=['research.watchlist']\nSUCCESS:IMP-0237-probe1 watchlist idempotent across two runs",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/research_blueprints/contradiction.py:run",
+      "claim": "An impossible counterevidence request yields a schema-valid proof-of-impossibility; an obtainable request returns findings; an open-world miss is not an empty pass (both-states).",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0237/probe2_impossibility_both_states.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"distinct_exits\": {\n    \"functions\": [\n      \"exit_attempt_limit\",\n      \"exit_proved_impossible\",\n      \"exit_review_passed\"\n    ],\n    \"pass\": true,\n    \"run_returns\": [\n      \"exit_attempt_limit\",\n      \"exit_proved_impossible\",\n      \"exit_review_passed\"\n    ]\n  },\n  \"id\": \"impossibility-both-states\",\n  \"impossibility\": {\n    \"both_states\": {\n      \"impossible_is_proof\": true,\n      \"obtainable_is_not_proof\": true,\n      \"open_miss_is_not_pass_or_proof\": true\n    },\n    \"empty_search_rejected\": true,\n    \"impossible_kind\": \"proof-of-impossibility\",\n    \"impossible_valid\": true,\n    \"impossible_violations\": [],\n    \"miss_kind\": \"attempt-limit-reached\",\n    \"obtainable_findings\": 1,\n    \"obtainable_kind\": \"review-passed\",\n    \"pass\": true\n  },\n  \"pass\": true\n}\nobtainable_kind=review-passed impossible_valid=True miss_kind=attempt-limit-reached empty_search_rejected=True exits=['exit_attempt_limit', 'exit_proved_impossible', 'exit_review_passed']\nSUCCESS:IMP-0237-probe2 impossible request yields proof-of-impossibility",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "IMP-0237",
+  "implementation": {
+    "blueprints": [
+      "research.archival",
+      "research.contradiction-negative-result",
+      "research.watchlist"
+    ],
+    "package": "tools/research_blueprints",
+    "repair_loop_exits": [
+      "exit_review_passed",
+      "exit_attempt_limit",
+      "exit_proved_impossible"
+    ],
+    "schedule_kinds": {
+      "research.archival": "one-shot",
+      "research.contradiction-negative-result": "one-shot",
+      "research.watchlist": "scheduled"
+    },
+    "scheduled_only": [
+      "research.watchlist"
+    ]
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0237/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "Second watchlist tick over the same snapshot must append zero findings; duplicate_count stays 0.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0237-C1-second-tick-zero-new",
+      "kind": "idempotence",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Obtainable counterevidence is review-passed with findings; destroyed-complete-archive request is a valid proof; open-world miss is attempt-limit-reached, not a pass.",
+      "fired_on_bad_state": true,
+      "id": "IMP-0237-C2-impossibility-both-states",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "A payload that only reports 'found nothing' fails validate_proof (not_an_empty_search / closed_world).",
+      "fired_on_bad_state": true,
+      "id": "IMP-0237-C3-empty-search-rejected",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 IMP-0237: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0237",
+  "output_path": "command-center/receipts/IMP-0237.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "premise": {
+    "action": "Created tools/research_blueprints on this sparse worktree and implemented the three research blueprints plus live named probes. Did not exit on predicate:absent.",
+    "catalog_inputs": [
+      "IMP-0230 blueprint contract",
+      "IMP-0139 RepairLoop"
+    ],
+    "inputs_were_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "local-parallel",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is the empty-search mutant plus AST discrimination of RepairLoop's three terminal constructors.",
+    "reviewer_id": "IMP-0237-probe2-impossibility-and-distinct-exits",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0237",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0237: archival, contradiction-negative-result, watchlist; watchlist is the only SCHEDULED blueprint and is resumable/idempotent; contradiction returns a schema-valid proof-of-impossibility, not an empty pass",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0237/probe1_watchlist_idempotence.py",
+      "exit_code": 0,
+      "id": "watchlist-idempotent-across-two-runs",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0237/probe2_impossibility_both_states.py",
+      "exit_code": 0,
+      "id": "impossible-request-yields-proof-of-impossibility",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:03:05Z",
+    "started_at": "2026-08-25T01:03:05Z"
+  },
+  "title": "Implement research blueprints 13-15: archival, contradiction/negative-result, watchlist",
+  "unit_id": "IMP-0237"
+}

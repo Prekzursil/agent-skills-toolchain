@@ -1,0 +1,47 @@
+{
+  "id": "wf.engineering.dependency-supply-chain-audit",
+  "kind": "workflow_blueprint",
+  "title": "Dependency / supply-chain audit with advisory decay",
+  "discovery_only": false,
+  "example_id": "ex.supply.stale-green-rerun",
+  "preset_id": "preset.supply.advisory-live-ttl",
+  "stages": [
+    {
+      "id": "load-lockfile",
+      "kind": "read-config",
+      "inputs": ["osv-scanner.toml", "lockfile.json"],
+      "outputs": ["packages"]
+    },
+    {
+      "id": "classify-stored-scan",
+      "kind": "ttl-classify",
+      "inputs": ["stored-scan", "injected-clock"],
+      "outputs": ["fresh-or-stale"]
+    },
+    {
+      "id": "rerun-if-stale",
+      "kind": "hermetic-advisory-join",
+      "inputs": ["packages", "advisory_db.json"],
+      "outputs": ["live-scan"]
+    }
+  ],
+  "stopping": {
+    "max_stages": 3,
+    "on_error": "halt",
+    "reject": "stale-green-reused"
+  },
+  "smoke_test": {
+    "id": "smoke.supply.decay",
+    "entry": "runner.smoke_supply_chain"
+  },
+  "capability_vector": {
+    "taxonomy_id": "engineering-reliability.capability-taxonomy",
+    "taxonomy_version": "1.0.0",
+    "axes": {
+      "refactor.equivalence-argument": 0,
+      "migrate.rehearse-copy": 0,
+      "supply.advisory-decay": 1,
+      "vendor.canonical-roundtrip": 0
+    }
+  }
+}

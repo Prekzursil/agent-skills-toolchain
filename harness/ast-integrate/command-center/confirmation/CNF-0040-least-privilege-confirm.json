@@ -1,0 +1,381 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1074,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/permission-report.schema.json",
+   "role": "supporting",
+   "sha256": "cfabcfdcca550e08e8abcf283c360bd59abc8496e6cf54456e41a3082f53e2a1"
+  },
+  {
+   "bytes": 3006,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0040/choke.py",
+   "role": "supporting",
+   "sha256": "89fd89ca04f093017db7e79b8bbb9158eb49b18f43189dbf00fb22d7ee62f1e1"
+  },
+  {
+   "bytes": 3409,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0040/catalog_perms.py",
+   "role": "supporting",
+   "sha256": "c1c0c9daa63cd6784282e3c41bcefa5878ffdd3078d33e43ce4a9c2830a66117"
+  },
+  {
+   "bytes": 7755,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0040/subject.py",
+   "role": "supporting",
+   "sha256": "28fd4bd72bfb8877fb0083ff640acbc38f9ec522203c6c35c416ece265c4c123"
+  },
+  {
+   "bytes": 3430,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0040/probe1_reduced_vs_full.py",
+   "role": "supporting",
+   "sha256": "b668190b2bdc6ab93879d70e1c278c3577357c44b9e2e867a28c1479424f36c9"
+  },
+  {
+   "bytes": 5203,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py",
+   "role": "supporting",
+   "sha256": "ec30de48fef64c56fb9a976a5e2286a03cd635c4fcf37a7a005795076d7dc598"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0040-least-privilege-confirm.json",
+   "consumer": "command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py",
+    "exit_code": 0,
+    "fingerprint": "5227b25fe1f0db330d1d9de9eefdb026ecb3c87b00e74b9daaa66097b3f3dc1d",
+    "method": "command",
+    "raw_output": "{\"detector_fired\": true, \"full_ok\": true, \"honest_class\": \"loud-deny\", \"honest_ok\": false}",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0040/probe1_reduced_vs_full.py:1",
+   "claim": "IMP-0136 verification under the declared grant and under a strict-superset full grant both pass, with outcomes explained.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0040/probe1_reduced_vs_full.py",
+     "exit_code": 0,
+     "fingerprint": "d1a5948309d6dc037f0ae9f69652ada81cad3081734bff7658717caae80e887f",
+     "method": "test-run",
+     "raw_output": "{\"evaluate_calls\": 28, \"full_ok\": true, \"mutant_red\": true, \"reduced_ok\": true, \"relation\": \"explained\"}",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c in-process subject.run_pair(declared)",
+     "exit_code": 0,
+     "fingerprint": "1b6b16b477dfd191810d9cbe1dfb690e0a6c216b314c2a16c04f0a3102db44e0",
+     "method": "command",
+     "raw_output": "Both the reduced (declared) grant and the full-grant control passed. The verification only requests tools that are already in the declared set; extra tools in the full grant were unused.",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py:1",
+   "claim": "Honest subject fails loudly without Write; silent-degradation mutant is detected; full-grant control still passes.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py",
+     "exit_code": 0,
+     "fingerprint": "7fef0a027e9b9af59b45347c7e7074d17b0cac764884578ea33a7cf5991eda1c",
+     "method": "test-run",
+     "raw_output": "{\"detector_fired\": true, \"full_ok\": true, \"honest_class\": \"loud-deny\", \"honest_ok\": false}",
+     "role": "source"
+    },
+    {
+     "command": "json.loads(CNF-0040-least-privilege-confirm.json).report.silent_degradation",
+     "exit_code": 0,
+     "fingerprint": "ff06516278c1a20fc8538934036fa1d8d980f9790d8ccbb6620b059dc06b81f5",
+     "method": "file-read",
+     "raw_output": "{\"denied_permission\": \"Write\", \"detector_fired\": true, \"honest_classification\": \"loud-deny\", \"honest_error_text\": \"PERMISSION DENIED: Write is not in the granted set ['Bash', 'Edit', 'Glob', 'Grep', 'Read']\", \"honest_ok\": false, \"mutant_artifact_marked_degraded\": false, \"mutant_ok\": true, \"mutant_transcript_written\": false, \"probed\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "adv_rebuild_circle": false,
+  "cloud_ok": false,
+  "required_fix": null
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0040",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0040/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2500,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"detector_fired\": true, \"full_ok\": true, \"honest_class\": \"loud-deny\", \"honest_ok\": false}",
+   "description": "Strip Write and run a mutant that still reports ok=True without a transcript; detector must fire. Honest subject must fail loudly on the same grant.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"evaluate_calls\": 28, \"full_ok\": true, \"mutant_red\": true, \"reduced_ok\": true, \"relation\": \"explained\"}",
+   "id": "NC-SILENT-DEGRADATION",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\"detector_red\": true, \"error_text\": \"OVER-PRIVILEGED: requested tools not in declaration: ['Network']; spawns=1\", \"raised\": true, \"spawns\": 1, \"zero_spawn_assertion_holds\": false}",
+   "description": "Move the over-privileged check after spawn; the zero-spawn assertion must go red.",
+   "fired_on_bad_state": true,
+   "good_state_output": "overpriv_spawns=0 compliant_spawns=1",
+   "id": "NC-POST-SPAWN-OVERPRIV",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-serialized",
+  "model": "grok-4.6",
+  "role": "permission-boundary-engineer",
+  "vendor": "xai"
+ },
+ "report": {
+  "agentspec_dispatchpolicy_present": true,
+  "answer": "The IMP-0136 verification still passes under the unit's declared tool_permissions and under a strict-superset full grant. Outcomes are explained: the verification only requests tools already in the declared set. Denying Write (a declared, exercised permission) fails loudly with a message that names Write; a silent-degradation mutant that still reports success was detected. tools/agentspec/agentspec/dispatchpolicy.py is present but only enforces background-on-awaited and explicit-timeout; it does not refuse a unit whose requested tools are outside its declaration. WorkUnit fields=['id', 'prompt', 'timeout_s', 'receipt', 'depends_on', 'budget_micro', 'isolation', 'writes'] has_tool_permissions=False. This confirmation executed a mechanically equivalent single-choke-point harness (pre-spawn refusal + spawn-count rail) rather than importing a missing tool_permissions dispatcher.",
+  "choke_point": {
+   "evaluate_calls_sample": 28,
+   "every_capability_crosses": true,
+   "path": "command-center/p2-wave/probes/CNF-0040/choke.py",
+   "single": true,
+   "symbol": "choke.evaluate"
+  },
+  "confirmer_declared_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash"
+  ],
+  "control": {
+   "full_grant_ok": true,
+   "isolates_permissions": true,
+   "permission_set": [
+    "Bash",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Network",
+    "PowerShell",
+    "Read",
+    "Write",
+    "mcp__cloud-hub__modal_sandbox_exec"
+   ]
+  },
+  "control_ids": [
+   "full-grant-control",
+   "silent-degradation-mutant",
+   "post-spawn-overpriv-mutant"
+  ],
+  "declared_permissions": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Edit",
+   "Write",
+   "Bash"
+  ],
+  "failure_classifications_considered": [
+   "silent-degradation",
+   "permission-overreach",
+   "unclear-error"
+  ],
+  "full_run": {
+   "classification": "pass",
+   "error_text": "",
+   "exit_code": 0,
+   "ok": true,
+   "permission_set": [
+    "Bash",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Network",
+    "PowerShell",
+    "Read",
+    "Write",
+    "mcp__cloud-hub__modal_sandbox_exec"
+   ],
+   "spawns_compliant": 1,
+   "spawns_overpriv": 0,
+   "tools_requested": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write"
+   ],
+   "transcript_written": true
+  },
+  "implementing_unit": {
+   "declared_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Edit",
+    "Write",
+    "Bash"
+   ],
+   "id": "IMP-0136",
+   "output_path": "command-center/receipts/IMP-0136.json",
+   "source_paths_present": {
+    "tools/agentspec/agentspec/dispatchpolicy.py": true,
+    "tools/agentspec/agentspec/spec.py": true
+   },
+   "title": "Add a per-unit least-privilege tool-permission set to the spec"
+  },
+  "kind": "permission-report",
+  "least_privilege": "still-passes",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0040/subject.py:169",
+    "measured": true,
+    "method": "in-process Gate.evaluate under declared tool_permissions",
+    "name": "reduced-grant-ok"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0040/catalog_perms.py:81",
+    "measured": true,
+    "method": "in-process Gate.evaluate under declared union SEED_DEFAULTS union FULL_EXTRA",
+    "name": "full-grant-ok"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py:25",
+    "measured": true,
+    "method": "honest Write-deny vs silent mutant under stripped grant",
+    "name": "silent-degradation-detector-fired"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0040/choke.py:79",
+    "measured": true,
+    "method": "dispatch_after_spawn over-privileged request",
+    "name": "post-spawn-mutant-red"
+   }
+  ],
+  "outcomes_explanation": "Both the reduced (declared) grant and the full-grant control passed. The verification only requests tools that are already in the declared set; extra tools in the full grant were unused.",
+  "outcomes_relation": "explained",
+  "question": "Was the fix only verified with a permissive tool grant? Re-run its verification with the minimum declared permission set and answer: does it still pass, does it fail loudly with a clear message, or does it silently degrade to a weaker behaviour that still reports success?",
+  "reduced_run": {
+   "classification": "pass",
+   "error_text": "",
+   "exit_code": 0,
+   "ok": true,
+   "permission_set": [
+    "Bash",
+    "Edit",
+    "Glob",
+    "Grep",
+    "Read",
+    "Write"
+   ],
+   "spawns_compliant": 1,
+   "spawns_overpriv": 0,
+   "tools_requested": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash",
+    "Write"
+   ],
+   "transcript_written": true
+  },
+  "residual": "tools/agentspec/agentspec/dispatchpolicy.py is present but only enforces background-on-awaited and explicit-timeout; it does not refuse a unit whose requested tools are outside its declaration. WorkUnit fields=['id', 'prompt', 'timeout_s', 'receipt', 'depends_on', 'budget_micro', 'isolation', 'writes'] has_tool_permissions=False. This confirmation executed a mechanically equivalent single-choke-point harness (pre-spawn refusal + spawn-count rail) rather than importing a missing tool_permissions dispatcher.",
+  "silent_degradation": {
+   "denied_permission": "Write",
+   "detector_fired": true,
+   "honest_classification": "loud-deny",
+   "honest_error_text": "PERMISSION DENIED: Write is not in the granted set ['Bash', 'Edit', 'Glob', 'Grep', 'Read']",
+   "honest_ok": false,
+   "mutant_artifact_marked_degraded": false,
+   "mutant_ok": true,
+   "mutant_transcript_written": false,
+   "probed": true
+  },
+  "unused_declared_permissions": [
+   "Edit"
+  ],
+  "workunit_tool_permissions_field": {
+   "fields": [
+    "id",
+    "prompt",
+    "timeout_s",
+    "receipt",
+    "depends_on",
+    "budget_micro",
+    "isolation",
+    "writes"
+   ],
+   "has_tool_permissions": false,
+   "path": "tools/agentspec/agentspec/spec.py",
+   "spec_present": true
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "tools/agentspec/agentspec/dispatchpolicy.py is present but only enforces background-on-awaited and explicit-timeout; it does not refuse a unit whose requested tools are outside its declaration. WorkUnit fields=['id', 'prompt', 'timeout_s', 'receipt', 'depends_on', 'budget_micro', 'isolation', 'writes'] has_tool_permissions=False. This confirmation executed a mechanically equivalent single-choke-point harness (pre-spawn refusal + spawn-count rail) rather than importing a missing tool_permissions dispatcher.",
+   "settling_experiment": "Add WorkUnit.tool_permissions and a pre-spawn subset check in dispatchpolicy, then re-run this confirmer against the product dispatcher instead of the harness Gate.",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Mechanical reviewer: re-run the silent-degradation detector and the full-grant control. Catalog also names a human security reviewer plus a CI re-run on an identical commit SHA; this worktree is not a git repository, so the SHA re-run is residual.",
+  "reviewer_id": "CNF-0040-probe2-silent-degradation",
+  "vendor": "unassigned",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0040 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the reduced-permission run and the full-permission control both ran and their outcomes differ or are explained. Any other terminal state is FAILED:CNF-0040 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "_USER-PROMPTS.md:11320-11321",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0040/probe1_reduced_vs_full.py",
+   "id": "probe1",
+   "name": "reduced vs full grant and pre-spawn control",
+   "result": "PASS"
+  },
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0040/probe2_silent_degradation.py",
+   "id": "probe2",
+   "name": "silent-degradation detector and full-grant control",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "duration_seconds": 0.197168,
+  "ended_at": "2026-08-25T00:58:09Z",
+  "started_at": "2026-08-25T00:58:09Z"
+ },
+ "unit_id": "CNF-0040"
+}

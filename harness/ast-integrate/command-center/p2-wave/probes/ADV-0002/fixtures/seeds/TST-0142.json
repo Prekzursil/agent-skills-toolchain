@@ -1,0 +1,398 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0142",
+ "state": "BLOCKED",
+ "sentinel": "SUCCESS:TST-0142",
+ "profile": "scheduler-report",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0142",
+ "min_bytes_threshold": 1024,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0142.json",
+   "bytes": 33430,
+   "sha256": "4eb14bc735dd3f0f89c3f53c0a9bf3ca6a3463ca53b6b374b4132475140b80ba",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "The nearest live R2E fan-in returns a typed PARTIAL retaining all six launches and naming the three HTTP-429-blocked unit ids. The fresh rerun instead returns scalar zero, reports SUCCESS 3/3, omits every blocked id, and is independently corroborated by a disk enumeration finding only three receipts.",
+   "verdict": "REFUTED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/probe_barrier_object.py",
+     "raw_output": "NAMED PROBE A: barrier returned object compared against launch manifest\nunit=TST-0142\nstage=refute\nprior_stage_output=implement rc=0\ncandidate=command-center/p2-wave/r2e_loop.py::main\ninjection=three of six submitted futures raise HTTP 429 at fan-in\nlaunch_manifest_ids=FAN-0001,FAN-0002,FAN-0003,FAN-0004,FAN-0005,FAN-0006\nlaunch_manifest_count=6\ninjected_429_unit_ids=FAN-0004,FAN-0005,FAN-0006\ncandidate_main_return_type=int\ncandidate_main_return_json=0\ncandidate_wave_end_object={\"event\":\"wave-end\",\"n\":3,\"ok\":3}\ncandidate_stdout=SUCCESS:r2e-wave ok=3/3\ncandidate_crash_ids=FAN-0004,FAN-0005,FAN-0006\ncandidate_normalized_claim={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\ncandidate_contract_error_count=4\ncandidate_contract_error_1=barrier return type='int', expected typed object\ncandidate_contract_error_2=status='COMPLETE', expected 'PARTIAL'\ncandidate_contract_error_3=launched_count=3, expected 6\ncandidate_contract_error_4=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nunblocked_candidate_wave_end_object={\"event\":\"wave-end\",\"n\":6,\"ok\":6}\nunblocked_candidate_stdout=SUCCESS:r2e-wave ok=6/6\nboth_states_reference_unblocked={\"blocked_unit_ids\":[],\"complete_count\":6,\"launched_count\":6,\"status\":\"COMPLETE\"}\nboth_states_reference_partial={\"blocked_unit_ids\":[\"FAN-0004\",\"FAN-0005\",\"FAN-0006\"],\"complete_count\":3,\"launched_count\":6,\"status\":\"PARTIAL\"}\nboth_states_control_result=PASS\nnegative_control_mutant={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\nnegative_control_error_count=3\nnegative_control_error_1=status='COMPLETE', expected 'PARTIAL'\nnegative_control_error_2=launched_count=3, expected 6\nnegative_control_error_3=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nnegative_control_fired=true\nnegative_control_silent_on_good_state=true\ncandidate_result=FAIL\nPROBE-A-COMPLETE:TST-0142\n",
+     "fingerprint": "3cd3bafc642c87c192a5c1e0",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "file-read",
+     "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/probe_receipt_count.py",
+     "raw_output": "NAMED PROBE B: independent count of receipt files on disk\nunit=TST-0142\nstage=refute\nprior_stage_output=implement rc=0\nenumeration_api=os.scandir\nlaunch_manifest=command-center/p2-wave/probes/TST-0142/runtime/blocked-half/launch-manifest.json\nreceipt_directory=command-center/p2-wave/probes/TST-0142/runtime/blocked-half/receipts\nlaunched_count=6\nlaunched_ids=FAN-0001,FAN-0002,FAN-0003,FAN-0004,FAN-0005,FAN-0006\nreceipt_file_count=3\nreceipt_file_names=FAN-0001.json,FAN-0002.json,FAN-0003.json\nreceipt_unit_ids=FAN-0001,FAN-0002,FAN-0003\nmissing_receipt_count=3\nmissing_receipt_unit_ids=FAN-0004,FAN-0005,FAN-0006\nunexpected_receipt_count=0\nexpected_429_blocked_ids=FAN-0004,FAN-0005,FAN-0006\nmissing_ids_match_429_blocked=true\ndisk_count_matches_survivors=true\ndisk_count_matches_launched=false\nindependent_signal_result=FAIL: only 3 receipt files exist for 6 launched units\nPROBE-B-COMPLETE:TST-0142\n",
+     "fingerprint": "dd138b494f97960706b949c3",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "The exact declared B07 scheduler target cannot be executed in this repository projection because B07 has no catalog row and the declared fan-out contract path is absent.",
+   "verdict": "BLOCKED",
+   "anchor": "command-center/p2-wave/probes/TST-0142/target-surface-audit.raw.txt",
+   "probes": [
+    {
+     "role": "source",
+     "method": "static-analysis",
+     "command": "resolve TST-0142 B07 and fan-out-contract inputs, then audit r2e_loop.py AST",
+     "raw_output": "TST-0142 TARGET SURFACE AUDIT\nstage=refute\nprior_stage_output=implement rc=0\nevidence_requirement_verbatim=two independent signals: (a) the barrier's returned object compared against the launch manifest, and (b) an independent count of receipt files on disk\ndeclared_dependency=B07\nexact_b07_catalog_row_count=0\nb07_dependency_resolves=false\ndeclared_contract=rules/common/fan-out-contract.md\ndeclared_contract_exists=false\nmeasure_rate_exists=true\nnearest_live_cloud_batch_barrier_candidate=command-center/p2-wave/r2e_loop.py::main\ncandidate_sha256=449ed58aa1a05a05751a1d41abd52952efbb536b0e69f34fe06bf85934f3a39f\ncandidate_functions=_adapter_record,_codex_exec_cmd,_log_snippet,append_status,load_units,main,note_unit_result,preflight,process_unit,run_codex,tail_complete,unit_prompt\ncandidate_PARTIAL_token_count=1\ncandidate_429_token_count=0\ncandidate_blocked_unit_ids_token_count=0\ncandidate_reducer_anchor=command-center/p2-wave/r2e_loop.py:366-379\ncandidate_compaction_expression=n=len(results)\ncandidate_success_expression=SUCCESS:r2e-wave ok={ok}/{len(results)}\nexact_production_b07_executed=false\ntarget_verdict=BLOCKED: exact B07 implementation and declared fan-out contract are absent\nTARGET-SURFACE-AUDIT-COMPLETE:TST-0142\n",
+     "fingerprint": "5edfd11c1b1fd15896912f16",
+     "exit_code": 1
+    }
+   ],
+   "unverified": true,
+   "settling_experiment": "Supply or map the runnable B07 scheduler and rules/common/fan-out-contract.md, then replay the same six-id fixture through that exact barrier."
+  },
+  {
+   "claim": "Completion condition 11 is live-red, so process SUCCESS is withheld.",
+   "verdict": "BLOCKED",
+   "anchor": "command-center/p2-wave/probes/TST-0142/condition11-live-check.raw.txt",
+   "probes": [
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check",
+     "raw_output": "CONDITION 11 LIVE CHECK\nstage=refute\nprior_stage_output=implement rc=0\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check\nexit_code=1\nstdout_begin\nFAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nstdout_end\nstderr_begin\n<EMPTY>\nstderr_end\ncondition11_live=false\nmanifest_write_invoked=false\nCONDITION-11-CHECK-COMPLETE:TST-0142\n",
+     "fingerprint": "dbaf2b4d486d4a43a0bd47eb",
+     "exit_code": 1
+    }
+   ]
+  },
+  {
+   "claim": "The executable contract assertion is green for valid COMPLETE and PARTIAL objects and goes red for a barrier that filters blocked units before computing its denominator.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0142/both-states-control.raw.txt",
+   "probes": [
+    {
+     "role": "source",
+     "method": "test-run",
+     "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/assert_barrier_contract.py --case both-states",
+     "raw_output": "TST-0142 EXECUTABLE BARRIER CONTRACT ASSERTION\nstage=refute\nprior_stage_output=implement rc=0\ntests_required_verbatim=both-states control: an unblocked cohort returns COMPLETE with the same denominator\ncase=unblocked\nresult={\"blocked_unit_ids\":[],\"complete_count\":6,\"launched_count\":6,\"status\":\"COMPLETE\"}\ncontract_error_count=0\nassertion_result=PASS\ncase=half-blocked\nresult={\"blocked_unit_ids\":[\"FAN-0004\",\"FAN-0005\",\"FAN-0006\"],\"complete_count\":3,\"launched_count\":6,\"status\":\"PARTIAL\"}\ncontract_error_count=0\nassertion_result=PASS\noverall_result=PASS\nBOTH-STATES-ASSERTION-COMPLETE:TST-0142\nobserved_exit_code=0\nexpected_exit_code=0\n",
+     "fingerprint": "1a9991120768e0d42444725d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "test-run",
+     "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/assert_barrier_contract.py --case shrunken-mutant",
+     "raw_output": "TST-0142 EXECUTABLE BARRIER CONTRACT ASSERTION\nstage=refute\nprior_stage_output=implement rc=0\ntests_required_verbatim=negative control: a barrier that filters blocked units out of its own denominator must fail\ncase=shrunken-denominator-mutant\nresult={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\ncontract_error_count=3\ncontract_error_1=status='COMPLETE', expected 'PARTIAL'\ncontract_error_2=launched_count=3, expected 6\ncontract_error_3=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nassertion_result=FAIL\noverall_result=FAIL\nNEGATIVE-CONTROL-ASSERTION-COMPLETE:TST-0142\nobserved_exit_code=1\nexpected_exit_code=nonzero\n",
+     "fingerprint": "543047a1554abb40732f5554",
+     "exit_code": 1
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "TST-0142-PRODUCTION-CANDIDATE",
+   "name": "half-blocked candidate preserves launched denominator and blocked ids",
+   "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/probe_barrier_object.py",
+   "result": "NOT-RUN",
+   "assertions": 4,
+   "output_tail": "barrier return type='int', expected typed object\nstatus='COMPLETE', expected 'PARTIAL'\nlaunched_count=3, expected 6\nblocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nCLOUD-OK honesty: harness scripts and named raw files are absent on this tree; result demoted to NOT-RUN."
+  },
+  {
+   "id": "TST-0142-T1",
+   "name": "both-states control: an unblocked cohort returns COMPLETE with the same denominator",
+   "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/assert_barrier_contract.py --case both-states",
+   "result": "NOT-RUN",
+   "assertions": 8,
+   "output_tail": "TST-0142 EXECUTABLE BARRIER CONTRACT ASSERTION\nstage=refute\nprior_stage_output=implement rc=0\ntests_required_verbatim=both-states control: an unblocked cohort returns COMPLETE with the same denominator\ncase=unblocked\nresult={\"blocked_unit_ids\":[],\"complete_count\":6,\"launched_count\":6,\"status\":\"COMPLETE\"}\ncontract_error_count=0\nassertion_result=PASS\ncase=half-blocked\nresult={\"blocked_unit_ids\":[\"FAN-0004\",\"FAN-0005\",\"FAN-0006\"],\"complete_count\":3,\"launched_count\":6,\"status\":\"PARTIAL\"}\ncontract_error_count=0\nassertion_result=PASS\noverall_result=PASS\nBOTH-STATES-ASSERTION-COMPLETE:TST-0142\nobserved_exit_code=0\nexpected_exit_code=0\n\nCLOUD-OK honesty: harness scripts and named raw files are absent on this tree; result demoted to NOT-RUN."
+  },
+  {
+   "id": "TST-0142-NC1",
+   "name": "negative control: a barrier that filters blocked units out of its own denominator must fail",
+   "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/assert_barrier_contract.py --case shrunken-mutant",
+   "result": "NOT-RUN",
+   "assertions": 3,
+   "output_tail": "TST-0142 EXECUTABLE BARRIER CONTRACT ASSERTION\nstage=refute\nprior_stage_output=implement rc=0\ntests_required_verbatim=negative control: a barrier that filters blocked units out of its own denominator must fail\ncase=shrunken-denominator-mutant\nresult={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\ncontract_error_count=3\ncontract_error_1=status='COMPLETE', expected 'PARTIAL'\ncontract_error_2=launched_count=3, expected 6\ncontract_error_3=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nassertion_result=FAIL\noverall_result=FAIL\nNEGATIVE-CONTROL-ASSERTION-COMPLETE:TST-0142\nobserved_exit_code=1\nexpected_exit_code=nonzero\n\nCLOUD-OK honesty: harness scripts and named raw files are absent on this tree; result demoted to NOT-RUN."
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "TST-0142-NC1",
+   "kind": "mutation",
+   "description": "negative control: a barrier that filters blocked units out of its own denominator must fail",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "TST-0142 EXECUTABLE BARRIER CONTRACT ASSERTION\nstage=refute\nprior_stage_output=implement rc=0\ntests_required_verbatim=negative control: a barrier that filters blocked units out of its own denominator must fail\ncase=shrunken-denominator-mutant\nresult={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\ncontract_error_count=3\ncontract_error_1=status='COMPLETE', expected 'PARTIAL'\ncontract_error_2=launched_count=3, expected 6\ncontract_error_3=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nassertion_result=FAIL\noverall_result=FAIL\nNEGATIVE-CONTROL-ASSERTION-COMPLETE:TST-0142\nobserved_exit_code=1\nexpected_exit_code=nonzero\n",
+   "good_state_output": "TST-0142 EXECUTABLE BARRIER CONTRACT ASSERTION\nstage=refute\nprior_stage_output=implement rc=0\ntests_required_verbatim=both-states control: an unblocked cohort returns COMPLETE with the same denominator\ncase=unblocked\nresult={\"blocked_unit_ids\":[],\"complete_count\":6,\"launched_count\":6,\"status\":\"COMPLETE\"}\ncontract_error_count=0\nassertion_result=PASS\ncase=half-blocked\nresult={\"blocked_unit_ids\":[\"FAN-0004\",\"FAN-0005\",\"FAN-0006\"],\"complete_count\":3,\"launched_count\":6,\"status\":\"PARTIAL\"}\ncontract_error_count=0\nassertion_result=PASS\noverall_result=PASS\nBOTH-STATES-ASSERTION-COMPLETE:TST-0142\nobserved_exit_code=0\nexpected_exit_code=0\n"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "openai/gpt-5.2 C5 review wave 2026-08-21 (cursor)",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "openai",
+  "notes": "Fresh-context independent review (C5 wave, 2026-08-21). Falsification attempt: I tried to find a counter-example by validating the delivered artifact against its DECLARED output schema from the work-unit catalog, rather than trusting narrative text. Unit TST-0142 at command-center/receipts/TST-0142.json declares output_schema='command-center/schema/receipt.schema.json#/$defs/scheduler_report'; schema_errors=0. Receipt predicate both-states control: ran the 12-condition reader with filesystem checks on vs off; blocking(on)=['c1=UNSATISFIED', 'c3=UNSATISFIED', 'c5=UNSATISFIED', 'c6=UNSATISFIED', 'c7=UNSATISFIED', 'c10=UNSATISFIED']; blocking(off)=['c1=UNSATISFIED', 'c2=NOT-CHECKED', 'c3=NOT-CHECKED', 'c5=UNSATISFIED', 'c6=UNSATISFIED', 'c7=UNSATISFIED']. I also cross-checked the catalog reviewer requirement for vendor eligibility (required reviewer_vendor=any). Catalog reviewer_requirement (verbatim, normalized whitespace): one independent adversarial reviewer in a fresh context who did not author the harness under test",
+  "reviewed_at": "2026-08-21T01:10:17Z"
+ },
+ "defects": [
+  {
+   "id": "TST-0142-D1",
+   "severity": "P1",
+   "status": "open",
+   "summary": "r2e_loop.py drops exceptional futures from results, derives n from the survivors, and prints SUCCESS even when launched units are missing."
+  },
+  {
+   "id": "TST-0142-D-SIDECARS-ABSENT",
+   "severity": "P1",
+   "status": "open",
+   "summary": "Harvest packed only the primary receipt. Twenty-nine artifacts[] rows claimed exists=true under command-center/p2-wave/probes/TST-0142/ and all are absent on this Windows tree."
+  },
+  {
+   "id": "TST-0142-D-C11-RED",
+   "severity": "P1",
+   "status": "open",
+   "summary": "Live python tools/command-center/unit_manifest.py --check (WRITE=false) exits 1. First red is command-center/receipts/CC-0010.json names absent artifact command-center/p2-wave/probes/CC-0010/REFUTATION-REPORT.txt. Worker receipt still cites stale TST-0350/suitefloor.py."
+  }
+ ],
+ "manifest_registration": {
+  "registered": false,
+  "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0142"
+ },
+ "timestamps": {
+  "started_at": "2026-08-17T01:53:40.857271Z",
+  "ended_at": "2026-08-17T01:53:42.641791Z",
+  "duration_seconds": 1.784555
+ },
+ "retry": {
+  "count": 0,
+  "policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry"
+ },
+ "failure": {
+  "classification": [
+   "dependency-blocked",
+   "detector-failure",
+   "green-not-live",
+   "overclaim"
+  ],
+  "reason": "P2 real-delivery fails: named probe files absent after harvest-of-output_path-only; manifest_registration.registered=false; live unit_manifest --check is red on CC-0010; reviewer NOT-REVIEWED; exact B07 catalog row count is 0. Nearest live r2e_loop.py still drops exceptional futures and prints SUCCESS over the survivor denominator. state remains BLOCKED. SUCCESS and registered=true were not hand-flipped.",
+  "diagnostic_tail": "TST-0142 TARGET SURFACE AUDIT\nstage=refute\nprior_stage_output=implement rc=0\nevidence_requirement_verbatim=two independent signals: (a) the barrier's returned object compared against the launch manifest, and (b) an independent count of receipt files on disk\ndeclared_dependency=B07\nexact_b07_catalog_row_count=0\nb07_dependency_resolves=false\ndeclared_contract=rules/common/fan-out-contract.md\ndeclared_contract_exists=false\nmeasure_rate_exists=true\nnearest_live_cloud_batch_barrier_candidate=command-center/p2-wave/r2e_loop.py::main\ncandidate_sha256=449ed58aa1a05a05751a1d41abd52952efbb536b0e69f34fe06bf85934f3a39f\ncandidate_functions=_adapter_record,_codex_exec_cmd,_log_snippet,append_status,load_units,main,note_unit_result,preflight,process_unit,run_codex,tail_complete,unit_prompt\ncandidate_PARTIAL_token_count=1\ncandidate_429_token_count=0\ncandidate_blocked_unit_ids_token_count=0\ncandidate_reducer_anchor=command-center/p2-wave/r2e_loop.py:366-379\ncandidate_compaction_expression=n=len(results)\ncandidate_success_expression=SUCCESS:r2e-wave ok={ok}/{len(results)}\nexact_production_b07_executed=false\ntarget_verdict=BLOCKED: exact B07 implementation and declared fan-out contract are absent\nTARGET-SURFACE-AUDIT-COMPLETE:TST-0142\nCONDITION 11 LIVE CHECK\nstage=refute\nprior_stage_output=implement rc=0\ncommand=PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/unit_manifest.py --check\nexit_code=1\nstdout_begin\nFAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py\nstdout_end\nstderr_begin\n<EMPTY>\nstderr_end\ncondition11_live=false\nmanifest_write_invoked=false\nCONDITION-11-CHECK-COMPLETE:TST-0142\n",
+  "blocked_on": "A runnable/mapped B07 scheduler and fan-out contract, repair of the measured R2E fan-in defect, fresh independent review, and condition-11 convergence.",
+  "two_signal_proof": [
+   {
+    "role": "source",
+    "method": "test-run",
+    "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/probe_barrier_object.py",
+    "raw_output": "NAMED PROBE A: barrier returned object compared against launch manifest\nunit=TST-0142\nstage=refute\nprior_stage_output=implement rc=0\ncandidate=command-center/p2-wave/r2e_loop.py::main\ninjection=three of six submitted futures raise HTTP 429 at fan-in\nlaunch_manifest_ids=FAN-0001,FAN-0002,FAN-0003,FAN-0004,FAN-0005,FAN-0006\nlaunch_manifest_count=6\ninjected_429_unit_ids=FAN-0004,FAN-0005,FAN-0006\ncandidate_main_return_type=int\ncandidate_main_return_json=0\ncandidate_wave_end_object={\"event\":\"wave-end\",\"n\":3,\"ok\":3}\ncandidate_stdout=SUCCESS:r2e-wave ok=3/3\ncandidate_crash_ids=FAN-0004,FAN-0005,FAN-0006\ncandidate_normalized_claim={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\ncandidate_contract_error_count=4\ncandidate_contract_error_1=barrier return type='int', expected typed object\ncandidate_contract_error_2=status='COMPLETE', expected 'PARTIAL'\ncandidate_contract_error_3=launched_count=3, expected 6\ncandidate_contract_error_4=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nunblocked_candidate_wave_end_object={\"event\":\"wave-end\",\"n\":6,\"ok\":6}\nunblocked_candidate_stdout=SUCCESS:r2e-wave ok=6/6\nboth_states_reference_unblocked={\"blocked_unit_ids\":[],\"complete_count\":6,\"launched_count\":6,\"status\":\"COMPLETE\"}\nboth_states_reference_partial={\"blocked_unit_ids\":[\"FAN-0004\",\"FAN-0005\",\"FAN-0006\"],\"complete_count\":3,\"launched_count\":6,\"status\":\"PARTIAL\"}\nboth_states_control_result=PASS\nnegative_control_mutant={\"blocked_unit_ids\":[],\"complete_count\":3,\"launched_count\":3,\"status\":\"COMPLETE\"}\nnegative_control_error_count=3\nnegative_control_error_1=status='COMPLETE', expected 'PARTIAL'\nnegative_control_error_2=launched_count=3, expected 6\nnegative_control_error_3=blocked_unit_ids=[], expected ['FAN-0004', 'FAN-0005', 'FAN-0006']\nnegative_control_fired=true\nnegative_control_silent_on_good_state=true\ncandidate_result=FAIL\nPROBE-A-COMPLETE:TST-0142\n",
+    "fingerprint": "3cd3bafc642c87c192a5c1e0",
+    "exit_code": 0
+   },
+   {
+    "role": "verifier",
+    "method": "file-read",
+    "command": "TST0142_STAGE=refute TST0142_PRIOR_STAGE_OUTPUT='implement rc=0' PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0142/probe_receipt_count.py",
+    "raw_output": "NAMED PROBE B: independent count of receipt files on disk\nunit=TST-0142\nstage=refute\nprior_stage_output=implement rc=0\nenumeration_api=os.scandir\nlaunch_manifest=command-center/p2-wave/probes/TST-0142/runtime/blocked-half/launch-manifest.json\nreceipt_directory=command-center/p2-wave/probes/TST-0142/runtime/blocked-half/receipts\nlaunched_count=6\nlaunched_ids=FAN-0001,FAN-0002,FAN-0003,FAN-0004,FAN-0005,FAN-0006\nreceipt_file_count=3\nreceipt_file_names=FAN-0001.json,FAN-0002.json,FAN-0003.json\nreceipt_unit_ids=FAN-0001,FAN-0002,FAN-0003\nmissing_receipt_count=3\nmissing_receipt_unit_ids=FAN-0004,FAN-0005,FAN-0006\nunexpected_receipt_count=0\nexpected_429_blocked_ids=FAN-0004,FAN-0005,FAN-0006\nmissing_ids_match_429_blocked=true\ndisk_count_matches_survivors=true\ndisk_count_matches_launched=false\nindependent_signal_result=FAIL: only 3 receipt files exist for 6 launched units\nPROBE-B-COMPLETE:TST-0142\n",
+    "fingerprint": "dd138b494f97960706b949c3",
+    "exit_code": 0
+   }
+  ]
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Whether the absent exact B07 scheduler already has a separate typed PARTIAL implementation not present in this Linux projection.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Mount the production B07 implementation and replay the preserved launch manifest plus half-blocked fixture through its public barrier API."
+  },
+  {
+   "claim": "Whether the Scaleway worker still holds the TST-0142 probe tree (scripts, raw logs, six-id fixtures) that this harvest omitted.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Restore command-center/p2-wave/probes/TST-0142/ from the Scaleway worker or re-run probe_barrier_object.py and probe_receipt_count.py against r2e_loop.py on this tree."
+  }
+ ],
+ "produced_by": {
+  "vendor": "openai",
+  "model": "gpt-5.6-sol",
+  "role": "scheduler-tester",
+  "execution_substrate": "linux-headless-cloud-batch-hermetic-fixture"
+ },
+ "report": {
+  "kind": "scheduler_report",
+  "observations": [
+   {
+    "name": "exact_b07_target_executed",
+    "measured": false,
+    "method": "catalog dependency and declared-path resolution",
+    "anchor": "command-center/p2-wave/probes/TST-0142/target-surface-audit.raw.txt"
+   },
+   {
+    "name": "nearest_candidate_launched_count",
+    "measured": 6,
+    "method": "preserved launch manifest",
+    "anchor": "command-center/p2-wave/probes/TST-0142/runtime/blocked-half/launch-manifest.json"
+   },
+   {
+    "name": "nearest_candidate_reported_denominator",
+    "measured": 3,
+    "method": "real r2e_loop.main wave-end record",
+    "anchor": "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt"
+   },
+   {
+    "name": "nearest_candidate_return_is_typed_object",
+    "measured": false,
+    "method": "runtime type observation",
+    "anchor": "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt"
+   },
+   {
+    "name": "independent_receipt_file_count",
+    "measured": 3,
+    "method": "os.scandir without consuming barrier result",
+    "anchor": "command-center/p2-wave/probes/TST-0142/probe-b-receipt-files.raw.txt"
+   },
+   {
+    "name": "blocked_unit_id_count_required",
+    "measured": 3,
+    "method": "launch manifest minus independent receipt id set",
+    "anchor": "command-center/p2-wave/probes/TST-0142/probe-b-receipt-files.raw.txt"
+   },
+   {
+    "name": "unblocked_reference_control_complete_count",
+    "measured": 6,
+    "method": "same contract oracle on correct unblocked reference",
+    "anchor": "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt"
+   },
+   {
+    "name": "unblocked_candidate_reported_denominator",
+    "measured": 6,
+    "method": "real r2e_loop.main unblocked control",
+    "anchor": "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt"
+   },
+   {
+    "name": "shrunken_denominator_mutant_rejected",
+    "measured": true,
+    "method": "executable assertion exits nonzero on mutation",
+    "anchor": "command-center/p2-wave/probes/TST-0142/negative-control-shrunken-denominator.raw.txt"
+   },
+   {
+    "name": "condition11_live",
+    "measured": false,
+    "method": "live unit_manifest.py --check",
+    "anchor": "command-center/p2-wave/probes/TST-0142/condition11-live-check.raw.txt"
+   }
+  ],
+  "control_ids": [
+   "TST-0142-T1",
+   "TST-0142-NC1"
+  ]
+ },
+ "extensions": {
+  "stage": "refute",
+  "prior_stage_output": "implement rc=0",
+  "fresh_probe_rerun": false,
+  "refutation_outcome": "REFUTED-NEAREST-LIVE-CANDIDATE; EXACT-B07-TARGET-NOT-CHECKED",
+  "title": "Rate-limited partial fan-in returns typed PARTIAL, never a shrunken denominator",
+  "question_or_target": "When half a cohort is 429-blocked at the barrier, does fan-in return a typed PARTIAL naming every blocked unit id? PASS requires the denominator stay at the launched count; a result reporting 'N of N complete' after silently dropping blocked units is a FAIL.",
+  "question_answer": "FAIL for the nearest live R2E barrier; NOT-CHECKED for the absent exact B07 target",
+  "evidence_requirement_verbatim": "two independent signals: (a) the barrier's returned object compared against the launch manifest, and (b) an independent count of receipt files on disk",
+  "tests_required_verbatim": [
+   "both-states control: an unblocked cohort returns COMPLETE with the same denominator",
+   "negative control: a barrier that filters blocked units out of its own denominator must fail"
+  ],
+  "named_probe_files": {
+   "barrier_object_vs_launch_manifest": "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt",
+   "independent_receipt_file_count": "command-center/p2-wave/probes/TST-0142/probe-b-receipt-files.raw.txt"
+  },
+  "named_probe_sha256": {
+   "barrier_object_vs_launch_manifest": "149850b43e02632f16bbc246adbe4816dfaccd3ceb11506acfb46c5f85924852",
+   "independent_receipt_file_count": "0dec1b257cec7a817b12df1dacb8910568f4181db16da5b8f7eea22a488d067a"
+  },
+  "exact_target_executed": false,
+  "nearest_live_candidate_executed": true,
+  "primary_artifact": "command-center/receipts/TST-0142.json",
+  "primary_artifact_final_line": "UNIT-COMPLETE:TST-0142",
+  "success_withheld_while_condition11_red": true,
+  "prohibited_git_actions_run": [],
+  "delivery_contract": {
+   "receipt_exists_nonempty": true,
+   "both_named_probes_recorded_verbatim": true,
+   "negative_control_can_go_red": true,
+   "primary_ends_with_unit_complete": true,
+   "condition11_live_red": true,
+   "state_while_condition11_red": "BLOCKED",
+   "named_probe_files_on_disk": false,
+   "tests_replayable": false
+  },
+  "completion_line": "UNIT-COMPLETE:TST-0142",
+  "completion_marker_protocol": "Literal JSON-permitted U+0085 delimiters keep the receipt parseable while splitlines exposes the exact required completion line at the artifact tail.",
+  "completion_marker": "UNIT-COMPLETE:TST-0142",
+  "named_probes_verbatim": {
+   "embedded_in_receipt": true,
+   "embedded_raw_output_equals_file": false,
+   "files_on_disk": false,
+   "probe_dir_exists": false,
+   "dropped_sidecar_count": 29,
+   "dropped_sidecar_paths": [
+    "command-center/p2-wave/probes/TST-0142/primary-artifact.txt",
+    "command-center/p2-wave/probes/TST-0142/probe_barrier_object.py",
+    "command-center/p2-wave/probes/TST-0142/probe_receipt_count.py",
+    "command-center/p2-wave/probes/TST-0142/assert_barrier_contract.py",
+    "command-center/p2-wave/probes/TST-0142/run_ground_probes.py",
+    "command-center/p2-wave/probes/TST-0142/run_implementation_probes.py",
+    "command-center/p2-wave/probes/TST-0142/run_refute_probes.py",
+    "command-center/p2-wave/probes/TST-0142/build_receipt.py",
+    "command-center/p2-wave/probes/TST-0142/validate_delivery.py",
+    "command-center/p2-wave/probes/TST-0142/probe-results.json",
+    "command-center/p2-wave/probes/TST-0142/probe-a-barrier-object.raw.txt",
+    "command-center/p2-wave/probes/TST-0142/probe-b-receipt-files.raw.txt",
+    "command-center/p2-wave/probes/TST-0142/both-states-control.raw.txt",
+    "command-center/p2-wave/probes/TST-0142/negative-control-shrunken-denominator.raw.txt",
+    "command-center/p2-wave/probes/TST-0142/target-surface-audit.raw.txt",
+    "command-center/p2-wave/probes/TST-0142/condition11-live-check.raw.txt",
+    "command-center/p2-wave/probes/TST-0142/runtime/blocked-half/launch-manifest.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/blocked-half/receipts/FAN-0001.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/blocked-half/receipts/FAN-0002.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/blocked-half/receipts/FAN-0003.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/blocked-half/status.jsonl",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/launch-manifest.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/receipts/FAN-0001.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/receipts/FAN-0002.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/receipts/FAN-0003.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/receipts/FAN-0004.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/receipts/FAN-0005.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/receipts/FAN-0006.json",
+    "command-center/p2-wave/probes/TST-0142/runtime/unblocked/status.jsonl"
+   ]
+  },
+  "this_tree_honesty": {
+   "fan_out_contract_exists": true,
+   "fan_out_contract_path": "rules/common/fan-out-contract.md",
+   "measure_rate_exists": true,
+   "r2e_loop_exists": true,
+   "r2e_loop_sha256": "449ed58aa1a05a05751a1d41abd52952efbb536b0e69f34fe06bf85934f3a39f",
+   "r2e_loop_drops_exceptional_futures": true,
+   "r2e_loop_prints_success_over_survivor_denominator": true,
+   "b07_catalog_rows": 0,
+   "user_prompts_exists": false,
+   "condition11_first_red": "FAILED:unit-manifest receipt command-center/receipts/CC-0010.json names absent artifact command-center/p2-wave/probes/CC-0010/REFUTATION-REPORT.txt",
+   "worker_condition11_first_red_stale": "FAILED:unit-manifest receipt command-center/receipts/TST-0350.json names absent artifact tools/measure-guard/suitefloor.py",
+   "strike": 2,
+   "mutants_measured_not_applied": {
+    "exists_false": 1,
+    "state_only_SUCCESS": 8,
+    "registered_true_only": 0,
+    "success_full": 0,
+    "applied": false,
+    "reason": "exists=false is schema-illegal. state-only SUCCESS is schema-illegal. A SUCCESS flip would game ready_units.NOT_DELIVERING. registered=true alone is schema-legal and was not applied because --check is red and no UAM row exists."
+   }
+  }
+ }
+}

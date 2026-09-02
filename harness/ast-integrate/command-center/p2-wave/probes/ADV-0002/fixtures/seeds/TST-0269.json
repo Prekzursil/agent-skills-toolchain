@@ -1,0 +1,1451 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0269.json",
+   "bytes": 22672,
+   "sha256": "5f823b1911e85cc7a495c29f04b1726f7c0023d6e0afba040e29c63994b4a3bf",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0269 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0269.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0269.json",
+     "raw_output": "bytes=22672 sha256=5f823b1911e85cc7a495c29f04b1726f7c0023d6e0afba040e29c63994b4a3bf",
+     "fingerprint": "695466721a437bd141bd4c9eedf326e3",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0269",
+     "raw_output": "schema-check",
+     "fingerprint": "995a457a48ee30e3bde60806dc01436e",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0269 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0269",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0269",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "1811d5b55a061c8eeb7d7e43fc5c2506",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0269",
+     "raw_output": "schema-valid",
+     "fingerprint": "40cdf8776b40d9755b510255f07638bd",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "profile": "council-vote-module",
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0269",
+ "spec_anchor": "_USER-PROMPTS.md:11240",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0269.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "unit_id": "TST-0269",
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:TST-0269",
+   "id": "TST-0269",
+   "negative_control": {
+    "method": "majority",
+    "n_hits": 0,
+    "quorum": null,
+    "supermajority_n_hits": 0,
+    "unanimity_n_hits": 0,
+    "weights": [
+     1,
+     1,
+     1
+    ]
+   },
+   "notes": "G-1 for TST-0269: live named probes, honest SUCCESS artifact listing (method, quorum, weights) triples with ballot profiles, per-unit manifest. Did not run global unit_manifest.py --write. No ADV rebuild.",
+   "output_path": "command-center/receipts/TST-0269.json",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "planted": {
+    "expected_abstain": "QUORUM_FAIL",
+    "method": "majority",
+    "outcome_abstain": "QUORUM_FAIL",
+    "outcomes_by_ballot": {
+     "A": "A",
+     "B": "A"
+    },
+    "profile_with_abstention": [
+     "A",
+     "A",
+     "ABSTAIN"
+    ],
+    "quorum": {
+     "kind": "count",
+     "min": 3
+    },
+    "weights": [
+     1,
+     1,
+     1
+    ]
+   },
+   "question": "Can a participant change the outcome by NOT voting? Enumerate every (method, quorum, weights) triple where abstention produces an outcome the same participant could not obtain with any ballot, and flag those configs at validation time.",
+   "question_answer": "YES under quorum and weighted-quorum rules: 48 vulnerable configs and 768 concrete profiles. NO under majority with no quorum and equal weights (0 hits). Validation-time flag fires on the planted count-quorum=3 and weight-quorum=4 configs and is silent on the negative control.",
+   "search": {
+    "definition": "Abstention is strategically superior iff outcome(ABSTAIN) is not in {outcome(b) for b in real ballots}. QUORUM_FAIL is a distinct outcome.",
+    "methods": [
+     "majority",
+     "supermajority",
+     "unanimity"
+    ],
+    "n_advantage_profiles": 768,
+    "n_configs": 60,
+    "n_vulnerable_configs": 48
+   },
+   "status": "DELIVERED",
+   "strategic_abstention_triples": [
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 32,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 4
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 32,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 4
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 3
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 24,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 24,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 5
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 3
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "B"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "B"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 4
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "B"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 5
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "majority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "B"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 32,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 4
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 32,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 4
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 3
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 24,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 24,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 5
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 3
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 4
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 5
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "supermajority",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "B"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 32,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 4
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 32,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 4
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 3
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 24,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 24,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 2
+     },
+     "weights": [
+      1,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 5
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 3
+     },
+     "weights": [
+      2,
+      2,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 3
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 4
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "A"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "weight",
+      "min": 5
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    },
+    {
+     "ballot_profile": [
+      "ABSTAIN",
+      "A",
+      "ABSTAIN"
+     ],
+     "focal": 0,
+     "method": "unanimity",
+     "n_profiles": 12,
+     "outcome_abstain": "QUORUM_FAIL",
+     "outcomes_by_ballot": {
+      "A": "A",
+      "B": "A"
+     },
+     "quorum": {
+      "kind": "count",
+      "min": 2
+     },
+     "weights": [
+      3,
+      1,
+      1
+     ]
+    }
+   ],
+   "sut": {
+    "oracle": "command-center/p2-wave/probes/TST-0269/tally.py",
+    "simulate_py": false,
+    "strategic_py": false,
+    "tally_py": false,
+    "validator": "command-center/p2-wave/probes/TST-0269/validate_config.py"
+   },
+   "title": "Detect strategic abstention and its interaction with quorum and weighted tallies",
+   "validation_time_flag": {
+    "safe_no_quorum_equal_weights": {
+     "config_key": "majority|none|1,1,1",
+     "demonstration": null,
+     "flag": null,
+     "n_profiles": 0,
+     "ok": true,
+     "reason": null
+    },
+    "vulnerable_count_quorum": {
+     "config_key": "majority|count:3|1,1,1",
+     "demonstration": {
+      "focal": 0,
+      "outcome_abstain": "QUORUM_FAIL",
+      "outcomes_by_ballot": {
+       "A": "A",
+       "B": "A"
+      },
+      "profile_with_abstention": [
+       "ABSTAIN",
+       "A",
+       "A"
+      ]
+     },
+     "flag": "strategic_abstention_vulnerable",
+     "n_profiles": 12,
+     "ok": false,
+     "reason": "Abstention produces an outcome this seat cannot obtain with any ballot; refuse this (method, quorum, weights) at validation time."
+    },
+    "vulnerable_weight_quorum": {
+     "config_key": "majority|weight:4|3,1,1",
+     "demonstration": {
+      "focal": 0,
+      "outcome_abstain": "QUORUM_FAIL",
+      "outcomes_by_ballot": {
+       "A": "A",
+       "B": "B"
+      },
+      "profile_with_abstention": [
+       "ABSTAIN",
+       "A",
+       "A"
+      ]
+     },
+     "flag": "strategic_abstention_vulnerable",
+     "n_profiles": 12,
+     "ok": false,
+     "reason": "Abstention produces an outcome this seat cannot obtain with any ballot; refuse this (method, quorum, weights) at validation time."
+    }
+   }
+  }
+ },
+ "min_bytes_threshold": 1,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0269/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0269"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0269.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0269.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "cdc8f013fa345f9e25695209956044a6",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 22672,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0269.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ }
+}

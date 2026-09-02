@@ -1,0 +1,217 @@
+{
+ "artifacts": [
+  {
+   "bytes": 9912,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/spec.py",
+   "role": "implementation",
+   "sha256": "e60770c9f9e0ac1050ffbe23cf355c87c9b86875c97d339102f5728a470be90b"
+  },
+  {
+   "bytes": 10000,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/validate.py",
+   "role": "implementation",
+   "sha256": "5c374e658df1af698c34e36d3b6cb76a1f5e3dc80649bda72998a0c8d6e8a333"
+  },
+  {
+   "bytes": 6553,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/agentspec/agentspec/reachability.py",
+   "role": "implementation",
+   "sha256": "39ba92a35a9c5da9d120f29985522532dc450be68f80106b3664d50c502ef6ac"
+  },
+  {
+   "bytes": 4379,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/probe1_both_states.py",
+   "role": "fixture",
+   "sha256": "2d87abb44a56f81383b4e146e0269a11b9c471c8c233ff563007855b631f1729"
+  },
+  {
+   "bytes": 4757,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/probe2_derivation_parity.py",
+   "role": "fixture",
+   "sha256": "a938116320aed3d5809179b01f285c8c7957cb06e0e89fb1403b40b7dcd7b213"
+  },
+  {
+   "bytes": 467,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/fixtures/reachable_twin.json",
+   "role": "fixture",
+   "sha256": "d082bcb54b94f9f39ddaaa77068ae73501729ef736d7475d1e4df567c119f36b"
+  },
+  {
+   "bytes": 460,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/fixtures/unreachable_barrier.json",
+   "role": "fixture",
+   "sha256": "09500f079057ef17d94c6a8c7393224457bbcafcd27fd5be045737271a3ab448"
+  },
+  {
+   "bytes": 443,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/fixtures/unknown_barrier.json",
+   "role": "fixture",
+   "sha256": "1dad5c7fc7531b28a3540790915817851aa5192ff061624ea604844547294b20"
+  },
+  {
+   "bytes": 579,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/fixtures/disconnected_node.json",
+   "role": "fixture",
+   "sha256": "6aa0ef1ce25091a7feae4971e0fea4fa485a17ec097b32d4caaf7dfb0ae93fd7"
+  },
+  {
+   "bytes": 735,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0195/fixtures/loop_barrier.json",
+   "role": "fixture",
+   "sha256": "572b3519c71b28f95c0480d76107d20b53dd827023b7a9c6b25c3f3ed46f5941"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0195.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0195",
+   "executed": false,
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/agentspec/agentspec/validate.py",
+   "claim": "Structural validate.py still emits barrier-awaits-unknown when the awaited id is not declared. The unreachable-barrier twin declares u.hidden, so structural validation passes and the new pass is what REJECTS.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0195/probe1_both_states.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"both_states\": true, \"dispatch_bad_codes\": [\"unscheduled-unit\", \"barrier-awaits-unreachable\", \"orphan-barrier\"], \"dispatch_bad_ok\": false, \"dispatch_good_ok\": true, \"hidden_declared_on_bad\": true, \"hidden_scheduled_on_bad_fan\": false, \"hidden_scheduled_on_good_fan\": true, \"structural_bad_ok\": true, \"structural_good_ok\": true, \"structural_unknown_codes\": [\"barrier-awaits-unknown\"], \"unknown_skipped_reachability\": true}\nrejected_unreachable=True accepted_twin=True unknown_is_different=True bad_codes=['unscheduled-unit', 'barrier-awaits-unreachable', 'orphan-barrier']\nSUCCESS:IMP-0195-probe1 unreachable-barrier both-states",
+     "role": "source"
+    },
+    {
+     "command": "read tools/agentspec/agentspec/validate.py",
+     "method": "file-read",
+     "raw_output": "barrier-awaits-unknown is emitted only when the unit id is absent from wf.units",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/reachability.py",
+   "claim": "Reachable-node sets from iterative DFS and from a Kahn topological order plus predecessor scan are equal on the twin, the disconnected-node control, and a Loop x Barrier fixture. The disconnected node is in neither set.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0195/probe2_derivation_parity.py",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"both_states_live_in_both\": true, \"both_states_orphan_in_neither\": true, \"derivations_distinct_functions\": true, \"disconnected_equal\": true, \"disconnected_excluded\": \"orphan_pipe\", \"disconnected_reachable\": [\"fan\", \"join\", \"pipe\"], \"loop_equal\": true, \"loop_reachable\": [\"body_pipe\", \"join\", \"lp\", \"start\", \"tail\"], \"twin_equal\": true, \"twin_reachable\": [\"fan\", \"join\", \"pipe\"]}\nequal=True twin=['fan', 'join', 'pipe'] disconnected_excl=orphan_pipe loop_body_reachable=True\nSUCCESS:IMP-0195-probe2 traversal-vs-topo parity",
+     "role": "source"
+    },
+    {
+     "command": "read tools/agentspec/agentspec/reachability.py",
+     "method": "file-read",
+     "raw_output": "reachable_via_traversal and reachable_via_topo are distinct functions",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0195/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "dispatch_bad_ok=false codes include barrier-awaits-unreachable",
+   "description": "Unreachable-barrier fixture REJECTED; reachable twin ACCEPTED. Unknown-id fixture fires barrier-awaits-unknown at structural time.",
+   "fired_on_bad_state": true,
+   "good_state_output": "dispatch_good_ok=true",
+   "id": "IMP0195-C1",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "orphan_pipe in neither traversal nor topo set",
+   "description": "A disconnected node is absent from both derivations. Equality of two 'all nodes' answers would have been silent in both states.",
+   "fired_on_bad_state": true,
+   "good_state_output": "twin reachable set equals every node id",
+   "id": "IMP0195-C2",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0195: live named probes exit 0; receipt state=SUCCESS; per-unit UNIT-ARTIFACT-MANIFEST.json row. Did not run global unit_manifest.py --write. SUCCESS:IMP-0195",
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "question_or_target": "A static pass over a validated Workflow that reports unreachable nodes, orphan barriers (awaiting something no path produces) and units no node ever schedules. A workflow whose barrier awaits a unit outside every path is REJECTED before dispatch. barrier-awaits-unknown is a different defect from barrier-awaits-unreachable.",
+ "report": {
+  "barrier_awaits_unknown_is_structural": true,
+  "barrier_awaits_unreachable_is_reachability": true,
+  "implementation": "tools/agentspec/agentspec/reachability.py",
+  "kind": "static-workflow-reachability",
+  "probe1_exit": 0,
+  "probe2_exit": 0
+ },
+ "residual_unknowns": [
+  {
+   "claim": "tools/agentspec/agentspec/validate.py did not exist on this sparse worktree; the structural unknown-id check and the new reachability pass were authored here. IMP-0129/0130/0132 remain their own units.",
+   "settling_experiment": "Rebase onto a tree that already contains agentspec.spec FanOut/Barrier/Pipeline and re-run the probes against those types.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0195-probe2-topo-derivation",
+  "scope_not_agreement": "Probe 2 recomputes reachability with a Kahn topological scan and refuses if it disagrees with DFS. It does not re-score probe 1's barrier fixtures.",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0195",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0195",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0195/probe1_both_states.py",
+   "id": "unreachable-barrier-both-states",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0195/probe2_derivation_parity.py",
+   "id": "traversal-vs-topo-equal",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:01:53Z",
+  "started_at": "2026-08-25T01:01:53Z"
+ },
+ "title": "Implement static validation: reachability, orphan nodes, unreachable barriers",
+ "unit_id": "IMP-0195"
+}

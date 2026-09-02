@@ -1,0 +1,341 @@
+{
+  "answer": {
+    "collision_control_detects_shared_temp_root": true,
+    "concurrent_path_intersection_empty": true,
+    "per_worker_isolated_temp_root": true,
+    "per_worker_isolated_worktree": true,
+    "summary": "Yes for the isolation layer shipped with this unit. Four concurrent workers (barrier-synchronized, overlapping write windows, distinct pids) each wrote 16 files under a private temp root and a private git worktree; pairwise write-path intersection was empty; git dirs and index files were unique. Forcing two workers onto one temp root was detected even when they wrote disjoint filenames (shared_temp_roots=true with empty path intersection), proving the collision meter is not only watching identical filenames. A worker `git add -A` via the PATH git wrapper was refused (rc=2) and left both indexes unstaged; the unguarded control using /usr/bin/git in a shared scratch clone staged both sibling files ['agent-a.txt', 'agent-b.txt'], so the refusal is load-bearing rather than a missing git binary.",
+    "unguarded_shared_index_sweeps_siblings": true,
+    "worker_staging_refused": true
+  },
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0345.json",
+      "role": "primary"
+    },
+    {
+      "bytes": 19593,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0345/isolation.py",
+      "role": "isolation-layer-under-test",
+      "sha256": "79fc06e49090360a031909fc294461f0526d7e844b54cd6ffb2d9397c11174b1"
+    }
+  ],
+  "cloud_ok": false,
+  "collision_control": {
+    "detector_fired": true,
+    "disjoint_files_intersection_empty": true,
+    "disjoint_files_shared_root_detected": true,
+    "same_file_shared_root_detected": true,
+    "silent_on_isolated_run": true
+  },
+  "completion_sentinel": "SUCCESS:TST-0345",
+  "concurrency": {
+    "distinct_pids": true,
+    "method": "multiprocessing fork + Barrier; 50ms post-write hold so a collision that needs two simultaneous writers is in the window",
+    "n_workers": 4,
+    "n_writes_per_worker": 16,
+    "overlapped": true,
+    "t0_ns_max": 1787619497369514920,
+    "t1_ns_min": 1787619497419623626
+  },
+  "declared_schema_file_present": true,
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0345/isolation.py:run_isolated_concurrent",
+      "claim": "Four concurrent workers wrote disjoint realpaths under private temp roots and git worktrees; intersection empty.",
+      "confidence": "almost-certain",
+      "id": "concurrent-write-trace",
+      "source_probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe1_concurrent_write_trace.py",
+        "tool": "probe1_concurrent_write_trace"
+      },
+      "verdict": "CONFIRMED",
+      "verifier_probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe2_collision_and_staging.py",
+        "field": "isolated_control_silent",
+        "tool": "probe2_collision_and_staging"
+      }
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0345/isolation.py:run_collision_control",
+      "claim": "Forcing two workers onto one temp root is detected even when written filenames are disjoint.",
+      "confidence": "almost-certain",
+      "id": "collision-control",
+      "source_probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe2_collision_and_staging.py",
+        "field": "shared_root_disjoint_files_detected",
+        "tool": "probe2_collision_and_staging"
+      },
+      "verdict": "CONFIRMED",
+      "verifier_probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe1_concurrent_write_trace.py",
+        "field": "isolated_true_negative",
+        "tool": "probe1_concurrent_write_trace"
+      }
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0345/isolation.py:run_staging_refusal",
+      "claim": "A worker git add -A is refused by the PATH wrapper; the unguarded shared-index control stages both sibling files.",
+      "confidence": "almost-certain",
+      "id": "staging-refusal",
+      "source_probe": {
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe2_collision_and_staging.py",
+        "field": "staging_refused",
+        "tool": "probe2_collision_and_staging"
+      },
+      "verdict": "CONFIRMED",
+      "verifier_probe": {
+        "command": "/usr/bin/git add -A (scratch shared worktree)",
+        "engine": "unguarded-/usr/bin/git-add-A-in-scratch-clone"
+      }
+    }
+  ],
+  "manifest_registration": {
+    "entry_id": "TST-0345",
+    "manifest_path": "command-center/p2-wave/probes/TST-0345/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "measured_at": "2026-08-25T00:58:17Z",
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "description": "Two workers share a temp root but write different files. File-path intersection is empty; shared_temp_roots still fires. An audit that only compared filenames would miss this.",
+      "fired_on_bad_state": true,
+      "id": "shared-temp-root-disjoint-filenames",
+      "kind": "planted-collision",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "In a scratch clone with two agent files, /usr/bin/git add -A stages both. The wrapper refusal is therefore not a missing git binary.",
+      "fired_on_bad_state": true,
+      "id": "unguarded-git-add-sweeps-siblings",
+      "kind": "known-broken-shared-index",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "question": "Do parallel test workers on this estate write disjoint paths, each with an isolated temp root and git worktree, and is a worker that attempts to stage or commit refused so it cannot sweep a sibling's files? PASS requires a real concurrent run (a collision that needs two simultaneous writers is invisible to a sequential loop), a planted shared-temp-root collision that the audit detects, and a staging attempt that fails.",
+  "report_kind": "isolation_report",
+  "required_fix": null,
+  "residual_unknowns": [
+    {
+      "claim": "command-center/TEST-REGISTRY.json is absent from this worktree; the three catalog tests for this unit were run live by the named probes rather than collected from that registry.",
+      "settling_experiment": "Re-bind the isolation harness to TEST-REGISTRY.json once that file exists and re-run both named probes.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Catalog reviewer_requirement asks for a second Windows shell (pwsh7 and Git Bash). This measurement ran on Linux.",
+      "settling_experiment": "Re-run probe1 and probe2 under pwsh7 and Git Bash on Windows; record any divergence as a finding, not a retry.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "Two strikes then pivot (AGENTS.md 4b): after a second failure on the same hypothesis, enumerate at least two alternative approaches before a third attempt."
+  },
+  "reviewer": {
+    "fresh_context": false,
+    "independent": true,
+    "notes": "Probe 2 re-derives collision detection and staging refusal without trusting probe 1's write map. Catalog also names a second Windows shell (pwsh7 vs Git Bash) re-run; this lane is Linux and does not self-certify that reviewer.",
+    "reviewer_id": "TST-0345-probe2-collision-and-staging",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0345",
+  "spec_anchor": "WORK-UNIT-CATALOG.json TST-0345; tests_required concurrent write trace / collision control / staging refusal; scope shared with TST-0099 and ADV-0123 on the shared-git-index contamination case",
+  "staging_refusal": {
+    "guarded_attempt": {
+      "argv": [
+        "git",
+        "add",
+        "-A"
+      ],
+      "cwd": "/tmp/tst0345-stg-t1o_h_xn/workers/w0/worktree",
+      "refused": true,
+      "returncode": 2,
+      "stderr": "TST-0345: git write refused: add (worker=w0 staging/commit is not permitted)\n"
+    },
+    "index_after_guarded": {
+      "sibling_not_staged": true,
+      "worker_a_cached": [],
+      "worker_b_cached": []
+    },
+    "mode": "staging-refusal",
+    "pass": true,
+    "unguarded_shared_index_control": {
+      "cached": [
+        "agent-a.txt",
+        "agent-b.txt"
+      ],
+      "real_git": "/usr/bin/git",
+      "swept_both_siblings": true
+    }
+  },
+  "state": "SUCCESS",
+  "sut": {
+    "catalog_inputs": [
+      "the parallel test runner configuration",
+      "worktree isolation from the git-worktree tooling",
+      "temp-root allocation per worker",
+      "command-center/TEST-REGISTRY.json"
+    ],
+    "live_bytes": 19593,
+    "live_module": "command-center/p2-wave/probes/TST-0345/isolation.py",
+    "live_sha256": "79fc06e49090360a031909fc294461f0526d7e844b54cd6ffb2d9397c11174b1",
+    "mechanism": "per-worker tempfile + git worktree add --detach from a scratch seed; write tracer records realpaths; audit flags shared temp roots/worktrees/indexes and write-path intersection; PATH git wrapper refuses write verbs",
+    "pytest_xdist_present": false,
+    "test_registry_present": true
+  },
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe1_concurrent_write_trace.py",
+      "id": "concurrent-write-trace-empty-intersection",
+      "name": "Real concurrent run with per-worker write tracing",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe2_collision_and_staging.py",
+      "id": "collision-control-shared-temp-root",
+      "name": "Force two workers onto one temp root; audit detects it",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0345/probe2_collision_and_staging.py",
+      "id": "staging-refusal-protects-sibling",
+      "name": "Worker staging attempt is refused",
+      "result": "PASS"
+    }
+  ],
+  "tests_required": [
+    {
+      "id": "concurrent-write-trace",
+      "result": "PASS",
+      "text": "Real concurrent run with per-worker write tracing; path intersection must be empty."
+    },
+    {
+      "id": "collision-control",
+      "result": "PASS",
+      "text": "Collision control: force two workers onto one temp root and confirm the audit detects it."
+    },
+    {
+      "id": "staging-refusal",
+      "result": "PASS",
+      "text": "Staging refusal: a worker attempting to stage must fail, protecting sibling work."
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T00:58:17Z",
+    "started_at": "2026-08-25T00:58:17Z"
+  },
+  "title": "Prove parallel test execution does not contaminate a shared tree, index or temp directory",
+  "unit_id": "TST-0345",
+  "write_path_intersection": [],
+  "write_path_map": {
+    "w0": {
+      "git_dir": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree",
+      "index_file": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree/index",
+      "pid": 66717,
+      "temp_root": "/tmp/tst0345-iso-ufw67j7q/workers/w0",
+      "worktree": "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree",
+      "write_count": 16,
+      "writes": [
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0000.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0001.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0002.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0003.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0004.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0005.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0006.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0007.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0008.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0009.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0010.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0011.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0012.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0013.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0014.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w0/worktree/artifacts/w0/shard-0015.txt"
+      ]
+    },
+    "w1": {
+      "git_dir": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree1",
+      "index_file": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree1/index",
+      "pid": 66718,
+      "temp_root": "/tmp/tst0345-iso-ufw67j7q/workers/w1",
+      "worktree": "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree",
+      "write_count": 16,
+      "writes": [
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0000.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0001.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0002.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0003.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0004.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0005.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0006.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0007.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0008.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0009.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0010.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0011.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0012.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0013.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0014.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w1/worktree/artifacts/w1/shard-0015.txt"
+      ]
+    },
+    "w2": {
+      "git_dir": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree2",
+      "index_file": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree2/index",
+      "pid": 66719,
+      "temp_root": "/tmp/tst0345-iso-ufw67j7q/workers/w2",
+      "worktree": "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree",
+      "write_count": 16,
+      "writes": [
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0000.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0001.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0002.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0003.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0004.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0005.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0006.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0007.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0008.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0009.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0010.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0011.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0012.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0013.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0014.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w2/worktree/artifacts/w2/shard-0015.txt"
+      ]
+    },
+    "w3": {
+      "git_dir": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree3",
+      "index_file": "/tmp/tst0345-iso-ufw67j7q/seed/.git/worktrees/worktree3/index",
+      "pid": 66720,
+      "temp_root": "/tmp/tst0345-iso-ufw67j7q/workers/w3",
+      "worktree": "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree",
+      "write_count": 16,
+      "writes": [
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0000.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0001.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0002.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0003.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0004.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0005.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0006.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0007.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0008.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0009.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0010.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0011.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0012.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0013.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0014.txt",
+        "/tmp/tst0345-iso-ufw67j7q/workers/w3/worktree/artifacts/w3/shard-0015.txt"
+      ]
+    }
+  }
+}

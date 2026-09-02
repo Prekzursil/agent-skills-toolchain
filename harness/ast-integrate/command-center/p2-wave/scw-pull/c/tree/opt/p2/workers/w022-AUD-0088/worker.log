@@ -1,0 +1,17 @@
+I'll start from the existing AUD-0088 probe tree and the measure script so we can resume rather than rebuild.The probe tree is thin — only a cloud-ok refute so far. Next I’ll read the unit contract, the measure script, and a delivered unit’s artifact shape.Catalog lookup missed the unit definition — I’ll pull AUD-0088 from the split catalog and a delivered unit’s return/manifest as a template.The harvest receipt is still BLOCKED on stale cloud probes. I’ll inspect a delivered AUD unit’s contract, the schema, and whether today’s packaging tool can actually run.AUD-0009 shows the delivery pattern. Next I’ll inspect that SUCCESS receipt, the schema, and whether a packaging tool can be reconstructed from fixtures on this sparse tree.I'll try a live official build from the A0 fixture, then write re-runnable named probes around that.The official build ran and produced a 95499-byte archive. Next I’ll hash it, unpack members, and compare against the harvest headline.The live build matches the implement archive digest. I’ll add named probes, the stray-file control, and a packer that writes an honest SUCCESS receipt.Probes are in place. I’ll run Probe 1, Probe 2, and the stray-file control next.Repo-root resolution was one directory too high. I’ll walk up to the real worktree root instead.**SUCCESS:delivered AUD-0088** — `predicate=delivered state=SUCCESS probes=3 raws=3 notes=control_stray_file.py:0,probe1_packaging_tool.py:0,probe2_unpack_archive.py:0`
+
+AUD-0088 is G-1 contract-green on this worktree. The earlier cloud-ok receipt stayed BLOCKED because named probes were missing; this pass implemented them, re-ran them to exit 0, and packed an honest SUCCESS artifact. Cloud `ok=true` was not treated as delivery.
+
+**Catalog answer (today-build):** if the plugin is built from the only complete plugin+schema tree on this sparse checkout, the archive is **95499 bytes**, **sha256 `b65b27a289ba0f54e1c5a4ef30b828168db853625de4395ec720e75b59ce3946`**, **45 ZIP members** (42 declared includes + 3 packer metadata files). **0** `.git` / cache / log / transcript / credential path hits and **0** blocking credential-shaped findings. The stray-file control stays GREEN on that archive and goes RED when `.git/config` or `.env` is added.
+
+That digest is byte-identical to the implement-stage headline. The cloud-ok “drift” mixed up two different files: the **634-byte** source launcher `platform/plugin/astplugin.py` is not the shipped **523-byte** generated `bin/astplugin.py`.
+
+Repo-root `platform/plugin` is absent here, so Probe 1/2 used `command-center/p2-wave/probes/ADV-0024/_work/fixtures/cli/A0_clean_control` as the source tree. That is recorded in the receipt (`AUD0088-D1-LIVE-PLATFORM-ABSENT`).
+
+**On disk**
+- Receipt: `command-center/audit/AUD-0088-package-content-baseline.json` (36095 B, `state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/AUD-0088/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `aeb041e1e77cec3ae80356f9a6ddf5c620ede90f651ad0a8d2f9b468afc65e5d` matches the live file)
+- Return: `command-center/p2-wave/probes/AUD-0088/SUBAGENT-RETURN.json`
+- Live probes: `probe1_packaging_tool.py`, `probe2_unpack_archive.py`, `control_stray_file.py`
+
+`CLOUD-OK-REFUTE.json` was kept. No git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

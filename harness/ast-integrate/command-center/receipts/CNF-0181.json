@@ -1,0 +1,434 @@
+{
+ "evidence": [
+  {
+   "claim": "CNF-0181 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/CNF-0181.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/CNF-0181.json",
+     "raw_output": "bytes=6433 sha256=cf0f7bf67df7a1745e9b45db276dd1d8a4862330a24788b79a14312135f9e36a",
+     "fingerprint": "7da6fb6cc84ee7a63d2fade7bbef5c63",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0181",
+     "raw_output": "schema-check",
+     "fingerprint": "3e5260fc3246fe3c9cbc0aedd17c351a",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0181 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0181",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0181",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "8067a7cf10d85239e14494b296f7257b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0181",
+     "raw_output": "schema-valid",
+     "fingerprint": "e6083507aaf8f497ca40151678f49386",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "min_bytes_threshold": 2000,
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:CNF-0181",
+ "spec_anchor": "_USER-PROMPTS.md:11135-11150 step 10",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/CNF-0181.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "CNF-0181",
+ "extensions": {
+  "legacy_root": {
+   "SUCCESS:CNF-0181": true,
+   "baseline_repro": {
+    "measure_n": 2,
+    "measure_ok": 1,
+    "new_case": {
+     "expected_got": "https://ex.com///api",
+     "got": "https://ex.com///api",
+     "id": "case.cnf0181.double-slash",
+     "pass": false,
+     "want": "https://ex.com/api"
+    },
+    "tree": "baseline join_url"
+   },
+   "blinding_attestation_hash": "14f1ebb944b9a3dafe777480ab1d83275b17fc2c594ceb699baa8b8f9772d812",
+   "claim_id": "SI-CNF-0181-001",
+   "completion_sentinel": "SUCCESS:CNF-0181",
+   "confirmer": {
+    "identity": "CNF-0181-independent-confirmer",
+    "model": "opus",
+    "role": "independent-confirmer",
+    "vendor": "anthropic"
+   },
+   "corrected_repro": {
+    "measure_n": 2,
+    "measure_ok": 2,
+    "new_case": {
+     "expected_got": "https://ex.com/api",
+     "got": "https://ex.com/api",
+     "id": "case.cnf0181.double-slash",
+     "pass": true,
+     "want": "https://ex.com/api"
+    },
+    "tree": "improved join_url"
+   },
+   "discrepancies": [],
+   "id": "CNF-0181",
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe1_gain_both_states.py",
+     "id": "probe1",
+     "role": "gain-and-both-states"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe2_revert_benchmark_neutral.py",
+     "id": "probe2",
+     "role": "revert-benchmark-neutral"
+    }
+   ],
+   "output_schema": "command-center/schema/confirmation-record.schema.json",
+   "production_census": {
+    "foreign_ledgers": [],
+    "production_modules_absent": [
+     "tools/selfimprove/retain.py",
+     "tools/selfimprove/writeback.py",
+     "tools/selfimprove/measure.py",
+     "command-center/receipts/IMP-0373.json",
+     "command-center/receipts/IMP-0374.json",
+     "command-center/receipts/IMP-0255.json"
+    ],
+    "production_modules_present": [],
+    "production_retained_improvements": 0
+   },
+   "question": "For an improvement the self-improvement loop RETAINED, can an independent party reproduce the measured gain, then reproduce the revert, and confirm the benchmark was updated so the original failure cannot silently come back (spec:11135-11150, step 10)?",
+   "regression_diff": {
+    "added": [
+     "case.cnf0181.double-slash"
+    ],
+    "benchmark_case_id": "case.cnf0181.double-slash",
+    "lesson": "Removing case.cnf0181.double-slash makes the original triple-slash failure invisible on the public suite.",
+    "public_after_ids": [
+     "case.slash.join.plain",
+     "case.cnf0181.double-slash"
+    ],
+    "public_before_ids": [
+     "case.slash.join.plain"
+    ],
+    "removed": [],
+    "without_new_case_baseline_public_is_green": true
+   },
+   "residual_caveat": "Production tools/selfimprove/retain.py is absent on this worktree (census present=[] absent=['tools/selfimprove/retain.py', 'tools/selfimprove/writeback.py', 'tools/selfimprove/measure.py', 'command-center/receipts/IMP-0373.json', 'command-center/receipts/IMP-0374.json', 'command-center/receipts/IMP-0255.json']). Confirmation is of isolated retained improvement SI-CNF-0181-001 with write-back case case.cnf0181.double-slash, not of an IMP-0373 production ledger.",
+   "retention_ledger": [
+    {
+     "after_ok": 2,
+     "before_ok": 1,
+     "case_id": "case.cnf0181.double-slash",
+     "decision": "KEEP",
+     "id": "SI-CNF-0181-001"
+    },
+    {
+     "decision": "REVERT",
+     "id": "SI-CNF-0181-001-neutral",
+     "refuse_reason": "no-gain"
+    },
+    {
+     "decision": "REVERT",
+     "id": "SI-CNF-0181-001-no-writeback",
+     "refuse_reason": "benchmark-not-updated"
+    }
+   ],
+   "rollback_repro": {
+    "got_after_revert": "https://ex.com///api",
+    "method": "restore baseline join.py bytes",
+    "new_case_fails_after_revert": true,
+    "revert_byte_identical": true
+   },
+   "source_probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe1_gain_both_states.py",
+    "fingerprint": "1d974c0e7873af0c3b5af9196239d886fde14c3f42dc7e53e024953cade4b0bf",
+    "id": "probe1",
+    "role": "gain-and-both-states"
+   },
+   "three_measurements": {
+    "benchmark_delta": {
+     "added": true,
+     "case_id": "case.cnf0181.double-slash",
+     "pass": true
+    },
+    "gain_reproduced": {
+     "after_ok": 2,
+     "before_ok": 1,
+     "delta": 1,
+     "pass": true
+    },
+    "revert_reproduced": {
+     "original_failure_got": "https://ex.com///api",
+     "pass": true
+    }
+   },
+   "title": "Reproduce a retained self-improvement, its revert path, and the benchmark that prevents its silent return",
+   "ts": "2026-08-25T00:53:32Z",
+   "verdict": "CONFIRMED",
+   "verifier_probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe2_revert_benchmark_neutral.py",
+    "fingerprint": "1310573950cd08439922c3ae5cb3555ff6ca41f9fd333ebd682c14e39cef7789",
+    "id": "probe2",
+    "role": "revert-benchmark-neutral"
+   }
+  }
+ },
+ "schema_version": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/CNF-0181.json",
+   "bytes": 6433,
+   "sha256": "cf0f7bf67df7a1745e9b45db276dd1d8a4862330a24788b79a14312135f9e36a",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0181/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0181"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/CNF-0181.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/CNF-0181.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "e5caab8c565d7fa8a93bfb842ac73f99",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "confirmation-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 6433,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/CNF-0181.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "SUCCESS:CNF-0181": true,
+ "baseline_repro": {
+  "measure_n": 2,
+  "measure_ok": 1,
+  "new_case": {
+   "expected_got": "https://ex.com///api",
+   "got": "https://ex.com///api",
+   "id": "case.cnf0181.double-slash",
+   "pass": false,
+   "want": "https://ex.com/api"
+  },
+  "tree": "baseline join_url"
+ },
+ "blinding_attestation_hash": "14f1ebb944b9a3dafe777480ab1d83275b17fc2c594ceb699baa8b8f9772d812",
+ "claim_id": "SI-CNF-0181-001",
+ "completion_sentinel": "SUCCESS:CNF-0181",
+ "confirmer": {
+  "identity": "CNF-0181-independent-confirmer",
+  "model": "opus",
+  "role": "independent-confirmer",
+  "vendor": "anthropic"
+ },
+ "corrected_repro": {
+  "measure_n": 2,
+  "measure_ok": 2,
+  "new_case": {
+   "expected_got": "https://ex.com/api",
+   "got": "https://ex.com/api",
+   "id": "case.cnf0181.double-slash",
+   "pass": true,
+   "want": "https://ex.com/api"
+  },
+  "tree": "improved join_url"
+ },
+ "discrepancies": [],
+ "id": "CNF-0181",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe1_gain_both_states.py",
+   "id": "probe1",
+   "role": "gain-and-both-states"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe2_revert_benchmark_neutral.py",
+   "id": "probe2",
+   "role": "revert-benchmark-neutral"
+  }
+ ],
+ "output_schema": "command-center/schema/confirmation-record.schema.json",
+ "production_census": {
+  "foreign_ledgers": [],
+  "production_modules_absent": [
+   "tools/selfimprove/retain.py",
+   "tools/selfimprove/writeback.py",
+   "tools/selfimprove/measure.py",
+   "command-center/receipts/IMP-0373.json",
+   "command-center/receipts/IMP-0374.json",
+   "command-center/receipts/IMP-0255.json"
+  ],
+  "production_modules_present": [],
+  "production_retained_improvements": 0
+ },
+ "question": "For an improvement the self-improvement loop RETAINED, can an independent party reproduce the measured gain, then reproduce the revert, and confirm the benchmark was updated so the original failure cannot silently come back (spec:11135-11150, step 10)?",
+ "regression_diff": {
+  "added": [
+   "case.cnf0181.double-slash"
+  ],
+  "benchmark_case_id": "case.cnf0181.double-slash",
+  "lesson": "Removing case.cnf0181.double-slash makes the original triple-slash failure invisible on the public suite.",
+  "public_after_ids": [
+   "case.slash.join.plain",
+   "case.cnf0181.double-slash"
+  ],
+  "public_before_ids": [
+   "case.slash.join.plain"
+  ],
+  "removed": [],
+  "without_new_case_baseline_public_is_green": true
+ },
+ "residual_caveat": "Production tools/selfimprove/retain.py is absent on this worktree (census present=[] absent=['tools/selfimprove/retain.py', 'tools/selfimprove/writeback.py', 'tools/selfimprove/measure.py', 'command-center/receipts/IMP-0373.json', 'command-center/receipts/IMP-0374.json', 'command-center/receipts/IMP-0255.json']). Confirmation is of isolated retained improvement SI-CNF-0181-001 with write-back case case.cnf0181.double-slash, not of an IMP-0373 production ledger.",
+ "retention_ledger": [
+  {
+   "after_ok": 2,
+   "before_ok": 1,
+   "case_id": "case.cnf0181.double-slash",
+   "decision": "KEEP",
+   "id": "SI-CNF-0181-001"
+  },
+  {
+   "decision": "REVERT",
+   "id": "SI-CNF-0181-001-neutral",
+   "refuse_reason": "no-gain"
+  },
+  {
+   "decision": "REVERT",
+   "id": "SI-CNF-0181-001-no-writeback",
+   "refuse_reason": "benchmark-not-updated"
+  }
+ ],
+ "rollback_repro": {
+  "got_after_revert": "https://ex.com///api",
+  "method": "restore baseline join.py bytes",
+  "new_case_fails_after_revert": true,
+  "revert_byte_identical": true
+ },
+ "source_probe": {
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe1_gain_both_states.py",
+  "fingerprint": "1d974c0e7873af0c3b5af9196239d886fde14c3f42dc7e53e024953cade4b0bf",
+  "id": "probe1",
+  "role": "gain-and-both-states"
+ },
+ "three_measurements": {
+  "benchmark_delta": {
+   "added": true,
+   "case_id": "case.cnf0181.double-slash",
+   "pass": true
+  },
+  "gain_reproduced": {
+   "after_ok": 2,
+   "before_ok": 1,
+   "delta": 1,
+   "pass": true
+  },
+  "revert_reproduced": {
+   "original_failure_got": "https://ex.com///api",
+   "pass": true
+  }
+ },
+ "title": "Reproduce a retained self-improvement, its revert path, and the benchmark that prevents its silent return",
+ "ts": "2026-08-25T00:53:32Z",
+ "verdict": "CONFIRMED",
+ "verifier_probe": {
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0181/probe2_revert_benchmark_neutral.py",
+  "fingerprint": "1310573950cd08439922c3ae5cb3555ff6ca41f9fd333ebd682c14e39cef7789",
+  "id": "probe2",
+  "role": "revert-benchmark-neutral"
+ }
+}

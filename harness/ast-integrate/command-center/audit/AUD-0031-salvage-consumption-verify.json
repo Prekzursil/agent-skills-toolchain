@@ -1,0 +1,526 @@
+{
+ "artifacts": [
+  {
+   "bytes": 1771,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+   "role": "supporting",
+   "sha256": "da6e3f13b75383049538c808d2c1e55150c7b189a0b5e4e7566c6eb559858e16"
+  },
+  {
+   "bytes": 2056,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+   "role": "supporting",
+   "sha256": "632bbec4d0d60294bca6c0e690f44521a3a3f9825bb82aa06a59766cb8e8b101"
+  },
+  {
+   "bytes": 23962,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0031/engine.py",
+   "role": "supporting",
+   "sha256": "85ed6e57c6f47727581fda595ee2cf43fa27899812004065ccbc3a971d86642b"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0031-salvage-consumption-verify.json",
+   "consumer": "json.loads",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c json.loads(Path(output_path).read_text())",
+    "exit_code": 0,
+    "fingerprint": "1175829c6c105040f65f09973f3bbf10",
+    "method": "schema-validate",
+    "raw_output": "json.loads command-center/audit/AUD-0031-salvage-consumption-verify.json ok=True error=None",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+   "claim": "Non-test reverse-references to salvaged tools/lib modules come from AST import nodes and relative-specifier resolution, not textual mentions in comments or docstrings.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+     "exit_code": 0,
+     "fingerprint": "4dd2e1c273470849f70aca84c15504ab",
+     "method": "command",
+     "raw_output": "{\n \"consumers_by_module\": {},\n \"files_scanned\": 573,\n \"lib_home_exists\": true,\n \"mention_control\": {\n  \"description\": \"A module named only inside a docstring or a comment must NOT count as a consumer; a real import of the same module must.\",\n  \"fired_on_import\": true,\n  \"grep_would_fire_on_mention\": true,\n  \"id\": \"use-vs-mention\",\n  \"import_hits\": [\n   \"tools/lib/codex-invocation.mjs\",\n   \"tools/lib/codex-invocation.mjs\"\n  ],\n  \"kind\": \"use-vs-mention\",\n  \"mention_hits\": [],\n  \"passed\": true,\n  \"silent_on_mention\": true,\n  \"target\": \"tools/lib/codex-invocation.mjs\"\n },\n \"method\": \"ast-import-graph-reverse-ref\",\n \"probe\": \"probe1-ast-reverse-ref\",\n \"roster\": [\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/codex-invocation.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/git-diff.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/handled-ledger.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/net-allowlist.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/security.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/workspace.mjs\"\n  }\n ],\n \"test_files_excluded\": 369,\n \"unit_id\": \"AUD-0031\",\n \"used_grep\": false\n}\nSUCCESS:AUD-0031-probe1 ast-reverse-ref files=573 mention_control=pass\ntools/agentspec/agentspec/terminal.py:55: SyntaxWarning: invalid escape sequence '\\p'\n  \"\"\"Refuse an id that would corrupt the marker line or the terminal rendering it.",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c mention_control from command-center/p2-wave/probes/AUD-0031/engine.py",
+     "exit_code": 0,
+     "fingerprint": "8f3991e9670a1e5cbde238d0fc84df53",
+     "method": "test-run",
+     "raw_output": "{\n \"description\": \"A module named only inside a docstring or a comment must NOT count as a consumer; a real import of the same module must.\",\n \"fired_on_import\": true,\n \"grep_would_fire_on_mention\": true,\n \"id\": \"use-vs-mention\",\n \"import_hits\": [\n  \"tools/lib/codex-invocation.mjs\",\n  \"tools/lib/codex-invocation.mjs\"\n ],\n \"kind\": \"use-vs-mention\",\n \"mention_hits\": [],\n \"passed\": true,\n \"silent_on_mention\": true,\n \"target\": \"tools/lib/codex-invocation.mjs\"\n}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+   "claim": "Runtime coverage of non-test entry points records executed tools/lib modules; a mere import without a call is not a use.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+     "exit_code": 0,
+     "fingerprint": "13927fa1aa1cdef51940327243f1db22",
+     "method": "command",
+     "raw_output": "{\n \"import_vs_use_control\": {\n  \"description\": \"A salvaged module imported but never invoked must not count as executed; a call to used() must count.\",\n  \"id\": \"import-is-not-a-use\",\n  \"js_control_ran\": true,\n  \"js_execute_error\": null,\n  \"js_import_only_error\": null,\n  \"kind\": \"runtime-coverage\",\n  \"passed\": true,\n  \"python_execute_error\": null,\n  \"python_execute_executed_used\": true,\n  \"python_import_only_error\": null,\n  \"python_import_only_executed_used\": false\n },\n \"js_entries_attempted\": 8,\n \"js_traces\": [\n  {\n   \"error\": \"TypeError: The \\\"path\\\" argument must be of type string or an instance of Buffer or URL. Received undefined\",\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_behaviour_js.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": \"TypeError: The \\\"path\\\" argument must be of type string or an instance of Buffer or URL. Received undefined\",\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_js.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/oracle.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/argv.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/behaviour.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/budget.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/canonical.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/clock.mjs\",\n   \"skipped\": false\n  }\n ],\n \"lib_home_exists\": true,\n \"lib_home_file_count\": 8,\n \"method\": \"runtime-coverage-trace\",\n \"probe\": \"probe2-runtime-coverage\",\n \"python_entries_attempted\": 8,\n \"python_traces\": [\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'mcp'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/abbyy-finereader-ocr-mcp/index.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'agentrail'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentrail/agentrail/__main__.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'agentspec'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentrail/agentrail/cli.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_behaviour_py.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_py.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/antifail/independence.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/cli/audit.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ImportError: cannot import name 'DEFAULT_PRESETS' from 'runtime' (/opt/p2/ast-integrate/tools/council/cli/runtime.py)\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/cli/main.py\",\n   \"timeout\": false\n  }\n ],\n \"tools_lib_executed\": [],\n \"tools_lib_loaded\": [],\n \"unit_id\": \"AUD-0031\"\n}\nSUCCESS:AUD-0031-probe2 runtime-coverage py_entries=8 executed_lib=0 import_vs_use=pass",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c import_vs_use_control from command-center/p2-wave/probes/AUD-0031/engine.py",
+     "exit_code": 0,
+     "fingerprint": "f274dc157763492b7606a0a14dc498d4",
+     "method": "test-run",
+     "raw_output": "{\n \"description\": \"A salvaged module imported but never invoked must not count as executed; a call to used() must count.\",\n \"id\": \"import-is-not-a-use\",\n \"js_control_ran\": true,\n \"js_execute_error\": null,\n \"js_import_only_error\": null,\n \"kind\": \"runtime-coverage\",\n \"passed\": true,\n \"python_execute_error\": null,\n \"python_execute_executed_used\": true,\n \"python_import_only_error\": null,\n \"python_import_only_executed_used\": false\n}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "entry_id": "AUD-0031",
+  "manifest_path": "command-center/p2-wave/probes/AUD-0031/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 1024,
+ "negative_controls": [
+  {
+   "bad_state_output": "[\"tools/lib/codex-invocation.mjs\", \"tools/lib/codex-invocation.mjs\"]",
+   "description": "A module named only inside a docstring or a comment must NOT count as a consumer; a real import of the same module must.",
+   "fired_on_bad_state": true,
+   "good_state_output": "[]",
+   "id": "AUD-0031-C1-use-vs-mention",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "{\"python_execute_executed_used\": true}",
+   "description": "A salvaged module imported but never invoked must not count as executed; a call to used() must count.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"python_import_only_executed_used\": false}",
+   "id": "AUD-0031-C2-import-is-not-a-use",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "vendor": "xai",
+  "model": "grok",
+  "role": "auditor",
+  "execution_substrate": "local-parallel"
+ },
+ "report": {
+  "kind": "audit-finding",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+    "measured": 0,
+    "method": "static-analysis",
+    "name": "modules_with_non_test_consumers"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+    "measured": 6,
+    "method": "static-analysis",
+    "name": "modules_with_zero_non_test_consumers"
+   },
+   {
+    "anchor": "tools/lib/",
+    "measured": 6,
+    "method": "file-read",
+    "name": "tools_lib_present_on_disk"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+    "measured": 0,
+    "method": "test-run",
+    "name": "tools_lib_files_executed_at_runtime"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0031/engine.py:summarize",
+    "measured": false,
+    "method": "static-analysis",
+    "name": "salvage_achieved_measurable_consumption"
+   }
+  ],
+  "control_ids": [
+   "AUD-0031-C1-use-vs-mention",
+   "AUD-0031-C2-import-is-not-a-use"
+  ],
+  "answer": "Roster is the catalog six (6 modules) under tools/lib/. On this worktree tools/lib/ exists=True with 6 of 6 files present. AST reverse-reference (tests and the salvage home itself excluded) found non-test import consumers for 0 module(s); 6 module(s) have zero non-test consumers. Runtime coverage of non-test entry points executed 0 tools/lib file(s). Salvage achieved measurable consumption=false. An import is not a use; mention-only docstring/comment names are not consumers. SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+  "modules": [
+   {
+    "filename": "codex-invocation.mjs",
+    "module": "tools/lib/codex-invocation.mjs",
+    "non_test_import_consumer_count": 0,
+    "non_test_import_consumers": [],
+    "package_level_importers": [],
+    "present_on_disk": true,
+    "runtime_executed": false,
+    "runtime_loaded": false,
+    "salvage_measurable": false,
+    "verdict": "PRESENT-BUT-UNCONSUMED"
+   },
+   {
+    "filename": "git-diff.mjs",
+    "module": "tools/lib/git-diff.mjs",
+    "non_test_import_consumer_count": 0,
+    "non_test_import_consumers": [],
+    "package_level_importers": [],
+    "present_on_disk": true,
+    "runtime_executed": false,
+    "runtime_loaded": false,
+    "salvage_measurable": false,
+    "verdict": "PRESENT-BUT-UNCONSUMED"
+   },
+   {
+    "filename": "handled-ledger.mjs",
+    "module": "tools/lib/handled-ledger.mjs",
+    "non_test_import_consumer_count": 0,
+    "non_test_import_consumers": [],
+    "package_level_importers": [],
+    "present_on_disk": true,
+    "runtime_executed": false,
+    "runtime_loaded": false,
+    "salvage_measurable": false,
+    "verdict": "PRESENT-BUT-UNCONSUMED"
+   },
+   {
+    "filename": "net-allowlist.mjs",
+    "module": "tools/lib/net-allowlist.mjs",
+    "non_test_import_consumer_count": 0,
+    "non_test_import_consumers": [],
+    "package_level_importers": [],
+    "present_on_disk": true,
+    "runtime_executed": false,
+    "runtime_loaded": false,
+    "salvage_measurable": false,
+    "verdict": "PRESENT-BUT-UNCONSUMED"
+   },
+   {
+    "filename": "security.mjs",
+    "module": "tools/lib/security.mjs",
+    "non_test_import_consumer_count": 0,
+    "non_test_import_consumers": [],
+    "package_level_importers": [],
+    "present_on_disk": true,
+    "runtime_executed": false,
+    "runtime_loaded": false,
+    "salvage_measurable": false,
+    "verdict": "PRESENT-BUT-UNCONSUMED"
+   },
+   {
+    "filename": "workspace.mjs",
+    "module": "tools/lib/workspace.mjs",
+    "non_test_import_consumer_count": 0,
+    "non_test_import_consumers": [],
+    "package_level_importers": [],
+    "present_on_disk": true,
+    "runtime_executed": false,
+    "runtime_loaded": false,
+    "salvage_measurable": false,
+    "verdict": "PRESENT-BUT-UNCONSUMED"
+   }
+  ],
+  "question": "For each of the 6 modules salvaged into tools/lib/, which non-test callers import it today - and if a module has zero non-test consumers, did the salvage decision achieve anything measurable?",
+  "summary": {
+   "absent_on_disk": 0,
+   "lib_home": "tools/lib/",
+   "lib_home_exists": true,
+   "modules_with_non_test_consumers": 0,
+   "modules_with_zero_non_test_consumers": 6,
+   "present_on_disk": 6,
+   "roster_count": 6,
+   "salvage_achieved_measurable_consumption": false
+  }
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Runtime coverage traces a bounded sample of non-test entry points under tools/, not every possible caller in the wider estate.",
+   "settling_experiment": "Raise the probe-2 entry budget and add package.json bin/main roots on a larger host.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": true,
+  "notes": "Catalog asks a cross-vendor Codex reviewer to re-run ONLY probe 2. Probe 2 is a runtime coverage trace and does not reuse probe 1's AST reverse-reference.",
+  "reviewer_id": "AUD-0031-probe2-runtime-coverage",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#AUD-0031",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 3,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+   "id": "use-vs-mention",
+   "name": "module named only in a docstring or comment is not a consumer",
+   "result": "PASS"
+  },
+  {
+   "assertions": 2,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+   "id": "import-is-not-a-use",
+   "name": "imported-but-never-called module is not executed",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:12:01+00:00",
+  "started_at": "2026-08-25T01:11:57+00:00"
+ },
+ "unit_id": "AUD-0031",
+ "extensions": {
+  "legacy_root": {
+   "adv_rebuild_circle": false,
+   "answer": "Roster is the catalog six (6 modules) under tools/lib/. On this worktree tools/lib/ exists=True with 6 of 6 files present. AST reverse-reference (tests and the salvage home itself excluded) found non-test import consumers for 0 module(s); 6 module(s) have zero non-test consumers. Runtime coverage of non-test entry points executed 0 tools/lib file(s). Salvage achieved measurable consumption=false. An import is not a use; mention-only docstring/comment names are not consumers. SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+   "id": "AUD-0031",
+   "modules": [
+    {
+     "filename": "codex-invocation.mjs",
+     "module": "tools/lib/codex-invocation.mjs",
+     "non_test_import_consumer_count": 0,
+     "non_test_import_consumers": [],
+     "package_level_importers": [],
+     "present_on_disk": true,
+     "runtime_executed": false,
+     "runtime_loaded": false,
+     "salvage_measurable": false,
+     "verdict": "PRESENT-BUT-UNCONSUMED"
+    },
+    {
+     "filename": "git-diff.mjs",
+     "module": "tools/lib/git-diff.mjs",
+     "non_test_import_consumer_count": 0,
+     "non_test_import_consumers": [],
+     "package_level_importers": [],
+     "present_on_disk": true,
+     "runtime_executed": false,
+     "runtime_loaded": false,
+     "salvage_measurable": false,
+     "verdict": "PRESENT-BUT-UNCONSUMED"
+    },
+    {
+     "filename": "handled-ledger.mjs",
+     "module": "tools/lib/handled-ledger.mjs",
+     "non_test_import_consumer_count": 0,
+     "non_test_import_consumers": [],
+     "package_level_importers": [],
+     "present_on_disk": true,
+     "runtime_executed": false,
+     "runtime_loaded": false,
+     "salvage_measurable": false,
+     "verdict": "PRESENT-BUT-UNCONSUMED"
+    },
+    {
+     "filename": "net-allowlist.mjs",
+     "module": "tools/lib/net-allowlist.mjs",
+     "non_test_import_consumer_count": 0,
+     "non_test_import_consumers": [],
+     "package_level_importers": [],
+     "present_on_disk": true,
+     "runtime_executed": false,
+     "runtime_loaded": false,
+     "salvage_measurable": false,
+     "verdict": "PRESENT-BUT-UNCONSUMED"
+    },
+    {
+     "filename": "security.mjs",
+     "module": "tools/lib/security.mjs",
+     "non_test_import_consumer_count": 0,
+     "non_test_import_consumers": [],
+     "package_level_importers": [],
+     "present_on_disk": true,
+     "runtime_executed": false,
+     "runtime_loaded": false,
+     "salvage_measurable": false,
+     "verdict": "PRESENT-BUT-UNCONSUMED"
+    },
+    {
+     "filename": "workspace.mjs",
+     "module": "tools/lib/workspace.mjs",
+     "non_test_import_consumer_count": 0,
+     "non_test_import_consumers": [],
+     "package_level_importers": [],
+     "present_on_disk": true,
+     "runtime_executed": false,
+     "runtime_loaded": false,
+     "salvage_measurable": false,
+     "verdict": "PRESENT-BUT-UNCONSUMED"
+    }
+   ],
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+     "exit_code": 0,
+     "id": "probe1",
+     "raw_output": "{\n \"consumers_by_module\": {},\n \"files_scanned\": 573,\n \"lib_home_exists\": true,\n \"mention_control\": {\n  \"description\": \"A module named only inside a docstring or a comment must NOT count as a consumer; a real import of the same module must.\",\n  \"fired_on_import\": true,\n  \"grep_would_fire_on_mention\": true,\n  \"id\": \"use-vs-mention\",\n  \"import_hits\": [\n   \"tools/lib/codex-invocation.mjs\",\n   \"tools/lib/codex-invocation.mjs\"\n  ],\n  \"kind\": \"use-vs-mention\",\n  \"mention_hits\": [],\n  \"passed\": true,\n  \"silent_on_mention\": true,\n  \"target\": \"tools/lib/codex-invocation.mjs\"\n },\n \"method\": \"ast-import-graph-reverse-ref\",\n \"probe\": \"probe1-ast-reverse-ref\",\n \"roster\": [\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/codex-invocation.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/git-diff.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/handled-ledger.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/net-allowlist.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/security.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/workspace.mjs\"\n  }\n ],\n \"test_files_excluded\": 369,\n \"unit_id\": \"AUD-0031\",\n \"used_grep\": false\n}\nSUCCESS:AUD-0031-probe1 ast-reverse-ref files=573 mention_control=pass\ntools/agentspec/agentspec/terminal.py:55: SyntaxWarning: invalid escape sequence '\\p'\n  \"\"\"Refuse an id that would corrupt the marker line or the terminal rendering it.",
+     "role": "ast-reverse-ref"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+     "exit_code": 0,
+     "id": "probe2",
+     "raw_output": "{\n \"import_vs_use_control\": {\n  \"description\": \"A salvaged module imported but never invoked must not count as executed; a call to used() must count.\",\n  \"id\": \"import-is-not-a-use\",\n  \"js_control_ran\": true,\n  \"js_execute_error\": null,\n  \"js_import_only_error\": null,\n  \"kind\": \"runtime-coverage\",\n  \"passed\": true,\n  \"python_execute_error\": null,\n  \"python_execute_executed_used\": true,\n  \"python_import_only_error\": null,\n  \"python_import_only_executed_used\": false\n },\n \"js_entries_attempted\": 8,\n \"js_traces\": [\n  {\n   \"error\": \"TypeError: The \\\"path\\\" argument must be of type string or an instance of Buffer or URL. Received undefined\",\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_behaviour_js.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": \"TypeError: The \\\"path\\\" argument must be of type string or an instance of Buffer or URL. Received undefined\",\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_js.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/oracle.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/argv.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/behaviour.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/budget.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/canonical.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/clock.mjs\",\n   \"skipped\": false\n  }\n ],\n \"lib_home_exists\": true,\n \"lib_home_file_count\": 8,\n \"method\": \"runtime-coverage-trace\",\n \"probe\": \"probe2-runtime-coverage\",\n \"python_entries_attempted\": 8,\n \"python_traces\": [\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'mcp'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/abbyy-finereader-ocr-mcp/index.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'agentrail'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentrail/agentrail/__main__.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'agentspec'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentrail/agentrail/cli.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_behaviour_py.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_py.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/antifail/independence.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/cli/audit.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ImportError: cannot import name 'DEFAULT_PRESETS' from 'runtime' (/opt/p2/ast-integrate/tools/council/cli/runtime.py)\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/cli/main.py\",\n   \"timeout\": false\n  }\n ],\n \"tools_lib_executed\": [],\n \"tools_lib_loaded\": [],\n \"unit_id\": \"AUD-0031\"\n}\nSUCCESS:AUD-0031-probe2 runtime-coverage py_entries=8 executed_lib=0 import_vs_use=pass",
+     "role": "runtime-coverage"
+    }
+   ],
+   "notes": "G-1 for AUD-0031: live named probes must exit 0. cloud ok=true is not delivery. Did not run global unit_manifest.py --write. No ADV rebuild circle.",
+   "output_path": "command-center/audit/AUD-0031-salvage-consumption-verify.json",
+   "output_schema": "command-center/schema/audit-finding.schema.json",
+   "owner_decision": "salvage home = tools/lib/ shared tree",
+   "question": "For each of the 6 modules salvaged into tools/lib/, which non-test callers import it today - and if a module has zero non-test consumers, did the salvage decision achieve anything measurable?",
+   "question_or_target": "For each of the 6 modules salvaged into tools/lib/, which non-test callers import it today - and if a module has zero non-test consumers, did the salvage decision achieve anything measurable?",
+   "report_kind": "audit-finding",
+   "status": "DELIVERED",
+   "summary": {
+    "absent_on_disk": 0,
+    "lib_home": "tools/lib/",
+    "lib_home_exists": true,
+    "modules_with_non_test_consumers": 0,
+    "modules_with_zero_non_test_consumers": 6,
+    "present_on_disk": 6,
+    "roster_count": 6,
+    "salvage_achieved_measurable_consumption": false
+   }
+  }
+ },
+ "defects": [],
+ "adv_rebuild_circle": false,
+ "answer": "Roster is the catalog six (6 modules) under tools/lib/. On this worktree tools/lib/ exists=True with 6 of 6 files present. AST reverse-reference (tests and the salvage home itself excluded) found non-test import consumers for 0 module(s); 6 module(s) have zero non-test consumers. Runtime coverage of non-test entry points executed 0 tools/lib file(s). Salvage achieved measurable consumption=false. An import is not a use; mention-only docstring/comment names are not consumers. SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:AUD-0031 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output",
+ "id": "AUD-0031",
+ "modules": [
+  {
+   "filename": "codex-invocation.mjs",
+   "module": "tools/lib/codex-invocation.mjs",
+   "non_test_import_consumer_count": 0,
+   "non_test_import_consumers": [],
+   "package_level_importers": [],
+   "present_on_disk": true,
+   "runtime_executed": false,
+   "runtime_loaded": false,
+   "salvage_measurable": false,
+   "verdict": "PRESENT-BUT-UNCONSUMED"
+  },
+  {
+   "filename": "git-diff.mjs",
+   "module": "tools/lib/git-diff.mjs",
+   "non_test_import_consumer_count": 0,
+   "non_test_import_consumers": [],
+   "package_level_importers": [],
+   "present_on_disk": true,
+   "runtime_executed": false,
+   "runtime_loaded": false,
+   "salvage_measurable": false,
+   "verdict": "PRESENT-BUT-UNCONSUMED"
+  },
+  {
+   "filename": "handled-ledger.mjs",
+   "module": "tools/lib/handled-ledger.mjs",
+   "non_test_import_consumer_count": 0,
+   "non_test_import_consumers": [],
+   "package_level_importers": [],
+   "present_on_disk": true,
+   "runtime_executed": false,
+   "runtime_loaded": false,
+   "salvage_measurable": false,
+   "verdict": "PRESENT-BUT-UNCONSUMED"
+  },
+  {
+   "filename": "net-allowlist.mjs",
+   "module": "tools/lib/net-allowlist.mjs",
+   "non_test_import_consumer_count": 0,
+   "non_test_import_consumers": [],
+   "package_level_importers": [],
+   "present_on_disk": true,
+   "runtime_executed": false,
+   "runtime_loaded": false,
+   "salvage_measurable": false,
+   "verdict": "PRESENT-BUT-UNCONSUMED"
+  },
+  {
+   "filename": "security.mjs",
+   "module": "tools/lib/security.mjs",
+   "non_test_import_consumer_count": 0,
+   "non_test_import_consumers": [],
+   "package_level_importers": [],
+   "present_on_disk": true,
+   "runtime_executed": false,
+   "runtime_loaded": false,
+   "salvage_measurable": false,
+   "verdict": "PRESENT-BUT-UNCONSUMED"
+  },
+  {
+   "filename": "workspace.mjs",
+   "module": "tools/lib/workspace.mjs",
+   "non_test_import_consumer_count": 0,
+   "non_test_import_consumers": [],
+   "package_level_importers": [],
+   "present_on_disk": true,
+   "runtime_executed": false,
+   "runtime_loaded": false,
+   "salvage_measurable": false,
+   "verdict": "PRESENT-BUT-UNCONSUMED"
+  }
+ ],
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe1_ast_reverse_ref.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\n \"consumers_by_module\": {},\n \"files_scanned\": 573,\n \"lib_home_exists\": true,\n \"mention_control\": {\n  \"description\": \"A module named only inside a docstring or a comment must NOT count as a consumer; a real import of the same module must.\",\n  \"fired_on_import\": true,\n  \"grep_would_fire_on_mention\": true,\n  \"id\": \"use-vs-mention\",\n  \"import_hits\": [\n   \"tools/lib/codex-invocation.mjs\",\n   \"tools/lib/codex-invocation.mjs\"\n  ],\n  \"kind\": \"use-vs-mention\",\n  \"mention_hits\": [],\n  \"passed\": true,\n  \"silent_on_mention\": true,\n  \"target\": \"tools/lib/codex-invocation.mjs\"\n },\n \"method\": \"ast-import-graph-reverse-ref\",\n \"probe\": \"probe1-ast-reverse-ref\",\n \"roster\": [\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/codex-invocation.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/git-diff.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/handled-ledger.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/net-allowlist.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/security.mjs\"\n  },\n  {\n   \"present_on_disk\": true,\n   \"rel\": \"tools/lib/workspace.mjs\"\n  }\n ],\n \"test_files_excluded\": 369,\n \"unit_id\": \"AUD-0031\",\n \"used_grep\": false\n}\nSUCCESS:AUD-0031-probe1 ast-reverse-ref files=573 mention_control=pass\ntools/agentspec/agentspec/terminal.py:55: SyntaxWarning: invalid escape sequence '\\p'\n  \"\"\"Refuse an id that would corrupt the marker line or the terminal rendering it.",
+   "role": "ast-reverse-ref"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/AUD-0031/probe2_runtime_coverage.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\n \"import_vs_use_control\": {\n  \"description\": \"A salvaged module imported but never invoked must not count as executed; a call to used() must count.\",\n  \"id\": \"import-is-not-a-use\",\n  \"js_control_ran\": true,\n  \"js_execute_error\": null,\n  \"js_import_only_error\": null,\n  \"kind\": \"runtime-coverage\",\n  \"passed\": true,\n  \"python_execute_error\": null,\n  \"python_execute_executed_used\": true,\n  \"python_import_only_error\": null,\n  \"python_import_only_executed_used\": false\n },\n \"js_entries_attempted\": 8,\n \"js_traces\": [\n  {\n   \"error\": \"TypeError: The \\\"path\\\" argument must be of type string or an instance of Buffer or URL. Received undefined\",\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_behaviour_js.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": \"TypeError: The \\\"path\\\" argument must be of type string or an instance of Buffer or URL. Received undefined\",\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_js.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/oracle.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/argv.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/behaviour.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/budget.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/canonical.mjs\",\n   \"skipped\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"path\": \"tools/agentspec-js/src/clock.mjs\",\n   \"skipped\": false\n  }\n ],\n \"lib_home_exists\": true,\n \"lib_home_file_count\": 8,\n \"method\": \"runtime-coverage-trace\",\n \"probe\": \"probe2-runtime-coverage\",\n \"python_entries_attempted\": 8,\n \"python_traces\": [\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'mcp'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/abbyy-finereader-ocr-mcp/index.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'agentrail'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentrail/agentrail/__main__.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ModuleNotFoundError: No module named 'agentspec'\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentrail/agentrail/cli.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_behaviour_py.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/agentspec-js/parity/emit_py.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/antifail/independence.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": null,\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/cli/audit.py\",\n   \"timeout\": false\n  },\n  {\n   \"error\": \"ImportError: cannot import name 'DEFAULT_PRESETS' from 'runtime' (/opt/p2/ast-integrate/tools/council/cli/runtime.py)\",\n   \"hit_count\": 0,\n   \"loaded_count\": 0,\n   \"path\": \"tools/council/cli/main.py\",\n   \"timeout\": false\n  }\n ],\n \"tools_lib_executed\": [],\n \"tools_lib_loaded\": [],\n \"unit_id\": \"AUD-0031\"\n}\nSUCCESS:AUD-0031-probe2 runtime-coverage py_entries=8 executed_lib=0 import_vs_use=pass",
+   "role": "runtime-coverage"
+  }
+ ],
+ "notes": "G-1 for AUD-0031: live named probes must exit 0. cloud ok=true is not delivery. Did not run global unit_manifest.py --write. No ADV rebuild circle.",
+ "output_path": "command-center/audit/AUD-0031-salvage-consumption-verify.json",
+ "output_schema": "command-center/schema/audit-finding.schema.json",
+ "owner_decision": "salvage home = tools/lib/ shared tree",
+ "question": "For each of the 6 modules salvaged into tools/lib/, which non-test callers import it today - and if a module has zero non-test consumers, did the salvage decision achieve anything measurable?",
+ "question_or_target": "For each of the 6 modules salvaged into tools/lib/, which non-test callers import it today - and if a module has zero non-test consumers, did the salvage decision achieve anything measurable?",
+ "report_kind": "audit-finding",
+ "status": "DELIVERED",
+ "summary": {
+  "absent_on_disk": 0,
+  "lib_home": "tools/lib/",
+  "lib_home_exists": true,
+  "modules_with_non_test_consumers": 0,
+  "modules_with_zero_non_test_consumers": 6,
+  "present_on_disk": 6,
+  "roster_count": 6,
+  "salvage_achieved_measurable_consumption": false
+ }
+}

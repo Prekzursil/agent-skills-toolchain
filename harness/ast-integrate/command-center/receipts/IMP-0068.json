@@ -1,0 +1,183 @@
+{
+ "artifacts": [
+  {
+   "bytes": 11338,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/storage.py",
+   "role": "supporting",
+   "sha256": "6fe0c4009e64e3355d0b2f28fdedd80b295bf5f908f9accc44f1fc6e3c53b2a3"
+  },
+  {
+   "bytes": 8591,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/marketplace/tests/test_registry_storage.py",
+   "role": "supporting",
+   "sha256": "ff69650622628fad3229445bf1bb3a5a93c27e77a0c83627b4621f017a81521d"
+  },
+  {
+   "bytes": 3420,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0068/probe1_rebuild_from_blobs.py",
+   "role": "supporting",
+   "sha256": "508ec1f8f987a6e7df4d1adb0480b0e5d2f8248e8a87720c7e5a95f53940766d"
+  },
+  {
+   "bytes": 8062,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0068/probe2_kill_points_orphan.py",
+   "role": "supporting",
+   "sha256": "9a38fdd350c02690d472af1a5dc917068fb5c90bec04ff0ab76fcc84d212de8e"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0068",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0068.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0068",
+   "executed": false,
+   "note": "G-1 measure runs after this receipt and the per-unit manifest exist.",
+   "read_ok": false
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/marketplace/tests/test_registry_storage.py::test_rebuild_from_blobs_equals_original",
+   "claim": "An index rebuilt from stored package blobs is semantically equal to the original (normalised comparison). Insertion order may differ from rebuild order, so byte equality is not required and was observed to fail while semantic equality held. A truncated index and a deleted index both recover via rebuild_from_blobs.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0068/probe1_rebuild_from_blobs.py",
+     "exit_code": 0,
+     "fingerprint": "25f83c59bb0eb3713ac0cc39754ae093a0d2957cc0244c4b2460a90ef8d8752e",
+     "method": "command",
+     "raw_output": "{\n  \"byte_equal\": false,\n  \"corrupt_raised\": true,\n  \"insert_order\": [\n    \"omega-kit\",\n    \"beta-kit\",\n    \"kappa-kit\"\n  ],\n  \"missing_raised\": true,\n  \"pass\": true,\n  \"plugin_count\": 3,\n  \"probe\": \"probe1-rebuild-from-blobs\",\n  \"rebuilt_order\": [\n    \"beta-kit\",\n    \"kappa-kit\",\n    \"omega-kit\"\n  ],\n  \"recovered_after_corrupt\": true,\n  \"recovered_after_lost\": true,\n  \"semantically_equal\": true,\n  \"unit_id\": \"IMP-0068\"\n}\nSUCCESS:IMP-0068-probe1 rebuild-from-blobs semantically equal; corrupt and lost index recovered",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_registry_storage.py",
+     "exit_code": 0,
+     "fingerprint": "a780adb8f671bf650cf9970055356a3ee1447048c8a86289fe35e4ededdf03ca",
+     "method": "command",
+     "raw_output": "SUCCESS:IMP-0068-tests\ntest_inplace_write_fails_the_kill_point_test (__main__.RegistryStorageTests.test_inplace_write_fails_the_kill_point_test) ... ok\ntest_no_partial_index_visible_at_any_kill_point (__main__.RegistryStorageTests.test_no_partial_index_visible_at_any_kill_point) ... ok\ntest_orphan_blob_is_included_on_rebuild (__main__.RegistryStorageTests.test_orphan_blob_is_included_on_rebuild) ... ok\ntest_rebuild_from_blobs_equals_original (__main__.RegistryStorageTests.test_rebuild_from_blobs_equals_original) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 1.524s\n\nOK",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/marketplace/tests/test_registry_storage.py::test_no_partial_index_visible_at_any_kill_point",
+   "claim": "SIGKILL at seeded offsets during an atomic index write never leaves a readable partial at dest: dest is the previous complete marketplace.json (or the new complete document). The same offsets against in_place_publish produce readable partials.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0068/probe2_kill_points_orphan.py",
+     "exit_code": 0,
+     "fingerprint": "4c896bd9d937a3d0806cfd58e77df10f1dd144fc7432233646157c9350b134f4",
+     "method": "command",
+     "raw_output": "{\n  \"atomic_classes\": [\n    \"old_complete\"\n  ],\n  \"atomic_live_kills\": 16,\n  \"atomic_partials\": 0,\n  \"index_bytes\": 8245,\n  \"inplace_live_kills\": 16,\n  \"inplace_partials\": 16,\n  \"n_kill\": 16,\n  \"orphan\": {\n    \"consistent_plugin_count\": 1,\n    \"consistent_vs_rebuilt_equal\": false,\n    \"orphan_digest\": \"sha256:14a3039bc9f7ffd529f32f8c61c5f50b927ec8bd1b19d0c1c620853c6f569c0a\",\n    \"orphan_in_index_before_rebuild\": false,\n    \"orphan_in_rebuild\": true,\n    \"orphan_name\": \"reviewer-orphan-qkv\",\n    \"rebuilt_names\": [\n      \"indexed-alpha\",\n      \"reviewer-orphan-qkv\"\n    ],\n    \"rebuilt_plugin_count\": 2\n  },\n  \"pass\": true,\n  \"probe\": \"probe2-kill-points-orphan\",\n  \"reviewer_id\": \"IMP-0068-probe2-kill-points-orphan\",\n  \"unit_id\": \"IMP-0068\"\n}\nSUCCESS:IMP-0068-probe2 no partial index at kill points; in-place control fires; orphan blob included in rebuild",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_registry_storage.py",
+     "exit_code": 0,
+     "fingerprint": "a780adb8f671bf650cf9970055356a3ee1447048c8a86289fe35e4ededdf03ca",
+     "method": "command",
+     "raw_output": "SUCCESS:IMP-0068-tests\ntest_inplace_write_fails_the_kill_point_test (__main__.RegistryStorageTests.test_inplace_write_fails_the_kill_point_test) ... ok\ntest_no_partial_index_visible_at_any_kill_point (__main__.RegistryStorageTests.test_no_partial_index_visible_at_any_kill_point) ... ok\ntest_orphan_blob_is_included_on_rebuild (__main__.RegistryStorageTests.test_orphan_blob_is_included_on_rebuild) ... ok\ntest_rebuild_from_blobs_equals_original (__main__.RegistryStorageTests.test_rebuild_from_blobs_equals_original) ... ok\n\n----------------------------------------------------------------------\nRan 4 tests in 1.524s\n\nOK",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0068",
+ "implementation": {
+  "blob_layout": "blobs/sha256/<hex>",
+  "dependency_IMP-0067": "IMP-0067 schema unit is not delivered on this tree. Storage treats marketplace.json as the sole index control plane and extends plugin records additively with digest, channels, and provenance.blob pointers. No second index file is introduced.",
+  "index_mutation": "tmp + os.fsync + os.replace",
+  "index_name": "marketplace.json",
+  "inplace_writer": "planted detector-control only",
+  "module": "tools/marketplace/storage.py",
+  "second_index_file": false
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0068/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "inplace_partials>0",
+   "description": "An in-place truncating writer, killed at the same seeded offsets as the atomic writer, leaves a dest that is neither the old nor the new complete index.",
+   "fired_on_bad_state": true,
+   "good_state_output": "atomic_partials=0",
+   "id": "inplace-write-fails-kill-point-test",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 delivery of IMP-0068 registry storage. Two independent signals measured live: rebuild-from-blobs semantic equality, and kill-point atomicity with an in-place negative control. Reviewer orphan blob is included on rebuild. Did not run global unit_manifest.py --write. cloud ok is not consulted. SUCCESS:IMP-0068",
+ "question": "Implement registry persistence where every index mutation is a tmp-write plus atomic rename, and where the entire index can be rebuilt from the stored package blobs alone \u2014 so a corrupted or lost index is recoverable rather than fatal.",
+ "question_or_target": "Implement registry persistence where every index mutation is a tmp-write plus atomic rename, and where the entire index can be rebuilt from the stored package blobs alone \u2014 so a corrupted or lost index is recoverable rather than fatal.",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0067 (canonical registry index schema extending .claude-plugin/marketplace.json) is not delivered on this worktree, and .claude-plugin/marketplace.json itself is absent here. Storage uses marketplace.json as the index filename inside a caller-supplied root (tests use a temp dir). Wiring the live plugin marketplace path is IMP-0067's schema plus a later install-path unit, not a second index.",
+   "settling_experiment": "After IMP-0067 lands, point RegistryStorage at the real .claude-plugin directory and re-run rebuild equality against HEAD's plugins[] plus planted blobs.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two-strikes-then-pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "method": "Probe 2 plants reviewer-orphan-qkv as a blob without an index mutation, confirms the name is absent from marketplace.json, then rebuild_from_blobs includes it. Kill-point campaign uses a different seed and fat index than the unittest file.",
+  "obligation": "Rebuild is exercised against blobs missing an index entry (an orphan), not only against a consistent set.",
+  "reviewer_id": "IMP-0068-probe2-kill-points-orphan",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0068",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0068",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_registry_storage.py::test_rebuild_from_blobs_equals_original",
+   "id": "test_rebuild_from_blobs_equals_original",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_registry_storage.py::test_no_partial_index_visible_at_any_kill_point",
+   "id": "test_no_partial_index_visible_at_any_kill_point",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/marketplace/tests/test_registry_storage.py::test_inplace_write_fails_the_kill_point_test",
+   "id": "test_inplace_write_fails_the_kill_point_test",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0068/probe1_rebuild_from_blobs.py",
+   "id": "named-probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0068/probe2_kill_points_orphan.py",
+   "id": "named-probe2",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:57:55Z",
+  "started_at": "2026-08-25T00:57:54Z"
+ },
+ "title": "Registry storage layer with atomic writes and self-healing index rebuild",
+ "unit_id": "IMP-0068"
+}

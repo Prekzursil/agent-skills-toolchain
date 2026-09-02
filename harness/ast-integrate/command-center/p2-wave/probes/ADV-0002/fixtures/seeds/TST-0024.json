@@ -1,0 +1,253 @@
+{
+  "unit_id": "TST-0024",
+  "state": "SUCCESS",
+  "schema_version": 1,
+  "report_kind": "test-receipt",
+  "title": "Clean-room lane: fresh clone plus fresh user profile",
+  "question": "Spec: Produce a clean-room baseline from a fresh clone and fresh user profile where possible. Target: a lane that clones to a scratch path with an empty HOME/USERPROFILE and runs the suite, so results cannot inherit the developer's live ~/.claude configuration. Which tests only pass because of ambient local state?",
+  "sentinel": "SUCCESS:TST-0024",
+  "completion_sentinel": "SUCCESS:TST-0024",
+  "min_bytes_threshold": 2048,
+  "cloud_ok": false,
+  "registered": true,
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "lane": {
+    "clone": {
+      "origin": "/tmp/tst0024-emit-7yofik6q/origin",
+      "clone": "/tmp/tst0024-emit-7yofik6q/clone",
+      "head": "3eebcd7ceda220d812d24bfbb303fd67ce7d0158",
+      "is_work_tree": true,
+      "remote": "/tmp/tst0024-emit-7yofik6q/origin",
+      "clone_is_not_origin": true,
+      "suite_present": true,
+      "runner_present": true,
+      "remote_is_origin": true
+    },
+    "developer_home": "/root",
+    "home_redirected": true,
+    "note": "Scratch git origin is materialised from command-center/p2-wave/probes/TST-0024/fixtures/origin then cloned. Git add/commit run only inside that tempfile origin, never on the /opt/p2/ast-integrate worktree (this tree has no .git). Clean-room HOME and USERPROFILE are a fresh empty directory; CLAUDE_HOME/CLAUDE_CONFIG_DIR/XDG_CONFIG_HOME are stripped so ~/.claude cannot leak from the developer profile."
+  },
+  "runs": {
+    "live_developer_home": {
+      "label": "live-developer-HOME",
+      "home": "/root",
+      "counts": {
+        "passed": 2,
+        "failed": 2,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 4
+      },
+      "members": [
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted",
+          "outcome": "passed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_independent_fail",
+          "outcome": "failed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_independent_pass",
+          "outcome": "passed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_requires_claude_settings",
+          "outcome": "failed"
+        }
+      ],
+      "inspect_claude_settings": false
+    },
+    "planted_ambient_profile": {
+      "label": "planted-ambient-profile",
+      "counts": {
+        "passed": 2,
+        "failed": 2,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 4
+      },
+      "members": [
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted",
+          "outcome": "failed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_independent_fail",
+          "outcome": "failed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_independent_pass",
+          "outcome": "passed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_requires_claude_settings",
+          "outcome": "passed"
+        }
+      ],
+      "inspect": {
+        "claude_settings": true,
+        "ssh_decoy": true,
+        "empty_of_profile": false
+      }
+    },
+    "clean_room": {
+      "label": "clean-room-empty-HOME",
+      "counts": {
+        "passed": 2,
+        "failed": 2,
+        "skipped": 0,
+        "error": 0,
+        "collection_error": 0,
+        "total_ids": 4
+      },
+      "members": [
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted",
+          "outcome": "passed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_independent_fail",
+          "outcome": "failed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_independent_pass",
+          "outcome": "passed"
+        },
+        {
+          "id": "test_profile_suite.py::ProfileSuite::test_requires_claude_settings",
+          "outcome": "failed"
+        }
+      ],
+      "inspect": {
+        "path": "/tmp/tst0024-emit-7yofik6q/empty-home",
+        "exists": true,
+        "top_level": [],
+        "top_level_count": 0,
+        "claude_dir": false,
+        "claude_settings": false,
+        "ssh_decoy": false,
+        "empty_of_profile": true
+      },
+      "subprocess_view": {
+        "HOME": "/tmp/tst0024-emit-7yofik6q/empty-home",
+        "USERPROFILE": "/tmp/tst0024-emit-7yofik6q/empty-home",
+        "claude_exists": false,
+        "ssh_decoy": false,
+        "top_level": [],
+        "ok": true,
+        "home_matches_lane": true
+      }
+    }
+  },
+  "ambient_dependent": [
+    {
+      "id": "test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted",
+      "ambient_outcome": "failed",
+      "clean_room_outcome": "passed",
+      "kind": "clean-only-pass"
+    },
+    {
+      "id": "test_profile_suite.py::ProfileSuite::test_requires_claude_settings",
+      "ambient_outcome": "passed",
+      "clean_room_outcome": "failed",
+      "kind": "ambient-only-pass"
+    }
+  ],
+  "live_home_delta": [],
+  "delta_rule": "A test is ambient-dependent when its pass/fail differs between the ambient-profile run and the clean-room run. A test that fails in both, or passes in both, is not ambient-dependent.",
+  "controls": {
+    "home_empty": {
+      "pass": true,
+      "clean_home_is_empty": true,
+      "clean_subprocess_empty": true,
+      "home_redirected": true,
+      "negative_control_planted_not_empty": true,
+      "clean_home_did_not_inherit_ssh_decoy": true
+    },
+    "enumeration": {
+      "pass": true,
+      "ambient_only_pass": "test_profile_suite.py::ProfileSuite::test_requires_claude_settings",
+      "clean_only_pass": "test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted",
+      "profile_independent_excluded": true
+    }
+  },
+  "tests": [
+    {
+      "id": "test_clean_room_home_is_actually_empty",
+      "requirement": "Control before trusting the lane: the clean-room HOME/USERPROFILE directory is empty of profile files (.claude, .ssh decoy), is not the developer HOME, and a subprocess with that env cannot see the planted ambient profile.",
+      "verdict": "PASS",
+      "evidence": "empty_of_profile=True subprocess_empty=True redirected=True planted_not_empty=True"
+    },
+    {
+      "id": "test_ambient_dependent_tests_are_enumerated",
+      "requirement": "The delta between the ambient-profile run and the clean-room run is enumerated test-by-test; a test that passes only in one is reported as ambient-dependent.",
+      "verdict": "PASS",
+      "evidence": "planted_vs_clean=[{\"ambient_outcome\": \"failed\", \"clean_room_outcome\": \"passed\", \"id\": \"test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted\", \"kind\": \"clean-only-pass\"}, {\"ambient_outcome\": \"passed\", \"clean_room_outcome\": \"failed\", \"id\": \"test_profile_suite.py::ProfileSuite::test_requires_claude_settings\", \"kind\": \"ambient-only-pass\"}] live_vs_clean=[]"
+    }
+  ],
+  "evidence": [
+    {
+      "kind": "clone",
+      "path": "command-center/p2-wave/probes/TST-0024/fixtures/origin",
+      "note": "scratch clone HEAD=3eebcd7ceda220d812d24bfbb303fd67ce7d0158 work_tree=True clone_is_not_origin=True"
+    },
+    {
+      "kind": "delta",
+      "path": "command-center/receipts/TST-0024.json",
+      "note": "test_profile_suite.py::ProfileSuite::test_requires_claude_settings passes only with planted ~/.claude/settings.json; test_profile_suite.py::ProfileSuite::test_fails_if_profile_polluted passes only in the empty profile. Independent pass/fail tests are not listed."
+    },
+    {
+      "kind": "live-host",
+      "path": "/root",
+      "note": "This host has no live ~/.claude. live-developer-HOME vs clean-room therefore has an empty ambient-dependent list for this fixture suite; the planted profile is the falsifiable detector, not a claim that /root/.claude exists."
+    }
+  ],
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "this host's live ~/.claude was present",
+      "the /opt/p2/ast-integrate worktree itself was git-cloned (no .git)",
+      "global unit_manifest.py --write was run"
+    ],
+    "proof_surface": "tempfile git clone of the fixture origin; empty HOME/USERPROFILE subprocess view; planted vs clean member delta"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "platform-test-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "reviewer": {
+    "reviewer_id": "TST-0024-probe2-ambient-delta",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Named probe1 re-runs the empty-HOME control including a planted negative control. Named probe2 re-runs the delta and requires the receipt's ambient_dependent list to match the live enumeration. Catalog scoring by a second human is independent of G-1 probe-green."
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "home-empty-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0024/probe1_home_empty.py"
+    },
+    {
+      "id": "probe2",
+      "role": "ambient-dependent-enumeration",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0024/probe2_ambient_delta.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/TST-0024.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/test-receipt.schema.json",
+      "exists": true,
+      "role": "supporting"
+    }
+  ]
+}

@@ -1,0 +1,22 @@
+I'll start from the existing TST-0228 probe tree and measure what's already there before writing anything.The probe tree is only cloud-ok files so far. Next I’ll read the catalog unit, receipt, and a delivered neighbor so we resume against the real contract.The receipt is still BLOCKED and the named probes are missing. I’ll read the delivery contract and a successful neighbor unit so we don’t invent a SUCCESS path.I’ll inspect nearby delivered TST units and the live capability/permission surfaces so we can tell park versus implement.Prior work blocked on a missing supervisor API. I’ll add that production gate, bind it in the runner, and rebuild live named probes against it.Probes are green. Next I’ll pack a schema-valid SUCCESS receipt and the per-unit manifest from those live raws.**SUCCESS:delivered TST-0228** `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe_timeline.py:0,probe_unit_error.py:0`
+
+Cloud `ok=true` was not treated as delivery. The existing probe tree only had the cloud-ok refute (BLOCKED, hashed sidecars missing, no production mid-run revoke API). This pass added the missing harness piece and re-ran the named probes.
+
+**What was added**
+- Production gate: `tools/lib/capability_gate.py` — supervisor `revoke()` mutates a live grant file; `authorize()` re-reads it on every call
+- Runner bind: `r2e_loop.bind_unit_capability_session` so work-unit start owns that session
+- Named probes: `probe_timeline.py` (revocation vs denial timestamps) and `probe_unit_error.py` (child process `CapabilityRevokedError`)
+
+**Science (live re-run, both exit 0)**
+- Next-call denial: **CONFIRMED** (`call_ordinal=2`, `calls_after_revocation=1`)
+- Both-states (no revoke): same call stays **ALLOW**
+- Start-time-only mutant: post-revoke **ALLOW**, process **exit 1**
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/receipts/TST-0228.json` | `state=SUCCESS`, 24785 B, LF sha256 `eab68397af36c8808e8790f26cb2c09d051f10873e05991b62713355d3b48361` |
+| `command-center/p2-wave/probes/TST-0228/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, hash matches live receipt |
+| `command-center/p2-wave/probes/TST-0228/SUBAGENT-RETURN.json` | this handoff |
+
+Residual left explicit: vendor CLIs still launch with `danger-full-access`; whether *those* re-evaluate mutated permissions per tool call is **NOT-CHECKED**. No git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

@@ -1,0 +1,74 @@
+{
+  "edges": [
+    [
+      "discover",
+      "record"
+    ],
+    [
+      "record",
+      "review"
+    ]
+  ],
+  "id": "wf.both-left",
+  "stages": [
+    {
+      "gate": {
+        "args": [
+          "repo"
+        ],
+        "pred": "files_present"
+      },
+      "id": "discover",
+      "inputs": [
+        "repo"
+      ],
+      "kind": "static-scan",
+      "outputs": [
+        "candidates.json"
+      ],
+      "role": "analyst",
+      "tools": [
+        "Read",
+        "Grep"
+      ]
+    },
+    {
+      "gate": {
+        "pred": "candidates_nonempty"
+      },
+      "id": "record",
+      "inputs": [
+        "candidates.json"
+      ],
+      "kind": "write-config",
+      "outputs": [
+        "blueprint.json"
+      ],
+      "role": "operator",
+      "tools": [
+        "Write"
+      ]
+    },
+    {
+      "gate": {
+        "pred": "needs_decision"
+      },
+      "id": "review",
+      "inputs": [
+        "blueprint.json"
+      ],
+      "kind": "adversarial-review",
+      "outputs": [
+        "decision.json"
+      ],
+      "role": "critic",
+      "tools": [
+        "Read"
+      ]
+    }
+  ],
+  "stopping": {
+    "max_stages": 2,
+    "on_error": "halt"
+  }
+}

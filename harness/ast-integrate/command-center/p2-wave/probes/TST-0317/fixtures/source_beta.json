@@ -1,0 +1,45 @@
+{
+  "id": "wf.source.beta-ranker",
+  "description": "Beta pipeline: stronger rank, plus a cite stage unique to this source (LicenseScan).",
+  "license": "MIT",
+  "tools": ["Read", "Grep", "LicenseScan"],
+  "timeout_seconds": 300,
+  "stop_rule": {
+    "max_stages": 4,
+    "on_error": "halt"
+  },
+  "stages": [
+    {
+      "id": "retrieve",
+      "type": "task",
+      "tools": ["Read", "Grep"],
+      "timeout_seconds": 45,
+      "inputs": ["query", "corpus"],
+      "outputs": ["hits.json"]
+    },
+    {
+      "id": "rank",
+      "type": "task",
+      "tools": ["Read", "Grep"],
+      "timeout_seconds": 90,
+      "inputs": ["hits.json"],
+      "outputs": ["ranked.json"]
+    },
+    {
+      "id": "synthesize",
+      "type": "task",
+      "tools": ["Read"],
+      "timeout_seconds": 80,
+      "inputs": ["ranked.json", "query"],
+      "outputs": ["answer.md"]
+    },
+    {
+      "id": "cite",
+      "type": "task",
+      "tools": ["Read", "LicenseScan"],
+      "timeout_seconds": 40,
+      "inputs": ["answer.md"],
+      "outputs": ["citations.json"]
+    }
+  ]
+}

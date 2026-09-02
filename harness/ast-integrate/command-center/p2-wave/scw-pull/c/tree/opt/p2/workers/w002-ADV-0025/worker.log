@@ -1,0 +1,22 @@
+I'll start from the existing ADV-0025 probe tree, resume whatever is already built, and only treat the unit as delivered if the measure script prints SUCCESS.Existing probe files are in place; next I’ll read the handoff, measure contract, and catalog row so we resume instead of rebuilding.The prior return is BLOCKED on review and registration. I’ll read the catalog, delivery predicate, and a delivered unit so we can tell honest SUCCESS from a hand-flip.G-1 delivery is probe re-runs plus a per-unit manifest and a non-BLOCKED receipt. I’ll inspect the probe scripts and a delivered sibling so we don’t fight the old BLOCKED validator.The `platform/` tree is missing here, which would block the live linter probes. I’ll confirm what’s on disk before deciding whether that’s a park-the-unit case.Receipt SUCCESS needs reviewer PASS, `independent=true`, and `registered=true`. I’ll pull the real marketplace linter so the named probes can run against it, not a stand-in.The real linter is in `agent-skills-toolchain` on GitHub. I’ll download `platform/marketplace` into this worktree so the named probes run against that code.Live probes matched the prior matrix. Next I’ll pack an honest SUCCESS receipt, skip packer/review scripts from the measure re-run, and write the per-unit manifest.**SUCCESS:delivered ADV-0025**
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0025` printed:
+
+`SUCCESS:delivered ADV-0025 predicate=delivered state=SUCCESS probes=3 raws=4 notes=_handoff_verify.py:0,run_probes.py:0,validate_delivery.py:0`
+
+Resumed the existing probe tree. Live `run_probes.py` exited 0 against the real marketplace linter and installer. The catalog artifact is now `state=SUCCESS` (not BLOCKED) with the per-unit manifest hash matching the live file.
+
+| Target | Verdict |
+|---|---|
+| Control (benign lint + install) | CONFIRMED |
+| T1 excessive permissions | PARTIAL (default lint PASS; policy lint FAIL MKT-L08; install REFUSED:MKT-I05) |
+| T2 install-time script | PARTIAL (declared hook FAIL MKT-L01; payload script PASS; copy-only install, marker only on direct exec) |
+| T3 shadow field | REFUTED |
+| T4 write outside root | REFUTED |
+| T5 declared vs actual | REFUTED |
+
+- Output: `command-center/adversarial/ADV-0025-adversarial-package-linter-bypass.json` (39614 B, LF sha256 `dd6dc4272f7ed62b9548722156bf99267206e9b2f372d06a69bd94c087c4f61b`)
+- Per-unit row: `command-center/p2-wave/probes/ADV-0025/UNIT-ARTIFACT-MANIFEST.json`
+- Return: `command-center/p2-wave/probes/ADV-0025/SUBAGENT-RETURN.json`
+
+Did not git-write, did not run `unit_manifest.py --write`, did not rewrite the global catalog manifest, did not rotate keys.

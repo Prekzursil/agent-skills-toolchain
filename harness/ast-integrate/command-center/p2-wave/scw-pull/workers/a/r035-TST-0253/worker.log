@@ -1,0 +1,14 @@
+I'll start from the existing TST-0253 probe tree and the unit contract, then resume from whatever is already built rather than starting over.The probe tree only has a cloud-ok refute so far. I'll load that, the unit catalog row, and a delivered unit's artifacts so I can resume against the real contract.Cloud-ok already refuted this unit; next I’ll read the catalog contract, the live receipt, and a nearby delivered TST unit so the delivery bar is exact.I need the schema, `ready_units` delivery predicate, and a nearby TST unit that already passed G-1 so TST-0253 can follow the same shape.The catalog pass target is real: every runbook/rollback step needs a machine-checkable postcondition. I'll inspect the live docs, schema, and a delivered unit so the probes and receipt can be rebuilt honestly.The live tree has no `agent-self` harness, so I’ll pin rollback oracles to isolated fixtures and inspect `resolve_mode` plus seed/render before writing probes.I'll confirm the live read-only oracles work, then add POSTCONDITION labels and write the two named probes.Isolated seed/render/close/validate all passed. Next I’ll add POSTCONDITION oracles to the docs and write the two named probes.Both named probes are green. I'll pack a SUCCESS receipt and the per-unit manifest from those live raw logs.**SUCCESS:delivered TST-0253** (`predicate=delivered state=SUCCESS probes=2 raws=2`)
+
+Cloud-ok had left this unit BLOCKED: the probe scripts were missing, and live `command-center/RUNBOOK.md` / `ROLLBACK-MANIFEST.md` had **zero** `POSTCONDITION` labels (33 steps, 15 prose-only). Harvest `ok=true` was not treated as delivery.
+
+This pass repaired the catalog target instead of parking:
+
+- Added a declared `POSTCONDITION:` oracle to every RUNBOOK and ROLLBACK step.
+- Wrote live named probes `probe_postcondition_coverage.py` and `probe_rollback_rehearsal.py` (resumed from the cloud-ok names).
+- Probe A re-ran exit 0: 33/33 machine-checkable, prose-only=0, both-states control `good_rc=0` / `bad_rc=1`.
+- Probe B re-ran exit 0: 11/11 rollback oracles in isolated or read-only fixtures (seed/render/close/validate isolated; no git checkout).
+- Packed `command-center/receipts/TST-0253.json` as `state=SUCCESS` only after those probes were green.
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that receipt with live LF sha256 `cdaf9bbb8adde92d5ca7292378c4b954699d27e97076f573e18ed5c5d158db13`.
+
+Not done (as required): git add/commit/push/stash/checkout/rebase, `unit_manifest.py --write`, key rotation, relaunch of finish-everything-close / p2-cloud-ok-deliver.

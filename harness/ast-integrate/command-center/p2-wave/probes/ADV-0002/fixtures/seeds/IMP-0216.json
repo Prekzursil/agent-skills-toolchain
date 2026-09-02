@@ -1,0 +1,175 @@
+{
+ "artifacts": [
+  {
+   "bytes": 12993,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentrail/agentrail/runner.py",
+   "role": "implementation",
+   "sha256": "e31cd284400149631a4c6f40c4ec25be13e8fbb8bb679661fbe0a4c7b2c154f2"
+  },
+  {
+   "bytes": 389,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/agentrail/agentrail/__init__.py",
+   "role": "supporting",
+   "sha256": "effc185bff330231d18afbcd7c022f824aee8c28e63b310f655e95f9f0cb9430"
+  },
+  {
+   "bytes": 1246,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0216/scenario.py",
+   "role": "supporting",
+   "sha256": "5e9abf887caa2de3fec0b9abeb0bba194001c3594494ead7057f97e85e24dbf8"
+  },
+  {
+   "bytes": 4669,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0216/probe1_never_converge_bound.py",
+   "role": "supporting",
+   "sha256": "f01fed2529ca449c746fb351d50634d45f0605a19c65b8905df9dd0278e4f4b9"
+  },
+  {
+   "bytes": 4399,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0216/probe2_offline_reeval.py",
+   "role": "supporting",
+   "sha256": "2d47f3c0f00e28b8ff42b08f7f87f027d808e90a9fcf9d657c379bda69c17781"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0216.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0216",
+    "exit_code": 0,
+    "fingerprint": "817753e950a32f3801fdbe883a2ec0de",
+    "method": "command",
+    "raw_output": "pending live measure after this write",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/agentrail/agentrail/runner.py:execute_loop",
+   "claim": "A never-converging Loop (op=never, max_iterations=8, body incr n) stops at the bound: 8 iterations, status=BOUND_REACHED, every predicate verdict False, final n=8. The converging twin (same body, same bound, gte n 3) CONVERGED in 3 iterations with n recorded in predicate_inputs. Unbounded Loop (no expr and no max) is rejected as loop-unbounded; expr-only never-predicates are refused at runtime as loop-bound-required-at-runtime.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0216/probe1_never_converge_bound.py",
+     "exit_code": 0,
+     "fingerprint": "bf02d3742f653c7ab70996af4df421ac",
+     "method": "command",
+     "raw_output": "never_iters=8 never_status=BOUND_REACHED twin_iters=3 twin_status=CONVERGED fail_status=FAILED_BOUND\nSUCCESS:IMP-0216-probe1 never-converging predicate stops at the bound",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0216/probe2_offline_reeval.py",
+     "exit_code": 0,
+     "fingerprint": "e1c2bad9ab1c74f1cf818c38ffdd4123",
+     "method": "command",
+     "raw_output": "never_matches=8 converging_matches=3 mutation_flipped=True missing_bindings_refused=True\nSUCCESS:IMP-0216-probe2 offline re-eval reproduces every iteration verdict",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentrail/agentrail/runner.py:evaluate_from_inputs",
+   "claim": "Offline re-evaluation of recorded predicate_inputs (expr + the bindings the evaluator actually read) reproduces every iteration verdict for both twins after the live state is discarded. Mutating the converging last-iteration n binding from 3 to 0 flips the offline verdict; missing bindings are refused with loop-inputs-missing-bindings. A convergence claim with no per-iteration inputs is therefore falsifiable.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0216/probe2_offline_reeval.py",
+     "exit_code": 0,
+     "fingerprint": "e1c2bad9ab1c74f1cf818c38ffdd4123",
+     "method": "command",
+     "raw_output": "never_matches=8 converging_matches=3 mutation_flipped=True missing_bindings_refused=True\nSUCCESS:IMP-0216-probe2 offline re-eval reproduces every iteration verdict",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0216/probe1_never_converge_bound.py",
+     "exit_code": 0,
+     "fingerprint": "bf02d3742f653c7ab70996af4df421ac",
+     "method": "command",
+     "raw_output": "never_iters=8 never_status=BOUND_REACHED twin_iters=3 twin_status=CONVERGED fail_status=FAILED_BOUND\nSUCCESS:IMP-0216-probe1 never-converging predicate stops at the bound",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/IMP-0216/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "loop-unbounded",
+   "description": "Loop with no convergence_expr and no max_iterations is rejected",
+   "fired_on_bad_state": true,
+   "good_state_output": "bounded Loop constructed",
+   "id": "unbounded-loop",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "offline verdict False after n=0",
+   "description": "Flipping recorded n from 3 to 0 changes the offline verdict",
+   "fired_on_bad_state": true,
+   "good_state_output": "offline matches recorded True",
+   "id": "offline-binding-mutation",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0216: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write.",
+ "residual_unknowns": [
+  {
+   "claim": "Historical tools/agentrail (cli, rails, deploy) is absent from this sparse worktree. IMP-0216 implemented only the Loop executor in runner.py rather than rebuilding the rest of agentrail.",
+   "settling_experiment": "IMP-0130 Loop type in tools/agentspec when that package is present.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "max 2 attempts then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0216-probe2-offline-reeval",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0216",
+ "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0216",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0216/probe1_never_converge_bound.py",
+   "id": "probe1",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0216/probe2_offline_reeval.py",
+   "id": "probe2",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:43:16Z",
+  "started_at": "2026-08-24T18:43:16Z"
+ },
+ "unit_id": "IMP-0216"
+}

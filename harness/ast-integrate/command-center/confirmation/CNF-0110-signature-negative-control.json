@@ -1,0 +1,290 @@
+{
+ "artifacts": [
+  {
+   "bytes": 7743,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0110/verifier.py",
+   "role": "supporting",
+   "sha256": "18edde4583acd0a99fc82f8d3676de41a4a2c55d3a39800b05b2113d763f5e26"
+  },
+  {
+   "bytes": 8064,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CNF-0110/matrix.py",
+   "role": "supporting",
+   "sha256": "d61433e30dd6d9d3a0bd9b7e259014371c53fbaf5dd19436e6dc4cac0d54e13c"
+  },
+  {
+   "bytes": 1096,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/schema/security-report.schema.json",
+   "role": "supporting",
+   "sha256": "c2851c905da5476eb7876efd5800dbe09a726f8dfb1de2d1a9fabe34d847e575"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/confirmation/CNF-0110-signature-negative-control.json",
+   "consumer": "json.loads + local-ref Draft7Validator(security-report.schema.json)",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/schema_check.py command-center/confirmation/CNF-0110-signature-negative-control.json",
+    "exit_code": 0,
+    "fingerprint": "a55dba3445bd766e91b7abf535a8bbb5",
+    "method": "schema-validate",
+    "raw_output": "schema_errors=0 garbage_rejected=true",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0110/matrix.py",
+   "claim": "All three authored tampers were rejected with distinguishable error codes ['CONTENT_DIGEST_MISMATCH', 'SIGNATURE_IDENTITY_MISMATCH', 'PROVENANCE_MISSING'] in one invocation.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/probe1_negative_control.py",
+     "exit_code": 0,
+     "fingerprint": "306ce0f1ba353db30d7e79cf676b4610",
+     "method": "command",
+     "raw_output": "tampers_rejected=3 error_codes=['CONTENT_DIGEST_MISMATCH', 'SIGNATURE_IDENTITY_MISMATCH', 'PROVENANCE_MISSING'] invocation=00e800ff-ba51-4392-a73f-2ca1a26586b0",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/probe2_schema_evidence.py",
+     "exit_code": 0,
+     "fingerprint": "643ecdf2283268ac5537346bf3285185",
+     "method": "schema-validate",
+     "raw_output": "schema + recorded variants + live matrix re-run",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CNF-0110/verifier.py",
+   "claim": "The untampered control verified in the same invocation (exit 0), so the verifier is not a universal rejector.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CNF-0110/matrix.py",
+     "exit_code": 0,
+     "fingerprint": "a1904f456383ab903dc5391b93ab31e8",
+     "method": "command",
+     "raw_output": "CNF-0110-VERIFY OK package_id=pkg-alpha content_sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/schema_check.py command-center/confirmation/CNF-0110-signature-negative-control.json",
+     "exit_code": 0,
+     "fingerprint": "d1fffef1b47714b7e45dd0c23298690d",
+     "method": "schema-validate",
+     "raw_output": "in-memory schema validation before write",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "adv_rebuild_circle": false,
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/probe1_negative_control.py",
+    "id": "probe1"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/probe2_schema_evidence.py",
+    "id": "probe2"
+   }
+  ],
+  "output_path": "command-center/confirmation/CNF-0110-signature-negative-control.json",
+  "output_schema": "command-center/schema/security-report.schema.json",
+  "product_imp0063_present": false,
+  "verifier_path": "command-center/p2-wave/probes/CNF-0110/verifier.py"
+ },
+ "manifest_registration": {
+  "entry_id": "CNF-0110",
+  "manifest_path": "command-center/p2-wave/probes/CNF-0110/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "CNF-0110-VERIFY FAIL CONTENT_DIGEST_MISMATCH: payload sha256=bb232579a0e838f16426f0e31fb37a712949432be466b54391607ed013dd29a9 envelope sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+   "description": "Flip one payload byte; verifier must reject with CONTENT_DIGEST_MISMATCH.",
+   "fired_on_bad_state": true,
+   "good_state_output": "CNF-0110-VERIFY OK package_id=pkg-alpha content_sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+   "id": "content-byte-flip",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "CNF-0110-VERIFY FAIL SIGNATURE_IDENTITY_MISMATCH: envelope binds package_id='pkg-beta' but local package id='pkg-alpha'",
+   "description": "Swap signature envelope from another package; verifier must reject with SIGNATURE_IDENTITY_MISMATCH.",
+   "fired_on_bad_state": true,
+   "good_state_output": "CNF-0110-VERIFY OK package_id=pkg-alpha content_sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+   "id": "signature-swap",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "CNF-0110-VERIFY FAIL PROVENANCE_MISSING: provenance.json is absent or empty; attestation was stripped or never attached",
+   "description": "Strip provenance.json; verifier must reject with PROVENANCE_MISSING.",
+   "fired_on_bad_state": true,
+   "good_state_output": "CNF-0110-VERIFY OK package_id=pkg-alpha content_sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+   "id": "provenance-stripped",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "local-parallel",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "xai"
+ },
+ "profile": "signature-negative-control",
+ "report": {
+  "answer": "Yes. In one invocation the Ed25519 verifier rejected all three authored tampers with distinguishable named errors and exit codes (CONTENT_DIGEST_MISMATCH, SIGNATURE_IDENTITY_MISMATCH, PROVENANCE_MISSING), and the untampered control verified (exit 0). IMP-0063 product attestation is absent from this worktree; the live implementation under test is command-center/p2-wave/probes/CNF-0110/verifier.py with synthetic ephemeral keys (public hex only in the artifact). No ADV-0028 rebuild. SUCCESS:CNF-0110 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three tampered variants were rejected and the untampered control verified in the same invocation. Any other terminal state is FAILED:CNF-0110 <classification> with the diagnostic tail attached.",
+  "control_ids": [
+   "untampered-control"
+  ],
+  "kind": "security-report",
+  "negative_control": {
+   "all_tampered_rejected": true,
+   "builder_public_hex": "a8f58bf5582a10404db0f696fb96d93c2111fab00736f2d32c31a2752c892b93",
+   "error_codes": [
+    "CONTENT_DIGEST_MISMATCH",
+    "SIGNATURE_IDENTITY_MISMATCH",
+    "PROVENANCE_MISSING"
+   ],
+   "errors_distinguishable": true,
+   "invocation_id": "00e800ff-ba51-4392-a73f-2ca1a26586b0",
+   "publisher_public_hex": "5f298d3591da2cdaaee2cef100ca927e92437d4548bc3ea13ba8473a4b3bd3e0",
+   "same_invocation": true,
+   "trust_public_only": true,
+   "untampered": {
+    "exit_code": 0,
+    "id": "untampered-control",
+    "verbatim_output": "CNF-0110-VERIFY OK package_id=pkg-alpha content_sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+    "verified": true
+   },
+   "untampered_verified": true,
+   "variants": [
+    {
+     "error_code": "CONTENT_DIGEST_MISMATCH",
+     "exit_code": 21,
+     "id": "content-byte-flip",
+     "rejected": true,
+     "verbatim_error": "CNF-0110-VERIFY FAIL CONTENT_DIGEST_MISMATCH: payload sha256=bb232579a0e838f16426f0e31fb37a712949432be466b54391607ed013dd29a9 envelope sha256=0a33d6813246e23881aeeddc87dc7b003b01839a91673dd27a0b694eeccc7f90",
+     "verified": false
+    },
+    {
+     "error_code": "SIGNATURE_IDENTITY_MISMATCH",
+     "exit_code": 22,
+     "id": "signature-swap",
+     "rejected": true,
+     "verbatim_error": "CNF-0110-VERIFY FAIL SIGNATURE_IDENTITY_MISMATCH: envelope binds package_id='pkg-beta' but local package id='pkg-alpha'",
+     "verified": false
+    },
+    {
+     "error_code": "PROVENANCE_MISSING",
+     "exit_code": 23,
+     "id": "provenance-stripped",
+     "rejected": true,
+     "verbatim_error": "CNF-0110-VERIFY FAIL PROVENANCE_MISSING: provenance.json is absent or empty; attestation was stripped or never attached",
+     "verified": false
+    }
+   ]
+  },
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0110/verifier.py",
+    "measured": true,
+    "method": "command",
+    "name": "untampered-control-verified"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0110/matrix.py",
+    "measured": 21,
+    "method": "command",
+    "name": "content-byte-flip-rejected"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0110/matrix.py",
+    "measured": 22,
+    "method": "command",
+    "name": "signature-swap-rejected"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0110/matrix.py",
+    "measured": 23,
+    "method": "command",
+    "name": "provenance-stripped-rejected"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/CNF-0110/probe1_negative_control.py",
+    "measured": true,
+    "method": "command",
+    "name": "errors-distinguishable"
+   },
+   {
+    "anchor": "invocation:00e800ff-ba51-4392-a73f-2ca1a26586b0",
+    "measured": true,
+    "method": "command",
+    "name": "same-invocation"
+   }
+  ],
+  "question": "Does signature verification actually verify? Tamper with a signed package in three ways - flip one content byte, swap the signature from another package, strip the provenance attestation - and answer: is each rejected with a distinguishable error, and does the untampered control still verify in the same run?",
+  "title": "Signature and provenance verification must fail on a tampered package"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0063 product attestation bytes are absent on this worktree; CNF-0110 measured the unit-local Ed25519 verifier rather than rebuilding ADV-0028.",
+   "settling_experiment": "Mount the IMP-0063 signed-package product on a worktree that has it and re-run the same three tampers plus untampered control.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record (spec 11039), never an error to retry away"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Mechanical re-run of the four-case matrix plus schema and garbage-probe discrimination; did not author verifier.py.",
+  "reviewer_id": "CNF-0110-probe2-schema-evidence",
+  "vendor": "local",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:CNF-0110 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and all three tampered variants were rejected and the untampered control verified in the same invocation. Any other terminal state is FAILED:CNF-0110 <classification> with the diagnostic tail attached.",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json CNF-0110 question_or_target",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/probe1_negative_control.py",
+   "id": "CNF0110-T1-THREE-TAMPERS-SAME-INVOCATION",
+   "name": "Three tampers rejected; untampered control verified",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0110/probe2_schema_evidence.py",
+   "id": "CNF0110-T2-SCHEMA-EVIDENCE-RERUN",
+   "name": "Catalog schema, recorded evidence, live matrix re-run",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:56:47Z",
+  "started_at": "2026-08-25T00:56:46Z"
+ },
+ "unit_id": "CNF-0110"
+}

@@ -1,0 +1,21 @@
+I'll start from the existing IMP-0029 probe tree, read the return artifact if it's there, and resume without scrapping built probes.The probe tree is only a handful of files and has no SUBAGENT-RETURN yet. I'll read the contract, measure script, and existing artifacts next.Catalog and harvest history next: I'll pull the IMP-0029 contract, sibling delivered units, and leftover probe measure files.ADV-0024 fixtures still have a copy of the plugin lifecycle. I'll use that as the production baseline and check how receipts validate on this sparse tree.I'll restore the plugin package from the in-tree fixture (hashes match the harvest production files) and implement the distinct preflight contract on top of it.Hashes match the harvest production tree. Next I’ll add distinct refusal codes and lock-before-recover, then the named probes.Production preflight is in place. Next I’ll add helpers, named probes, and the required test file.Probes and the production test are green. Next I’ll pack a live SUCCESS receipt and the per-unit manifest from those outputs.The measure gate rejected the receipt as schema-invalid. I'll pull the resolver errors and fix the receipt shape.**SUCCESS:delivered IMP-0029**
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0029` printed:
+
+`SUCCESS:delivered IMP-0029 predicate=delivered state=SUCCESS probes=4 raws=5 notes=probe1_enforcement.py:0,probe2_os_observer.py:0,probe_concurrency.py:0,probe_sigint.py:0`
+
+This sparse tree had no `platform/plugin` and no named probes (only harvest strike scripts). I resumed that dir, restored the plugin package from the in-tree ADV-0024 fixture (hashes matched the harvest production files), and implemented the catalog preflight instead of parking.
+
+**Contract now live**
+- Distinct refusals: `E_DISK/23`, `E_PERM/24`, `E_BUSY/25`, `E_LOCK/21`
+- `recover()` runs only inside `PrefixLock`; a live holder PID is not recovered
+- Client exclusive flock is detected; uninstall calls preflight
+- `tools/plugin/tests/test_preflight.py` exits 0 (6/6)
+- Two simultaneous ops: one SUCCESS, loser `E_LOCK`; SIGINT releases the lock
+
+**G-1 artifacts**
+- Receipt: `command-center/receipts/IMP-0029.json` (`state=SUCCESS`, schema 0 errors)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0029/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `f5037b217875e0e47f9c39ce2d1ab4c5ed7646a43dd19b338f9785948e4df5bd`)
+- Return: `command-center/p2-wave/probes/IMP-0029/SUBAGENT-RETURN.json`
+
+Did not git add/commit/push, did not run `unit_manifest.py --write`, did not treat cloud-ok as delivery. Windows mandatory locking remains `NOT-CHECKED`.

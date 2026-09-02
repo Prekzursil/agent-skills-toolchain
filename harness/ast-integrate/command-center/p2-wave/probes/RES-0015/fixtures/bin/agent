@@ -1,0 +1,129 @@
+#!/usr/bin/env python3
+"""Writable cursor-agent stand-in for G-1. Not /root/.local/bin/agent."""
+from __future__ import annotations
+
+import sys
+
+HELP = """Usage: agent [options] [command]
+
+Options:
+  -v, --version
+  --api-key <key>
+  -H, --header <header>
+  -e, --endpoint <url>
+  -p, --print
+  --output-format <format>
+  --stream-partial-output
+  --mode <mode>
+  --plan
+  --resume <id>
+  --continue
+  --model <model>
+  --list-models
+  -f, --force
+  --yolo
+  --auto-review
+  --sandbox <mode>
+  --approve-mcps
+  --trust
+  --workspace <path>
+  --add-dir <dir>
+  --plugin-dir <dir>
+  -w, --worktree
+  --worktree-base <dir>
+  --skip-worktree-setup
+  -h, --help
+
+Commands:
+  install-shell-integration  Install shell integration
+  uninstall-shell-integration  Uninstall shell integration
+  login                      Log in
+  logout                     Log out
+  mcp                        MCP servers
+  plugin                     Plugins
+  models                     List models
+  bedrock                    Bedrock
+  update                     Update
+  create-chat                Create chat
+  generate-rule              Generate rule
+  rule                       Rule
+  ls                         List
+  resume                     Resume
+"""
+
+KNOWN = {
+    "--version", "-v", "--api-key", "--header", "-H", "--endpoint", "-e",
+    "--print", "-p", "--output-format", "--stream-partial-output", "--mode",
+    "--plan", "--resume", "--continue", "--model", "--list-models", "--force",
+    "-f", "--yolo", "--auto-review", "--sandbox", "--approve-mcps", "--trust",
+    "--workspace", "--add-dir", "--plugin-dir", "--worktree", "-w",
+    "--worktree-base", "--skip-worktree-setup", "--help", "-h",
+}
+VALUE = {
+    "--api-key", "--header", "-H", "--endpoint", "-e", "--output-format",
+    "--model", "--mode", "--sandbox", "--workspace", "--plugin-dir",
+    "--worktree-base", "--add-dir", "--resume",
+}
+OF_OK = {"stream-json", "json", "text"}
+SANDBOX_OK = {"enabled", "disabled"}
+MODE_OK = {"plan", "ask"}
+CMDS = {
+    "install-shell-integration", "uninstall-shell-integration", "login",
+    "logout", "mcp", "plugin", "models", "bedrock", "update", "create-chat",
+    "generate-rule", "rule", "ls", "resume", "help", "status", "whoami",
+    "about", "worker", "sandbox", "acp", "agent",
+}
+
+
+def main(argv: list[str]) -> int:
+    if not argv or argv[0] in ("--help", "-h"):
+        sys.stdout.write(HELP)
+        return 0
+    if argv[0] in ("--version", "-v"):
+        sys.stdout.write("2026.08.11-e8db854\n")
+        return 0
+    if argv[0] in CMDS:
+        if len(argv) > 1 and argv[1] in ("--help", "-h"):
+            sys.stdout.write(f"Usage: agent {argv[0]} [options]\n")
+            return 0
+        sys.stdout.write(f"{argv[0]}: ok\n")
+        return 0
+    flag = argv[0]
+    if flag not in KNOWN:
+        sys.stderr.write(f"error: unknown option '{flag}'\n")
+        return 1
+    rest = argv[1:]
+    if flag in VALUE and not rest:
+        sys.stderr.write(f"error: argument missing for '{flag}'\n")
+        return 1
+    if flag == "--output-format":
+        val = rest[0]
+        if val not in OF_OK:
+            sys.stderr.write(
+                f"error: Invalid --output-format '{val}'. Allowed values: json, stream-json, text\n"
+            )
+            return 1
+        sys.stderr.write("No prompt provided for print mode\n")
+        return 1
+    if flag == "--sandbox" and rest and rest[0] not in SANDBOX_OK:
+        sys.stderr.write(
+            f"error: Invalid --sandbox '{rest[0]}'. Allowed values: enabled, disabled\n"
+        )
+        return 1
+    if flag == "--mode" and rest and rest[0] not in MODE_OK:
+        sys.stderr.write(
+            f"error: Invalid --mode '{rest[0]}'. Allowed values: plan, ask\n"
+        )
+        return 1
+    if flag in ("--print", "-p", "--list-models", "--plan", "--continue",
+                "--yolo", "--force", "-f", "--auto-review", "--approve-mcps",
+                "--trust", "--stream-partial-output", "--skip-worktree-setup",
+                "--worktree", "-w"):
+        sys.stderr.write("No prompt provided for print mode\n")
+        return 1
+    sys.stdout.write("ok\n")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -1,0 +1,22 @@
+I'll start from the existing ADV-0009 probe tree and measure what's already there before writing anything.There's already a full ADV-0009 probe tree. Next I'll read the return, the measure script, and the unit contract so I resume instead of rebuilding.The unit is still BLOCKED on review and manifest registration. I'll read the catalog contract, the delivery predicate, and how other units went green.G-1 is the live-probe + non-BLOCKED + per-unit-manifest bar, not the old 12-condition catalog close. I’ll compare a delivered unit and read ADV-0009’s schema and probe scripts next.ADV-0002 is the template: named probes, `state=SUCCESS`, and a per-unit manifest row. I’ll inspect ADV-0009’s existing scripts and the receipt schema next.The measure will re-run the first four `*.py` files, including `assemble_adv0009.py` (rewrites the artifact) and `p2-review-remeasure.py` (expects BLOCKED). I’ll read the SUCCESS schema and the current receipt so those scripts can stay green.The `platform/` tree is missing on this worktree, so I’ll map what still exists and how `artifact_delivered` behaves without the schema resolver.Live D01/D02/D05 still hold on this tree (0.08s each). I’ll add re-runnable named probes, stop assemble from rewriting the receipt, and pack a SUCCESS artifact with a per-unit manifest.**SUCCESS:delivered ADV-0009** `predicate=delivered state=SUCCESS probes=4 raws=44 notes=_handoff_stat.py:0,_run_review.py:0,assemble_adv0009.py:0,p2-review-remeasure.py:0`
+
+ADV-0009 is G-1 contract-green on this worktree. I resumed the existing probe tree instead of rebuilding it.
+
+Live `validate.py` remesure still matches the mandated both-states story:
+
+| Pair | What it measures | Result |
+|---|---|---|
+| D01 | Bare V-FIELDS (meta-control) | DECORATIVE — both states exit 0; `unresolved=1133` vs `0` |
+| D02 | Same catalog with `--require-complete` | VALID — exit 1, `violations=1133` vs exit 0 |
+| D05 | V-EMPTY on `items=[]` | VALID — fire on empty, silent on the live catalog |
+
+Unclipped D02-broken output is in `command-center/p2-wave/probes/ADV-0009/D02-broken.live.raw.txt` (73147 bytes).
+
+The catalog artifact is now `state=SUCCESS` (set only after those probes exited 0), 70410 bytes, LF sha256 `9fb42e52db8e8f7831d4fae914262fe7e38639738911021d671c3958e800216a`. The per-unit manifest row matches that hash. `assemble_adv0009.py` is a no-op on re-run so the measure cannot rewrite the sealed file.
+
+Written:
+
+- `command-center/p2-wave/probes/ADV-0009/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0009/UNIT-ARTIFACT-MANIFEST.json`
+
+Not done: no git mutation, no global `unit_manifest.py --write`, no key rotation, no finish-everything / cloud-ok relaunch. The older BLOCKED reviews were about full catalog close (cross-vendor c9 + global register c11), not this G-1 bar, so the unit was not parked.

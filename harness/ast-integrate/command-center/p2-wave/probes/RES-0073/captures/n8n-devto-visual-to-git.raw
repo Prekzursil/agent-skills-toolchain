@@ -1,0 +1,1755 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn&#39;t Stop Evolving - DEV Community</title>
+    
+    <link rel="preload" href="/reactions?article_id=4354086" as="fetch" crossorigin="same-origin">
+    <link rel="canonical" href="https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j" />
+    <meta name="description" content="I&#39;ll tell this story in the order it happened. It doesn&#39;t start with a compiler. It starts with two... Tagged with node, architecture, typescript, n8n.">
+    <meta name="keywords" content="node, architecture, typescript, n8n, software, coding, development, engineering, inclusive, community">
+
+    <meta property="og:type" content="article" />
+    <meta property="og:url" content="https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j" />
+    <meta property="og:title" content="From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn&#39;t Stop Evolving" />
+    <meta property="og:description" content="I&#39;ll tell this story in the order it happened. It doesn&#39;t start with a compiler. It starts with two..." />
+    <meta property="og:site_name" content="DEV Community" />
+    <meta name="twitter:site" content="@thepracticaldev">
+    <meta name="twitter:creator" content="@">
+    <meta name="author-trust" content="0">
+    <meta name="twitter:title" content="From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn&#39;t Stop Evolving">
+    <meta name="twitter:description" content="I&#39;ll tell this story in the order it happened. It doesn&#39;t start with a compiler. It starts with two...">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:widgets:new-embed-design" content="on">
+    <meta name="robots" content="max-snippet:-1, max-image-preview:large, max-video-preview:-1">
+      <meta property="og:image" content="https://media2.dev.to/dynamic/image/width=1200,height=627,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png" />
+      <meta name="twitter:image:src" content="https://media2.dev.to/dynamic/image/width=1200,height=627,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png">
+
+      <meta name="last-updated" content="2026-08-24 18:57:13 UTC">
+      <meta name="user-signed-in" content="false">
+      <meta name="head-cached-at" content="1787597833">
+      <meta name="environment" content="production">
+      <link rel="stylesheet" href="https://assets.dev.to/assets/minimal-3a438d8d138f95f478f01cbe53363cacf36bc6c47172aeb2e6c9172eebe29aa6.css" media="all" id="main-minimal-stylesheet" />
+<link rel="stylesheet" href="https://assets.dev.to/assets/views-171bc117390b73193d66194e0bfe00035bb52143b59ddaf43e7a8e48625c4713.css" media="all" id="main-views-stylesheet" />
+<link rel="stylesheet" href="https://assets.dev.to/assets/crayons-14f77c98ee8070e83aed5c982ed4c9989d83646f81593a42c2cbef2219c0a15e.css" media="all" id="main-crayons-stylesheet" />
+
+      <script src="https://assets.dev.to/assets/base-efa262328df6551abb8743a1b93f3197472ab544bb3cb9cdfe85b94cbb239d91.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/application-9ee88e198a0d2b64238c8557b5225d20e2c18ff5b877f1159ee5a31f6e3174f9.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/baseInitializers-12f89d4466dd9259196c7c2cb0e3cafae0d5452919d3f7c2682a732e38bdae6d.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/baseTracking-cb478131fb1b41bc25e80ebcee996318777e081c9aa87367fabc1c118461a2d3.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/followButtons-e3595664847e9f43945a9b8a0445b32cda9a149f1f169f78b8fcc7714ccab45a.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/eventSignupButtons-a2b5da712a1b8eeb0eda4d63fafc54973138a70b88503a2163806c27fc1e4c39.js" defer="defer"></script>
+
+        <meta name="search-script" content="https://assets.dev.to/assets/Search-a570c3428c9b6cb070d3f18817c957f80d0dbdf36a0f4a1d6e23a990305fbc12.js">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+      <link rel="icon" type="image/x-icon" href="https://media2.dev.to/dynamic/image/width=32,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png" />
+      <link rel="apple-touch-icon" href="https://media2.dev.to/dynamic/image/width=180,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png">
+      <link rel="apple-touch-icon" sizes="152x152" href="https://media2.dev.to/dynamic/image/width=152,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png">
+      <link rel="apple-touch-icon" sizes="180x180" href="https://media2.dev.to/dynamic/image/width=180,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png">
+      <link rel="apple-touch-icon" sizes="167x167" href="https://media2.dev.to/dynamic/image/width=167,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png">
+      <link href="https://media2.dev.to/dynamic/image/width=192,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png" rel="icon" sizes="192x192" />
+      <link href="https://media2.dev.to/dynamic/image/width=128,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png" rel="icon" sizes="128x128" />
+      <meta name="apple-mobile-web-app-title" content="dev.to">
+      <meta name="application-name" content="dev.to">
+      <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+      <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+      <link rel="search" href="https://dev.to/open-search.xml" type="application/opensearchdescription+xml" title="DEV Community" />
+
+      <meta property="forem:name" content="DEV Community" />
+      <meta property="forem:logo" content="https://media2.dev.to/dynamic/image/width=512,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png" />
+      <meta property="forem:domain" content="dev.to" />
+    <style>
+body:has(.pageslug-aie) #topbar {
+    display: none !important;
+}
+
+@media screen and (max-width: 768px) and (pointer: coarse) {
+  /* Target WebKit/Blink specific behaviors */
+  @supports (-webkit-app-region: none) {
+    body:has(.pageslug-aie) .dc-page {
+      padding-top: 56px !important;
+    }
+  }
+}
+
+body:not(.hidden-shell) .pageslug-aie {
+    margin-top: -56px !important;
+}
+
+/* ==========================================================================
+   THE 418 CHALLENGE: THEME-AWARE RETRO EDITION
+   ========================================================================== */
+.articletag-418challenge {
+  font-family: "Comic Sans MS", "Chalkboard SE", "Marker Felt", sans-serif !important;
+  cursor: crosshair !important;
+}
+
+/* Destroy modern rounded corners and add brutal borders */
+.articletag-418challenge .crayons-card,
+.articletag-418challenge .crayons-article__main,
+.articletag-418challenge .crayons-article__header {
+  border-radius: 0 !important;
+  margin-bottom: 2rem !important;
+}
+
+/* Typography specifics */
+.articletag-418challenge h1,
+.articletag-418challenge h2,
+.articletag-418challenge h3 {
+  text-transform: uppercase !important;
+}
+
+/* Fake <marquee> effect for the main article title */
+.articletag-418challenge h1.fs-3xl {
+  animation: retro-slide 5s linear infinite alternate;
+  overflow: visible;
+}
+
+/* Spin those avatars */
+.articletag-418challenge .crayons-article__header__meta img {
+  border-radius: 0 !important; 
+  animation: retro-spin 5s linear infinite;
+}
+
+/* Obnoxious tags */
+.articletag-418challenge .crayons-tag {
+  border-radius: 0 !important;
+  font-weight: 900 !important;
+  transform: rotate(-3deg);
+  display: inline-block;
+}
+.articletag-418challenge .crayons-tag:nth-child(even) {
+  transform: rotate(3deg);
+}
+
+/* --------------------------------------------------------------------------
+   2. LIGHT THEME (Windows 95 / Office 97 Vibes)
+   -------------------------------------------------------------------------- */
+body:not(.dark-theme) .articletag-418challenge {
+  background-color: #008080 !important; /* Win95 Teal Desktop */
+}
+
+body:not(.dark-theme) .articletag-418challenge .crayons-card,
+body:not(.dark-theme) .articletag-418challenge .crayons-article__main,
+body:not(.dark-theme) .articletag-418challenge .crayons-article__header {
+  background-color: #c0c0c0 !important; /* Classic dialog gray */
+  color: #000000 !important;
+  border: 4px outset #ffffff !important;
+  box-shadow: 8px 8px 0px #000000 !important;
+}
+
+body:not(.dark-theme) .articletag-418challenge h1,
+body:not(.dark-theme) .articletag-418challenge h2,
+body:not(.dark-theme) .articletag-418challenge h3 {
+  color: #ff0000 !important;
+  text-shadow: 2px 2px 0px #ffff00 !important;
+  border-bottom: 3px dashed #0000ff !important;
+}
+
+body:not(.dark-theme) .articletag-418challenge a,
+body:not(.dark-theme) .articletag-418challenge .crayons-link {
+  color: #0000ff !important; /* Standard unvisited blue */
+  text-decoration: underline !important;
+  font-weight: bold !important;
+}
+
+body:not(.dark-theme) .articletag-418challenge a:hover,
+body:not(.dark-theme) .articletag-418challenge .crayons-link:hover {
+  background-color: #ffff00 !important;
+  color: #ff0000 !important;
+}
+
+body:not(.dark-theme) .articletag-418challenge .crayons-tag {
+  background: #ffff00 !important;
+  color: #ff0000 !important;
+  border: 2px dotted #0000ff !important;
+}
+
+/* --------------------------------------------------------------------------
+   3. DARK THEME (1999 Hacker / Deep GeoCities Vibes)
+   -------------------------------------------------------------------------- */
+body.dark-theme .articletag-418challenge {
+  background-color: #000000 !important;
+  /* Dumb CSS: A scrolling, eye-bleeding neon green hacker grid with CRT scanlines */
+  background-image: 
+    linear-gradient(transparent 50%, rgba(0, 255, 0, 0.25) 50%), 
+    linear-gradient(90deg, rgba(0, 255, 0, 0.5) 1px, transparent 1px), 
+    linear-gradient(rgba(0, 255, 0, 0.5) 1px, transparent 1px) !important;
+  background-size: 100% 4px, 20px 20px, 20px 20px !important;
+  animation: retro-pan 60s linear infinite !important;
+}
+
+body.dark-theme .articletag-418challenge .crayons-card,
+body.dark-theme .articletag-418challenge .crayons-article__main,
+body.dark-theme .articletag-418challenge .crayons-article__header {
+  background-color: #111111 !important;
+  color: #00ff00 !important; /* Terminal Green */
+  border: 4px outset #555555 !important;
+  box-shadow: 8px 8px 0px #ff00ff !important; /* Hot pink shadow */
+}
+
+body.dark-theme .articletag-418challenge h1,
+body.dark-theme .articletag-418challenge h2,
+body.dark-theme .articletag-418challenge h3 {
+  color: #ff00ff !important; /* Magenta headers */
+  text-shadow: 2px 2px 0px #00ffff !important; /* Cyan shadow */
+  border-bottom: 3px dashed #00ff00 !important;
+}
+
+body.dark-theme .articletag-418challenge a,
+body.dark-theme .articletag-418challenge .crayons-link {
+  color: #00ffff !important; /* Cyan links */
+  text-decoration: underline !important;
+  font-weight: bold !important;
+}
+
+body.dark-theme .articletag-418challenge a:hover,
+body.dark-theme .articletag-418challenge .crayons-link:hover {
+  background-color: #ff00ff !important;
+  color: #ffffff !important;
+}
+
+body.dark-theme .articletag-418challenge .crayons-tag {
+  background: #000000 !important;
+  color: #00ff00 !important;
+  border: 2px dotted #ff00ff !important;
+}
+
+/* --------------------------------------------------------------------------
+   4. ANIMATIONS
+   -------------------------------------------------------------------------- */
+@keyframes retro-spin {
+  100% { transform: rotate(360deg); }
+}
+
+@keyframes retro-slide {
+  0% { transform: translateX(-2%); }
+  100% { transform: translateX(2%); }
+}
+
+@keyframes retro-pan {
+  0% { background-position: 0 0, 0 0, 0 0; }
+  /* Numbers must be multiples of the background-size (4px and 20px) to loop perfectly */
+  100% { background-position: 0 100px, 40px 40px, 40px 40px; }
+}
+
+/* --------------------------------------------------------------------------
+   5. BONUS: CAUTION TAPE REACTION BAR
+   -------------------------------------------------------------------------- */
+.articletag-418challenge .crayons-article-actions {
+  background: repeating-linear-gradient(
+    45deg,
+    #ffff00,
+    #ffff00 10px,
+    #000000 10px,
+    #000000 20px
+  ) !important;
+  border: 4px solid #ff0000 !important;
+  border-radius: 0 !important;
+}
+
+.articletag-418challenge .crayons-article-actions button {
+  background:black;
+  color: #ff00ff !important;
+}
+
+.articletag-418challenge .crayons-article-actions .crayons-reaction__count {
+    color: #ff00ff !important;
+    font-weight: bold !important;
+}
+
+.articletag-418challenge .crayons-icon:not(.crayons-icon--default) * {
+    fill: #ffff00 !important;
+}
+
+.articletag-418challenge .c-embed .crayons-btn--primary {
+  color: #00ff00 !important;
+}
+
+.articletag-418challenge .popover-billboard {
+margin-bottom: 0 !important;
+}
+
+.crayons-story__contentpreview .ltag__link--embedded {
+margin-top: 0 !important;
+}
+
+.subscription-icon {
+    max-height: 16px !important;
+    display: inline-block !important;
+}
+
+@media screen and (min-width: 950px) {
+    .event-show-layout {
+        margin-top: 24px !important;
+    }
+}
+
+@media screen and (max-width: 949px) {
+    .event-show-layout {
+        padding: 11px !important;
+    }
+}
+
+
+</style>
+  </head>
+    <body
+      class="sans-serif-article-body default-header"
+      data-user-status="logged-out"
+      data-is-root-subforem="false"
+        data-subforem-id="1"
+      data-side-nav-visible="true"
+      data-community-name="DEV Community"
+      data-subscription-icon="https://assets.dev.to/assets/subscription-icon-805dfa7ac7dd660f07ed8d654877270825b07a92a03841aa99a1093bd00431b2.png"
+      data-community-leader-icon="https://assets.dev.to/assets/community-leader-icon-b72c9e74eff54916e5c46c962f47ba40c9f611a71f8b157511f9613f69c0001b.svg"
+      data-locale="en"
+      data-honeybadger-key="hbp_nqu4Y66HuEKlD6YRGssZuRQnPOjDm50J8Zkr"
+      data-deployed-at="2026-08-24T12:30:11Z"
+      data-latest-commit-id="f820ae869b9da04d87513427d6304de1264b3385"
+      data-ga-tracking="UA-71991109-1"
+      data-cookie-banner-user-context="logged_out_only"
+      data-cookie-banner-platform-context="off"
+      data-algolia-id="PRSOBFP46H"
+      data-algolia-search-key="9aa7d31610cba78851c9b1f63776a9dd"
+      data-algolia-display="true"
+      data-dynamic-url-component="bmar11"
+      data-ga4-tracking-id="G-TYEM8Y3JN3"
+      data-global-feature-flags-enabled="data_update_scripts onboarding_newsletter_content schedule_articles moderator_role display_ad_tags replace_unicorn_with_jump_to_comments article_id_adjusted_weight cloudflare_preferred_for_hosted_images multiple_reactions subscriber_icon ab_experiment_feed_strategy use_stories_endpoint digest_subject_testing digest_results_count_testing consistent_rendering discover_and_following_tabs hero_billboard onboarding_drip_emails algolia_frontend gemini_onboarding optimize_article_tag_query onboarding_custom_cta_slide dev_core_user_sync personalized_email_digests">
+      
+      <script>
+        if (navigator.userAgent === 'ForemWebView/1' || window.frameElement) {
+          document.body.classList.add("hidden-shell");
+        }
+          if (new Date() > new Date("2026-02-04T09:00:00-05:00")) {
+            document.body.dataset.sideNavVisible = "false";
+          } 
+      </script>
+
+      <link rel="stylesheet" href="https://assets.dev.to/assets/minimal-3a438d8d138f95f478f01cbe53363cacf36bc6c47172aeb2e6c9172eebe29aa6.css" media="all" id="secondary-minimal-stylesheet" />
+<link rel="stylesheet" href="https://assets.dev.to/assets/views-171bc117390b73193d66194e0bfe00035bb52143b59ddaf43e7a8e48625c4713.css" media="all" id="secondary-views-stylesheet" />
+<link rel="stylesheet" href="https://assets.dev.to/assets/crayons-14f77c98ee8070e83aed5c982ed4c9989d83646f81593a42c2cbef2219c0a15e.css" media="all" id="secondary-crayons-stylesheet" />
+
+      <div id="body-styles">
+        <style>
+          :root {
+            --accent-brand-lighter-rgb: 86, 105, 285;
+            --accent-brand-rgb: 64, 78, 211;
+            --accent-brand-darker-rgb: 51, 62, 169;
+          }
+        </style>
+      </div>
+      <div id="audiocontent" data-podcast="">
+        
+      </div>
+      <div class="navigation-progress" id="navigation-progress"></div>
+
+<header id="topbar" class="crayons-header topbar print-hidden">
+  <span id="route-change-target" tabindex="-1"></span>
+  <a href="#main-content" class="skip-content-link">Skip to content</a>
+  <div class="crayons-header__container">
+    <span class="inline-block m:hidden ">
+      <button class="c-btn c-btn--icon-alone js-hamburger-trigger mx-2">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="amebdwx11okragibujtboff4r1u4bfej" class="crayons-icon"><title id="amebdwx11okragibujtboff4r1u4bfej">Navigation menu</title>
+    <path d="M3 4h18v2H3V4zm0 7h18v2H3v-2zm0 7h18v2H3v-2z"></path>
+</svg>
+
+      </button>
+    </span>
+    <a href="/" class="site-logo" aria-label="DEV Community Home" >
+    <img class="site-logo__img"
+         src="https://media2.dev.to/dynamic/image/quality=100/https://dev-to-uploads.s3.amazonaws.com/uploads/logos/resized_logo_UQww2soKuUsjaOGNB38o.png"
+         style="aspect-ratio: 10 / 8"
+         alt="DEV Community">
+</a>
+
+
+    <div class="crayons-header--search js-search-form" id="header-search">
+      <form accept-charset="UTF-8" method="get" action="/search" role="search">
+        <div class="crayons-fields crayons-fields--horizontal">
+          <div class="crayons-field flex-1 relative">
+            <input id="search-input" class="crayons-header--search-input crayons-textfield js-search-input" type="text" id="nav-search" name="q" placeholder="Find related posts..." autocomplete="off" />
+            <button type="submit" aria-label="Search" class="c-btn c-btn--icon-alone absolute inset-px right-auto mt-0 py-0">
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="a1h8iw4elt1rwbo551axk22iiwx5c12y" aria-hidden="true" class="crayons-icon"><title id="a1h8iw4elt1rwbo551axk22iiwx5c12y">Search</title>
+    <path d="M18.031 16.617l4.283 4.282-1.415 1.415-4.282-4.283A8.96 8.96 0 0111 20c-4.968 0-9-4.032-9-9s4.032-9 9-9 9 4.032 9 9a8.96 8.96 0 01-1.969 5.617zm-2.006-.742A6.977 6.977 0 0018 11c0-3.868-3.133-7-7-7-3.868 0-7 3.132-7 7 0 3.867 3.132 7 7 7a6.977 6.977 0 004.875-1.975l.15-.15z"></path>
+</svg>
+
+            </button>
+
+            <a class="crayons-header--search-brand-indicator" href="https://www.algolia.com/developers/?utm_source=devto&utm_medium=referral" target="_blank" rel="noopener noreferrer">
+                Powered by Algolia
+                <svg xmlns="http://www.w3.org/2000/svg" id="Layer_1" width="24" height="24" viewBox="0 0 500 500.34" role="img" aria-labelledby="a4cujo1dj8t6uerla7mr0535ccn2njgw" aria-hidden="true" class="crayons-icon"><title id="a4cujo1dj8t6uerla7mr0535ccn2njgw">Search</title>
+  <defs></defs><path class="cls-1" d="M250,0C113.38,0,2,110.16,.03,246.32c-2,138.29,110.19,252.87,248.49,253.67,42.71,.25,83.85-10.2,120.38-30.05,3.56-1.93,4.11-6.83,1.08-9.52l-23.39-20.74c-4.75-4.22-11.52-5.41-17.37-2.92-25.5,10.85-53.21,16.39-81.76,16.04-111.75-1.37-202.04-94.35-200.26-206.1,1.76-110.33,92.06-199.55,202.8-199.55h202.83V407.68l-115.08-102.25c-3.72-3.31-9.43-2.66-12.43,1.31-18.47,24.46-48.56,39.67-81.98,37.36-46.36-3.2-83.92-40.52-87.4-86.86-4.15-55.28,39.65-101.58,94.07-101.58,49.21,0,89.74,37.88,93.97,86.01,.38,4.28,2.31,8.28,5.53,11.13l29.97,26.57c3.4,3.01,8.8,1.17,9.63-3.3,2.16-11.55,2.92-23.6,2.07-35.95-4.83-70.39-61.84-127.01-132.26-131.35-80.73-4.98-148.23,58.18-150.37,137.35-2.09,77.15,61.12,143.66,138.28,145.36,32.21,.71,62.07-9.42,86.2-26.97l150.36,133.29c6.45,5.71,16.62,1.14,16.62-7.48V9.49C500,4.25,495.75,0,490.51,0H250Z"></path>
+</svg>
+
+            </a>
+          </div>
+        </div>
+      </form>
+    </div>
+
+    <div class="flex items-center h-100 ml-auto">
+        <div class="flex" id="authentication-top-nav-actions">
+          <span class="hidden m:block">
+            <a href="https://dev.to/enter?signup_subforem=1" class="c-link c-link--block mr-2 whitespace-nowrap ml-auto" data-no-instant>
+              Log in
+            </a>
+          </span>
+
+          <a href="https://dev.to/enter?signup_subforem=1&amp;state=new-user" data-tracking-id="ca_top_nav" data-tracking-source="top_navbar" class="c-cta c-cta--branded whitespace-nowrap mr-2" data-no-instant>
+            Create account
+          </a>
+        </div>
+    </div>
+  </div>
+</header>
+
+<div class="hamburger">
+  <div class="hamburger__content">
+    <header class="hamburger__content__header">
+      <h2 class="fs-l fw-bold flex-1 break-word lh-tight">DEV Community</h2>
+
+      <button class="c-btn c-btn--icon-alone js-hamburger-trigger shrink-0" aria-label="Close">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="a5y5x7mi2b74qiq0pjygiodhv2197ul4" aria-hidden="true" class="crayons-icon c-btn__icon"><title id="a5y5x7mi2b74qiq0pjygiodhv2197ul4">Close</title><path d="M12 10.586l4.95-4.95 1.414 1.414-4.95 4.95 4.95 4.95-1.414 1.414-4.95-4.95-4.95 4.95-1.414-1.414 4.95-4.95-4.95-4.95L7.05 5.636l4.95 4.95z"></path></svg>
+
+      </button>
+    </header>
+
+    <div class="p-2 js-navigation-links-container" id="authentication-hamburger-actions">
+    </div>
+  </div>
+  <div class="hamburger__overlay js-hamburger-trigger"></div>
+</div>
+
+
+      <div id="active-broadcast" class="broadcast-wrapper"></div>
+<div id="page-content" class="wrapper stories stories-show articletag-node articletag-architecture articletag-typescript articletag-n8n articleuser-4068148" data-current-page="stories-show">
+  <div id="page-content-inner" data-internal-nav="false" data-viewable-id="4354086" data-viewable-type="Article">
+    <div id="page-route-change" class="screen-reader-only" aria-live="polite" aria-atomic="true"></div>
+
+    
+<style>
+  .html-variant-wrapper { display: none}
+</style>
+
+
+
+<script src="https://unpkg.com/@webcomponents/webcomponentsjs@2.2.10/webcomponents-loader.js"
+        integrity="sha384-3HK5hxQbkFqOIxMbpROlRmRtYl2LBZ52t+tqcjzsmr9NJuOWQxl8RgQSyFvq2lhy"
+        crossorigin="anonymous" defer></script>
+
+  <script src="https://assets.dev.to/assets/webShare-0686f0b9ac40589694ef6ae6a6202c44119bc781c254f6cf6d52d8a008461156.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/articlePage-7386c745667022e7147503d288454cfce459f2019ee90ce454e641a116844837.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/commentDropdowns-7a28d130e5b78d38b30a9495a964003a66bd64fa455fc70b766d69cf06b9ba24.js" defer="defer"></script>
+
+
+  <script type="application/ld+json">
+    {"@context":"http://schema.org","@type":"Article","mainEntityOfPage":{"@type":"WebPage","@id":"https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j"},"url":"https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j","image":["https://media2.dev.to/dynamic/image/width=1080,height=1080,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png","https://media2.dev.to/dynamic/image/width=1280,height=720,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png","https://media2.dev.to/dynamic/image/width=1600,height=900,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png"],"publisher":{"@context":"http://schema.org","@type":"Organization","name":"DEV Community","logo":{"@context":"http://schema.org","@type":"ImageObject","url":"https://media2.dev.to/dynamic/image/width=192,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png","width":"192","height":"192"}},"headline":"From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn't Stop Evolving","author":{"@context":"http://schema.org","@type":"Person","url":"https://dev.to/rogeriomaciel","name":"Rogério Maciel"},"datePublished":"2026-08-09T14:54:01Z","dateModified":"2026-08-09T15:05:06Z","mainEntity":{"@type":"DiscussionForumPosting","@id":"#article-discussion-4354086","headline":"From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn't Stop Evolving","text":"\u003cp\u003eI'll tell this story in the order it happened. It doesn't start with a compiler. It starts with two n8n servers and a synchronization problem I had to solve before I could sleep peacefully.\u003c/p\u003e\n\n\n\u003chr\u003e\n\n\u003ch2\u003e\n  \u003ca name=\"act-1-the-problem-nobody-mentions-when-they-recommend-n8n\" href=\"#act-1-the-problem-nobody-mentions-when-they-recommend-n8n\"\u003e\n  \u003c/a\u003e\n  Act 1 — The problem nobody mentions when they recommend n8n\n\u003c/h2\u003e\n\n\u003cp\u003eCoreAutoCRM is an auto repair shop management SaaS operating entirely via WhatsApp. AI customer service, scheduling, quotes, yard management, intelligent follow-ups—all of this lives in n8n workflows. I chose n8n for the obvious reason: speed. In a few months, I went from zero to a real production product, built entirely alone.\u003c/p\u003e\n\n\u003cp\u003en8n is great for that. The problem starts when you have a real product, with a real client, and you need two environments: one to test without fear of breaking what works, and another for what the client actually uses.\u003c/p\u003e\n\n\u003cp\u003eStaging and production. Two separate n8n servers.\u003c/p\u003e\n\n\u003cp\u003eAnd then comes the problem nobody mentions: \u003cstrong\u003ehow do you ensure that what you tested in staging is exactly what goes to production?\u003c/strong\u003e\u003c/p\u003e\n\n\u003cp\u003eIn n8n, a workflow lives inside the server's database. It's not a file. It has no history. It has no diff. If you open the visual editor and change a \u003ccode\u003eSwitch\u003c/code\u003e condition, a SQL query parameter, or a node's AI prompt—that change exists only in that server's UI. There's no way to know what changed, who changed it, or when. There's no way to revert. There's no way to review before deploying to production.\u003c/p\u003e\n\n\u003cp\u003eThe \"manual\" way to sync staging with production would be: open each workflow in staging, export the JSON, open the same workflow in production, import the JSON. With 74 workflows, this is unfeasible. And even if it were, it would be a manual process prone to human error—the kind of thing that wakes you up at 2 AM because someone (you) forgot to sync a critical workflow.\u003c/p\u003e\n\n\u003cp\u003eI needed a solution that:\u003c/p\u003e\n\n\u003col\u003e\n\u003cli\u003eCaptured the current state of all n8n workflows as files\u003c/li\u003e\n\u003cli\u003eVersioned these files in Git like any code\u003c/li\u003e\n\u003cli\u003eAutomated the deployment of approved changes directly to the production server\u003c/li\u003e\n\u003c/ol\u003e\n\n\u003cp\u003eThis didn't exist out of the box. I built it from scratch.\u003c/p\u003e\n\n\n\u003chr\u003e\n\n\u003ch2\u003e\n  \u003ca name=\"act-2-gitops-for-n8n-how-i-turned-visual-workflows-into-versionable-code\" href=\"#act-2-gitops-for-n8n-how-i-turned-visual-workflows-into-versionable-code\"\u003e\n  \u003c/a\u003e\n  Act 2 — GitOps for n8n: How I turned visual workflows into versionable code\n\u003c/h2\u003e\n\n\u003cp\u003en8n's REST API has endpoints for everything: listing workflows, fetching a specific workflow's JSON, creating, updating, activating, deactivating. What I needed was an automation that used this API in both directions.\u003c/p\u003e\n\n\u003cp\u003eI built a synchronization skill that does the following:\u003c/p\u003e\n\n\u003cp\u003e\u003cstrong\u003eDirection 1 — n8n → Git (download):\u003c/strong\u003e\u003cbr\u003e\nThe automation connects to the staging n8n server via API, downloads each workflow's JSON, organizes them into a folder structure in the local project (\u003ccode\u003e/agente/workflows/\u003c/code\u003e), and prepares a merge request with the changes. I can do this at any time—after a development cycle in the visual editor, when I want to \"commit\" the backend's current state.\u003c/p\u003e\n\n\u003cp\u003e\u003cstrong\u003eDirection 2 — Git → n8n (upload):\u003c/strong\u003e\u003cbr\u003e\nThe reverse also works. I can edit a JSON directly in the repository—with AI assistance, since it's just structured text—and publish that change back to the n8n server. For quick tweaks, editing the JSON is sometimes faster than navigating the visual interface.\u003c/p\u003e\n\n\u003cp\u003e\u003cstrong\u003eThe CI/CD pipeline:\u003c/strong\u003e\u003cbr\u003e\nWhen a merge request is approved in Git, the CI/CD pipeline kicks in automatically. It uses the production n8n API to publish each changed workflow directly to the production server, with no manual intervention. What was tested in staging is exactly what hits production—because it's the exact same JSON, versioned, reviewed, and approved.\u003c/p\u003e\n\n\u003cp\u003eThe result was a setup I didn't expect to be so good: \u003cstrong\u003evisual backend development with traditional software engineering discipline\u003c/strong\u003e. Each backend feature became a branch. Each change had a readable Git diff. Each deploy had full traceability. And all this without giving up the n8n visual editor, which remained the most productive tool for building and testing flows quickly.\u003c/p\u003e\n\n\u003cp\u003eWith this structure running, something important happened quietly: I now had 74 workflows—the entire product backend at the time—as structured, updated, versioned, and synced JSON files in the repository. The backend source code existed in a machine-readable format.\u003c/p\u003e\n\n\u003cp\u003eI still didn't know what to do with this besides versioning. But I was about to find out.\u003c/p\u003e\n\n\u003chr\u003e\n\u003ch2\u003e\n  \u003ca name=\"act-3-the-problem-gitops-doesnt-solve-speed-and-scale\" href=\"#act-3-the-problem-gitops-doesnt-solve-speed-and-scale\"\u003e\n  \u003c/a\u003e\n  Act 3 — The problem GitOps doesn't solve: Speed and scale\n\u003c/h2\u003e\n\n\u003cp\u003eThe GitOps structure completely solved governance. I never lost trace of a change again. I never feared syncing staging with production again. The pipeline worked beautifully.\u003c/p\u003e\n\n\u003cp\u003eMeanwhile, the product kept growing. The original 74 workflows became 126—new features, new AI modules, new operational flows. All versioned, all synced, all going through the same pipeline. The GitOps structure scaled naturally with the product's growth.\u003c/p\u003e\n\n\u003cp\u003eBut n8n was still the production runtime. And as the volume grew, the cost of that became more visible.\u003c/p\u003e\n\n\u003cp\u003eEvery n8n node serializes and deserializes the entire state between executions. It's the inherent cost of any visual orchestration engine that needs to be generic enough to serve everyone. Every subworkflow call—and I had many, because my n8n microservices architecture used subworkflows heavily—turned into an internal HTTP call with authentication, serialization, and transport overhead. Result: 180ms to 450ms average latency, 1.2 GB to 2.5 GB of RAM per instance.\u003c/p\u003e\n\n\u003cp\u003eFor a SaaS that handles real-time WhatsApp messages, this is a real problem. The feeling of \"taking too long to respond\" starts showing up in the product before you have enough volume to justify a traditional rewrite.\u003c/p\u003e\n\n\u003cp\u003eThe conventional options:\u003c/p\u003e\n\n\u003cp\u003e\u003cstrong\u003eRewrite in native code.\u003c/strong\u003e Six months of work, a complete halt on new features, a risky migration, and—most importantly—the end of the visual development speed that got me where I was. Discarded.\u003c/p\u003e\n\n\u003cp\u003e\u003cstrong\u003eScale horizontally with more n8n instances.\u003c/strong\u003e Multiplies an already high cost without solving per-request latency. Discarded.\u003c/p\u003e\n\n\u003cp\u003eAnd then the realization that changed everything: \u003cstrong\u003eI already had the 74 workflows as structured JSON in the repository\u003c/strong\u003e. If there is a program capable of reading these JSONs and understanding what each workflow does—what each node receives, processes, and outputs—that program can generate equivalent TypeScript code. Code that has no serialization between nodes. That makes no internal HTTP calls. That runs straight in the process, with no orchestration engine in the middle.\u003c/p\u003e\n\n\u003cp\u003eThe GitOps I built to solve versioning had inadvertently created the prerequisite for the next step: a compiler.\u003c/p\u003e\n\n\u003chr\u003e\n\u003ch2\u003e\n  \u003ca name=\"the-compiler-and-why-every-decision-was-forced-by-a-real-problem\" href=\"#the-compiler-and-why-every-decision-was-forced-by-a-real-problem\"\u003e\n  \u003c/a\u003e\n  The Compiler — And why every decision was forced by a real problem\n\u003c/h2\u003e\n\u003ch3\u003e\n  \u003ca name=\"problem-1-the-order-of-nodes-in-the-json-is-not-the-execution-order\" href=\"#problem-1-the-order-of-nodes-in-the-json-is-not-the-execution-order\"\u003e\n  \u003c/a\u003e\n  Problem 1: The order of nodes in the JSON is not the execution order\n\u003c/h3\u003e\n\n\u003cp\u003eThe first version of the compiler followed the nodes in the order they appear in the JSON. It broke immediately.\u003c/p\u003e\n\n\u003cp\u003eVisual workflows have no linear order. A JWT authentication node might appear at position 3 in the JSON, but needs to execute before the database node at position 1. An \u003ccode\u003eIf\u003c/code\u003e node triggers only one of two branches. A node receiving input from two different branches must wait for at least one of them to execute.\u003c/p\u003e\n\n\u003cp\u003eVisual workflows are Directed Acyclic Graphs—DAGs. The only way to correctly resolve the execution order is with topological sorting.\u003c/p\u003e\n\n\u003cp\u003eI used Kahn's Algorithm: start with nodes that have no predecessors (the triggers), process them, mark them as resolved, free the nodes that depended on them, repeat. The result is a linear queue ensuring every node only executes after all its predecessors have already executed.\u003c/p\u003e\n\n\u003cp\u003eThe compiler also identifies SINK nodes—nodes that end execution and return the HTTP response (\u003ccode\u003eRespond to Webhook\u003c/code\u003e). These nodes are placed at the end of the topological queue, allowing the response to the client to be returned in less than 5ms while secondary asynchronous tasks continue in the background.\u003c/p\u003e\n\u003ch3\u003e\n  \u003ca name=\"problem-2-inmemory-subworkflows-and-the-silent-treeshaking-bug\" href=\"#problem-2-inmemory-subworkflows-and-the-silent-treeshaking-bug\"\u003e\n  \u003c/a\u003e\n  Problem 2: In-memory subworkflows and the silent tree-shaking bug\n\u003c/h3\u003e\n\n\u003cp\u003eMy first implementation of subworkflows used standard ES Module imports. It worked in development. It broke silently in the production bundle.\u003c/p\u003e\n\n\u003cp\u003eThe problem is twofold.\u003c/p\u003e\n\n\u003cp\u003eFirst: ES modules with relative paths of different depths can result in separate \u003ccode\u003eMap\u003c/code\u003e instances in the same process. Two modules thinking they share the same registry might be talking to different registries with no visible errors.\u003c/p\u003e\n\n\u003cp\u003eSecond: bundlers like \u003ccode\u003ebun build\u003c/code\u003e and \u003ccode\u003eesbuild\u003c/code\u003e perform tree-shaking—removing code unreferenced in static analysis. Subworkflows called dynamically by name (\u003ccode\u003eexecuteSubworkflow(\"COREAUTOCRM-PANEL-ACTION-GET-OS-DETAILS\", ...)\u003c/code\u003e) are invisible to the bundler. The name is a string at runtime. The bundler doesn't know that string corresponds to a function. The bundle reached production without the subworkflows, and the dynamic calls failed silently.\u003c/p\u003e\n\n\u003cp\u003eSolution for both problems at once: Global Singleton Registry tied to \u003ccode\u003eglobalThis\u003c/code\u003e.\u003cbr\u003e\n\u003c/p\u003e\n\n\u003cdiv class=\"highlight js-code-highlight\"\u003e\n\u003cpre class=\"highlight typescript\"\u003e\u003ccode\u003e\u003cspan class=\"kd\"\u003econst\u003c/span\u003e \u003cspan class=\"nx\"\u003eg\u003c/span\u003e \u003cspan class=\"o\"\u003e=\u003c/span\u003e \u003cspan class=\"nx\"\u003eglobalThis\u003c/span\u003e \u003cspan class=\"k\"\u003eas\u003c/span\u003e \u003cspan class=\"kr\"\u003eany\u003c/span\u003e\u003cspan class=\"p\"\u003e;\u003c/span\u003e\n\u003cspan class=\"k\"\u003eif \u003c/span\u003e\u003cspan class=\"p\"\u003e(\u003c/span\u003e\u003cspan class=\"o\"\u003e!\u003c/span\u003e\u003cspan class=\"nx\"\u003eg\u003c/span\u003e\u003cspan class=\"p\"\u003e.\u003c/span\u003e\u003cspan class=\"nx\"\u003e__COREAUTO_WORKFLOWS_REGISTRY__\u003c/span\u003e\u003cspan class=\"p\"\u003e)\u003c/span\u003e \u003cspan class=\"p\"\u003e{\u003c/span\u003e\n  \u003cspan class=\"nx\"\u003eg\u003c/span\u003e\u003cspan class=\"p\"\u003e.\u003c/span\u003e\u003cspan class=\"nx\"\u003e__COREAUTO_WORKFLOWS_REGISTRY__\u003c/span\u003e \u003cspan class=\"o\"\u003e=\u003c/span\u003e \u003cspan class=\"k\"\u003enew\u003c/span\u003e \u003cspan class=\"nb\"\u003eMap\u003c/span\u003e\u003cspan class=\"o\"\u003e\u0026lt;\u003c/span\u003e\u003cspan class=\"kr\"\u003estring\u003c/span\u003e\u003cspan class=\"p\"\u003e,\u003c/span\u003e \u003cspan class=\"nb\"\u003eFunction\u003c/span\u003e\u003cspan class=\"o\"\u003e\u0026gt;\u003c/span\u003e\u003cspan class=\"p\"\u003e();\u003c/span\u003e\n\u003cspan class=\"p\"\u003e}\u003c/span\u003e\n\u003cspan class=\"k\"\u003eexport\u003c/span\u003e \u003cspan class=\"kd\"\u003econst\u003c/span\u003e \u003cspan class=\"nx\"\u003eworkflowsRegistry\u003c/span\u003e \u003cspan class=\"o\"\u003e=\u003c/span\u003e \u003cspan class=\"nx\"\u003eg\u003c/span\u003e\u003cspan class=\"p\"\u003e.\u003c/span\u003e\u003cspan class=\"nx\"\u003e__COREAUTO_WORKFLOWS_REGISTRY__\u003c/span\u003e\u003cspan class=\"p\"\u003e;\u003c/span\u003e\n\u003c/code\u003e\u003c/pre\u003e\n\u003cdiv class=\"highlight__panel js-actions-panel\"\u003e\n\u003cdiv class=\"highlight__panel-action js-fullscreen-code-action\"\u003e\n    \u003csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"20px\" height=\"20px\" viewbox=\"0 0 24 24\" class=\"highlight-action crayons-icon highlight-action--fullscreen-on\"\u003e\u003ctitle\u003eEnter fullscreen mode\u003c/title\u003e\n    \u003cpath d=\"M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z\"\u003e\u003c/path\u003e\n\u003c/svg\u003e\n\n    \u003csvg xmlns=\"http://www.w3.org/2000/svg\" width=\"20px\" height=\"20px\" viewbox=\"0 0 24 24\" class=\"highlight-action crayons-icon highlight-action--fullscreen-off\"\u003e\u003ctitle\u003eExit fullscreen mode\u003c/title\u003e\n    \u003cpath d=\"M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z\"\u003e\u003c/path\u003e\n\u003c/svg\u003e\n\n\u003c/div\u003e\n\u003c/div\u003e\n\u003c/div\u003e\n\n\n\n\u003cp\u003e\u003ccode\u003eglobalThis\u003c/code\u003e is guaranteed to be unique per process. To solve tree-shaking, the compiler automatically injects a static export referencing all 126 workflows, forcing the bundler to include them all in the bundle.\u003c/p\u003e\n\n\u003ch3\u003e\n  \u003ca name=\"problem-3-the-expression-parser-was-the-hardest-part\" href=\"#problem-3-the-expression-parser-was-the-hardest-part\"\u003e\n  \u003c/a\u003e\n  Problem 3: The expression parser was the hardest part\n\u003c/h3\u003e\n\n\u003cp\u003en8n uses its own expression syntax: \u003ccode\u003e={{ $json.body.osId }}\u003c/code\u003e, \u003ccode\u003e={{ $('NodeName').item.json.field }}\u003c/code\u003e, \u003ccode\u003eText: {{ $json.name }}\u003c/code\u003e. Converting this to TypeScript has three distinct problems.\u003c/p\u003e\n\n\u003cp\u003eFirst is safe chaining. \u003ccode\u003e$json.user.store_id\u003c/code\u003e crashes with a \u003ccode\u003eTypeError\u003c/code\u003e if \u003ccode\u003euser\u003c/code\u003e is null. The compiler needs to convert to \u003ccode\u003eitem?.json?.user?.store_id\u003c/code\u003e for paths of arbitrary depth.\u003c/p\u003e\n\n\u003cp\u003eSecond is mixing text and expressions. \u003ccode\u003e\"Text: {{ $json.name }}\"\u003c/code\u003e must become \u003ccode\u003e`Text: ${item?.json?.name ?? ''}`\u003c/code\u003e—a template string with a fallback.\u003c/p\u003e\n\n\u003cp\u003eThird, I didn't expect: AI prompts. The prompts feeding Gemini in the workflows contain Markdown code blocks with triple backticks. When the compiler places these prompts inside TypeScript template strings, the internal backticks break the syntax. The parser had to learn to identify these tokens and escape each internal backtick with \u003ccode\u003e\\\u003c/code\u003e`.\u003c/p\u003e\n\n\u003cp\u003eThe solution was a real tokenizer—not a regex over the entire text, but a parser that identifies the \u003ccode\u003e{{\u003c/code\u003e and \u003ccode\u003e}}\u003c/code\u003e delimiters, extracts the expression content, converts n8n's grammar to TypeScript, and reconstructs the text with proper escaping for each context.\u003c/p\u003e\n\n\u003ch3\u003e\n  \u003ca name=\"problem-4-how-to-guarantee-the-generated-code-does-the-same-as-n8n\" href=\"#problem-4-how-to-guarantee-the-generated-code-does-the-same-as-n8n\"\u003e\n  \u003c/a\u003e\n  Problem 4: How to guarantee the generated code does the same as n8n\n\u003c/h3\u003e\n\n\u003cp\u003eGenerating code that compiles is not enough. I need to guarantee that the generated code produces exactly the same result n8n would with the same data.\u003c/p\u003e\n\n\u003cp\u003eThe n8n API exposes the full execution history: \u003ccode\u003eGET /api/v1/executions\u003c/code\u003e. For each execution, it returns the input payload, intermediate data for each node, and final output payload.\u003c/p\u003e\n\n\u003cp\u003eThe \u003ccode\u003eTestGenerator\u003c/code\u003e uses this API as an oracle: I run a workflow in staging n8n with real data, the generator fetches this execution, captures input and output for each node, and generates a \u003ccode\u003e.test.ts\u003c/code\u003e file that verifies the compiled TypeScript function produces an identical output, field by field.\u003c/p\u003e\n\n\u003cp\u003eIf any field diverges, the test fails, and the CI blocks the deploy. Staging n8n isn't just the visual IDE—it's the correctness oracle for everything going to production.\u003c/p\u003e\n\n\n\u003chr\u003e\n\n\u003ch2\u003e\n  \u003ca name=\"the-numbers-without-the-marketing\" href=\"#the-numbers-without-the-marketing\"\u003e\n  \u003c/a\u003e\n  The numbers, without the marketing\n\u003c/h2\u003e\n\n\u003cdiv class=\"table-wrapper-paragraph\"\u003e\u003ctable\u003e\n\u003cthead\u003e\n\u003ctr\u003e\n\u003cth\u003eMetric\u003c/th\u003e\n\u003cth\u003en8n on VPS\u003c/th\u003e\n\u003cth\u003eCompiled Fastify\u003c/th\u003e\n\u003cth\u003eDifference\u003c/th\u003e\n\u003c/tr\u003e\n\u003c/thead\u003e\n\u003ctbody\u003e\n\u003ctr\u003e\n\u003ctd\u003eAverage Latency\u003c/td\u003e\n\u003ctd\u003e180ms – 450ms\u003c/td\u003e\n\u003ctd\u003e3ms – 8ms\u003c/td\u003e\n\u003ctd\u003e~35x faster\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003eRAM per instance\u003c/td\u003e\n\u003ctd\u003e1.2 GB – 2.5 GB\u003c/td\u003e\n\u003ctd\u003e80 MB – 120 MB\u003c/td\u003e\n\u003ctd\u003e~95% less\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003eThroughput per vCPU\u003c/td\u003e\n\u003ctd\u003e~120 req/s\u003c/td\u003e\n\u003ctd\u003e\u0026gt; 4,500 req/s\u003c/td\u003e\n\u003ctd\u003e~37x more scale\u003c/td\u003e\n\u003c/tr\u003e\n\u003ctr\u003e\n\u003ctd\u003eCompile Time (126 workflows)\u003c/td\u003e\n\u003ctd\u003e—\u003c/td\u003e\n\u003ctd\u003e77ms\u003c/td\u003e\n\u003ctd\u003eInstantaneous\u003c/td\u003e\n\u003c/tr\u003e\n\u003c/tbody\u003e\n\u003c/table\u003e\u003c/div\u003e\n\n\u003cp\u003eThe production bundle is 2.6 MB. It boots with PM2, sits behind Nginx, and is deployed automatically by CI when all tests pass.\u003c/p\u003e\n\n\n\u003chr\u003e\n\n\u003ch2\u003e\n  \u003ca name=\"what-this-whole-journey-means\" href=\"#what-this-whole-journey-means\"\u003e\n  \u003c/a\u003e\n  What this whole journey means\n\u003c/h2\u003e\n\n\u003cp\u003eLooking back, what happened was a sequence where each solved problem created the conditions for the next step:\u003c/p\u003e\n\n\u003cp\u003eThe problem of syncing two n8n servers forced me to build GitOps automation. GitOps gave me 74 workflows as versioned JSONs in the repo. The JSONs in the repo created the prerequisite for the compiler. The compiler turned those JSONs into native code with automatic correctness guarantees.\u003c/p\u003e\n\n\u003cp\u003eNone of these steps were planned from the start. Each solved a real problem and created, as a side effect, the infrastructure the next step needed.\u003c/p\u003e\n\n\u003cp\u003eToday the full flow is:\u003c/p\u003e\n\n\u003col\u003e\n\u003cli\u003eI develop visually in staging n8n—with all the speed Low-code offers\u003c/li\u003e\n\u003cli\u003eThe sync skill downloads workflows as JSON and opens a Git merge request\u003c/li\u003e\n\u003cli\u003eCI/CD approves and deploys to production n8n—the operational environment keeps running\u003c/li\u003e\n\u003cli\u003eIn parallel, \u003ccode\u003ebun run transpile\u003c/code\u003e compiles the JSONs into native TypeScript\u003c/li\u003e\n\u003cli\u003eAuto-generated tests verify field-by-field equivalence with real n8n executions\u003c/li\u003e\n\u003cli\u003eIf they all pass, the Fastify bundle goes to the VPS\u003c/li\u003e\n\u003c/ol\u003e\n\n\u003cp\u003en8n remains the development tool. Fastify is the production runtime. The JSONs in the repo are the contract connecting the two—and the same contract that, since Act 2, gave me governance, traceability, and peace of mind.\u003c/p\u003e\n\n\u003cp\u003eA lean startup isn't one that chooses between speed and quality. It's the one that builds the infrastructure to have both—and, with any luck, discovers that every solved problem was the stepping stone for the next.\u003c/p\u003e\n\n\n\u003chr\u003e\n\n\u003cp\u003eCoreAutoCRM is already running in production across dozens of auto shops in Brazil. I built this engineering for my own ecosystem, but I know the pain of scaling automations on rigid servers keeps many CTOs and founders awake at night.\u003c/p\u003e\n\n\u003cp\u003eMy main focus is the expansion of my SaaS, making my technical schedule almost non-existent. However, I've decided to open an exclusive time window this month to structure the architecture of only 2 operations that need to solve this exact problem: scale n8n to millions of requests, cut AWS/VPS costs by 90%, and drop latency to milliseconds.\u003c/p\u003e\n\n\u003cp\u003eIf your n8n is eating up your server's memory, if your automation crashes during peak hours, or if you've simply hit the Low-Code ceiling and don't want to rewrite everything from scratch, text me on WhatsApp (\u003ca href=\"https://wa.me/556296232227\" target=\"_blank\" rel=\"noopener noreferrer\"\u003ehttps://wa.me/556296232227\u003c/a\u003e). Let's do a quick X-ray of your infrastructure and solve this.\u003c/p\u003e\n\n","author":{"@type":"Person","name":"Rogério Maciel","url":"https://dev.to/rogeriomaciel"},"datePublished":"2026-08-09T14:54:01Z","dateModified":"2026-08-09T15:05:06Z","url":"https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j","interactionStatistic":[{"@type":"InteractionCounter","interactionType":"https://schema.org/CommentAction","userInteractionCount":1},{"@type":"InteractionCounter","interactionType":"https://schema.org/LikeAction","userInteractionCount":0}],"comment":[{"@type":"Comment","@id":"#comment-1596174","text":"\u003cp\u003eThis journey matches what I see with many automation systems: visual workflows are great for discovering the process, but production eventually wants versioning, tests, review, and clearer ownership. The key is not treating the rewrite as a failure of n8n, but as a sign that the workflow found real business value.\u003c/p\u003e\n\n","author":{"@type":"Person","name":"Alex Shev","url":"https://dev.to/alexshev"},"datePublished":"2026-08-09T17:35:14Z","dateModified":"2026-08-09T17:35:14Z","url":"https://dev.to/alexshev/comment/3cl58","interactionStatistic":[{"@type":"InteractionCounter","interactionType":"https://schema.org/LikeAction","userInteractionCount":1}]}]}}
+  </script>
+
+  
+  <div class="crayons-layout crayons-layout--3-cols crayons-layout--article">
+    <aside class="crayons-layout__sidebar-left" aria-label="Article actions">
+      <script>
+  if (/Twitter for (iPhone|iPad|Android)/i.test(navigator.userAgent)) {
+    document.documentElement.classList.add('is-twitter-in-app');
+  }
+</script>
+
+  <div class="crayons-article-actions print-hidden">
+    <div class="crayons-article-actions__inner">
+
+      
+<div class="reaction-drawer__outer hoverdown" style="">
+  <button
+    id="reaction-drawer-trigger"
+    aria-label="reaction-drawer-trigger"
+    aria-pressed="false"
+    class="hoverdown-trigger crayons-reaction pseudo-reaction crayons-tooltip__activator relative">
+      <span class="crayons-reaction__icon crayons-reaction__icon--borderless crayons-reaction--like crayons-reaction__icon--inactive" style="width: 40px; height: 40px">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" role="img" aria-hidden="true" class="crayons-icon">
+    <g clip-path="url(#clip0_988_3276)">
+        <path d="M19 14V17H22V19H18.999L19 22H17L16.999 19H14V17H17V14H19ZM20.243 4.75698C22.505 7.02498 22.583 10.637 20.479 12.992L19.059 11.574C20.39 10.05 20.32 7.65998 18.827 6.16998C17.324 4.67098 14.907 4.60698 13.337 6.01698L12.002 7.21498L10.666 6.01798C9.09103 4.60598 6.67503 4.66798 5.17203 6.17198C3.68203 7.66198 3.60703 10.047 4.98003 11.623L13.412 20.069L12 21.485L3.52003 12.993C1.41603 10.637 1.49503 7.01898 3.75603 4.75698C6.02103 2.49298 9.64403 2.41698 12 4.52898C14.349 2.41998 17.979 2.48998 20.242 4.75698H20.243Z" fill="#525252"></path>
+    </g>
+    <defs>
+        <clipPath id="clip0_988_3276">
+        <rect width="24" height="24" fill="white"></rect>
+        </clipPath>
+    </defs>
+</svg>
+
+      </span>
+      <span class="crayons-reaction__icon crayons-reaction__icon--borderless crayons-reaction__icon--active" style="width: 40px; height: 40px">
+        <img aria_hidden="true" height="24" width="24" src="https://assets.dev.to/assets/heart-plus-active-9ea3b22f2bc311281db911d416166c5f430636e76b15cd5df6b3b841d830eefa.svg" />
+      </span>
+      <span class="crayons-reaction__count" id="reaction_total_count">
+        <span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span>
+      </span>
+      <span class="crayons-tooltip__content">
+        Add reaction
+      </span>
+  </button>
+
+  <div class="reaction-drawer" aria-expanded="false">
+    <div class="reaction-drawer__container">
+        <button
+  id="reaction-butt-like"
+  name="Like"
+  aria-label="Like"
+  aria-pressed="false"
+  class="crayons-reaction crayons-tooltip__activator relative pt-2 pr-2 pb-1 pl-2"
+  data-category="like">
+    <span class="crayons-reaction__icon crayons-reaction__icon--inactive p-0">
+      <img aria_hidden="true" height="32" width="32" src="https://assets.dev.to/assets/sparkle-heart-5f9bee3767e18deb1bb725290cb151c25234768a0e9a2bd39370c382d02920cf.svg" />
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-like"><span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span></span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Like
+    </span>
+</button>
+
+        <button
+  id="reaction-butt-unicorn"
+  name="Unicorn"
+  aria-label="Unicorn"
+  aria-pressed="false"
+  class="crayons-reaction crayons-tooltip__activator relative pt-2 pr-2 pb-1 pl-2"
+  data-category="unicorn">
+    <span class="crayons-reaction__icon crayons-reaction__icon--inactive p-0">
+      <img aria_hidden="true" height="32" width="32" src="https://assets.dev.to/assets/multi-unicorn-b44d6f8c23cdd00964192bedc38af3e82463978aa611b4365bd33a0f1f4f3e97.svg" />
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-unicorn"><span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span></span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Unicorn
+    </span>
+</button>
+
+        <button
+  id="reaction-butt-exploding_head"
+  name="Exploding Head"
+  aria-label="Exploding Head"
+  aria-pressed="false"
+  class="crayons-reaction crayons-tooltip__activator relative pt-2 pr-2 pb-1 pl-2"
+  data-category="exploding_head">
+    <span class="crayons-reaction__icon crayons-reaction__icon--inactive p-0">
+      <img aria_hidden="true" height="32" width="32" src="https://assets.dev.to/assets/exploding-head-daceb38d627e6ae9b730f36a1e390fca556a4289d5a41abb2c35068ad3e2c4b5.svg" />
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-exploding_head"><span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span></span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Exploding Head
+    </span>
+</button>
+
+        <button
+  id="reaction-butt-raised_hands"
+  name="Raised Hands"
+  aria-label="Raised Hands"
+  aria-pressed="false"
+  class="crayons-reaction crayons-tooltip__activator relative pt-2 pr-2 pb-1 pl-2"
+  data-category="raised_hands">
+    <span class="crayons-reaction__icon crayons-reaction__icon--inactive p-0">
+      <img aria_hidden="true" height="32" width="32" src="https://assets.dev.to/assets/raised-hands-74b2099fd66a39f2d7eed9305ee0f4553df0eb7b4f11b01b6b1b499973048fe5.svg" />
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-raised_hands"><span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span></span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Raised Hands
+    </span>
+</button>
+
+        <button
+  id="reaction-butt-fire"
+  name="Fire"
+  aria-label="Fire"
+  aria-pressed="false"
+  class="crayons-reaction crayons-tooltip__activator relative pt-2 pr-2 pb-1 pl-2"
+  data-category="fire">
+    <span class="crayons-reaction__icon crayons-reaction__icon--inactive p-0">
+      <img aria_hidden="true" height="32" width="32" src="https://assets.dev.to/assets/fire-f60e7a582391810302117f987b22a8ef04a2fe0df7e3258a5f49332df1cec71e.svg" />
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-fire"><span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span></span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Fire
+    </span>
+</button>
+
+    </div>
+  </div>
+</div>
+
+<button
+  id="reaction-butt-comment"
+  aria-label="Jump to Comments"
+  aria-pressed="false"
+  class="crayons-reaction crayons-reaction--comment crayons-tooltip__activator relative"
+  data-category="comment">
+    <span class="crayons-reaction__icon crayons-reaction__icon--borderless crayons-reaction__icon--inactive">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-hidden="true" class="crayons-icon">
+    <path d="M10 3h4a8 8 0 010 16v3.5c-5-2-12-5-12-11.5a8 8 0 018-8zm2 14h2a6 6 0 000-12h-4a6 6 0 00-6 6c0 3.61 2.462 5.966 8 8.48V17z"></path>
+</svg>
+
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-comment" data-count="1">
+      <span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span>
+    </span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Jump to Comments
+    </span>
+</button>
+
+<button
+  id="reaction-butt-readinglist"
+  aria-label="Add to reading list"
+  aria-pressed="false"
+  class="crayons-reaction crayons-reaction--readinglist crayons-tooltip__activator relative"
+  data-category="readinglist">
+    <span class="crayons-reaction__icon crayons-reaction__icon--borderless crayons-reaction__icon--inactive">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-hidden="true" class="crayons-icon">
+    <path d="M5 2h14a1 1 0 011 1v19.143a.5.5 0 01-.766.424L12 18.03l-7.234 4.536A.5.5 0 014 22.143V3a1 1 0 011-1zm13 2H6v15.432l6-3.761 6 3.761V4z"></path>
+</svg>
+
+    </span>
+    <span class="crayons-reaction__count" id="reaction-number-readinglist"><span class="bg-base-40 opacity-25 p-2 inline-block radius-default"></span></span>
+
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Save
+    </span>
+</button>
+
+
+<button
+  id="reaction-butt-boost"
+  aria-label="Boost"
+  aria-pressed="false"
+  class="crayons-reaction crayons-reaction--boost crayons-tooltip__activator relative">
+    <span class="crayons-reaction__icon crayons-reaction__icon--borderless crayons-reaction__icon--inactive">
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" role="img" aria-hidden="true" class="crayons-icon" width="24" height="24">
+  <path transform="translate(24,0) scale(-1,1)" d="M6 4H21C21.5523 4 22 4.44772 22 5V12H20V6H6V9L1 5L6 1V4ZM18 20H3C2.44772 20 2 19.5523 2 19V12H4V18H18V15L23 19L18 23V20Z"></path>
+</svg>
+
+    </span>
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Boost
+    </span>
+</button>
+
+
+      
+
+      <div class="only-sidebar-menu-item">
+        <div id="mod-actions-menu-btn-area" class="print-hidden trusted-visible-block align-center">
+        </div>
+      </div>
+      <div class="align-center m:relative">
+        <button id="article-show-more-button" aria-controls="article-show-more-dropdown" aria-expanded="false" aria-haspopup="true" class="dropbtn crayons-btn crayons-btn--ghost-dimmed crayons-btn--icon-rounded" aria-label="Share post options">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" role="img" aria-labelledby="ah6ttbv6hfw3uyexl3cgfhuz6jqaevgq" aria-hidden="true" class="crayons-icon dropdown-icon"><title id="ah6ttbv6hfw3uyexl3cgfhuz6jqaevgq">More...</title><path fill-rule="evenodd" clip-rule="evenodd" d="M7 12a2 2 0 11-4 0 2 2 0 014 0zm7 0a2 2 0 11-4 0 2 2 0 014 0zm5 2a2 2 0 100-4 2 2 0 000 4z"></path></svg>
+
+        </button>
+
+        <div id="article-show-more-dropdown" class="crayons-dropdown side-bar left-2 right-2 m:right-auto m:left-100 s:left-auto mb-1 m:mb-0 top-unset bottom-100 m:top-0 m:bottom-unset">
+          <div>
+            <button
+              id="copy-post-url-button"
+              class="flex justify-between crayons-link crayons-link--block w-100 bg-transparent border-0"
+              data-postUrl="https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j">
+              <span class="fw-bold">Copy link</span>
+              <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" id="article-copy-icon" role="img" aria-labelledby="a3vcs48t3jfj92cad2bu8rxcfktkp2kk" aria-hidden="true" class="crayons-icon mx-2 shrink-0"><title id="a3vcs48t3jfj92cad2bu8rxcfktkp2kk">Copy link</title>
+    <path d="M7 6V3a1 1 0 011-1h12a1 1 0 011 1v14a1 1 0 01-1 1h-3v3c0 .552-.45 1-1.007 1H4.007A1 1 0 013 21l.003-14c0-.552.45-1 1.007-1H7zm2 0h8v10h2V4H9v2zm-2 5v2h6v-2H7zm0 4v2h6v-2H7z"></path>
+</svg>
+
+            </button>
+            <div id="article-copy-link-announcer" aria-live="polite" class="crayons-notice crayons-notice--success my-2 p-1" aria-live="polite" hidden>Copied to Clipboard</div>
+          </div>
+
+          <div class="Desktop-only">
+            <a
+              target="_blank"
+              class="crayons-link crayons-link--block"
+              rel="noopener"
+              href='https://twitter.com/intent/tweet?text=%22From%20Visual%20Workflows%20to%20Native%20Code%20in%20Production%3A%20The%20Complete%20Journey%20of%20an%20n8n%20Backend%20That%20Couldn%27t%20Stop%20Evolving%22%20by%20Rog%C3%A9rio%20Maciel%20%23DEVCommunity%20https%3A%2F%2Fdev.to%2Frogeriomaciel%2Ffrom-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j'>
+              Share to X
+            </a>
+            <a
+              target="_blank"
+              class="crayons-link crayons-link--block"
+              rel="noopener"
+              href="https://www.linkedin.com/shareArticle?mini=true&url=https%3A%2F%2Fdev.to%2Frogeriomaciel%2Ffrom-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j&title=From%20Visual%20Workflows%20to%20Native%20Code%20in%20Production%3A%20The%20Complete%20Journey%20of%20an%20n8n%20Backend%20That%20Couldn%27t%20Stop%20Evolving&summary=I%27ll%20tell%20this%20story%20in%20the%20order%20it%20happened.%20It%20doesn%27t%20start%20with%20a%20compiler.%20It%20starts%20with%20two...&source=DEV%20Community">
+              Share to LinkedIn
+            </a>
+            <a
+              target="_blank"
+              class="crayons-link crayons-link--block"
+              rel="noopener"
+              href="https://www.facebook.com/sharer.php?u=https%3A%2F%2Fdev.to%2Frogeriomaciel%2Ffrom-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j">
+              Share to Facebook
+            </a>
+            <a
+              target="_blank"
+              class="crayons-link crayons-link--block"
+              rel="noopener"
+              href="https://s2f.kytta.dev/?text=https%3A%2F%2Fdev.to%2Frogeriomaciel%2Ffrom-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j">
+              Share to Mastodon
+            </a>
+          </div>
+
+          <web-share-wrapper shareurl="https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j" sharetitle="From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn&#39;t Stop Evolving" sharetext="I&#39;ll tell this story in the order it happened. It doesn&#39;t start with a compiler. It starts with two..." template="web-share-button">
+          </web-share-wrapper>
+          <template id="web-share-button">
+            <a href="#" class="dropdown-link-row crayons-link crayons-link--block">Share Post via...</a>
+          </template>
+
+          <a href="/report-abuse" class="crayons-link crayons-link--block" id="ReportButtonAuthor">Report Abuse</a>
+        </div>
+      </div>
+    </div>
+  </div>
+
+    </aside>
+
+    <main id="main-content" class="crayons-layout__content grid gap-4">
+      <div class="article-wrapper">
+
+
+        <article class="crayons-card crayons-article mb-4"
+          id="article-show-container"
+          data-article-id="4354086"
+          data-article-slug="from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j"
+          data-author-id="4068148"
+          data-author-name="Rogério Maciel"
+          data-author-username="rogeriomaciel"
+          data-co-author-ids=""
+          data-path="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j"
+          data-pin-path="/stories/feed/pinned_article"
+          data-pinned-article-id=""
+          data-published="true"
+          data-scheduled="false"
+          lang=en
+           >
+          <script>
+            try {
+              if(localStorage) {
+                let currentUser = localStorage.getItem('current_user');
+
+                if (currentUser) {
+                  currentUser = JSON.parse(currentUser);
+                  if (currentUser.id === 4068148) {
+                    document.getElementById('article-show-container').classList.add('current-user-is-article-author');
+                  }
+                }
+              }
+            } catch (e) {
+              console.error(e);
+            }
+          </script>
+          <header class="crayons-article__header" id="main-title">
+              <a class="crayons-article__cover" href="https://media2.dev.to/dynamic/image/width=1000,height=420,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png">
+                <img
+                  src="https://media2.dev.to/dynamic/image/width=1000,height=420,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Farticles%2Fps2smf4t84fbhof3pz31.png"
+                  style="aspect-ratio: auto 1000 / 420;"
+                  width="1000" height="420"
+                  class="crayons-article__cover__image" alt="Cover image for From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn&#39;t Stop Evolving">
+              </a>
+
+            <div class="crayons-article__header__meta">
+              <div class="flex s:items-start flex-col s:flex-row">
+                <div id="action-space" class="crayons-article__actions mb-4 s:mb-0 s:order-last"></div>
+                <div class="flex flex-1 mb-5 items-start">
+                  <div class="relative">
+                      <a href="/rogeriomaciel"><img class="radius-full align-middle" src="https://media2.dev.to/dynamic/image/width=50,height=50,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Fuser%2Fprofile_image%2F4068148%2F3024387a-f6e8-409d-9de2-e8fbdd60039b.jpg" width="40" height="40" alt="Rogério Maciel" /></a>
+                  </div>
+                  <div class="pl-3 flex-1">
+                    <a href="/rogeriomaciel" class="crayons-link fw-bold">Rogério Maciel</a>
+                    
+                    
+                    <p class="fs-xs color-base-60 flex flex-wrap items-center gap-1">
+                        <span>Posted on <time datetime="2026-08-09T14:54:01Z" class="date-no-year">Aug 9</time></span>
+
+
+
+                    </p>
+                  </div>
+                </div>
+              </div>
+
+              
+
+              <h1 class=" fs-3xl m:fs-4xl l:fs-5xl fw-bold s:fw-heavy lh-tight mb-2 longest">
+                From Visual Workflows to Native Code in Production: The Complete Journey of an n8n Backend That Couldn&#39;t Stop Evolving
+              </h1>
+              
+                  <div class="spec__tags flex flex-wrap">
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(61, 136, 54, 0.10);
+        --tag-prefix: #3d8836;
+        --tag-bg-hover: rgba(61, 136, 54, 0.10);
+        --tag-prefix-hover: #3d8836;
+      " href="/t/node"><span class="crayons-tag__prefix">#</span>node</a>
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(235, 223, 55, 0.10);
+        --tag-prefix: #ebdf37;
+        --tag-bg-hover: rgba(235, 223, 55, 0.10);
+        --tag-prefix-hover: #ebdf37;
+      " href="/t/architecture"><span class="crayons-tag__prefix">#</span>architecture</a>
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(35, 74, 132, 0.10);
+        --tag-prefix: #234A84;
+        --tag-bg-hover: rgba(35, 74, 132, 0.10);
+        --tag-prefix-hover: #234A84;
+      " href="/t/typescript"><span class="crayons-tag__prefix">#</span>typescript</a>
+                      <a class="crayons-tag   " style="
+        --tag-bg: rgba(64, 78, 211, 0.10);
+        --tag-prefix: #404ED3;
+        --tag-bg-hover: rgba(64, 78, 211, 0.10);
+        --tag-prefix-hover: #404ED3;
+      " href="/t/n8n"><span class="crayons-tag__prefix">#</span>n8n</a>
+                  </div>
+            </div>
+          </header>
+
+          <div class="crayons-article__main ">
+            <div class="crayons-article__body text-styles spec__body" data-article-id="4354086"
+              id="article-body">
+                <p>I'll tell this story in the order it happened. It doesn't start with a compiler. It starts with two n8n servers and a synchronization problem I had to solve before I could sleep peacefully.</p>
+
+
+<hr>
+
+<h2>
+  <a name="act-1-the-problem-nobody-mentions-when-they-recommend-n8n" href="#act-1-the-problem-nobody-mentions-when-they-recommend-n8n">
+  </a>
+  Act 1 — The problem nobody mentions when they recommend n8n
+</h2>
+
+<p>CoreAutoCRM is an auto repair shop management SaaS operating entirely via WhatsApp. AI customer service, scheduling, quotes, yard management, intelligent follow-ups—all of this lives in n8n workflows. I chose n8n for the obvious reason: speed. In a few months, I went from zero to a real production product, built entirely alone.</p>
+
+<p>n8n is great for that. The problem starts when you have a real product, with a real client, and you need two environments: one to test without fear of breaking what works, and another for what the client actually uses.</p>
+
+<p>Staging and production. Two separate n8n servers.</p>
+
+<p>And then comes the problem nobody mentions: <strong>how do you ensure that what you tested in staging is exactly what goes to production?</strong></p>
+
+<p>In n8n, a workflow lives inside the server's database. It's not a file. It has no history. It has no diff. If you open the visual editor and change a <code>Switch</code> condition, a SQL query parameter, or a node's AI prompt—that change exists only in that server's UI. There's no way to know what changed, who changed it, or when. There's no way to revert. There's no way to review before deploying to production.</p>
+
+<p>The "manual" way to sync staging with production would be: open each workflow in staging, export the JSON, open the same workflow in production, import the JSON. With 74 workflows, this is unfeasible. And even if it were, it would be a manual process prone to human error—the kind of thing that wakes you up at 2 AM because someone (you) forgot to sync a critical workflow.</p>
+
+<p>I needed a solution that:</p>
+
+<ol>
+<li>Captured the current state of all n8n workflows as files</li>
+<li>Versioned these files in Git like any code</li>
+<li>Automated the deployment of approved changes directly to the production server</li>
+</ol>
+
+<p>This didn't exist out of the box. I built it from scratch.</p>
+
+
+<hr>
+
+<h2>
+  <a name="act-2-gitops-for-n8n-how-i-turned-visual-workflows-into-versionable-code" href="#act-2-gitops-for-n8n-how-i-turned-visual-workflows-into-versionable-code">
+  </a>
+  Act 2 — GitOps for n8n: How I turned visual workflows into versionable code
+</h2>
+
+<p>n8n's REST API has endpoints for everything: listing workflows, fetching a specific workflow's JSON, creating, updating, activating, deactivating. What I needed was an automation that used this API in both directions.</p>
+
+<p>I built a synchronization skill that does the following:</p>
+
+<p><strong>Direction 1 — n8n → Git (download):</strong><br>
+The automation connects to the staging n8n server via API, downloads each workflow's JSON, organizes them into a folder structure in the local project (<code>/agente/workflows/</code>), and prepares a merge request with the changes. I can do this at any time—after a development cycle in the visual editor, when I want to "commit" the backend's current state.</p>
+
+<p><strong>Direction 2 — Git → n8n (upload):</strong><br>
+The reverse also works. I can edit a JSON directly in the repository—with AI assistance, since it's just structured text—and publish that change back to the n8n server. For quick tweaks, editing the JSON is sometimes faster than navigating the visual interface.</p>
+
+<p><strong>The CI/CD pipeline:</strong><br>
+When a merge request is approved in Git, the CI/CD pipeline kicks in automatically. It uses the production n8n API to publish each changed workflow directly to the production server, with no manual intervention. What was tested in staging is exactly what hits production—because it's the exact same JSON, versioned, reviewed, and approved.</p>
+
+<p>The result was a setup I didn't expect to be so good: <strong>visual backend development with traditional software engineering discipline</strong>. Each backend feature became a branch. Each change had a readable Git diff. Each deploy had full traceability. And all this without giving up the n8n visual editor, which remained the most productive tool for building and testing flows quickly.</p>
+
+<p>With this structure running, something important happened quietly: I now had 74 workflows—the entire product backend at the time—as structured, updated, versioned, and synced JSON files in the repository. The backend source code existed in a machine-readable format.</p>
+
+<p>I still didn't know what to do with this besides versioning. But I was about to find out.</p>
+
+<hr>
+<h2>
+  <a name="act-3-the-problem-gitops-doesnt-solve-speed-and-scale" href="#act-3-the-problem-gitops-doesnt-solve-speed-and-scale">
+  </a>
+  Act 3 — The problem GitOps doesn't solve: Speed and scale
+</h2>
+
+<p>The GitOps structure completely solved governance. I never lost trace of a change again. I never feared syncing staging with production again. The pipeline worked beautifully.</p>
+
+<p>Meanwhile, the product kept growing. The original 74 workflows became 126—new features, new AI modules, new operational flows. All versioned, all synced, all going through the same pipeline. The GitOps structure scaled naturally with the product's growth.</p>
+
+<p>But n8n was still the production runtime. And as the volume grew, the cost of that became more visible.</p>
+
+<p>Every n8n node serializes and deserializes the entire state between executions. It's the inherent cost of any visual orchestration engine that needs to be generic enough to serve everyone. Every subworkflow call—and I had many, because my n8n microservices architecture used subworkflows heavily—turned into an internal HTTP call with authentication, serialization, and transport overhead. Result: 180ms to 450ms average latency, 1.2 GB to 2.5 GB of RAM per instance.</p>
+
+<p>For a SaaS that handles real-time WhatsApp messages, this is a real problem. The feeling of "taking too long to respond" starts showing up in the product before you have enough volume to justify a traditional rewrite.</p>
+
+<p>The conventional options:</p>
+
+<p><strong>Rewrite in native code.</strong> Six months of work, a complete halt on new features, a risky migration, and—most importantly—the end of the visual development speed that got me where I was. Discarded.</p>
+
+<p><strong>Scale horizontally with more n8n instances.</strong> Multiplies an already high cost without solving per-request latency. Discarded.</p>
+
+<p>And then the realization that changed everything: <strong>I already had the 74 workflows as structured JSON in the repository</strong>. If there is a program capable of reading these JSONs and understanding what each workflow does—what each node receives, processes, and outputs—that program can generate equivalent TypeScript code. Code that has no serialization between nodes. That makes no internal HTTP calls. That runs straight in the process, with no orchestration engine in the middle.</p>
+
+<p>The GitOps I built to solve versioning had inadvertently created the prerequisite for the next step: a compiler.</p>
+
+<hr>
+<h2>
+  <a name="the-compiler-and-why-every-decision-was-forced-by-a-real-problem" href="#the-compiler-and-why-every-decision-was-forced-by-a-real-problem">
+  </a>
+  The Compiler — And why every decision was forced by a real problem
+</h2>
+<h3>
+  <a name="problem-1-the-order-of-nodes-in-the-json-is-not-the-execution-order" href="#problem-1-the-order-of-nodes-in-the-json-is-not-the-execution-order">
+  </a>
+  Problem 1: The order of nodes in the JSON is not the execution order
+</h3>
+
+<p>The first version of the compiler followed the nodes in the order they appear in the JSON. It broke immediately.</p>
+
+<p>Visual workflows have no linear order. A JWT authentication node might appear at position 3 in the JSON, but needs to execute before the database node at position 1. An <code>If</code> node triggers only one of two branches. A node receiving input from two different branches must wait for at least one of them to execute.</p>
+
+<p>Visual workflows are Directed Acyclic Graphs—DAGs. The only way to correctly resolve the execution order is with topological sorting.</p>
+
+<p>I used Kahn's Algorithm: start with nodes that have no predecessors (the triggers), process them, mark them as resolved, free the nodes that depended on them, repeat. The result is a linear queue ensuring every node only executes after all its predecessors have already executed.</p>
+
+<p>The compiler also identifies SINK nodes—nodes that end execution and return the HTTP response (<code>Respond to Webhook</code>). These nodes are placed at the end of the topological queue, allowing the response to the client to be returned in less than 5ms while secondary asynchronous tasks continue in the background.</p>
+<h3>
+  <a name="problem-2-inmemory-subworkflows-and-the-silent-treeshaking-bug" href="#problem-2-inmemory-subworkflows-and-the-silent-treeshaking-bug">
+  </a>
+  Problem 2: In-memory subworkflows and the silent tree-shaking bug
+</h3>
+
+<p>My first implementation of subworkflows used standard ES Module imports. It worked in development. It broke silently in the production bundle.</p>
+
+<p>The problem is twofold.</p>
+
+<p>First: ES modules with relative paths of different depths can result in separate <code>Map</code> instances in the same process. Two modules thinking they share the same registry might be talking to different registries with no visible errors.</p>
+
+<p>Second: bundlers like <code>bun build</code> and <code>esbuild</code> perform tree-shaking—removing code unreferenced in static analysis. Subworkflows called dynamically by name (<code>executeSubworkflow("COREAUTOCRM-PANEL-ACTION-GET-OS-DETAILS", ...)</code>) are invisible to the bundler. The name is a string at runtime. The bundler doesn't know that string corresponds to a function. The bundle reached production without the subworkflows, and the dynamic calls failed silently.</p>
+
+<p>Solution for both problems at once: Global Singleton Registry tied to <code>globalThis</code>.<br>
+</p>
+
+<div class="highlight js-code-highlight">
+<pre class="highlight typescript"><code><span class="kd">const</span> <span class="nx">g</span> <span class="o">=</span> <span class="nx">globalThis</span> <span class="k">as</span> <span class="kr">any</span><span class="p">;</span>
+<span class="k">if </span><span class="p">(</span><span class="o">!</span><span class="nx">g</span><span class="p">.</span><span class="nx">__COREAUTO_WORKFLOWS_REGISTRY__</span><span class="p">)</span> <span class="p">{</span>
+  <span class="nx">g</span><span class="p">.</span><span class="nx">__COREAUTO_WORKFLOWS_REGISTRY__</span> <span class="o">=</span> <span class="k">new</span> <span class="nb">Map</span><span class="o">&lt;</span><span class="kr">string</span><span class="p">,</span> <span class="nb">Function</span><span class="o">&gt;</span><span class="p">();</span>
+<span class="p">}</span>
+<span class="k">export</span> <span class="kd">const</span> <span class="nx">workflowsRegistry</span> <span class="o">=</span> <span class="nx">g</span><span class="p">.</span><span class="nx">__COREAUTO_WORKFLOWS_REGISTRY__</span><span class="p">;</span>
+</code></pre>
+<div class="highlight__panel js-actions-panel">
+<div class="highlight__panel-action js-fullscreen-code-action">
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-on"><title>Enter fullscreen mode</title>
+    <path d="M16 3h6v6h-2V5h-4V3zM2 3h6v2H4v4H2V3zm18 16v-4h2v6h-6v-2h4zM4 19h4v2H2v-6h2v4z"></path>
+</svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="20px" height="20px" viewbox="0 0 24 24" class="highlight-action crayons-icon highlight-action--fullscreen-off"><title>Exit fullscreen mode</title>
+    <path d="M18 7h4v2h-6V3h2v4zM8 9H2V7h4V3h2v6zm10 8v4h-2v-6h6v2h-4zM8 15v6H6v-4H2v-2h6z"></path>
+</svg>
+
+</div>
+</div>
+</div>
+
+
+
+<p><code>globalThis</code> is guaranteed to be unique per process. To solve tree-shaking, the compiler automatically injects a static export referencing all 126 workflows, forcing the bundler to include them all in the bundle.</p>
+
+<h3>
+  <a name="problem-3-the-expression-parser-was-the-hardest-part" href="#problem-3-the-expression-parser-was-the-hardest-part">
+  </a>
+  Problem 3: The expression parser was the hardest part
+</h3>
+
+<p>n8n uses its own expression syntax: <code>={{ $json.body.osId }}</code>, <code>={{ $('NodeName').item.json.field }}</code>, <code>Text: {{ $json.name }}</code>. Converting this to TypeScript has three distinct problems.</p>
+
+<p>First is safe chaining. <code>$json.user.store_id</code> crashes with a <code>TypeError</code> if <code>user</code> is null. The compiler needs to convert to <code>item?.json?.user?.store_id</code> for paths of arbitrary depth.</p>
+
+<p>Second is mixing text and expressions. <code>"Text: {{ $json.name }}"</code> must become <code>`Text: ${item?.json?.name ?? ''}`</code>—a template string with a fallback.</p>
+
+<p>Third, I didn't expect: AI prompts. The prompts feeding Gemini in the workflows contain Markdown code blocks with triple backticks. When the compiler places these prompts inside TypeScript template strings, the internal backticks break the syntax. The parser had to learn to identify these tokens and escape each internal backtick with <code>\</code>`.</p>
+
+<p>The solution was a real tokenizer—not a regex over the entire text, but a parser that identifies the <code>{{</code> and <code>}}</code> delimiters, extracts the expression content, converts n8n's grammar to TypeScript, and reconstructs the text with proper escaping for each context.</p>
+
+<h3>
+  <a name="problem-4-how-to-guarantee-the-generated-code-does-the-same-as-n8n" href="#problem-4-how-to-guarantee-the-generated-code-does-the-same-as-n8n">
+  </a>
+  Problem 4: How to guarantee the generated code does the same as n8n
+</h3>
+
+<p>Generating code that compiles is not enough. I need to guarantee that the generated code produces exactly the same result n8n would with the same data.</p>
+
+<p>The n8n API exposes the full execution history: <code>GET /api/v1/executions</code>. For each execution, it returns the input payload, intermediate data for each node, and final output payload.</p>
+
+<p>The <code>TestGenerator</code> uses this API as an oracle: I run a workflow in staging n8n with real data, the generator fetches this execution, captures input and output for each node, and generates a <code>.test.ts</code> file that verifies the compiled TypeScript function produces an identical output, field by field.</p>
+
+<p>If any field diverges, the test fails, and the CI blocks the deploy. Staging n8n isn't just the visual IDE—it's the correctness oracle for everything going to production.</p>
+
+
+<hr>
+
+<h2>
+  <a name="the-numbers-without-the-marketing" href="#the-numbers-without-the-marketing">
+  </a>
+  The numbers, without the marketing
+</h2>
+
+<div class="table-wrapper-paragraph"><table>
+<thead>
+<tr>
+<th>Metric</th>
+<th>n8n on VPS</th>
+<th>Compiled Fastify</th>
+<th>Difference</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Average Latency</td>
+<td>180ms – 450ms</td>
+<td>3ms – 8ms</td>
+<td>~35x faster</td>
+</tr>
+<tr>
+<td>RAM per instance</td>
+<td>1.2 GB – 2.5 GB</td>
+<td>80 MB – 120 MB</td>
+<td>~95% less</td>
+</tr>
+<tr>
+<td>Throughput per vCPU</td>
+<td>~120 req/s</td>
+<td>&gt; 4,500 req/s</td>
+<td>~37x more scale</td>
+</tr>
+<tr>
+<td>Compile Time (126 workflows)</td>
+<td>—</td>
+<td>77ms</td>
+<td>Instantaneous</td>
+</tr>
+</tbody>
+</table></div>
+
+<p>The production bundle is 2.6 MB. It boots with PM2, sits behind Nginx, and is deployed automatically by CI when all tests pass.</p>
+
+
+<hr>
+
+<h2>
+  <a name="what-this-whole-journey-means" href="#what-this-whole-journey-means">
+  </a>
+  What this whole journey means
+</h2>
+
+<p>Looking back, what happened was a sequence where each solved problem created the conditions for the next step:</p>
+
+<p>The problem of syncing two n8n servers forced me to build GitOps automation. GitOps gave me 74 workflows as versioned JSONs in the repo. The JSONs in the repo created the prerequisite for the compiler. The compiler turned those JSONs into native code with automatic correctness guarantees.</p>
+
+<p>None of these steps were planned from the start. Each solved a real problem and created, as a side effect, the infrastructure the next step needed.</p>
+
+<p>Today the full flow is:</p>
+
+<ol>
+<li>I develop visually in staging n8n—with all the speed Low-code offers</li>
+<li>The sync skill downloads workflows as JSON and opens a Git merge request</li>
+<li>CI/CD approves and deploys to production n8n—the operational environment keeps running</li>
+<li>In parallel, <code>bun run transpile</code> compiles the JSONs into native TypeScript</li>
+<li>Auto-generated tests verify field-by-field equivalence with real n8n executions</li>
+<li>If they all pass, the Fastify bundle goes to the VPS</li>
+</ol>
+
+<p>n8n remains the development tool. Fastify is the production runtime. The JSONs in the repo are the contract connecting the two—and the same contract that, since Act 2, gave me governance, traceability, and peace of mind.</p>
+
+<p>A lean startup isn't one that chooses between speed and quality. It's the one that builds the infrastructure to have both—and, with any luck, discovers that every solved problem was the stepping stone for the next.</p>
+
+
+<hr>
+
+<p>CoreAutoCRM is already running in production across dozens of auto shops in Brazil. I built this engineering for my own ecosystem, but I know the pain of scaling automations on rigid servers keeps many CTOs and founders awake at night.</p>
+
+<p>My main focus is the expansion of my SaaS, making my technical schedule almost non-existent. However, I've decided to open an exclusive time window this month to structure the architecture of only 2 operations that need to solve this exact problem: scale n8n to millions of requests, cut AWS/VPS costs by 90%, and drop latency to milliseconds.</p>
+
+<p>If your n8n is eating up your server's memory, if your automation crashes during peak hours, or if you've simply hit the Low-Code ceiling and don't want to rewrite everything from scratch, text me on WhatsApp (<a href="https://wa.me/556296232227" target="_blank" rel="noopener noreferrer">https://wa.me/556296232227</a>). Let's do a quick X-ray of your infrastructure and solve this.</p>
+
+
+            </div>
+
+              <div class="below-post-bb body-billboard-container" data-async-url="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j/bmar11/post_body_bottom"></div>
+          </div>
+          <section id="comments" data-follow-button-container="true" data-updated-at="2026-08-24 18:57:13 UTC" class="text-padding mb-4 border-t-1 border-0 border-solid border-base-10">
+    <header class="relative flex justify-between items-center mb-6">
+      <div class="flex items-center">
+        <h2 class="crayons-subtitle-1">
+          Top comments <span class="js-comments-count" data-comments-count="1">(1)</span>
+        </h2>
+      </div>
+
+
+      <div id="comment-subscription" class="print-hidden">
+        <div class="crayons-btn-group">
+          <span class="crayons-btn crayons-btn--outlined">Subscribe</span>
+        </div>
+      </div>
+    </header>
+    <div id="billboard_delay_trigger"></div>
+    <div
+      id="comments-container"
+      data-testid="comments-container"
+      data-commentable-id="4354086"
+      data-commentable-type="Article"
+      data-has-recent-comment-activity="false">
+
+        <div id="response-templates-data" class="hidden"></div>
+
+
+<form class="comment-form print-hidden" id="new_comment" action="/comments" accept-charset="UTF-8" method="post">
+
+  <input type="hidden" name="authenticity_token" value="NOTHING" id="new_comment_authenticity_token">
+
+    <input value="4354086" autocomplete="off" type="hidden" name="comment[commentable_id]" id="comment_commentable_id" />
+    <input value="Article" autocomplete="off" type="hidden" name="comment[commentable_type]" id="comment_commentable_type" />
+    
+
+  <span class="crayons-avatar m:crayons-avatar--l mr-2 shrink-0">
+    <img src="https://media2.dev.to/dynamic/image/width=256,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png" width="32" height="32" alt="pic" class="crayons-avatar__image overflow-hidden" id="comment-primary-user-profile--avatar" loading="lazy" />
+  </span>
+  <div class="comment-form__inner">
+    <div class="comment-form__field" data-tracking-name="comment_form_textfield">
+      <textarea placeholder="Add to the discussion" onfocus="handleFocus(event)" onkeyup="handleKeyUp(event)" onkeydown="handleKeyDown(event)" oninput="handleChange(event)" id="text-area" required="required" class="crayons-textfield comment-textarea crayons-textfield--ghost" aria-label="Add a comment to the discussion" name="comment[body_markdown]">
+</textarea>
+
+    </div>
+
+    <div class="response-templates-container crayons-card crayons-card--secondary p-4 mb-4 comment-form__templates fs-base hidden">
+      <header class="mb-3">
+        <button type="button" class="crayons-btn personal-template-button active" data-target-type="personal" data-form-id="new_comment">Personal</button>
+        <button type="button" class="crayons-btn moderator-template-button hidden" data-target-type="moderator" data-form-id="new_comment">Trusted User</button>
+      </header>
+
+      <div class="personal-responses-container">
+      </div>
+      <div class="moderator-responses-container hidden">
+      </div>
+
+      <a target="_blank" rel="noopener nofollow" href="/settings/response-templates">
+        Create template
+      </a>
+      <p>Templates let you quickly answer FAQs or store snippets for re-use.</p>
+    </div>
+
+    <div class="comment-form__preview text-styles text-styles--secondary" id="preview-div"></div>
+
+    <div class="comment-form__buttons mb-4 flex items-center flex-wrap gap-2">
+      <button type="submit" class="crayons-btn mr-2 js-btn-enable" onclick="validateField(event)" data-tracking-name="comment_submit_button" disabled>Submit</button>
+      <button type="button" class="preview-toggle crayons-btn crayons-btn--secondary comment-action-preview js-btn-enable mr-2" data-tracking-name="comment_preview_button" disabled>Preview</button>
+      <a href="/404.html" class="dismiss-edit-comment crayons-btn crayons-btn--ghost js-btn-dismiss hidden">Dismiss</a>
+    </div>
+  </div>
+
+  <div class="code-of-conduct" id="toggle-code-of-conduct-checkbox"></div>
+</form>
+
+
+      <div class="comments" id="comment-trees-container">
+              <details class="comment-wrapper js-comment-wrapper comment-wrapper--deep-0
+                    root
+                    " open>
+      <summary aria-label="Toggle this comment (and replies)" data-tracking-name="expand_comment_toggle">
+        <span class="m:mx-1 inline-block align-middle">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="an9f7jczyl971s1qhe0fyayxnio82ov9" class="crayons-icon expanded"><title id="an9f7jczyl971s1qhe0fyayxnio82ov9">Collapse</title>
+    <path d="M12 10.677L8 6.935 9 6l3 2.807L15 6l1 .935-4 3.742zm0 4.517L9 18l-1-.935 4-3.742 4 3.742-1 .934-3-2.805z"></path>
+</svg>
+
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="aq7m9l87t37e61dbwvaews9cqvrupw81" class="crayons-icon collapsed"><title id="aq7m9l87t37e61dbwvaews9cqvrupw81">Expand</title>
+    <path d="M12 18l-4-3.771 1-.943 3 2.829 3-2.829 1 .943L12 18zm0-10.115l-3 2.829-1-.943L12 6l4 3.771-1 .942-3-2.828z"></path>
+</svg>
+
+        </span>
+        <span class="js-collapse-comment-content inline-block align-middle"></span>
+      </summary>
+  <div
+    id="comment-node-1596174"
+    class="
+      comment single-comment-node
+      
+      root
+      comment--deep-0
+      
+    "
+    data-comment-id="1596174"
+    data-path="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j/comments/3cl58"
+    data-comment-author-id="3812101"
+    data-content-user-id="3812101">
+    <a name="comment-3cl58" style="position: absolute; top: -8px;">&nbsp;</a>
+    
+<div class="comment__inner">
+    <a href="https://dev.to/alexshev" class="shrink-0 crayons-avatar m:crayons-avatar--l mt-4 m:mt-3">
+    <img class="crayons-avatar__image" width="32" height="32" src="https://media2.dev.to/dynamic/image/width=50,height=50,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Fuser%2Fprofile_image%2F3812101%2F0946c1f5-f8a5-464c-bf18-10850a434ef9.png" alt="alexshev profile image" loading="lazy" />
+  </a>
+
+
+  <div class="inner-comment comment__details">
+    <div class="comment__content crayons-card">
+        
+
+
+        <div class="comment__header">
+  <a href="https://dev.to/alexshev" class="crayons-link crayons-link--secondary flex items-center fw-medium m:hidden">
+    <span class="js-comment-username">
+      Alex Shev
+    </span>
+  </a>
+  <div class="profile-preview-card relative mb-4 s:mb-0 fw-medium hidden m:block">
+    <button id="comment-profile-preview-trigger-1596174" aria-controls="comment-profile-preview-content-1596174" class="profile-preview-card__trigger p-1 -my-1 -ml-1 crayons-btn crayons-btn--ghost" aria-label="Alex Shev profile details">
+      Alex Shev
+      
+      
+    </button>
+    <div id="comment-profile-preview-content-1596174" class="profile-preview-card__content p-4 pt-0 branded-7 crayons-dropdown" style="--card-color: #000000; border-top-color: var(--card-color);" data-testid="profile-preview-card" data-repositioning-dropdown="true">
+    <div class="gap-4 grid">
+        <div class="-mt-4">
+  <a href="/alexshev" class="flex">
+    <span class="crayons-avatar crayons-avatar--xl  mr-2 shrink-0">
+      <img src="https://media2.dev.to/dynamic/image/width=90,height=90,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Fuser%2Fprofile_image%2F3812101%2F0946c1f5-f8a5-464c-bf18-10850a434ef9.png" class="crayons-avatar__image" alt="" loading="lazy" />
+    </span>
+    <span class="crayons-link crayons-subtitle-2 mt-5">
+      Alex Shev
+      
+      
+    </span>
+  </a>
+</div>
+
+<div class="print-hidden">
+  <button name="button" type="button" data-info="{&quot;className&quot;:&quot;User&quot;,&quot;style&quot;:&quot;&quot;,&quot;id&quot;:3812101,&quot;name&quot;:&quot;Alex Shev&quot;}" class="crayons-btn follow-action-button whitespace-nowrap w-100 follow-user" aria-label="Follow user: Alex Shev" aria-pressed="false">Follow</button>
+</div>
+  <div class="color-base-70">
+    Building AI-powered tools. Creator of seog.ai &amp; terminalskills.io — curated terminal skills and CLI tools for modern devs.
+  </div>
+
+  <div class="user-metadata-details">
+    <ul class="user-metadata-details-inner">
+        <li>
+          <div class="key">
+            Location
+          </div>
+          <div class="value">
+            Dallas-Fort Worth, Texas
+          </div>
+        </li>
+          <li>
+            <div class="key">
+              Work
+            </div>
+            <div class="value">
+              Founder at SEOG &amp; Terminal Skills
+            </div>
+          </li>
+      <li>
+        <div class="key">
+          Joined
+        </div>
+        <div class="value">
+          <time datetime="2026-03-07T20:15:23Z" class="date">Mar 7, 2026</time>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+    </div>
+</div>
+
+
+  </div>
+
+  <span class="color-base-30 px-2 m:pl-0" role="presentation">&bull;</span>
+
+<a href="https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j#comment-3cl58" class="comment-date crayons-link crayons-link--secondary fs-s">
+  <time datetime="2026-08-09T17:35:14Z" class=date-no-year>
+    Aug 9
+  </time>
+
+</a>
+
+
+
+  <div class="comment__dropdown" data-tracking-name="comment_dropdown">
+    <button id="comment-dropdown-trigger-1596174" aria-controls="comment-dropdown-1596174" aria-expanded="false"
+      class="dropbtn comment__dropdown-trigger crayons-btn crayons-btn--s crayons-btn--ghost crayons-btn--icon "
+      aria-label="Toggle dropdown menu" aria-haspopup="true">
+      <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="a96cue5q72i8odidub8rz7hvkyjagfl1" class="crayons-icon pointer-events-none"><title id="a96cue5q72i8odidub8rz7hvkyjagfl1">Dropdown menu</title>
+    <path fill-rule="evenodd" clip-rule="evenodd" d="M8.25 12a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm5.25 0a1.5 1.5 0 11-3 0 1.5 1.5 0 013 0zm3.75 1.5a1.5 1.5 0 100-3 1.5 1.5 0 000 3z"></path>
+</svg>
+
+    </button>
+    <div id="comment-dropdown-1596174" class="crayons-dropdown right-1 s:right-0 s:left-auto fs-base dropdown">
+      <ul class="m-0">
+        <li><a href="https://dev.to/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j#comment-3cl58" class="crayons-link crayons-link--block permalink-copybtn" aria-label="Copy link to Alex Shev&#39;s comment" data-no-instant>Copy link</a></li>
+        <li class="comment-actions hidden" data-user-id="3812101" data-action="settings-button" data-path="https://dev.to/alexshev/comment/3cl58/settings" aria-label="Go to Alex Shev&#39;s comment settings"></li>
+          <li class="comment-actions hidden" data-action="hide-button" data-commentable-user-id="4068148" data-user-id="3812101">
+              <button
+                class="flex justify-between crayons-link crayons-link--block w-100 bg-transparent border-0 hide-comment"
+                data-hide-type="hide"
+                data-comment-id="1596174"
+                data-comment-url="https://dev.to/alexshev/comment/3cl58"
+                aria-label="Hide Alex Shev&#39;s comment">
+                Hide
+              </button>
+          </li>
+        <li class="mod-actions hidden mod-actions-comment-button" data-path="https://dev.to/alexshev/comment/3cl58/mod" aria-label="Moderate Alex Shev&#39;s comment"></li>
+        <li class="report-abuse-link-wrapper" data-path="/report-abuse?url=https://dev.to/alexshev/comment/3cl58" aria-label="Report Alex Shev&#39;s comment as abusive or violating our code of conduct and/or terms and conditions"></li>
+        <li class="current-user-actions"></li>
+      </ul>
+    </div>
+  </div>
+</div>
+
+
+        <div
+          class="
+            comment__body
+            text-styles
+            text-styles--secondary
+            body
+            
+            
+          ">
+          <p>This journey matches what I see with many automation systems: visual workflows are great for discovering the process, but production eventually wants versioning, tests, review, and clearer ownership. The key is not treating the rewrite as a failure of n8n, but as a sign that the workflow found real business value.</p>
+
+
+        </div>
+
+    </div>
+
+    <script>
+    </script>
+
+    <footer class="comment__footer print-hidden">
+  <button
+    class="crayons-tooltip__activator relative crayons-btn crayons-btn--ghost crayons-btn--icon-left crayons-btn--s mr-1 reaction-like inline-flex reaction-button"
+    id="button-for-comment-1596174"
+    data-comment-id="1596174"
+    aria-label="like"
+    data-tracking-name="comment_heart_button">
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" role="img" aria-labelledby="ao5cyix9j5so3gf9v95tmaxzqslh2z44" class="crayons-icon reaction-icon not-reacted"><title id="ao5cyix9j5so3gf9v95tmaxzqslh2z44">Like comment: </title><path d="M18.884 12.595l.01.011L12 19.5l-6.894-6.894.01-.01A4.875 4.875 0 0112 5.73a4.875 4.875 0 016.884 6.865zM6.431 7.037a3.375 3.375 0 000 4.773L12 17.38l5.569-5.569a3.375 3.375 0 10-4.773-4.773L9.613 10.22l-1.06-1.062 2.371-2.372a3.375 3.375 0 00-4.492.25v.001z"></path></svg>
+
+    <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" role="img" aria-labelledby="ao3sy0o3fexdbsw8exwxkwsr6o9fzzk9" class="crayons-icon crayons-icon reaction-icon--like reaction-icon reacted"><title id="ao3sy0o3fexdbsw8exwxkwsr6o9fzzk9">Like comment: </title>
+    <path d="M5.116 12.595a4.875 4.875 0 015.56-7.68h-.002L7.493 8.098l1.06 1.061 3.181-3.182a4.875 4.875 0 016.895 6.894L12 19.5l-6.894-6.894.01-.01z"></path>
+</svg>
+
+    <span class="reactions-count">1</span><span class="reactions-label hidden m:inline-block">&nbsp;like</span>
+    <span data-testid="tooltip" class="crayons-tooltip__content">
+      Like
+    </span>
+  </button>
+
+  
+
+      <button
+        class="actions crayons-btn crayons-btn--ghost crayons-btn--s crayons-btn--icon-left toggle-reply-form mr-1 inline-flex"
+        data-comment-id="1596174"
+        data-path="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j/comments/3cl58"
+        data-tracking-name="comment_reply_button"
+        data-testid="reply-button-1596174"
+        rel="nofollow">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" role="img" aria-labelledby="ahjfje3569hiyl91fol7s3iruyaissl5" class="crayons-icon reaction-icon not-reacted"><title id="ahjfje3569hiyl91fol7s3iruyaissl5">Comment button</title><path d="M10.5 5h3a6 6 0 110 12v2.625c-3.75-1.5-9-3.75-9-8.625a6 6 0 016-6zM12 15.5h1.5a4.501 4.501 0 001.722-8.657A4.5 4.5 0 0013.5 6.5h-3A4.5 4.5 0 006 11c0 2.707 1.846 4.475 6 6.36V15.5z"></path></svg>
+
+        <span class="hidden m:inline-block">Reply</span>
+      </button>
+
+</footer>
+
+  </div>
+</div>
+
+
+  </div>
+    </details>
+
+
+      </div>
+    </div>
+
+    <div class="align-center">
+
+
+  <nav class="fs-s align-center block" aria-label="Conduct controls">
+  <a href="/code-of-conduct" class="crayons-link crayons-link--secondary">Code of Conduct</a>
+  <span class="opacity-25 px-2" role="presentation">&bull;</span>
+  <a href="/report-abuse" class="crayons-link crayons-link--secondary">Report abuse</a>
+</nav>
+
+</div>
+
+</section>
+<div id="hide-comments-modal" class="hidden">
+  <form id="hide-comments-modal__form" class="hide-comments-modal__form" data-type="json" action="/comments/hide" accept-charset="UTF-8" data-remote="true" method="post"><input type="hidden" name="_method" value="patch" autocomplete="off" /><input type="hidden" name="authenticity_token" value="qZxnt8qcS-E6Iro3WkoYiHOjKJjRm0qQoMlR_MQbOcTnUgkqDDbciRTay9MutmJiOCgdZI-zEnC7UTrsJ5egMA" autocomplete="off" />
+    <div class="hide-comments-modal__content">
+      <p class="pb-2">
+        Are you sure you want to hide this comment? It will become hidden in your post, but will still be visible via the comment's <a id="hide-comments-modal__comment-permalink" href="#">permalink</a>.
+      </p>
+      <label class="crayons-field crayons-field--checkbox my-2">
+        <input name="hide_children" type="hidden" value="0" autocomplete="off" /><input class="hide_children crayons-checkbox" type="checkbox" value="1" name="hide_children" id="hide_children" />
+        <p class="crayons-field__label">Hide child comments as well</p>
+      </label>
+      <p class="pb-4 pt-2">
+        <button type="submit" class="crayons-btn">
+          Confirm
+        </button>
+      </p>
+    </div>
+</form>  <p class="fs-s color-base-60">For further actions, you may consider blocking this person and/or <a id="hide-comments-modal__report-link" href="/report-abuse">reporting abuse</a></p>
+</div>
+
+
+
+        </article>
+
+        <div class="pb-4 crayons-layout__comments-billboard">
+          <div class="new-bb-container pb-4 crayons-layout__comments-billboard" data-async-url="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j/bmar11/post_comments"></div>
+        </div>
+
+          <!-- Bottom content skipped via SKIP_BOTTOM_CONTENT config -->
+      </div>
+    </main>
+
+    <aside class="crayons-layout__sidebar-right" aria-label="Author details">
+      <div class="crayons-article-sticky grid gap-4 pb-4 break-word" id="article-show-primary-sticky-nav">
+  <div class="crayons-card crayons-card--secondary branded-7 p-4 pt-0 gap-4 grid" style="border-top-color: #000000;">
+    <div class="-mt-4">
+  <a href="/rogeriomaciel" class="flex">
+    <span class="crayons-avatar crayons-avatar--xl  mr-2 shrink-0">
+      <img src="https://media2.dev.to/dynamic/image/width=90,height=90,fit=cover,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.us-east-2.amazonaws.com%2Fuploads%2Fuser%2Fprofile_image%2F4068148%2F3024387a-f6e8-409d-9de2-e8fbdd60039b.jpg" class="crayons-avatar__image" alt="" loading="lazy" />
+    </span>
+    <span class="crayons-link crayons-subtitle-2 mt-5">
+      Rogério Maciel
+      
+      
+    </span>
+  </a>
+</div>
+
+<div class="print-hidden">
+  <button name="button" type="button" data-info="{&quot;className&quot;:&quot;User&quot;,&quot;style&quot;:&quot;&quot;,&quot;id&quot;:4068148,&quot;name&quot;:&quot;Rogério Maciel&quot;}" class="crayons-btn follow-action-button whitespace-nowrap w-100 follow-user" aria-label="Follow user: Rogério Maciel" aria-pressed="false">Follow</button>
+</div>
+  <div class="color-base-70">
+    Sou Fundador e CTO do CORE, onde lidero o desenvolvimento de ecossistemas SaaS complexos e arquiteturas de alta performance.
+Minha especialidade é resolver gargalos de infraestrutura que travam o cres
+  </div>
+
+  <div class="user-metadata-details">
+    <ul class="user-metadata-details-inner">
+        <li>
+          <div class="key">
+            Location
+          </div>
+          <div class="value">
+            Goiania, Brasil
+          </div>
+        </li>
+      <li>
+        <div class="key">
+          Joined
+        </div>
+        <div class="value">
+          <time datetime="2026-08-07T23:07:10Z" class="date">Aug 7, 2026</time>
+        </div>
+      </li>
+    </ul>
+  </div>
+
+  </div>
+
+      <div class="crayons-card crayons-card--secondary">
+        <header class="crayons-card__header">
+          <h3 class="crayons-subtitle-2">
+            More from <a href="/rogeriomaciel">Rogério Maciel</a>
+          </h3>
+        </header>
+        <div>
+            <a class="crayons-link crayons-link--contentful" href="/rogeriomaciel/de-workflows-visuais-a-codigo-nativo-em-producao-a-jornada-completa-de-um-backend-n8n-1ecb">
+              De workflows visuais a código nativo em produção: a jornada completa de um backend n8n
+              <div class="crayons-link__secondary -ml-1">
+                  <span class="mr-1"><span class="opacity-50">#</span>node</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>architecture</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>fastify</span>
+                  <span class="mr-1"><span class="opacity-50">#</span>n8nbrightdatachallenge</span>
+              </div>
+            </a>
+        </div>
+      </div>
+</div>
+
+<div class="crayons-article-sticky grid gap-4 break-word sidebar-bb" data-async-url="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j/bmar11/post_sidebar"></div>
+
+
+    </aside>
+  </div>
+
+  <div class="mod-actions-menu print-hidden"></div>
+  <div data-testid="unpublish-post-modal-container" class="unpublish-post-modal-container hidden"></div>
+
+  <div class="fullscreen-code js-fullscreen-code"></div>
+  <script src="https://assets.dev.to/assets/billboard-1b75959755e3f87ef58c28efef9eab9853df3b84cf27a937749b2c3449fd450d.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/localizeArticleDates-ddf0f7415ce8497325dd1b64bc1e022762d4d14aec7f538e6988744eeaa9a501.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/articleReactions-03b03e63c7319a6caa1788ca81e7b25dff9fe90b38ca051b8b979a773b011e3b.js" defer="defer"></script>
+<script src="https://assets.dev.to/assets/favoriteControls-cfa2ed6790ef8a2f8e34cb8509281caaaefa45a5cea6bb1e5c4675943b8b6a37.js" defer="defer"></script>
+
+  <script>
+  </script>
+  <div class="js-billboard-container pb-4 crayons-layout__comments-billboard" data-async-url="/rogeriomaciel/from-visual-workflows-to-native-code-in-production-the-complete-journey-of-an-n8n-backend-that-508j/bmar11/post_fixed_bottom"></div>
+
+
+    <div id="runtime-banner-container"></div>
+    <div id="i18n-translations" data-translations="{&quot;en&quot;:{&quot;core&quot;:{&quot;add_comment&quot;:&quot;Add comment&quot;,&quot;beta&quot;:&quot;beta&quot;,&quot;comment&quot;:&quot;Comment&quot;,&quot;copy_link&quot;:&quot;Copy link&quot;,&quot;edit_profile&quot;:&quot;Edit profile&quot;,&quot;follow&quot;:&quot;Follow&quot;,&quot;follow_back&quot;:&quot;Follow back&quot;,&quot;following&quot;:&quot;Following&quot;,&quot;like&quot;:&quot;Like&quot;,&quot;loading&quot;:&quot;loading...&quot;,&quot;reaction&quot;:&quot;Reaction&quot;,&quot;report_abuse&quot;:&quot;Report abuse&quot;,&quot;search&quot;:&quot;Search&quot;,&quot;success_settings&quot;:&quot;Successfully updated settings.&quot;,&quot;search_placeholder&quot;:&quot;Search...&quot;,&quot;search_find_related_posts&quot;:&quot;Find related posts...&quot;,&quot;search_powered_by&quot;:&quot;Powered by Algolia&quot;,&quot;search_submit_search&quot;:&quot;Submit search for advanced filtering.&quot;,&quot;search_displaying_recommendations&quot;:&quot;Displaying Algolia Recommendations — Start typing to search&quot;,&quot;article_form_save_changes&quot;:&quot;Save changes&quot;,&quot;article_form_schedule&quot;:&quot;Schedule&quot;,&quot;article_form_publish&quot;:&quot;Publish&quot;,&quot;article_form_loading_preview&quot;:&quot;Loading preview&quot;,&quot;article_form_preview_loaded&quot;:&quot;Preview loaded&quot;,&quot;article_form_co_authors&quot;:&quot;Co-authors&quot;,&quot;article_form_co_authors_description&quot;:&quot;Add up to 4 co-authors from %{org_name}.&quot;,&quot;article_form_co_authors_placeholder&quot;:&quot;Add up to 4...&quot;,&quot;comments_preview&quot;:&quot;Preview&quot;,&quot;comments_continue_editing&quot;:&quot;Continue editing&quot;,&quot;survey_enter_response&quot;:&quot;Enter your response here...&quot;,&quot;survey_thank_you_response&quot;:&quot;Thank you for your response.&quot;,&quot;survey_thank_you_completing&quot;:&quot;Thank you for completing the survey!&quot;,&quot;dashboard_analytics_readers&quot;:&quot;Readers&quot;,&quot;dashboard_analytics_avg_read_time&quot;:&quot;avg. read time %{seconds}s&quot;,&quot;dashboard_analytics_comments&quot;:&quot;Comments&quot;,&quot;dashboard_analytics_reactions&quot;:&quot;Reactions&quot;,&quot;dashboard_analytics_unique_reactors&quot;:&quot;from %{count} unique users&quot;,&quot;dashboard_analytics_bookmarks&quot;:&quot;Bookmarks&quot;,&quot;dashboard_analytics_followers&quot;:&quot;New Followers&quot;,&quot;top_contributors_empty&quot;:&quot;No engagers found for this period.&quot;,&quot;top_contributors_reactions&quot;:&quot;reactions&quot;,&quot;top_contributors_comments&quot;:&quot;comments&quot;,&quot;top_contributors_weight_note&quot;:&quot;Comments carry more weight&quot;,&quot;follower_engagement_ratio&quot;:&quot;%{ratio}% of followers engaged&quot;,&quot;follower_engagement_detail&quot;:&quot;(%{engaged} of %{total})&quot;,&quot;dashboard_analytics_no_data&quot;:&quot;No data available for this period&quot;,&quot;dashboard_analytics_no_referrers&quot;:&quot;No traffic sources yet&quot;,&quot;stats_by&quot;:&quot;by&quot;,&quot;editor_new_title&quot;:&quot;New post title here...&quot;,&quot;editor_body_placeholder&quot;:&quot;Write your post content here...&quot;,&quot;tags_field_label&quot;:&quot;Add up to 4 tags&quot;,&quot;tags_field_placeholder&quot;:&quot;Add up to 4 tags...&quot;,&quot;counted_organization&quot;:{&quot;one&quot;:&quot;%{count} organization&quot;,&quot;other&quot;:&quot;%{count} organizations&quot;},&quot;counted_user&quot;:{&quot;one&quot;:&quot;%{count} person&quot;,&quot;other&quot;:&quot;%{count} people&quot;},&quot;not_following&quot;:&quot;You&#39;re not following anyone&quot;,&quot;following_everyone&quot;:&quot;You&#39;re following %{details} (everyone)&quot;,&quot;you_are_following&quot;:&quot;You&#39;re following&quot;,&quot;and&quot;:&quot;and&quot;}}}"></div>
+  </div>
+</div>
+    
+
+<footer id="footer" class="crayons-footer print-hidden">
+  <div id="footer-container" class="crayons-footer__container">
+
+
+
+    <p class="fs-s crayons-footer__description">
+      <a class="c-link c-link--branded fw-medium" aria-label="DEV Community Home" href="/">DEV Community</a> — A space to discuss and keep up software development and manage your software career
+    </p>
+
+    <ul class="footer__nav-links flex gap-2 justify-center flex-wrap fs-s p-0" style="" />
+        <li class="footer__nav-link flex items-center">
+    <a href="/">
+      Home
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/challenges">
+      DEV Challenges
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/++">
+      DEV++
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/videos">
+      Videos
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/deved">
+      DEV Education Tracks
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/help">
+      DEV Help
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/advertise">
+      Advertise on DEV
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/organizations">
+      Organization Accounts
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/showcase">
+      DEV Showcase
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/about">
+      About
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/contact">
+      Contact
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/free-postgres-database-tier">
+      Free Postgres Database
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="https://shop.forem.com/">
+      DEV Shop
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="https://mlh.io/">
+      MLH
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+
+    </ul>
+
+    <ul class="footer__nav-links flex gap-2 justify-center flex-wrap fs-s p-0" style="" />
+        <li class="footer__nav-link flex items-center">
+    <a href="/code-of-conduct">
+      Code of Conduct
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/privacy">
+      Privacy Policy
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+  <li class="footer__nav-link flex items-center">
+    <a href="/terms">
+      Terms of Use
+    </a>
+    <span class="dot ml-2"></span>
+  </li>
+
+    </ul>
+
+    <div class="fs-s">
+      <p>Built on <a class="c-link c-link--branded" target="_blank" rel="noopener" href="https://www.forem.com">Forem</a> — the <a target="_blank" rel="noopener" class="c-link c-link--branded" href="https://dev.to/t/opensource">open source</a> software that powers <a target="_blank" rel="noopener" class="c-link c-link--branded" href="https://dev.to">DEV</a> and other inclusive communities.</p>
+      <p>Made with love and <a target="_blank" rel="noopener" class="c-link c-link--branded" href="https://dev.to/t/rails">Ruby on Rails</a>. DEV Community <span title="copyright">&copy;</span> 2016 - 2026.</p>
+    </div>
+  </div>
+</footer>
+<div id="snack-zone"></div>
+
+    <div id="global-signup-modal" class="authentication-modal hidden">
+  <div class="authentication-modal__container">
+    <figure class="authentication-modal__image-container">
+      <img class="authentication-modal__image" src="https://media2.dev.to/dynamic/image/width=190,height=,fit=scale-down,gravity=auto,format=auto/https%3A%2F%2Fdev-to-uploads.s3.amazonaws.com%2Fuploads%2Farticles%2F8j7kvp660rqzt99zui8e.png"
+        alt="DEV Community" loading="lazy" />
+    </figure>
+    <div class="authentication-modal__content">
+      <p class="authentication-modal__description">
+          We&#39;re a place where coders share, stay up-to-date and grow their careers.
+      </p>
+    </div>
+    <div class="authentication-modal__actions">
+      <a href="https://dev.to/enter?signup_subforem=1" class="crayons-btn" aria-label="Log in" data-no-instant>
+        Log in
+      </a>
+      <a href="https://dev.to/enter?signup_subforem=1&amp;state=new-user" class="crayons-btn crayons-btn--ghost-brand js-global-signup-modal__create-account" aria-label="Create new account" data-no-instant>
+        Create account
+      </a>
+    </div>
+  </div>
+</div>
+
+<script src="https://assets.dev.to/assets/signupModalShortcuts-0b25469b985100a01e94cbd7fccaf7f0a4d776e129aac65c766aa32cb28ab29a.js" defer="defer"></script>
+
+    <div id="cookie-consent"></div>
+  <div id="reaction-category-resources" class="hidden" aria-hidden="true">
+    <img data-name="Like" data-slug="like" data-position="1" src="https://assets.dev.to/assets/sparkle-heart-5f9bee3767e18deb1bb725290cb151c25234768a0e9a2bd39370c382d02920cf.svg" width="18" height="18" />
+    <img data-name="Unicorn" data-slug="unicorn" data-position="2" src="https://assets.dev.to/assets/multi-unicorn-b44d6f8c23cdd00964192bedc38af3e82463978aa611b4365bd33a0f1f4f3e97.svg" width="18" height="18" />
+    <img data-name="Exploding Head" data-slug="exploding_head" data-position="3" src="https://assets.dev.to/assets/exploding-head-daceb38d627e6ae9b730f36a1e390fca556a4289d5a41abb2c35068ad3e2c4b5.svg" width="18" height="18" />
+    <img data-name="Raised Hands" data-slug="raised_hands" data-position="4" src="https://assets.dev.to/assets/raised-hands-74b2099fd66a39f2d7eed9305ee0f4553df0eb7b4f11b01b6b1b499973048fe5.svg" width="18" height="18" />
+    <img data-name="Fire" data-slug="fire" data-position="5" src="https://assets.dev.to/assets/fire-f60e7a582391810302117f987b22a8ef04a2fe0df7e3258a5f49332df1cec71e.svg" width="18" height="18" />
+</div>
+
+    <script>
+  var userSignedIn = false;
+  if (document.readyState === 'complete' || document.readyState === 'interactive') {
+    initAuth();
+  } else {
+    document.addEventListener('DOMContentLoaded', initAuth);
+  }
+
+  function initAuth() {
+    var paramToken = new URLSearchParams(window.location.search).get('jwt');
+
+    if (paramToken && !userSignedIn) {
+      authenticateUser(paramToken);
+    } else {
+      var iframe = document.createElement('iframe');
+      iframe.style.display = 'none';
+      iframe.src = 'https://forem.com/auth_pass/iframe';
+  
+      document.body.appendChild(iframe);
+  
+      window.addEventListener('message', function(event) {
+        if (event.origin !== 'https://forem.com' && event.origin !== window.location.origin) {
+          return;
+        }
+  
+        var data = event.data;
+  
+        if (data.authenticated && !userSignedIn) {
+          authenticateUser(data.token);
+        } else if(data.authenticated && window.ReactNativeWebView && window.ReactNativeWebView.postMessage) {
+          window.ReactNativeWebView.postMessage(JSON.stringify({
+            action: 'login',
+            token: data.token,
+          }));
+        }
+      });  
+    }
+
+    function authenticateUser(token) {
+      fetch('/auth_pass/token_login', {
+        method: 'POST',
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+          'X-CSRF-Token': getMetaContent('csrf-token'),
+        },
+        body: JSON.stringify({ token: token }),
+      })
+      .then(function(response) {
+        return response.json();
+      })
+      .then(function(data) {
+        if (data.success) {
+          if (document.head.querySelector('meta[name="user-signed-in"][content="false"]')) {
+            // Reload the page to update the user's state
+            location.reload();
+          }
+        }
+      })
+      .catch(function(error) {
+        console.error('Error during authentication:', error);
+      });
+    }
+
+    function getMetaContent(name) {
+      var element = document.querySelector('meta[name="' + name + '"]');
+      return element ? element.getAttribute('content') : '';
+    }
+  }
+</script>
+
+  
+  
+  
+  </body>
+  </html>

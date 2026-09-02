@@ -1,0 +1,210 @@
+
+===== launch 2026-08-19T18:05:14Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree, read the current return artifact, and resume from there instead of rebuilding.The probe tree already exists. Next I’ll read the return artifacts, the measure script, and the catalog contract so I know what “delivered” actually requires.Prior return claims delivered, but I’ll re-run the live probes and the measure gate instead of trusting that. Next I’ll inspect the catalog unit, receipt, and probe scripts.Catalog lives in a slice, not the root file. I’ll read that unit, `ready_units.artifact_delivered`, and a live census so we know whether discovery is still lying.I’ll run the live measure and an independent project census next, plus confirm AUD-0051 is actually in the catalog the gate reads.Measure already prints delivered, but live discovery now finds 10 projects versus the receipt’s 5. I’ll re-run the named probes, pack an honest receipt from those logs, and re-measure.Live probes now count 10 projects while the packed receipt still says 5. I’ll pack from the live logs so the artifact matches the census, then re-measure.The census jumped from 10 to 11 during packing. I’ll identify the new root before treating the receipt as honest.Measure printed `SUCCESS:delivered`. Next I’ll write the return artifact and the per-unit manifest row from that live result.**SUCCESS:delivered** AUD-0051 (`predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`)
+
+Resumed the existing AUD-0051 probe tree. Did not treat the harvest-era `CLOUD-OK-REFUTE.json` (`survived=false`, `state=BLOCKED`) or `cloud ok=true` as delivery.
+
+The packed receipt still said **5 projects**. A live remasure of the same named probes found **11**, including marketplace fixture `package.json` roots, `platform/marketplace/mkt`, and `tools/monitorcore` (that last tree was not on disk at the start of this session). Both probes were re-run to exit 0 and `_pack_receipt.py` rebuilt the catalog artifact from those logs.
+
+Live snapshot on this worktree:
+
+| Fact | Value |
+|---|---|
+| Projects | 11 |
+| `.coverage-thresholds.json` | 0 (os.walk, `find`, and `git ls-files` agree) |
+| Explicit NOT-CHECKED | 11 |
+| Silent pass | 0 |
+| Declared enforcement commands run | 0 |
+| Line/branch coverage | NOT-CHECKED |
+| Negative control | live run without a coverage table → NOT-CHECKED; planted table → `93.41%` |
+
+Receipt `command-center/audit/AUD-0051-coverage-baseline.json` is **19920 B**, `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` sha256 `9fe993c15ae6947b4bebe8720450a832b28cf3d5681b61a4ba0f2ee5c0003c70` matches the live LF hash.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:13:24Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree, read its return artifact, and only resume what's already built.Existing probe artifacts are in place. I'll read the return files and the measurement contract next.The return file already claims delivery; I'll re-run the probes and the measure script instead of trusting that claim.I'll re-run the live probes and measure instead of trusting the existing SUCCESS claim.Measure already printed `SUCCESS:delivered`. I'll independently recensus the tree to see whether the 11-project headline still holds.The receipt still claims `git ls-files` exited 128; live git is exit 0 against a probe-local gitdir. I'll correct that, then re-run and re-pack.Probes stay as-is. I'll re-run them, pack the receipt from those logs, then measure.Measure is green. I'll write `SUBAGENT-RETURN.json` from this session's live hashes and probe exits.**SUCCESS:delivered** — AUD-0051 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0051` printed:
+
+`SUCCESS:delivered AUD-0051 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`
+
+Existing named probes were resumed, not rebuilt. Both re-ran to exit 0. The harvest `CLOUD-OK-REFUTE.json` (`survived=false`, `state=BLOCKED`) was not treated as delivery.
+
+| Check | Result |
+|---|---|
+| `ready_units.artifact_delivered` | `True, delivered` |
+| Receipt `state` | `SUCCESS` (not BLOCKED) |
+| Probe 1 / Probe 2 | exit 0, markers `SUCCESS:AUD-0051-probe1` / `SUCCESS:AUD-0051-probe2` |
+| Per-unit manifest | `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json` names `command-center/audit/AUD-0051-coverage-baseline.json` |
+| Live LF sha256 | `2d9c377d996ce540fe62660170262ea080a3ee9ba3521027389453f5d9c5d5de` (20512 B, matches manifest) |
+
+Live census on this sparse tree: **11 projects, 0 in-scope `.coverage-thresholds.json`** (os.walk and `find` agree). All eleven are explicit `NOT-CHECKED`; `silent_pass=0`. Two threshold files exist only under `p2-wave/probes/AUD-0010/_work/clones/` and stay out of scope. `git ls-files` is exit 0 / count 0 because `.git` points at `AUD-0033/_ssot.git` (empty index), so it is not a third inventory — the packed reviewer note no longer claims exit 128.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Unit is not parked.
+
+===== launch 2026-08-19T18:23:49Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree, read any prior return artifact, and resume from there rather than rebuilding.Existing artifacts are in place. Next I’ll read the return, manifest, measurement script, and unit contract so we resume from the last honest state.The return file already claims delivery; I’ll re-run the live probes and measure against the contract instead of trusting that claim.Receipt hash and manifest hash already disagree. I’ll check the live measure, catalog unit, and `artifact_delivered` before re-running probes.Catalog lookup missed the unit id. I’ll find the real catalog entry and run the live measure next.Live file hash matches the per-unit manifest. I’ll re-run the named probes and the delivery measure next, then refresh the return from those results.Measure already printed `SUCCESS:delivered`. I’ll confirm the post-remeasure probe logs and hashes, then refresh the return artifacts for this session.Measure is already green after a live remasure. I’ll refresh `SUBAGENT-RETURN.json` for this session and leave the matching per-unit manifest in place.**SUCCESS:delivered**
+
+AUD-0051 is G-1 contract-green on this worktree. Resumed the existing probe tree; did not scrap probes; did not treat cloud-ok as delivery.
+
+```
+SUCCESS:delivered AUD-0051 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0
+```
+
+What this session did:
+- Kept `probe1_enforcement.py` and `probe2_not_checked.py`
+- Re-ran `_measure_one_delivered.py AUD-0051` (that gate re-executes both named probes)
+- Both probes exited 0; receipt stays `state=SUCCESS` and non-BLOCKED
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` already named the catalog `output_path` with a matching live LF sha256, so it was left in place
+- Wrote `command-center/p2-wave/probes/AUD-0051/SUBAGENT-RETURN.json` from this remasure
+
+Live science on this sparse Linux tree:
+- 11 project roots, 0 in-scope `.coverage-thresholds.json` (os.walk and `find` agree)
+- All 11 explicitly `NOT-CHECKED`; `silent_pass=0`
+- Receipt `command-center/audit/AUD-0051-coverage-baseline.json` is 20512 B, sha256 `2d9c377d996ce540fe62660170262ea080a3ee9ba3521027389453f5d9c5d5de`
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:27:32Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree, resume whatever is already built, and measure this unit only against the G-1 contract.The probe tree is already there. Next I’ll read the unit contract, existing return artifacts, and the measurement script so I can resume rather than rebuild.Existing return already claims delivery; I’ll re-run the named probes and inspect the live artifact instead of trusting that claim.I'll inspect the delivery predicate, remaining receipt fields, and a sibling unit so this remasure matches the real contract.I’ll re-run the named probes and the delivery measure next, then check whether the schema resolver is actually available on this worktree.Measure already printed `SUCCESS:delivered`. I’ll independently re-count the census and confirm the receipt hash still matches the per-unit manifest.Probes still exit 0 and hashes still match. I’ll write this session’s return and the per-unit manifest, then remasure.**SUCCESS:delivered** `AUD-0051 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`
+
+AUD-0051 is G-1 contract-green on this worktree. Existing named probes were kept and re-run; they both exited 0. `cloud ok=true` was not treated as delivery.
+
+| Gate | Result |
+|---|---|
+| Live probes | `probe1_enforcement.py` exit 0, `probe2_not_checked.py` exit 0 |
+| Artifact | `command-center/audit/AUD-0051-coverage-baseline.json` is 20512 B, `state=SUCCESS` |
+| Per-unit manifest | `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json` sha256 `2d9c377d996ce540fe62660170262ea080a3ee9ba3521027389453f5d9c5d5de` matches live LF hash |
+| `ready_units.artifact_delivered` | `(True, 'delivered')` |
+
+Census on this sparse Linux tree: **11 projects, 0 in-scope `.coverage-thresholds.json`**. `os.walk` and `find(1)` agree. All eleven are explicit `NOT-CHECKED`; silent-pass count is 0. Two AUD-0010 clone threshold files under `p2-wave` stay out of scope. `git ls-files` is not a third inventory (`.git` points at the empty AUD-0033 index). Windows-era `tools/editor/metaswarm` and `qzp-lean` are absent here and recorded `NOT-CHECKED`, not as a pass.
+
+Harvest-era `CLOUD-OK-REFUTE.json` (`survived=false`, BLOCKED) is annex, not this G-1 delivery. Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:31:59Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree and unit docs so we can resume rather than rebuild, then drive the unit to a contract-green measurement.Existing probe tree is present. Next I’ll read the return, manifest, measure script, and unit definition so we resume from the real contract rather than rebuild.The return file already claims delivery; I’ll re-run the live probes and the measure script instead of trusting that claim.Catalog lookup missed AUD-0051, so I’ll locate the unit row next and then re-run the live probes plus the measure script.The measure already printed `SUCCESS:delivered`, but the probe sidecars were rewritten during that re-run. I’ll check whether the packed receipt still matches, then refresh pack + return if needed.Probes and G-1 already look green. I’ll re-run the named probes live, re-pack so hashes match this session, then measure again.Pack and measure are green. I’ll write this session’s `SUBAGENT-RETURN.json` against the live hashes, then re-run the measure once more.**SUCCESS:delivered** AUD-0051 `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`
+
+G-1 is green for this unit only. Existing probes were resumed, not rebuilt.
+
+Live this session:
+- `probe1_enforcement.py` exit 0 (`SUCCESS:AUD-0051-probe1`)
+- `probe2_not_checked.py` exit 0 (`SUCCESS:AUD-0051-probe2`)
+- Catalog receipt `command-center/audit/AUD-0051-coverage-baseline.json` is `state=SUCCESS`, 20512 B, LF sha256 `ccfd2fa91ea63a53f7facf370b2bebbaad49ac6c215a23ad7e5b826c905e3158`
+- Per-unit `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json` names that same path and hash
+- `ready_units.artifact_delivered` is true (`delivered`); `cloud ok=true` was not treated as delivery
+
+Measured census on this sparse Linux worktree:
+- 11 project roots
+- 0 in-scope `.coverage-thresholds.json` (os.walk and `find` agree)
+- all 11 explicitly **NOT-CHECKED**; `silent_pass=0`
+- two AUD-0010 clone threshold files under `p2-wave` stay out of scope
+- `git ls-files` is not a third inventory (`.git` points at `AUD-0033/_ssot.git` with an empty index)
+
+Wrote:
+- `command-center/p2-wave/probes/AUD-0051/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:40:00Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree and read the return artifact so we resume instead of rebuilding.SUBAGENT-RETURN already claims delivered. I'll re-run the live measure and inspect the probes before trusting that.Measure already prints SUCCESS. I'll re-run the named probes live and check the catalog contract so this session doesn't just inherit the previous claim.Probes already exist. I'll re-run them live, independently recount the census, then pack and remeasure.Measure printed `SUCCESS:delivered`. I'll write `SUBAGENT-RETURN.json` from live disk facts, then remasure once so the hash cannot drift.**SUCCESS:delivered AUD-0051** `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`
+
+Resumed the existing probe tree (did not scrap it). Re-ran the named probes, packed the catalog receipt from those live sidecars, and remasured.
+
+| Gate | Result |
+|---|---|
+| `probe1_enforcement.py` | exit 0, `SUCCESS:AUD-0051-probe1` |
+| `probe2_not_checked.py` | exit 0, `SUCCESS:AUD-0051-probe2` |
+| Receipt state | `SUCCESS` (not BLOCKED; not a hand-flip of the harvest file) |
+| `ready_units.artifact_delivered` | `True` / `delivered` |
+| Per-unit manifest sha256 | matches live LF hash |
+| `_measure_one_delivered.py AUD-0051` | `SUCCESS:delivered` (exit 0), twice after pack |
+
+**Honest census on this sparse Linux worktree:** 11 project roots, 0 in-scope `.coverage-thresholds.json` (os.walk and `find` agree). All 11 are explicit `NOT-CHECKED`; `silent_pass=0`. Parser control discriminates (`12.50%` on a planted table, `NOT-CHECKED` without one). No-coverage live command stays `NOT-CHECKED` (pytest is absent). Two AUD-0010 clone threshold files under `p2-wave` stay out of scope. `git ls-files` is the AUD-0033 empty index, not an inventory.
+
+**Artifacts written**
+- `command-center/p2-wave/probes/AUD-0051/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json`
+- packed receipt: `command-center/audit/AUD-0051-coverage-baseline.json` (20519 B, LF sha256 `901a1f477740836063215f37587ae1b5919c9fc0bbe818a4cbc5fc4300d6ae2a`)
+
+Stale `CLOUD-OK-REFUTE.json` (`survived=false`) is harvest-era, not this G-1 delivery. `cloud ok=true` was not treated as delivery. No git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:43:48Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree and measure what's already there before changing anything.Existing probe files are in place. Next I’ll read the return artifact, the catalog contract, and the delivery measurer.I’ll remeasure live and inspect the probes plus receipt rather than trusting the previous SUCCESS claim.The measurer already printed `SUCCESS:delivered`. I’ll independently verify hashes, receipt honesty, and then write this session’s return artifacts.The tree is already green. I’ll re-run the named probes in this session, pack from those sidecars, then write the return files and remeasure.I’ll re-run both named probes now, then pack from those live sidecars.Manifest matches the packed receipt. Next I’ll remeasure, then write `SUBAGENT-RETURN.json` with this session’s live hashes.Hashes still match after the measure re-run. I’ll write this session’s honest `SUBAGENT-RETURN.json` now.**SUCCESS:delivered** `AUD-0051 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`
+
+G-1 is green for this unit. Existing probes were resumed, not rebuilt.
+
+This session re-ran both named probes to exit 0, packed the catalog receipt from those live sidecars, wrote the per-unit manifest row, and remeasured.
+
+| Item | Live result |
+|---|---|
+| Receipt | `command-center/audit/AUD-0051-coverage-baseline.json` — 20519 B, `state=SUCCESS` |
+| LF sha256 | `6c65038567922e289ab4c134e83c067ff71f4c890ba41424d1668571fcd2eb8f` |
+| Per-unit manifest | same path + hash |
+| Probe 1 | `probe1_enforcement.py` exit 0, `SUCCESS:AUD-0051-probe1` |
+| Probe 2 | `probe2_not_checked.py` exit 0, `SUCCESS:AUD-0051-probe2` |
+
+Science on this sparse Linux worktree: **11 projects, 0 in-scope `.coverage-thresholds.json`** (os.walk and find agree). All 11 are explicit `NOT-CHECKED`; `silent_pass=0`. The no-coverage control still reports `NOT-CHECKED` on a live pytest collect without a coverage flag, and still parses `93.41%` from a known-good table. Two AUD-0010 clone thresholds under `p2-wave` stay out of scope. `git ls-files` is not a third inventory: `.git` points at the empty AUD-0033 `_ssot.git` index.
+
+`cloud ok=true` was not treated as delivery. Harvest-era `CLOUD-OK-REFUTE.json` (`survived=false`, BLOCKED) was left as history. No git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:46:56Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree and unit contract, then resume whatever is already built instead of scraping it.Existing probe files are in place. Next I’ll read the return artifact, catalog unit, and current probes so I can resume from that state.The return file already claims delivery; I’ll re-run the live probes and the measure script instead of trusting that claim.I’ll pull the catalog unit and delivery predicate next, then re-run the named probes live.Probes already exit 0; I’ll pack the receipt from the live sidecars and run the delivery measure.The measure printed `SUCCESS:delivered`. I’ll collect live hashes and write an honest `SUBAGENT-RETURN.json` for this session.**SUCCESS:delivered AUD-0051** `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0`
+
+AUD-0051 is G-1 contract-green on this worktree. Existing named probes were resumed, not rebuilt.
+
+Live re-runs:
+- `probe1_enforcement.py` exit 0 (`SUCCESS:AUD-0051-probe1`)
+- `probe2_not_checked.py` exit 0 (`SUCCESS:AUD-0051-probe2`)
+
+Honest census on this sparse Linux tree: **11 projects, 0 in-scope `.coverage-thresholds.json`**, all eleven **NOT-CHECKED**, `silent_pass=0`. os.walk and find(1) agree. Two AUD-0010 clone threshold files stay out of scope under `p2-wave`. `git ls-files` is not a third inventory (`.git` points at the AUD-0033 empty index).
+
+Packed catalog artifact:
+- `command-center/audit/AUD-0051-coverage-baseline.json` — 20512 B, `state=SUCCESS`
+- LF sha256 `fd5cf170d2d4cef20879ff7ac80fb1d676a19ee03e329d44fefd0f3637ac11e3`
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that same path and hash
+
+Cloud `ok=true` was not treated as delivery. Global `unit_manifest.py --write` was not run. No git writes.
+
+===== launch 2026-08-19T18:51:23Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree and resume rather than rebuild. First I need the current artifact, measure contract, and any prior SUBAGENT-RETURN.Existing probe tree is present. Next I’ll read the return artifact, measure script, and unit contract so I can resume from the last honest state.The return file claims delivery already. I’ll inspect the live probes, receipt, and catalog unit, then re-run the measure instead of trusting that claim.The catalog lookup missed AUD-0051, so I’m locating the unit definition and the delivery predicate next, then I’ll re-run the live probes.I’ll locate the catalog row and schema, then re-run the named probes so the measure is live rather than inherited.Catalog question is a live coverage census. I’ll independently recount projects and threshold files, then re-run both named probes.Census matches the last pack. I’ll re-run both named probes on this worktree, then refresh the receipt from those live sidecars.Worktree is still the sparse 11-root census. Re-running the two named probes, then packing the receipt from those live sidecars.Both probes exited 0. I’ll pack the catalog receipt from these live sidecars, then remeasure.Pack wrote a new hash. I’ll verify the live files, write the return artifacts, then run the official measure.The packer already refreshed the per-unit manifest. Next I’ll run the official measure, then write `SUBAGENT-RETURN.json` from those live results.Measure printed `SUCCESS:delivered`. I’ll lock the return artifact to this session’s live hashes and confirm the per-unit manifest still matches.The per-unit manifest already matches the live receipt. I’m writing this session’s `SUBAGENT-RETURN.json` from the re-run, pack, and measure.**SUCCESS:delivered** for AUD-0051.
+
+```
+SUCCESS:delivered AUD-0051 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0
+```
+
+Resumed the existing probe tree. Did not scrap probes, did not treat `cloud ok=true` as delivery, and did not hand-flip `state` onto the harvest BLOCKED receipt.
+
+This session re-ran both named probes to exit 0, packed `command-center/audit/AUD-0051-coverage-baseline.json` from those live sidecars, and wrote:
+
+- `command-center/p2-wave/probes/AUD-0051/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json`
+
+Live census on this sparse Linux worktree: **11** project roots, **0** in-scope `.coverage-thresholds.json` (os.walk and `find` agree). All 11 rows are explicit `NOT-CHECKED`; silent-pass count is 0. The two AUD-0010 clone threshold files under `p2-wave` stay out of scope. `git ls-files` is not a third inventory here: `.git` points at `AUD-0033/_ssot.git` with an empty index.
+
+Receipt is `state=SUCCESS`, 20512 B, LF sha256 `d88a56e0f4521d08dc26c7eeb318406124f05eb752baba4befa1b1c848f52cce`. The per-unit manifest row names that same path and hash.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no API-key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver.
+
+===== launch 2026-08-19T18:56:40Z attempt=1 =====
+I'll start from the existing AUD-0051 probe tree, resume from `SUBAGENT-RETURN.json` if present, and work this unit to contract-green without touching git or the global catalog.Existing probe tree is present. Next I’ll read the unit contract, current return files, and the measurement script so we resume rather than rebuild.The return file already claims delivery. I’ll re-run the live probes and measure so we confirm that instead of trusting the written status.I’ll inspect the G-1 gate, `ready_units` predicate, and a similar delivered unit so we resume against the live contract instead of the harvest-era BLOCKED story.Ten prior sessions already hit this unit. I’ll read their terminal outcomes and then re-run the live probes so we don’t loop the same delivery claim.Previous sessions already printed `SUCCESS:delivered`, so I’ll check the parent’s actual gate and whether the schema resolver now rejects the packed receipt.The parent loop’s acceptance rules are in `dispatch_loop.py`. I’ll read those next so we write a return file it will actually treat as green.The parent treats this as not green because `SUBAGENT-RETURN.json` has no top-level `status: DELIVERED`, so it requeues after every `DONE-OK`. I’ll re-run the live probes, pack, then write a return file the loop will actually accept.Measure is green. I’ll write a parent-parseable return with top-level `status: DELIVERED` so the supervisor stops requeueing the unit.**SUCCESS:delivered** for AUD-0051.
+
+```
+SUCCESS:delivered AUD-0051 predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_enforcement.py:0,probe2_not_checked.py:0
+```
+
+Resumed the existing probe tree. Did not scrap probes, did not treat `cloud ok=true` as delivery, and did not hand-flip `state` onto the harvest BLOCKED receipt.
+
+This session re-ran both named probes to exit 0, packed `command-center/audit/AUD-0051-coverage-baseline.json` from those live sidecars, and wrote:
+
+- `command-center/p2-wave/probes/AUD-0051/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0051/UNIT-ARTIFACT-MANIFEST.json`
+
+Live census on this sparse Linux worktree: **11** project roots, **0** in-scope `.coverage-thresholds.json` (os.walk and `find` agree). All 11 rows are explicit `NOT-CHECKED`; silent-pass count is 0. The two AUD-0010 clone threshold files under `p2-wave` stay out of scope. `git ls-files` is not a third inventory: `.git` points at `AUD-0033/_ssot.git` with an empty index.
+
+Receipt is `state=SUCCESS`, 20512 B, LF sha256 `17cb4ff256e74f0018889b0e9d5dac4bd7679acdad52ccf656b206da4c86cc57`. The per-unit manifest row names that same path and hash.
+
+Prior loop returns nested `status` under `terminal`, so the supervisor’s `is_green()` saw `UNKNOWN` and requeued after every `DONE-OK`. This return puts top-level `status=DELIVERED` (plus `registered=true` and `measure_line` starting `SUCCESS:delivered`). Parent predicate now holds: `is_green=True`, would-queue=False.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no API-key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver.

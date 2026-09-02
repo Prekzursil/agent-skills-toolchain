@@ -1,0 +1,18 @@
+
+===== launch 2026-08-20T07:43:46Z attempt=1 =====
+I'll start from the existing ARC-0088 probe tree, resume whatever is already there, and drive this unit to a contract-green measure.ARC-0088 is in the catalog; next I’ll load its contract, any existing probe tree, and a delivered ARC unit as the pattern.The probe tree is missing, so I’ll read the measure contract and a delivered ARC unit before implementing ARC-0088.I’ll inspect a delivered unit’s probe pattern, the receipt schema, and existing hook material so the contract is grounded.I have the contract, live dispatcher, and measure gate. Next I’ll implement the schema, isolated harness, and the named probes.Repo-root discovery was one directory too high. I’ll walk up until `hooks/_dispatch/dispatch.py` is found.**SUCCESS:delivered ARC-0088.** The unit had never been started on this worktree; the probe tree and contract are now in place and the live measure is green.
+
+```
+SUCCESS:delivered ARC-0088 predicate=delivered(schema-document fallback; declared contract is vacuous; schema-document-discriminates) state=SUCCESS probes=3 raws=3 notes=consumer_validate.py:0,probe1_wiring_both_states.py:0,probe2_failopen_blockscope.py:0
+```
+
+What was built:
+
+- **Contract** at `command-center/phase4/contracts/ARC-0088.json` — a non-vacuous JSON Schema (`state=SUCCESS`) for event types, stdin JSON, exit codes (exit 2 = irreversible danger only), inject-do-not-block, fail-open, timeout, and two-signal wiring proof. Garbage rejection counts: 11 / 11 / 10.
+- **Probe 1** (`probe1_wiring_both_states.py`): unregister (file still on disk) → `NOT-WIRED`; re-register → `WIRED` with both dispatcher aggregate and side-effect nonce; unregister again → `NOT-WIRED`.
+- **Probe 2** (`probe2_failopen_blockscope.py`): exception inside the hook → session exit 0; advisory `echo`/`pytest` cannot produce exit 2; `git push --force` does.
+- **Consumer call site** (`consumer_validate.py`): validates instances against the schema and rejects manifest-only `WIRED` fakes.
+
+Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/phase4/contracts/ARC-0088.json` with LF sha256 `ce94f3cad2fb305a3986fa0e92a0dca697796f8c1f727087e69fa9e6a4cce968`. Return packet: `command-center/p2-wave/probes/ARC-0088/SUBAGENT-RETURN.json`.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no `finish-everything-close` / `p2-cloud-ok-deliver` relaunch. Cloud-ok was not treated as delivery.

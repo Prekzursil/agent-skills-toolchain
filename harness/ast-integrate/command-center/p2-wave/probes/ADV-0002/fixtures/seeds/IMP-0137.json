@@ -1,0 +1,198 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0137.json",
+   "bytes": 5848,
+   "sha256": "8b32df6fe998052a39bd7db9fe36f9276ae9d695ed84533399e0c5a46d51156b",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "IMP-0137 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0137.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0137.json",
+     "raw_output": "bytes=5848 sha256=8b32df6fe998052a39bd7db9fe36f9276ae9d695ed84533399e0c5a46d51156b",
+     "fingerprint": "a58411b1b47771d82a5f7ab3775b5318",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0137",
+     "raw_output": "schema-check",
+     "fingerprint": "7da9247de8d37e7c2a94660b86d63a97",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0137 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0137",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0137",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "cc2e7eddc25d2f7ee9ae838bdf8702af",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0137",
+     "raw_output": "schema-valid",
+     "fingerprint": "c0f6aeb35d2ac7189874b2f70dabf773",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:IMP-0137",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0137.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "IMP-0137",
+ "extensions": {
+  "legacy_root": {
+   "completion_line": "SUCCESS:IMP-0137",
+   "id": "IMP-0137",
+   "implemented": {
+    "egress_gate": "tools/lib/net-allowlist.mjs (sole egress allowlist; Python does not keep a host list)",
+    "fail_closed": "tor-requesting research without the owner flag returns status=owner-blocked, results=[], egress_attempts=0, and a SOURCE-CLASS-UNAVAILABLE message; mixed requests are not silently reduced to the non-tor subset",
+    "no_live_onion": true,
+    "owner_flag_field": "WorkUnit.owner_flags must contain owner_enable_public_tor to enable public-tor",
+    "research_stage": "tools/agentspec/agentspec/research.py:run_research_stage",
+    "source_classes": [
+     "official-docs",
+     "code",
+     "papers",
+     "forums",
+     "archival",
+     "public-tor"
+    ],
+    "work_unit_field": "WorkUnit.source_policy: tuple[str, ...] closed over SOURCE_CLASSES"
+   },
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0137/probe1_tor_fail_closed.py",
+     "exit_code": 0,
+     "id": "probe1",
+     "raw_output": "{\"cases\": [{\"egress_attempts\": 0, \"id\": \"A-tor-undeclared-no-flag\", \"loud\": true, \"partial\": false, \"results\": 0, \"status\": \"owner-blocked\", \"violation_id\": \"source-class-owner-blocked\"}, {\"egress_attempts\": 0, \"id\": \"B-mixed-listed-no-flag\", \"results\": 0, \"status\": \"owner-blocked\", \"violation_id\": \"source-class-owner-blocked\", \"would_silent_subset\": [\"code\"]}, {\"id\": \"C-onion-alias\", \"status\": \"owner-blocked\"}, {\"id\": \"D-code-only-control\", \"results\": [\"DRY-RUN\"], \"status\": \"allowed\"}, {\"id\": \"E-tor-with-flag\", \"results\": 1, \"status\": \"allowed\", \"violation_id\": null}, {\"id\": \"F-unknown\", \"status\": \"class-unknown\"}], \"probe\": \"probe1_tor_fail_closed\", \"source_classes\": [\"archival\", \"code\", \"forums\", \"official-docs\", \"papers\", \"public-tor\"]}\nowner-blocked empty=True mixed_not_partial=True control_allowed=allowed flagged=allowed\nSUCCESS:IMP-0137-probe1 tor class without owner flag FAIL closed"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0137/probe2_single_egress_gate.py",
+     "exit_code": 0,
+     "id": "probe2",
+     "raw_output": "{\"allowlist_files\": [\"tools/lib/net-allowlist.mjs\"], \"gate\": \"tools/lib/net-allowlist.mjs\", \"gate_refs\": 3, \"plant_detected\": true, \"probe\": \"probe2_single_egress_gate\", \"python_scanned\": 53, \"rival_assigns\": []}\nallowlist_files=['tools/lib/net-allowlist.mjs'] gate_refs=3 rivals=[]\nSUCCESS:IMP-0137-probe2 sole egress gate is net-allowlist.mjs\n/opt/p2/ast-integrate/tools/agentspec/agentspec/terminal.py:55: SyntaxWarning: invalid escape sequence '\\p'\n  \"\"\"Refuse an id that would corrupt the marker line or the terminal rendering it."
+    }
+   ],
+   "notes": "G-1 for IMP-0137. WorkUnit.source_policy is the allowed-class tuple already present on the shared agentspec WorkUnit; this unit added owner_flags, research-stage enforcement, and the sole net-allowlist gate. Did not run global unit_manifest.py --write. No live onion access. No ADV rebuild circle.",
+   "output_path": "command-center/receipts/IMP-0137.json",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "status": "DELIVERED",
+   "title": "Add a declared source-class policy per unit",
+   "ts": "2026-08-25T01:00:10Z"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0137",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0137/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0137"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0137.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0137.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "04497e6a339efd1cf835e56b19063ffe",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 5848,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0137.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

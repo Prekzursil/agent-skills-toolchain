@@ -1,0 +1,2 @@
+# logging
+identical logging rule

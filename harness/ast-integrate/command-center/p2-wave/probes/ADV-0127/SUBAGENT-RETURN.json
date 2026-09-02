@@ -1,0 +1,43 @@
+{
+ "artifacts": [
+  {
+   "bytes": 98523,
+   "exists": true,
+   "path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+   "role": "primary",
+   "sha256": "b3eab35df058a6193c84de3b5d35516476b3f2ac91cb7fbccc0b3e3f353c445e"
+  }
+ ],
+ "catalog_output_schema": "command-center/schema/fault-injection-run.schema.json",
+ "cloud_ok": false,
+ "id": "ADV-0127",
+ "manifest_path": "command-center/p2-wave/probes/ADV-0127/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0127/probe1_static_audit.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\n \"anchors\": [\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.fromisoformat (tz optional)\",\n   \"line\": 57,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"datetime.fromisoformat(explicit)\"\n  },\n  {\n   \"clock_class\": \"utc-aware\",\n   \"detail\": \"datetime.now(UTC)\",\n   \"line\": 58,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"datetime.now(timezone.utc)\"\n  },\n  {\n   \"clock_class\": \"naive-local\",\n   \"detail\": \"datetime.astimezone (naive uses local TZ)\",\n   \"line\": 62,\n   \"path\": \"tools/command-center/close.py\",\n   \"snippet\": \"moment.astimezone\"\n  }\n ],\n \"close_fromisoformat\": true,\n \"counts\": {\n  \"monotonic\": 149,\n  \"naive-local\": 150,\n  \"utc-aware\": 65\n },\n \"fingerprint_sha256\": \"6859f3a4559a9c95f13f786187bb641e077cfab1a7df6c76f5c3efd533282b4a\",\n \"monotonic_present\": true,\n \"n_rows\": 364,\n \"naive_local_present\": true,\n \"probe\": \"probe1-static-clock-class-census\",\n \"production_modules_present\": {\n  \"ci/harness/ledger.py\": true,\n  \"ci/harness/prebuild_recall/prebuild_recall.py\": true,\n  \"platform/coordination/leases.py\": true,\n  \"platform/plugin/cache.py\": true\n },\n \"unit_id\": \"ADV-0127\",\n \"utc_aware_present\": true\n}\ncensus rows=364 naive=150 utc=65 monotonic=149\nSUCCESS:ADV-0127-probe1 static clock-class census, naive fromisoformat classified, artifact matches\n<unknown>:55: SyntaxWarning: invalid escape sequence '\\p'"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0127/probe2_behavioral.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "{\n \"aware_tz_silent\": true,\n \"backward_reorders\": true,\n \"distinction\": {\n  \"handled_by_utc_alone\": \"dst-transition\",\n  \"not_handled_by_utc_alone\": \"backward-clock-step\",\n  \"only_one_handled_by_utc_storage_alone\": true,\n  \"utc_storage_preserves_backward_step_order\": false,\n  \"utc_storage_preserves_dst_order\": true\n },\n \"dst_utc_order_ok\": true,\n \"lease_never_expires\": true,\n \"mtime_fixture\": {\n  \"never_expires_on_backward_step\": true,\n  \"premature_on_forward_jump\": true,\n  \"production_cache_module\": false,\n  \"stable_not_expired\": true\n },\n \"naive_tz_shift\": true,\n \"negative_control\": {\n  \"fired_on_bad_state\": true,\n  \"id\": \"NC-CLOCK-SCENARIO-DETECTOR-BOTH-STATES\",\n  \"ok\": true,\n  \"silent_on_good_state\": true\n },\n \"powershell_present\": false,\n \"probe\": \"probe2-behavioral-clock-scenarios\",\n \"retry_clock_independent\": true,\n \"stable_utc_ok\": true,\n \"unit_id\": \"ADV-0127\"\n}\nstable_utc=True naive_tz_shift=True aware_silent=True dst_order=True backward_reorders=True detector_both_states=True\nSUCCESS:ADV-0127-probe2 behavioral DST/TZ/backward, UTC-vs-naive detector, artifact matches"
+  }
+ ],
+ "notes": "G-1 for ADV-0127: live named probes exit 0, clock-skew JSON state=SUCCESS (CONFIRMED naive TZ shift + backward reorder; cache/PowerShell NOT-CHECKED), per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild circle. cloud_ok is false and is not delivery.",
+ "output_path": "command-center/adversarial/ADV-0127-clock-skew-timezone-dst-effects.json",
+ "output_schema": "command-center/p2-wave/probes/ADV-0127/fault-injection-run.schema.json",
+ "registered": true,
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "ADV-0127-probe2-behavioral-clock",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:ADV-0127",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "ts": "2026-08-28T02:55:29Z",
+ "unit_id": "ADV-0127"
+}

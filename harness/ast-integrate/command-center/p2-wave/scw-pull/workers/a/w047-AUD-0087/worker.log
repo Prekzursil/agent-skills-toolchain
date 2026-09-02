@@ -1,0 +1,27 @@
+I'll start from the existing AUD-0087 probe tree, read any prior return artifact, and resume from what's already built.The probe tree already exists. Next I’ll read its return/handoff artifacts and the measurement gate so we resume instead of rebuilding.The prior return is a cloud-ok refute, not G-1 delivery. I’ll inspect the catalog, schema, a successful sibling unit, and any harvest-tree probes we can resume from.I’ll pull the catalog unit, the baseline schema, a delivered sibling, and the harvest-tree probe sources so we can resume from real artifacts.Next I’ll inspect the physical schema, the live artifact, and a delivered sibling so the probes and receipt match the real contract.I’ll look at a delivered G-1 unit, the physical schema, and the rest of the AUD-0087 receipt so we know what SUCCESS actually requires.I’ll extract the physical SUCCESS contract next, then inspect the install path and current host load so probes can run for real.The `platform/` tree is missing on this checkout, so I’ll inventory what is actually here before deciding whether probes can run honestly.Host is idle and an installable zip plus `astplugin` are present. I’ll smoke-test one cold install, then build the named probes around that path.The harvest archive digest is present under ADV-0119. I’ll confirm it installs with the cached launcher, then write the probes.Install of the harvest-digest archive succeeded. Next I’ll add the named probes, run them live, and pack an honest SUCCESS receipt.Negative control passed on a quiet host. Running Probe 1 next for the nine uncontended samples.Probe 2 failed because Python 3.10’s `CompletedProcess` has no `pid`. I’ll switch that helper to `Popen` and re-run Probe 2 plus the reviewer.Measure failed because Probe 2’s re-run saw `runnable-tasks=3`. I’ll add idle retries there, then re-run the gate.**SUCCESS:delivered AUD-0087**
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0087` printed:
+
+`SUCCESS:delivered AUD-0087 predicate=delivered state=SUCCESS probes=4 raws=5 notes=negative_control.py:0,probe1_repeated_timing.py:0,probe2_process_trace.py:0,reviewer_falsify.py:0`
+
+The prior cloud-ok return was a refute (`state=BLOCKED`, 24 sidecars absent). This delivery restored live named probes and packed SUCCESS only after they exited 0.
+
+**Headline (nine uncontended samples; 3 discarded for `runnable-tasks=3>2`):**
+
+| Metric | Median (ms) | Range (ms) |
+|---|---:|---:|
+| Cold install | 230.133 | 166.093 |
+| First import (process) | 82.287 | 2.351 |
+| First import (statement) | 57.352 | 0.895 |
+| First command (`diagnose`) | 385.237 | 28.214 |
+
+Probe 2 attributed install / resolve / import / execute as 440.3 / 0.41 / 92.1 / 1121.6 ms (execute includes strace overhead versus the untraced Probe 1 command median). The idle-guard control fired on a mutant other-job and stayed silent on the zero-job fixture.
+
+**Artifacts**
+
+- Receipt: `command-center/audit/AUD-0087-startup-latency-baseline.json` (60354 B, `state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/AUD-0087/UNIT-ARTIFACT-MANIFEST.json`
+- Live LF sha256: `3245989bcf1ff73d9f9431cd0cd19ad71da9db344572986c4989e0c3b420dff0` (manifest matches)
+- Return: `command-center/p2-wave/probes/AUD-0087/SUBAGENT-RETURN.json`
+
+The measured zip is the present `ADV-0119` dist copy whose digest matches the harvest archive (`af62a8836abc4f73e2a6a529dab7ea5e09b7e0828183a7caa3a08965b3067b04`). Canonical `platform/plugin/dist/` is still absent here. Global `unit_manifest.py --write`, git writes, key rotation, and wave relaunch were not used.

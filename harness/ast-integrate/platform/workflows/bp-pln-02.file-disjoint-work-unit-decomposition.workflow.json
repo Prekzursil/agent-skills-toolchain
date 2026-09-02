@@ -1,0 +1,601 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-pln-02.file-disjoint-work-unit-decomposition",
+ "name": "File-Disjoint Work-Unit Decomposition",
+ "description": "Decompose a plan into work units that PROVABLY do not touch the same files, because file-disjoint agents still share one git index and a broad 'git add -A' sweeps a sibling's uncommitted work. The sources of this shape all USE worktree isolation; none computes the disjointness proof - they assert it. Making the overlap matrix mechanical is the contribution. A unit whose file set cannot be determined is SERIALISED, never optimistically parallelised.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "worktree-isolation",
+  "deterministic",
+  "adverse-inference",
+  "concurrency-admission"
+ ],
+ "flagship": true,
+ "params": {
+  "plan_path": {
+   "type": "path",
+   "required": true,
+   "description": "The plan to decompose"
+  },
+  "repo_file_index_path": {
+   "type": "path",
+   "required": true,
+   "description": "The repo file index the per-unit footprints are resolved against"
+  },
+  "widen_by_import_closure": {
+   "type": "boolean",
+   "default": true,
+   "description": "Widen each unit's footprint by its import closure: an edit can force a change in a caller"
+  },
+  "max_parallel": {
+   "type": "integer",
+   "default": 8,
+   "minimum": 1,
+   "maximum": 64,
+   "description": "Concurrency ceiling for the emitted graph"
+  }
+ },
+ "roles": {
+  "decomposer": {
+   "description": "Enumerates each unit's file footprint conservatively from the plan",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash:git"
+   ]
+  },
+  "residue_judge": {
+   "description": "Judges ONLY the ambiguous residue the algorithm could not classify",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "judge",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Grep"
+   ],
+   "speaking_rights": "on-request"
+  },
+  "emitter": {
+   "description": "Writes the execution graph and the isolation assignment",
+   "model": "none-deterministic-script",
+   "vendor": "any",
+   "effort": "low",
+   "authority": "judge",
+   "tool_permissions": [
+    "Read",
+    "Bash:python",
+    "Write(command-center/decomposition/**)"
+   ],
+   "write_paths": [
+    "command-center/decomposition/**"
+   ]
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash:git",
+   "Bash:python",
+   "Write(command-center/decomposition/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/decomposition/**"
+  ]
+ },
+ "model_routing": {
+  "strategy": "capability",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "forbid_downgrade_below": "opus"
+ },
+ "subworkflows": {
+  "shared.pairwise-overlap-matrix": {
+   "workflow_id": "shared.pairwise-overlap-matrix",
+   "version_range": ">=1.0.0 <2.0.0",
+   "source": "platform/workflows/_shared/shared.pairwise-overlap-matrix.subworkflow.json"
+  }
+ },
+ "gates": {
+  "worktree-is-the-default": {
+   "predicate": "custom-expression",
+   "expression": "mutating_units_without_worktree == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "no-broad-add": {
+   "predicate": "custom-expression",
+   "expression": "scoped_add_units_using_add_all == 0 AND staged_diff_verified == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "unknown-footprint-serialised": {
+   "predicate": "custom-expression",
+   "expression": "unknown_footprint_units_parallelised == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-enumerate",
+   "title": "S0/S0b ENUMERATE each unit's file footprint, widened by import closure",
+   "kind": "task",
+   "role": "decomposer",
+   "timeout_seconds": 1800,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-PLN02-S0",
+    "title": "Enumerate per-unit file footprints conservatively",
+    "phase": "2B",
+    "question_or_target": "For each work unit list the files it will touch, widened by import closure, or mark the footprint UNKNOWN.",
+    "inputs": [
+     "params.plan_path",
+     "params.repo_file_index_path"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "decomposer",
+     "basis": "conservative estimation costs parallelism; an optimistic estimate costs data"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Glob",
+     "Bash:git"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/decomposition/pln02-footprints.json",
+    "output_schema": "command-center/schema/assignment-matrix.schema.json",
+    "evidence_requirement": "each listed path resolves in the repo file index, and each UNKNOWN footprint says WHY it could not be determined",
+    "tests_required": [
+     "a unit whose footprint cannot be determined must be emitted as UNKNOWN, never as an empty set",
+     "an empty footprint and an UNKNOWN footprint must be distinguishable in the artifact"
+    ],
+    "reviewer_requirement": "the residue judge, only for units marked UNKNOWN",
+    "completion_sentinel": "SUCCESS:BP3-PLN02-S0 only when every unit has either a resolved footprint or an explicit UNKNOWN with a reason; otherwise FAILED:BP3-PLN02-S0 <reason>",
+    "retry_policy": "two strikes then pivot to marking the footprint UNKNOWN and serialising the unit",
+    "failure_classification": [
+     "spec-underspecified",
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/decomposition/pln02-footprints.json",
+     "schema_ref": "command-center/schema/assignment-matrix.schema.json",
+     "min_bytes": 256,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN02-S0",
+     "consumers": [
+      "s1-matrix"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-matrix",
+   "title": "S1 COMPUTE the pairwise overlap matrix (shared exact primitive)",
+   "kind": "subworkflow",
+   "depends_on": [
+    "s0-enumerate"
+   ],
+   "workflow": {
+    "workflow_id": "shared.pairwise-overlap-matrix",
+    "version_range": ">=1.0.0 <2.0.0"
+   },
+   "params": {
+    "path_sets_from": "command-center/decomposition/pln02-footprints.json"
+   },
+   "isolation": "none",
+   "propagate_failure": true
+  },
+  {
+   "id": "s2-group",
+   "title": "S2/S3/S4 GROUP overlapping units, ASSIGN isolation, EMIT the graph",
+   "kind": "task",
+   "role": "emitter",
+   "depends_on": [
+    "s1-matrix"
+   ],
+   "timeout_seconds": 600,
+   "work_unit": {
+    "id": "BP3-PLN02-S2",
+    "title": "Group overlaps into serial groups, assign isolation, emit the execution graph",
+    "phase": "2B",
+    "question_or_target": "Compute connected components of the overlap graph, assign worktree to mutating units and scoped-add otherwise, and emit the graph.",
+    "inputs": [
+     "command-center/overlap/matrix.json",
+     "command-center/decomposition/pln02-footprints.json"
+    ],
+    "dependencies": [
+     "BP3-PLN02-S0",
+     "BP3-SHARED-OVERLAP"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "none-deterministic-script",
+     "vendor": "any",
+     "role": "emitter",
+     "basis": "components and isolation assignment are arithmetic over the matrix"
+    },
+    "tool_permissions": [
+     "Read",
+     "Bash:python",
+     "Write(command-center/decomposition/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 600,
+    "output_path": "command-center/decomposition/pln02-graph.json",
+    "output_schema": "command-center/schema/dispatch-plan.schema.json",
+    "evidence_requirement": "every unit appears in exactly one serial group and carries exactly one isolation mode",
+    "tests_required": [
+     "two units editing the same file must land in ONE serial group",
+     "every mutating unit must be assigned worktree isolation - the default is not scoped-add",
+     "a unit with an UNKNOWN footprint must be assigned serial, never parallel"
+    ],
+    "reviewer_requirement": "none - this is arithmetic asserted by tests",
+    "completion_sentinel": "SUCCESS:BP3-PLN02-S2 only when every unit is in exactly one group with exactly one isolation mode; otherwise FAILED:BP3-PLN02-S2 <reason>",
+    "retry_policy": "none; a deterministic grouping that fails is a defect",
+    "failure_classification": [
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/decomposition/pln02-graph.json",
+     "schema_ref": "command-center/schema/dispatch-plan.schema.json",
+     "min_bytes": 256,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-PLN02-S2",
+     "consumers": [
+      "bp-arc-02.architect-to-editor-split-build",
+      "the executor"
+     ]
+    },
+    {
+     "path": "command-center/decomposition/pln02-isolation.json",
+     "schema_ref": "command-center/schema/isolation-report.schema.json",
+     "min_bytes": 128,
+     "register_in_manifest": true,
+     "consumers": [
+      "the executor"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s4-worktree-gate",
+   "title": "S4 gate: worktree isolation is the DEFAULT for every mutating unit",
+   "kind": "gate",
+   "depends_on": [
+    "s2-group"
+   ],
+   "gate_ref": "worktree-is-the-default"
+  },
+  {
+   "id": "s4-add-gate",
+   "title": "S4 gate: a scoped-add unit uses explicit paths and verifies the staged diff",
+   "kind": "gate",
+   "depends_on": [
+    "s4-worktree-gate"
+   ],
+   "gate_ref": "no-broad-add"
+  },
+  {
+   "id": "s4-unknown-gate",
+   "title": "S4 gate: an undeterminable footprint is serialised (adverse inference)",
+   "kind": "gate",
+   "depends_on": [
+    "s4-add-gate"
+   ],
+   "gate_ref": "unknown-footprint-serialised"
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "graph-emitted",
+   "expression": "graph_emitted == true AND unknown_footprint_units_parallelised == 0",
+   "applies_to": "workflow",
+   "minimum_conditions": "units_enumerated >= 1",
+   "on_stop": "complete"
+  },
+  {
+   "id": "everything-overlaps",
+   "expression": "serial_groups == 1 AND units_enumerated >= 2",
+   "applies_to": "workflow",
+   "on_stop": "emit-partial"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "none",
+  "max_attempts": 1
+ },
+ "failure_policy": {
+  "on_failure": "fail-fast",
+  "classify_as": [
+   "detector-failure",
+   "spec-underspecified"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "residue-judge",
+  "quarantine_path": "command-center/quarantine/pln02"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/pln02",
+  "granularity": "stage",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "inputs_hash"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/pln02.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "tool_results"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "hash-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "inputs_hash"
+  ],
+  "store": "command-center/cache/pln02",
+  "ttl_seconds": 604800,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "graph",
+   "permission-report"
+  ],
+  "plan_artifact": "command-center/dry-run/pln02-plan.json",
+  "forbid_tools": [
+   "Bash:git",
+   "Bash:python",
+   "Write(command-center/decomposition/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 120,
+   "expected": 900,
+   "max": 3600
+  },
+  "tokens": {
+   "min": 20000,
+   "expected": 100000,
+   "max": 300000
+  },
+  "tool_calls": {
+   "expected": 15,
+   "max": 120
+  },
+  "impact": {
+   "risk": "low",
+   "reversibility": "reversible",
+   "blast_radius": "read-only over the plan and repo index; writes only under command-center/decomposition/**",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-pln-02.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "skills/workflow-authoring",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/claude-devfleet",
+    "relation": "COMPOSE",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "rules/common/fan-out-contract.md#C4",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-02",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "graph": {
+   "path": "command-center/decomposition/pln02-graph.json",
+   "schema_ref": "command-center/schema/dispatch-plan.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the executor",
+    "bp-pln-03.multi-pr-stacking-order-planner"
+   ]
+  },
+  "isolation": {
+   "path": "command-center/decomposition/pln02-isolation.json",
+   "schema_ref": "command-center/schema/isolation-report.schema.json",
+   "min_bytes": 128,
+   "register_in_manifest": true,
+   "consumers": [
+    "the executor"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-PLN-02 (doc-order 34 of 96)",
+  "distinguishing_mechanism": "CONCURRENCY ADMISSION over PREDICTED footprints, with adverse inference on an unknown footprint and worktree isolation as the default. It shares the overlap primitive with BP-PLN-03 by REFERENCE, and their decisions differ: this one answers 'may these run at the same time', PLN-03 answers 'in what order do these land'. BP-IMP-02 EXECUTES in worktrees; this decides which units may run at all.",
+  "measured_gap_closed": "worktree isolation appears in 9 of 329 executed workflows (2.7%). Making it the default for mutating units is the specific gap this closes.",
+  "worked_example": {
+   "name": "one shared file collapses two units into a serial group",
+   "narrative": "Four units. u1 and u2 both touch src/app.py, so they must land in one serial group. u3 is disjoint and may run in parallel. u4's footprint could not be determined, so under adverse inference it overlaps everything and is serialised - which, because the overlap graph is connected through u4, pulls the whole set into one group. That is the correct, conservative answer.",
+   "mechanism": "mechanisms.pairwise_overlap + mechanisms.serial_groups + mechanisms.assign_isolation",
+   "input": {
+    "path_sets": {
+     "u1": [
+      "src/app.py",
+      "src/a.py"
+     ],
+     "u2": [
+      "src/app.py",
+      "src/b.py"
+     ],
+     "u3": [
+      "docs/readme.md"
+     ],
+     "u4": null
+    },
+    "mutating": [
+     "u1",
+     "u2",
+     "u3"
+    ]
+   },
+   "expected": {
+    "overlap_pairs": [
+     [
+      "u1",
+      "u2"
+     ],
+     [
+      "u1",
+      "u4"
+     ],
+     [
+      "u2",
+      "u4"
+     ],
+     [
+      "u3",
+      "u4"
+     ]
+    ],
+    "serial_groups": [
+     [
+      "u1",
+      "u2",
+      "u3",
+      "u4"
+     ]
+    ],
+    "isolation": {
+     "u1": "worktree",
+     "u2": "worktree",
+     "u3": "worktree",
+     "u4": "serial"
+    }
+   },
+   "controls": [
+    {
+     "mutate": "give u4 the concrete footprint ['tests/test_c.py']",
+     "expected_serial_groups": [
+      [
+       "u1",
+       "u2"
+      ],
+      [
+       "u3"
+      ],
+      [
+       "u4"
+      ]
+     ],
+     "why": "with u4's footprint known the graph splits into three components - which proves the UNKNOWN handling, not the arithmetic, produced the single group"
+    }
+   ]
+  }
+ }
+}

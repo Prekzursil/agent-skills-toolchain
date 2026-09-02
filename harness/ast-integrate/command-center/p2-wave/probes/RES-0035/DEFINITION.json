@@ -1,0 +1,29 @@
+{
+  "id": "RES-0035-config-surface-break-v1",
+  "title": "Breaking configuration-surface change (pre-registered before counting)",
+  "item_unit": "A single changelog or release-note bullet (line starting with '-' or '*' or '1.') belonging to a dated vendor release.",
+  "window": {
+    "kind": "trailing_days_from_snapshot",
+    "days": 365,
+    "inclusive": true,
+    "undated_policy": "exclude_and_record"
+  },
+  "include_all_of": [
+    "enclosing_release.published_at is inside the window",
+    "item matches config_surface_regex",
+    "item matches break_signal_regex",
+    "item does not match exclude_regex"
+  ],
+  "config_surface_regex": "settings\\.json|settings\\.local\\.json|managed-settings|claude\\.json|\\.claude/|config\\.toml|\\.cursor/|\\.clinerules|\\.roomodes|AGENTS\\.md|CLAUDE\\.md|GEMINI\\.md|mcp\\.json|pluginConfigs|allowedTools|ignorePatterns|\\bhooks?\\b|\\bMCP\\b|managed settings|environment variable|\\benv var\\b|ANTHROPIC_[A-Z0-9_]+|CLAUDE_CODE_[A-Z0-9_]+|--[a-z][a-z0-9-]*(dir|file|config|settings|plugin|mcp|hook|rules)",
+  "break_signal_regex": "\\bbreaking change\\b|\\bbreaking:|\\bremoved deprecated\\b|\\bno longer (reads?|honou?rs?|supports?|accepts?|loaded|loaded from)\\b|\\bmigrated (from|to)\\b.{0,80}(settings|config|json)|\\brenamed .{0,60}(settings|config|flag|env)|\\bonly accept(s)? one path\\b|\\bdropped support\\b.{0,40}(config|settings|flag)",
+  "exclude_regex": "\\bfixed\\b.{0,120}\\bbreaking\\b|\\bbreaking down\\b|word-breaking|not going away",
+  "bullet_regex": "^\\s*(?:[-*]|\\d+\\.)\\s+",
+  "two_pass": {
+    "vendor_id": "anthropic-claude-code",
+    "pass_a": "section_split",
+    "pass_b": "linear_heading_walk",
+    "max_relative_delta": 0.10
+  },
+  "same_rule_all_vendors": true,
+  "notes": "Counts labeled+mechanical config-surface breaks in published notes only. Vendors that ship silent schema breaks without matching wording are undercounted; that is a property of the notes, not a license to invent."
+}

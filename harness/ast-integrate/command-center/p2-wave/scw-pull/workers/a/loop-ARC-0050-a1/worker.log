@@ -1,0 +1,25 @@
+
+===== launch 2026-08-20T07:42:25Z attempt=1 =====
+I'll start from the existing ARC-0050 probe tree, resume any prior work, and drive this unit to contract-green without touching git or the global catalog.I'll inspect the ARC-0050 probe tree, the measure script, and nearby ARC units so I can resume instead of rebuilding.ARC-0050 has no probe tree yet. Next I’ll pull the catalog contract, the measure script, and a delivered ARC unit as the template.I'll load the test-plan schema, A7 artifacts, `ready_units.artifact_delivered`, and a delivered unit's return files next.I'll pull the generic_report schema, a delivered test-plan receipt, and the A7/security inputs so the suite matches the unit contract.The plugin packager is live and clean. Next I’ll add the ARC-0050 suite, named probes, and the test-plan receipt around that pipeline bundle.I'll run the named probes next, then pack the receipt only if they stay green.ARC-0050 is G-1 contract-green on this worktree.
+
+```
+SUCCESS:delivered ARC-0050 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe_canary_bundle.py:0,probe_mutations.py:0,probe_reviewer_gap.py:0
+```
+
+The probe tree did not exist, so it was created and executed. `cloud ok=true` is not this delivery.
+
+**What the suite measured**
+- Real pipeline bundle from `plugin.build.build` (28 members). A synthetic AKIA-shaped canary planted into that zip is caught at **100%** by `plugin.payload.scan_secrets`.
+- Per-class mutations: secret gate, credential-read boundary, malicious plugin (`.env` / `.git` / zip-slip), injection corpus. Unguarded goes red; restored stays green.
+- False-positive budget **0.0** blocking findings on the clean corpus.
+- Injection corpus **12** items (9 malicious / 3 benign; workflow=8, council=4).
+- Independent reviewer named an uncaught mutation: a NUL in the first 8192 bytes skips the secret scan (`platform/plugin/payload.py:234`).
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/phase3/A7/TEST-PLAN.json` | catalog output, `state=SUCCESS`, schema-valid |
+| `command-center/p2-wave/probes/ARC-0050/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, live LF sha256 `47f2d081…` |
+| `command-center/p2-wave/probes/ARC-0050/SUBAGENT-RETURN.json` | this handoff |
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Park rule did not apply: first-run absence is not a structural block.

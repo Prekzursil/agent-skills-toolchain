@@ -1,0 +1,23 @@
+I'll start from the existing RES-0162 probe tree, read the return artifact if it's there, and only resume what's already built.No `SUBAGENT-RETURN.json` yet. I'll read the handoff, the cloud-ok artifacts, and a delivered unit so I know the contract.Cloud-ok already parked this as BLOCKED. Next I’ll read the catalog contract, a delivered sibling unit, and the live receipt so we don’t rebuild the same refute.The catalog question is Windows-specific. I’ll check the harvest tree, the measurement-run schema, and how sibling RES units were closed on Linux.RES-0153 is the G-1 pattern. I’ll read the schema contract, `artifact_delivered`, the rest of the receipt, and whether any original probe sources still exist.I have the SUCCESS contract. Next I’ll recover the harvest classifier, check host runtimes, and build live named probes instead of parking on the same Linux-host gap.Writing the named probes now: harvest both-states, OS-level spawn limits with causality guards, and an independent verifier. I will not treat missing Windows as a measured threshold.Probes are on disk. Next I’ll run them live, then pack the receipt from those outputs.Probe 1 measured a Linux E2BIG at 131072 bytes via `/usr/bin/true`; the three vendor CLIs are absent. I’ll fix the repo-root path and pack from the live raws.**SUCCESS:delivered RES-0162**
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0162` printed:
+
+`SUCCESS:delivered RES-0162 predicate=delivered state=SUCCESS probes=4 raws=8 notes=lib_res0162.py:0,negative_control.py:0,probe1_escalating_payloads.py:0,probe2_harvest_control.py:0`
+
+Cloud-ok left this unit BLOCKED because the named scripts were missing. This pass restored them under `command-center/p2-wave/probes/RES-0162/` and re-ran them. It is not a replay of the harvest UNIT-COMPLETE wrapper.
+
+What the live probes measured:
+
+| Claim | Result |
+|---|---|
+| Harvest both-states (`tests_required`) | PASS: complete parsed output → SUCCESS; exit 0 + empty/absent file → SEVERED |
+| Negative control | Mutating the absent-file expectation to SUCCESS exits 1 |
+| Linux OS spawn limit (`/usr/bin/true`) | Last success **131071** B, first failure **131072** B, **E2BIG** (loud) |
+| Windows CreateProcess thresholds for claude/codex/gemini | **NOT-CHECKED** (this host is Linux; those binaries are absent) |
+| Auth failure as a payload boundary | Rejected as `NOT-SIZE-BOUNDARY` |
+
+Receipt `command-center/research/prior-art/RES-0162-cross-vendor-invocation-surface-leaks.json` is `state=SUCCESS`, 48258 bytes, LF sha256 `a51f1a7ba36bf88442ad5fc779262ef92c5be7d8e794a7021a14c4eb4142a686`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches that digest. `ready_units.artifact_delivered` is true.
+
+Park rule did not fire: cloud-ok’s defect was “scripts absent.” That is closed. Unmeasured Windows thresholds are an environment residual, labeled NOT-CHECKED, not a second copy of the same refute.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no global catalog write; no key rotation; no wave relaunch.

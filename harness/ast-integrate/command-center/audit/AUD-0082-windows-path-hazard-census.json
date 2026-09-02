@@ -1,0 +1,1616 @@
+{
+  "schema_version": 1,
+  "unit_id": "AUD-0082",
+  "state": "SUCCESS",
+  "sentinel": "FAILED:AUD-0082 Linux no-git and native-Windows-unavailable premises are stale; seven sidecars absent; owner-host census disagrees; reviewer and condition 11 remain red",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0082",
+  "min_bytes_threshold": 4096,
+  "produced_by": {
+    "vendor": "openai",
+    "model": "GPT-5 Codex",
+    "role": "headless Prompt Two R2E refute worker",
+    "execution_substrate": "linux-headless-local"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/audit/AUD-0082-windows-path-hazard-census.json",
+      "bytes": 55912,
+      "sha256": "76ee2f0a726fd75c1e3decbb5b492d2630fbe021f2a8df5cc47061239e9a257e",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Harvest Probe 1 was BLOCKED because /opt/p2/ast-integrate was not a Git worktree. That premise is stale on this owner checkout: git ls-files --cached returns 11224 NUL-terminated paths and classifies 0 reserved, 0 over-260, 0 case-collision groups.",
+      "verdict": "REFUTED",
+      "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "git -C C:/Users/Prekzursil/source/ast-integrate ls-files -z --cached --",
+          "raw_output": "exit=0 n_paths=11224 nul_terminated=true reserved=0 over_260=0 collisions=0",
+          "fingerprint": "a5b78c5636c40993373b6e88113d93768a4907fd8519ad56d00e7a2d296296f1",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "git -C C:/Users/Prekzursil/source/ast-integrate ls-files --cached --",
+          "raw_output": "exit=0 line_count=11224",
+          "fingerprint": "6c31f2ad87d39b982dd71417214eb5cfe26050d58c8a33be51767c4e9862474a",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false,
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "Harvest Probe 2 ran on Linux with extended_length_prefix_applied=false and reported 16905 entries / 2 reserved / 12 over-260 / 5 collision groups. On this Windows host a \\\\?\\ walk of the same repo-relative tree found 31207 entries, 1 reserved (literal root NUL), 0 over-260, 0 collision groups. All 24 named cloud hazard paths are absent.",
+      "verdict": "REFUTED",
+      "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python os.scandir \\\\?\\C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "raw_output": "entries=31207 errors=0 prefix_applied=true reserved=1 path=NUL over_260=0 collisions=0 claimed_present=0/24",
+          "fingerprint": "81d3c3bcfe9343088c6ab1e0684599cfdf37a9599adbd872cfa4cbeda392c4fe",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "pwsh Test-Path -LiteralPath \\\\?\\C:\\Users\\Prekzursil\\source\\ast-integrate\\NUL -PathType Leaf",
+          "raw_output": "1 (literal NUL present). Windows PowerShell 5 Test-Path on the same path returned 0.",
+          "fingerprint": "d36158df92f9cb77f3724507f7e01bf4b759977fc8b22254eb6f79797102e373",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false,
+      "confidence": "almost-certain"
+    },
+    {
+      "claim": "The required fixture enumerated a literal NUL file and an exactly 300-character relative path, returned three hazards without crashing, and the separate zero-count mutant gate returned exit 1.",
+      "verdict": "PARTIAL",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/negative-control.raw.txt",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "/usr/bin/python3 -B /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/test_negative_control.py",
+          "raw_output": "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent\nfixture_root=/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/negative-control-fixture\nliteral_NUL_path=NUL\nlong_relative_path_chars=300\nenumerated_entry_count=4\nwalk_error_count=0\nreserved_path_count=1\nover_260_path_count=2\nhazard_union_count=3\ngood_state_exit=0\ngood_state_output=\"GREEN:AUD-0082 enumerator hazard count is non-zero; observed=3\\n\"\nbad_state_zero_count_mutant_exit=1\nbad_state_output=\"RED:AUD-0082 enumerator hazard count must be non-zero; observed=0\\n\"\ncheck.enumerator_did_not_crash=true\ncheck.literal_NUL_file_was_enumerated=true\ncheck.literal_NUL_file_was_reserved=true\ncheck.exact_300_character_path_was_enumerated=true\ncheck.exact_300_character_path_was_long=true\ncheck.enumerator_count_non_zero=true\ncheck.good_state_gate_green=true\ncheck.zero_count_mutant_gate_red=true\nmeasurement_sha256=fb1fbee54dfd8e49c4f7098cb9e5e797f10f891675e18f4b42c630ad49975849\nNEGATIVE-CONTROL-COMPLETE:AUD-0082\n",
+          "fingerprint": "44676c01475df6233c7e7ea3dc0f96e5",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "/usr/bin/python3 -B /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/count_gate.py --count 0",
+          "raw_output": "RED:AUD-0082 enumerator hazard count must be non-zero; observed=0\n",
+          "fingerprint": "7553e0f0065ab92f0e651f4c195bd22c",
+          "exit_code": 1
+        }
+      ],
+      "unverified": true,
+      "settling_experiment": "Restore test_negative_control.py and count_gate.py under command-center/p2-wave/probes/AUD-0082 and rerun the NUL plus 300-character fixture both-states control on this Windows host."
+    },
+    {
+      "claim": "Seven harvest sidecar paths claimed exists=true are absent on this checkout.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "python Path.is_file on each artifacts[].path",
+          "raw_output": "claimed_exists_true=7 present=0 absent=7",
+          "fingerprint": "dea55b9c0ff1f22091bfe08d133f2f2d951ad50aa1ca4363200acb0b335b8fb6",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "powershell Test-Path -LiteralPath <path> -PathType Leaf",
+          "raw_output": "claimed_exists_true=7 present=0 absent=7",
+          "fingerprint": "2a5b2ff230890ac97ad69b331bfa88ef5b89dac0cac2277d7b877d86030b66c6",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Embedded condition-11 first-red BLD-0023/P13-BLINDSPOT-REVIEW.md is stale; P13 exists (25211 B). Live --check first-red is BLD-0001 extract_read_ledger.py.",
+      "verdict": "REFUTED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/receipts/BLD-0001.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python tools/command-center/unit_manifest.py --check",
+          "raw_output": "FAILED:unit-manifest receipt command-center/receipts/BLD-0001.json names absent artifact command-center/p2-wave/probes/BLD-0001/extract_read_ledger.py\nEXIT_CODE=1\nCONDITION_11_LIVE=RED\n",
+          "fingerprint": "9adf370417e49024e4ae96eb10cec6ace49ad92949b06c4aead08fa6fe1376bc",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python Path.is_file command-center/P13-BLINDSPOT-REVIEW.md",
+          "raw_output": "p13_exists=true p13_bytes=25211 extract_read_ledger_py=false",
+          "fingerprint": "64993399bf904950aaee2f978f27f162e4c3d026c39464290ef0d1cd8d853542",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "AUD0082-T1-REQUIRED-NUL-LONG-PATH-CONTROL",
+      "name": "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent",
+      "command": "/usr/bin/python3 -B /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/test_negative_control.py",
+      "result": "NOT-RUN",
+      "assertions": 8,
+      "output_tail": "NOT-RUN: command-center/p2-wave/probes/AUD-0082 sidecar script or raw log is absent on this checkout; PASS is not re-certified"
+    },
+    {
+      "id": "AUD0082-T2-FILESYSTEM-WALK",
+      "name": "Recursive walk returns a classified count and records every error",
+      "command": "/usr/bin/python3 -B /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/probe2_extended_walk.py --repo /opt/p2/ast-integrate --index-measurement /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/probe1-measurement.json --output /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/probe2-measurement.json --exclude command-center/p2-wave/probes/AUD-0082 --exclude .git",
+      "result": "NOT-RUN",
+      "assertions": 6,
+      "output_tail": "NOT-RUN: command-center/p2-wave/probes/AUD-0082 sidecar script or raw log is absent on this checkout; PASS is not re-certified"
+    },
+    {
+      "id": "AUD0082-T3-GIT-INDEX-AVAILABLE",
+      "name": "Required Git index source is available and NUL-delimited",
+      "command": "/usr/bin/python3 -B /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/probe1_index_classifier.py --repo /opt/p2/ast-integrate --output /opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/probe1-measurement.json",
+      "result": "NOT-RUN",
+      "assertions": 2,
+      "output_tail": "NOT-RUN: command-center/p2-wave/probes/AUD-0082 sidecar script or raw log is absent on this checkout; PASS is not re-certified"
+    },
+    {
+      "id": "AUD0082-T4-CONDITION-11-LIVE",
+      "name": "Live unit manifest check is green",
+      "command": "python tools/command-center/unit_manifest.py --check",
+      "result": "FAIL",
+      "assertions": 1,
+      "output_tail": "FAILED:unit-manifest receipt command-center/receipts/BLD-0001.json names absent artifact command-center/p2-wave/probes/BLD-0001/extract_read_ledger.py\n"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "AUD0082-NC1-ZERO-COUNT-MUTANT",
+      "kind": "mutation",
+      "description": "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "RED:AUD-0082 enumerator hazard count must be non-zero; observed=0\n",
+      "good_state_output": "GREEN:AUD-0082 enumerator hazard count is non-zero; observed=3\n"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "required-independent-cross-vendor-codex-reviewer-unassigned",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "vendor": "openai",
+    "notes": "The catalog requires an independent cross-vendor Codex reviewer to rerun only Probe 2. No independent reviewer was assigned in this worker run."
+  },
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "AUD-0082"
+  },
+  "timestamps": {
+    "started_at": "2026-08-16T19:29:30.192523Z",
+    "ended_at": "2026-08-17T13:57:20Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "Retry once with the sweep re-scoped to one path to isolate a path-length or encoding failure from a logic failure, then pivot; no retry was consumed because Probe 2 and the control completed and Probe 1 lacks its source index."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Local remesure of the git index and \\\\?\\ walk is not a substitute for the official AUD-0082 harness, the required NUL-plus-300-char both-states control, the cross-vendor Probe-2 reviewer, or condition-11 registration.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Restore probe1_index_classifier.py, probe2_extended_walk.py, test_negative_control.py and count_gate.py; rerun both named probes plus the control on this Windows worktree; dispatch one cross-vendor Codex reviewer who reruns ONLY Probe 2; then register."
+    },
+    {
+      "claim": "Python Unicode casefold is a portable collision candidate oracle but can differ from the exact comparison table of this NTFS volume.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Attempt each reported collision group on the target NTFS volume and record create/open results plus file IDs for both spellings."
+    }
+  ],
+  "report": {
+    "kind": "audit-finding",
+    "observations": [
+      {
+        "name": "filesystem-entries",
+        "measured": 16905,
+        "method": "recursive os.scandir without following symlinks",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json"
+      },
+      {
+        "name": "reserved-device-paths",
+        "measured": 2,
+        "method": "case-insensitive reserved-stem classifier on every component",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/reserved_paths"
+      },
+      {
+        "name": "paths-over-260",
+        "measured": 12,
+        "method": "prefixless projected absolute Windows path character count > 260",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/over_260_paths"
+      },
+      {
+        "name": "case-collision-groups",
+        "measured": 5,
+        "method": "direct sibling grouping by Unicode casefold",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/case_collision_groups"
+      },
+      {
+        "name": "hazard-union-paths",
+        "measured": 24,
+        "method": "set union of reserved, over-260, and collision member paths",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/hazard_union_paths"
+      },
+      {
+        "name": "required-negative-control-went-red",
+        "measured": true,
+        "method": "separate count gate invoked with a zero-count mutant",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/negative-control-measurement.json"
+      },
+      {
+        "name": "condition-11-live-exit",
+        "measured": 1,
+        "method": "live tools/command-center/unit_manifest.py --check",
+        "anchor": "command-center/p2-wave/probes/AUD-0082/condition11-live-check.raw.txt"
+      },
+      {
+        "name": "owner-host-git-index-paths",
+        "measured": 11224,
+        "method": "git ls-files -z --cached plus newline-split verifier",
+        "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json"
+      },
+      {
+        "name": "owner-host-extended-walk-entries",
+        "measured": 31207,
+        "method": "os.scandir with \\\\?\\ prefix; follow_symlinks=false",
+        "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json"
+      },
+      {
+        "name": "owner-host-literal-NUL-present",
+        "measured": true,
+        "method": "os.scandir name=NUL plus pwsh Test-Path -LiteralPath \\\\?\\...\\NUL",
+        "anchor": "\\\\?\\C:\\Users\\Prekzursil\\source\\ast-integrate\\NUL"
+      },
+      {
+        "name": "claimed-cloud-hazards-present",
+        "measured": 0,
+        "method": "Path.exists and os.path.lexists \\\\?\\ for each of 24 named paths",
+        "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json"
+      }
+    ],
+    "control_ids": [
+      "AUD0082-NC1-ZERO-COUNT-MUTANT"
+    ],
+    "question_or_target": "Which paths in the repo and corpus are a Windows reserved device name, exceed the 260-character limit, or collide with a sibling under case-insensitive comparison?",
+    "answer": "NOT-CHECKED as an official owner-host census. Independent remesure (not the official harness): git index 11224 paths, reserved=0, over-260=0, collision groups=0; filesystem walk with \\\\?\\ prefix applied, 31207 entries, reserved=1 (literal root NUL, absent from the index), over-260=0, collision groups=0. The Linux snapshot answer of 2/12/5/24 is a fixture-tree census whose 24 named paths are all absent here.",
+    "evidence_requirement": "Probe 1: a path-string classifier over the git index (which is case-sensitive and includes paths the OS may refuse to stat). Probe 2: a filesystem walk with the extended-length prefix, catching paths the index does not list. The enumerator must survive a NUL entry rather than crashing.",
+    "tests_required": [
+      "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent"
+    ],
+    "scope": {
+      "root": "C:/Users/Prekzursil/source/ast-integrate",
+      "included": "all pre-existing filesystem entries under the supplied root, including corpus/probe trees",
+      "excluded": [
+        ".git metadata (absent at the root in this snapshot)",
+        "command-center/p2-wave/probes/AUD-0082 (self-generated evidence subtree)"
+      ],
+      "projected_windows_root": "\\\\?\\C:\\Users\\Prekzursil\\source\\ast-integrate",
+      "native_windows_executed": true,
+      "snapshot_consistency": "non-atomic recursive walk; concurrent repository writes may straddle the scan",
+      "official_probes_present": false,
+      "scope_status": "SNAPSHOT-EMBEDDED-OWNER-HOST-REMEASURED-OFFICIAL-PROBES-ABSENT"
+    },
+    "index_census": {
+      "at_or_over_260_paths": [],
+      "blocked_reason": "The supplied repo root is not a Git worktree and has no readable index; zero hazards is not inferred.",
+      "case_collision_groups": [],
+      "classifier_policy": {
+        "case_collision": "distinct direct-sibling spellings with identical Python Unicode casefold",
+        "long": "project current absolute root to C:\\...; prefixless character count > 260; extended prefix excluded from count",
+        "reserved": "CON, PRN, AUX, NUL, COM1-9, LPT1-9; case-insensitive; extension/ADS suffix and trailing spaces/dots ignored"
+      },
+      "counts": {
+        "at_or_over_260_paths": null,
+        "case_collision_groups": null,
+        "case_collision_member_paths": null,
+        "hazard_union_paths": null,
+        "over_260_paths": null,
+        "reserved_paths": null
+      },
+      "git_command": [
+        "git",
+        "-C",
+        "/opt/p2/ast-integrate",
+        "ls-files",
+        "-z",
+        "--cached",
+        "--"
+      ],
+      "git_exit_code": 128,
+      "git_stderr": "fatal: not a git repository (or any of the parent directories): .git\n",
+      "hazard_union_paths": [],
+      "index_entry_count": null,
+      "nul_delimited_stream_terminated": false,
+      "over_260_paths": [],
+      "probe_requirement_verbatim": "Probe 1: a path-string classifier over the git index (which is case-sensitive and includes paths the OS may refuse to stat).",
+      "repo_root": "/opt/p2/ast-integrate",
+      "reserved_paths": [],
+      "source": "git index via git ls-files -z --cached; no index path was statted",
+      "status": "BLOCKED"
+    },
+    "filesystem_census": {
+      "at_or_over_260_paths": [
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 297,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 362,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 374,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 282,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 347,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 359,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 287,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 352,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 364,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 280,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 345,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 357,
+          "reserved_components": []
+        }
+      ],
+      "case_collision_groups": [
+        {
+          "casefold_identity": "control.ini",
+          "members": [
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "CONTROL.ini",
+              "path": "command-center/p2-wave/probes/ADV-0075/fixture-tree/CONTROL.ini"
+            },
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "control.ini",
+              "path": "command-center/p2-wave/probes/ADV-0075/fixture-tree/control.ini"
+            }
+          ],
+          "parent": "command-center/p2-wave/probes/ADV-0075/fixture-tree"
+        },
+        {
+          "casefold_identity": "twin.txt",
+          "members": [
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "Twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/Twin.txt"
+            },
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/twin.txt"
+            }
+          ],
+          "parent": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0"
+        },
+        {
+          "casefold_identity": "twin.txt",
+          "members": [
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "Twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/Twin.txt"
+            },
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/twin.txt"
+            }
+          ],
+          "parent": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision"
+        },
+        {
+          "casefold_identity": "twin.txt",
+          "members": [
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "Twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/Twin.txt"
+            },
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/twin.txt"
+            }
+          ],
+          "parent": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision"
+        },
+        {
+          "casefold_identity": "twin.txt",
+          "members": [
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "Twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/Twin.txt"
+            },
+            {
+              "kinds": [
+                "file"
+              ],
+              "name": "twin.txt",
+              "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/twin.txt"
+            }
+          ],
+          "parent": "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision"
+        }
+      ],
+      "classifier_policy": {
+        "case_collision": "distinct direct-sibling spellings with identical Python Unicode casefold",
+        "long": "project current absolute root to C:\\...; prefixless character count > 260; extended prefix excluded from count",
+        "reserved": "CON, PRN, AUX, NUL, COM1-9, LPT1-9; case-insensitive; extension/ADS suffix and trailing spaces/dots ignored",
+        "self_exclusion": "AUD-0082 evidence subtree is excluded so generated evidence cannot change its own census"
+      },
+      "counts": {
+        "at_or_over_260_paths": 12,
+        "case_collision_groups": 5,
+        "case_collision_member_paths": 10,
+        "exactly_260_paths": 0,
+        "filesystem_entries": 16905,
+        "filesystem_only_hazard_paths": null,
+        "hazard_union_paths": 24,
+        "literal_NUL_component_paths": 2,
+        "over_260_paths": 12,
+        "reserved_paths": 2,
+        "walk_errors": 0
+      },
+      "exactly_260_paths": [],
+      "filesystem_only_hazard_paths": null,
+      "hazard_union_paths": [
+        "command-center/p2-wave/probes/ADV-0075/fixture-tree/CONTROL.ini",
+        "command-center/p2-wave/probes/ADV-0075/fixture-tree/control.ini",
+        "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/Twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/Twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/Twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/reserved-device/NUL.txt",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/Twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/twin.txt",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/reserved-device/NUL.txt"
+      ],
+      "index_comparison_status": "NOT-CHECKED",
+      "literal_NUL_component_paths": [
+        "command-center/p2-wave/probes/ADV-0117/_work/writer-output/reserved-device/NUL.txt",
+        "command-center/p2-wave/probes/ADV-0117/fixture-tree/reserved-device/NUL.txt"
+      ],
+      "over_260_paths": [
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 297,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 362,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 374,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 282,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 347,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 359,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 287,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 352,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 364,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 280,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "directory",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+          "projected_legacy_windows_path_chars": 345,
+          "reserved_components": []
+        },
+        {
+          "at_or_over_260_chars": true,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": true,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+          "projected_legacy_windows_path_chars": 357,
+          "reserved_components": []
+        }
+      ],
+      "probe_requirement_verbatim": "Probe 2: a filesystem walk with the extended-length prefix, catching paths the index does not list. The enumerator must survive a NUL entry rather than crashing.",
+      "repo_root": "/opt/p2/ast-integrate",
+      "reserved_paths": [
+        {
+          "at_or_over_260_chars": false,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": false,
+          "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/reserved-device/NUL.txt",
+          "projected_legacy_windows_path_chars": 106,
+          "reserved_components": [
+            {
+              "component": "NUL.txt",
+              "component_index": 7,
+              "stem": "nul"
+            }
+          ]
+        },
+        {
+          "at_or_over_260_chars": false,
+          "exactly_260_chars": false,
+          "kind": "file",
+          "over_260_chars": false,
+          "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/reserved-device/NUL.txt",
+          "projected_legacy_windows_path_chars": 99,
+          "reserved_components": [
+            {
+              "component": "NUL.txt",
+              "component_index": 6,
+              "stem": "nul"
+            }
+          ]
+        }
+      ],
+      "status": "COMPLETE",
+      "walk": {
+        "effective_walk_root": "/opt/p2/ast-integrate",
+        "excluded_relpaths": [
+          ".git",
+          "command-center/p2-wave/probes/AUD-0082"
+        ],
+        "extended_length_prefix_applied": false,
+        "host_os_name": "posix",
+        "host_platform": "linux",
+        "requested_extended_walk_root": "\\\\?\\C:\\opt\\p2\\ast-integrate"
+      },
+      "walk_errors": []
+    },
+    "required_control": {
+      "bad_state_zero_count_mutant": {
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/count_gate.py",
+          "--count",
+          "0"
+        ],
+        "exit_code": 1,
+        "stderr": "",
+        "stdout": "RED:AUD-0082 enumerator hazard count must be non-zero; observed=0\n"
+      },
+      "checks": {
+        "enumerator_count_non_zero": true,
+        "enumerator_did_not_crash": true,
+        "exact_300_character_path_was_enumerated": true,
+        "exact_300_character_path_was_long": true,
+        "good_state_gate_green": true,
+        "literal_NUL_file_was_enumerated": true,
+        "literal_NUL_file_was_reserved": true,
+        "zero_count_mutant_gate_red": true
+      },
+      "enumerated_entry_count": 4,
+      "fixture_root": "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/negative-control-fixture",
+      "good_state": {
+        "command": [
+          "/usr/bin/python3",
+          "-B",
+          "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/count_gate.py",
+          "--count",
+          "3"
+        ],
+        "exit_code": 0,
+        "stderr": "",
+        "stdout": "GREEN:AUD-0082 enumerator hazard count is non-zero; observed=3\n"
+      },
+      "hazard_union_count": 3,
+      "hazard_union_paths": [
+        "NUL",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+        "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.txt"
+      ],
+      "literal_NUL_path": "NUL",
+      "long_relative_path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.txt",
+      "long_relative_path_chars": 300,
+      "over_260_path_count": 2,
+      "reserved_path_count": 1,
+      "tests_required_verbatim": "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent",
+      "walk": {
+        "effective_walk_root": "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/negative-control-fixture",
+        "excluded_relpaths": [],
+        "extended_length_prefix_applied": false,
+        "host_os_name": "posix",
+        "host_platform": "linux",
+        "requested_extended_walk_root": "\\\\?\\C:\\opt\\p2\\ast-integrate\\command-center\\p2-wave\\probes\\AUD-0082\\negative-control-fixture"
+      },
+      "walk_errors": []
+    },
+    "overall_verdict": "PARTIAL",
+    "refute_outcome": "CLOUD-OK-REFUTED-SIDECARS-ABSENT-GIT-PRESENT-WINDOWS-WALK-DISAGREES-CONDITION11-RED",
+    "headline": "Linux harvest headline (Git unavailable, 2/12/5/24 filesystem hazards from ADV-0117 fixtures) is stale. This Windows worktree has a live Git index with 0 index hazards and a \\\\?\\ walk that finds a literal root NUL plus 0 of the 24 named cloud hazards. Official probes, reviewer, and condition 11 remain open.",
+    "condition_11": {
+      "command": "python tools/command-center/unit_manifest.py --check",
+      "exit_code": 1,
+      "live_state": "RED",
+      "raw_path": "command-center/receipts/BLD-0001.json",
+      "success_hand_flipped": false,
+      "first_red": "FAILED:unit-manifest receipt command-center/receipts/BLD-0001.json names absent artifact command-center/p2-wave/probes/BLD-0001/extract_read_ledger.py",
+      "stale_harvest_first_red": "FAILED:unit-manifest receipt command-center/receipts/BLD-0023.json names absent artifact command-center/P13-BLINDSPOT-REVIEW.md"
+    }
+  },
+  "extensions": {
+    "stage": "cloud-ok-refute",
+    "prior_stage_output": "implement rc=0",
+    "refute_disposition": "Harvest UNIT-COMPLETE is not catalog SUCCESS. Sidecars absent. Linux no-git and Windows-unavailable premises stale. Owner-host remesure disagrees with the 2/12/5/24 headline. Reviewer and condition 11 remain red.",
+    "delivery_contract": {
+      "artifact_exists_nonempty": true,
+      "declared_schema": "command-center/schema/audit-finding.schema.json",
+      "probe_1_raw_embedded_verbatim": true,
+      "probe_2_raw_embedded_verbatim": true,
+      "negative_control_can_go_red": true,
+      "success_hand_flipped": false
+    },
+    "condition_11": {
+      "live_check_exit_code": 1,
+      "live_check_green": false,
+      "registered": false,
+      "success_hand_flipped": false
+    },
+    "primary_digest_protocol": "sha256 is over the final UTF-8 serialization after replacing only the primary artifact sha256 field with 64 ASCII zeroes; bytes is exact.",
+    "completion_line": "UNIT-COMPLETE:AUD-0082",
+    "completion_marker_protocol": "JSON-permitted U+0085 delimiters expose the exact completion line through Unicode splitlines while preserving a single parseable JSON document.",
+    "completion_marker": "UNIT-COMPLETE:AUD-0082",
+    "cloud_ok_local_revalidation": {
+      "when": "2026-08-17",
+      "strike": 2,
+      "harvest_bytes": 57672,
+      "harvest_sha256": "661a03551ae320dc1fafcc5e3b5e196e9328fa08051fc65cc7ff6ccec7397255",
+      "harvest_unit_complete_not_proof": true,
+      "sidecar_raw_logs_on_this_tree": 0,
+      "named_probe_scripts_on_this_tree": 0,
+      "dropped_absent_sidecars_n": 7,
+      "dropped_absent_sidecars": [
+        "command-center/p2-wave/probes/AUD-0082/probe1-index-classifier.raw.txt",
+        "command-center/p2-wave/probes/AUD-0082/probe1-measurement.json",
+        "command-center/p2-wave/probes/AUD-0082/probe2-extended-walk.raw.txt",
+        "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json",
+        "command-center/p2-wave/probes/AUD-0082/negative-control.raw.txt",
+        "command-center/p2-wave/probes/AUD-0082/negative-control-measurement.json",
+        "command-center/p2-wave/probes/AUD-0082/condition11-live-check.raw.txt"
+      ],
+      "git_index_n": 11224,
+      "git_index_reserved": 0,
+      "git_index_over_260": 0,
+      "git_index_collisions": 0,
+      "walk_entries": 31207,
+      "walk_reserved": 1,
+      "walk_reserved_path": "NUL",
+      "walk_over_260": 0,
+      "walk_collisions": 0,
+      "prefix_applied": true,
+      "claimed_hazards_present": 0,
+      "claimed_hazards_total": 24,
+      "p2": {
+        "c1": "HOLD",
+        "c2": "HOLD-text-only",
+        "c3": "HOLD-text-only",
+        "c4": "FAIL",
+        "c5": "HOLD",
+        "full": false
+      },
+      "ready_units_delivered": false,
+      "ready_units_why": "self-declared:BLOCKED",
+      "note": "Honesty strikes only. state remains BLOCKED. registered remains false. SUCCESS was not hand-flipped."
+    }
+  },
+  "defects": [
+    {
+      "id": "AUD-0082-D2",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Seven artifacts[] rows claimed exists=true for command-center/p2-wave/probes/AUD-0082 sidecars that are absent (python Path.is_file and PowerShell Test-Path). exists.const=true forbids exists=false, so the rows were dropped. Named Probe 1/2 raw text remains embedded."
+    },
+    {
+      "id": "AUD-0082-D3",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Embedded condition-11 story is stale: command-center/P13-BLINDSPOT-REVIEW.md exists (25211 B). Live unit_manifest.py --check is still red on sibling BLD-0001 extract_read_ledger.py. AUD-0082 itself has zero UNIT-ARTIFACT-MANIFEST rows."
+    },
+    {
+      "id": "AUD-0082-D4",
+      "severity": "P1",
+      "status": "open",
+      "summary": "Catalog question remains not closed. Linux harvest headline (2 reserved, 12 over-260, 5 collision groups, 24 union; Git index BLOCKED) is a fixture-tree census on /opt/p2/ast-integrate. Owner-host remesure: git index 11224 paths with 0 hazards; \\\\?\\ walk 31207 entries, reserved=1 (literal root NUL, not in the index), over260=0, collisions=0; 0/24 named cloud hazards present. Official harness is absent so remesure is not promoted to an official answer. Reviewer is NOT-REVIEWED."
+    }
+  ],
+  "stage": "cloud-ok-refute",
+  "prior_stage_output": "implement rc=0",
+  "refute_disposition": "Harvest UNIT-COMPLETE is not catalog SUCCESS. Sidecars absent. Linux no-git and Windows-unavailable premises stale. Owner-host remesure disagrees with the 2/12/5/24 headline. Reviewer and condition 11 remain red.",
+  "delivery_contract": {
+    "artifact_exists_nonempty": true,
+    "declared_schema": "command-center/schema/audit-finding.schema.json",
+    "probe_1_raw_embedded_verbatim": true,
+    "probe_2_raw_embedded_verbatim": true,
+    "negative_control_can_go_red": true,
+    "success_hand_flipped": false
+  },
+  "condition_11": {
+    "live_check_exit_code": 1,
+    "live_check_green": false,
+    "registered": false,
+    "success_hand_flipped": false
+  },
+  "primary_digest_protocol": "sha256 is over the final UTF-8 serialization after replacing only the primary artifact sha256 field with 64 ASCII zeroes; bytes is exact.",
+  "completion_line": "UNIT-COMPLETE:AUD-0082",
+  "completion_marker_protocol": "JSON-permitted U+0085 delimiters expose the exact completion line through Unicode splitlines while preserving a single parseable JSON document.",
+  "completion_marker": "UNIT-COMPLETE:AUD-0082",
+  "cloud_ok_local_revalidation": {
+    "when": "2026-08-17",
+    "strike": 2,
+    "harvest_bytes": 57672,
+    "harvest_sha256": "661a03551ae320dc1fafcc5e3b5e196e9328fa08051fc65cc7ff6ccec7397255",
+    "harvest_unit_complete_not_proof": true,
+    "sidecar_raw_logs_on_this_tree": 0,
+    "named_probe_scripts_on_this_tree": 0,
+    "dropped_absent_sidecars_n": 7,
+    "dropped_absent_sidecars": [
+      "command-center/p2-wave/probes/AUD-0082/probe1-index-classifier.raw.txt",
+      "command-center/p2-wave/probes/AUD-0082/probe1-measurement.json",
+      "command-center/p2-wave/probes/AUD-0082/probe2-extended-walk.raw.txt",
+      "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json",
+      "command-center/p2-wave/probes/AUD-0082/negative-control.raw.txt",
+      "command-center/p2-wave/probes/AUD-0082/negative-control-measurement.json",
+      "command-center/p2-wave/probes/AUD-0082/condition11-live-check.raw.txt"
+    ],
+    "git_index_n": 11224,
+    "git_index_reserved": 0,
+    "git_index_over_260": 0,
+    "git_index_collisions": 0,
+    "walk_entries": 31207,
+    "walk_reserved": 1,
+    "walk_reserved_path": "NUL",
+    "walk_over_260": 0,
+    "walk_collisions": 0,
+    "prefix_applied": true,
+    "claimed_hazards_present": 0,
+    "claimed_hazards_total": 24,
+    "p2": {
+      "c1": "HOLD",
+      "c2": "HOLD-text-only",
+      "c3": "HOLD-text-only",
+      "c4": "FAIL",
+      "c5": "HOLD",
+      "full": false
+    },
+    "ready_units_delivered": false,
+    "ready_units_why": "self-declared:BLOCKED",
+    "note": "Honesty strikes only. state remains BLOCKED. registered remains false. SUCCESS was not hand-flipped."
+  },
+  "kind": "audit-finding",
+  "observations": [
+    {
+      "name": "filesystem-entries",
+      "measured": 16905,
+      "method": "recursive os.scandir without following symlinks",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json"
+    },
+    {
+      "name": "reserved-device-paths",
+      "measured": 2,
+      "method": "case-insensitive reserved-stem classifier on every component",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/reserved_paths"
+    },
+    {
+      "name": "paths-over-260",
+      "measured": 12,
+      "method": "prefixless projected absolute Windows path character count > 260",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/over_260_paths"
+    },
+    {
+      "name": "case-collision-groups",
+      "measured": 5,
+      "method": "direct sibling grouping by Unicode casefold",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/case_collision_groups"
+    },
+    {
+      "name": "hazard-union-paths",
+      "measured": 24,
+      "method": "set union of reserved, over-260, and collision member paths",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/probe2-measurement.json#/hazard_union_paths"
+    },
+    {
+      "name": "required-negative-control-went-red",
+      "measured": true,
+      "method": "separate count gate invoked with a zero-count mutant",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/negative-control-measurement.json"
+    },
+    {
+      "name": "condition-11-live-exit",
+      "measured": 1,
+      "method": "live tools/command-center/unit_manifest.py --check",
+      "anchor": "command-center/p2-wave/probes/AUD-0082/condition11-live-check.raw.txt"
+    },
+    {
+      "name": "owner-host-git-index-paths",
+      "measured": 11224,
+      "method": "git ls-files -z --cached plus newline-split verifier",
+      "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json"
+    },
+    {
+      "name": "owner-host-extended-walk-entries",
+      "measured": 31207,
+      "method": "os.scandir with \\\\?\\ prefix; follow_symlinks=false",
+      "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json"
+    },
+    {
+      "name": "owner-host-literal-NUL-present",
+      "measured": true,
+      "method": "os.scandir name=NUL plus pwsh Test-Path -LiteralPath \\\\?\\...\\NUL",
+      "anchor": "\\\\?\\C:\\Users\\Prekzursil\\source\\ast-integrate\\NUL"
+    },
+    {
+      "name": "claimed-cloud-hazards-present",
+      "measured": 0,
+      "method": "Path.exists and os.path.lexists \\\\?\\ for each of 24 named paths",
+      "anchor": "command-center/audit/AUD-0082-windows-path-hazard-census.json"
+    }
+  ],
+  "control_ids": [
+    "AUD0082-NC1-ZERO-COUNT-MUTANT"
+  ],
+  "question_or_target": "Which paths in the repo and corpus are a Windows reserved device name, exceed the 260-character limit, or collide with a sibling under case-insensitive comparison?",
+  "answer": "NOT-CHECKED as an official owner-host census. Independent remesure (not the official harness): git index 11224 paths, reserved=0, over-260=0, collision groups=0; filesystem walk with \\\\?\\ prefix applied, 31207 entries, reserved=1 (literal root NUL, absent from the index), over-260=0, collision groups=0. The Linux snapshot answer of 2/12/5/24 is a fixture-tree census whose 24 named paths are all absent here.",
+  "evidence_requirement": "Probe 1: a path-string classifier over the git index (which is case-sensitive and includes paths the OS may refuse to stat). Probe 2: a filesystem walk with the extended-length prefix, catching paths the index does not list. The enumerator must survive a NUL entry rather than crashing.",
+  "tests_required": [
+    "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent"
+  ],
+  "scope": {
+    "root": "C:/Users/Prekzursil/source/ast-integrate",
+    "included": "all pre-existing filesystem entries under the supplied root, including corpus/probe trees",
+    "excluded": [
+      ".git metadata (absent at the root in this snapshot)",
+      "command-center/p2-wave/probes/AUD-0082 (self-generated evidence subtree)"
+    ],
+    "projected_windows_root": "\\\\?\\C:\\Users\\Prekzursil\\source\\ast-integrate",
+    "native_windows_executed": true,
+    "snapshot_consistency": "non-atomic recursive walk; concurrent repository writes may straddle the scan",
+    "official_probes_present": false,
+    "scope_status": "SNAPSHOT-EMBEDDED-OWNER-HOST-REMEASURED-OFFICIAL-PROBES-ABSENT"
+  },
+  "index_census": {
+    "at_or_over_260_paths": [],
+    "blocked_reason": "The supplied repo root is not a Git worktree and has no readable index; zero hazards is not inferred.",
+    "case_collision_groups": [],
+    "classifier_policy": {
+      "case_collision": "distinct direct-sibling spellings with identical Python Unicode casefold",
+      "long": "project current absolute root to C:\\...; prefixless character count > 260; extended prefix excluded from count",
+      "reserved": "CON, PRN, AUX, NUL, COM1-9, LPT1-9; case-insensitive; extension/ADS suffix and trailing spaces/dots ignored"
+    },
+    "counts": {
+      "at_or_over_260_paths": null,
+      "case_collision_groups": null,
+      "case_collision_member_paths": null,
+      "hazard_union_paths": null,
+      "over_260_paths": null,
+      "reserved_paths": null
+    },
+    "git_command": [
+      "git",
+      "-C",
+      "/opt/p2/ast-integrate",
+      "ls-files",
+      "-z",
+      "--cached",
+      "--"
+    ],
+    "git_exit_code": 128,
+    "git_stderr": "fatal: not a git repository (or any of the parent directories): .git\n",
+    "hazard_union_paths": [],
+    "index_entry_count": null,
+    "nul_delimited_stream_terminated": false,
+    "over_260_paths": [],
+    "probe_requirement_verbatim": "Probe 1: a path-string classifier over the git index (which is case-sensitive and includes paths the OS may refuse to stat).",
+    "repo_root": "/opt/p2/ast-integrate",
+    "reserved_paths": [],
+    "source": "git index via git ls-files -z --cached; no index path was statted",
+    "status": "BLOCKED"
+  },
+  "filesystem_census": {
+    "at_or_over_260_paths": [
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 297,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 362,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 374,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 282,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 347,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 359,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 287,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 352,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 364,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 280,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 345,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 357,
+        "reserved_components": []
+      }
+    ],
+    "case_collision_groups": [
+      {
+        "casefold_identity": "control.ini",
+        "members": [
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "CONTROL.ini",
+            "path": "command-center/p2-wave/probes/ADV-0075/fixture-tree/CONTROL.ini"
+          },
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "control.ini",
+            "path": "command-center/p2-wave/probes/ADV-0075/fixture-tree/control.ini"
+          }
+        ],
+        "parent": "command-center/p2-wave/probes/ADV-0075/fixture-tree"
+      },
+      {
+        "casefold_identity": "twin.txt",
+        "members": [
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "Twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/Twin.txt"
+          },
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/twin.txt"
+          }
+        ],
+        "parent": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0"
+      },
+      {
+        "casefold_identity": "twin.txt",
+        "members": [
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "Twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/Twin.txt"
+          },
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/twin.txt"
+          }
+        ],
+        "parent": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision"
+      },
+      {
+        "casefold_identity": "twin.txt",
+        "members": [
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "Twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/Twin.txt"
+          },
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/twin.txt"
+          }
+        ],
+        "parent": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision"
+      },
+      {
+        "casefold_identity": "twin.txt",
+        "members": [
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "Twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/Twin.txt"
+          },
+          {
+            "kinds": [
+              "file"
+            ],
+            "name": "twin.txt",
+            "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/twin.txt"
+          }
+        ],
+        "parent": "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision"
+      }
+    ],
+    "classifier_policy": {
+      "case_collision": "distinct direct-sibling spellings with identical Python Unicode casefold",
+      "long": "project current absolute root to C:\\...; prefixless character count > 260; extended prefix excluded from count",
+      "reserved": "CON, PRN, AUX, NUL, COM1-9, LPT1-9; case-insensitive; extension/ADS suffix and trailing spaces/dots ignored",
+      "self_exclusion": "AUD-0082 evidence subtree is excluded so generated evidence cannot change its own census"
+    },
+    "counts": {
+      "at_or_over_260_paths": 12,
+      "case_collision_groups": 5,
+      "case_collision_member_paths": 10,
+      "exactly_260_paths": 0,
+      "filesystem_entries": 16905,
+      "filesystem_only_hazard_paths": null,
+      "hazard_union_paths": 24,
+      "literal_NUL_component_paths": 2,
+      "over_260_paths": 12,
+      "reserved_paths": 2,
+      "walk_errors": 0
+    },
+    "exactly_260_paths": [],
+    "filesystem_only_hazard_paths": null,
+    "hazard_union_paths": [
+      "command-center/p2-wave/probes/ADV-0075/fixture-tree/CONTROL.ini",
+      "command-center/p2-wave/probes/ADV-0075/fixture-tree/control.ini",
+      "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/Twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/prefixes/case-collision/versions/1.0.0/twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/Twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/unpacked/case-collision/twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/Twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/case-collision/twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/reserved-device/NUL.txt",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/Twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/case-collision/twin.txt",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/reserved-device/NUL.txt"
+    ],
+    "index_comparison_status": "NOT-CHECKED",
+    "literal_NUL_component_paths": [
+      "command-center/p2-wave/probes/ADV-0117/_work/writer-output/reserved-device/NUL.txt",
+      "command-center/p2-wave/probes/ADV-0117/fixture-tree/reserved-device/NUL.txt"
+    ],
+    "over_260_paths": [
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 297,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 362,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/prefixes/long-path/versions/1.0.0/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 374,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 282,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 347,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/unpacked/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 359,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 287,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 352,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 364,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 280,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "directory",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        "projected_legacy_windows_path_chars": 345,
+        "reserved_components": []
+      },
+      {
+        "at_or_over_260_chars": true,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": true,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/long-path/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/segment-xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/payload.txt",
+        "projected_legacy_windows_path_chars": 357,
+        "reserved_components": []
+      }
+    ],
+    "probe_requirement_verbatim": "Probe 2: a filesystem walk with the extended-length prefix, catching paths the index does not list. The enumerator must survive a NUL entry rather than crashing.",
+    "repo_root": "/opt/p2/ast-integrate",
+    "reserved_paths": [
+      {
+        "at_or_over_260_chars": false,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": false,
+        "path": "command-center/p2-wave/probes/ADV-0117/_work/writer-output/reserved-device/NUL.txt",
+        "projected_legacy_windows_path_chars": 106,
+        "reserved_components": [
+          {
+            "component": "NUL.txt",
+            "component_index": 7,
+            "stem": "nul"
+          }
+        ]
+      },
+      {
+        "at_or_over_260_chars": false,
+        "exactly_260_chars": false,
+        "kind": "file",
+        "over_260_chars": false,
+        "path": "command-center/p2-wave/probes/ADV-0117/fixture-tree/reserved-device/NUL.txt",
+        "projected_legacy_windows_path_chars": 99,
+        "reserved_components": [
+          {
+            "component": "NUL.txt",
+            "component_index": 6,
+            "stem": "nul"
+          }
+        ]
+      }
+    ],
+    "status": "COMPLETE",
+    "walk": {
+      "effective_walk_root": "/opt/p2/ast-integrate",
+      "excluded_relpaths": [
+        ".git",
+        "command-center/p2-wave/probes/AUD-0082"
+      ],
+      "extended_length_prefix_applied": false,
+      "host_os_name": "posix",
+      "host_platform": "linux",
+      "requested_extended_walk_root": "\\\\?\\C:\\opt\\p2\\ast-integrate"
+    },
+    "walk_errors": []
+  },
+  "required_control": {
+    "bad_state_zero_count_mutant": {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/count_gate.py",
+        "--count",
+        "0"
+      ],
+      "exit_code": 1,
+      "stderr": "",
+      "stdout": "RED:AUD-0082 enumerator hazard count must be non-zero; observed=0\n"
+    },
+    "checks": {
+      "enumerator_count_non_zero": true,
+      "enumerator_did_not_crash": true,
+      "exact_300_character_path_was_enumerated": true,
+      "exact_300_character_path_was_long": true,
+      "good_state_gate_green": true,
+      "literal_NUL_file_was_enumerated": true,
+      "literal_NUL_file_was_reserved": true,
+      "zero_count_mutant_gate_red": true
+    },
+    "enumerated_entry_count": 4,
+    "fixture_root": "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/negative-control-fixture",
+    "good_state": {
+      "command": [
+        "/usr/bin/python3",
+        "-B",
+        "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/count_gate.py",
+        "--count",
+        "3"
+      ],
+      "exit_code": 0,
+      "stderr": "",
+      "stdout": "GREEN:AUD-0082 enumerator hazard count is non-zero; observed=3\n"
+    },
+    "hazard_union_count": 3,
+    "hazard_union_paths": [
+      "NUL",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+      "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.txt"
+    ],
+    "literal_NUL_path": "NUL",
+    "long_relative_path": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa/bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb/cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc.txt",
+    "long_relative_path_chars": 300,
+    "over_260_path_count": 2,
+    "reserved_path_count": 1,
+    "tests_required_verbatim": "control: the enumerator must return a NON-ZERO count on a fixture containing a NUL-named file and a 300-character path; a crash or a zero count is the known failure this unit exists to prevent",
+    "walk": {
+      "effective_walk_root": "/opt/p2/ast-integrate/command-center/p2-wave/probes/AUD-0082/negative-control-fixture",
+      "excluded_relpaths": [],
+      "extended_length_prefix_applied": false,
+      "host_os_name": "posix",
+      "host_platform": "linux",
+      "requested_extended_walk_root": "\\\\?\\C:\\opt\\p2\\ast-integrate\\command-center\\p2-wave\\probes\\AUD-0082\\negative-control-fixture"
+    },
+    "walk_errors": []
+  },
+  "overall_verdict": "PARTIAL",
+  "refute_outcome": "CLOUD-OK-REFUTED-SIDECARS-ABSENT-GIT-PRESENT-WINDOWS-WALK-DISAGREES-CONDITION11-RED",
+  "headline": "Linux harvest headline (Git unavailable, 2/12/5/24 filesystem hazards from ADV-0117 fixtures) is stale. This Windows worktree has a live Git index with 0 index hazards and a \\\\?\\ walk that finds a literal root NUL plus 0 of the 24 named cloud hazards. Official probes, reviewer, and condition 11 remain open.",
+  "completion_sentinel": "SUCCESS:AUD-0082 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and both named probes are recorded with their verbatim output"
+}

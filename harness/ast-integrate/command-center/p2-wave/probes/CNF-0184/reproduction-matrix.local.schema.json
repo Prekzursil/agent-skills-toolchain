@@ -1,0 +1,132 @@
+{
+  "$schema": "https://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/CNF-0184/reproduction-matrix.local.schema.json",
+  "title": "CNF-0184 unit-local reproduction-matrix (catalog shim $ref is unresolvable offline)",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "unit_id",
+    "state",
+    "sentinel",
+    "tests",
+    "reproductions",
+    "normalizers",
+    "varying_region_catalogue",
+    "reviewer",
+    "report"
+  ],
+  "properties": {
+    "schema_version": { "type": "integer", "const": 1 },
+    "unit_id": { "type": "string", "const": "CNF-0184" },
+    "state": { "type": "string", "enum": ["SUCCESS"] },
+    "sentinel": { "type": "string", "pattern": "^SUCCESS:CNF-0184" },
+    "tests": {
+      "type": "object",
+      "required": [
+        "known_nondeterministic_control",
+        "over_normalization_control",
+        "both_states",
+        "triple_run"
+      ],
+      "properties": {
+        "known_nondeterministic_control": {
+          "type": "object",
+          "required": ["pass"],
+          "properties": { "pass": { "type": "boolean", "const": true } }
+        },
+        "over_normalization_control": {
+          "type": "object",
+          "required": ["pass"],
+          "properties": { "pass": { "type": "boolean", "const": true } }
+        },
+        "both_states": {
+          "type": "object",
+          "required": ["pass"],
+          "properties": { "pass": { "type": "boolean", "const": true } }
+        },
+        "triple_run": {
+          "type": "object",
+          "required": ["pass", "run_count"],
+          "properties": {
+            "pass": { "type": "boolean", "const": true },
+            "run_count": { "type": "integer", "minimum": 3 }
+          }
+        }
+      }
+    },
+    "reproductions": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["id", "family", "classification", "run_ids", "run_count"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "family": { "type": "integer" },
+          "classification": { "type": "string", "minLength": 1 },
+          "run_ids": { "type": "array", "minItems": 2, "items": { "type": "string" } },
+          "run_count": { "type": "integer", "minimum": 2 }
+        }
+      }
+    },
+    "normalizers": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["id", "class", "over_normalization"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "class": { "type": "string", "minLength": 1 },
+          "over_normalization": {
+            "type": "object",
+            "required": ["absorbed"],
+            "properties": { "absorbed": { "type": "boolean", "const": false } }
+          }
+        }
+      }
+    },
+    "varying_region_catalogue": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": ["class", "normalizer_id", "example_hunk"],
+        "properties": {
+          "class": { "type": "string", "minLength": 1 },
+          "normalizer_id": { "type": "string", "minLength": 1 },
+          "example_hunk": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 1 },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "report": {
+      "type": "object",
+      "required": ["kind", "observations", "control_ids"],
+      "properties": {
+        "kind": { "type": "string", "const": "reproduction-matrix" },
+        "observations": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["name", "measured", "method", "anchor"]
+          }
+        },
+        "control_ids": {
+          "type": "array",
+          "minItems": 4,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

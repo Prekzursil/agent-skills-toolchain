@@ -1,0 +1,247 @@
+{
+ "answer": "Yes on this worktree: the live hooks/_dispatch/manifest.json (two entries ['hook.pre-tool', 'hook.session-start']) each declare event, matcher and python3; the dispatcher resolved interpreter+script and produced a bind argv per entry. A manifest whose event is DefinitelyNotAClientEvent_TST0042 is rejected at load with UNKNOWN_EVENT. Negative fixtures cover missing event, matcher, interpreter, shebang-only, script-as-interpreter, and missing script. Fail-open is TST-0086 and was not re-tested. SUCCESS:TST-0042",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/receipts/TST-0042.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "hooks/_dispatch/dispatch.py",
+   "role": "dispatcher"
+  },
+  {
+   "exists": true,
+   "path": "hooks/_dispatch/manifest.json",
+   "role": "live-registry"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/conformance-report.schema.json",
+   "role": "schema"
+  }
+ ],
+ "bind_results": [
+  {
+   "argv": [
+    "/usr/bin/python3",
+    "/opt/p2/ast-integrate/hooks/_dispatch/scripts/pre_tool.py"
+   ],
+   "bound": true,
+   "event": "PreToolUse",
+   "id": "hook.pre-tool",
+   "interpreter": "python3",
+   "interpreter_resolved": "/usr/bin/python3",
+   "matcher": "*",
+   "reasons": [],
+   "script": "hooks/_dispatch/scripts/pre_tool.py",
+   "script_exists": true
+  },
+  {
+   "argv": [
+    "/usr/bin/python3",
+    "/opt/p2/ast-integrate/hooks/_dispatch/scripts/session_start.py"
+   ],
+   "bound": true,
+   "event": "SessionStart",
+   "id": "hook.session-start",
+   "interpreter": "python3",
+   "interpreter_resolved": "/usr/bin/python3",
+   "matcher": "*",
+   "reasons": [],
+   "script": "hooks/_dispatch/scripts/session_start.py",
+   "script_exists": true
+  }
+ ],
+ "blob_method": {
+  "archive_equals_blob": false,
+  "method": "working-tree bytes hashed after CRLF-to-LF normalisation; git archive is never used for the blob",
+  "never_git_archive_for_blob": true,
+  "note": "This worktree has no .git, so git archive was not invoked. CRLF vs LF is shown by rewriting the live manifest bytes in memory: raw CRLF hash differs; normalisation recovers the LF digest.",
+  "readings": {
+   "crlf_bytes": 536,
+   "crlf_normalised_sha256": "2193fb025f7d2e71901ffd09b44e4551cb3855ddafa24abd756e527b779b11ef",
+   "crlf_sha256": "7f829ba18cee3bc54892e665422a1fabf5bb96cb5c25543481f96bb9c4255575",
+   "lf_bytes": 516,
+   "lf_sha256": "2193fb025f7d2e71901ffd09b44e4551cb3855ddafa24abd756e527b779b11ef",
+   "path": "hooks/_dispatch/manifest.json"
+  },
+  "working_tree_crlf_shown": true
+ },
+ "both_states": {
+  "conforming_passes": true,
+  "holds": true,
+  "invented_event_rejected": true,
+  "same_process": true
+ },
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:TST-0042",
+ "contracts_under_test": [
+  {
+   "id": "hook-dispatch-manifest",
+   "path": "hooks/_dispatch/manifest.json",
+   "present": true
+  },
+  {
+   "id": "hook-contract-rule",
+   "path": "rules/common/hooks.md",
+   "present": true
+  }
+ ],
+ "controls": {
+  "both_states": {
+   "conforming_passes": true,
+   "holds": true,
+   "invented_event_rejected": true,
+   "same_process": true
+  },
+  "garbage_schema_rejected": true,
+  "negative_per_rule": {
+   "R-BIND": true,
+   "R-EVENT": true,
+   "R-INTERP": true,
+   "R-MATCHER": true
+  }
+ },
+ "evidence": [
+  {
+   "kind": "dispatcher-bind",
+   "note": "[{\"argv\": [\"/usr/bin/python3\", \"/opt/p2/ast-integrate/hooks/_dispatch/scripts/pre_tool.py\"], \"bound\": true, \"event\": \"PreToolUse\", \"id\": \"hook.pre-tool\", \"interpreter\": \"python3\", \"interpreter_resolved\": \"/usr/bin/python3\", \"matcher\": \"*\", \"reasons\": [], \"script\": \"hooks/_dispatch/scripts/pre_tool.py\", \"script_exists\": true}, {\"argv\": [\"/usr/bin/python3\", \"/opt/p2/ast-integrate/hooks/_dispatch/scripts/session_start.py\"], \"bound\": true, \"event\": \"SessionStart\", \"id\": \"hook.session-start\", \"interpreter\": \"python3\", \"interpreter_resolved\": \"/usr/bin/python3\", \"matcher\": \"*\", \"reasons\": [], \"script\": \"hooks/_dispatch/scripts/session_start.py\", \"script_exists\": true}]",
+   "path": "hooks/_dispatch/manifest.json"
+  },
+  {
+   "kind": "load-reject",
+   "note": "rejected=True code=UNKNOWN_EVENT event=DefinitelyNotAClientEvent_TST0042",
+   "path": "command-center/p2-wave/probes/TST-0042/fixtures/invented-event.json"
+  },
+  {
+   "kind": "contract-rule",
+   "note": "Contract requires event, matcher, explicit interpreter; unknown events fail at load.",
+   "path": "rules/common/hooks.md"
+  }
+ ],
+ "findings": [
+  {
+   "detail": "Dispatcher bound 2 live entries ['hook.pre-tool', 'hook.session-start'] with argv [['/usr/bin/python3', '/opt/p2/ast-integrate/hooks/_dispatch/scripts/pre_tool.py'], ['/usr/bin/python3', '/opt/p2/ast-integrate/hooks/_dispatch/scripts/session_start.py']].",
+   "id": "F-LIVE-BIND",
+   "minimal_fix": "Keep event, matcher, interpreter, and script on every registry row.",
+   "surface": "hooks/_dispatch/manifest.json",
+   "verdict": "SURVIVES"
+  },
+  {
+   "detail": "Manifest carrying DefinitelyNotAClientEvent_TST0042 was rejected at load with UNKNOWN_EVENT; bind was not attempted.",
+   "id": "F-UNKNOWN-EVENT",
+   "minimal_fix": "Keep CLIENT_EVENT_VOCABULARY pinned in dispatch.py; do not let a manifest extend it.",
+   "surface": "load-time vocabulary gate",
+   "verdict": "SURVIVES"
+  },
+  {
+   "detail": "Missing interpreter, shebang-only, and script-as-interpreter fixtures were rejected (codes MISSING_INTERPRETER, IMPLICIT_INTERPRETER).",
+   "id": "F-EXPLICIT-INTERPRETER",
+   "minimal_fix": "Declare interpreter as a named runtime (python3/node/pwsh); never rely on shebang.",
+   "surface": "interpreter declaration",
+   "verdict": "SURVIVES"
+  },
+  {
+   "detail": "Missing matcher rejected (MISSING_MATCHER); missing script loaded then failed bind (bound=False).",
+   "id": "F-MATCHER-AND-BIND",
+   "minimal_fix": "Require a non-empty matcher at load and a resolvable script at bind.",
+   "surface": "matcher + bind",
+   "verdict": "SURVIVES"
+  }
+ ],
+ "host": {
+  "git_worktree_repo": false,
+  "os": "Linux 6.8.0-136-generic",
+  "python": "3.12.3"
+ },
+ "minimal_fixes": [
+  {
+   "applies_to": "unknown event names",
+   "fix": "Reject at load against the pinned client vocabulary in dispatch.py."
+  },
+  {
+   "applies_to": "Windows shebang",
+   "fix": "Require an explicit interpreter field; shebang is not a bind."
+  }
+ ],
+ "negative_per_rule": {
+  "R-BIND": true,
+  "R-EVENT": true,
+  "R-INTERP": true,
+  "R-MATCHER": true
+ },
+ "parser": {
+  "hand_written_field_list": false,
+  "identity": "hooks/_dispatch/dispatch.py:load_manifest (json.loads + vocabulary/field gates)",
+  "schema_id": "command-center/schema/conformance-report.schema.json",
+  "strict": true
+ },
+ "produced_by": "command-center/p2-wave/probes/TST-0042/emit.py",
+ "question": "Does every registered hook declare a resolvable event name, matcher and explicit interpreter that the dispatcher can actually bind, and does the manifest REJECT a hook whose declared event does not exist in the client's event vocabulary? Runtime fail-open behaviour is owned by TST-0086 and is deliberately not re-tested here.",
+ "report_kind": "conformance-report",
+ "reviewer": {
+  "independent": true,
+  "notes": "Named probe2 re-loads the invented-event fixture and asserts UNKNOWN_EVENT at load in the same process as a passing conforming bind.",
+  "reviewer_id": "TST-0042-probe2-invented-event",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0042",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "evidence": "bound 2 entries ['hook.pre-tool', 'hook.session-start'] argv=[['/usr/bin/python3', '/opt/p2/ast-integrate/hooks/_dispatch/scripts/pre_tool.py'], ['/usr/bin/python3', '/opt/p2/ast-integrate/hooks/_dispatch/scripts/session_start.py']]",
+   "id": "T-LIVE-BIND",
+   "requirement": "Every live manifest hook binds with event, matcher, interpreter, argv.",
+   "verdict": "PASS"
+  },
+  {
+   "evidence": "code=UNKNOWN_EVENT event=DefinitelyNotAClientEvent_TST0042 rejected=True",
+   "id": "T-UNKNOWN-EVENT",
+   "requirement": "A hook whose event is not in the client vocabulary is rejected at load.",
+   "verdict": "PASS"
+  },
+  {
+   "evidence": "{\"conforming_passes\": true, \"holds\": true, \"invented_event_rejected\": true, \"same_process\": true}",
+   "id": "T-BOTH-STATES",
+   "requirement": "Same suite passes conforming and fails invented-event in one process.",
+   "verdict": "PASS"
+  },
+  {
+   "evidence": "{\"R-BIND\": true, \"R-EVENT\": true, \"R-INTERP\": true, \"R-MATCHER\": true}",
+   "id": "T-NEGATIVE-PER-RULE",
+   "requirement": "At least one negative case per contract rule (event, matcher, interpreter, bind).",
+   "verdict": "PASS"
+  }
+ ],
+ "title": "Executable conformance tests for the hook-dispatch contract",
+ "ts": "2026-08-24T18:58:59Z",
+ "unit_id": "TST-0042",
+ "validators": [
+  {
+   "id": "dispatch-binder",
+   "path": "hooks/_dispatch/dispatch.py",
+   "present": true
+  },
+  {
+   "id": "conformance-suite",
+   "path": "command-center/p2-wave/probes/TST-0042/suite.py",
+   "present": true
+  }
+ ],
+ "vocabulary": [
+  "Notification",
+  "PermissionRequest",
+  "PostToolUse",
+  "PostToolUseFailure",
+  "PreCompact",
+  "PreToolUse",
+  "SessionEnd",
+  "SessionStart",
+  "Stop",
+  "SubagentStop",
+  "UserPromptSubmit"
+ ]
+}

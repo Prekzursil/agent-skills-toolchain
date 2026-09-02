@@ -1,0 +1,358 @@
+{
+ "answer": "Yes: naive independent-evidence pooling of 8 clones each at credence 0.8 yields pooled=0.999984741444 (near-certain, threshold 0.99). Correlation discount with roster rho=1 gives n_eff=1 and pooled=0.800000000000, matching the single voice. Simulation with known p_true=0.35 seed=3053505 n_trials=250: correlated naive MSE=0.122600 Brier=0.327513 near-certain-rate=0.644; discounted MSE=0.028589 Brier=0.241556 near-certain-rate=0.000. SUCCESS:IMP-0305",
+ "artifact_paths": [
+  "command-center/receipts/IMP-0305.json",
+  "tools/council/vote/bayes.py",
+  "tools/council/vote/near_certain_v1.json",
+  "command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+  "command-center/p2-wave/probes/IMP-0305/probe2_calibration_sim.py"
+ ],
+ "artifacts": [
+  {
+   "bytes": 1,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/IMP-0305.json",
+   "role": "primary",
+   "sha256_note": "self-hash omitted; live digest is UNIT-ARTIFACT-MANIFEST.json"
+  },
+  {
+   "bytes": 12528,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/vote/bayes.py",
+   "role": "implementation",
+   "sha256": "471167c88b2643bb67dfc1564f1d8528d8b12462cd8f2ce3ab4687d45a8adba8"
+  },
+  {
+   "bytes": 261,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/vote/near_certain_v1.json",
+   "role": "threshold-spec",
+   "sha256": "da6ef49e55b27151af5da4d0113c964214044eb1665f270a401a601a7016b9a9"
+  }
+ ],
+ "assumption": {
+  "discounted": "exchangeable-with-rho",
+  "naive": "naive-independent-evidence",
+  "void_on_clones": true,
+  "void_reason": "all participants share vendor and context_id (roster rho=1)"
+ },
+ "completion_sentinel": "SUCCESS:IMP-0305",
+ "dependencies_on_worktree": {
+  "IMP-0272": "absent; roster rho is computed locally from vendor+context, not from diversity.py waivers",
+  "IMP-0301": "absent; quota/targets.py is not consulted by this pooling module"
+ },
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0305.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "note": "measure runs after this receipt and the per-unit manifest exist",
+   "probe": {
+    "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0305",
+    "method": "command",
+    "role": "verifier"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/vote/bayes.py:161",
+   "claim": "Same 8-clone roster at credence 0.8: naive pooled 0.999984741444 (n_eff=8.0, near_certain=True); discounted pooled 0.800000000000 (n_eff=1.0, near_certain=False, roster_rho=1.0).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+     "exit_code": 0,
+     "fingerprint": "5084cad1a998dcc88114107952b4d596",
+     "method": "command",
+     "raw_output": "emit-pre-probe live clone both-states",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c recompute-clone-naive-vs-discount",
+     "exit_code": 0,
+     "fingerprint": "47ff8580e165c0434c31e22ea2dd8076",
+     "method": "command",
+     "raw_output": "{\"naive\": 0.9999847414437646, \"discounted\": 0.8, \"n_eff_naive\": 8.0, \"n_eff_disc\": 1.0}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/vote/bayes.py:301",
+   "claim": "Calibration simulation known p_true=0.35 n_trials=250 n_experts=8 k_obs=4 seed=3053505: correlated naive MSE=0.122600057024 Brier=0.327512615905 ECE=0.292194091730 near_certain_rate=0.644; correlated discounted MSE=0.028588888889 Brier=0.241555555556 ECE=0.109333333333 near_certain_rate=0.0.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe2_calibration_sim.py",
+     "exit_code": 0,
+     "fingerprint": "eec86daa7d9d14736225223853c7898b",
+     "method": "command",
+     "raw_output": "emit-pre-probe live calibration sim",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c recompute-calibration-simulation",
+     "exit_code": 0,
+     "fingerprint": "4833f5a72cf0ee0f08aaf572dc66f1cd",
+     "method": "command",
+     "raw_output": "{\"mse_naive\": 0.1226000570235269, \"mse_disc\": 0.02858888888888889, \"brier_naive\": 0.3275126159051193, \"brier_disc\": 0.24155555555555555, \"near_naive\": 0.644, \"near_disc\": 0.0}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/vote/bayes.py:64",
+   "claim": "n_eff = n / (1+(n-1)*rho) is the discount; rho=1 => n_eff=1; fully-correlated clones cannot become near-certain by repetition.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+     "exit_code": 0,
+     "fingerprint": "5084cad1a998dcc88114107952b4d596",
+     "method": "command",
+     "raw_output": "emit-pre-probe live clone both-states",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c recompute-clone-naive-vs-discount",
+     "exit_code": 0,
+     "fingerprint": "47ff8580e165c0434c31e22ea2dd8076",
+     "method": "command",
+     "raw_output": "{\"naive\": 0.9999847414437646, \"discounted\": 0.8, \"n_eff_naive\": 8.0, \"n_eff_disc\": 1.0}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/vote/bayes.py:41",
+   "claim": "Pooling without declared_rho or vendor+context_id raises UndeclaredIndependenceError.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+     "exit_code": 0,
+     "fingerprint": "5084cad1a998dcc88114107952b4d596",
+     "method": "command",
+     "raw_output": "emit-pre-probe live clone both-states",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/vote/near_certain_v1.json:5",
+   "claim": "Near-certain threshold is versioned imp-0305-near-certain-v1 v1 threshold=0.99 frozen=true; per-run override refused.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+     "exit_code": 0,
+     "fingerprint": "5084cad1a998dcc88114107952b4d596",
+     "method": "command",
+     "raw_output": "emit-pre-probe live clone both-states",
+     "role": "source"
+    },
+    {
+     "command": "tools/council/vote/near_certain_v1.json",
+     "exit_code": 0,
+     "fingerprint": "501622f4786a8b9de0436b20c1cb64fb",
+     "method": "file-read",
+     "raw_output": "{\"description\": \"Near-certain means pooled credence >= threshold or <= 1-threshold. Versioned; not tuned per run.\", \"frozen\": true, \"id\": \"imp-0305-near-certain-v1\", \"not_tuned_per_run\": true, \"threshold\": 0.99, \"two_sided\": true, \"version\": 1}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/vote/bayes.py:161",
+   "claim": "Independent 8-vendor roster at credence 0.8: rho=0.0, naive=0.999984741444, discounted=0.999984741444 (identical); independence_assumption_void=False.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+     "exit_code": 0,
+     "fingerprint": "5084cad1a998dcc88114107952b4d596",
+     "method": "command",
+     "raw_output": "emit-pre-probe live clone both-states",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c recompute-clone-naive-vs-discount",
+     "exit_code": 0,
+     "fingerprint": "47ff8580e165c0434c31e22ea2dd8076",
+     "method": "command",
+     "raw_output": "{\"naive\": 0.9999847414437646, \"discounted\": 0.8, \"n_eff_naive\": 8.0, \"n_eff_disc\": 1.0}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0305/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_control_ids": [
+  "fully-correlated-panel-not-near-certain",
+  "undeclared-independence-refused",
+  "near-certain-threshold-not-per-run",
+  "naive-correlated-near-certain-rate-fails-the-property"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "naive_pooled=0.9999847414437646 near_certain=True",
+   "description": "Eight clones at 0.80: naive is near-certain; discounted is not",
+   "fired_on_bad_state": true,
+   "good_state_output": "discounted_pooled=0.8 near_certain=False",
+   "id": "fully-correlated-panel-not-near-certain",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "UndeclaredIndependenceError",
+   "description": "Missing vendor+context without declared_rho raises",
+   "fired_on_bad_state": true,
+   "good_state_output": "clone and independent fixtures include vendor+context_id",
+   "id": "undeclared-independence-refused",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "override=0.5 -> PerRunThresholdTuneError",
+   "description": "per-run threshold override is refused",
+   "fired_on_bad_state": true,
+   "good_state_output": "declared threshold=0.99 version=1",
+   "id": "near-certain-threshold-not-per-run",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "naive_rate=0.644",
+   "description": "Requiring near_certain_rate==0 of the naive correlated cell FAILS",
+   "fired_on_bad_state": true,
+   "good_state_output": "discounted_rate=0.0",
+   "id": "naive-correlated-near-certain-rate-fails-the-property",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0305: tools/council/vote/bayes.py pools with a declared independence assumption and a roster-measured correlation discount. IMP-0272 and IMP-0301 are not on this worktree; disclosed below. Did not run global unit_manifest.py --write. No ADV rebuild.",
+ "output_schema": "command-center/schema/receipt.schema.json",
+ "profile": "council-vote-module",
+ "question": "When participants are correlated (same vendor, same context), does naive pooling manufacture overconfidence, and does the implementation discount for the measured correlation?",
+ "refuse_line": "tools/council/vote/bayes.py:45",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0272 diversity.py waiver records are not consumed; rho is roster-local.",
+   "settling_experiment": "When IMP-0272 delivers, bind void_reason to its waiver artifact and re-run probes.",
+   "verdict": "DISCLOSED"
+  },
+  {
+   "claim": "IMP-0301 quota/targets.py is not an input to pooling.",
+   "settling_experiment": "No binding required for this unit's falsifiable question.",
+   "verdict": "DISCLOSED"
+  },
+  {
+   "claim": "No labelled verdict history, so calibration-weighted aggregation (RES-0079) is unused.",
+   "settling_experiment": "Revisit pooling weights once a scored history store exists.",
+   "verdict": "DISCLOSED"
+  },
+  {
+   "claim": "Original 11-COUNCIL-SPECIFICATION.md is not on this worktree.",
+   "settling_experiment": "Re-anchor to the spec file if it is restored.",
+   "verdict": "DISCLOSED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0305-probe2-calibration-sim",
+  "scope_not_agreement": true,
+  "starts_from_tests": true,
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "same_inputs": {
+  "clone_credence": 0.8,
+  "discounted_n_effective": 1.0,
+  "discounted_near_certain": false,
+  "discounted_pooled": 0.8,
+  "n": 8,
+  "naive_n_effective": 8.0,
+  "naive_near_certain": true,
+  "naive_pooled": 0.9999847414437646,
+  "overconfidence_gap": 0.19998474144376455,
+  "roster_rho": 1.0
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0305",
+ "simulation": {
+  "correlated_discounted_brier": 0.24155555555555555,
+  "correlated_discounted_ece": 0.10933333333333335,
+  "correlated_discounted_mse": 0.02858888888888889,
+  "correlated_discounted_near_certain_rate": 0.0,
+  "correlated_naive_brier": 0.3275126159051193,
+  "correlated_naive_ece": 0.2921940917303625,
+  "correlated_naive_mse": 0.1226000570235269,
+  "correlated_naive_near_certain_rate": 0.644,
+  "independent_discounted_mse": 0.09060156105868608,
+  "independent_naive_mse": 0.09060156105868608,
+  "k_obs": 4,
+  "n_experts": 8,
+  "n_trials": 250,
+  "p_true": 0.35,
+  "seed": 3053505
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0305",
+ "state": "SUCCESS",
+ "test_ids": [
+  "probe1_naive_vs_discount",
+  "probe2_calibration_sim",
+  "simulation_calibration_error_correlated_vs_independent"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe1_naive_vs_discount.py",
+   "id": "probe1_naive_vs_discount",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0305/probe2_calibration_sim.py",
+   "id": "probe2_calibration_sim",
+   "result": "PASS"
+  }
+ ],
+ "thresholds": {
+  "clone_discounted": 0.8,
+  "clone_naive": 0.9999847414437646,
+  "declared": {
+   "description": "Near-certain means pooled credence >= threshold or <= 1-threshold. Versioned; not tuned per run.",
+   "frozen": true,
+   "id": "imp-0305-near-certain-v1",
+   "not_tuned_per_run": true,
+   "threshold": 0.99,
+   "two_sided": true,
+   "version": 1
+  }
+ },
+ "timestamps": {
+  "ended_at": "2026-08-25T01:05:07Z",
+  "started_at": "2026-08-25T01:05:07Z"
+ },
+ "title": "Bayesian belief aggregation and confidence pooling",
+ "unit_id": "IMP-0305"
+}

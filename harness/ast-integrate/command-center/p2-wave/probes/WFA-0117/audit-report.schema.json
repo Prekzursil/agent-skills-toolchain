@@ -1,0 +1,154 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "command-center/p2-wave/probes/WFA-0117/audit-report.schema.json",
+  "title": "WFA-0117 AuditReport (unit-local executable contract; catalog pack $defs/AuditReport is an unreachable shim $ref)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "question",
+    "claim_under_test",
+    "independence_protocol",
+    "raw_records_digest",
+    "recomputed_scores",
+    "fusion_lane_comparison",
+    "reproduced_runs",
+    "reviewers",
+    "split_resolution",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "artifacts",
+    "evidence"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "WFA-0117" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 40 },
+    "claim_under_test": { "type": "string", "minLength": 16 },
+    "independence_protocol": {
+      "type": "object",
+      "required": [
+        "fusion_unread_before_recompute",
+        "recompute_module_omits_fusion_lane",
+        "default_insufficient_to"
+      ],
+      "properties": {
+        "fusion_unread_before_recompute": { "type": "boolean", "const": true },
+        "recompute_module_omits_fusion_lane": { "type": "boolean", "const": true },
+        "default_insufficient_to": { "type": "string", "const": "REFUTED" }
+      }
+    },
+    "raw_records_digest": {
+      "type": "object",
+      "required": ["sha256", "n_records", "path"],
+      "properties": {
+        "sha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+        "n_records": { "type": "integer", "minimum": 1 },
+        "path": { "type": "string" }
+      }
+    },
+    "recomputed_scores": { "type": "object" },
+    "fusion_lane_comparison": { "type": "object" },
+    "reproduced_runs": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["run_id", "input_hash_match", "oracle_match", "live_oracle_pass"],
+        "properties": {
+          "run_id": { "type": "string" },
+          "input_hash_match": { "type": "boolean" },
+          "oracle_match": { "type": "boolean" },
+          "live_oracle_pass": { "type": "boolean" }
+        }
+      }
+    },
+    "reviewers": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["reviewer_id", "vendor_role", "verdict", "independent", "sees_other_verdict"],
+        "properties": {
+          "reviewer_id": { "type": "string" },
+          "vendor_role": { "type": "string" },
+          "verdict": { "type": "string" },
+          "independent": { "type": "boolean" },
+          "sees_other_verdict": { "type": "boolean", "const": false }
+        }
+      }
+    },
+    "split_resolution": { "type": "object" },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string" },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "planted_defect", "detector_fired"],
+        "properties": {
+          "id": { "type": "string" },
+          "planted_defect": { "type": "string" },
+          "detector_fired": { "type": "boolean" }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string" },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    }
+  }
+}

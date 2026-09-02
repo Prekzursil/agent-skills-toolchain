@@ -1,0 +1,417 @@
+{
+  "source": "catalog-named FORECASTING members for CNL-0043",
+  "library_on_this_tree": false,
+  "library_catalog_path": "C:/Users/Prekzursil/.claude/harness-restore-20260806/12-COUNCIL-PROTOCOLS-AND-PRESETS.json",
+  "transcription_basis": "The work-unit question names P33–P37 so no member can fall through a family mis-assignment. 12-COUNCIL-PROTOCOLS-AND-PRESETS.json is absent on this worktree; these records are not a byte copy of that file. as_written axes are null because R-A09 catalogue evidence records status DISCOVERY for the inherited 58 protocol records.",
+  "r_a09_status_inherited": "DISCOVERY - no protocol here has been executed",
+  "records": [
+    {
+      "id": "P33",
+      "slug": "prediction-tournament",
+      "family": "FORECASTING",
+      "as_written": {
+        "status": "DISCOVERY - no protocol here has been executed",
+        "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+        "resolution_criterion": null,
+        "scoring_rule": null,
+        "turn_schedule": null
+      },
+      "designed_resolution": {
+        "criterion": "Lookup observable_id at resolution_time from resolution_source. The returned value must be a member of outcome_space. The lookup yields a one-hot vector over outcome_space. A missing source, missing time, empty outcome_space, or a value outside outcome_space is UNRESOLVABLE, not scored as 0.5.",
+        "inputs": ["observable_id", "resolution_source", "resolution_time", "outcome_space"]
+      },
+      "designed_scoring": {
+        "id": "brier",
+        "statement": "Brier score: sum_k (p_k - y_k)^2 over outcome_space, y one-hot of the resolved outcome. Lower is better. Range [0, 2] for binary.",
+        "inputs": ["probability_vector", "resolved_outcome", "outcome_space"]
+      },
+      "designed_turn_schedule": {
+        "turns": [
+          {
+            "id": "T1",
+            "role": "moderator",
+            "action": "publish_questions",
+            "reads": ["question_bank"],
+            "writes": ["open_forecasts"],
+            "halt_when": null
+          },
+          {
+            "id": "T2",
+            "role": "forecaster",
+            "action": "submit_probability_vector",
+            "reads": ["open_forecasts"],
+            "writes": ["forecasts"],
+            "halt_when": {
+              "op": "forall",
+              "collection": "open_forecasts",
+              "pred": { "op": "has_submission" }
+            }
+          },
+          {
+            "id": "T3",
+            "role": "moderator",
+            "action": "freeze_submissions",
+            "reads": ["forecasts"],
+            "writes": ["frozen_forecasts"],
+            "halt_when": null
+          },
+          {
+            "id": "T4",
+            "role": "resolver",
+            "action": "lookup_outcome",
+            "reads": ["frozen_forecasts", "resolution_source"],
+            "writes": ["resolved_outcomes"],
+            "halt_when": {
+              "op": "forall",
+              "collection": "frozen_forecasts",
+              "pred": { "op": "resolved" }
+            }
+          },
+          {
+            "id": "T5",
+            "role": "scorer",
+            "action": "brier",
+            "reads": ["frozen_forecasts", "resolved_outcomes"],
+            "writes": ["scores"],
+            "halt_when": {
+              "op": "all",
+              "args": [{ "op": "resolved" }, { "op": "scored" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P34",
+      "slug": "scenario-planning",
+      "family": "FORECASTING",
+      "as_written": {
+        "status": "DISCOVERY - no protocol here has been executed",
+        "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+        "resolution_criterion": null,
+        "scoring_rule": null,
+        "turn_schedule": null
+      },
+      "designed_resolution": {
+        "criterion": "A scenario narrative is not a proposition and does not resolve. Each attached signpost is a binary or multinomial forecast and resolves under the P33 criterion (observable, source, time, outcome_space). Scoring the narrative itself is forbidden.",
+        "inputs": ["signposts[].observable_id", "signposts[].resolution_source", "signposts[].resolution_time"]
+      },
+      "designed_scoring": {
+        "id": "none-on-narrative",
+        "statement": "No score on the scenario narrative. Each resolvable signpost is Brier-scored. A narrative submitted as if it were a forecast is UNRESOLVABLE.",
+        "inputs": ["signposts"]
+      },
+      "designed_turn_schedule": {
+        "turns": [
+          {
+            "id": "T1",
+            "role": "facilitator",
+            "action": "elicit_drivers",
+            "reads": ["brief"],
+            "writes": ["drivers"],
+            "halt_when": null
+          },
+          {
+            "id": "T2",
+            "role": "participant",
+            "action": "choose_scenario_axes",
+            "reads": ["drivers"],
+            "writes": ["axes"],
+            "halt_when": null
+          },
+          {
+            "id": "T3",
+            "role": "participant",
+            "action": "write_narratives",
+            "reads": ["axes"],
+            "writes": ["scenarios"],
+            "halt_when": null
+          },
+          {
+            "id": "T4",
+            "role": "participant",
+            "action": "attach_signposts",
+            "reads": ["scenarios"],
+            "writes": ["signposts"],
+            "halt_when": null
+          },
+          {
+            "id": "T5",
+            "role": "resolver",
+            "action": "resolve_signposts",
+            "reads": ["signposts", "resolution_source"],
+            "writes": ["resolved_signposts"],
+            "halt_when": { "op": "signposts_resolved" }
+          },
+          {
+            "id": "T6",
+            "role": "scorer",
+            "action": "brier_signposts_only",
+            "reads": ["resolved_signposts"],
+            "writes": ["scores"],
+            "halt_when": {
+              "op": "all",
+              "args": [{ "op": "signposts_resolved" }, { "op": "scored" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P35",
+      "slug": "reference-class-planning-poker",
+      "family": "FORECASTING",
+      "as_written": {
+        "status": "DISCOVERY - no protocol here has been executed",
+        "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+        "resolution_criterion": null,
+        "scoring_rule": null,
+        "turn_schedule": null
+      },
+      "designed_resolution": {
+        "criterion": "When item_id reaches completion, actual_accessor returns a scalar (hours or cost) in the units of bin_edges. Incomplete items are UNRESOLVABLE, not scored as zero. A missing reference_class name is a protocol defect: the round may still run, but the estimate is flagged unanchored.",
+        "inputs": ["item_id", "actual_accessor", "item_status"]
+      },
+      "designed_scoring": {
+        "id": "crps",
+        "statement": "Continuous ranked probability score of the submitted histogram (bins + bin_edges) against the scalar actual. Lower is better.",
+        "inputs": ["bins", "bin_edges", "actual"]
+      },
+      "designed_turn_schedule": {
+        "turns": [
+          {
+            "id": "T1",
+            "role": "moderator",
+            "action": "present_item",
+            "reads": ["backlog"],
+            "writes": ["item"],
+            "halt_when": null
+          },
+          {
+            "id": "T2",
+            "role": "analyst",
+            "action": "name_reference_class",
+            "reads": ["item", "historical_set"],
+            "writes": ["reference_class"],
+            "halt_when": null
+          },
+          {
+            "id": "T3",
+            "role": "participant",
+            "action": "simultaneous_histogram_cards",
+            "reads": ["item", "reference_class"],
+            "writes": ["private_cards"],
+            "halt_when": null
+          },
+          {
+            "id": "T4",
+            "role": "participant",
+            "action": "discuss_outliers",
+            "reads": ["private_cards"],
+            "writes": ["discussion"],
+            "halt_when": null
+          },
+          {
+            "id": "T5",
+            "role": "participant",
+            "action": "commit_distribution",
+            "reads": ["discussion"],
+            "writes": ["committed_bins"],
+            "halt_when": {
+              "op": "forall",
+              "collection": "participants",
+              "pred": { "op": "has_submission" }
+            }
+          },
+          {
+            "id": "T6",
+            "role": "resolver",
+            "action": "read_actual_on_completion",
+            "reads": ["item", "actual_accessor"],
+            "writes": ["actual"],
+            "halt_when": { "op": "completed" }
+          },
+          {
+            "id": "T7",
+            "role": "scorer",
+            "action": "crps",
+            "reads": ["committed_bins", "actual"],
+            "writes": ["scores"],
+            "halt_when": {
+              "op": "all",
+              "args": [{ "op": "completed" }, { "op": "scored" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P36",
+      "slug": "calibration-tournament",
+      "family": "FORECASTING",
+      "as_written": {
+        "status": "DISCOVERY - no protocol here has been executed",
+        "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+        "resolution_criterion": null,
+        "scoring_rule": null,
+        "turn_schedule": null
+      },
+      "designed_resolution": {
+        "criterion": "Each bank item resolves independently under the P33 criterion. Ranking uses Brier; the calibration report is expected calibration error over the same resolved bank. Unresolvable items are dropped from both the ranking and the ECE denominator, never filled with a default outcome.",
+        "inputs": ["bank[].observable_id", "bank[].resolution_source", "bank[].resolution_time"]
+      },
+      "designed_scoring": {
+        "id": "brier+ece",
+        "statement": "Per-item Brier as in P33. Tournament rank by mean Brier over resolvable items. ECE is reported and does not break ties.",
+        "inputs": ["probability_vector", "resolved_outcome", "outcome_space"]
+      },
+      "designed_turn_schedule": {
+        "turns": [
+          {
+            "id": "T1",
+            "role": "moderator",
+            "action": "publish_bank",
+            "reads": ["question_bank"],
+            "writes": ["open_forecasts"],
+            "halt_when": null
+          },
+          {
+            "id": "T2",
+            "role": "forecaster",
+            "action": "submit_probability_vectors",
+            "reads": ["open_forecasts"],
+            "writes": ["forecasts"],
+            "halt_when": {
+              "op": "forall",
+              "collection": "open_forecasts",
+              "pred": { "op": "has_submission" }
+            }
+          },
+          {
+            "id": "T3",
+            "role": "moderator",
+            "action": "freeze_bank",
+            "reads": ["forecasts"],
+            "writes": ["frozen_forecasts"],
+            "halt_when": null
+          },
+          {
+            "id": "T4",
+            "role": "resolver",
+            "action": "batch_lookup",
+            "reads": ["frozen_forecasts", "resolution_source"],
+            "writes": ["resolved_outcomes"],
+            "halt_when": {
+              "op": "forall",
+              "collection": "frozen_forecasts",
+              "pred": { "op": "resolved" }
+            }
+          },
+          {
+            "id": "T5",
+            "role": "scorer",
+            "action": "brier_and_ece",
+            "reads": ["frozen_forecasts", "resolved_outcomes"],
+            "writes": ["scores", "ece"],
+            "halt_when": {
+              "op": "all",
+              "args": [{ "op": "resolved" }, { "op": "scored" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P37",
+      "slug": "pairwise-comparison",
+      "family": "FORECASTING",
+      "as_written": {
+        "status": "DISCOVERY - no protocol here has been executed",
+        "citation": "command-center/WORK-UNIT-CATALOG.json items[id=R-A09].evidence",
+        "resolution_criterion": null,
+        "scoring_rule": null,
+        "turn_schedule": null
+      },
+      "designed_resolution": {
+        "criterion": "Each pair (a,b) resolves to a winner from observed_choice (elicitation) or ground_truth_winner / ground_truth_ranking (forecast against a ranking). A pair with neither is UNRESOLVABLE. Preference elicitation without ground truth can still halt via observed_choice; it is scored as a recorded choice, not as a world-event forecast.",
+        "inputs": ["pair", "observed_choice", "ground_truth_winner", "ground_truth_ranking"]
+      },
+      "designed_scoring": {
+        "id": "bradley-terry-logloss",
+        "statement": "Log loss of the submitted P(winner) under a Bradley-Terry forecast vector over {a, b}. Lower is better. If a full ranking exists, Spearman on the recovered ranking is reported and does not replace log loss.",
+        "inputs": ["probability_vector", "ground_truth_winner", "observed_choice"]
+      },
+      "designed_turn_schedule": {
+        "turns": [
+          {
+            "id": "T1",
+            "role": "moderator",
+            "action": "present_pair",
+            "reads": ["pair_queue"],
+            "writes": ["current_pair"],
+            "halt_when": null
+          },
+          {
+            "id": "T2",
+            "role": "participant",
+            "action": "choose_or_forecast_winner",
+            "reads": ["current_pair"],
+            "writes": ["pair_forecasts"],
+            "halt_when": {
+              "op": "forall",
+              "collection": "current_pair",
+              "pred": { "op": "has_submission" }
+            }
+          },
+          {
+            "id": "T3",
+            "role": "aggregator",
+            "action": "update_bradley_terry",
+            "reads": ["pair_forecasts"],
+            "writes": ["strengths"],
+            "halt_when": null
+          },
+          {
+            "id": "T4",
+            "role": "moderator",
+            "action": "next_pair_or_queue_irresolvable",
+            "reads": ["pair_queue", "pair_forecasts"],
+            "writes": ["pair_queue", "unresolvable_pairs"],
+            "halt_when": { "op": "pairs_resolved_or_queued" }
+          },
+          {
+            "id": "T5",
+            "role": "resolver",
+            "action": "apply_ground_truth",
+            "reads": ["pair_forecasts", "ground_truth_ranking"],
+            "writes": ["resolved_pairs"],
+            "halt_when": null
+          },
+          {
+            "id": "T6",
+            "role": "scorer",
+            "action": "bradley_terry_logloss",
+            "reads": ["resolved_pairs"],
+            "writes": ["scores"],
+            "halt_when": {
+              "op": "all",
+              "args": [{ "op": "pairs_resolved_or_queued" }, { "op": "scored" }]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "P26",
+      "slug": "brainstorming-swarm",
+      "family": "GENERATIVE",
+      "note": "Distractor. Must not enter the FORECASTING census. Catalog CNL-0042 names P26 as GENERATIVE.",
+      "as_written": {
+        "status": "DISCOVERY - no protocol here has been executed",
+        "resolution_criterion": null,
+        "scoring_rule": null,
+        "turn_schedule": null
+      }
+    }
+  ]
+}

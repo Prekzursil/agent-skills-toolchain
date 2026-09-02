@@ -1,0 +1,19 @@
+
+===== launch 2026-08-20T08:57:55Z attempt=1 =====
+I'll start from the existing IMP-0020 probe tree, resume whatever is already built, and drive this unit to a contract-green measure.I'll look up IMP-0020's catalog definition, any existing probe tree, and a recently delivered IMP unit to copy the contract shape.IMP-0020 has no probe tree yet. Next I’ll read the catalog unit, the measure script, and a delivered IMP unit so I can implement from the real contract.Implementation already exists in `platform/plugin/proc.py`. I’ll read the guard, a delivered unit’s artifacts, and the receipt schema next.I’ll read the MSYS path-conversion rule, the existing hook, IMP-0019, and the receipt schema so the implementation matches the catalog, not a guess.The current guard sets `MSYS_NO_PATHCONV` for the whole command, which is the measured mixed-argv regression. I’ll make it argument-scoped, then add tests and probes.Next I’ll add the catalog test, a child writer that checks the file actually appeared, and the live probes.Probes are green. Next I’ll pack the receipt and per-unit manifest from the live raw outputs, then run the delivery measure.**G-1 contract-green for IMP-0020.** `python command-center/p2-wave/_measure_one_delivered.py IMP-0020` printed:
+
+`SUCCESS:delivered IMP-0020 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe_mixed.py:0,probe_no_export.py:0,run_required_tests.py:0`
+
+`probes/IMP-0020/` was missing, so the unit was built rather than parked.
+
+**What the guard does** (`platform/plugin/proc.py`):
+- Classifies each argv token: git revision/pathspec vs POSIX `/c/Users/...` vs Windows `C:/...`.
+- Mixed commands rewrite `/c/Users/...` to `C:/Users/...`, then set `MSYS_NO_PATHCONV=1` on **that child only** so `origin/main:path/to/file` is not mangled.
+- Path-only commands unset an inherited global `MSYS_NO_PATHCONV`.
+- `os.environ` is never written.
+
+**Both catalog directions in one run**, plus the negative control: naive whole-argv suppression leaves `/c/Users/...` unconverted; the child exits 0 and the intended file is **absent**. The scoped guard creates the file.
+
+This Linux worker has no Git Bash; MSYS conversion is simulated by `simulate_msys_argv`, and the path-arg check is a real child write under a sandbox (file existence, not exit code).
+
+Receipt `command-center/receipts/IMP-0020.json` is `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `05641e936322b2753fd84e54ca27b9c05df2b60a3cfac2fd18c6c444ae182b0c`. No git writes; global catalog manifest was not written.

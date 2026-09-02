@@ -1,0 +1,18 @@
+I'll start from the existing TST-0154 probe tree and the claim-verify gate, then resume only what's already built.Existing probe files and the deliverer contract are next so I can resume instead of rebuilding.The cloud-ok refute is not delivery. I’ll load the catalog contract, a delivered TST template, and the receipt schema next.The catalog names the B07 monitor timeout surface. I’ll load G-1, a delivered TST receipt, and that monitor code next.The catalog target is the B07 monitor timeout path. I’ll read the original receipt, schema, and a delivered TST pack next.I'll inspect `ready_units`, the monitor_report schema, a delivered TST pack, and the production clock paths.The unit is a B07 monitor timeout test, not a global clock rewrite. I’ll pull the schema, a delivered TST pack, and the original harvest receipt.The harvest listed real sidecar probes. I’ll look for those files, the SUCCESS receipt schema, and a delivered monitor_report pack.SUCCESS needs every catalog test to PASS, so I’m reading the production clock paths and a delivered receipt template before changing anything.`longrun.sh` is missing on this tree, so I’m locating the real elapsed-time surfaces and a delivered SUCCESS receipt next.`_apply_strikes.py` would be re-run by the measure gate and overwrite a SUCCESS receipt, so I’ll treat that as a hard constraint while I locate the B07 monitor timeout surface.I’ll inspect the live timeout/elapsed code, receipt-packing helpers, and schema fields before writing probes.Cloud-ok left the unit BLOCKED because elapsed time used the wall clock. I’ll switch the live timeout path to a monotonic clock, add re-runnable probes, and pack an honest SUCCESS receipt.Production elapsed paths are monotonic. Next I’ll add the live named probes and pack the receipt.Probes passed. I’ll pack the SUCCESS receipt and per-unit manifest next.**SUCCESS:delivered TST-0154** `predicate=delivered state=SUCCESS probes=4 raws=5 notes=assert_wall_clock_negative.py:0,probe_a_clock_jump.py:0,probe_b_static_audit.py:0,validate_delivery.py:0`
+
+Cloud-ok harvest `unit_complete` was not delivery: named probes were missing and elapsed/timeout still used wall-clock. This pass resumed that tree, implemented the catalog question, and re-ran the live probes to exit 0.
+
+**Production (B07 monitor surfaces on this tree):** elapsed/timeout now uses monotonic `t_mono` + `time.monotonic()` in `liveness.py`, `r2e_loop.py`, `p2_status.py`, and `r2e_monitor.py`. `scripts/longrun.sh` / `.ps1` are absent here, so they were not treated as live surfaces.
+
+**Live probes (re-run by measure, all exit 0):**
+- `probe_a_clock_jump.py` — ±3600s injected wall jumps: running stays in-flight, stalled stays not-fresh, real timeout still fires
+- `probe_b_static_audit.py` — AST: zero elapsed `time.time()` / `st_mtime` subtractions
+- `assert_wall_clock_negative.py` — wall-clock mutant fails both directions; monotonic reference stays correct
+- `validate_delivery.py` — schema 0 errors, `ready_units` delivered, per-unit manifest hash match
+
+**Artifacts:**
+- `command-center/receipts/TST-0154.json` — `state=SUCCESS`, schema-valid `monitor_report`
+- `command-center/p2-wave/probes/TST-0154/UNIT-ARTIFACT-MANIFEST.json` — path + LF sha256 `2f8ee9f910df01ff1cbec34e4ecbc535bc3fd6c89976e79546724d50f0cb4730`
+- `command-center/p2-wave/probes/TST-0154/SUBAGENT-RETURN.json`
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Residual: catalog’s second Windows pwsh7/Git Bash reviewer was not run on this Linux box.

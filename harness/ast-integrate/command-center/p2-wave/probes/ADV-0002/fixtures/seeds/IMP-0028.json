@@ -1,0 +1,328 @@
+{
+  "answer": "tools/plugin/txn_journal.py journals intent+inverse before each of stage/verify/activate/cleanup, then recover() rolls back before activate or forward after it. An independent filesystem census is compared to the two legal snapshots (OLD/NEW); recover() status alone is not evidence. A mid-record truncate is JournalTruncatedError (CLI rc=3), not a guess. Append uses O_APPEND; prefix bytes are unchanged after a later transaction. Reviewer kill point mid_activate_after_dest_renamed is not in the implementer list and recovers to a legal state. SUCCESS:IMP-0028",
+  "artifacts": [
+    {
+      "exists": true,
+      "note": "self; sha256 is in the per-unit UNIT-ARTIFACT-MANIFEST.json row",
+      "path": "command-center/receipts/IMP-0028.json",
+      "role": "primary"
+    },
+    {
+      "bytes": 15605,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/plugin/txn_journal.py",
+      "role": "implementation",
+      "sha256": "d5125495263e6d2fe74c4d5ce543dc5c0fe868e448880899cef48c3faf92ddb5"
+    },
+    {
+      "bytes": 1308,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/plugin/schema/txn-journal.schema.json",
+      "role": "schema",
+      "sha256": "d845adcd6530a625e5e46a1c8ff30682036e1e7f68f067811e99fefea9abde7f"
+    },
+    {
+      "bytes": 3917,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/plugin/tests/test_txn_journal.py",
+      "role": "catalog-test",
+      "sha256": "99ed77f49e7bc3173034bd9dd99e9f8f4bed0298b1393aa50c593eeb09fb82f0"
+    },
+    {
+      "bytes": 1127,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/plugin/payload.py",
+      "role": "census",
+      "sha256": "27b80acc97c238ea87ec3b2f24f32a465733a2cdcec5e2e50c43fa49e9b834e3"
+    },
+    {
+      "bytes": 1438,
+      "eol": "CRLF",
+      "exists": true,
+      "path": "tools/plugin/placement.py",
+      "role": "placement",
+      "sha256": "ca2fa97ab727ee3d4993c247773215cf893fc1ace8597e0d6108257e4003bafd"
+    },
+    {
+      "bytes": 3659,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0028/probe1_kill_sweep.py",
+      "role": "probe",
+      "sha256": "a19e7a86805e2e0dd9dd124578e086e98a5bd47a5193283d659a65e10a0cefff"
+    },
+    {
+      "bytes": 6191,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0028/probe2_reviewer_truncate.py",
+      "role": "probe",
+      "sha256": "c0ba78ee57d9ead4c1284b4e4b46187475d8e42bf77df66443331d876a8380dc"
+    }
+  ],
+  "canonical_module": "txn_journal",
+  "canonical_symbol": "recover",
+  "catalog": {
+    "id": "IMP-0028",
+    "output_path": "command-center/receipts/IMP-0028.json",
+    "title": "Lifecycle transaction journal with crash recovery"
+  },
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:IMP-0028",
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/p2-wave/probes/IMP-0028/probe1_kill_sweep.py",
+      "consumer": "named-probe1",
+      "executed": true,
+      "read_ok": true
+    },
+    {
+      "artifact_path": "command-center/p2-wave/probes/IMP-0028/probe2_reviewer_truncate.py",
+      "consumer": "named-probe2",
+      "executed": true,
+      "read_ok": true
+    },
+    {
+      "artifact_path": "tools/plugin/txn_journal.py",
+      "consumer": "txn_journal.recover CLI",
+      "executed": true,
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "all_landed": true,
+      "all_valid": true,
+      "anchor": "tools/plugin/txn_journal.py:run_implementer_kill_sweep",
+      "claim": "Interrupting at every implementer-recorded step and calling recover() leaves dest in exactly one legal state.",
+      "id": "signal-1-kill-point-sweep",
+      "independent_of": "signal-2-independent-census",
+      "kind": "kill-point-sweep",
+      "n": 8,
+      "points": [
+        "after_intent_stage",
+        "after_execute_stage",
+        "after_intent_verify",
+        "after_execute_verify",
+        "after_intent_activate",
+        "after_execute_activate",
+        "after_intent_cleanup",
+        "after_execute_cleanup"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/plugin/txn_journal.py:independent_census",
+      "census_agrees_with_claim": true,
+      "claim": "After each recovery, an independent_census (dest/staging/old hashes) is classified against the two legal snapshots. recover() claimed_legal_state is accepted only when it matches that census.",
+      "committed_legal_state": "NEW",
+      "id": "signal-2-independent-census",
+      "independent_of": "signal-1-kill-point-sweep",
+      "kind": "filesystem-census",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "evidence_requirement": "TWO independent signals: (1) a kill-point sweep that interrupts the transaction at every recorded step and asserts recovery reaches a valid state each time; (2) an independent filesystem census after each recovery compared against the two legal states. Recovery reporting success is not accepted without the census.",
+  "fixture_matrix": [
+    {
+      "action": "roll-back",
+      "census_matches_new": false,
+      "census_matches_old": true,
+      "claimed": "OLD",
+      "kill_at": "after_intent_stage",
+      "kill_landed": true,
+      "legal_state": "OLD",
+      "live_digest": "3664f072540cecac1f7ce7b38c2c5ffccd166b23ae7c5fb24a9dec0676ea198c",
+      "valid": true
+    },
+    {
+      "action": "roll-back",
+      "census_matches_new": false,
+      "census_matches_old": true,
+      "claimed": "OLD",
+      "kill_at": "after_execute_stage",
+      "kill_landed": true,
+      "legal_state": "OLD",
+      "live_digest": "3664f072540cecac1f7ce7b38c2c5ffccd166b23ae7c5fb24a9dec0676ea198c",
+      "valid": true
+    },
+    {
+      "action": "roll-back",
+      "census_matches_new": false,
+      "census_matches_old": true,
+      "claimed": "OLD",
+      "kill_at": "after_intent_verify",
+      "kill_landed": true,
+      "legal_state": "OLD",
+      "live_digest": "3664f072540cecac1f7ce7b38c2c5ffccd166b23ae7c5fb24a9dec0676ea198c",
+      "valid": true
+    },
+    {
+      "action": "roll-back",
+      "census_matches_new": false,
+      "census_matches_old": true,
+      "claimed": "OLD",
+      "kill_at": "after_execute_verify",
+      "kill_landed": true,
+      "legal_state": "OLD",
+      "live_digest": "3664f072540cecac1f7ce7b38c2c5ffccd166b23ae7c5fb24a9dec0676ea198c",
+      "valid": true
+    },
+    {
+      "action": "roll-back",
+      "census_matches_new": false,
+      "census_matches_old": true,
+      "claimed": "OLD",
+      "kill_at": "after_intent_activate",
+      "kill_landed": true,
+      "legal_state": "OLD",
+      "live_digest": "3664f072540cecac1f7ce7b38c2c5ffccd166b23ae7c5fb24a9dec0676ea198c",
+      "valid": true
+    },
+    {
+      "action": "roll-forward",
+      "census_matches_new": true,
+      "census_matches_old": false,
+      "claimed": "NEW",
+      "kill_at": "after_execute_activate",
+      "kill_landed": true,
+      "legal_state": "NEW",
+      "live_digest": "033687345eba25c160004a2b38c648905e4cec774c72adecd6b2c65d4e5022fe",
+      "valid": true
+    },
+    {
+      "action": "roll-forward",
+      "census_matches_new": true,
+      "census_matches_old": false,
+      "claimed": "NEW",
+      "kill_at": "after_intent_cleanup",
+      "kill_landed": true,
+      "legal_state": "NEW",
+      "live_digest": "033687345eba25c160004a2b38c648905e4cec774c72adecd6b2c65d4e5022fe",
+      "valid": true
+    },
+    {
+      "action": "roll-forward",
+      "census_matches_new": true,
+      "census_matches_old": false,
+      "claimed": "NEW",
+      "kill_at": "after_execute_cleanup",
+      "kill_landed": true,
+      "legal_state": "NEW",
+      "live_digest": "033687345eba25c160004a2b38c648905e4cec774c72adecd6b2c65d4e5022fe",
+      "valid": true
+    }
+  ],
+  "host": {
+    "machine": "x86_64",
+    "system": "linux"
+  },
+  "id": "IMP-0028",
+  "inputs": [
+    "command-center/events/EVENTS.jsonl (append-only precedent)",
+    "tools/plugin/payload.py census_tree",
+    "tools/plugin/placement.py place_payload_files"
+  ],
+  "library_path": "tools/plugin/txn_journal.py",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0028/UNIT-ARTIFACT-MANIFEST.json",
+  "manifest_registration": {
+    "global_unit_manifest_write": false,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0028/UNIT-ARTIFACT-MANIFEST.json",
+    "note": "per-unit manifest only; did not run tools/command-center/unit_manifest.py --write",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0028/probe1_kill_sweep.py",
+      "id": "probe1"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0028/probe2_reviewer_truncate.py",
+      "id": "probe2"
+    }
+  ],
+  "negative_controls": [
+    {
+      "bad_state_output": "truncated journal tail 65 bytes; refuse rather than guess",
+      "description": "Cut the last journal record before its terminating newline. recover() must raise JournalTruncatedError; CLI recover exits 3 with REFUSED. Guessing a repair is a failure.",
+      "fired_on_bad_state": true,
+      "id": "truncate-journal-mid-record",
+      "kind": "truncated-record",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "After a committed journal, a second transaction must leave the previous bytes and their prefix sha256 unchanged.",
+      "fired_on_bad_state": true,
+      "good_state_output": "prefix sha256 unchanged after second txn",
+      "id": "append-only-prefix",
+      "kind": "in-place-rewrite",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 for IMP-0028: live named probes re-run kill-sweep census and reviewer/truncate/append-only checks. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0028",
+  "output_path": "command-center/receipts/IMP-0028.json",
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/txn-journal.schema.json",
+  "phase": "5",
+  "probe_results": {
+    "append_only_prefix_unchanged": true,
+    "committed_legal_state": "NEW",
+    "reviewer_kill_point": "mid_activate_after_dest_renamed",
+    "reviewer_ok": true,
+    "source_uses_o_append": true,
+    "sweep_ok": true,
+    "truncate_refused": true
+  },
+  "question_or_target": "Implement an append-only journal that records each lifecycle step's intent and its inverse before the step executes, plus a recover entry point that replays or reverses an interrupted transaction on next launch \u2014 so a machine freeze mid-install is recoverable rather than a manual repair.",
+  "registered": true,
+  "report_kind": "receipt",
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Added kill point mid_activate_after_dest_renamed (not in IMPLEMENTER_KILL_POINTS). Probe 2 independently confirms legal-state census, mid-record refuse, and append-only prefix. Reviewer trial legal_state=OLD action=roll-back.",
+    "reviewer_id": "IMP-0028-probe2-reviewer-truncate",
+    "verdict": "PASS"
+  },
+  "reviewer_requirement": "Reviewer must add one kill point the implementer did not enumerate.",
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0028",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0028",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_txn_journal.py",
+      "exit_code": 0,
+      "id": "test_recovery_at_every_kill_point",
+      "name": "tools/plugin/tests/test_txn_journal.py::test_recovery_at_every_kill_point",
+      "output_tail": "{\"pass\": true, \"tests\": 3}\nSUCCESS:test_txn_journal",
+      "result": "PASS"
+    },
+    {
+      "id": "NEGATIVE CONTROL truncate mid-record",
+      "name": "test_truncate_journal_mid_record_refuses",
+      "result": "PASS"
+    },
+    {
+      "id": "journal is append-only",
+      "name": "test_journal_is_append_only",
+      "result": "PASS"
+    }
+  ],
+  "tests_required": "tools/plugin/tests/test_txn_journal.py::test_recovery_at_every_kill_point; NEGATIVE CONTROL: truncate the journal mid-record and assert recovery refuses rather than guessing; journal is append-only: assert no in-place rewrite occurs",
+  "timestamps": {
+    "ended_at": "2026-08-25T00:59:29Z",
+    "started_at": "2026-08-25T00:59:29Z"
+  },
+  "title": "Lifecycle transaction journal with crash recovery",
+  "ts": "2026-08-25T00:59:29Z",
+  "unit_id": "IMP-0028"
+}

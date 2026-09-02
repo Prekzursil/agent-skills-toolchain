@@ -1,0 +1,159 @@
+{
+  "schema": "workflow-foundry.extraction.v1",
+  "note": "Typed extraction stand-in for IMP-0164 stages + IMP-0165 roles + IMP-0166 gates + IMP-0167 tools. Those receipts are absent on this worktree.",
+  "candidates": [
+    {
+      "id": "cand-a-research-pipeline",
+      "stages": [
+        {
+          "local_id": "retrieve",
+          "kind": "retrieve",
+          "source_span": {
+            "uri": "candidates/cand-a.yaml",
+            "start_line": 10,
+            "end_line": 24
+          },
+          "contract": {
+            "output_type": "evidence-set",
+            "roles": ["researcher"],
+            "tools": ["Grep", "Read"],
+            "gate": {
+              "op": "ALL",
+              "args": [
+                {"op": "ATOM", "id": "has-citations"},
+                {"op": "ATOM", "id": "span-complete"}
+              ]
+            }
+          }
+        },
+        {
+          "local_id": "rank",
+          "kind": "rank",
+          "source_span": {
+            "uri": "candidates/cand-a.yaml",
+            "start_line": 26,
+            "end_line": 40
+          },
+          "contract": {
+            "output_type": "ranked-set",
+            "roles": ["ranker"],
+            "tools": [],
+            "gate": {"op": "ATOM", "id": "score-threshold"}
+          }
+        },
+        {
+          "local_id": "critique",
+          "kind": "critique",
+          "source_span": {
+            "uri": "candidates/cand-a.yaml",
+            "start_line": 42,
+            "end_line": 60
+          },
+          "contract": {
+            "output_type": "critique",
+            "roles": ["critic", "refuter"],
+            "tools": [],
+            "gate": {
+              "op": "ALL",
+              "args": [
+                {"op": "ATOM", "id": "disagreement-recorded"}
+              ]
+            }
+          }
+        }
+      ],
+      "compositions": [
+        {"from": "retrieve", "to": "rank"},
+        {"from": "rank", "to": "critique"}
+      ]
+    },
+    {
+      "id": "cand-b-retrieve-then-synthesize",
+      "stages": [
+        {
+          "local_id": "retrieve",
+          "kind": "retrieve",
+          "source_span": {
+            "uri": "candidates/cand-b.yaml",
+            "start_line": 8,
+            "end_line": 20
+          },
+          "contract": {
+            "output_type": "evidence-set",
+            "roles": ["researcher"],
+            "tools": ["Read", "Grep"],
+            "gate": {
+              "op": "ALL",
+              "args": [
+                {"op": "ATOM", "id": "has-citations"},
+                {"op": "ATOM", "id": "span-complete"}
+              ]
+            }
+          }
+        },
+        {
+          "local_id": "synthesize",
+          "kind": "synthesize",
+          "source_span": {
+            "uri": "candidates/cand-b.yaml",
+            "start_line": 22,
+            "end_line": 50
+          },
+          "contract": {
+            "output_type": "report",
+            "roles": ["synthesizer"],
+            "tools": ["Write"],
+            "gate": {"op": "ATOM", "id": "sources-cited"}
+          }
+        }
+      ],
+      "compositions": [
+        {"from": "retrieve", "to": "synthesize"}
+      ]
+    },
+    {
+      "id": "cand-c-web-retrieve-then-rank",
+      "stages": [
+        {
+          "local_id": "retrieve",
+          "kind": "retrieve",
+          "source_span": {
+            "uri": "candidates/cand-c.yaml",
+            "start_line": 5,
+            "end_line": 18
+          },
+          "contract": {
+            "output_type": "evidence-set",
+            "roles": ["researcher"],
+            "tools": ["Grep", "Read", "WebSearch"],
+            "gate": {
+              "op": "ALL",
+              "args": [
+                {"op": "ATOM", "id": "has-citations"},
+                {"op": "ATOM", "id": "span-complete"}
+              ]
+            }
+          }
+        },
+        {
+          "local_id": "rank",
+          "kind": "rank",
+          "source_span": {
+            "uri": "candidates/cand-c.yaml",
+            "start_line": 20,
+            "end_line": 34
+          },
+          "contract": {
+            "output_type": "ranked-set",
+            "roles": ["ranker"],
+            "tools": [],
+            "gate": {"op": "ATOM", "id": "score-threshold"}
+          }
+        }
+      ],
+      "compositions": [
+        {"from": "retrieve", "to": "rank"}
+      ]
+    }
+  ]
+}

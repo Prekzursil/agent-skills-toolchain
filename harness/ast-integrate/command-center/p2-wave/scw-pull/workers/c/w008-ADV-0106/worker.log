@@ -1,0 +1,23 @@
+I'll start from the existing ADV-0106 probe tree, resume whatever is already built, and only measure this unit to G-1.The probe tree is already there. Next I’ll read the return/manifest, the unit contract, and the measurement script so I can resume rather than rebuild.The artifact is already `SUCCESS`, but the return file, hashes, and G-1 gate may still be stale. I’ll inspect a delivered sibling, the schema, and whether the named probes actually re-run.G-1 allows `SUCCESS` with `NOT-CHECKED` targets if probes re-run. I’ll confirm the named probes, then fix the stale manifest hash and the leftover `_handoff_remeasure.py` that measure-one would pick first.Named probes already exit 0. Next I’ll re-run the refute, then relock the receipt and per-unit manifest from those live outputs.Pack wrote the receipt and manifest, but the schema resolver is missing. I’ll check how delivery treats that and keep `_handoff_remeasure.py` from crashing the gate.The receipt and per-unit manifest already match. I’ll keep the leftover handoff remesure out of the first four probe slots, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll lock the live hashes and write `SUBAGENT-RETURN.json` from those facts.**SUCCESS:delivered ADV-0106** `predicate=delivered state=SUCCESS probes=4 raws=7 notes=negative_control.py:0,probe1_identity_reattribution.py:0,probe2_partition_audit.py:0,probe_common.py:0`
+
+G-1 is green for this unit only. The existing ADV-0106 probe tree was resumed, not rebuilt. Live named probes and both-states controls re-ran to exit 0. The catalog receipt is honest `SUCCESS` (not self-declared `BLOCKED`). The per-unit manifest row matches the live LF hash.
+
+| Check | Result |
+|---|---|
+| Probe 1 identity vs chance | exit 0, leak 12/12 vs chance 0.25, normalized 3/12 at chance |
+| Probe 2 partition audit | exit 0, clean 0/12 leaks, planted `FACT-EAST-AMBER-23` east→north |
+| Both-states control | exit 0, good green / bad red on both domains |
+| Independent refute | exit 0, 19/19, primary receipt not consumed |
+| Receipt | `command-center/adversarial/ADV-0106-anonymity-and-partition-leakage.json` 96588 B, `state=SUCCESS` |
+| Per-unit manifest | `sha256=53502e05ec9027a74eb1f3a72cb77e67e3398cdcaad929855fd8db1ccedfa78c` matches live LF hash |
+| Measure | `python3 command-center/p2-wave/_measure_one_delivered.py ADV-0106` printed `SUCCESS:delivered` twice |
+
+Production targets stay **NOT-CHECKED**. There is still no eligible runtime anonymous or partitioned council round under the measured run roots. The catalog sentinel allows `NOT-CHECKED` as a target verdict, so that is recorded rather than parked.
+
+The earlier CLOUD-OK two-strike park was for **absent named-probe sidecars**. That structural reason is gone; the scripts are on disk and re-run. That is not a second identical “cannot meet G-1” refute.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no wave relaunch; only the per-unit `UNIT-ARTIFACT-MANIFEST.json`.
+
+Written:
+- `command-center/p2-wave/probes/ADV-0106/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0106/UNIT-ARTIFACT-MANIFEST.json`

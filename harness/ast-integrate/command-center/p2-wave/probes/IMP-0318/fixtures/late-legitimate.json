@@ -1,0 +1,70 @@
+{
+  "council_id": "late-legitimate-canonical",
+  "family": "late-legitimate",
+  "question": "Ship the hashed-cache session store without an invalidation protocol?",
+  "claims": {
+    "ship-anyway": "Ship hashed-cache now; invalidation can wait.",
+    "require-invalidation": "Do not ship until concurrent-writer invalidation is specified."
+  },
+  "participants": [
+    {"id": "architect", "role": "advocate"},
+    {"id": "pragmatist", "role": "chair"},
+    {"id": "critic", "role": "critic"},
+    {"id": "scribe", "role": "scribe"}
+  ],
+  "briefs": [
+    {
+      "participant_id": "architect",
+      "text": "Key layout matches hashed-cache; start with the small store and add invalidation later if load requires it.",
+      "evidence_ids": ["e-layout"],
+      "independent": true
+    },
+    {
+      "participant_id": "pragmatist",
+      "text": "Schedule pressure is real, but a cache that cannot drop stale values under two writers is an outage waiting to ship.",
+      "evidence_ids": ["e-race"],
+      "independent": true
+    },
+    {
+      "participant_id": "critic",
+      "text": "The race is a concrete counterexample: writer B overwrites k=1 while reader C still serves v0. That is a correctness defect, not a polish item.",
+      "evidence_ids": ["e-race"],
+      "independent": true
+    },
+    {
+      "participant_id": "scribe",
+      "text": "Record both the layout fit and the concurrent-writer race; do not treat silence as consent on invalidation.",
+      "evidence_ids": ["e-layout", "e-race"],
+      "independent": true
+    }
+  ],
+  "votes": [
+    {"participant_id": "architect", "claim_id": "ship-anyway", "round": 1, "confidence": 0.7},
+    {"participant_id": "pragmatist", "claim_id": "require-invalidation", "round": 1, "confidence": 0.7},
+    {"participant_id": "critic", "claim_id": "require-invalidation", "round": 1, "confidence": 0.8},
+    {"participant_id": "scribe", "claim_id": "ship-anyway", "round": 1, "confidence": 0.55},
+    {"participant_id": "architect", "claim_id": "require-invalidation", "round": 2, "confidence": 0.8},
+    {"participant_id": "pragmatist", "claim_id": "require-invalidation", "round": 2, "confidence": 0.82},
+    {"participant_id": "critic", "claim_id": "require-invalidation", "round": 2, "confidence": 0.84},
+    {"participant_id": "scribe", "claim_id": "require-invalidation", "round": 2, "confidence": 0.78}
+  ],
+  "evidence": [
+    {
+      "id": "e-race",
+      "supports_claim_id": "require-invalidation",
+      "strength": 0.93,
+      "text": "Writer A commits k=1; Writer B overwrites k=1 without invalidating Reader C cached v0."
+    },
+    {
+      "id": "e-layout",
+      "supports_claim_id": "ship-anyway",
+      "strength": 0.4,
+      "text": "Hashed-cache is the smallest store that matches the session key layout."
+    }
+  ],
+  "rounds_elapsed": 2,
+  "disagreement_rounds": 1,
+  "expected_trigger": false,
+  "expected_first_outcome": "require-invalidation",
+  "expected_final_outcome": "require-invalidation"
+}

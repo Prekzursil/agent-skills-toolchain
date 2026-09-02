@@ -1,0 +1,77 @@
+{
+  "budget": 16,
+  "note": "Matched cases shared by every source and every fusion. Score is passed_cases; stage count is recorded and is not a scoring component. IMP-0190 receipt is absent on this worktree; this corpus is the TST-0233 stand-in.",
+  "cases": [
+    {
+      "id": "case.shared",
+      "family": "shared",
+      "payload": "shared-work-payload-0001"
+    },
+    {
+      "id": "case.alpha-only",
+      "family": "alpha",
+      "payload": "alpha-exclusive-payload-0002"
+    },
+    {
+      "id": "case.beta-only",
+      "family": "beta",
+      "payload": "beta-exclusive-payload-0003"
+    },
+    {
+      "id": "case.hard",
+      "family": "hard",
+      "payload": "hard-unsolved-payload-0004"
+    }
+  ],
+  "workflows": [
+    {
+      "id": "wf.alpha",
+      "kind": "source",
+      "stages": [
+        {"id": "alpha-shared", "handles": ["shared"], "cost": 1},
+        {"id": "alpha-own", "handles": ["alpha"], "cost": 1}
+      ]
+    },
+    {
+      "id": "wf.beta",
+      "kind": "source",
+      "stages": [
+        {"id": "beta-own", "handles": ["beta"], "cost": 1}
+      ]
+    },
+    {
+      "id": "fusion.complement",
+      "kind": "fusion",
+      "sources": ["wf.alpha", "wf.beta"],
+      "note": "Retains alpha and beta handlers. More stages than either source, but behaviour differs: it solves case.beta-only that alpha fails.",
+      "stages": [
+        {"id": "alpha-shared", "handles": ["shared"], "cost": 1},
+        {"id": "alpha-own", "handles": ["alpha"], "cost": 1},
+        {"id": "beta-own", "handles": ["beta"], "cost": 1}
+      ]
+    },
+    {
+      "id": "fusion.padded",
+      "kind": "fusion",
+      "sources": ["wf.alpha", "wf.beta"],
+      "note": "Stage-padded copy of wf.alpha: three noop stages, identical per-case outcomes to alpha.",
+      "stages": [
+        {"id": "alpha-shared", "handles": ["shared"], "cost": 1},
+        {"id": "alpha-own", "handles": ["alpha"], "cost": 1},
+        {"id": "noop-1", "noop": true, "cost": 1},
+        {"id": "noop-2", "noop": true, "cost": 1},
+        {"id": "noop-3", "noop": true, "cost": 1}
+      ]
+    },
+    {
+      "id": "fusion.degraded",
+      "kind": "fusion",
+      "sources": ["wf.alpha", "wf.beta"],
+      "note": "Regression seed: handlers dropped, so the fusion fails every matched case and scores below every source.",
+      "stages": [
+        {"id": "broken-alpha", "handles": [], "cost": 1},
+        {"id": "broken-beta", "handles": [], "cost": 1}
+      ]
+    }
+  ]
+}

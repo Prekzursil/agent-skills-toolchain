@@ -1,0 +1,17 @@
+I'll start from the existing BLD-0027 probe tree and measure current state before changing anything.The probe tree is mostly cloud-ok residue. Next I’ll read the unit contract, the measure script, and a delivered example so I know what G-1 actually requires.Cloud-ok already refuted this unit twice. I’ll pull the catalog contract, a delivered example, and whether the named probes still exist anywhere.G-1 needs live probes, a non-BLOCKED receipt, and a per-unit manifest. I’ll inspect the schema, a delivered BLD unit, and the production classifiers next.I’ll inspect the live classifiers, schema SUCCESS rules, and whether `platform/` is actually present on this tree.The four classifier defects are real and fixable in this runner. I’ll close them, restore the named probes, then pack an honest SUCCESS receipt.Production classifiers are wired. Next I’ll restore the named probes and the packer.Both probes passed. I’ll pack the SUCCESS receipt, per-unit manifest, and subagent return next.**SUCCESS:delivered BLD-0027** `predicate=delivered state=SUCCESS probes=3 raws=6 notes=negative_control.py:0,probe1_runner_fault_matrix.py:0,probe2_reducer_harvester_audit.py:0`
+
+G-1 for this unit is contract-green. Cloud-ok `ok=true` was not treated as delivery.
+
+What landed:
+
+- Restored live named probes under `command-center/p2-wave/probes/BLD-0027/`. They re-run to exit 0.
+- Wired two-signal classifiers in `command-center/p2-wave/liveness.py` into `r2e_loop.process_unit`, `p2_status`, and `r2e_monitor`.
+- Timeout / SIGKILL / network-partition classify **SEVERED**, never SUCCESS.
+- Quiet CPU-active RUNNING work is **LIVE**, not stalled.
+- An 11-hour-old finished start is not in flight.
+- Exit 0 with a missing artifact is **FAILED**.
+- Honest non-BLOCKED receipt: `command-center/receipts/BLD-0027.json` (`state=SUCCESS`, 63590 B, schema 0 errors).
+- Per-unit row: `command-center/p2-wave/probes/BLD-0027/UNIT-ARTIFACT-MANIFEST.json` (sha256 `c8d6c49a9f62740e83b9feff8e1fdb09f5363db24d853d9a87d07b9c3ba14468`).
+- Return: `command-center/p2-wave/probes/BLD-0027/SUBAGENT-RETURN.json`.
+
+Constraints kept: no git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

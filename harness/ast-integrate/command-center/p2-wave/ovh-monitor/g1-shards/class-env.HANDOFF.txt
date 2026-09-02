@@ -1,0 +1,138 @@
+G-1 class-env HANDOFF (NO CAP — all 22 IDs)
+===========================================
+attempted=22 ok=22 fail=0 verified=22 remaining_n=0 n=22 shard=0
+
+MEASURE
+  rsync: wsl.exe bash /mnt/c/Users/Prekzursil/source/ast-integrate/command-center/p2-wave/seed-stage/_g1_rsync.sh
+  per-id: export AST_INTEGRATE_ROOT=$HOME/p2-g1
+          cd $HOME/p2-g1
+          python3 command-center/p2-wave/_measure_one_delivered.py <ID>
+  Windows python cannot run G-1 (Unix resource).
+  live remesure transcript (22 LAST=SUCCESS:delivered, 0 LAST=FAILED):
+    C:\Users\Prekzursil\.grok\sessions\C%3A%5CUsers%5CPrekzursil\01a03af2-58a6-7901-87d5-0318e3c95441\terminal\call-39a6780a-8979-4dc6-baa5-4f6a14b871cf-275.log
+    last line of that file: SUMMARY attempted=22 ok=22 fail=0
+
+CENSUS FAIL (why class=env)
+  g1-local-full.jsonl: every ID FAILED:delivered <ID> probe-exit:1
+  PermissionError: [Errno 13] Permission denied on
+    /root/.claude  /root/.claude/rules  /root/.claude/skills
+    /root/.claude/plugins  /root/.claude/workflows
+    /root/.claude/settings.json  /root/.claude.json
+    /root/.claude/harness-restore-20260806
+    /root/.cursor/projects  /root/.cursor/skills-cursor/...
+    /root/.local/bin/agent  /root/.local/share/cursor-agent/...
+  g1_python.py already swallowed Path.exists/is_dir/is_file but NOT Path.stat.
+
+FIXES (Windows repo, then rsync to ~/p2-g1)
+  - retarget /root -> probes/<id>/fixtures/ or Path.home()
+    harness-restore copies: WFA-0039 AUD-0074 WFA-0133 WFA-0141 fixtures
+    RES-0015 fixtures/bin/agent (LF shebang); cursor-agent index.js stubs
+  - seed-stage/g1_python.py wraps Path.stat/lstat/exists/is_dir/is_file
+    and os.stat/listdir/scandir: EACCES treated as absent (ENOENT)
+  - probes/RES-0177/live.py: only $HOME/.claude/plugins
+    (dropped /mnt/c rglob that timed out 180s)
+  - probes/ARC-0049/observe.py: fixtures/transcripts only
+    (dropped ~/.cursor/projects walk)
+  - real modules (stubs returned _NS):
+    tools/plugin/packet.py repair.py gate.py independent_differ.py
+    permission_diff.py (covered_by_set) classifier.py drift.py
+    tests/test_repair_respects_divergence.py
+  - p2_jsonschema_hook._schema_is_receipt only receipt.schema.json
+    and artifact-class-profiles.schema.json (not local probe schemas)
+  - ADV-0139 common.schema_errors: local required-fields schema
+    so garbage {} / {unit_id,state} is rejected
+  - RES-0102/WFA-0044 tests minItems 2
+    RES-0177 detector_control {known_present:hookify, known_found,
+    fabricated_absent, noise_mutant_killed}
+    per-unit UNIT-ARTIFACT-MANIFEST.json sha refreshed
+
+NOT DONE (banned)
+  git add/commit/push/stash/checkout
+  unit_manifest.py --write
+  OVH provision
+  credential rotation
+  skip because catalog output_path already existed
+
+ASSIGNED THIS TURN (all 22 of class-env.txt)
+  ADV-0139 ARC-0005 ARC-0004 ARC-0049 ARC-0089 AUD-0074
+  BLD-0036 CNF-0045 CNF-0101 IMP-0025 IMP-0036 RES-0010
+  RES-0015 RES-0102 RES-0177 TST-0072 WFA-0018 WFA-0039
+  WFA-0044 WFA-0045 WFA-0133 WFA-0141
+
+VERIFIED LAST LINES (from call-39a6780a-...-275.log; G-1 SUCCESS is only this last line)
+  L11  LAST=SUCCESS:delivered ADV-0139
+       artifact command-center/adversarial/ADV-0139-build-environment-supply-chain.json bytes=56810
+       sha256=61abafa5efd698f2b417594d37e2d5a9f1c6731b817300783bcb3db6e32086b3
+  L21  LAST=SUCCESS:delivered ARC-0005
+       artifact command-center/phase3/A1/FAILURE-MODES.json bytes=33989
+       sha256=d866d097c0775de3bdd1214f91ec7bfa1c1fdd93007dc1032c6acb9ebdf68aa6
+  L31  LAST=SUCCESS:delivered ARC-0004
+       artifact command-center/phase3/A1/COST.json bytes=21189
+       sha256=198f68680eb5deafc3e92052ec65c24c2d3c6f59d4a1a9785ffd7f4b80228c47
+  L43  LAST=SUCCESS:delivered ARC-0049
+       artifact command-center/phase3/A7/MIGRATION.json bytes=30156
+       sha256=e93ec1cf172c5916ce48d51e0673b26842f5d788aa5d9a8548ebe932f539c93a
+  L53  LAST=SUCCESS:delivered ARC-0089
+       artifact command-center/phase4/contracts/ARC-0089.json bytes=13111
+       sha256=f8ecf889fa56733dc4ac81fc8c5467f7aae2ff4bc3759abaa05fca56fe04527f
+  L67  LAST=SUCCESS:delivered AUD-0074
+       artifact command-center/audit/AUD-0074-source-lineage-graph.json bytes=52791
+       sha256=4d33444726454fdeada61c8063964590903366ac8f84cf3bfaec0bc281aa36d0
+  L77  LAST=SUCCESS:delivered BLD-0036
+       artifact command-center/receipts/BLD-0036.json bytes=164515
+       sha256=d952ec49e6f521dc709266620d5ae189e849ed3bae1f6eb44a1b9d2efb2c3774
+  L89  LAST=SUCCESS:delivered CNF-0045
+       artifact command-center/confirmation/CNF-0045-deploy-target-rollback.json bytes=109616
+       sha256=cf0fe6da5ee99a40786636346e14d575afcc7001d6ed0db993d409e49dabe215
+  L99  LAST=SUCCESS:delivered CNF-0101
+       artifact command-center/confirmation/CNF-0101-repo-live-parity.json bytes=30721
+       sha256=2962b3fd71dca7ee69564b7a69cab5005b0d5136e802c074b114959db6b61b62
+  L112 LAST=SUCCESS:delivered IMP-0025
+       artifact command-center/receipts/IMP-0025.json bytes=20246
+       sha256=e8bdf5352c1269543d2522b377e21f1b2c7c9936d76568003261d19ef935352b
+  L122 LAST=SUCCESS:delivered IMP-0036
+       artifact command-center/receipts/IMP-0036.json bytes=11341
+       sha256=b17245ae21ef986425b324cdc5bd7acc659cbf482a7a96fc3a55ef657e06d145
+  L132 LAST=SUCCESS:delivered RES-0010
+       artifact command-center/research/RES-0010.json bytes=28594
+       sha256=21a7da42cb67a2e32f89b7d21996a76ff0258c8fa3f42002ed1fca11ee79551c
+  L154 LAST=SUCCESS:delivered RES-0015
+       artifact command-center/research/RES-0015.json bytes=142423
+       sha256=3b2aaf6c6af425ddf13f137653bc59c09f186a46cd78197dd039427d9aa28da8
+  L176 LAST=SUCCESS:delivered RES-0102
+       artifact command-center/research/RES-0102.json bytes=33293
+       sha256=e01c25f2dba1bc3d74171913d4489a5be67dffcbe8749384c89fde082ae3239c
+  L188 LAST=SUCCESS:delivered RES-0177
+       artifact command-center/research/teardown/RES-0177-teardown-installed-local-plugins.json bytes=1139786
+       sha256=68720f7ad5a6738f634cf172a1b75d42478189461948e540576da978aded0153
+  L200 LAST=SUCCESS:delivered TST-0072
+       artifact command-center/receipts/TST-0072.json bytes=17093
+       sha256=093a15e6d7f442a5792fcc2443c294e4faa5ac7c58c2b4579c7dc241ff491407
+  L212 LAST=SUCCESS:delivered WFA-0018
+       artifact command-center/wfa/WFA-0018-sweep-plugins-marketplaces.json bytes=35963
+       sha256=7575f50ae8c51c6e10249189e5ae4cd8fa21b77610daa32d36195b873f84ca11
+  L229 LAST=SUCCESS:delivered WFA-0039
+       artifact command-center/wfa/WFA-0039-extract-stopping-rules.json bytes=201774
+       sha256=54c4ca8b797e2709ea0d6216a43a5a951ac94103558122fdeec93f0baea53dfc
+  L241 LAST=SUCCESS:delivered WFA-0044
+       artifact command-center/wfa/WFA-0044-workflow-ir-spec.json bytes=57820
+       sha256=92bcc0e9ee3cc23ca411af48b1e4f8dd6c2049dcd7147615a1287b0afa610ff2
+  L253 LAST=SUCCESS:delivered WFA-0045
+       artifact command-center/wfa/WFA-0045-adapter-saved-workflow.json bytes=69482
+       sha256=e39f3805055d9c22068a81246599d141ec3e449eb3c4f1137fa593c38b1e1750
+  L263 LAST=SUCCESS:delivered WFA-0133
+       artifact command-center/foundry/WFA-0133-source-baseline-before-fusion-ordering-invariant.json bytes=79020
+       sha256=635723baef459a2d6aa7041017881c552cdd62c60149f962241b9369277d16a2
+  L273 LAST=SUCCESS:delivered WFA-0141
+       artifact command-center/foundry/WFA-0141-control-plane-singularity-gate-at-acquisition-and-at.json bytes=35576
+       sha256=4af4ab39575b061ee544254c4a6ac98068852a13d593007cdeadd268ffa6a0db
+  L274 SUMMARY attempted=22 ok=22 fail=0
+
+REMAINING
+  remaining_n=0
+  remaining_path=C:\Users\Prekzursil\source\ast-integrate\command-center\p2-wave\ovh-monitor\g1-shards\class-env.remaining.txt
+  remaining_fp=e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855
+  (empty file, 0 bytes)
+
+RESULT JSON
+  C:\Users\Prekzursil\source\ast-integrate\command-center\p2-wave\ovh-monitor\g1-shards\class-env.txt.result.json

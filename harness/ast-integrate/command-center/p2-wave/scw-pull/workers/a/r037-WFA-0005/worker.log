@@ -1,0 +1,22 @@
+I'll start from the existing WFA-0005 probe tree, read the return artifact if it's there, and resume toward a contract-green unit without touching git or the global catalog.The probe tree exists but is thin — I'll read the handoff, the measure script, and a delivered unit so I know the exact contract.Previous work left the unit BLOCKED with missing probes. Next I’ll read the catalog contract, a delivered unit’s pattern, and whether the registry exists on this Linux box.I’ll read the receipt schema SUCCESS rules, the current WFA-0005 artifact, and a delivered unit’s probe/manifest pattern.The Linux harvest claimed the registry was missing; I’ll hunt for a live copy and read how other WFA units resolve that source.The Windows box had the registry; this Linux tree may not. I’ll inspect the workflow-candidate JSON files and search other worktrees before deciding whether we can compute the histogram honestly.I’ll implement live histogram and search probes, plus planted and negative-control scripts, then pack an honest SUCCESS receipt from those reruns.I’m adding a shared library, live probes, and a packer. Measure will re-run the probes; the packer will only mark SUCCESS after those reruns exit 0.Probes are green. Next I’ll pack a SUCCESS receipt from the live raws and register the per-unit manifest.**SUCCESS:delivered WFA-0005**
+
+`python command-center/p2-wave/_measure_one_delivered.py WFA-0005` printed:
+
+`SUCCESS:delivered WFA-0005 predicate=delivered state=SUCCESS probes=3 raws=9 notes=probe_a_histogram.py:0,probe_b_rule_search.py:0,validate_delivery.py:0`
+
+The earlier cloud-ok tree was right that harvest `UNIT-COMPLETE` was not delivery: the named scripts and five sidecar raws were missing, and the receipt was `BLOCKED`. This pass resumed that tree, added live probes, and packed an honest non-BLOCKED artifact.
+
+**What now exists**
+- `probe_a_histogram.py` — Counter over `candidates[].classification`, plus a both-states algorithm control
+- `probe_b_rule_search.py` — decision-rule search, planted 6/6 fire, TRANSLATE mutant goes red
+- `validate_delivery.py` — independent regex both-states control, deletion policy, schema consumer
+- Receipt `command-center/wfa/WFA-0005-classification-vocabulary-audit.json` — `state=SUCCESS`, `ready_units` delivered
+- Per-unit `command-center/p2-wave/probes/WFA-0005/UNIT-ARTIFACT-MANIFEST.json` — LF sha256 `c7114b3e96fa414de60c4088e13e083f7c34924517a3470e276083b78bb9edc6` matches the live output path
+- `command-center/p2-wave/probes/WFA-0005/SUBAGENT-RETURN.json`
+
+**Science**
+All six unused values (`CLEAN-ROOM-REIMPLEMENT`, `COMPOSE`, `GENERALIZE`, `REBUILD-FROM-SPEC`, `REJECT`, `TRANSLATE`) are **retained**. Each is spec-named, has a distinct rule, a planted witness, and a written retain argument. Zero count is not treated as deletion evidence.
+
+Signal A is **PARTIAL** on this box: the 261589-byte `08-WORKFLOW-CANDIDATE-REGISTRY.json` is still absent here, so the live 284-row Counter is not recomputable. The histogram algorithm itself is both-states green (good synthetic matches the catalog nine-bin totals; a TRANSLATE mutant diverges).
+
+**Constraints kept:** no git write, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok was not treated as delivery.

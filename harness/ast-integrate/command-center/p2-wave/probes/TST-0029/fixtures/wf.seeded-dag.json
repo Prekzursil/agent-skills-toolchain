@@ -1,0 +1,59 @@
+{
+  "id": "wf.tst-0029.seeded-dag",
+  "spec_version": 7,
+  "nodes": [
+    {
+      "id": "task-m",
+      "type": "WorkUnit",
+      "prompt_ref": "prompts/task-m.md",
+      "routing": { "model": "opus", "role": "implementer", "vendor": "anthropic" },
+      "tool_permissions": ["Read"],
+      "requested_tools": ["Read"],
+      "source_policy": { "allowed_classes": ["code"] },
+      "on_failure": { "schema-invalid": "abort" }
+    },
+    {
+      "id": "task-z",
+      "type": "WorkUnit",
+      "prompt_ref": "prompts/task-z.md",
+      "routing": { "model": "opus", "role": "implementer", "vendor": "anthropic" },
+      "tool_permissions": ["Read"],
+      "requested_tools": ["Read"],
+      "source_policy": { "allowed_classes": ["code"] },
+      "on_failure": { "schema-invalid": "abort" }
+    },
+    {
+      "id": "producer",
+      "type": "WorkUnit",
+      "prompt_ref": "prompts/producer.md",
+      "routing": { "model": "opus", "role": "implementer", "vendor": "anthropic" },
+      "tool_permissions": ["Read"],
+      "requested_tools": ["Read"],
+      "source_policy": { "allowed_classes": ["code"] },
+      "on_failure": { "schema-invalid": "abort" }
+    },
+    {
+      "id": "fan-ab",
+      "type": "FanOut",
+      "unit_ids": ["task-m", "task-z"]
+    },
+    {
+      "id": "join-ab",
+      "type": "Barrier",
+      "wait_for": ["task-m", "task-z"]
+    },
+    {
+      "id": "dyn",
+      "type": "DynamicFanOut",
+      "producer_unit": "producer",
+      "item_path": "items",
+      "unit_template": "task-m",
+      "max_cardinality": 8
+    },
+    {
+      "id": "join-dyn",
+      "type": "Barrier",
+      "wait_for": ["dyn"]
+    }
+  ]
+}

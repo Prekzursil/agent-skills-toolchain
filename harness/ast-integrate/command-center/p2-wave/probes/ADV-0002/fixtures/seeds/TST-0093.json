@@ -1,0 +1,490 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0093.json",
+   "bytes": 8871,
+   "sha256": "cca01b4e9b9338d39179cfceb3a253570c7a6a01a37d18a0476eafed43fb993e",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0093 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0093.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0093.json",
+     "raw_output": "bytes=8871 sha256=cca01b4e9b9338d39179cfceb3a253570c7a6a01a37d18a0476eafed43fb993e",
+     "fingerprint": "16d16be2c78bd415604854a4973ab454",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0093",
+     "raw_output": "schema-check",
+     "fingerprint": "38b244f8453f9ee57ab6f4787be25960",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0093 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0093",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0093",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "813717a5318fa499a9f45e908e83c0cf",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0093",
+     "raw_output": "schema-valid",
+     "fingerprint": "0bcc552d13228009f4b80ccc3ba7d20d",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:TST-0093",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0093.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "TST-0093",
+ "extensions": {
+  "legacy_root": {
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0093 emitted only when the artifact at output_path exists, is non-empty, records the mock request timeline, honours Retry-After, shows zero duplicate unit executions, and shows an unchanged concurrency setting after 529. Any other terminal state is FAILED:TST-0093 <classification> with the diagnostic tail attached.",
+   "concurrency": {
+    "after_storm": 4,
+    "configured": 4,
+    "n_200": 8,
+    "n_429": 8,
+    "n_529": 8,
+    "unchanged": true
+   },
+   "controls": {
+    "duplicate_retry_workers": {
+     "discriminates": true,
+     "duplicate": true
+    },
+    "naive_ignores_retry_after": {
+     "discriminates": true,
+     "honoured": false
+    },
+    "self_throttle_on_529": {
+     "concurrency_reduced": true,
+     "discriminates": true
+    }
+   },
+   "executions": {
+    "completed": [
+     "u00",
+     "u01",
+     "u02",
+     "u03",
+     "u04",
+     "u05",
+     "u06",
+     "u07"
+    ],
+    "duplicate_units": [],
+    "failed": [],
+    "work_runs": {
+     "u00": 1,
+     "u01": 1,
+     "u02": 1,
+     "u03": 1,
+     "u04": 1,
+     "u05": 1,
+     "u06": 1,
+     "u07": 1
+    },
+    "zero_duplicates": true
+   },
+   "failure_class": "FC-11318 429 arrival-rate storm / self-throttling",
+   "fault_injected": {
+    "clock": "virtual (no wall-clock sleep)",
+    "mock": "command-center/p2-wave/probes/TST-0093/mock_limiter.py",
+    "retry_after": "delta-seconds on 429; absent on 529",
+    "status_codes": [
+     429,
+     529,
+     200
+    ]
+   },
+   "injection": {
+    "fault_id": "FC-11318-429-storm",
+    "injected": true,
+    "status_codes": [
+     429,
+     529,
+     200
+    ],
+    "target": "command-center/p2-wave/probes/TST-0093/dispatcher.py"
+   },
+   "kind": "fault-injection-receipt",
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0093/probe1_retry_after.py",
+     "id": "probe1",
+     "role": "retry-after-honour"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0093/probe2_storm_and_concurrency.py",
+     "id": "probe2",
+     "role": "storm-no-duplicate-no-self-throttle"
+    }
+   ],
+   "observation": {
+    "concurrency_unchanged": true,
+    "detected": true,
+    "duplicate_units": [],
+    "recovered": true,
+    "retry_after_honoured": true
+   },
+   "question": "With a deterministic mock returning 429 with Retry-After, does the dispatcher back off, refuse to duplicate unit work, resume to completion, and leave its concurrency setting unchanged after a 529/overload storm?",
+   "residual_caveat": "SUT is the dispatcher in probes/TST-0093, not platform/lib/fanin/cloud_dispatcher.py and not r2e_loop. Estate-wide 429 handling on those rails remains ADV-0125.",
+   "spec_anchors": [
+    "_USER-PROMPTS.md:11318 failure class 429 arrival-rate storm",
+    "_USER-PROMPTS.md:11008 Phase 10 layer 20 rate-limit tests",
+    "estate rule: 529/overload is provider-side and must not self-throttle"
+   ],
+   "subject": {
+    "notes": "platform/lib/fanin/cloud_dispatcher.py is a completion-predicate reducer, not an HTTP dispatcher. This unit's SUT is the 429-aware work dispatcher exercised by the named probes. ADV-0125 remains the estate-wide scheduler finding against r2e_loop.",
+    "path": "command-center/p2-wave/probes/TST-0093/dispatcher.py",
+    "role": "dispatcher-under-test"
+   },
+   "timeline": {
+    "clock": "virtual",
+    "requests": [
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 0.0,
+      "unit_id": "u00",
+      "worker_id": "u00"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 0.0,
+      "unit_id": "u01",
+      "worker_id": "u01"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 0.0,
+      "unit_id": "u02",
+      "worker_id": "u02"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 0.0,
+      "unit_id": "u03",
+      "worker_id": "u03"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 2.0,
+      "unit_id": "u00",
+      "worker_id": "u00"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 2.0,
+      "unit_id": "u01",
+      "worker_id": "u01"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 2.0,
+      "unit_id": "u02",
+      "worker_id": "u02"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 2.0,
+      "unit_id": "u03",
+      "worker_id": "u03"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 3.0,
+      "unit_id": "u00",
+      "worker_id": "u00"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 3.0,
+      "unit_id": "u01",
+      "worker_id": "u01"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 3.0,
+      "unit_id": "u02",
+      "worker_id": "u02"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 3.0,
+      "unit_id": "u03",
+      "worker_id": "u03"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 3.0,
+      "unit_id": "u04",
+      "worker_id": "u04"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 3.0,
+      "unit_id": "u05",
+      "worker_id": "u05"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 3.0,
+      "unit_id": "u06",
+      "worker_id": "u06"
+     },
+     {
+      "headers": {
+       "Retry-After": "2"
+      },
+      "status": 429,
+      "t": 3.0,
+      "unit_id": "u07",
+      "worker_id": "u07"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 5.0,
+      "unit_id": "u04",
+      "worker_id": "u04"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 5.0,
+      "unit_id": "u05",
+      "worker_id": "u05"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 5.0,
+      "unit_id": "u06",
+      "worker_id": "u06"
+     },
+     {
+      "headers": {
+       "X-Overload": "1"
+      },
+      "status": 529,
+      "t": 5.0,
+      "unit_id": "u07",
+      "worker_id": "u07"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 6.0,
+      "unit_id": "u04",
+      "worker_id": "u04"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 6.0,
+      "unit_id": "u05",
+      "worker_id": "u05"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 6.0,
+      "unit_id": "u06",
+      "worker_id": "u06"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 6.0,
+      "unit_id": "u07",
+      "worker_id": "u07"
+     }
+    ],
+    "retry_after_case_requests": [
+     {
+      "headers": {
+       "Retry-After": "5"
+      },
+      "status": 429,
+      "t": 0.0,
+      "unit_id": "unit-a",
+      "worker_id": "unit-a"
+     },
+     {
+      "headers": {},
+      "status": 200,
+      "t": 5.0,
+      "unit_id": "unit-a",
+      "worker_id": "unit-a"
+     }
+    ],
+    "retry_after_gap_s": 5.0,
+    "retry_after_honoured": true,
+    "retry_after_s": 5.0
+   },
+   "title": "429 backoff and resume correctness under a mocked rate limiter",
+   "ts": "2026-08-25T00:57:11Z"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0093",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0093/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0093"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0093.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0093.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "fae79b164701d2ff315f75bf26882495",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "fault-injection-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 8871,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0093.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

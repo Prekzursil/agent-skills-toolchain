@@ -1,0 +1,338 @@
+{
+ "adapter_vendor": "openai",
+ "artifacts": [
+  {
+   "bytes": 19650,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/dispatch/degrade_loudly.py",
+   "role": "implementation",
+   "sha256": "e8f0ac8fdea3b7ee57ba4ce0cbe7d518df6a40b60cbe5dab36b23e6cff0cc6d2"
+  },
+  {
+   "bytes": 7728,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "tools/dispatch/tests/test_degrade_loudly.py",
+   "role": "supporting",
+   "sha256": "6de4f391fdfb1c149808aeebe6d673172800587e1beba2c5c2a0599a8d48adac"
+  },
+  {
+   "bytes": 3193,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/schema/work-result.schema.json",
+   "role": "schema",
+   "sha256": "f0ed06cf837c760778e7bb25dbdca5a129860f20d76d655d19752209bb619f10"
+  },
+  {
+   "bytes": 111,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json",
+   "role": "preserved-partial",
+   "sha256": "a9b1f55071dba79acdce81d13d77d407519e2cd1134e59d61fdb11c92ff0f1bc"
+  },
+  {
+   "bytes": 4741,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0423/probe1_mismatch.py",
+   "role": "named-probe",
+   "sha256": "9c52eccadca42c7ffdb8817c8e401b49b748e80f212b9327ab92115b52690675"
+  },
+  {
+   "bytes": 4228,
+   "eol": "CRLF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0423/probe2_preserve.py",
+   "role": "named-probe",
+   "sha256": "055f7c80ea5b20400203abe24cd7b4062b3db79b3167ce94507d64b4a191b58d"
+  }
+ ],
+ "capability_interface": {
+  "note": "IMP-0419/IMP-0422 receipts are absent on this worktree. The dispatcher consumes CapabilityDescriptor with the catalog fields (tools, context_window, permission_model, streaming, schema_support) plus extra vendor-only capabilities.",
+  "primary": {
+   "context_window": 128000,
+   "extra": [],
+   "permission_model": "tool_permissions",
+   "schema_support": true,
+   "streaming": false,
+   "tools": [
+    "Bash",
+    "Read",
+    "Write"
+   ],
+   "vendor": "openai"
+  }
+ },
+ "dependency_inputs": [
+  {
+   "path": "command-center/receipts/IMP-0419.json",
+   "present": false,
+   "used_as": "interface-fixture"
+  },
+  {
+   "path": "command-center/receipts/IMP-0422.json",
+   "present": false,
+   "used_as": "interface-fixture"
+  }
+ ],
+ "dispatched_unit_id": "FIXTURE-CAP-MISMATCH",
+ "downstream_consumers": [
+  {
+   "artifact_path": "tools/dispatch/degrade_loudly.py",
+   "consumer": "tools/dispatch/tests/test_degrade_loudly.py",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py",
+    "exit_code": 0,
+    "fingerprint": "5297b66a26d4db0b71f909487cddb3cd",
+    "method": "command",
+    "raw_output": "PASS test_mismatch_is_degraded_not_success\nPASS test_matched_dispatch_is_success\nPASS test_partial_artifact_preserved_after_mismatch\nPASS test_discard_mutation_turns_preservation_test_red\nPASS test_silent_substitution_is_refused\nPASS test_retry_cannot_promote_mismatch_to_success\nPASS test_source_never_unlinks_partials\nSUCCESS:IMP-0423 tests 7/7",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/dispatch/degrade_loudly.py:_finish",
+   "claim": "Forced mismatch (openai adapter lacks streaming) returned typed DEGRADED, not SUCCESS, with a non-empty mismatches list.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c live forced-mismatch dispatch",
+     "exit_code": 0,
+     "fingerprint": "302f42f7e1a65004473174f8fa4fae24",
+     "method": "command",
+     "raw_output": "{\"adapter_vendor\": \"openai\", \"kind\": \"work-result\", \"mismatches\": [{\"available\": false, \"class\": \"capability-mismatch\", \"field\": \"streaming\", \"required\": true}], \"notes\": [\"spec=_USER-PROMPTS.md:10983\", \"no automatic retry; retrying a capability mismatch cannot fix it\", \"verdict=DEGRADED; ordinary-looking SUCCESS is unreachable on this path\"], \"ordinary_looking_success\": false, \"partial_artifact\": {\"bytes\": 111, \"path\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json\", \"preserved\": true, \"sha256\": \"a9b1f55071dba79acdce81d13d77d407519e2cd1134e59d61fdb11c92ff0f1bc\"}, \"reason_class\": \"capability-mismatch\", \"requested_vendor\": \"openai\", \"retry\": {\"attempted\": false, \"policy\": \"no automatic retry; retrying a capability mismatch cannot fix it\", \"refused\": false}, \"schema_version\": 1, \"spec_anchor\": \"_USER-PROMPTS.md:10983\", \"state\": \"DEGRADED\", \"substitution\": {\"attempted\": false, \"refused\": false}, \"unit_id\": \"FIXTURE-CAP-MISMATCH\", \"verdict\": \"DEGRADED\"}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py",
+     "exit_code": 0,
+     "fingerprint": "5297b66a26d4db0b71f909487cddb3cd",
+     "method": "command",
+     "raw_output": "PASS test_mismatch_is_degraded_not_success\nPASS test_matched_dispatch_is_success\nPASS test_partial_artifact_preserved_after_mismatch\nPASS test_discard_mutation_turns_preservation_test_red\nPASS test_silent_substitution_is_refused\nPASS test_retry_cannot_promote_mismatch_to_success\nPASS test_source_never_unlinks_partials\nSUCCESS:IMP-0423 tests 7/7",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json",
+   "claim": "The partial artifact still exists after DEGRADED with unchanged byte size 111.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "stat command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json",
+     "exit_code": 0,
+     "fingerprint": "089be8743cdd0322f4d40ff922d02405",
+     "method": "file-read",
+     "raw_output": "{\"bytes\": 111, \"exists\": true, \"path\": \"command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json\", \"sha256\": \"a9b1f55071dba79acdce81d13d77d407519e2cd1134e59d61fdb11c92ff0f1bc\"}",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py",
+     "exit_code": 0,
+     "fingerprint": "5297b66a26d4db0b71f909487cddb3cd",
+     "method": "command",
+     "raw_output": "PASS test_mismatch_is_degraded_not_success\nPASS test_matched_dispatch_is_success\nPASS test_partial_artifact_preserved_after_mismatch\nPASS test_discard_mutation_turns_preservation_test_red\nPASS test_silent_substitution_is_refused\nPASS test_retry_cannot_promote_mismatch_to_success\nPASS test_source_never_unlinks_partials\nSUCCESS:IMP-0423 tests 7/7",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/dispatch/degrade_loudly.py:dispatch_with_fallback",
+   "claim": "Offering a capable anthropic fallback did not silently substitute; verdict stayed DEGRADED and substitution_refused=true.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c adversarial fallback substitution",
+     "exit_code": 0,
+     "fingerprint": "923ba14816d5157f6d91fcbe6adc20bc",
+     "method": "command",
+     "raw_output": "{\"fallback_would_have_matched\": true, \"substitution_refused\": true, \"verdict\": \"DEGRADED\"}",
+     "role": "verifier"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py",
+     "exit_code": 0,
+     "fingerprint": "5297b66a26d4db0b71f909487cddb3cd",
+     "method": "command",
+     "raw_output": "PASS test_mismatch_is_degraded_not_success\nPASS test_matched_dispatch_is_success\nPASS test_partial_artifact_preserved_after_mismatch\nPASS test_discard_mutation_turns_preservation_test_red\nPASS test_silent_substitution_is_refused\nPASS test_retry_cannot_promote_mismatch_to_success\nPASS test_source_never_unlinks_partials\nSUCCESS:IMP-0423 tests 7/7",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/dispatch/tests/test_degrade_loudly.py",
+   "claim": "A mutation that unlinks the partial turns assert_partial_preserved red; the honest path stays green. Both states in tools/dispatch/tests.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py",
+     "exit_code": 0,
+     "fingerprint": "5297b66a26d4db0b71f909487cddb3cd",
+     "method": "command",
+     "raw_output": "PASS test_mismatch_is_degraded_not_success\nPASS test_matched_dispatch_is_success\nPASS test_partial_artifact_preserved_after_mismatch\nPASS test_discard_mutation_turns_preservation_test_red\nPASS test_silent_substitution_is_refused\nPASS test_retry_cannot_promote_mismatch_to_success\nPASS test_source_never_unlinks_partials\nSUCCESS:IMP-0423 tests 7/7",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "forced_mismatch_dispatch": {
+  "adapter_vendor": "openai",
+  "kind": "work-result",
+  "mismatches": [
+   {
+    "available": false,
+    "class": "capability-mismatch",
+    "field": "streaming",
+    "required": true
+   }
+  ],
+  "notes": [
+   "spec=_USER-PROMPTS.md:10983",
+   "no automatic retry; retrying a capability mismatch cannot fix it",
+   "verdict=DEGRADED; ordinary-looking SUCCESS is unreachable on this path"
+  ],
+  "ordinary_looking_success": false,
+  "partial_artifact": {
+   "bytes": 111,
+   "path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json",
+   "preserved": true,
+   "sha256": "a9b1f55071dba79acdce81d13d77d407519e2cd1134e59d61fdb11c92ff0f1bc"
+  },
+  "reason_class": "capability-mismatch",
+  "requested_vendor": "openai",
+  "retry": {
+   "attempted": false,
+   "policy": "no automatic retry; retrying a capability mismatch cannot fix it",
+   "refused": false
+  },
+  "schema_version": 1,
+  "spec_anchor": "_USER-PROMPTS.md:10983",
+  "state": "DEGRADED",
+  "substitution": {
+   "attempted": false,
+   "refused": false
+  },
+  "unit_id": "FIXTURE-CAP-MISMATCH",
+  "verdict": "DEGRADED"
+ },
+ "kind": "work-result",
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0423/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "matched_control": {
+  "mismatches": [],
+  "note": "same dispatcher; capabilities covered -> SUCCESS. Both states.",
+  "unit_id": "FIXTURE-CAP-MATCH",
+  "verdict": "SUCCESS"
+ },
+ "min_bytes_threshold": 512,
+ "mismatches": [
+  {
+   "available": false,
+   "class": "capability-mismatch",
+   "field": "streaming",
+   "required": true
+  }
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "verdict=DEGRADED mismatches=1",
+   "description": "Covered capabilities return SUCCESS; streaming mismatch returns DEGRADED.",
+   "fired_on_bad_state": true,
+   "good_state_output": "verdict=SUCCESS mismatches=0",
+   "id": "match-vs-mismatch",
+   "kind": "both-states-same-dispatcher",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "AssertionError: partial discarded",
+   "description": "Unlinking the partial after DEGRADED fails assert_partial_preserved.",
+   "fired_on_bad_state": true,
+   "good_state_output": "assert_partial_preserved ok",
+   "id": "discard-mutation",
+   "kind": "mutation-turns-red",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 IMP-0423: mismatch -> typed DEGRADED, partial preserved, substitution refused. Did not run global unit_manifest.py --write. cloud ok=true is not delivery.",
+ "ordinary_looking_success": false,
+ "output_path": "command-center/receipts/IMP-0423.json",
+ "output_schema": "command-center/schema/work-result.schema.json",
+ "partial_artifact": {
+  "bytes": 111,
+  "path": "command-center/p2-wave/probes/IMP-0423/fixtures/preserved-partial.json",
+  "preserved": true,
+  "sha256": "a9b1f55071dba79acdce81d13d77d407519e2cd1134e59d61fdb11c92ff0f1bc"
+ },
+ "question_or_target": "Implement the degrade-loudly contract at spec line 10983: on a capability mismatch the dispatcher returns a typed DEGRADED result and PRESERVES the partial artifact, never a silent substitution and never a discard. Exact target: there must be no code path where a mismatch produces an ordinary-looking success.",
+ "reason_class": "capability-mismatch",
+ "requested_vendor": "openai",
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0419 and IMP-0422 receipts are absent; descriptors used here are in-process fixtures matching the catalog field list.",
+   "settling_experiment": "Re-run dispatch against IMP-0419.json vendor columns once that unit is delivered.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "attempted": true,
+  "policy": "no automatic retry; retrying a capability mismatch cannot fix it",
+  "refused": true,
+  "verdict_after_attempt": "DEGRADED"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Adversarial path offered a capable fallback vendor after a streaming mismatch. Dispatcher refused substitution and kept DEGRADED. Retry also refused. No mismatch path returned SUCCESS.",
+  "reviewer_id": "IMP-0423-probe1-adversarial-substitution",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SENTINEL:IMP-0423:DEGRADED-LOUD-AND-PRESERVED",
+ "spec_anchor": "_USER-PROMPTS.md:10983",
+ "state": "SUCCESS",
+ "substitution": {
+  "attempted": true,
+  "fallback_vendor": "anthropic",
+  "fallback_would_have_matched": true,
+  "refused": true,
+  "verdict_after_attempt": "DEGRADED"
+ },
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py::test_mismatch_is_degraded_not_success",
+   "id": "test_mismatch_is_degraded_not_success",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py::test_partial_artifact_preserved_after_mismatch",
+   "id": "test_partial_artifact_preserved_after_mismatch",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/dispatch/tests/test_degrade_loudly.py::test_discard_mutation_turns_preservation_test_red",
+   "id": "test_discard_mutation_turns_preservation_test_red",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-24T18:52:17Z",
+  "started_at": "2026-08-24T18:52:17Z"
+ },
+ "title": "Degrade-loudly contract for capability mismatch",
+ "unit_id": "IMP-0423",
+ "verdict": "DEGRADED"
+}

@@ -1,0 +1,224 @@
+{
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/receipts/TST-0020.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "command-center/schema/detector-control.schema.json",
+      "role": "schema"
+    },
+    {
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0020/invariants.json",
+      "role": "invariants-declared-before-run"
+    }
+  ],
+  "both_states": {
+    "known_good": {
+      "classification": null,
+      "fired": false,
+      "fixture": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/TST-0020/fixtures/prs.txt:DOES-NOT-OCCUR:grep -c || true",
+      "published_numbers": {
+        "hit": 0,
+        "intersection": 0,
+        "miss": 7,
+        "universe": 7
+      },
+      "verbatim": "0\n"
+    },
+    "planted_bad": {
+      "classification": "detector-failure",
+      "fired": true,
+      "fixture": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/TST-0020/fixtures/prs.txt:DOES-NOT-OCCUR:grep -c || echo 0",
+      "published_numbers": null,
+      "verbatim": "0\n0\n"
+    }
+  },
+  "completion_sentinel": "SUCCESS:TST-0020",
+  "detector_control": {
+    "evaluated_before_absence": true,
+    "found": true,
+    "known_present_fixture": "/home/prekzursil/p2-g1/command-center/p2-wave/probes/TST-0020/fixtures/prs.txt:DOES-NOT-OCCUR:grep -c || echo 0",
+    "note": "The known-present contradiction (doubled zero from grep -c || echo 0) was classified detector-failure before the corrected single-zero capture was trusted as silence.",
+    "raw_output": "0\n0\n"
+  },
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0020/invariants.json:2",
+      "claim": "The invariant set is written down before any run is inspected.",
+      "kind": "declaration",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0020/reproduce.py:1",
+      "claim": "Live `grep -c || echo 0` on a 7-PR fixture with no match prints 0 then 0; the naive reporter claims all-hit AND empty-intersection; the post-processor classifies that as detector-failure and publishes no number.",
+      "kind": "live-run",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/WORK-UNIT-CATALOG.json:76833",
+      "claim": "The catalog pathology is `grep -c pat || echo 0` producing 'all 7 PRs hit' and 'empty intersection' at once.",
+      "kind": "catalog",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0020/invariants.py:143",
+      "claim": "On detector-failure the result dict sets published_numbers to null; neither contradictory count is emitted as a finding.",
+      "kind": "implementation",
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/TST-0020/naive.py:20",
+      "claim": "The naive != '0' branch is what turns the doubled-zero blob into an all-hit claim.",
+      "kind": "implementation",
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "invariants_declared_before_run": {
+    "declared_before_run": true,
+    "invariants": [
+      {
+        "id": "counts-must-sum",
+        "kind": "sum",
+        "parts": [
+          "hit",
+          "miss"
+        ],
+        "statement": "Partition counts must sum to the universe count (hit + miss = universe).",
+        "total": "universe"
+      },
+      {
+        "id": "subset-not-gt-superset",
+        "kind": "subset",
+        "statement": "A subset count cannot exceed its superset (intersection <= universe).",
+        "subset": "intersection",
+        "superset": "universe"
+      },
+      {
+        "claims": [
+          "all_hit",
+          "empty_intersection"
+        ],
+        "id": "mutex-all-hit-empty-intersection",
+        "kind": "mutex-claims",
+        "statement": "A single run cannot report both 'all N PRs hit' and 'empty intersection'."
+      },
+      {
+        "id": "count-is-single-integer",
+        "kind": "well-formed",
+        "statement": "Each declared count must be a single integer, not a multi-line `grep -c pat || echo 0` blob."
+      }
+    ],
+    "note": "This set is the contract. It is loaded before any run output is inspected. A violation is a detector-failure; neither side of a contradiction is published as a finding.",
+    "path": "command-center/p2-wave/probes/TST-0020/invariants.json"
+  },
+  "kind": "detector-control",
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0020/probe1_contradictory.py",
+      "id": "probe1",
+      "role": "contradictory-fail-the-run"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0020/probe2_consistent.py",
+      "id": "probe2",
+      "role": "consistent-pass-and-named-invariant"
+    }
+  ],
+  "pathology": {
+    "description": "grep -c prints 0 and exits 1 on no match, so `grep -c pat || echo 0` prints 0 then 0 again. A naive reporter treats the blob != '0' as 'all 7 PRs hit' and a 0 line as 'empty intersection', publishing both.",
+    "id": "grep-c-or-echo-0"
+  },
+  "question": "Measured: one run reported 'all 7 PRs hit' AND 'empty intersection' simultaneously because `grep -c pat || echo 0` printed '0\\n0'. Target: a post-processor that asserts declared invariants over a single run's own output (counts must sum, a subset cannot exceed its superset) and fails the RUN as a detector failure rather than reporting either number.",
+  "report": {
+    "control_ids": [
+      "counts-must-sum",
+      "subset-not-gt-superset",
+      "mutex-all-hit-empty-intersection",
+      "count-is-single-integer"
+    ],
+    "kind": "detector-control",
+    "observations": [
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0020/reproduce.py:1",
+        "measured": true,
+        "method": "bash grep -c DOES-NOT-OCCUR fixtures/prs.txt || echo 0",
+        "name": "live-grep-c-or-echo-0-doubled-zero"
+      },
+      {
+        "anchor": "command-center/p2-wave/probes/TST-0020/invariants.py:143",
+        "measured": true,
+        "method": "check_invariants over naive_from_grep_c_blob",
+        "name": "post-processor-publishes-no-number-on-contradiction"
+      }
+    ]
+  },
+  "reproduction": {
+    "command": "grep -c DOES-NOT-OCCUR fixtures/prs.txt || echo 0",
+    "doubled_zero": true,
+    "naive_claims": [
+      "all_hit",
+      "empty_intersection"
+    ],
+    "naive_counts": {
+      "hit": 7,
+      "intersection": 0,
+      "miss": 0,
+      "universe": 7
+    },
+    "post_processor": {
+      "classification": "detector-failure",
+      "message": "DETECTOR-FAILURE: violated invariant mutex-all-hit-empty-intersection: claims ['all_hit', 'empty_intersection'] are mutually exclusive. A single run cannot report both 'all N PRs hit' and 'empty intersection'.",
+      "ok": false,
+      "published_numbers": null,
+      "violated_invariants": [
+        "mutex-all-hit-empty-intersection"
+      ]
+    },
+    "raw_lines": [
+      "0",
+      "0"
+    ],
+    "raw_stdout": "0\n0\n"
+  },
+  "reviewer": {
+    "author_vendor": "anthropic",
+    "executed_both_states": true,
+    "independent": true,
+    "method": "Re-ran both-states on the live grep -c fixture, re-ran the three catalog tests, and checked that detector-failure results have published_numbers=null. A mutant that keeps the failure label but stuffs a number back in is rejected as overclaim.",
+    "overclaim": {
+      "failure_leaked_keys": [],
+      "mutant_still_published_a_number": true,
+      "reviewer_rejects_mutant": true
+    },
+    "reviewer_id": "TST-0020-openai-codex-adversarial",
+    "scope_not_agreement": true,
+    "vendor": "openai",
+    "verdict": "PASS"
+  },
+  "sentinel": "SUCCESS:TST-0020",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0020/probe1_contradictory.py",
+      "id": "test_contradictory_counts_fail_the_run",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0020/probe2_consistent.py",
+      "id": "test_consistent_counts_pass",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0020/probe2_consistent.py",
+      "id": "test_failure_message_names_the_violated_invariant",
+      "result": "PASS"
+    }
+  ],
+  "title": "Self-contradicting-output detector: one run reporting two mutually exclusive facts",
+  "ts": "2026-09-02T00:48:48Z",
+  "unit_id": "TST-0020"
+}

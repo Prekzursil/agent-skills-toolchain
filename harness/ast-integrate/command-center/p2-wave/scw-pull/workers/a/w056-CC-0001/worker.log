@@ -1,0 +1,23 @@
+I'll start from the existing CC-0001 probe tree, read SUBAGENT-RETURN.json if it's there, and resume from what's already built.The probe tree is thin — only HANDOFF and CLOUD-OK-REFUTE. Next I’ll read those plus the measurement script and a delivered unit as a template.The harvest is BLOCKED with the candidate tree gone. I’ll inspect the catalog unit, live command-center tools, a delivered example, and the current receipt.The harvest left CC-0001 BLOCKED with the candidate gone. I’ll read the catalog contract, live tools, receipt schema, and a successful P2 delivery next.The completeness check already fires when `--require-complete` is passed; what’s missing is the live provenance resolver, armed CI, and re-runnable probes. I’ll implement those next.Probe `REPO` was one directory too high — it pointed at `command-center` instead of the checkout root. Fixing that before running.**SUCCESS:delivered CC-0001** `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_resolver.py:0,probe2_mutation_gate.py:0`
+
+The harvest CLOUD-OK-REFUTE left this unit BLOCKED: the resolver existed only as a missing candidate tree, and this export had no armed CI. This pass implemented Alternative A on the live tree instead of circling another file-only refute.
+
+**Live production**
+- `tools/command-center/catalog.py:96` — `resolve_work_unit_field` with item-over-default provenance (including falsy overrides)
+- `tools/command-center/validate.py:300` — V-FIELDS uses that resolver
+- `.github/workflows/quality.yml:19` — `python tools/command-center/validate.py --require-complete`
+
+**Named probes (re-ran exit 0)**
+| Probe | Result |
+|---|---|
+| `probe1_resolver.py` | all 19 fields item-expressible; timeout override `(17, item)` vs default `(1800, default)` |
+| `probe2_mutation_gate.py` | unmutated `--require-complete` exit 0 / 0 V-FIELDS; whole-defaults exit 1 / 1133; each of 9 default-only deletions exit 1 / 103; one-of-103 timeout override exit 1 / 102; 103 overrides recover exit 0; live catalog SHA unchanged |
+
+`tools/command-center/tests/test_validate.py`: 33 passed.
+
+**Artifacts**
+- Receipt `command-center/receipts/CC-0001.json` — 227935 B, `state=SUCCESS`, LF sha256 `95c33b424f24690909d7d27182b49ad16c8241a5911570f7275b72c7f5534c5a`
+- Per-unit `command-center/p2-wave/probes/CC-0001/UNIT-ARTIFACT-MANIFEST.json` (row matches that digest)
+- `command-center/p2-wave/probes/CC-0001/SUBAGENT-RETURN.json`
+
+Global `unit_manifest.py --write` was not run. Git was not mutated. Sibling global `--check` red (BLD-0052) is residual P2, not this unit’s condition-11 path.

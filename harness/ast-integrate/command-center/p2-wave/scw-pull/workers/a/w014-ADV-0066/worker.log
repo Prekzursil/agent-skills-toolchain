@@ -1,0 +1,24 @@
+I'll start from the existing ADV-0066 probe tree, read any prior return artifact, and resume from what's already built rather than scraping it.The probe tree is already there. Next I’ll read the return artifact, unit contract, and the measurement script so we resume from the real current state.The tree already has probes and a prior BLOCKED return. I’ll inspect the live artifact, `run_probes.py`, and a delivered sibling so we resume against the actual G-1 gate.The catalog artifact is already `state: SUCCESS`; I’ll check whether that’s honest, then run the live measure and compare against a sibling that actually passed G-1.I'll re-run the live probes and the delivery measure next so we know whether this is already green or still failing for a real reason.The live `mkt` tree is missing from this checkout. I’ll look for an existing clone on disk before fetching anything.GitHub has the marketplace sources. I’ll size them and try a live probe against that tree before wiring it in.I’ll restore `platform/marketplace` (and the schema resolver it needs) from the cloned tree, then re-run the existing probes instead of rewriting them.**SUCCESS:delivered ADV-0066** `predicate=delivered state=SUCCESS probes=1 raws=7 notes=run_probes.py:0`
+
+G-1 for this unit is green. The existing probe tree was resumed, not rebuilt.
+
+What was already here: `run_probes.py`, sidecar raw files, and a prior CLOUD-OK return that correctly called harvest `ok=true` a **BLOCKED** stub (missing named probes, `self-declared:BLOCKED`). That is a different failure than this run, so the unit was not parked.
+
+What blocked a live re-run: this worktree had no `platform/marketplace`, so `from mkt import fixture` failed. Marketplace, schema, and `schema_resolver` were restored from `https://github.com/Prekzursil/agent-skills-toolchain.git` into `platform/` (file copy only; no git mutate).
+
+Live results (installer + signed indexes, not harvest text):
+
+| Check | Result |
+|---|---|
+| Probe 1 strict low ceiling | all six paths **REFUSED** at `MKT-I07` |
+| Probe 1 misconfigured critical ceiling | all six paths installed vulnerable **1.0.0** |
+| `allow-vulnerable` override | installed 1.0.0 and recorded the override |
+| Probe 2 stale mirror omitting v2 | **silently** resolved **1.0.0** |
+| Fresh-index control | selected **1.1.0** |
+| always-v2 mutant | went **red** |
+
+Receipt `command-center/adversarial/ADV-0066-version-downgrade-attack.json` is `state=SUCCESS`, schema-valid (0 errors, contract discriminates), LF sha256 `784b8fdc340f42d9f20ef077bab88baf876d17267d423b7ee8a2f5cee30b29a7`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with the matching hash. T8 remains **REFUTED** (client does not detect the omitted v2); that is the measured product finding, not a receipt flip.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+Residuals left open: **ADV-0066-D1** waived as a recorded product finding (`P1-RESIDUAL-ACCEPTANCE.txt`); **ADV-0066-D2** still open (no monotonic version floor); catalog asked for an Anthropic opus refuter and this box recorded an independent xAI re-derivation from the live raw files.

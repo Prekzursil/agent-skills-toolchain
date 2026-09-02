@@ -1,0 +1,64 @@
+{
+  "decision_id": "dec-imp0340-agreed",
+  "outcome_kind": "DECISION",
+  "agreed_elements": [
+    {
+      "element_id": "el-verify",
+      "kind": "experiment",
+      "statement": "Run the rollback drill and publish MTTR.",
+      "owner": "cara",
+      "sequence": 3,
+      "precondition": {
+        "type": "depends_on",
+        "element_ids": ["el-build"]
+      },
+      "verification": {
+        "oracle": "command",
+        "spec": "python3 tools/council/outcomes/action_plan.py validate /tmp/plan.json"
+      }
+    },
+    {
+      "element_id": "el-finding",
+      "kind": "finding",
+      "statement": "The current plan has no named owner on the last mile.",
+      "owner": "observer",
+      "sequence": 0,
+      "precondition": { "type": "always" },
+      "verification": { "oracle": "observation", "spec": "census" }
+    },
+    {
+      "element_id": "el-prep",
+      "kind": "commitment",
+      "statement": "Freeze the N-1 artifact hash in ROLLBACK-MANIFEST.md.",
+      "owner": "alice",
+      "sequence": 1,
+      "precondition": { "type": "always" },
+      "verification": {
+        "oracle": "file-read",
+        "spec": "ROLLBACK-MANIFEST.md contains sha256"
+      }
+    },
+    {
+      "element_id": "el-build",
+      "kind": "constraint",
+      "statement": "Do not mutate prior event-log prefix while deploying.",
+      "owner": "bob",
+      "sequence": 2,
+      "precondition": {
+        "type": "depends_on",
+        "element_ids": ["el-prep"]
+      },
+      "verification": {
+        "oracle": "check",
+        "spec": "prefix hash unchanged"
+      }
+    }
+  ],
+  "dissents": [
+    {
+      "element_id": "el-dissent-crypto",
+      "owner": "skeptic",
+      "statement": "Also rewrite production cryptography this week."
+    }
+  ]
+}

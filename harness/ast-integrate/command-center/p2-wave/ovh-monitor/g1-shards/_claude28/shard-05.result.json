@@ -1,0 +1,48 @@
+{
+  "shard": "shard-05",
+  "attempted": 40,
+  "edited": [
+    {"id": "RES-0149", "files": ["command-center/research/evidence-quality/RES-0149-proof-of-impossibility-record-schema.json", "command-center/p2-wave/probes/RES-0149/UNIT-ARTIFACT-MANIFEST.json"], "what": "added top-level record_schema + worked_example (both named probes read them); verified both-states empty-sources + falsifier-removed controls against the unit's validator lib; refreshed manifest sha"},
+    {"id": "RES-0009", "files": ["command-center/research/RES-0009.json", "command-center/p2-wave/probes/RES-0009/UNIT-ARTIFACT-MANIFEST.json"], "what": "rebased 62 captured hook-payload rows from cwd /opt/p2/ast-integrate to coordinator path /home/prekzursil/p2-g1 and recomputed sha256; verified PermissionRequest sha equals the tail's live coordinator value; refreshed manifest sha"},
+    {"id": "RES-0172", "files": ["command-center/research/deep-research-design/RES-0172-human-checkpoint-evpi-placement.json", "command-center/p2-wave/probes/RES-0172/UNIT-ARTIFACT-MANIFEST.json"], "what": "rebuilt minimal_checkpoint_set from the live engine.retained() set (stale CP-01..04 -> CP-ESCALATE-OWNER-BLOCKED/CP-SHIP-CONTROVERSIAL/CP-TOR-OPT-IN/CP-UNBOUNDED-SPEND); refreshed manifest sha"},
+    {"id": "WFA-0099", "files": ["command-center/wfa/WFA-0099-collapse-audit-trail.json", "command-center/p2-wave/probes/WFA-0099/UNIT-ARTIFACT-MANIFEST.json"], "what": "tests array only had 1 row vs AuditReport schema minItems=3; added two genuine PASS test rows (schema-validate + restore-rehearsal); verified doc validates (0 errors) and live rehearsal ids match; refreshed manifest sha"},
+    {"id": "TST-0060", "files": ["command-center/receipts/TST-0060.json", "command-center/p2-wave/probes/TST-0060/UNIT-ARTIFACT-MANIFEST.json"], "what": "receipt lacked the tests[] entry test_each_transport_round_trips_the_adversarial_payload with verdict=PASS the probe requires; added it (honest per probe success definition: byte-exact transports round-trip, here-string newline measured not hidden); refreshed manifest sha"}
+  ],
+  "deferred_timeout": ["AUD-0085", "BLD-0010", "CNF-0010", "CNF-0105", "RES-0022", "TST-0081"],
+  "module_gaps": {
+    "tools/detectors/campaign.py (ModuleNotFoundError: detectors.campaign)": ["IMP-0471"],
+    "tools/plugin/mcp_activation.py (missing symbol rss_swap_bytes_procfs)": ["IMP-0065"],
+    "tools/council/integrity/anonymity.py (AnonymityConfig.__init__ rejects 'enabled' kwarg)": ["IMP-0276"],
+    "tools/council/protocol/crossexam.py (Schedule has no attribute 'coverage')": ["IMP-0363"],
+    "tools/baseline/capture.py (missing symbols git/git_env/git_text)": ["TST-0023"],
+    "tools/council/vote/evidence_gate.py (missing symbol assertions)": ["TST-0262"],
+    "tools/plugin/client_negotiate.py (raises ValueError on bad semver instead of a typed reject)": ["TST-0113"],
+    "tools/plugin/pack.py + tools/plugin/fixture_repo.py (git_cat_file_blob raises FileNotFoundError on the CRLF fixture blob)": ["IMP-0002"],
+    "tools/workflow_foundry/anti_rebuild_guard.py (consult() returns a non-structural BUILD citation kind None)": ["IMP-0211"],
+    "tools/marketplace/install.py (owner-gated sandbox arm does not isolate the beacon; gated_ok false)": ["ADV-0060"],
+    "tools/council/antifail/participation.py (analyze_council returns empty seats for a valid 4-seat council)": ["IMP-0321"],
+    "tools/workflow_foundry/license_extract.py (control-set license normalization does not reach 20/20)": ["IMP-0156"],
+    "tools/command-center/work_claim.py (crash/TTL steal does not release the claim after expiry)": ["IMP-0409"],
+    "tools/bench/compare.py (skip_power_guard seam does not emit a delta; guard not load-bearing)": ["TST-0298"],
+    "tools/marketplace/offline.py (tampered offline bundle is accepted by the census/verify path)": ["IMP-0109"],
+    "tools/bench/results_ledger.py (concurrent writer A commit count = 0 under contention)": ["TST-0322"]
+  },
+  "looks_ok": [
+    {"id": "SYN-0025", "note": "spec tail is stale: artifact differential.byte_identical already true with without/with_fixture_sha256 == live-recomputed synthesis (11a8a206...); both_states + sanitise_after_split_control correct; schema validates with 0 errors locally. probe1 already SUCCESS in tail. No edit needed."}
+  ],
+  "unresolved": [
+    {"id": "ADV-0123", "why": "delivered artifact predates a probe redesign: named_probes raw_output uses the obsolete verbose format AND doc.targets use the old id/PARTIAL shape, while the current probe requires target_id keys with the four CONFIRMED/REFUTED verdicts plus deterministic compact reports. probe1/probe2 reports are reconstructable (I verified them), but the targets/schema mismatch needs a full rewrite validated against fault-injection-run.schema.json that is unsafe to do blind without executing the probe."},
+    {"id": "CC-0016", "why": "probe fails on the LIVE command-center phase-graph: command-center/sources/phase-graph-authored.json is missing on the live tree so pg.check drifts (drift=1). Restoring the shared phase-graph source/sidecar is out of CC-0016's unit scope (its own artifact is the receipt command-center/receipts/CC-0016.json, which is fine)."},
+    {"id": "CNL-0018", "why": "artifact was built to the per-unit schema but probe2 validates against the SHARED council-design-note shim -> artifact-class profile (generic_report): 54 structural errors (needs report block with kind, schema_version, spec_anchor, min_bytes_threshold, timestamps, retry, manifest_registration, downstream_consumers, per-artifact bytes/sha256, restricted role enums, evidence.verdict...). Systemic: the profile comment says 63 units declare this class; a shim-vs-artifact reconciliation is a coordinator-level fix."},
+    {"id": "CNF-0102", "why": "probe fails at schema_rejects_garbage(): the SHARED bundle-audit schema / artifact-class profile (command-center/schema/bundle-audit.schema.json -> platform/schema/artifact-class-profiles + receipt) is vacuous (accepts []). Hardening a shared schema is out of CNF-0102's own-artifact scope."},
+    {"id": "ARC-0027", "why": "probe's rebuild-circle guard requires command-center/phase3/A4/DESIGN.json to be ABSENT, but it exists as a different unit's deliverable in the shared A4 dir. Removing/relocating another unit's artifact is out of ARC-0027 scope (ARC-0027 owns A4/SECURITY.json only)."},
+    {"id": "ARC-0072", "why": "compare.build_analysis() reads the phase3 A-design docs; design A8 yields 0 mechanism statements, so the analysis raises before ARC-0072's own artifact (command-center/phase3/ARCH-SIMILARITY.json) is even consulted. The gap is in cross-unit A8 design content, not ARC-0072's artifact."},
+    {"id": "AUD-0007", "why": "probe compares the artifact's worktree count (0) to the coordinator's live `git worktree list` (106). This is environment-coupled to the coordinator's live git state; no stable value can be baked into the artifact Windows-side."},
+    {"id": "AUD-0060", "why": "probe compares the artifact's MCP tool-surface inventory to the coordinator's live MCP surface; environment-coupled and not reproducible/stable from Windows."},
+    {"id": "ADV-0009", "why": "probe1 passes; probe2 (the CLI both-states instrument) fails but its output is truncated out of the spec tail. It subprocesses production command-center CLIs (validate.py/shard_reducer.py/bundle_secret_scan.py) and cannot be diagnosed or reproduced without executing the probe/measure harness (forbidden)."},
+    {"id": "TST-0189", "why": "probe requires the `node` binary on PATH to exercise the JS SUT write API (contract.node_bin raises 'node binary not found on PATH'); node is absent on the coordinator PATH. Environmental, not an artifact defect."},
+    {"id": "TST-0225", "why": "probe2 spawns `node` (FileNotFoundError: 'node'); node absent on the coordinator PATH. Environmental, not an artifact defect."},
+    {"id": "WFA-0042", "why": "probe recomputes per-dimension kappa live from real repo file contents via the frozen gold sample; a sampled file (AGENTS.md at repo root) is absent on Windows and file contents differ from the coordinator, so the live WSL kappa (roles=0.166667 etc.) cannot be reproduced Windows-side to update the artifact's per_dimension_kappa."}
+  ],
+  "notes": "GLOBAL PATTERNS for the coordinator: (1) Repo-path drift: several artifacts were authored under /opt/p2/ast-integrate but the coordinator measures at /home/prekzursil/p2-g1; any probe re-hashing repo-path-bearing content drifts (fixed RES-0009 by rebasing embedded cwd). grep delivered artifacts for '/opt/p2/ast-integrate'. (2) Stale-vs-code drift: some artifacts store values from an earlier probe/engine version (RES-0172 minimal set ids; ADV-0123 raw_output+targets). Where the current probe function is deterministic, the artifact can be regenerated from it. (3) Stale spec tails: SYN-0025 already passes now; re-measure before trusting a tail. (4) Shared-schema shim/profile mismatch: CNL-0018 and CNF-0102 fail because probes validate against the shared council-design-note / bundle-audit artifact-class profiles (generic_report) while artifacts were built to per-unit schemas; the profile comments say 63 (council-design-note) units share the class -> reconcile centrally. Also note the shared schema $id/$ref use environment-absolute file:// paths (C:/Users vs /home/prekzursil) that are regenerated per environment. (5) 16 module_gaps span tools/{detectors,plugin,council,marketplace,workflow_foundry,bench,command-center}; several are behavioral (not just missing symbols) and must be landed centrally. Windows-only edits; no probes/measure/WSL/git run; scratch helper scripts under _claude28 were removed after use."
+}

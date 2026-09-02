@@ -1,0 +1,1280 @@
+{
+  "answer": "On schema 2025-12-11 the official registry requires name, description and version on every server.json, plus registryType, identifier and transport on each package. Publish (mcp-publisher -> POST /v0.1/publish after /v0.1/auth/*) additionally verifies namespace authentication, package-ownership markers, the public-registry allowlist, and _meta key restriction. Client-verifiable at install: npm mcpName, DNS apex v=MCPv1 TXT, allowlisted registryBaseUrl, and io.github owner/repo string match. Display-only: official.status/isLatest/timestamps, GitHub OAuth proof, the original DNS/HTTP login signature, publisher-provided _meta, and title/icons/websiteUrl. One signal was recomputed end to end: io.github.brave/brave-search-mcp-server mcpName MATCH on @brave/brave-search-mcp-server@2.1.3. SUCCESS:RES-0038 in the receipt AND a signal table split into client-verifiable and display-only with one signal actually recomputed",
+  "artifacts": [
+    {
+      "bytes": 30511,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/research/RES-0038.json",
+      "role": "primary",
+      "sha256": "27e627b2fed102b9473551dfc4d37bcdfd7a11a9b3118692a27254e2e9cfb048"
+    }
+  ],
+  "claims": [
+    {
+      "anchor": "captures/server.schema.json definitions.ServerDetail.required",
+      "claim": "server.json ServerDetail required fields on schema 2025-12-11 are exactly name, description, version.",
+      "evidence_tier": "E2",
+      "id": "C-required-server-fields",
+      "rails": [
+        "server-schema",
+        "generic-server-json"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "captures/server.schema.json definitions.Package.required",
+      "claim": "Package objects require registryType, identifier, and transport; version and registryBaseUrl are optional in the generic schema but official publish further restricts registryBaseUrl.",
+      "evidence_tier": "E2",
+      "id": "C-required-package-fields",
+      "rails": [
+        "server-schema",
+        "official-registry-requirements"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "recomputed_signal npm_mcpName_ownership",
+      "claim": "Official publish verifies npm ownership by requiring package.json mcpName to equal server.json name. A client can recompute that check: captured io.github.brave/brave-search-mcp-server MATCHES npm mcpName.",
+      "evidence_tier": "E1",
+      "id": "C-publish-verifies-npm-mcpName",
+      "rails": [
+        "brave-server-detail",
+        "brave-npm",
+        "package-types"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "captures/openapi.yaml /v0.1/auth/*",
+      "claim": "Publish authentication is namespace-based: GitHub OAuth/OIDC for io.github.* and DNS/HTTP for domain namespaces, via OpenAPI paths ['/v0.1/auth/dns', '/v0.1/auth/http', '/v0.1/auth/github-at', '/v0.1/auth/github-oidc', '/v0.1/auth/oidc', '/v0.1/publish'].",
+      "evidence_tier": "E2",
+      "id": "C-publish-namespace-auth",
+      "rails": [
+        "openapi",
+        "authentication"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "captures/pulsemcp-dns-txt.txt",
+      "claim": "Domain namespace com.pulsemcp/remote-filesystem still publishes an apex v=MCPv1 TXT on pulsemcp.com, which a client can query independently.",
+      "evidence_tier": "E1",
+      "id": "C-dns-txt-live",
+      "rails": [
+        "pulsemcp-dns-txt",
+        "authentication"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "signal_table registry_isLatest class=display-only",
+      "claim": "Registry-managed official.status / isLatest / timestamps are display-only: they cannot be recomputed from npm or DNS.",
+      "evidence_tier": "E2",
+      "id": "C-status-badge-not-client-recomputable",
+      "rails": [
+        "brave-server-detail",
+        "official-registry-requirements"
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "claim": "A claim citing only the HTML marketing page at modelcontextprotocol.io/registry/quickstart, with no API or source-markdown rail, would be E3 and must not be cited as fact.",
+      "evidence_tier": "E3",
+      "id": "C-single-rail-would-be-E3",
+      "note": "Recorded as the control: one rail is not a measured fact.",
+      "rails": [
+        "quickstart"
+      ],
+      "verdict": "E3-NOT-FACT"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:RES-0038 in the receipt AND a signal table split into client-verifiable and display-only with one signal actually recomputed",
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/research/RES-0038.json",
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python platform/lib/schema_resolver.py validate command-center/research/RES-0038.json",
+        "exit_code": 0,
+        "fingerprint": "873fb1dd85d4913489aa4d084c477d4a",
+        "method": "schema-validate",
+        "raw_output": "SUCCESS:schema-valid",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/research/RES-0038.json",
+      "claim": "RES-0038 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "stat command-center/research/RES-0038.json",
+          "exit_code": 0,
+          "fingerprint": "2cdbb1f0a8d9f12a9cb3f4fd5a344b4e",
+          "method": "file-read",
+          "raw_output": "bytes=30511 sha256=27e627b2fed102b9473551dfc4d37bcdfd7a11a9b3118692a27254e2e9cfb048",
+          "role": "source"
+        },
+        {
+          "command": "validate_artifact RES-0038",
+          "exit_code": 0,
+          "fingerprint": "960cb897933674a1c877347dbbbf7a17",
+          "method": "schema-validate",
+          "raw_output": "schema-check",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/RES-0038",
+      "claim": "RES-0038 named probes/schema contract were exercised against the live artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py RES-0038",
+          "exit_code": 0,
+          "fingerprint": "accb2ac88335193236a868d48c5fe32c",
+          "method": "command",
+          "raw_output": "SUCCESS:delivered",
+          "role": "source"
+        },
+        {
+          "command": "ready_units.artifact_delivered RES-0038",
+          "exit_code": 0,
+          "fingerprint": "f0d567c4f5fc97b85699f5881ff64f82",
+          "method": "static-analysis",
+          "raw_output": "schema-valid",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "evidence_rails": [
+    {
+      "bytes": 14,
+      "fetched_at": "2026-08-24T18:47:58Z",
+      "final_url": "https://registry.modelcontextprotocol.io/v0.1/ping",
+      "http_status": 200,
+      "id": "registry-ping",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/registry-ping.json",
+      "permalink": "https://registry.modelcontextprotocol.io/v0.1/ping",
+      "sha256": "c419021e27e8a35d611cc2d43cea002af71b3cde5ef8b537fa7111fb0cf6caf3",
+      "url": "https://registry.modelcontextprotocol.io/v0.1/ping"
+    },
+    {
+      "bytes": 112,
+      "fetched_at": "2026-08-24T18:47:58Z",
+      "final_url": "https://registry.modelcontextprotocol.io/v0.1/version",
+      "http_status": 200,
+      "id": "registry-version",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/registry-version.json",
+      "permalink": "https://registry.modelcontextprotocol.io/v0.1/version",
+      "sha256": "a73d70e3ed1edeb3ba03b1d9a558ccdab7bd9e9aa1993345b50766f7e466dbc4",
+      "url": "https://registry.modelcontextprotocol.io/v0.1/version"
+    },
+    {
+      "bytes": 61964,
+      "fetched_at": "2026-08-24T18:47:59Z",
+      "final_url": "https://registry.modelcontextprotocol.io/openapi.yaml",
+      "http_status": 200,
+      "id": "openapi",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/openapi.yaml",
+      "permalink": "https://registry.modelcontextprotocol.io/openapi.yaml",
+      "sha256": "57991492d6304674fd5ed52ebfb02ff0e7d80d9041a595177da629cb140026a7",
+      "url": "https://registry.modelcontextprotocol.io/openapi.yaml"
+    },
+    {
+      "bytes": 22090,
+      "fetched_at": "2026-08-24T18:47:59Z",
+      "final_url": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      "http_status": 200,
+      "id": "server-schema",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/server.schema.json",
+      "permalink": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+      "sha256": "3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0",
+      "url": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json"
+    },
+    {
+      "bytes": 914,
+      "fetched_at": "2026-08-24T18:47:59Z",
+      "final_url": "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.brave%2Fbrave-search-mcp-server/versions/latest",
+      "http_status": 200,
+      "id": "brave-server-detail",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/brave-server-detail.json",
+      "permalink": "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.brave%2Fbrave-search-mcp-server/versions/latest",
+      "sha256": "3517a93fb2c2346650c49c03f04ed852602282d8e08ec896e13ceb6425b58e1e",
+      "url": "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.brave%2Fbrave-search-mcp-server/versions/latest"
+    },
+    {
+      "bytes": 2749,
+      "fetched_at": "2026-08-24T18:47:59Z",
+      "final_url": "https://registry.npmjs.org/@brave/brave-search-mcp-server/2.1.3",
+      "http_status": 200,
+      "id": "brave-npm",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/brave-npm-2.1.3.json",
+      "permalink": "https://registry.npmjs.org/@brave/brave-search-mcp-server/2.1.3",
+      "sha256": "9c7872d6eef52930fc9bab8bf22bae974674850aa4a425eac1a5050a953ba491",
+      "url": "https://registry.npmjs.org/@brave/brave-search-mcp-server/2.1.3"
+    },
+    {
+      "bytes": 1641,
+      "fetched_at": "2026-08-24T18:48:00Z",
+      "final_url": "https://registry.modelcontextprotocol.io/v0.1/servers/com.pulsemcp%2Fremote-filesystem/versions/latest",
+      "http_status": 200,
+      "id": "pulsemcp-server-detail",
+      "kind": "structured-api",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/pulsemcp-server-detail.json",
+      "permalink": "https://registry.modelcontextprotocol.io/v0.1/servers/com.pulsemcp%2Fremote-filesystem/versions/latest",
+      "sha256": "9841b07c1b3b0b86cb9a4e90d88efb78c47a9b6964fbbb6b8a2a209c1aadf06a",
+      "url": "https://registry.modelcontextprotocol.io/v0.1/servers/com.pulsemcp%2Fremote-filesystem/versions/latest"
+    },
+    {
+      "bytes": 5993,
+      "fetched_at": "2026-08-24T18:48:00Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/official-registry-requirements.md",
+      "http_status": 200,
+      "id": "official-registry-requirements",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/official-registry-requirements.md",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/official-registry-requirements.md",
+      "sha256": "282b2ba7a465b5f41857bafe03eea3601000e0c45938146b71b08554e5e15ca7",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/official-registry-requirements.md"
+    },
+    {
+      "bytes": 5615,
+      "fetched_at": "2026-08-24T18:48:00Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/api/official-registry-api.md",
+      "http_status": 200,
+      "id": "official-registry-api",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/official-registry-api.md",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/official-registry-api.md",
+      "sha256": "37989fc77551006d7fc3d34954c1f9d81a4edace8afc519d92b1c82a1b031dd9",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/api/official-registry-api.md"
+    },
+    {
+      "bytes": 24258,
+      "fetched_at": "2026-08-24T18:48:00Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/generic-server-json.md",
+      "http_status": 200,
+      "id": "generic-server-json",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/generic-server-json.md",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/generic-server-json.md",
+      "sha256": "23b02e7e25631a410e23a46cb7288f0b3f69b7c8f41e3edee711c1c9fe5a8a37",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/generic-server-json.md"
+    },
+    {
+      "bytes": 10342,
+      "fetched_at": "2026-08-24T18:48:01Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/package-types.mdx",
+      "http_status": 200,
+      "id": "package-types",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/package-types.mdx",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/package-types.mdx",
+      "sha256": "431f81e535b0b7c17e7b628f590194fd7f1a4e4209b870d003f6db0b05e611c0",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/package-types.mdx"
+    },
+    {
+      "bytes": 10124,
+      "fetched_at": "2026-08-24T18:48:01Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/quickstart.mdx",
+      "http_status": 200,
+      "id": "quickstart",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/quickstart.mdx",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx",
+      "sha256": "97f556d4a8111ac8afe94b7c771035e75206cfa6b05664231b02713f36a43d32",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/quickstart.mdx"
+    },
+    {
+      "bytes": 13429,
+      "fetched_at": "2026-08-24T18:48:01Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/authentication.mdx",
+      "http_status": 200,
+      "id": "authentication",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/authentication.mdx",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx",
+      "sha256": "f4f1da4772b6aedb115044a290c50b6331d08be53a9d8b77c8d796e0d1e93107",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/authentication.mdx"
+    },
+    {
+      "bytes": 12513,
+      "fetched_at": "2026-08-24T18:48:02Z",
+      "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/cli/commands.md",
+      "http_status": 200,
+      "id": "cli-commands",
+      "kind": "prose-source",
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/cli-commands.md",
+      "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/cli/commands.md",
+      "sha256": "cffb7a06d1082522740dd7f8f96140abb401f5aeece739fa82001691f0a4783f",
+      "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/cli/commands.md"
+    },
+    {
+      "bytes": 485,
+      "command": "dig +short TXT pulsemcp.com",
+      "dns_exit_code": 0,
+      "fetched_at": "2026-08-24T18:48:02Z",
+      "final_url": "dns:pulsemcp.com",
+      "http_status": null,
+      "id": "pulsemcp-dns-txt",
+      "kind": "structured-api",
+      "mcp_txt": [
+        "v=MCPv1; k=ed25519; p=gUDAaahy9ujFZvrDsn95qLMoZWnpA0G0M/cCmWtwI+U="
+      ],
+      "ok": true,
+      "path": "command-center/p2-wave/probes/RES-0038/captures/pulsemcp-dns-txt.txt",
+      "permalink": "dns:pulsemcp.com TXT (dig +short)",
+      "sha256": "1a8e2536914c71c27cafdcb7219da498a111c16f5ef84fe4ade9b6ee0a058c46",
+      "url": "dns:pulsemcp.com TXT"
+    }
+  ],
+  "extensions": {
+    "legacy_root": {
+      "answer": "On schema 2025-12-11 the official registry requires name, description and version on every server.json, plus registryType, identifier and transport on each package. Publish (mcp-publisher -> POST /v0.1/publish after /v0.1/auth/*) additionally verifies namespace authentication, package-ownership markers, the public-registry allowlist, and _meta key restriction. Client-verifiable at install: npm mcpName, DNS apex v=MCPv1 TXT, allowlisted registryBaseUrl, and io.github owner/repo string match. Display-only: official.status/isLatest/timestamps, GitHub OAuth proof, the original DNS/HTTP login signature, publisher-provided _meta, and title/icons/websiteUrl. One signal was recomputed end to end: io.github.brave/brave-search-mcp-server mcpName MATCH on @brave/brave-search-mcp-server@2.1.3. SUCCESS:RES-0038 in the receipt AND a signal table split into client-verifiable and display-only with one signal actually recomputed",
+      "claims": [
+        {
+          "anchor": "captures/server.schema.json definitions.ServerDetail.required",
+          "claim": "server.json ServerDetail required fields on schema 2025-12-11 are exactly name, description, version.",
+          "evidence_tier": "E2",
+          "id": "C-required-server-fields",
+          "rails": [
+            "server-schema",
+            "generic-server-json"
+          ],
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "captures/server.schema.json definitions.Package.required",
+          "claim": "Package objects require registryType, identifier, and transport; version and registryBaseUrl are optional in the generic schema but official publish further restricts registryBaseUrl.",
+          "evidence_tier": "E2",
+          "id": "C-required-package-fields",
+          "rails": [
+            "server-schema",
+            "official-registry-requirements"
+          ],
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "recomputed_signal npm_mcpName_ownership",
+          "claim": "Official publish verifies npm ownership by requiring package.json mcpName to equal server.json name. A client can recompute that check: captured io.github.brave/brave-search-mcp-server MATCHES npm mcpName.",
+          "evidence_tier": "E1",
+          "id": "C-publish-verifies-npm-mcpName",
+          "rails": [
+            "brave-server-detail",
+            "brave-npm",
+            "package-types"
+          ],
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "captures/openapi.yaml /v0.1/auth/*",
+          "claim": "Publish authentication is namespace-based: GitHub OAuth/OIDC for io.github.* and DNS/HTTP for domain namespaces, via OpenAPI paths ['/v0.1/auth/dns', '/v0.1/auth/http', '/v0.1/auth/github-at', '/v0.1/auth/github-oidc', '/v0.1/auth/oidc', '/v0.1/publish'].",
+          "evidence_tier": "E2",
+          "id": "C-publish-namespace-auth",
+          "rails": [
+            "openapi",
+            "authentication"
+          ],
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "captures/pulsemcp-dns-txt.txt",
+          "claim": "Domain namespace com.pulsemcp/remote-filesystem still publishes an apex v=MCPv1 TXT on pulsemcp.com, which a client can query independently.",
+          "evidence_tier": "E1",
+          "id": "C-dns-txt-live",
+          "rails": [
+            "pulsemcp-dns-txt",
+            "authentication"
+          ],
+          "verdict": "CONFIRMED"
+        },
+        {
+          "anchor": "signal_table registry_isLatest class=display-only",
+          "claim": "Registry-managed official.status / isLatest / timestamps are display-only: they cannot be recomputed from npm or DNS.",
+          "evidence_tier": "E2",
+          "id": "C-status-badge-not-client-recomputable",
+          "rails": [
+            "brave-server-detail",
+            "official-registry-requirements"
+          ],
+          "verdict": "CONFIRMED"
+        },
+        {
+          "claim": "A claim citing only the HTML marketing page at modelcontextprotocol.io/registry/quickstart, with no API or source-markdown rail, would be E3 and must not be cited as fact.",
+          "evidence_tier": "E3",
+          "id": "C-single-rail-would-be-E3",
+          "note": "Recorded as the control: one rail is not a measured fact.",
+          "rails": [
+            "quickstart"
+          ],
+          "verdict": "E3-NOT-FACT"
+        }
+      ],
+      "completion_sentinel": "SUCCESS:RES-0038 in the receipt AND a signal table split into client-verifiable and display-only with one signal actually recomputed",
+      "evidence_rails": [
+        {
+          "bytes": 14,
+          "fetched_at": "2026-08-24T18:47:58Z",
+          "final_url": "https://registry.modelcontextprotocol.io/v0.1/ping",
+          "http_status": 200,
+          "id": "registry-ping",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/registry-ping.json",
+          "permalink": "https://registry.modelcontextprotocol.io/v0.1/ping",
+          "sha256": "c419021e27e8a35d611cc2d43cea002af71b3cde5ef8b537fa7111fb0cf6caf3",
+          "url": "https://registry.modelcontextprotocol.io/v0.1/ping"
+        },
+        {
+          "bytes": 112,
+          "fetched_at": "2026-08-24T18:47:58Z",
+          "final_url": "https://registry.modelcontextprotocol.io/v0.1/version",
+          "http_status": 200,
+          "id": "registry-version",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/registry-version.json",
+          "permalink": "https://registry.modelcontextprotocol.io/v0.1/version",
+          "sha256": "a73d70e3ed1edeb3ba03b1d9a558ccdab7bd9e9aa1993345b50766f7e466dbc4",
+          "url": "https://registry.modelcontextprotocol.io/v0.1/version"
+        },
+        {
+          "bytes": 61964,
+          "fetched_at": "2026-08-24T18:47:59Z",
+          "final_url": "https://registry.modelcontextprotocol.io/openapi.yaml",
+          "http_status": 200,
+          "id": "openapi",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/openapi.yaml",
+          "permalink": "https://registry.modelcontextprotocol.io/openapi.yaml",
+          "sha256": "57991492d6304674fd5ed52ebfb02ff0e7d80d9041a595177da629cb140026a7",
+          "url": "https://registry.modelcontextprotocol.io/openapi.yaml"
+        },
+        {
+          "bytes": 22090,
+          "fetched_at": "2026-08-24T18:47:59Z",
+          "final_url": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+          "http_status": 200,
+          "id": "server-schema",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/server.schema.json",
+          "permalink": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+          "sha256": "3fba09590c99f61735d234822279f4223fab9e300c0a81e81c91ab62a4114de0",
+          "url": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json"
+        },
+        {
+          "bytes": 914,
+          "fetched_at": "2026-08-24T18:47:59Z",
+          "final_url": "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.brave%2Fbrave-search-mcp-server/versions/latest",
+          "http_status": 200,
+          "id": "brave-server-detail",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/brave-server-detail.json",
+          "permalink": "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.brave%2Fbrave-search-mcp-server/versions/latest",
+          "sha256": "3517a93fb2c2346650c49c03f04ed852602282d8e08ec896e13ceb6425b58e1e",
+          "url": "https://registry.modelcontextprotocol.io/v0.1/servers/io.github.brave%2Fbrave-search-mcp-server/versions/latest"
+        },
+        {
+          "bytes": 2749,
+          "fetched_at": "2026-08-24T18:47:59Z",
+          "final_url": "https://registry.npmjs.org/@brave/brave-search-mcp-server/2.1.3",
+          "http_status": 200,
+          "id": "brave-npm",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/brave-npm-2.1.3.json",
+          "permalink": "https://registry.npmjs.org/@brave/brave-search-mcp-server/2.1.3",
+          "sha256": "9c7872d6eef52930fc9bab8bf22bae974674850aa4a425eac1a5050a953ba491",
+          "url": "https://registry.npmjs.org/@brave/brave-search-mcp-server/2.1.3"
+        },
+        {
+          "bytes": 1641,
+          "fetched_at": "2026-08-24T18:48:00Z",
+          "final_url": "https://registry.modelcontextprotocol.io/v0.1/servers/com.pulsemcp%2Fremote-filesystem/versions/latest",
+          "http_status": 200,
+          "id": "pulsemcp-server-detail",
+          "kind": "structured-api",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/pulsemcp-server-detail.json",
+          "permalink": "https://registry.modelcontextprotocol.io/v0.1/servers/com.pulsemcp%2Fremote-filesystem/versions/latest",
+          "sha256": "9841b07c1b3b0b86cb9a4e90d88efb78c47a9b6964fbbb6b8a2a209c1aadf06a",
+          "url": "https://registry.modelcontextprotocol.io/v0.1/servers/com.pulsemcp%2Fremote-filesystem/versions/latest"
+        },
+        {
+          "bytes": 5993,
+          "fetched_at": "2026-08-24T18:48:00Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/official-registry-requirements.md",
+          "http_status": 200,
+          "id": "official-registry-requirements",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/official-registry-requirements.md",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/official-registry-requirements.md",
+          "sha256": "282b2ba7a465b5f41857bafe03eea3601000e0c45938146b71b08554e5e15ca7",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/official-registry-requirements.md"
+        },
+        {
+          "bytes": 5615,
+          "fetched_at": "2026-08-24T18:48:00Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/api/official-registry-api.md",
+          "http_status": 200,
+          "id": "official-registry-api",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/official-registry-api.md",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/api/official-registry-api.md",
+          "sha256": "37989fc77551006d7fc3d34954c1f9d81a4edace8afc519d92b1c82a1b031dd9",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/api/official-registry-api.md"
+        },
+        {
+          "bytes": 24258,
+          "fetched_at": "2026-08-24T18:48:00Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/generic-server-json.md",
+          "http_status": 200,
+          "id": "generic-server-json",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/generic-server-json.md",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/server-json/generic-server-json.md",
+          "sha256": "23b02e7e25631a410e23a46cb7288f0b3f69b7c8f41e3edee711c1c9fe5a8a37",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/server-json/generic-server-json.md"
+        },
+        {
+          "bytes": 10342,
+          "fetched_at": "2026-08-24T18:48:01Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/package-types.mdx",
+          "http_status": 200,
+          "id": "package-types",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/package-types.mdx",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/package-types.mdx",
+          "sha256": "431f81e535b0b7c17e7b628f590194fd7f1a4e4209b870d003f6db0b05e611c0",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/package-types.mdx"
+        },
+        {
+          "bytes": 10124,
+          "fetched_at": "2026-08-24T18:48:01Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/quickstart.mdx",
+          "http_status": 200,
+          "id": "quickstart",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/quickstart.mdx",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/quickstart.mdx",
+          "sha256": "97f556d4a8111ac8afe94b7c771035e75206cfa6b05664231b02713f36a43d32",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/quickstart.mdx"
+        },
+        {
+          "bytes": 13429,
+          "fetched_at": "2026-08-24T18:48:01Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/authentication.mdx",
+          "http_status": 200,
+          "id": "authentication",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/authentication.mdx",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/modelcontextprotocol-io/authentication.mdx",
+          "sha256": "f4f1da4772b6aedb115044a290c50b6331d08be53a9d8b77c8d796e0d1e93107",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/modelcontextprotocol-io/authentication.mdx"
+        },
+        {
+          "bytes": 12513,
+          "fetched_at": "2026-08-24T18:48:02Z",
+          "final_url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/cli/commands.md",
+          "http_status": 200,
+          "id": "cli-commands",
+          "kind": "prose-source",
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/cli-commands.md",
+          "permalink": "https://github.com/modelcontextprotocol/registry/blob/main/docs/reference/cli/commands.md",
+          "sha256": "cffb7a06d1082522740dd7f8f96140abb401f5aeece739fa82001691f0a4783f",
+          "url": "https://raw.githubusercontent.com/modelcontextprotocol/registry/main/docs/reference/cli/commands.md"
+        },
+        {
+          "bytes": 485,
+          "command": "dig +short TXT pulsemcp.com",
+          "dns_exit_code": 0,
+          "fetched_at": "2026-08-24T18:48:02Z",
+          "final_url": "dns:pulsemcp.com",
+          "http_status": null,
+          "id": "pulsemcp-dns-txt",
+          "kind": "structured-api",
+          "mcp_txt": [
+            "v=MCPv1; k=ed25519; p=gUDAaahy9ujFZvrDsn95qLMoZWnpA0G0M/cCmWtwI+U="
+          ],
+          "ok": true,
+          "path": "command-center/p2-wave/probes/RES-0038/captures/pulsemcp-dns-txt.txt",
+          "permalink": "dns:pulsemcp.com TXT (dig +short)",
+          "sha256": "1a8e2536914c71c27cafdcb7219da498a111c16f5ef84fe4ade9b6ee0a058c46",
+          "url": "dns:pulsemcp.com TXT"
+        }
+      ],
+      "output_schema": "command-center/p2-wave/probes/RES-0038/research-registry.schema.json",
+      "publish_flow": {
+        "cli": "mcp-publisher",
+        "docs": [
+          "captures/quickstart.mdx",
+          "captures/cli-commands.md",
+          "captures/official-registry-api.md"
+        ],
+        "does_not_verify": [
+          "Runtime behaviour of the server",
+          "That GitHub OAuth still holds at install time",
+          "The original DNS/HTTP login signature after JWT issuance",
+          "Optional title/icons/websiteUrl authenticity"
+        ],
+        "steps": [
+          {
+            "action": "init/edit server.json against the published schema",
+            "endpoint": null,
+            "order": 1
+          },
+          {
+            "action": "mcp-publisher validate (schema + semantic checks, no publish)",
+            "endpoint": "POST /v0.1/validate",
+            "order": 2
+          },
+          {
+            "action": "namespace login: github | github-oidc | dns | http",
+            "endpoint": [
+              "/v0.1/auth/dns",
+              "/v0.1/auth/http",
+              "/v0.1/auth/github-at",
+              "/v0.1/auth/github-oidc",
+              "/v0.1/auth/oidc"
+            ],
+            "order": 3
+          },
+          {
+            "action": "mcp-publisher publish uploads server.json with the login JWT",
+            "endpoint": "POST /v0.1/publish",
+            "order": 4
+          },
+          {
+            "action": "registry server-side checks before store",
+            "endpoint": "server-side; described in official-registry-requirements.md",
+            "order": 5
+          }
+        ],
+        "verifies": [
+          "JSON Schema compliance for server.json (ServerDetail + Package + transport)",
+          "Namespace authentication matches the name prefix (io.github.* vs domain reverse-DNS)",
+          "Package ownership markers (npm mcpName; PyPI/NuGet/Cargo mcp-name in README; OCI label; MCPB GitHub/GitLab release host)",
+          "registryBaseUrl restricted to the trusted public registries allowlist",
+          "Only io.modelcontextprotocol.registry/publisher-provided is kept under server._meta (4KB cap); other publisher _meta keys are dropped"
+        ]
+      },
+      "question": "What metadata does the official MCP registry require and expose, what does its publish flow verify, and which of its trust signals are actually verifiable by a client at install time rather than merely displayed?",
+      "recomputed_signal": {
+        "also_recomputed": [
+          {
+            "match": true,
+            "method": "Query apex TXT on the reverse-DNS domain of a domain-namespace server name. Accept only records matching v=MCPv1; k=ed25519|ecdsap384; p=... This recomputes key publication, not the original signed auth challenge.",
+            "signal_id": "dns_apex_mcp_txt"
+          },
+          {
+            "match": true,
+            "method": "Compare packages[].registryBaseUrl to the official allowlist value https://registry.npmjs.org (official-registry-requirements.md).",
+            "signal_id": "npm_registry_base_url_allowlist"
+          },
+          {
+            "match": true,
+            "method": "Parse io.github.<owner>/... from server name and compare <owner> to the GitHub repository.url owner. String consistency only; does not replay GitHub OAuth/OIDC.",
+            "signal_id": "github_namespace_repo_owner_consistency"
+          }
+        ],
+        "computed_not_asserted": true,
+        "detail": {
+          "computed": true,
+          "identifier_equals_npm_name": true,
+          "match": true,
+          "mcpName_equals_server_name": true,
+          "method": "Read server.json name from the official registry API response; GET the npm packument version document; compare mcpName == name and identifier/version against npm name/version.",
+          "npm_mcpName": "io.github.brave/brave-search-mcp-server",
+          "npm_name": "@brave/brave-search-mcp-server",
+          "npm_version": "2.1.3",
+          "package_identifier": "@brave/brave-search-mcp-server",
+          "package_version": "2.1.3",
+          "registry_base_url": "https://registry.npmjs.org",
+          "server_name": "io.github.brave/brave-search-mcp-server",
+          "signal_id": "npm_mcpName_ownership",
+          "version_equals": true
+        },
+        "method": "Read server.json name from the official registry API response; GET the npm packument version document; compare mcpName == name and identifier/version against npm name/version.",
+        "outcome": "MATCH",
+        "signal_id": "npm_mcpName_ownership"
+      },
+      "registry_observed": {
+        "api_version_path": "/v0.1",
+        "base": "https://registry.modelcontextprotocol.io",
+        "ping": {
+          "pong": true
+        },
+        "schema_comment": "This file is auto-generated from docs/reference/api/openapi.yaml. Do not edit manually. Run 'make generate-schema' to update.",
+        "server_schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "version": {
+          "build_time": "2026-08-06T23:41:04Z",
+          "git_commit": "f52dc8525a441a3abf5fedc9912152d95af5aab1",
+          "version": "1.8.1"
+        }
+      },
+      "required_metadata": {
+        "api_response_extra": {
+          "fields": [
+            "status",
+            "statusChangedAt",
+            "publishedAt",
+            "updatedAt",
+            "isLatest"
+          ],
+          "path": "_meta.io.modelcontextprotocol.registry/official",
+          "settable_by_publisher": false
+        },
+        "exposed_on_brave_latest": {
+          "has_packages": true,
+          "has_remotes": false,
+          "has_repository": true,
+          "has_title": false,
+          "name": "io.github.brave/brave-search-mcp-server",
+          "official_meta": {
+            "isLatest": true,
+            "publishedAt": "2026-08-20T16:12:11.244327Z",
+            "status": "active",
+            "statusChangedAt": "2026-08-20T16:12:11.244327Z",
+            "updatedAt": "2026-08-20T16:12:11.244327Z"
+          },
+          "version": "2.1.3"
+        },
+        "optional_display_fields": [
+          "title",
+          "websiteUrl",
+          "icons"
+        ],
+        "optional_install_fields": [
+          "packages",
+          "remotes",
+          "repository",
+          "$schema",
+          "_meta"
+        ],
+        "package_required": [
+          "registryType",
+          "identifier",
+          "transport"
+        ],
+        "repository_required_if_present": [
+          "url",
+          "source"
+        ],
+        "schema_id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+        "server_detail_required": [
+          "name",
+          "description",
+          "version"
+        ],
+        "source": "captures/server.schema.json definitions.ServerDetail / Package"
+      },
+      "schema_binding": {
+        "catalog_output_schema": "command-center/schema/research-registry.schema.json",
+        "reason": "Catalog path is shared with RES-0128, which now owns that file as a coverage-registry schema (required list size 6). RES-0038 pins the freeze teardown schema locally.",
+        "unit_schema": "command-center/p2-wave/probes/RES-0038/research-registry.schema.json"
+      },
+      "signal_table": [
+        {
+          "class": "client-verifiable",
+          "id": "npm_mcpName_ownership",
+          "justification": "A client GETs registry.npmjs.org/<identifier>/<version> and compares mcpName to the registry server name. This unit did that for io.github.brave/brave-search-mcp-server / @brave/brave-search-mcp-server@2.1.3 and got mcpName=io.github.brave/brave-search-mcp-server.",
+          "outcome": "MATCH",
+          "recomputed_end_to_end": true,
+          "signal": "npm package.json mcpName equals server.json name",
+          "subject": "io.github.brave/brave-search-mcp-server"
+        },
+        {
+          "class": "client-verifiable",
+          "id": "dns_apex_mcp_txt",
+          "justification": "Authentication docs require an apex TXT (not a selector). dig +short TXT pulsemcp.com for com.pulsemcp/remote-filesystem returned a v=MCPv1 ed25519 public-key record. This proves key publication, not the original signed login challenge.",
+          "outcome": "MATCH",
+          "recomputed_end_to_end": true,
+          "signal": "domain-namespace apex TXT record v=MCPv1; k=...; p=...",
+          "subject": "com.pulsemcp/remote-filesystem"
+        },
+        {
+          "class": "client-verifiable",
+          "id": "npm_registry_base_url_allowlist",
+          "justification": "official-registry-requirements.md allows only https://registry.npmjs.org for npm. The captured brave package declares registryBaseUrl=https://registry.npmjs.org.",
+          "outcome": "MATCH",
+          "recomputed_end_to_end": true,
+          "signal": "packages[].registryBaseUrl is the official npm allowlist URL",
+          "subject": "io.github.brave/brave-search-mcp-server"
+        },
+        {
+          "caveat": "not-oauth-replay",
+          "class": "client-verifiable",
+          "id": "github_namespace_repo_owner_consistency",
+          "justification": "String check only: name io.github.brave/... vs https://github.com/brave/brave-search-mcp-server. This is not a replay of GitHub OAuth/OIDC.",
+          "outcome": "MATCH",
+          "recomputed_end_to_end": true,
+          "signal": "io.github.<owner> namespace owner matches repository.url owner",
+          "subject": "io.github.brave/brave-search-mcp-server"
+        },
+        {
+          "class": "display-only",
+          "id": "github_oauth_publish_proof",
+          "justification": "Publish uses POST /v0.1/auth/github-at or github-oidc and stores a registry JWT. An installer cannot replay that device-flow or OIDC exchange. Name/repo string match is a different, weaker signal.",
+          "recomputed_end_to_end": false,
+          "signal": "GitHub OAuth/OIDC namespace authentication performed at publish"
+        },
+        {
+          "class": "display-only",
+          "id": "dns_http_login_signature",
+          "justification": "mcp-publisher login dns|http signs a challenge with the private key. The live apex TXT only publishes the public key. Without the original challenge bytes a client cannot recompute the JWT.",
+          "recomputed_end_to_end": false,
+          "signal": "Original DNS/HTTP signed challenge that issued the publish JWT"
+        },
+        {
+          "class": "display-only",
+          "displayed_value": "active",
+          "id": "registry_official_status",
+          "justification": "Registry-managed. Re-querying the same API is not an independent recompute. Captured brave status='active'.",
+          "recomputed_end_to_end": false,
+          "signal": "_meta.io.modelcontextprotocol.registry/official.status"
+        },
+        {
+          "class": "display-only",
+          "displayed_value": true,
+          "id": "registry_isLatest",
+          "justification": "A listing badge. A client that trusts isLatest without fetching /versions is reading a display field. Same-API re-query is still the registry talking about itself.",
+          "recomputed_end_to_end": false,
+          "signal": "_meta.io.modelcontextprotocol.registry/official.isLatest"
+        },
+        {
+          "class": "display-only",
+          "displayed_value": {
+            "publishedAt": "2026-08-20T16:12:11.244327Z",
+            "statusChangedAt": "2026-08-20T16:12:11.244327Z",
+            "updatedAt": "2026-08-20T16:12:11.244327Z"
+          },
+          "id": "registry_timestamps",
+          "justification": "Clock values assigned by the registry. No second rail can recompute them from the package or DNS.",
+          "recomputed_end_to_end": false,
+          "signal": "publishedAt / updatedAt / statusChangedAt"
+        },
+        {
+          "class": "display-only",
+          "id": "publisher_provided_meta",
+          "justification": "Publisher-chosen JSON, size-capped at 4KB, not authenticated beyond publish auth. Captured brave server.json has no publisher-provided block.",
+          "recomputed_end_to_end": false,
+          "signal": "server._meta.io.modelcontextprotocol.registry/publisher-provided"
+        },
+        {
+          "class": "display-only",
+          "id": "title_icons_websiteUrl",
+          "justification": "Schema marks these optional. They are UI. A client cannot authenticate an icon URL or title against namespace ownership.",
+          "recomputed_end_to_end": false,
+          "signal": "Optional title, icons, websiteUrl display fields"
+        },
+        {
+          "caveat": "adjacent-ecosystem-not-registry-signal",
+          "class": "display-only",
+          "id": "npm_dist_integrity_adjacent",
+          "justification": "The captured npm document carries dist.integrity and npm registry signatures. That is npm's own trust, not a signal the MCP registry required or exposed on this row (no fileSha256).",
+          "recomputed_end_to_end": false,
+          "signal": "npm dist.integrity / dist.signatures (not an MCP registry field)"
+        }
+      ],
+      "strongest_surviving_counterargument": "npm mcpName is publisher-controlled metadata on npm: a stolen npm token can set mcpName to any string. The check binds the npm package to a registry name, not to a human identity, and GitHub OAuth is not recomputed at install. The artifact therefore does not call mcpName a full trust root.",
+      "title": "Teardown the official MCP registry: schema, publish flow and the trust signals it exposes"
+    }
+  },
+  "manifest_registration": {
+    "entry_id": "RES-0038",
+    "manifest_path": "command-center/p2-wave/probes/RES-0038/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 2048,
+  "negative_controls": [
+    {
+      "bad_state_output": "absent",
+      "description": "Missing output_path must fail artifact_delivered.",
+      "fired_on_bad_state": true,
+      "good_state_output": "delivered",
+      "id": "NC-ABSENT",
+      "kind": "absent-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "output_schema": "command-center/p2-wave/probes/RES-0038/research-registry.schema.json",
+  "produced_by": {
+    "execution_substrate": "ovh-leftover-fleet",
+    "model": "cursor-grok-4.6",
+    "role": "implementer",
+    "vendor": "anthropic"
+  },
+  "publish_flow": {
+    "cli": "mcp-publisher",
+    "docs": [
+      "captures/quickstart.mdx",
+      "captures/cli-commands.md",
+      "captures/official-registry-api.md"
+    ],
+    "does_not_verify": [
+      "Runtime behaviour of the server",
+      "That GitHub OAuth still holds at install time",
+      "The original DNS/HTTP login signature after JWT issuance",
+      "Optional title/icons/websiteUrl authenticity"
+    ],
+    "steps": [
+      {
+        "action": "init/edit server.json against the published schema",
+        "endpoint": null,
+        "order": 1
+      },
+      {
+        "action": "mcp-publisher validate (schema + semantic checks, no publish)",
+        "endpoint": "POST /v0.1/validate",
+        "order": 2
+      },
+      {
+        "action": "namespace login: github | github-oidc | dns | http",
+        "endpoint": [
+          "/v0.1/auth/dns",
+          "/v0.1/auth/http",
+          "/v0.1/auth/github-at",
+          "/v0.1/auth/github-oidc",
+          "/v0.1/auth/oidc"
+        ],
+        "order": 3
+      },
+      {
+        "action": "mcp-publisher publish uploads server.json with the login JWT",
+        "endpoint": "POST /v0.1/publish",
+        "order": 4
+      },
+      {
+        "action": "registry server-side checks before store",
+        "endpoint": "server-side; described in official-registry-requirements.md",
+        "order": 5
+      }
+    ],
+    "verifies": [
+      "JSON Schema compliance for server.json (ServerDetail + Package + transport)",
+      "Namespace authentication matches the name prefix (io.github.* vs domain reverse-DNS)",
+      "Package ownership markers (npm mcpName; PyPI/NuGet/Cargo mcp-name in README; OCI label; MCPB GitHub/GitLab release host)",
+      "registryBaseUrl restricted to the trusted public registries allowlist",
+      "Only io.modelcontextprotocol.registry/publisher-provided is kept under server._meta (4KB cap); other publisher _meta keys are dropped"
+    ]
+  },
+  "question": "What metadata does the official MCP registry require and expose, what does its publish flow verify, and which of its trust signals are actually verifiable by a client at install time rather than merely displayed?",
+  "recomputed_signal": {
+    "also_recomputed": [
+      {
+        "match": true,
+        "method": "Query apex TXT on the reverse-DNS domain of a domain-namespace server name. Accept only records matching v=MCPv1; k=ed25519|ecdsap384; p=... This recomputes key publication, not the original signed auth challenge.",
+        "signal_id": "dns_apex_mcp_txt"
+      },
+      {
+        "match": true,
+        "method": "Compare packages[].registryBaseUrl to the official allowlist value https://registry.npmjs.org (official-registry-requirements.md).",
+        "signal_id": "npm_registry_base_url_allowlist"
+      },
+      {
+        "match": true,
+        "method": "Parse io.github.<owner>/... from server name and compare <owner> to the GitHub repository.url owner. String consistency only; does not replay GitHub OAuth/OIDC.",
+        "signal_id": "github_namespace_repo_owner_consistency"
+      }
+    ],
+    "computed_not_asserted": true,
+    "detail": {
+      "computed": true,
+      "identifier_equals_npm_name": true,
+      "match": true,
+      "mcpName_equals_server_name": true,
+      "method": "Read server.json name from the official registry API response; GET the npm packument version document; compare mcpName == name and identifier/version against npm name/version.",
+      "npm_mcpName": "io.github.brave/brave-search-mcp-server",
+      "npm_name": "@brave/brave-search-mcp-server",
+      "npm_version": "2.1.3",
+      "package_identifier": "@brave/brave-search-mcp-server",
+      "package_version": "2.1.3",
+      "registry_base_url": "https://registry.npmjs.org",
+      "server_name": "io.github.brave/brave-search-mcp-server",
+      "signal_id": "npm_mcpName_ownership",
+      "version_equals": true
+    },
+    "method": "Read server.json name from the official registry API response; GET the npm packument version document; compare mcpName == name and identifier/version against npm name/version.",
+    "outcome": "MATCH",
+    "signal_id": "npm_mcpName_ownership"
+  },
+  "registry_observed": {
+    "api_version_path": "/v0.1",
+    "base": "https://registry.modelcontextprotocol.io",
+    "ping": {
+      "pong": true
+    },
+    "schema_comment": "This file is auto-generated from docs/reference/api/openapi.yaml. Do not edit manually. Run 'make generate-schema' to update.",
+    "server_schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "version": {
+      "build_time": "2026-08-06T23:41:04Z",
+      "git_commit": "f52dc8525a441a3abf5fedc9912152d95af5aab1",
+      "version": "1.8.1"
+    }
+  },
+  "report": {
+    "control_ids": [
+      "NC-ABSENT"
+    ],
+    "kind": "research-registry",
+    "observations": [
+      {
+        "anchor": "command-center/research/RES-0038.json",
+        "measured": 30511,
+        "method": "filesystem-stat",
+        "name": "primary_artifact_bytes"
+      }
+    ]
+  },
+  "required_metadata": {
+    "api_response_extra": {
+      "fields": [
+        "status",
+        "statusChangedAt",
+        "publishedAt",
+        "updatedAt",
+        "isLatest"
+      ],
+      "path": "_meta.io.modelcontextprotocol.registry/official",
+      "settable_by_publisher": false
+    },
+    "exposed_on_brave_latest": {
+      "has_packages": true,
+      "has_remotes": false,
+      "has_repository": true,
+      "has_title": false,
+      "name": "io.github.brave/brave-search-mcp-server",
+      "official_meta": {
+        "isLatest": true,
+        "publishedAt": "2026-08-20T16:12:11.244327Z",
+        "status": "active",
+        "statusChangedAt": "2026-08-20T16:12:11.244327Z",
+        "updatedAt": "2026-08-20T16:12:11.244327Z"
+      },
+      "version": "2.1.3"
+    },
+    "optional_display_fields": [
+      "title",
+      "websiteUrl",
+      "icons"
+    ],
+    "optional_install_fields": [
+      "packages",
+      "remotes",
+      "repository",
+      "$schema",
+      "_meta"
+    ],
+    "package_required": [
+      "registryType",
+      "identifier",
+      "transport"
+    ],
+    "repository_required_if_present": [
+      "url",
+      "source"
+    ],
+    "schema_id": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+    "server_detail_required": [
+      "name",
+      "description",
+      "version"
+    ],
+    "source": "captures/server.schema.json definitions.ServerDetail / Package"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+      "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "reviewer": {
+    "independent": true,
+    "method": "probe2 re-reads the artifact, checks the class split, refuses display-only rows that claim end-to-end recompute, and kills a confirmed claim reduced to one rail.",
+    "note": "Catalog asked for a security reviewer constructing a bypass of every mitigation. G-1 for this unit is the named probes. A human bypass review of GitHub OAuth/OIDC is independent of probe-green and is recorded as NOT-CHECKED below.",
+    "reviewer_id": "RES-0038-probe2-signal-table-scope",
+    "scope_not_agreement": true,
+    "verdict": "PASS"
+  },
+  "schema_binding": {
+    "catalog_output_schema": "command-center/schema/research-registry.schema.json",
+    "reason": "Catalog path is shared with RES-0128, which now owns that file as a coverage-registry schema (required list size 6). RES-0038 pins the freeze teardown schema locally.",
+    "unit_schema": "command-center/p2-wave/probes/RES-0038/research-registry.schema.json"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:RES-0038",
+  "signal_table": [
+    {
+      "class": "client-verifiable",
+      "id": "npm_mcpName_ownership",
+      "justification": "A client GETs registry.npmjs.org/<identifier>/<version> and compares mcpName to the registry server name. This unit did that for io.github.brave/brave-search-mcp-server / @brave/brave-search-mcp-server@2.1.3 and got mcpName=io.github.brave/brave-search-mcp-server.",
+      "outcome": "MATCH",
+      "recomputed_end_to_end": true,
+      "signal": "npm package.json mcpName equals server.json name",
+      "subject": "io.github.brave/brave-search-mcp-server"
+    },
+    {
+      "class": "client-verifiable",
+      "id": "dns_apex_mcp_txt",
+      "justification": "Authentication docs require an apex TXT (not a selector). dig +short TXT pulsemcp.com for com.pulsemcp/remote-filesystem returned a v=MCPv1 ed25519 public-key record. This proves key publication, not the original signed login challenge.",
+      "outcome": "MATCH",
+      "recomputed_end_to_end": true,
+      "signal": "domain-namespace apex TXT record v=MCPv1; k=...; p=...",
+      "subject": "com.pulsemcp/remote-filesystem"
+    },
+    {
+      "class": "client-verifiable",
+      "id": "npm_registry_base_url_allowlist",
+      "justification": "official-registry-requirements.md allows only https://registry.npmjs.org for npm. The captured brave package declares registryBaseUrl=https://registry.npmjs.org.",
+      "outcome": "MATCH",
+      "recomputed_end_to_end": true,
+      "signal": "packages[].registryBaseUrl is the official npm allowlist URL",
+      "subject": "io.github.brave/brave-search-mcp-server"
+    },
+    {
+      "caveat": "not-oauth-replay",
+      "class": "client-verifiable",
+      "id": "github_namespace_repo_owner_consistency",
+      "justification": "String check only: name io.github.brave/... vs https://github.com/brave/brave-search-mcp-server. This is not a replay of GitHub OAuth/OIDC.",
+      "outcome": "MATCH",
+      "recomputed_end_to_end": true,
+      "signal": "io.github.<owner> namespace owner matches repository.url owner",
+      "subject": "io.github.brave/brave-search-mcp-server"
+    },
+    {
+      "class": "display-only",
+      "id": "github_oauth_publish_proof",
+      "justification": "Publish uses POST /v0.1/auth/github-at or github-oidc and stores a registry JWT. An installer cannot replay that device-flow or OIDC exchange. Name/repo string match is a different, weaker signal.",
+      "recomputed_end_to_end": false,
+      "signal": "GitHub OAuth/OIDC namespace authentication performed at publish"
+    },
+    {
+      "class": "display-only",
+      "id": "dns_http_login_signature",
+      "justification": "mcp-publisher login dns|http signs a challenge with the private key. The live apex TXT only publishes the public key. Without the original challenge bytes a client cannot recompute the JWT.",
+      "recomputed_end_to_end": false,
+      "signal": "Original DNS/HTTP signed challenge that issued the publish JWT"
+    },
+    {
+      "class": "display-only",
+      "displayed_value": "active",
+      "id": "registry_official_status",
+      "justification": "Registry-managed. Re-querying the same API is not an independent recompute. Captured brave status='active'.",
+      "recomputed_end_to_end": false,
+      "signal": "_meta.io.modelcontextprotocol.registry/official.status"
+    },
+    {
+      "class": "display-only",
+      "displayed_value": true,
+      "id": "registry_isLatest",
+      "justification": "A listing badge. A client that trusts isLatest without fetching /versions is reading a display field. Same-API re-query is still the registry talking about itself.",
+      "recomputed_end_to_end": false,
+      "signal": "_meta.io.modelcontextprotocol.registry/official.isLatest"
+    },
+    {
+      "class": "display-only",
+      "displayed_value": {
+        "publishedAt": "2026-08-20T16:12:11.244327Z",
+        "statusChangedAt": "2026-08-20T16:12:11.244327Z",
+        "updatedAt": "2026-08-20T16:12:11.244327Z"
+      },
+      "id": "registry_timestamps",
+      "justification": "Clock values assigned by the registry. No second rail can recompute them from the package or DNS.",
+      "recomputed_end_to_end": false,
+      "signal": "publishedAt / updatedAt / statusChangedAt"
+    },
+    {
+      "class": "display-only",
+      "id": "publisher_provided_meta",
+      "justification": "Publisher-chosen JSON, size-capped at 4KB, not authenticated beyond publish auth. Captured brave server.json has no publisher-provided block.",
+      "recomputed_end_to_end": false,
+      "signal": "server._meta.io.modelcontextprotocol.registry/publisher-provided"
+    },
+    {
+      "class": "display-only",
+      "id": "title_icons_websiteUrl",
+      "justification": "Schema marks these optional. They are UI. A client cannot authenticate an icon URL or title against namespace ownership.",
+      "recomputed_end_to_end": false,
+      "signal": "Optional title, icons, websiteUrl display fields"
+    },
+    {
+      "caveat": "adjacent-ecosystem-not-registry-signal",
+      "class": "display-only",
+      "id": "npm_dist_integrity_adjacent",
+      "justification": "The captured npm document carries dist.integrity and npm registry signatures. That is npm's own trust, not a signal the MCP registry required or exposed on this row (no fileSha256).",
+      "recomputed_end_to_end": false,
+      "signal": "npm dist.integrity / dist.signatures (not an MCP registry field)"
+    }
+  ],
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#RES-0038",
+  "state": "SUCCESS",
+  "strongest_surviving_counterargument": "npm mcpName is publisher-controlled metadata on npm: a stolen npm token can set mcpName to any string. The check binds the npm package to a registry name, not to a human identity, and GitHub OAuth is not recomputed at install. The artifact therefore does not call mcpName a full trust root.",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0038/probe1_recompute_signal.py",
+      "id": "T1-recompute-mcpName-and-dns",
+      "name": "Recompute npm mcpName from pinned captures; live DNS TXT; both-states mutants",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0038/probe2_signal_table.py",
+      "id": "T2-signal-table-split-and-two-rails",
+      "name": "Signal table split, two-rail claims, display-only cannot claim recompute",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "duration_seconds": 5280,
+    "ended_at": "2026-08-25T01:48:00Z",
+    "started_at": "2026-08-25T00:20:00Z"
+  },
+  "title": "Teardown the official MCP registry: schema, publish flow and the trust signals it exposes",
+  "unit_id": "RES-0038"
+}

@@ -1,0 +1,117 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "rollback-contract.schema.json",
+  "title": "Rollback contract: restore installer-managed state; never rmtree user data",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "strategy",
+    "restore",
+    "preserve",
+    "creation_set",
+    "inverse_actions",
+    "backup",
+    "verification"
+  ],
+  "properties": {
+    "strategy": { "const": "inverse-plan" },
+    "restore": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "enum": [
+          "previous-version",
+          "previous-configuration",
+          "previous-deployed-tree-installer-managed"
+        ]
+      }
+    },
+    "preserve": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "enum": [
+          "owner-authored-edits",
+          "user-data",
+          "mcp-enable-disable-curation",
+          "credential-stores",
+          "pre-existing-commands-skills-settings"
+        ]
+      }
+    },
+    "creation_set": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["paths", "disjoint_from_preserve"],
+      "properties": {
+        "paths": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "disjoint_from_preserve": { "const": true }
+      }
+    },
+    "inverse_actions": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["path", "kind", "in_creation_set"],
+        "properties": {
+          "path": { "type": "string", "minLength": 1 },
+          "kind": { "enum": ["restore-bytes", "unlink-created"] },
+          "in_creation_set": { "const": true },
+          "backup_sha256": {
+            "anyOf": [
+              { "type": "null" },
+              { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+            ]
+          }
+        }
+      }
+    },
+    "backup": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["recorded_before_first_write", "files"],
+      "properties": {
+        "recorded_before_first_write": { "const": true },
+        "files": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": {
+            "type": "object",
+            "required": ["existed"],
+            "properties": {
+              "existed": { "type": "boolean" },
+              "sha256": { "type": ["string", "null"] }
+            }
+          }
+        }
+      }
+    },
+    "verification": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["hashes", "complete", "all_match"],
+      "properties": {
+        "hashes": {
+          "type": "object",
+          "minProperties": 1,
+          "additionalProperties": { "type": "string", "minLength": 3 }
+        },
+        "all_match": { "type": "boolean" },
+        "complete": { "type": "boolean" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "all_match": { "const": false } } },
+          "then": { "properties": { "complete": { "const": false } } }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,342 @@
+{
+ "artifacts": [
+  {
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/TST-0143.json",
+   "role": "primary"
+  }
+ ],
+ "defects": [],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0143.json",
+   "consumer": "json.loads",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -c \"import json,pathlib; json.loads(pathlib.Path('command-center/receipts/TST-0143.json').read_text(encoding='utf-8'))\"",
+    "exit_code": 0,
+    "fingerprint": "40d9ad68acc265da690f4eea",
+    "method": "schema-validate",
+    "raw_output": "json.loads ok bytes=18200 exit=0",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "platform/lib/completion_predicate.py:_c3_min_size",
+   "claim": "Live evaluate() on platform/lib/completion_predicate.py returns C03=UNSATISFIED for a 0-byte file and C03=SATISFIED for a file whose independent stat() equals the declared floor (128 B).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0143/probe1_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "4c497fcb2ee59638833e70c2",
+     "method": "test-run",
+     "raw_output": "{\"both_directions\": true, \"floor\": 128, \"floor_sized\": {\"c03_basis\": \"every primary artifact is non-empty and >= 128 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 128, \"stat_st_size\": 128}, \"pass\": true, \"probe\": \"probe1-both-states\", \"reducer\": \"platform/lib/completion_predicate.py\", \"reducer_id\": \"platform/lib/completion_predicate.py@v1\", \"unit_id\": \"TST-0143\", \"zero\": {\"c03_basis\": \"artifact.bin is 0 bytes\", \"c03_outcome\": \"UNSATISFIED\", \"effective_min_bytes\": 128, \"stat_st_size\": 0}}\nzero=0B C03=UNSATISFIED floor=128B C03=SATISFIED reducer=platform/lib/completion_predicate.py\nSUCCESS:TST-0143-probe1 0-byte fails, floor-sized passes",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0143/probe2_boundary.py",
+     "exit_code": 0,
+     "fingerprint": "7e800b7a19382c245b99117d",
+     "method": "command",
+     "raw_output": "{\"alt\": [{\"c03_basis\": \"artifact.bin is 79 bytes, below the effective minimum 80\", \"c03_outcome\": \"UNSATISFIED\", \"effective_min_bytes\": 80, \"floor\": 80, \"label\": \"floor-1\", \"nonempty_only\": \"SATISFIED\", \"size\": 79, \"stat_st_size\": 79, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 80 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 80, \"floor\": 80, \"label\": \"floor\", \"nonempty_only\": \"SATISFIED\", \"size\": 80, \"stat_st_size\": 80, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 80 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 80, \"floor\": 80, \"label\": \"floor+1\", \"nonempty_only\": \"SATISFIED\", \"size\": 81, \"stat_st_size\": 81, \"strict_exceeds\": \"SATISFIED\"}], \"alt_floor\": 80, \"declared_floor_is_consulted\": true, \"pass\": true, \"primary\": [{\"c03_basis\": \"artifact.bin is 127 bytes, below the effective minimum 128\", \"c03_outcome\": \"UNSATISFIED\", \"effective_min_bytes\": 128, \"floor\": 128, \"label\": \"floor-1\", \"nonempty_only\": \"SATISFIED\", \"size\": 127, \"stat_st_size\": 127, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 128 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 128, \"floor\": 128, \"label\": \"floor\", \"nonempty_only\": \"SATISFIED\", \"size\": 128, \"stat_st_size\": 128, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 128 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 128, \"floor\": 128, \"label\": \"floor+1\", \"nonempty_only\": \"SATISFIED\", \"size\": 129, \"stat_st_size\": 129, \"strict_exceeds\": \"SATISFIED\"}], \"primary_floor\": 128, \"probe\": \"probe2-boundary\", \"reducer\": \"platform/lib/completion_predicate.py\", \"reducer_id\": \"platform/lib/completion_predicate.py@v1\", \"strict_exceeds_would_fail_this_test\": true, \"sub_absolute\": {\"c03_basis\": \"artifact.bin is 40 bytes, below the effective minimum 64\", \"c03_outcome\": \"UNSATISFIED\", \"declared_floor\": 40, \"effective_min_bytes\": 64, \"stat_st_size\": 40}, \"sub_absolute_declared_floor_is_raised\": true, \"unit_id\": \"TST-0143\", \"vacuous_nonempty_only_would_fail_this_test\": true}\nfloor=128 minus=UNSATISFIED exact=SATISFIED plus=SATISFIED alt_exact=SATISFIED reducer=platform/lib/completion_predicate.py\nSUCCESS:TST-0143-probe2 floor-1 fails, floor and floor+1 pass",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0143/probe2_boundary.py",
+   "claim": "Independent Path.stat().st_size of floor-1 / floor / floor+1 files matches the intended sizes, and C03 outcomes are UNSATISFIED / SATISFIED / SATISFIED. An alt declared floor of 80B is SATISFIED at exactly that size, so the threshold is read from min_bytes_threshold rather than hardcoded. A declared 40B floor at 40B is UNSATISFIED because ABSOLUTE_MIN_BYTES=64 is applied.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0143/probe1_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "4c497fcb2ee59638833e70c2",
+     "method": "test-run",
+     "raw_output": "{\"both_directions\": true, \"floor\": 128, \"floor_sized\": {\"c03_basis\": \"every primary artifact is non-empty and >= 128 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 128, \"stat_st_size\": 128}, \"pass\": true, \"probe\": \"probe1-both-states\", \"reducer\": \"platform/lib/completion_predicate.py\", \"reducer_id\": \"platform/lib/completion_predicate.py@v1\", \"unit_id\": \"TST-0143\", \"zero\": {\"c03_basis\": \"artifact.bin is 0 bytes\", \"c03_outcome\": \"UNSATISFIED\", \"effective_min_bytes\": 128, \"stat_st_size\": 0}}\nzero=0B C03=UNSATISFIED floor=128B C03=SATISFIED reducer=platform/lib/completion_predicate.py\nSUCCESS:TST-0143-probe1 0-byte fails, floor-sized passes",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0143/probe2_boundary.py",
+     "exit_code": 0,
+     "fingerprint": "7e800b7a19382c245b99117d",
+     "method": "command",
+     "raw_output": "{\"alt\": [{\"c03_basis\": \"artifact.bin is 79 bytes, below the effective minimum 80\", \"c03_outcome\": \"UNSATISFIED\", \"effective_min_bytes\": 80, \"floor\": 80, \"label\": \"floor-1\", \"nonempty_only\": \"SATISFIED\", \"size\": 79, \"stat_st_size\": 79, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 80 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 80, \"floor\": 80, \"label\": \"floor\", \"nonempty_only\": \"SATISFIED\", \"size\": 80, \"stat_st_size\": 80, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 80 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 80, \"floor\": 80, \"label\": \"floor+1\", \"nonempty_only\": \"SATISFIED\", \"size\": 81, \"stat_st_size\": 81, \"strict_exceeds\": \"SATISFIED\"}], \"alt_floor\": 80, \"declared_floor_is_consulted\": true, \"pass\": true, \"primary\": [{\"c03_basis\": \"artifact.bin is 127 bytes, below the effective minimum 128\", \"c03_outcome\": \"UNSATISFIED\", \"effective_min_bytes\": 128, \"floor\": 128, \"label\": \"floor-1\", \"nonempty_only\": \"SATISFIED\", \"size\": 127, \"stat_st_size\": 127, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 128 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 128, \"floor\": 128, \"label\": \"floor\", \"nonempty_only\": \"SATISFIED\", \"size\": 128, \"stat_st_size\": 128, \"strict_exceeds\": \"UNSATISFIED\"}, {\"c03_basis\": \"every primary artifact is non-empty and >= 128 bytes\", \"c03_outcome\": \"SATISFIED\", \"effective_min_bytes\": 128, \"floor\": 128, \"label\": \"floor+1\", \"nonempty_only\": \"SATISFIED\", \"size\": 129, \"stat_st_size\": 129, \"strict_exceeds\": \"SATISFIED\"}], \"primary_floor\": 128, \"probe\": \"probe2-boundary\", \"reducer\": \"platform/lib/completion_predicate.py\", \"reducer_id\": \"platform/lib/completion_predicate.py@v1\", \"strict_exceeds_would_fail_this_test\": true, \"sub_absolute\": {\"c03_basis\": \"artifact.bin is 40 bytes, below the effective minimum 64\", \"c03_outcome\": \"UNSATISFIED\", \"declared_floor\": 40, \"effective_min_bytes\": 64, \"stat_st_size\": 40}, \"sub_absolute_declared_floor_is_raised\": true, \"unit_id\": \"TST-0143\", \"vacuous_nonempty_only_would_fail_this_test\": true}\nfloor=128 minus=UNSATISFIED exact=SATISFIED plus=SATISFIED alt_exact=SATISFIED reducer=platform/lib/completion_predicate.py\nSUCCESS:TST-0143-probe2 floor-1 fails, floor and floor+1 pass",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "answer": "Yes on the live shared reducer. C03 rejects 0 bytes, accepts exactly the declared floor (128 B and independently 80 B), rejects floor-1, and raises a sub-absolute declared 40 B floor to ABSOLUTE_MIN_BYTES=64. SUCCESS:TST-0143",
+  "notes": "G-1 for TST-0143: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not git add/commit. No ADV rebuild.",
+  "question": "Does completion-predicate condition 3 (non-empty and above a meaningful minimum) reject a 0-byte artifact while accepting a legitimately small one at exactly the declared floor? PASS requires both directions.",
+  "reducer_id": "platform/lib/completion_predicate.py@v1",
+  "sut": "platform/lib/completion_predicate.py",
+  "title": "Zero-byte artifact fails the minimum-size condition"
+ },
+ "manifest_registration": {
+  "entry_id": "TST-0143",
+  "manifest_path": "command-center/p2-wave/probes/TST-0143/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "nonempty_only=SATISFIED at floor-1",
+   "description": "A size>0 checker would SATISFY floor-1; live C03 must not. Fired on that bad checker, silent on the live reducer.",
+   "fired_on_bad_state": true,
+   "good_state_output": "C03=UNSATISFIED at floor-1",
+   "id": "TST-0143-NC-NONEMPTY-ONLY",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "strict_exceeds=UNSATISFIED at floor",
+   "description": "A size>floor checker would reject the exact declared floor; the catalog requires the floor-sized artifact to pass.",
+   "fired_on_bad_state": true,
+   "good_state_output": "C03=SATISFIED at floor",
+   "id": "TST-0143-NC-STRICT-EXCEEDS",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-headless-local",
+  "model": "grok",
+  "role": "completion-predicate-tester",
+  "vendor": "xai"
+ },
+ "report": {
+  "conditions": [
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 1,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10633,
+    "text": "process/task reached a valid terminal state"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 2,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10634,
+    "text": "expected artifact exists"
+   },
+   {
+    "basis": "0-byte C03=UNSATISFIED (artifact.bin is 0 bytes); floor-sized C03=SATISFIED (every primary artifact is non-empty and >= 128 bytes); boundary floor-1/floor/floor+1 = UNSATISFIED/SATISFIED/SATISFIED; alt floor 80B SATISFIED at exact size; sub-absolute declared 40B raised, not SATISFIED",
+    "detail": {
+     "alt_boundary": [
+      {
+       "c03_basis": "artifact.bin is 79 bytes, below the effective minimum 80",
+       "c03_outcome": "UNSATISFIED",
+       "effective_min_bytes": 80,
+       "floor": 80,
+       "label": "floor-1",
+       "nonempty_only": "SATISFIED",
+       "size": 79,
+       "stat_st_size": 79,
+       "strict_exceeds": "UNSATISFIED"
+      },
+      {
+       "c03_basis": "every primary artifact is non-empty and >= 80 bytes",
+       "c03_outcome": "SATISFIED",
+       "effective_min_bytes": 80,
+       "floor": 80,
+       "label": "floor",
+       "nonempty_only": "SATISFIED",
+       "size": 80,
+       "stat_st_size": 80,
+       "strict_exceeds": "UNSATISFIED"
+      },
+      {
+       "c03_basis": "every primary artifact is non-empty and >= 80 bytes",
+       "c03_outcome": "SATISFIED",
+       "effective_min_bytes": 80,
+       "floor": 80,
+       "label": "floor+1",
+       "nonempty_only": "SATISFIED",
+       "size": 81,
+       "stat_st_size": 81,
+       "strict_exceeds": "SATISFIED"
+      }
+     ],
+     "floor_sized": {
+      "c03_basis": "every primary artifact is non-empty and >= 128 bytes",
+      "c03_outcome": "SATISFIED",
+      "effective_min_bytes": 128,
+      "stat_st_size": 128
+     },
+     "primary_boundary": [
+      {
+       "c03_basis": "artifact.bin is 127 bytes, below the effective minimum 128",
+       "c03_outcome": "UNSATISFIED",
+       "effective_min_bytes": 128,
+       "floor": 128,
+       "label": "floor-1",
+       "nonempty_only": "SATISFIED",
+       "size": 127,
+       "stat_st_size": 127,
+       "strict_exceeds": "UNSATISFIED"
+      },
+      {
+       "c03_basis": "every primary artifact is non-empty and >= 128 bytes",
+       "c03_outcome": "SATISFIED",
+       "effective_min_bytes": 128,
+       "floor": 128,
+       "label": "floor",
+       "nonempty_only": "SATISFIED",
+       "size": 128,
+       "stat_st_size": 128,
+       "strict_exceeds": "UNSATISFIED"
+      },
+      {
+       "c03_basis": "every primary artifact is non-empty and >= 128 bytes",
+       "c03_outcome": "SATISFIED",
+       "effective_min_bytes": 128,
+       "floor": 128,
+       "label": "floor+1",
+       "nonempty_only": "SATISFIED",
+       "size": 129,
+       "stat_st_size": 129,
+       "strict_exceeds": "SATISFIED"
+      }
+     ],
+     "sub_absolute": {
+      "c03_basis": "artifact.bin is 40 bytes, below the effective minimum 64",
+      "c03_outcome": "UNSATISFIED",
+      "declared_floor": 40,
+      "effective_min_bytes": 64,
+      "stat_st_size": 40
+     },
+     "zero_byte": {
+      "c03_basis": "artifact.bin is 0 bytes",
+      "c03_outcome": "UNSATISFIED",
+      "effective_min_bytes": 128,
+      "stat_st_size": 0
+     }
+    },
+    "n": 3,
+    "outcome": "SATISFIED",
+    "spec_line": 10635,
+    "text": "artifact is non-empty and exceeds a meaningful minimum size"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 4,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10636,
+    "text": "artifact parses against its schema"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 5,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10637,
+    "text": "required sentinel is present"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 6,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10638,
+    "text": "required evidence anchors exist"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 7,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10639,
+    "text": "required tests ran and passed"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 8,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10640,
+    "text": "negative controls or mutations fail as expected"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 9,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10641,
+    "text": "independent reviewer status is PASS"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 10,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10642,
+    "text": "no unresolved P0/P1 defect is attached"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 11,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10643,
+    "text": "output was registered in the artifact manifest"
+   },
+   {
+    "basis": "TST-0143 scopes measurement to condition 3 only",
+    "n": 12,
+    "outcome": "NOT-CHECKED",
+    "spec_line": 10644,
+    "text": "downstream consumers can read it"
+   }
+  ],
+  "is_complete": false,
+  "kind": "predicate_report",
+  "reducer_id": "platform/lib/completion_predicate.py@v1",
+  "verdict": "INDETERMINATE"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "CLASS_SIZE_FLOORS is not applied when min_bytes_threshold is declared; only max(declared, ABSOLUTE_MIN_BYTES=64) is. That is outside TST-0143's catalog question (0-byte vs declared floor).",
+   "settling_experiment": "A later unit can declare no min_bytes_threshold and check whether CLASS_SIZE_FLOORS['other']=64 or json=1483 binds.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Mechanically different from probe1: three-point boundary plus an alternate declared floor, a sub-absolute anti-gaming trap, and two weaker-checker traps. Does not author the reducer.",
+  "reviewer_id": "TST-0143-probe2-boundary",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0143",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0143",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0143/probe1_both_states.py",
+   "id": "TST-0143-T1",
+   "name": "both-states control: 0 bytes fails, floor-sized passes",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0143/probe2_boundary.py",
+   "id": "TST-0143-T2",
+   "name": "boundary test at floor-1, floor, floor+1",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:05:15Z",
+  "started_at": "2026-08-25T01:05:15Z"
+ },
+ "unit_id": "TST-0143"
+}

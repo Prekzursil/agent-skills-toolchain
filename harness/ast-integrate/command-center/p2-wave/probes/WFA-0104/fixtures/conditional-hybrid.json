@@ -1,0 +1,1177 @@
+{
+  "good": {
+    "branches": [
+      {
+        "id": "br.search",
+        "is_default": false,
+        "predicate": {
+          "field": "task_class",
+          "op": "eq",
+          "value": "search"
+        },
+        "source_id": "wf.scout"
+      },
+      {
+        "id": "br.extract",
+        "is_default": false,
+        "predicate": {
+          "field": "task_class",
+          "op": "eq",
+          "value": "extract"
+        },
+        "source_id": "wf.extract"
+      },
+      {
+        "id": "br.transform",
+        "is_default": false,
+        "predicate": {
+          "field": "task_class",
+          "op": "eq",
+          "value": "transform"
+        },
+        "source_id": "wf.transform"
+      },
+      {
+        "id": "br.default",
+        "is_default": true,
+        "predicate": {
+          "op": "true"
+        },
+        "source_id": "wf.general"
+      }
+    ],
+    "id": "wfa.fusion.conditional-hybrid.WFA-0104",
+    "input_type": {
+      "fields": {
+        "budget": {
+          "kind": "enum",
+          "values": [
+            "cheap",
+            "expensive"
+          ]
+        },
+        "locale": {
+          "kind": "enum",
+          "values": [
+            "en",
+            "ja"
+          ]
+        },
+        "task_class": {
+          "kind": "enum",
+          "values": [
+            "search",
+            "extract",
+            "transform",
+            "summarize"
+          ]
+        }
+      }
+    },
+    "sources": {
+      "wf.extract": {
+        "id": "wf.extract",
+        "served_classes": [
+          "extract"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+          },
+          {
+            "id": "slice",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "span-extract",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+          "class_id": "extract",
+          "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+        }
+      },
+      "wf.general": {
+        "id": "wf.general",
+        "served_classes": [
+          "summarize"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+          },
+          {
+            "id": "reduce",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "summarize",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+          "class_id": "summarize",
+          "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+        }
+      },
+      "wf.scout": {
+        "id": "wf.scout",
+        "served_classes": [
+          "search"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+          },
+          {
+            "id": "fanout",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "index-search",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+          "class_id": "search",
+          "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+        }
+      },
+      "wf.transform": {
+        "id": "wf.transform",
+        "served_classes": [
+          "transform"
+        ],
+        "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+        "stages": [
+          {
+            "id": "ingest",
+            "inputs": [
+              "runtime"
+            ],
+            "kind": "read-input",
+            "outputs": [
+              "case.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+          },
+          {
+            "id": "rewrite",
+            "inputs": [
+              "case.json"
+            ],
+            "kind": "schema-rewrite",
+            "outputs": [
+              "result.json"
+            ],
+            "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+          }
+        ],
+        "stopping": {
+          "max_stages": 2,
+          "on_error": "halt"
+        },
+        "task_fit": {
+          "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+          "class_id": "transform",
+          "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+        }
+      }
+    },
+    "strategy": "conditional-hybrid"
+  },
+  "plant_expect": {
+    "default-starved": "default-unexercised",
+    "hole": "unrouted",
+    "overlap": "multiply-routed",
+    "unfit": "source-unfit"
+  },
+  "plants": {
+    "default-starved": {
+      "branches": [
+        {
+          "id": "br.search",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "search"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.transform",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "transform"
+          },
+          "source_id": "wf.transform"
+        },
+        {
+          "id": "br.summarize",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "summarize"
+          },
+          "source_id": "wf.general"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "wfa.fusion.conditional-hybrid.plant-default-starved",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "transform",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "served_classes": [
+            "extract"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+            "class_id": "extract",
+            "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "served_classes": [
+            "summarize"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+            "class_id": "summarize",
+            "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "served_classes": [
+            "search"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+            "class_id": "search",
+            "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+          }
+        },
+        "wf.transform": {
+          "id": "wf.transform",
+          "served_classes": [
+            "transform"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+            },
+            {
+              "id": "rewrite",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "schema-rewrite",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+            "class_id": "transform",
+            "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    },
+    "hole": {
+      "branches": [
+        {
+          "id": "br.search",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "search"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        }
+      ],
+      "id": "wfa.fusion.conditional-hybrid.plant-hole",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "transform",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "served_classes": [
+            "extract"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+            "class_id": "extract",
+            "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "served_classes": [
+            "summarize"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+            "class_id": "summarize",
+            "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "served_classes": [
+            "search"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+            "class_id": "search",
+            "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+          }
+        },
+        "wf.transform": {
+          "id": "wf.transform",
+          "served_classes": [
+            "transform"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+            },
+            {
+              "id": "rewrite",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "schema-rewrite",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+            "class_id": "transform",
+            "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    },
+    "overlap": {
+      "branches": [
+        {
+          "id": "br.search",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "search"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.search-dup",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "search"
+          },
+          "source_id": "wf.scout"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.transform",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "transform"
+          },
+          "source_id": "wf.transform"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "wfa.fusion.conditional-hybrid.plant-overlap",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "transform",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "served_classes": [
+            "extract"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+            "class_id": "extract",
+            "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "served_classes": [
+            "summarize"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+            "class_id": "summarize",
+            "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "served_classes": [
+            "search"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+            "class_id": "search",
+            "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+          }
+        },
+        "wf.transform": {
+          "id": "wf.transform",
+          "served_classes": [
+            "transform"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+            },
+            {
+              "id": "rewrite",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "schema-rewrite",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+            "class_id": "transform",
+            "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    },
+    "unfit": {
+      "branches": [
+        {
+          "id": "br.search",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "search"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.extract",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "extract"
+          },
+          "source_id": "wf.extract"
+        },
+        {
+          "id": "br.transform",
+          "is_default": false,
+          "predicate": {
+            "field": "task_class",
+            "op": "eq",
+            "value": "transform"
+          },
+          "source_id": "wf.transform"
+        },
+        {
+          "id": "br.default",
+          "is_default": true,
+          "predicate": {
+            "op": "true"
+          },
+          "source_id": "wf.general"
+        }
+      ],
+      "id": "wfa.fusion.conditional-hybrid.plant-unfit",
+      "input_type": {
+        "fields": {
+          "budget": {
+            "kind": "enum",
+            "values": [
+              "cheap",
+              "expensive"
+            ]
+          },
+          "locale": {
+            "kind": "enum",
+            "values": [
+              "en",
+              "ja"
+            ]
+          },
+          "task_class": {
+            "kind": "enum",
+            "values": [
+              "search",
+              "extract",
+              "transform",
+              "summarize"
+            ]
+          }
+        }
+      },
+      "sources": {
+        "wf.extract": {
+          "id": "wf.extract",
+          "served_classes": [
+            "extract"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.ingest"
+            },
+            {
+              "id": "slice",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "span-extract",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract.stages.slice"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.extract",
+            "class_id": "extract",
+            "quote": "Extract slices grounded spans from the source document; it does not retrieve and it does not summarize."
+          }
+        },
+        "wf.general": {
+          "id": "wf.general",
+          "served_classes": [
+            "summarize"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.ingest"
+            },
+            {
+              "id": "reduce",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "summarize",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general.stages.reduce"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.general",
+            "class_id": "summarize",
+            "quote": "General summarizes when no specialized operator matches the input class; summarize is its home class."
+          }
+        },
+        "wf.scout": {
+          "id": "wf.scout",
+          "served_classes": [
+            "search"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.ingest"
+            },
+            {
+              "id": "fanout",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "index-search",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout.stages.fanout"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.scout",
+            "class_id": "search",
+            "quote": "Scout indexes the corpus and fans out retrieval; it is the search-class candidate, not a general synthesizer."
+          }
+        },
+        "wf.transform": {
+          "id": "wf.transform",
+          "served_classes": [
+            "transform"
+          ],
+          "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+          "stages": [
+            {
+              "id": "ingest",
+              "inputs": [
+                "runtime"
+              ],
+              "kind": "read-input",
+              "outputs": [
+                "case.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.ingest"
+            },
+            {
+              "id": "rewrite",
+              "inputs": [
+                "case.json"
+              ],
+              "kind": "schema-rewrite",
+              "outputs": [
+                "result.json"
+              ],
+              "source_anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform.stages.rewrite"
+            }
+          ],
+          "stopping": {
+            "max_stages": 2,
+            "on_error": "halt"
+          },
+          "task_fit": {
+            "anchor": "command-center/p2-wave/probes/WFA-0104/fixtures/task-fit.json:wf.transform",
+            "class_id": "transform",
+            "quote": "Transform rewrites a payload into a typed target schema; it is the transform-class candidate."
+          }
+        }
+      },
+      "strategy": "conditional-hybrid"
+    }
+  }
+}

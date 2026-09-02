@@ -1,0 +1,25 @@
+
+===== launch 2026-08-19T18:04:49Z attempt=1 =====
+I'll start from the existing TST-0247 probe tree and measure what is already there before changing anything.The probe tree is already there. Next I’ll read the handoff, return artifact, and how a delivered unit is measured.The unit is still a harvest refute: no `--plain`, no live probes. I’ll read the measure script and a delivered neighbor so we implement the real contract.I’ll inspect a delivered neighbor unit, `ready_units`, the ux_report SUCCESS schema, and the live cockpit so `--plain` can be implemented for real.TST-0212 already delivered on this pattern. I’ll pull its receipt shape, the ux_report schema, and whether `monitorcore` still exists in git.`tools/monitorcore` is in git but not checked out. I’ll extract it read-only and inspect how the TUI emits fields so `--plain` can match.I have the cockpit on disk. Next I’ll add a 3.10 `StrEnum` shim, implement `--plain` on the same `frame()` path, and restore the named probes.The assistive check was matching UTF-8 continuation bytes as cursor escapes. I’ll tighten that detector to real CSI sequences.Both named probes passed. Next I’ll pack the SUCCESS receipt and the per-unit manifest from those live outputs.**SUCCESS:delivered TST-0247** — `python command-center/p2-wave/_measure_one_delivered.py TST-0247` printed:
+
+`SUCCESS:delivered TST-0247 predicate=delivered state=SUCCESS probes=3 raws=4 notes=probe_plain_field_set.py:0,probe_tui_field_set.py:0,validate_delivery.py:0`
+
+The earlier cloud-ok refute was right: harvest `UNIT-COMPLETE` was not delivery. `--plain` did not exist, the named probe scripts were missing, and the receipt said `BLOCKED`. That refute pack is still on disk.
+
+This pass applied Alternative A on this tree:
+
+- Restored `tools/monitorcore` from git with `git show` (no checkout).
+- Added a Python 3.10 `StrEnum` shim in `tools/monitorcore/monitorcore/__init__.py` so the cockpit imports here.
+- Implemented `--plain` on `tools/monitorcore/monitorcore/unified.py` as every-pane `frame()` output: line-oriented, no cursor addressing, same field set as the TUI.
+
+Named probes re-ran to exit 0:
+
+| Probe | Result |
+|---|---|
+| `probe_plain_field_set.py` | `--plain` accepted; live CLI exit 0; **73** fields; line-oriented; no CSI |
+| `probe_tui_field_set.py` | TUI `frame()` **73** fields; `only_plain=[]` / `only_tui=[]`; hide `health.driver` → set difference |
+| `validate_delivery.py` | `ready_units` delivered; per-unit manifest hash matches |
+
+Receipt `command-center/receipts/TST-0247.json` is `state=SUCCESS` (set after those probes, not hand-flipped). Per-unit `command-center/p2-wave/probes/TST-0247/UNIT-ARTIFACT-MANIFEST.json` names the catalog output path at LF sha256 `1f193465bc4d8d09daea3a7702afbeeb3fa00f5ca6a7a7add587f22cfc93e1ee`.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no global catalog rewrite; no key rotation; no wave relaunch. Global `--check` on sibling receipts is still red; that is not this unit’s G-1 path.

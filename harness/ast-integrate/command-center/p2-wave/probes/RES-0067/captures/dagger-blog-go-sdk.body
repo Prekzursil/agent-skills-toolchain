@@ -1,0 +1,133 @@
+<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"><title>Your CI pipelines should be code: introducing the Dagger Go SDK | Dagger Blog</title><meta name="description" content="Build powerful software environments and containerized operations from modular components and simple functions. Perfect for complex software delivery and AI agents. Built by the creators of Docker."><link rel="icon" type="image/png" href="/assets/icons/dagger-favicon.png"><link rel="icon" type="image/x-icon" href="/favicon.ico"><link rel="apple-touch-icon" href="/assets/icons/dagger-favicon.png"><meta property="og:site_name" content="Dagger"><meta property="og:type" content="website"><meta property="og:title" content="Your CI pipelines should be code: introducing the Dagger Go SDK | Dagger Blog"><meta property="og:description" content="Build powerful software environments and containerized operations from modular components and simple functions. Perfect for complex software delivery and AI agents. Built by the creators of Docker."><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="Your CI pipelines should be code: introducing the Dagger Go SDK | Dagger Blog"><meta name="twitter:description" content="Build powerful software environments and containerized operations from modular components and simple functions. Perfect for complex software delivery and AI agents. Built by the creators of Docker."><!-- Preload critical fonts --><link rel="preload" href="/fonts/general-sans-semibold.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/general-sans-medium.woff2" as="font" type="font/woff2" crossorigin><link rel="preload" href="/fonts/inter-400.woff2" as="font" type="font/woff2" crossorigin><!-- Source Code Pro from Google Fonts (for code snippets) --><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@400;500&display=swap" rel="stylesheet"><!-- PostHog analytics --><script>
+    !function(t,e){var o,n,p,r;e.__SV||(window.posthog=e,e._i=[],e.init=function(i,s,a){function g(t,e){var o=e.split(".");2==o.length&&(t=t[o[0]],e=o[1]),t[e]=function(){t.push([e].concat(Array.prototype.slice.call(arguments,0)))}}(p=t.createElement("script")).type="text/javascript",p.async=!0,p.src=s.api_host+"/static/array.js",(r=t.getElementsByTagName("script")[0]).parentNode.insertBefore(p,r);var u=e;for(void 0!==a?u=e[a]=[]:a="posthog",u.people=u.people||[],u.toString=function(t){var e="posthog";return"posthog"!==a&&(e+="."+a),t||(e+=" (stub)"),e},u.people.toString=function(){return u.toString(1)+".people (stub)"},o="capture identify alias people.set people.set_once set_config register register_once unregister opt_out_capturing has_opted_out_capturing opt_in_capturing reset isFeatureEnabled onFeatureFlags getFeatureFlag getFeatureFlagPayload reloadFeatureFlags group updateEarlyAccessFeatureEnrollment getEarlyAccessFeatures getActiveMatchingSurveys getSurveys onSessionId".split(" "),n=0;n<o.length;n++)g(u,o[n]);e._i.push([i,s,a])},e.__SV=1)}(document,window.posthog||[]);
+    posthog.init('phc_rykA1oJnBnxTwavpgJKr4RAVXEgCkpyPVi21vQ7906d',{api_host:'https://dagger.io/analytics'})
+    </script><link rel="stylesheet" href="/_astro/BaseLayout.D75D8sAm.css"><link rel="stylesheet" href="/_astro/NewsletterSection.6ZuI5LIn.css"><link rel="stylesheet" href="/_astro/_slug_.qp97Juyl.css"></head><body><header class="navbar" data-astro-cid-q3uyxffx><div class="container navbar__inner" data-astro-cid-q3uyxffx><a href="/" class="navbar__brand" aria-label="Dagger home" data-astro-cid-q3uyxffx><img src="/assets/brand/dagger-landscape.webp" alt="Dagger" width="137" height="45" data-astro-cid-q3uyxffx></a><nav class="navbar__links" aria-label="Primary" data-astro-cid-q3uyxffx><a href="/cloud" data-astro-cid-q3uyxffx>Cloud</a><a href="https://docs.dagger.io" data-astro-cid-q3uyxffx>Docs</a><a href="/blog" data-astro-cid-q3uyxffx>Blog</a><a href="/changelog" data-astro-cid-q3uyxffx>Changelog</a><span class="navbar__links-spacer" aria-hidden="true" data-astro-cid-q3uyxffx></span></nav><div class="navbar__icons" data-astro-cid-q3uyxffx><a class="github-star-badge" href="https://github.com/dagger/dagger" target="_blank" rel="noreferrer" aria-label="Star Dagger on GitHub" data-astro-cid-7wxnjur2><img src="https://img.shields.io/github/stars/dagger/dagger?style=social" alt="GitHub stars" height="20" data-astro-cid-7wxnjur2></a><a class="navbar__icon" href="https://discord.com/invite/dagger-io" aria-label="Discord" target="_blank" rel="noreferrer" data-astro-cid-q3uyxffx><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26" fill="none" stroke="#131226" stroke-width="2" stroke-linejoin="round" width="20" height="20" aria-hidden="true" data-astro-cid-q3uyxffx><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" data-astro-cid-q3uyxffx></path></svg></a></div><a class="navbar__cta" href="https://docs.dagger.io/getting-started/quickstarts/ci" data-astro-cid-q3uyxffx>Quickstart</a><button class="navbar__burger" type="button" aria-controls="mobile-menu" aria-expanded="false" aria-label="Menu" data-menu-toggle data-astro-cid-q3uyxffx><span data-astro-cid-q3uyxffx></span><span data-astro-cid-q3uyxffx></span><span data-astro-cid-q3uyxffx></span></button></div><div class="navbar__mobile" id="mobile-menu" data-mobile-menu data-astro-cid-q3uyxffx><div class="container" data-astro-cid-q3uyxffx><nav class="navbar__mobile-links" aria-label="Mobile navigation" data-astro-cid-q3uyxffx><a href="/cloud" data-astro-cid-q3uyxffx>Cloud</a><a href="https://docs.dagger.io" data-astro-cid-q3uyxffx>Docs</a><a href="/blog" data-astro-cid-q3uyxffx>Blog</a><a href="/changelog" data-astro-cid-q3uyxffx>Changelog</a></nav><div class="navbar__mobile-actions" data-astro-cid-q3uyxffx><span class="navbar__mobile-only" data-astro-cid-q3uyxffx><a class="github-star-badge" href="https://github.com/dagger/dagger" target="_blank" rel="noreferrer" aria-label="Star Dagger on GitHub" data-astro-cid-7wxnjur2><img src="https://img.shields.io/github/stars/dagger/dagger?style=social" alt="GitHub stars" height="20" data-astro-cid-7wxnjur2></a></span><a class="navbar__icon navbar__mobile-only" href="https://discord.com/invite/dagger-io" aria-label="Discord" target="_blank" rel="noreferrer" data-astro-cid-q3uyxffx><svg xmlns="http://www.w3.org/2000/svg" viewBox="-1 -1 26 26" fill="none" stroke="#131226" stroke-width="2" stroke-linejoin="round" width="20" height="20" aria-hidden="true" data-astro-cid-q3uyxffx><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" data-astro-cid-q3uyxffx></path></svg></a><a class="navbar__cta" href="https://docs.dagger.io/getting-started/quickstarts/ci" data-astro-cid-q3uyxffx>Quickstart</a></div></div></div></header><script>
+  const toggle = document.querySelector("[data-menu-toggle]");
+  const menu = document.querySelector("[data-mobile-menu]");
+
+  if (toggle && menu) {
+    toggle.addEventListener("click", () => {
+      const opened = menu.classList.toggle("is-open");
+      toggle.setAttribute("aria-expanded", opened ? "true" : "false");
+    });
+  }
+
+  // Hide navbar on scroll down, show on scroll up
+  (function () {
+    const navbar = document.querySelector(".navbar");
+    if (!navbar) return;
+
+    let lastY = window.scrollY;
+    let ticking = false;
+
+    window.addEventListener("scroll", () => {
+      if (ticking) return;
+      ticking = true;
+
+      requestAnimationFrame(() => {
+        const y = window.scrollY;
+        const mobileOpen = menu && menu.classList.contains("is-open");
+
+        if (!mobileOpen && y > lastY && y > 80) {
+          navbar.classList.add("navbar--hidden");
+        } else {
+          navbar.classList.remove("navbar--hidden");
+        }
+
+        lastY = y;
+        ticking = false;
+      });
+    });
+  })();
+</script><main><article class="blog-post" data-astro-cid-zg7dkzxc><div class="blog-post__container" data-astro-cid-zg7dkzxc><header class="blog-post__header" data-astro-cid-zg7dkzxc><div class="blog-post__meta" data-astro-cid-zg7dkzxc><time datetime="2022-10-25T00:00:00.000Z" data-astro-cid-zg7dkzxc>October 25, 2022</time></div><h1 data-astro-cid-zg7dkzxc>Your CI pipelines should be code: introducing the Dagger Go SDK</h1></header><img src="/assets/blog/go-sdk/hero.png" alt="Your CI pipelines should be code: introducing the Dagger Go SDK" class="blog-post__hero" data-astro-cid-zg7dkzxc><div class="blog-post__content" data-astro-cid-zg7dkzxc><p>Today we are proud to introduce the <a href="https://docs.dagger.io/sdk/go">Dagger Go SDK</a>: a new way to develop your CI/CD pipelines as code and run them anywhere.<a href="https://devel.docs.dagger.io/8g34z/get-started-sdk-go/#who-is-it-for">​</a></p>
+<p><strong>The Dagger Go SDK may be a good fit if you are…</strong></p>
+<ul>
+<li>A Go developer wishing your CI pipelines were Go code that you can run locally in seconds, instead of YAML that can only run on a proprietary service</li>
+<li>A developer who needs CI/CD, and is looking for an excuse to learn Go</li>
+<li>Your team’s “designated devops person”, hoping to replace a pile of artisanal scripts with something more powerful</li>
+<li>A platform engineer writing custom Go tooling, with the goal unifying continuous delivery across organizational silos</li>
+<li>A cloud-native developer advocate or solutions engineer, looking to demonstrate a complex integration on short notice</li>
+</ul>
+<p><strong>The Dagger Go SDK may not be a good fit if you are…</strong></p>
+<ul>
+<li>A developer who doesn’t know Go, and is not interested in learning it. If you are looking for another SDK, let us know <a href="https://airtable.com/shrzABOn1wCk5yBF4">here</a>. We will notify you when your SDK is ready.</li>
+<li>A “designated devops person” who doesn’t think of themselves as a developer - nothing makes you happier than a battle-hardened shell script.</li>
+<li>Someone who loves programming in YAML, thank you very much.</li>
+<li>A container skeptic: the less containers are involved, the happier you are.</li>
+</ul>
+<p>In the future, we will release more SDKs. Our ultimate goal is to ensure all developers can develop their CI/CD pipelines in the same way they develop the rest of their code. If you are looking for a different SDK, <a href="https://dagger-io.typeform.com/to/a6m5gKSS">let us know</a>. If you fill out the form, we will notify you when your SDK is ready!</p>
+<p><strong>What is Dagger again?</strong></p>
+<p>Dagger is a programmable CI/CD engine that runs your pipelines in containers.</p>
+<p><strong>Programmable:</strong> develop your CI/CD pipelines as code, in the same programming language as your application.</p>
+<p><strong>Runs your pipelines in containers:</strong> Dagger executes your pipelines entirely as <a href="https://opencontainers.org/">standard OCI containers</a>. This has several benefits:</p>
+<ul>
+<li>Instant local testing</li>
+<li>Portability: the same pipeline can run on your local machine, a CI runner, a dedicated server, or any container hosting service.</li>
+<li>Superior caching: every operation is cached by default, and caching works the same everywhere</li>
+<li>Compatibility with the Docker ecosystem: if it runs in a container, you can add it to your pipeline</li>
+<li>Cross-language instrumentation: teams can use each other’s tools without learning each other’s language</li>
+</ul>
+<p><img src="/assets/blog/go-sdk/image-1.png" alt=""></p>
+<h4 id="dagger-go-sdk-in-action">Dagger Go SDK in Action</h4>
+<p>In this demo, you will see how quickly you can create a Go CI tool that builds a Go application with multiple architectures and Go versions using the Dagger Go SDK.</p>
+<p><img src="/assets/blog/go-sdk/image-2.webp" alt=""></p>
+<p><strong>Want to try it yourself? Check out our</strong><a href="https://docs.dagger.io/sdk/go/">Getting Started Guide</a><strong>.</strong></p>
+<p><strong>Want to Get Involved?</strong></p>
+<p>We have lots of ways to contribute and stay engaged with Dagger updates. We look forward to seeing you in our community forum:</p>
+<ul>
+<li>Join us on <a href="https://discord.gg/dagger-io">Discord</a></li>
+<li><a href="https://github.com/dagger/dagger/issues/new/choose">Report an issue or tell us about your use case</a></li>
+<li>Join our weekly community call or meet up with us at an event. Check out the <a href="https://dagger.io/events">events page</a> to see the latest!</li>
+</ul>
+</div></div></article><section class="community" data-astro-cid-b5qnddhy><div class="container community__inner" data-astro-cid-b5qnddhy><div class="community__header" data-astro-cid-b5qnddhy><span class="eyebrow" data-astro-cid-b5qnddhy><span class="eyebrow-dot" style="--dot: var(--color-teal)" data-astro-cid-b5qnddhy></span>Community</span><h2 data-astro-cid-b5qnddhy>Join the community</h2><p class="community__subtitle" data-astro-cid-b5qnddhy>Connect, learn, and share with fellow engineers and builders.</p></div><div class="community__cards" data-astro-cid-b5qnddhy><a class="community-card" href="https://github.com/dagger/dagger" target="_blank" rel="noreferrer" data-astro-cid-b5qnddhy><img class="community-card__icon" src="/assets/icons/github.svg" alt="" aria-hidden="true" data-astro-cid-b5qnddhy><div class="community-card__text" data-astro-cid-b5qnddhy><h4 data-astro-cid-b5qnddhy>GitHub</h4><p data-astro-cid-b5qnddhy>Report bugs, request features and contribute to the project.</p></div></a><a class="community-card" href="https://discord.gg/dagger-io" target="_blank" rel="noreferrer" data-astro-cid-b5qnddhy><img class="community-card__icon" src="/assets/icons/discord.svg" alt="" aria-hidden="true" data-astro-cid-b5qnddhy><div class="community-card__text" data-astro-cid-b5qnddhy><h4 data-astro-cid-b5qnddhy>Discord</h4><p data-astro-cid-b5qnddhy>Ask questions, share tips, and follow along with the Dagger community.</p></div></a></div></div></section><section class="newsletter" data-astro-cid-igetvzka><div class="container newsletter__inner" data-astro-cid-igetvzka><h2 data-astro-cid-igetvzka>Get email updates, be the first to know</h2><form class="newsletter__form" data-newsletter-form data-astro-cid-igetvzka><label for="newsletter-email" class="sr-only" data-astro-cid-igetvzka>Email</label><input type="email" id="newsletter-email" name="email" required placeholder="email@dagger.io" autocomplete="email" data-astro-cid-igetvzka><button type="submit" class="newsletter__submit" data-astro-cid-igetvzka>Submit</button></form><p class="newsletter__status" data-newsletter-status data-astro-cid-igetvzka></p></div></section><script>
+  document.querySelectorAll("[data-newsletter-form]").forEach(function (form) {
+    form.addEventListener("submit", function (e) {
+      e.preventDefault();
+
+      var emailInput = form.querySelector('input[name="email"]');
+      var email = emailInput.value;
+      var btn = form.querySelector("button");
+      var status = form.closest(".newsletter__inner").querySelector("[data-newsletter-status]");
+
+      btn.disabled = true;
+      btn.textContent = "Sending...";
+      status.textContent = "";
+      status.className = "newsletter__status";
+
+      // Identify user via Customer.io
+      if (window._cio && window._cio.identify) {
+        window._cio.identify({ id: email, email: email });
+      }
+
+      // Submit to Customer.io forms endpoint
+      var params = new URLSearchParams();
+      params.append("email", email);
+      params.append("_cio_html_form_id", "");
+      params.append("_cio_html_form_name", "");
+      params.append("_cio_html_form_url", window.location.href);
+      params.append("_cio_html_form_inputs", "email");
+      params.append("_cio_site_id", "9140743cfff901bf8c19");
+
+      fetch("https://customerioforms.com/custom_forms/submit_snippet", {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body: params.toString(),
+        mode: "cors",
+      })
+        .then(function () {
+          // Customer.io returns 404 for unlinked forms but still processes the identify
+          status.textContent = "Thanks for subscribing!";
+          status.className = "newsletter__status success";
+          emailInput.value = "";
+        })
+        .catch(function () {
+          status.textContent = "Something went wrong. Please try again.";
+          status.className = "newsletter__status error";
+        })
+        .finally(function () {
+          btn.disabled = false;
+          btn.textContent = "Submit";
+        });
+    });
+  });
+</script></main><footer class="footer" data-astro-cid-oenwriqq><div class="container" data-astro-cid-oenwriqq><a class="footer__brand" href="/" aria-label="Dagger home" data-astro-cid-oenwriqq><img src="/assets/brand/dagger-landscape-light.svg" alt="Dagger" width="160" height="40" data-astro-cid-oenwriqq></a><div class="footer__grid" data-astro-cid-oenwriqq><section data-astro-cid-oenwriqq><h4 data-astro-cid-oenwriqq>Resources</h4><ul data-astro-cid-oenwriqq><li data-astro-cid-oenwriqq><a href="https://docs.dagger.io/" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq>Docs</a></li><li data-astro-cid-oenwriqq><a href="/blog" data-astro-cid-oenwriqq>Blog</a></li><li data-astro-cid-oenwriqq><a href="https://www.youtube.com/channel/UCVM5UxpF_nzpOsXHShmaqmw" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq>Videos</a></li></ul></section><section data-astro-cid-oenwriqq><h4 data-astro-cid-oenwriqq>Community</h4><ul data-astro-cid-oenwriqq><li data-astro-cid-oenwriqq><a href="/event" data-astro-cid-oenwriqq>Events</a></li><li data-astro-cid-oenwriqq><a href="/deep-dives" data-astro-cid-oenwriqq>Engineering Deep Dives</a></li><li data-astro-cid-oenwriqq><a href="/dagger-love" data-astro-cid-oenwriqq>Dagger Love</a></li><li data-astro-cid-oenwriqq><a href="/commanders" data-astro-cid-oenwriqq>Dagger Commanders</a></li><li data-astro-cid-oenwriqq><a href="/community-sdk" data-astro-cid-oenwriqq>Community SDKs</a></li></ul></section><section data-astro-cid-oenwriqq><h4 data-astro-cid-oenwriqq>Product</h4><ul data-astro-cid-oenwriqq><li data-astro-cid-oenwriqq><a href="/cloud" data-astro-cid-oenwriqq>Dagger Cloud</a></li><li data-astro-cid-oenwriqq><a href="https://daggerverse.dev/" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq>Daggerverse</a></li></ul></section><section data-astro-cid-oenwriqq><h4 data-astro-cid-oenwriqq>Company</h4><ul data-astro-cid-oenwriqq><li data-astro-cid-oenwriqq><a href="/partners" data-astro-cid-oenwriqq>Partners</a></li><li data-astro-cid-oenwriqq><a href="https://boards.greenhouse.io/dagger" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq>Careers</a></li><li data-astro-cid-oenwriqq><a href="/brand" data-astro-cid-oenwriqq>Brand</a></li><li data-astro-cid-oenwriqq><a href="/legal_pages/trademark-guidelines" data-astro-cid-oenwriqq>Trademark Guidelines</a></li><li data-astro-cid-oenwriqq><a href="https://trust.dagger.io/" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq>Trust Center</a></li><li data-astro-cid-oenwriqq><a href="https://status.dagger.io/" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq>Service Status</a></li></ul></section></div><div class="footer__separator" data-astro-cid-oenwriqq></div><div class="footer__bottom" data-astro-cid-oenwriqq><div class="footer__left" data-astro-cid-oenwriqq><span class="footer__copyright" data-astro-cid-oenwriqq>Copyright &copy; Dagger 2026. All rights reserved.</span><span class="footer__line" data-astro-cid-oenwriqq></span><div class="footer__legal" data-astro-cid-oenwriqq><a href="/legal_pages/privacy-policy" data-astro-cid-oenwriqq>Privacy Policy</a><a href="/legal_pages/terms-of-service" data-astro-cid-oenwriqq>Terms of Service</a></div></div><div class="footer__socials" aria-label="Social links" data-astro-cid-oenwriqq><a href="https://www.youtube.com/@dagger-io" aria-label="YouTube" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" data-astro-cid-oenwriqq><path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z" data-astro-cid-oenwriqq></path></svg></a><a href="https://twitter.com/dagger_io" aria-label="X" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" data-astro-cid-oenwriqq><path d="M14.234 10.162 22.977 0h-2.072l-7.591 8.824L7.251 0H.258l9.168 13.343L.258 24H2.33l8.016-9.318L16.749 24h6.993zm-2.837 3.299-.929-1.329L3.076 1.56h3.182l5.965 8.532.929 1.329 7.754 11.09h-3.182z" data-astro-cid-oenwriqq></path></svg></a><a href="https://discord.gg/dagger-io" aria-label="Discord" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" data-astro-cid-oenwriqq><path d="M20.317 4.3698a19.7913 19.7913 0 00-4.8851-1.5152.0741.0741 0 00-.0785.0371c-.211.3753-.4447.8648-.6083 1.2495-1.8447-.2762-3.68-.2762-5.4868 0-.1636-.3933-.4058-.8742-.6177-1.2495a.077.077 0 00-.0785-.037 19.7363 19.7363 0 00-4.8852 1.515.0699.0699 0 00-.0321.0277C.5334 9.0458-.319 13.5799.0992 18.0578a.0824.0824 0 00.0312.0561c2.0528 1.5076 4.0413 2.4228 5.9929 3.0294a.0777.0777 0 00.0842-.0276c.4616-.6304.8731-1.2952 1.226-1.9942a.076.076 0 00-.0416-.1057c-.6528-.2476-1.2743-.5495-1.8722-.8923a.077.077 0 01-.0076-.1277c.1258-.0943.2517-.1923.3718-.2914a.0743.0743 0 01.0776-.0105c3.9278 1.7933 8.18 1.7933 12.0614 0a.0739.0739 0 01.0785.0095c.1202.099.246.1981.3728.2924a.077.077 0 01-.0066.1276 12.2986 12.2986 0 01-1.873.8914.0766.0766 0 00-.0407.1067c.3604.698.7719 1.3628 1.225 1.9932a.076.076 0 00.0842.0286c1.961-.6067 3.9495-1.5219 6.0023-3.0294a.077.077 0 00.0313-.0552c.5004-5.177-.8382-9.6739-3.5485-13.6604a.061.061 0 00-.0312-.0286zM8.02 15.3312c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9555-2.4189 2.157-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.9555 2.4189-2.1569 2.4189zm7.9748 0c-1.1825 0-2.1569-1.0857-2.1569-2.419 0-1.3332.9554-2.4189 2.1569-2.4189 1.2108 0 2.1757 1.0952 2.1568 2.419 0 1.3332-.946 2.4189-2.1568 2.4189Z" data-astro-cid-oenwriqq></path></svg></a><a href="https://bsky.app/profile/dagger.io" aria-label="Bluesky" target="_blank" rel="noreferrer" data-astro-cid-oenwriqq><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" data-astro-cid-oenwriqq><path d="M5.202 2.857C7.954 4.922 10.913 9.11 12 11.358c1.087-2.247 4.046-6.436 6.798-8.501C20.783 1.366 24 .213 24 3.883c0 .732-.42 6.156-.667 7.037-.856 3.061-3.978 3.842-6.755 3.37 4.854.826 6.089 3.562 3.422 6.299-5.065 5.196-7.28-1.304-7.847-2.97-.104-.305-.152-.448-.153-.327 0-.121-.05.022-.153.327-.568 1.666-2.782 8.166-7.847 2.97-2.667-2.737-1.432-5.473 3.422-6.3-2.777.473-5.899-.308-6.755-3.369C.42 10.04 0 4.615 0 3.883c0-3.67 3.217-2.517 5.202-1.026" data-astro-cid-oenwriqq></path></svg></a></div></div></div></footer><!-- Customer.io tracking --><script id="cio-tracker" data-site-id="9140743cfff901bf8c19" data-use-array-params="true" data-auto-track-page="true" src="https://assets.customer.io/assets/track.js"></script></body></html>

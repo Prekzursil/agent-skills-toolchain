@@ -1,0 +1,184 @@
+{
+  "artifacts": [
+    {
+      "bytes": 29179,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/BLD-0009.json",
+      "role": "primary",
+      "sha256": "3a259feb53c357eab12a2cd8361f4546b565b36b1d4ac6604a3bc5d7b6c517b2"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:ADV-0002-partial-034 delivered",
+  "defects": [],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/BLD-0009.json",
+      "consumer": "platform/lib/schema_resolver.py validate_artifact",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python platform/lib/schema_resolver.py validate command-center/receipts/BLD-0009.json",
+        "exit_code": 0,
+        "fingerprint": "902889801c93c68713472f97dc845c4b",
+        "method": "schema-validate",
+        "raw_output": "SUCCESS:schema-valid",
+        "role": "verifier"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/receipts/BLD-0009.json",
+      "claim": "BLD-0009 catalog output_path exists, parses, and is registered as the primary artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "stat command-center/receipts/BLD-0009.json",
+          "exit_code": 0,
+          "fingerprint": "254c6557e8b714d50ad267fdef735f48",
+          "method": "file-read",
+          "raw_output": "bytes=29179 sha256=3a259feb53c357eab12a2cd8361f4546b565b36b1d4ac6604a3bc5d7b6c517b2",
+          "role": "source"
+        },
+        {
+          "command": "validate_artifact BLD-0009",
+          "exit_code": 0,
+          "fingerprint": "b27a8db00e11a7e4238424fb5dcb5a4b",
+          "method": "schema-validate",
+          "raw_output": "schema-check",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/BLD-0009",
+      "claim": "BLD-0009 named probes/schema contract were exercised against the live artifact.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python3 command-center/p2-wave/_measure_one_delivered.py BLD-0009",
+          "exit_code": 0,
+          "fingerprint": "38e56e25f8d30fd79ba2aae4054a7b66",
+          "method": "command",
+          "raw_output": "SUCCESS:delivered",
+          "role": "source"
+        },
+        {
+          "command": "ready_units.artifact_delivered BLD-0009",
+          "exit_code": 0,
+          "fingerprint": "9e9e0259787ae480061e51bfc4279f60",
+          "method": "static-analysis",
+          "raw_output": "schema-valid",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "legacy_root": {
+      "adv_0117": {
+        "bytes": 180204,
+        "consumed": true,
+        "note": "consumed, not re-derived",
+        "path": "command-center/adversarial/ADV-0117-windows-hostile-path-matrix.json",
+        "present": true,
+        "sha256": "f1f88037b948804d150049259678b2bc63310d55a5e31af1b2dd471b1192fa44"
+      },
+      "cells": [
+        {
+          "code_path": "tools/command-center/catalog.py:save + tools/command-center/path_guard.py:reject_unc",
+          "evidence": "rejected 4 synthesised UNC targets with named ['UncRejected']; local write control created local-catalog.json",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/unc/local-catalog.json",
+          "id": "unc_share",
+          "named_error": "UncRejected",
+          "semantic": "UNC \\\\server\\share (and file://server/share URI)",
+          "verdict": "EXERCISED"
+        },
+        {
+          "code_path": "n/a on this Linux worktree",
+          "evidence": "host=Linux 6.8.0-136-generic; mapped network drive requires Windows",
+          "fixture": "",
+          "id": "mapped_network_drive",
+          "named_error": null,
+          "semantic": "mapped network drive",
+          "verdict": "NEVER-TESTED"
+        },
+        {
+          "code_path": "tools/command-center/path_guard.py:contained_rglob + tools/command-center/unit_manifest.py:_load_receipts",
+          "evidence": "ContainmentBreach named; outside sentinel bytes unchanged",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/sym/escape-link",
+          "id": "symlink_escape",
+          "named_error": "ContainmentBreach",
+          "semantic": "symlink traversal out of scratch root",
+          "verdict": "EXERCISED"
+        },
+        {
+          "code_path": "n/a on this Linux worktree",
+          "evidence": "host=Linux 6.8.0-136-generic; NTFS junction traversal requires Windows",
+          "fixture": "",
+          "id": "ntfs_junction_escape",
+          "named_error": null,
+          "semantic": "NTFS junction traversal",
+          "verdict": "NEVER-TESTED"
+        },
+        {
+          "code_path": "tools/command-center/path_guard.py:contained_rglob",
+          "evidence": "both names visible; st_ino=1310801",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/hard/hard-b.json",
+          "id": "hardlink",
+          "named_error": null,
+          "semantic": "hardlink traversal inside scratch",
+          "verdict": "EXERCISED"
+        },
+        {
+          "code_path": "tools/command-center/path_guard.py:guarded_write_text + tools/command-center/catalog.py:save",
+          "evidence": "dropped-uid child received named PermissionDenied (root bypasses chmod)",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/perm/acl-ro",
+          "id": "acl_or_readonly_dir",
+          "named_error": "PermissionDenied",
+          "semantic": "write into a read-only / ACL-denied directory",
+          "verdict": "EXERCISED"
+        },
+        {
+          "code_path": "tools/command-center/path_guard.py:guarded_write_text",
+          "evidence": "second writer received named FileLocked; original bytes intact",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/lock/held.json",
+          "id": "open_file_held",
+          "named_error": "FileLocked",
+          "semantic": "open file held by another process",
+          "verdict": "EXERCISED"
+        },
+        {
+          "code_path": "tools/command-center (no os.rename/shutil.move in shipped writers)",
+          "evidence": "scratch st_dev=2049 tempfile st_dev=2049; shipped catalog/close/render/unit_manifest writers do not rename across devices",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/cross/cross-src.json",
+          "id": "cross_filesystem_boundary",
+          "named_error": null,
+          "semantic": "path crossing a filesystem boundary mid-operation",
+          "verdict": "NEVER-TESTED"
+        },
+        {
+          "code_path": "command-center/p2-wave/probes/BLD-0009/harness.py",
+          "evidence": "created local-catalog.json; empty-control does not contain never-created.json",
+          "fixture": "/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0009/_work/scratch/unc",
+          "id": "fixture_control",
+          "named_error": null,
+          "semantic": "fixture set proven created (negative: empty tree has no fixtures)",
+          "verdict": "EXERCISED"
+        },
+        {
+          "code_path": "command-center/adversarial/ADV-0117-windows-hostile-path-matrix.json",
+          "evidence": "consumed ADV-0117 receipt; not re-derived here",
+          "fixture": "",
+          "id": "reserved_device_names",
+          "named_error": null,
+          "semantic": "reserved device names",
+          "verdict": "COVERED-BY-ADV-0117"
+        },
+        {
+          "code_path": "command-center/adversarial/ADV-0117-windows-hostile-path-matrix.json",
+          "evidence": "consumed ADV-0117 r

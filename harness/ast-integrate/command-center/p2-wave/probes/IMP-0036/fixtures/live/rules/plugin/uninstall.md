@@ -1,0 +1,27 @@
+# rules/plugin/uninstall.md
+shared:rules/plugin/uninstall.md
+live-unique:rules/plugin/uninstall.md
+live-pad:rules/plugin/uninstall.md:0
+live-pad:rules/plugin/uninstall.md:1
+live-pad:rules/plugin/uninstall.md:2
+live-pad:rules/plugin/uninstall.md:3
+live-pad:rules/plugin/uninstall.md:4
+live-pad:rules/plugin/uninstall.md:5
+live-pad:rules/plugin/uninstall.md:6
+live-pad:rules/plugin/uninstall.md:7
+live-pad:rules/plugin/uninstall.md:8
+live-pad:rules/plugin/uninstall.md:9
+live-pad:rules/plugin/uninstall.md:10
+live-pad:rules/plugin/uninstall.md:11
+live-pad:rules/plugin/uninstall.md:12
+live-pad:rules/plugin/uninstall.md:13
+live-pad:rules/plugin/uninstall.md:14
+live-pad:rules/plugin/uninstall.md:15
+live-pad:rules/plugin/uninstall.md:16
+live-pad:rules/plugin/uninstall.md:17
+live-pad:rules/plugin/uninstall.md:18
+live-pad:rules/plugin/uninstall.md:19
+live-pad:rules/plugin/uninstall.md:20
+live-pad:rules/plugin/uninstall.md:21
+live-pad:rules/plugin/uninstall.md:22
+live-pad:rules/plugin/uninstall.md:23

@@ -1,0 +1,22 @@
+I'll start from the existing TST-0186 probe tree, read any prior return artifacts, and measure what's already green before changing anything.The probe tree exists but has no `SUBAGENT-RETURN.json` yet. Next I’ll read the handoff, catalog row, and a delivered unit so I can resume instead of rebuilding.Cloud-ok already refuted a harvest UNIT-COMPLETE. I’ll pull the catalog contract, a delivered unit’s artifacts, and the live runner so we can actually go green or park with a named fix.The catalog PASS is zero inline call sites plus a live apostrophe case — stronger than harvest UNIT-COMPLETE, weaker than “file is the stdin transport.” I’ll compare that to delivered siblings and the live runner.The declared target `tools/lib/codex-invocation.mjs` is on this tree and already file-routes. I’ll recover the original probes and a delivered G-1 artifact template next.Measure will re-run every non-skipped `*.py` in the probe dir, including `_handoff_*`. I’ll inspect those scripts and the shell_report observation schema before writing probes.`r2e_loop.py` line numbers shifted since the first read. I’ll re-read `run_codex` and then land the file-route plus the named probes.I'll switch `r2e_loop.run_codex` to stream the saved prompt file, then add live named probes that prove the catalog contract.Probe 2 is almost green: file-route lineage holds, but short property payloads collide with argv substrings. I’ll inspect the prompt-copy mismatch and tighten that check.Named probes are green. Next I’ll build the SUCCESS receipt from the live raw outputs and register the per-unit manifest.**SUCCESS:delivered TST-0186**
+
+```
+SUCCESS:delivered TST-0186 predicate=delivered state=SUCCESS probes=4 raws=3 notes=_handoff_stat.py:0,_handoff_verify.py:0,_print_handoff.py:0,aa_named_rerun.py:0
+```
+
+Cloud-ok `UNIT-COMPLETE` was not treated as delivery. The harvest receipt was `BLOCKED` because `r2e_loop.run_codex` wrote a prompt file and then fed the in-memory string to child stdin.
+
+**What made the catalog contract hold**
+
+- `command-center/p2-wave/r2e_loop.py` `run_codex` now streams the saved prompt file (`stdin=stdin_file`). Apostrophe-bearing prose is not placed on argv.
+- Named probes re-ran exit 0:
+  - **(a)** AST scan: zero inline prose call sites; stdin is the prompt file.
+  - **(b)** Apostrophe-heavy payload and a 64-case corpus (`'`, `"`, `` ` ``, `$`, newline, CRLF) are byte-exact on child stdin and absent from argv. Mutating the prompt file before spawn is what the child receives.
+  - **Both-states:** inlined apostrophe produces `unexpected EOF while looking for matching quote`; the file route succeeds.
+- Receipt `command-center/receipts/TST-0186.json` is `state=SUCCESS`, schema 0 errors, `ready_units` delivered.
+- Per-unit `command-center/p2-wave/probes/TST-0186/UNIT-ARTIFACT-MANIFEST.json` names that output path with matching LF sha256 `4e1cab51883a5bfda818a66cf6763b46b8184c825793203961a286c9cf9b7a75`.
+- Return file: `command-center/p2-wave/probes/TST-0186/SUBAGENT-RETURN.json`.
+
+**Constraints kept:** no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver.
+
+**Residuals (not blockers for G-1):** catalog-declared `tools/lib/codex-invocation.mjs` and `rules/common/*.md` are still absent here; the catalog’s second Windows shell review was not run on this Linux tree; global `unit_manifest.py --check` remains red on a sibling.

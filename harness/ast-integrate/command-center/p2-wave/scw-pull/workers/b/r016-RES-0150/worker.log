@@ -1,0 +1,24 @@
+I'll start from the existing RES-0150 probe tree, read the return artifact if it's there, and resume from what's already built.No SUBAGENT-RETURN yet. I'll read the existing RES-0150 artifacts and the measure script next.Cloud-ok already left this BLOCKED after two honesty strikes. I'll inspect the catalog unit, a delivered example, and `ready_units` so we can resume without circling.I'll inspect the live RES-0150 receipt and how schema validation actually decides SUCCESS versus BLOCKED.The harvest receipt already names two probes that are not on disk. I’ll extract the algorithm and SUCCESS schema next, then rebuild those probes instead of starting over.I'll rebuild the named probes on this tree: local hashed sources, a quality floor that binds spans to those bytes, and a packing step that only marks SUCCESS after the probes actually pass.I'll write the fixture builder and the two independent evaluators next, then pack only after they pass.Probes passed. Next I’ll pack a SUCCESS receipt from those live results and write the per-unit manifest.**SUCCESS:delivered** for RES-0150.
+
+`python command-center/p2-wave/_measure_one_delivered.py RES-0150` printed:
+
+`SUCCESS:delivered RES-0150 predicate=delivered state=SUCCESS probes=2 raws=5 notes=probe1_quota_evaluator.py:0,probe2_independent_verifier.py:0`
+
+CLOUD-OK had left this unit BLOCKED: the harvest JSON existed, but the named probes, fixtures, and fetched bytes did not, and the recorded structured-filler mutant went QUOTA-MET. That tree was kept. The missing probes were built and re-run; SUCCESS was set only after they exited 0.
+
+What is live now:
+
+| Piece | Result |
+|---|---|
+| Probe 1 `probe1_quota_evaluator.py` | exit 0 — sequential quality floor + signature/origin collapse |
+| Probe 2 `probe2_independent_verifier.py` | exit 0 — independent table-driven verifier; agrees on status and admitted IDs |
+| Honest no-counterevidence | `UNDER-QUOTA-HONEST` F=4 U=0 |
+| Structured filler | stays `UNDER-QUOTA-HONEST` U=0 (harvest false-green closed) |
+| Padding both-states | all-accept and all-reject go red; known-good stays quiet |
+| Per-unit manifest | `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `30bbf82cc721aaa9ec82e0b2a4785b781543583da5f1e42c5131eb9d977d1a81` |
+
+Quota definition on this tree: pre-locked share `U/(U+F)`, noncompensatory floor that binds spans to hashed local snapshots, derived-signature plus same-origin collapse, and `UNDER-QUOTA-HONEST` when a completed search still sits below `q`.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+Still open, and recorded as residuals: the catalog Anthropic opus reviewer was not dispatched; harvest scholarly URLs were not re-fetched (probes use hermetic local snapshots); `platform/lib/schema_resolver.py` is absent on this sparse tree.

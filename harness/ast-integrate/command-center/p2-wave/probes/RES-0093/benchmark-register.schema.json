@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0093/benchmark-register.schema.json",
+  "title": "RES-0093 agent-benchmark register (live control plane)",
+  "$comment": "Catalog command-center/schema/research-registry.schema.json is a GENERATED SHIM whose $ref is https://ast-integrate.invalid/... . jsonschema 4.10.3 RefResolver tries the network. This per-unit schema is the live if-then: applicable rows must name a harness-level improvement. Do not overwrite the shared catalog shim.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "question",
+    "benchmark_register",
+    "tests",
+    "reviewer"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "RES-0093" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "minLength": 8 },
+    "completion_sentinel": { "type": "string", "minLength": 32 },
+    "question": { "type": "string", "minLength": 40 },
+    "benchmark_register": {
+      "type": "array",
+      "minItems": 6,
+      "items": {
+        "type": "object",
+        "required": [
+          "benchmark_id",
+          "name",
+          "applicability_verdict",
+          "citations",
+          "measures",
+          "does_not_measure"
+        ],
+        "properties": {
+          "benchmark_id": { "type": "string", "minLength": 2 },
+          "name": { "type": "string", "minLength": 2 },
+          "applicability_verdict": {
+            "type": "string",
+            "enum": ["applicable", "inapplicable"]
+          },
+          "named_detectable_improvement": { "type": ["string", "null"] },
+          "citations": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "required": ["claim_id", "evidence_tier"],
+              "properties": {
+                "claim_id": { "type": "string", "minLength": 2 },
+                "evidence_tier": {
+                  "type": "string",
+                  "enum": ["E1", "E2", "E3", "E4"]
+                }
+              }
+            }
+          },
+          "measures": { "type": "string", "minLength": 16 },
+          "does_not_measure": { "type": "string", "minLength": 16 }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": {
+                "applicability_verdict": { "const": "applicable" }
+              },
+              "required": ["applicability_verdict"]
+            },
+            "then": {
+              "required": ["named_detectable_improvement"],
+              "properties": {
+                "named_detectable_improvement": {
+                  "type": "string",
+                  "minLength": 16
+                }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "tests": {
+      "type": "object",
+      "required": [
+        "named_improvement_per_applicable",
+        "inapplicable_popular_control",
+        "e3_cannot_promote"
+      ],
+      "properties": {
+        "named_improvement_per_applicable": { "type": "boolean" },
+        "e3_cannot_promote": { "type": "boolean" },
+        "inapplicable_popular_control": {
+          "type": "object",
+          "required": ["pass"],
+          "properties": {
+            "pass": { "type": "boolean" },
+            "benchmark_id": { "type": ["string", "null"] },
+            "reason": { "type": ["string", "null"] }
+          }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 4 },
+        "verdict": { "type": "string", "minLength": 2 },
+        "independent": { "type": "boolean" }
+      }
+    }
+  }
+}

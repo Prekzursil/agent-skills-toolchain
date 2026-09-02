@@ -1,0 +1,21 @@
+
+===== launch 2026-08-20T08:58:00Z attempt=1 =====
+I'll start from the existing IMP-0024 probe tree and the unit catalog so we can resume whatever is already built instead of starting from scratch.Next I’ll pull the IMP-0024 catalog row, the measure script, and a delivered IMP unit so the contract is concrete before any implementation.The probe tree is missing, so I’ll inspect related IMP units, the plugin code, and a delivered IMP receipt to match the existing contract.There’s already an `update` path in `platform/plugin`. I’ll read that implementation, the rehearsal, and the user-prompt spec so the new work extends it instead of replacing it.The gap is that `update` never calls the three-way merge. I’ll wire classifier → merge → stop-on-conflict, then add the required tests and live probes.**SUCCESS:delivered IMP-0024** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0024` printed:
+
+`SUCCESS:delivered IMP-0024 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe_byte_differ.py:0,probe_upgrade.py:0,run_required_tests.py:0`
+
+This unit had never been started (`probes/IMP-0024/` was absent), so the probe tree and the update policy were built rather than resumed.
+
+**What `update` does now**
+- **Unchanged-by-user** → replace with vN+1
+- **Changed-by-user** → three-way merge (base = shipped vN, ours = live, theirs = vN+1) via `deploy.merge_file_contents` (the IMP-0031 mechanism)
+- **Conflicted** (overlapping hunks, binary divergence, untracked live) → stop with `E_DRIFT` before any live overwrite
+- `userdata/` is never touched
+
+**Catalog evidence**
+1. Throwaway-HOME upgrade vN→vN+1 with a user-edited file: edit survived
+2. Independent unique-line differ (does not import the merge): user-unique lines still present after update
+3. Negative control: disabling the classifier makes the user-edit test go red
+4. Required tests: unchanged / user-changed / conflicted, v1→v2→v3 chain, reviewer reordered JSON keys + comment
+
+Receipt `command-center/receipts/IMP-0024.json` is `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches the live LF sha256. No git add/commit/push, no global `unit_manifest.py --write`.

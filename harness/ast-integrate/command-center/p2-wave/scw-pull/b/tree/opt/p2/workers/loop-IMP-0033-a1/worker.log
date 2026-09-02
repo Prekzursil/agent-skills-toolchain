@@ -1,0 +1,19 @@
+
+===== launch 2026-08-20T08:58:21Z attempt=1 =====
+I'll start by inspecting the existing IMP-0033 probe tree and the delivery contract so we can implement from what's already there rather than treating an absent measure as a park.I'll look up IMP-0033 in the catalog and open the measure script plus any existing probe files.IMP-0033 has no probe tree yet. Next I’ll read the catalog unit and a delivered IMP unit so we can match that contract.There's already a plugin deploy path with provenance. I'll inspect that, the receipt contract, and whether the three sync scripts exist on this tree.I'll implement the provenance engine, extend the three sync scripts so they call it, and add the schema field plus tests. The probe tree is missing, so this is a from-scratch build, not a park.Required tests passed. Next I’ll run the four named probes, including the PowerShell entry points.Probe 1’s `ok=` field was the blob SHA because of a truthy `and` chain; I’ll make that a real boolean, then pack the receipt.**IMP-0033 is G-1 contract-green on this worktree.** `python command-center/p2-wave/_measure_one_delivered.py IMP-0033` printed:
+
+`SUCCESS:delivered IMP-0033 predicate=delivered state=SUCCESS probes=4 raws=4 notes=blob_verify.py:0,negative_control.py:0,run_required_tests.py:0,walk_coverage.py:0`
+
+`probes/IMP-0033/` was missing, so this pass created it and implemented the unit instead of parking on `predicate:absent`.
+
+What landed:
+
+- **Single live writer:** `tools/plugin/deploy_provenance.py::place_file` copies the HEAD git blob and records `source_blob_sha`, `source_path`, plugin version, timestamp, and `content_sha256`.
+- **Three sync scripts, not a fourth:** `scripts/sync-skills.ps1`, `sync-hooks.ps1`, and `sync-rules.ps1` only invoke that helper (`--kind skills|hooks|rules`). No `Copy-Item` payload path.
+- **Schema:** `source_blob_sha` added as an optional record field on `tools/plugin/schema/deploy-provenance.schema.json`.
+- **Evidence, both directions:** throwaway HOME deploy via the three `pwsh` scripts; `git cat-file -p` matched all 7 live files; independent `os.walk` found 0 files without a ledger row; planting an unrecorded file went red; hand-editing one file reported exactly that path.
+- **Receipt / registration:** `command-center/receipts/IMP-0033.json` is `state=SUCCESS`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `f300df670a220c9edfba4fb8dc9dd11936acf5e5d27fe5aea822e75b5c78c240`.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no global catalog manifest write; no key rotation; no relaunch of finish-everything-close or p2-cloud-ok-deliver. Nested fixture `git init` only.
+
+Honest limit: this sparse tree has no repo-root `skills/`, `hooks/`, or `rules/` and had no original sync scripts. Provenance is proven on the nested fixture repo and a throwaway HOME, not a full-estate profile deploy.

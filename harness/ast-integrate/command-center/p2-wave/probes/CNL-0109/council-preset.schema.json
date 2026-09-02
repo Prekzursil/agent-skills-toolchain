@@ -1,0 +1,242 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.local/command-center/p2-wave/probes/CNL-0109/council-preset.schema.json",
+  "title": "CNL-0109 strategy and constrained-prioritisation family",
+  "$comment": "Catalog output_schema cites command-center/schema/council-preset.schema.json. On this tree that file is a generated shim with no $defs.preset. This unit-local schema is the executable Draft 2020-12 contract for CNL-0109 records. It does not rewrite the shared shim.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "kind",
+    "family_id",
+    "question",
+    "answer",
+    "presets",
+    "nearest_sibling",
+    "instantiations",
+    "schema_validation",
+    "negative_control",
+    "rcv_trap"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0109" },
+    "state": { "type": "string", "enum": ["SUCCESS", "PARTIAL"] },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0109" },
+    "kind": { "type": "string", "const": "council_preset_family" },
+    "family_id": { "type": "string", "minLength": 8 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "direction_voting_method",
+        "prioritisation_voting_method",
+        "why_ranked_choice_is_a_trap"
+      ],
+      "properties": {
+        "direction_voting_method": { "type": "string", "const": "pairwise-condorcet" },
+        "prioritisation_voting_method": {
+          "type": "string",
+          "const": "calibrated-score-knapsack"
+        },
+        "why_ranked_choice_is_a_trap": { "type": "string", "minLength": 40 }
+      }
+    },
+    "presets": {
+      "type": "array",
+      "minItems": 2,
+      "maxItems": 2,
+      "items": { "$ref": "#/$defs/preset" }
+    },
+    "nearest_sibling": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["named", "profile_distance", "differing_axes"],
+      "properties": {
+        "named": { "type": "string", "minLength": 4 },
+        "profile_distance": { "type": "integer", "minimum": 2 },
+        "differing_axes": {
+          "type": "array",
+          "minItems": 2,
+          "items": { "type": "string" }
+        }
+      }
+    },
+    "instantiations": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "task_id",
+          "preset_id",
+          "roster",
+          "protocol_schedule",
+          "voting_method",
+          "stopping_expression"
+        ]
+      }
+    },
+    "schema_validation": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["valid_error_count", "invalid_error_count", "validator"],
+      "properties": {
+        "valid_error_count": { "type": "integer", "const": 0 },
+        "invalid_error_count": { "type": "integer", "minimum": 1 },
+        "validator": { "type": "string", "const": "jsonschema.Draft202012Validator" }
+      }
+    },
+    "negative_control": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["rejects", "on_state", "verbatim"]
+    },
+    "rcv_trap": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": ["irv_winner", "knapsack_set", "knapsack_value", "trap_fires"],
+      "properties": {
+        "trap_fires": { "type": "boolean", "const": true }
+      }
+    }
+  },
+  "$defs": {
+    "preset": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "id",
+        "kind",
+        "family_id",
+        "title",
+        "outcome_type",
+        "base_spec_ref",
+        "editable_dials",
+        "protocol_schedule",
+        "delta"
+      ],
+      "properties": {
+        "id": { "type": "string", "minLength": 8 },
+        "kind": { "type": "string", "const": "council_preset" },
+        "family_id": { "type": "string", "minLength": 8 },
+        "title": { "type": "string", "minLength": 8 },
+        "outcome_type": {
+          "type": "string",
+          "enum": ["exclusive_direction", "budget_portfolio"]
+        },
+        "base_spec_ref": { "type": "string", "minLength": 4 },
+        "editable_dials": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "protocol_schedule": {
+          "type": "array",
+          "minItems": 1,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "delta": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": ["roles", "voting", "stopping", "anti_failure"],
+          "properties": {
+            "roles": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["required"],
+              "properties": {
+                "required": {
+                  "type": "array",
+                  "minItems": 2,
+                  "items": { "type": "string", "minLength": 1 }
+                }
+              }
+            },
+            "voting": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["rule", "quorum"],
+              "properties": {
+                "rule": { "type": "string", "minLength": 4 },
+                "quorum": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "stopping": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["expression", "max_rounds"],
+              "properties": {
+                "expression": { "type": "string", "minLength": 8 },
+                "max_rounds": { "type": "integer", "minimum": 1 }
+              }
+            },
+            "anti_failure": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": ["ranked_choice_forbidden"],
+              "properties": {
+                "ranked_choice_forbidden": { "type": "boolean", "const": true }
+              }
+            }
+          }
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "required": ["outcome_type"],
+            "properties": {
+              "outcome_type": { "const": "budget_portfolio" }
+            }
+          },
+          "then": {
+            "properties": {
+              "delta": {
+                "properties": {
+                  "voting": {
+                    "properties": {
+                      "rule": {
+                        "not": {
+                          "enum": [
+                            "ranked-choice",
+                            "majority",
+                            "pairwise-condorcet"
+                          ]
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        {
+          "if": {
+            "required": ["outcome_type"],
+            "properties": {
+              "outcome_type": { "const": "exclusive_direction" }
+            }
+          },
+          "then": {
+            "properties": {
+              "delta": {
+                "properties": {
+                  "voting": {
+                    "properties": {
+                      "rule": { "const": "pairwise-condorcet" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      ]
+    }
+  }
+}

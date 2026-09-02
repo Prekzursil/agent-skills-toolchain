@@ -1,0 +1,42 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0060/objection.schema.json",
+  "title": "Consent / no-objection objection record",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["objector_seat", "target", "blocking_claim", "falsifier"],
+  "properties": {
+    "objector_seat": { "type": "string", "minLength": 1 },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["proposal_id", "claim_id"],
+      "properties": {
+        "proposal_id": { "type": "string", "minLength": 1 },
+        "claim_id": { "type": "string", "minLength": 1 }
+      }
+    },
+    "blocking_claim": { "type": "string", "minLength": 8 },
+    "falsifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["kind"],
+      "properties": {
+        "kind": { "type": "string", "enum": ["counterexample", "vacuity"] },
+        "instance": { "type": "object", "minProperties": 1 },
+        "good_fixture": { "type": "object" },
+        "bad_fixture": { "type": "object" }
+      },
+      "allOf": [
+        {
+          "if": { "properties": { "kind": { "const": "counterexample" } }, "required": ["kind"] },
+          "then": { "required": ["instance"] }
+        },
+        {
+          "if": { "properties": { "kind": { "const": "vacuity" } }, "required": ["kind"] },
+          "then": { "required": ["good_fixture", "bad_fixture"] }
+        }
+      ]
+    }
+  }
+}

@@ -1,0 +1,791 @@
+{
+ "dsl_version": "1.0.0",
+ "id": "bp-arc-03.anti-overfit-architecture-audit",
+ "name": "Anti-Overfit Architecture Audit",
+ "description": "Audit an existing agent architecture for accreted complexity: what has been added that no longer earns its place, and what a minimal rebuild would look like. The mandatory distinction is DISARMED versus UNUSED - a guard can be registered, permanently silent, and still load-bearing, so 'not exercised recently' is never sufficient evidence of deadness. Absent telemetry the component is UNKNOWN, never presumed dead, and no removal is proposed without a traced blast radius.",
+ "version": "1.0.0",
+ "kind": "workflow",
+ "categories": [
+  "security-governance-and-risk",
+  "engineering-and-reliability"
+ ],
+ "tags": [
+  "subtraction",
+  "disarmed-vs-unused",
+  "blast-radius",
+  "both-states"
+ ],
+ "flagship": true,
+ "params": {
+  "inventory_path": {
+   "type": "path",
+   "required": true,
+   "description": "The component inventory to audit"
+  },
+  "telemetry_path": {
+   "type": "path",
+   "description": "Event-ledger telemetry. When absent every component is UNKNOWN, not dead."
+  },
+  "allow_security_removal": {
+   "type": "boolean",
+   "default": false,
+   "description": "OWNER DECISION, unresolved: may this audit even propose removing a security-bearing component?"
+  },
+  "rejected_components": {
+   "type": "array",
+   "items": {
+    "type": "string"
+   },
+   "default": [],
+   "description": "Previously rejected candidates, so the audit does not re-propose a settled no"
+  }
+ },
+ "roles": {
+  "component_auditor": {
+   "description": "Audits one component: is it registered, when was it last exercised, does it fire at all",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "independent",
+   "min_participants": 1,
+   "max_participants": 64,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Glob",
+    "Bash:python"
+   ]
+  },
+  "synthesiser": {
+   "description": "Merges the per-component verdicts and sketches the minimal rebuild",
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high",
+   "authority": "advisory",
+   "independence": "informed",
+   "tool_permissions": [
+    "Read",
+    "Write(command-center/audit/**)"
+   ],
+   "write_paths": [
+    "command-center/audit/**"
+   ]
+  },
+  "removal_critic": {
+   "description": "Argues, per proposal, that the component is load-bearing and must survive",
+   "model": "gpt-5-codex",
+   "vendor": "openai",
+   "effort": "high",
+   "authority": "veto",
+   "independence": "cross-examining",
+   "cross_vendor_required": true,
+   "tool_permissions": [
+    "Read",
+    "Grep",
+    "Bash:python"
+   ],
+   "speaking_rights": "rebuttal-only"
+  },
+  "owner": {
+   "description": "The only role that may approve removing anything security-bearing",
+   "vendor": "human",
+   "authority": "owner",
+   "speaking_rights": "on-request"
+  }
+ },
+ "tool_policy": {
+  "default": "deny",
+  "allow": [
+   "Read",
+   "Grep",
+   "Glob",
+   "Bash:python",
+   "Write(command-center/audit/**)"
+  ],
+  "deny": [
+   "Bash",
+   "WebFetch"
+  ],
+  "network": "none",
+  "write_paths": [
+   "command-center/audit/**"
+  ],
+  "forbid_write_paths": [
+   ".claude/hooks/**",
+   ".claude/rules/**",
+   "command-center/WORK-UNIT-CATALOG.json"
+  ]
+ },
+ "model_routing": {
+  "strategy": "vendor-diverse",
+  "default": {
+   "model": "opus",
+   "vendor": "anthropic",
+   "effort": "high"
+  },
+  "routes": [
+   {
+    "when": "stage_role == removal_critic",
+    "target": {
+     "model": "gpt-5-codex",
+     "vendor": "openai",
+     "effort": "high"
+    },
+    "reason": "the critic must not share the auditor's vantage point, which is what makes a dormant guard look dead"
+   }
+  ],
+  "forbid_downgrade_below": "opus"
+ },
+ "gates": {
+  "disarmed-distinguished": {
+   "predicate": "custom-expression",
+   "expression": "components_classified_without_both_states_probe == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "no-untraced-removal": {
+   "predicate": "custom-expression",
+   "expression": "removal_proposals_without_blast_radius == 0",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "fail"
+  },
+  "security-removal-owner-only": {
+   "predicate": "custom-expression",
+   "expression": "security_bearing_removals == 0 OR owner_approved_security_removal == true",
+   "blocking": true,
+   "evidence_required": true,
+   "on_fail": "escalate-to-human"
+  }
+ },
+ "stages": [
+  {
+   "id": "s0-inventory",
+   "title": "S0 INVENTORY the components",
+   "kind": "task",
+   "role": "synthesiser",
+   "timeout_seconds": 1200,
+   "checkpoint": true,
+   "work_unit": {
+    "id": "BP3-ARC03-S0",
+    "title": "Enumerate every component, with the scope the enumeration covered",
+    "phase": "2B",
+    "question_or_target": "List every component in the architecture and state the search scope, because a floor presented as a total is its own failure class.",
+    "inputs": [
+     "params.inventory_path"
+    ],
+    "dependencies": [],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "synthesiser",
+     "basis": "the inventory is deterministic; only the later judgement is not"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Glob"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1200,
+    "output_path": "command-center/audit/arc03-inventory.json",
+    "output_schema": "command-center/schema/audit-inventory.schema.json",
+    "evidence_requirement": "records the exact search scope and depth, so the count cannot be read as a total when it is a floor",
+    "tests_required": [
+     "an inventory that walked one directory level must declare depth=1, not present its count as complete"
+    ],
+    "reviewer_requirement": "the removal critic checks the scope before any verdict is trusted",
+    "completion_sentinel": "SUCCESS:BP3-ARC03-S0 only when the artifact declares its search scope and depth alongside the count; otherwise FAILED:BP3-ARC03-S0 <reason>",
+    "retry_policy": "two strikes then pivot to a wider scope",
+    "failure_classification": [
+     "detector-truncation"
+    ],
+    "owner_approval_required": false
+   },
+   "produces": [
+    {
+     "path": "command-center/audit/arc03-inventory.json",
+     "schema_ref": "command-center/schema/audit-inventory.schema.json",
+     "min_bytes": 256,
+     "register_in_manifest": true,
+     "sentinel": "SUCCESS:BP3-ARC03-S0",
+     "consumers": [
+      "s1-measure"
+     ]
+    }
+   ]
+  },
+  {
+   "id": "s1-measure",
+   "title": "S1/S1b MEASURE last-exercised from telemetry, and probe DISARMED vs UNUSED",
+   "kind": "fanout",
+   "depends_on": [
+    "s0-inventory"
+   ],
+   "over": {
+    "source": "artifact",
+    "ref": "command-center/audit/arc03-inventory.json",
+    "item_var": "component",
+    "key_field": "component_id"
+   },
+   "max_concurrency": 12,
+   "arrival_stagger_ms": 200,
+   "max_items": 256,
+   "on_item_failure": "quarantine",
+   "body": [
+    {
+     "id": "audit-component",
+     "kind": "task",
+     "role": "component_auditor",
+     "timeout_seconds": 900,
+     "work_unit": {
+      "id": "BP3-ARC03-S1",
+      "title": "Classify one component as live, dormant, disarmed, unregistered or unknown",
+      "phase": "2B",
+      "question_or_target": "Measure last-exercised from telemetry and run a both-states probe: does this component fire on a KNOWN-BROKEN input at all?",
+      "inputs": [
+       "command-center/audit/arc03-inventory.json",
+       "params.telemetry_path"
+      ],
+      "dependencies": [
+       "BP3-ARC03-S0"
+      ],
+      "assigned_model_vendor_role": {
+       "model": "opus",
+       "vendor": "anthropic",
+       "role": "component_auditor",
+       "basis": "one auditor per component so a single agent cannot average two verdicts"
+      },
+      "tool_permissions": [
+       "Read",
+       "Grep",
+       "Bash:python"
+      ],
+      "execution_substrate": "local-parallel",
+      "timeout_seconds": 900,
+      "output_path": "command-center/audit/arc03-component.json",
+      "output_schema": "command-center/schema/detector-control.schema.json",
+      "evidence_requirement": "last-exercised comes from the event ledger, NEVER from a file mtime; the both-states result is recorded as a separate field",
+      "tests_required": [
+       "a registered component that does not fire on a known-broken input must classify as DISARMED, never as unused",
+       "a component with no telemetry and no both-states probe must classify as UNKNOWN, never as dead"
+      ],
+      "reviewer_requirement": "the removal critic, cross-vendor",
+      "completion_sentinel": "SUCCESS:BP3-ARC03-S1 only when the artifact carries both a telemetry field and an explicit both-states result; otherwise FAILED:BP3-ARC03-S1 <reason>",
+      "retry_policy": "two strikes then pivot to a different probe class",
+      "failure_classification": [
+       "detector-failure",
+       "fail-open-on-missing-dependency"
+      ],
+      "owner_approval_required": false
+     }
+    }
+   ],
+   "barrier": {
+    "mode": "all",
+    "on_partial": "proceed-with-quarantine",
+    "reject_result_matching": [
+     "started in the background",
+     "Check /codex:status"
+    ],
+    "verify_artifact_exists": true
+   }
+  },
+  {
+   "id": "s1-gate",
+   "title": "S1 gate: nothing is classified without a both-states probe",
+   "kind": "gate",
+   "depends_on": [
+    "s1-measure"
+   ],
+   "gate_ref": "disarmed-distinguished"
+  },
+  {
+   "id": "s2-judge",
+   "title": "S2/S3 JUDGE earns_place and COMPUTE the removal blast radius",
+   "kind": "task",
+   "role": "synthesiser",
+   "depends_on": [
+    "s1-gate"
+   ],
+   "timeout_seconds": 1800,
+   "work_unit": {
+    "id": "BP3-ARC03-S2",
+    "title": "Decide earns_place per component and trace what breaks if it is removed",
+    "phase": "2B",
+    "question_or_target": "For each component decide whether it earns its place, and trace every consumer that would break on removal.",
+    "inputs": [
+     "command-center/audit/arc03-component.json"
+    ],
+    "dependencies": [
+     "BP3-ARC03-S1"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "synthesiser",
+     "basis": "synthesis over measured classifications, not over impressions"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Write(command-center/audit/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/audit/arc03-blast-radius.json",
+    "output_schema": "command-center/schema/blast-radius.schema.json",
+    "evidence_requirement": "every removal proposal enumerates the files, callers and configs that reference the component",
+    "tests_required": [
+     "a removal proposal with an empty consumer trace must FAIL, since an untraced removal is not a proposal",
+     "a component previously in rejected_components must not be re-proposed"
+    ],
+    "reviewer_requirement": "the removal critic argues the opposite case for every proposal",
+    "completion_sentinel": "SUCCESS:BP3-ARC03-S2 only when every removal proposal carries a non-empty consumer trace; otherwise FAILED:BP3-ARC03-S2 <reason>",
+    "retry_policy": "two strikes then pivot; a third identical judgement pass is banned",
+    "failure_classification": [
+     "overclaim",
+     "detector-truncation"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s3-gate",
+   "title": "S3 gate: no removal proposal without a blast-radius trace",
+   "kind": "gate",
+   "depends_on": [
+    "s2-judge"
+   ],
+   "gate_ref": "no-untraced-removal"
+  },
+  {
+   "id": "s4-critic",
+   "title": "S4 ADVERSARIAL critic: 'you are about to delete something load-bearing'",
+   "kind": "task",
+   "role": "removal_critic",
+   "depends_on": [
+    "s3-gate"
+   ],
+   "timeout_seconds": 1800,
+   "work_unit": {
+    "id": "BP3-ARC03-S4",
+    "title": "Argue that each proposed removal is load-bearing",
+    "phase": "2B",
+    "question_or_target": "For every removal proposal, construct the strongest case that the component is still load-bearing, and say which case survives.",
+    "inputs": [
+     "command-center/audit/arc03-blast-radius.json"
+    ],
+    "dependencies": [
+     "BP3-ARC03-S2"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "gpt-5-codex",
+     "vendor": "openai",
+     "role": "removal_critic",
+     "basis": "a same-vendor critic inherits the vantage point that made the component look dead"
+    },
+    "tool_permissions": [
+     "Read",
+     "Grep",
+     "Bash:python"
+    ],
+    "execution_substrate": "codex-mcp",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/audit/arc03-critique.json",
+    "output_schema": "command-center/schema/refutation-record.schema.json",
+    "evidence_requirement": "each counter-argument cites the code path or config that still depends on the component",
+    "tests_required": [
+     "a dormant security guard must survive this stage; a critique that clears one is itself the defect"
+    ],
+    "reviewer_requirement": "the owner for any security-bearing case",
+    "completion_sentinel": "SUCCESS:BP3-ARC03-S4 only when every proposal has an explicit survives/does-not-survive verdict with a cited dependency; otherwise FAILED:BP3-ARC03-S4 <reason>",
+    "retry_policy": "two strikes then pivot to a differently-framed critique",
+    "failure_classification": [
+     "overclaim",
+     "detector-failure"
+    ],
+    "owner_approval_required": false
+   }
+  },
+  {
+   "id": "s4-owner",
+   "title": "S4b OWNER decides on any security-bearing removal",
+   "kind": "human_checkpoint",
+   "depends_on": [
+    "s4-critic"
+   ],
+   "when": "security_bearing_removals > 0",
+   "prompt": "This audit proposes removing a security-bearing component. Approve it, refuse it, or rule that this category is permanently out of scope for architecture audits.",
+   "approvers": [
+    "owner"
+   ],
+   "approval_mode": "owner-only",
+   "timeout_seconds": 86400,
+   "on_timeout": "fail",
+   "owner_approval_required": true,
+   "options": [
+    "approve-this-removal",
+    "refuse",
+    "rule-category-out-of-scope"
+   ],
+   "decision_artifact": {
+    "path": "command-center/audit/arc03-owner-decision.json",
+    "schema_ref": "command-center/schema/owner-decision-packet.schema.json",
+    "min_bytes": 128,
+    "register_in_manifest": true
+   }
+  },
+  {
+   "id": "s4-security-gate",
+   "title": "S4c gate: a security-bearing removal needs recorded owner approval",
+   "kind": "gate",
+   "depends_on": [
+    "s4-owner"
+   ],
+   "gate_ref": "security-removal-owner-only"
+  },
+  {
+   "id": "s5-sketch",
+   "title": "S5 SKETCH the minimal rebuild",
+   "kind": "task",
+   "role": "synthesiser",
+   "depends_on": [
+    "s4-security-gate"
+   ],
+   "timeout_seconds": 1800,
+   "work_unit": {
+    "id": "BP3-ARC03-S5",
+    "title": "Sketch what a minimal rebuild of this architecture would contain",
+    "phase": "2B",
+    "question_or_target": "Describe the smallest architecture that would still satisfy every surviving component's purpose.",
+    "inputs": [
+     "command-center/audit/arc03-critique.json",
+     "command-center/audit/arc03-blast-radius.json"
+    ],
+    "dependencies": [
+     "BP3-ARC03-S4"
+    ],
+    "assigned_model_vendor_role": {
+     "model": "opus",
+     "vendor": "anthropic",
+     "role": "synthesiser",
+     "basis": "the sketch is the audit's positive deliverable, not only a delete list"
+    },
+    "tool_permissions": [
+     "Read",
+     "Write(command-center/audit/**)"
+    ],
+    "execution_substrate": "local-single",
+    "timeout_seconds": 1800,
+    "output_path": "command-center/audit/arc03-minimal-rebuild.json",
+    "output_schema": "command-center/schema/architecture-dossier.schema.json",
+    "evidence_requirement": "every element of the sketch maps to a surviving component purpose, so the sketch cannot smuggle in new scope",
+    "tests_required": [
+     "a sketch element with no surviving-purpose mapping must be flagged as new scope, not as simplification"
+    ],
+    "reviewer_requirement": "the removal critic reads the sketch for silently dropped purposes",
+    "completion_sentinel": "SUCCESS:BP3-ARC03-S5 only when every sketch element maps to a surviving component purpose; otherwise FAILED:BP3-ARC03-S5 <reason>",
+    "retry_policy": "one retry then emit partial",
+    "failure_classification": [
+     "scope-creep",
+     "digest-loss"
+    ],
+    "owner_approval_required": false
+   }
+  }
+ ],
+ "stopping_rules": [
+  {
+   "id": "all-components-judged",
+   "expression": "components_unjudged == 0",
+   "applies_to": "workflow",
+   "minimum_conditions": "both_states_probes_run >= 1",
+   "on_stop": "complete"
+  },
+  {
+   "id": "telemetry-absent",
+   "expression": "telemetry_available == false",
+   "applies_to": "workflow",
+   "minimum_conditions": "components_inventoried >= 1",
+   "on_stop": "emit-partial"
+  }
+ ],
+ "retry_policy": {
+  "strategy": "two-strikes-then-pivot",
+  "max_attempts": 3,
+  "backoff_seconds": 15,
+  "jitter": true,
+  "retry_on": [
+   "detector-failure",
+   "severed-stream"
+  ],
+  "no_retry_on": [
+   "owner-blocked",
+   "spec-underspecified"
+  ],
+  "pivot": {
+   "after_attempts": 2,
+   "enumerate_alternatives_min": 2,
+   "escalate_to": "owner"
+  }
+ },
+ "failure_policy": {
+  "on_failure": "quarantine",
+  "classify_as": [
+   "detector-failure",
+   "detector-truncation",
+   "overclaim"
+  ],
+  "terminal_state_required": true,
+  "never_silent": true,
+  "preserve_partial_artifact": true,
+  "escalate_to": "owner",
+  "quarantine_path": "command-center/quarantine/arc03"
+ },
+ "resume": {
+  "enabled": true,
+  "checkpoint_store": "command-center/checkpoints/arc03",
+  "granularity": "fanout-item",
+  "idempotency_key_from": [
+   "workflow_id",
+   "workflow_version",
+   "stage_id",
+   "item_key"
+  ],
+  "resume_from": "last-checkpoint",
+  "stale_checkpoint_seconds": 86400,
+  "on_stale": "warn-and-resume"
+ },
+ "replay": {
+  "deterministic": true,
+  "seed": 20260810,
+  "journal_path": "command-center/replay/arc03.jsonl",
+  "record": [
+   "params",
+   "inputs",
+   "tool_calls",
+   "tool_results"
+  ],
+  "forbid_nondeterministic_sources": [
+   "clock",
+   "random",
+   "filesystem-order",
+   "process-id"
+  ],
+  "replay_source": "recorded-journal",
+  "verify": "schema-equal",
+  "hash_algorithm": "sha256",
+  "on_divergence": "record-discrepancy"
+ },
+ "cache": {
+  "enabled": true,
+  "scope": "workflow",
+  "key_from": [
+   "workflow_version",
+   "stage_id",
+   "item_key",
+   "inputs_hash"
+  ],
+  "store": "command-center/cache/arc03",
+  "ttl_seconds": 43200,
+  "verify_integrity": true,
+  "invalidate_on": [
+   "schema-version-change",
+   "tool-version-change"
+  ],
+  "read_only": false
+ },
+ "dry_run": {
+  "supported": true,
+  "side_effect_free": true,
+  "emits": [
+   "plan",
+   "estimate",
+   "permission-report",
+   "graph"
+  ],
+  "plan_artifact": "command-center/dry-run/arc03-plan.json",
+  "forbid_tools": [
+   "Bash:python",
+   "Write(command-center/audit/**)"
+  ]
+ },
+ "estimate": {
+  "basis": "static-declared",
+  "wallclock_seconds": {
+   "min": 900,
+   "expected": 5400,
+   "max": 21600
+  },
+  "tokens": {
+   "min": 150000,
+   "expected": 800000,
+   "max": 2500000
+  },
+  "tool_calls": {
+   "expected": 60,
+   "max": 500
+  },
+  "impact": {
+   "risk": "medium",
+   "reversibility": "reversible",
+   "blast_radius": "the AUDIT is read-only and writes only under command-center/audit/**; its RECOMMENDATIONS are what carry risk, which is why each one needs a traced blast radius before it is actionable",
+   "requires_owner_approval": false
+  }
+ },
+ "portability": {
+  "export": {
+   "format": "bundle",
+   "includes": [
+    "definition",
+    "examples",
+    "tests",
+    "lineage"
+   ],
+   "redact_secrets": true,
+   "bundle_path": "command-center/export/bp-arc-03.bundle.json"
+  },
+  "import": {
+   "validate_against": "platform/schema/workflow-dsl.schema.json",
+   "on_version_mismatch": "reject",
+   "trust": {
+    "require_signature": false,
+    "allow_publishers": [
+     "prekzursil"
+    ]
+   }
+  }
+ },
+ "lineage": {
+  "derived_from": [
+   {
+    "source": "skills/agent-architecture-audit",
+    "relation": "DISTILL",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/agent-harness-construction",
+    "relation": "DISTILL",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "skills/agent-introspection-debugging",
+    "relation": "DISTILL",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "rules/common/single-signal-verification.md",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   },
+   {
+    "source": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-03",
+    "relation": "REBUILD-FROM-SPEC",
+    "license": "owner-proprietary",
+    "credit": "owner / program design corpus"
+   }
+  ],
+  "decomposable_back_to_sources": true
+ },
+ "outputs": {
+  "components": {
+   "path": "command-center/audit/arc03-component.json",
+   "schema_ref": "command-center/schema/detector-control.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the synthesiser",
+    "the removal critic"
+   ]
+  },
+  "blast_radius": {
+   "path": "command-center/audit/arc03-blast-radius.json",
+   "schema_ref": "command-center/schema/blast-radius.schema.json",
+   "min_bytes": 256,
+   "register_in_manifest": true,
+   "consumers": [
+    "the removal critic",
+    "the owner"
+   ]
+  },
+  "minimal_rebuild": {
+   "path": "command-center/audit/arc03-minimal-rebuild.json",
+   "schema_ref": "command-center/schema/architecture-dossier.schema.json",
+   "min_bytes": 512,
+   "register_in_manifest": true,
+   "consumers": [
+    "the owner",
+    "bp-arc-01.architecture-tournament"
+   ]
+  }
+ },
+ "x_extensions": {
+  "design_card": "09-WORKFLOW-BLUEPRINT-LIBRARY.md#BP-ARC-03 (doc-order 30 of 96)",
+  "owner_decision": "OPEN: does an architecture audit get authority to PROPOSE removing a security-bearing component, or is that category permanently out of scope? The param allow_security_removal defaults to false, so the safe answer is the default until the owner rules.",
+  "distinguishing_mechanism": "the DISARMED-versus-UNUSED both-states discrimination plus a mandatory blast-radius trace per removal. BP-ARC-04 maps FUTURE options against a failure catalogue; this audits EXISTING components for accretion.",
+  "not_a_duplicate_of_bp_dbg_05": "BP-DBG-05 (Silent-Disarm Hunt, doc-order 47, another unit's range) HUNTS for disarmed guards as its whole purpose. This blueprint CONSUMES that distinction as one input to a subtraction decision. The both-states probe is deliberately referenced as a per-component sub-step here rather than reimplemented as a second hunt, so the two do not manufacture overlapping coverage.",
+  "worked_example": {
+   "name": "a disarmed guard must not be classified as unused",
+   "narrative": "Four components. 'stale-guard' is registered, has not fired recently, and does NOT fire on a known-broken input: DISARMED, which is a defect to fix, not a component to delete. 'quiet-guard' is registered, has not fired recently, but DOES fire on a known-broken input: live-dormant, and it must survive. 'no-telemetry' never had a both-states probe run, so it is UNKNOWN. Only the unregistered handler is even eligible for removal, and only with a traced blast radius and no security bearing.",
+   "mechanism": "mechanisms.classify_component + mechanisms.removable",
+   "input": {
+    "components": {
+     "stale-guard": {
+      "registered": true,
+      "fired_recently": false,
+      "fires_on_known_bad_state": false
+     },
+     "quiet-guard": {
+      "registered": true,
+      "fired_recently": false,
+      "fires_on_known_bad_state": true
+     },
+     "no-telemetry": {
+      "registered": true,
+      "fired_recently": false,
+      "fires_on_known_bad_state": null
+     },
+     "orphan-handler": {
+      "registered": false,
+      "fired_recently": false,
+      "fires_on_known_bad_state": null
+     }
+    },
+    "removal_context": {
+     "blast_radius_traced": true,
+     "security_bearing": false
+    }
+   },
+   "expected": {
+    "classes": {
+     "stale-guard": "disarmed",
+     "quiet-guard": "live-dormant",
+     "no-telemetry": "unknown-no-both-states-probe",
+     "orphan-handler": "unregistered"
+    },
+    "removable": [
+     "orphan-handler"
+    ]
+   },
+   "controls": [
+    {
+     "mutate": "mark orphan-handler security_bearing=true",
+     "expected_removable": 0,
+     "why": "a security-bearing removal is owner-only and can never be auto-approved"
+    },
+    {
+     "mutate": "drop the blast-radius trace",
+     "expected_removable": 0,
+     "why": "an untraced removal is not a proposal"
+    }
+   ]
+  }
+ }
+}

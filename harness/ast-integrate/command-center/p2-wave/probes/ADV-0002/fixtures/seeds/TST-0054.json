@@ -1,0 +1,476 @@
+{
+  "artifacts": [
+    {
+      "bytes": 4954,
+      "exists": true,
+      "path": "tools/lib/strict_json.py",
+      "role": "supporting",
+      "sha256": "5d1acb28fd3b38ef6a0da0db928ad7a6ca7164d64216ad66f8672feda86b562a"
+    },
+    {
+      "bytes": 11464,
+      "exists": true,
+      "path": "tools/plugin/duplicate_key_matrix.py",
+      "role": "supporting",
+      "sha256": "2babeafe8b029bd6427886c025b59f06ae79efd07babf89b19ccfa6b5a789dfc"
+    },
+    {
+      "bytes": 3591,
+      "exists": true,
+      "path": "tools/plugin/tests/test_duplicate_keys.py",
+      "role": "supporting",
+      "sha256": "e7d54fb5d93e8844aea102516dae93ed30230296e115dd90837e887cd385a89c"
+    },
+    {
+      "bytes": 1995,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0054/probe1_producer_rejects_duplicate_keys.py",
+      "role": "supporting",
+      "sha256": "a757faa3fde8524746bf328db6a336d9230c9c4001ca24afddc0f9a611668532"
+    },
+    {
+      "bytes": 2164,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0054/probe2_consumer_behaviours_recorded.py",
+      "role": "supporting",
+      "sha256": "3415d0f9b4fa0c83311b74a56799688dc66e3fd9b321fb6073644e8cf6966e20"
+    },
+    {
+      "bytes": 45,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0054/fixtures/duplicate-name.json",
+      "role": "supporting",
+      "sha256": "3ad18c03e662b9c359413f5ebc6b0e68f94463ae6db4ae9d9ccc2cfed19cc569"
+    },
+    {
+      "bytes": 9154,
+      "exists": true,
+      "path": "tools/plugin/layout_fixtures.py",
+      "role": "supporting",
+      "sha256": "8d333a12073f0e0ebb3047290e120cce100615b0604c891d29d4222d9401260e"
+    },
+    {
+      "bytes": 2263,
+      "exists": true,
+      "path": "tools/plugin/scenario.py",
+      "role": "supporting",
+      "sha256": "f223003fa2c7c9c4060508dd7af6fcbcc28bfa8e4e5179fe7fd82373045498bd"
+    },
+    {
+      "bytes": 5618,
+      "exists": true,
+      "path": "tools/plugin/hook_client.py",
+      "role": "supporting",
+      "sha256": "9dbc35ca4ee62f1fe5f6d57e376bba6a7ec52e1035b927f1b01d5aecd7ad1ed7"
+    },
+    {
+      "bytes": 11931,
+      "exists": true,
+      "path": "tools/marketplace/lockfile.py",
+      "role": "supporting",
+      "sha256": "8b0126a3df8b45ce8a52a74ed20d3252e44c8dd91b9875798298912947e1bc48"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0054",
+  "evidence": [
+    {
+      "anchor": "tools/lib/strict_json.py:dumps_from_pairs",
+      "claim": "The producer refuses a same-case repeated key and reports both values; a unique-key document emits and round-trips (both-states).",
+      "detail": "{\"first\": \"first\", \"key\": \"name\", \"message\": \"duplicate JSON key 'name' at $: first='first' second='second'; producer refuses to emit or accept duplicates\", \"second\": \"second\", \"type\": \"DuplicateKeyError\"}",
+      "kind": "producer-refusal",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0054/probe1_producer_rejects_duplicate_keys.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"both_values\": {\"first\": \"first\", \"key\": \"name\", \"second\": \"second\"}, \"duplicate_fires\": true, \"nested_duplicate_rejected\": true, \"pass\": true, \"probe\": \"probe1-producer-rejects-duplicate-keys\", \"unique_emitted\": \"{\\\"name\\\":\\\"only\\\",\\\"keep\\\":true}\", \"unique_silent\": true, \"unit_id\": \"TST-0054\"}\nSUCCESS:TST-0054-probe1 producer rejects duplicate keys",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/plugin/duplicate_key_matrix.py:measure_matrix",
+      "claim": "Each consumer parser was invoked on one duplicate-key fixture; resolutions last-wins vs error were recorded, not assumed. Independent object_pairs_hook sees two name members while json.loads hides one.",
+      "detail": "{\"duplicate_name_occurrence_count\": 2, \"error_parsers\": [\"plugin.strict_json.loads_strict\"], \"last_wins_parsers\": [\"stdlib.json.loads\", \"stdlib.json.load\", \"stdlib.JSONDecoder.decode\", \"node.JSON.parse\", \"jq\"], \"resolutions_observed\": [\"error\", \"last-wins\"]}",
+      "kind": "parser-resolution-table",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0054/probe2_consumer_behaviours_recorded.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\"assumed\": false, \"duplicate_name_occurrence_count\": 2, \"error_parsers\": [\"plugin.strict_json.loads_strict\"], \"first_wins_parsers\": [], \"fixture\": \"{\\\"name\\\":\\\"first\\\",\\\"name\\\":\\\"second\\\",\\\"keep\\\":true}\", \"independent_pairs_hook\": [[\"name\", \"first\"], [\"name\", \"second\"], [\"keep\", true]], \"last_wins_parsers\": [\"stdlib.json.loads\", \"stdlib.json.load\", \"stdlib.JSONDecoder.decode\", \"node.JSON.parse\", \"jq\"], \"measured_live\": true, \"naive_json_loads_hides_duplicate\": true, \"parsers\": [{\"assumed\": false, \"both_values_on_error\": null, \"error\": null, \"in_pipeline\": true, \"kind\": \"consumer\", \"live\": true, \"module\": \"json\", \"parser_id\": \"stdlib.json.loads\", \"resolution\": \"last-wins\", \"resolved_value\": \"second\"}, {\"assumed\": false, \"both_values_on_error\": null, \"error\": null, \"in_pipeline\": true, \"kind\": \"consumer\", \"live\": true, \"module\": \"json\", \"parser_id\": \"stdlib.json.load\", \"resolution\": \"last-wins\", \"resolved_value\": \"second\"}, {\"assumed\": false, \"both_values_on_error\": null, \"error\": null, \"in_pipeline\": true, \"kind\": \"consumer\", \"live\": true, \"module\": \"json\", \"parser_id\": \"stdlib.JSONDecoder.decode\", \"resolution\": \"last-wins\", \"resolved_value\": \"second\"}, {\"assumed\": false, \"both_values_on_error\": {\"first\": \"first\", \"key\": \"name\", \"second\": \"second\"}, \"error\": \"DuplicateKeyError: duplicate JSON key 'name' at $: first='first' second='second'; producer refuses to emit or accept duplicates\", \"in_pipeline\": true, \"kind\": \"producer-reader\", \"live\": true, \"module\": \"tools.lib.strict_json\", \"parser_id\": \"plugin.strict_json.loads_strict\", \"resolution\": \"error\", \"resolved_value\": null}, {\"assumed\": false, \"both_values_on_error\": null, \"error\": null, \"in_pipeline\": true, \"kind\": \"consumer\", \"live\": true, \"module\": \"tools/lib/net-allowlist.mjs\", \"parser_id\": \"node.JSON.parse\", \"resolution\": \"last-wins\", \"resolved_value\": \"second\"}, {\"assumed\": false, \"both_values_on_error\": null, \"error\": null, \"in_pipeline\": false, \"kind\": \"consumer\", \"live\": true, \"module\": \"jq\", \"parser_id\": \"jq\", \"resolution\": \"last-wins\", \"resolved_value\": \"second\"}], \"pass\": true, \"pipeline_json_loads_caller_count\": 27, \"probe\": \"probe2-consumer-behaviours-recorded\", \"resolutions_observed\": [\"error\", \"last-wins\"], \"stdlib_resolution\": \"last-wins\", \"strict_resolution\": \"error\", \"unit_id\": \"TST-0054\"}\nSUCCESS:TST-0054-probe2 consumer behaviours recorded not assumed",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "evidence_requirement": "a parser-by-parser resolution table for one duplicate-key fixture",
+  "id": "TST-0054",
+  "implementation": {
+    "duplicate_name_occurrence_count": 2,
+    "error_parsers": [
+      "plugin.strict_json.loads_strict"
+    ],
+    "first_wins_parsers": [],
+    "fixture": "{\"name\":\"first\",\"name\":\"second\",\"keep\":true}",
+    "independent_pairs_hook": [
+      [
+        "name",
+        "first"
+      ],
+      [
+        "name",
+        "second"
+      ],
+      [
+        "keep",
+        true
+      ]
+    ],
+    "last_wins_parsers": [
+      "stdlib.json.loads",
+      "stdlib.json.load",
+      "stdlib.JSONDecoder.decode",
+      "node.JSON.parse",
+      "jq"
+    ],
+    "naive_json_loads_hides_duplicate": true,
+    "note": "No first-wins parser is present in this pipeline. Stdlib json.loads/load/JSONDecoder and node JSON.parse (when installed) last-wins; strict_json.loads_strict errors. Behaviour is recorded from live invocation, not assumed.",
+    "parser_resolution_table": [
+      {
+        "assumed": false,
+        "both_values_on_error": null,
+        "error": null,
+        "in_pipeline": true,
+        "kind": "consumer",
+        "live": true,
+        "module": "json",
+        "parser_id": "stdlib.json.loads",
+        "resolution": "last-wins",
+        "resolved_value": "second"
+      },
+      {
+        "assumed": false,
+        "both_values_on_error": null,
+        "error": null,
+        "in_pipeline": true,
+        "kind": "consumer",
+        "live": true,
+        "module": "json",
+        "parser_id": "stdlib.json.load",
+        "resolution": "last-wins",
+        "resolved_value": "second"
+      },
+      {
+        "assumed": false,
+        "both_values_on_error": null,
+        "error": null,
+        "in_pipeline": true,
+        "kind": "consumer",
+        "live": true,
+        "module": "json",
+        "parser_id": "stdlib.JSONDecoder.decode",
+        "resolution": "last-wins",
+        "resolved_value": "second"
+      },
+      {
+        "assumed": false,
+        "both_values_on_error": {
+          "first": "first",
+          "key": "name",
+          "second": "second"
+        },
+        "error": "DuplicateKeyError: duplicate JSON key 'name' at $: first='first' second='second'; producer refuses to emit or accept duplicates",
+        "in_pipeline": true,
+        "kind": "producer-reader",
+        "live": true,
+        "module": "tools.lib.strict_json",
+        "parser_id": "plugin.strict_json.loads_strict",
+        "resolution": "error",
+        "resolved_value": null
+      },
+      {
+        "assumed": false,
+        "both_values_on_error": null,
+        "error": null,
+        "in_pipeline": true,
+        "kind": "consumer",
+        "live": true,
+        "module": "tools/lib/net-allowlist.mjs",
+        "parser_id": "node.JSON.parse",
+        "resolution": "last-wins",
+        "resolved_value": "second"
+      },
+      {
+        "assumed": false,
+        "both_values_on_error": null,
+        "error": null,
+        "in_pipeline": false,
+        "kind": "consumer",
+        "live": true,
+        "module": "jq",
+        "parser_id": "jq",
+        "resolution": "last-wins",
+        "resolved_value": "second"
+      }
+    ],
+    "pipeline_json_loads_callers": [
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/case_collision.py"
+      },
+      {
+        "calls": [
+          "json.load",
+          "json.loads"
+        ],
+        "path": "tools/plugin/duplicate_key_matrix.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/hook_client.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/hook_fire_probe.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/layout_fingerprints.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/pack.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/package_hygiene.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/privacy.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/plugin/scenario.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/marketplace/compatibility.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/marketplace/lockfile.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/marketplace/publisher.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/marketplace/spdx.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/catalog.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/cmdline_guard.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/concurrency_governor.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/manifest_gate.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/orphan_resume.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/output_schema_gate.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/partial_preserve.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/receipt_gate.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/render.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/seed.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/unit_manifest.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/command-center/validate.py"
+      },
+      {
+        "calls": [
+          "json.loads"
+        ],
+        "path": "tools/lib/net_allowlist.py"
+      },
+      {
+        "calls": [
+          "json.loads",
+          "loads_strict"
+        ],
+        "path": "tools/lib/strict_json.py"
+      }
+    ],
+    "producer": "tools/lib/strict_json.py",
+    "producer_duplicate_rejected": {
+      "first": "first",
+      "key": "name",
+      "message": "duplicate JSON key 'name' at $: first='first' second='second'; producer refuses to emit or accept duplicates",
+      "second": "second",
+      "type": "DuplicateKeyError"
+    },
+    "producer_rule": "dumps_from_pairs raises DuplicateKeyError naming the key and both values; dumps round-trips through loads_strict so duplicate members cannot leave the producer",
+    "resolutions_observed": [
+      "error",
+      "last-wins"
+    ],
+    "wired_emit_paths": [
+      "tools/plugin/layout_fixtures.py:write_json",
+      "tools/plugin/scenario.py:write_healthy/write_broken",
+      "tools/plugin/hook_client.py:emit_inventory",
+      "tools/marketplace/lockfile.py:canonical_dumps"
+    ]
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/TST-0054/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "negative_controls": [
+    {
+      "description": "Unique pairs emit; duplicate pairs raise DuplicateKeyError with first and second values.",
+      "fired_on_bad_state": true,
+      "id": "TST-0054-C1-both-states-producer",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "A table that listed last-wins for every parser, or error for every parser, fails. Stdlib last-wins and loads_strict error must both appear.",
+      "fired_on_bad_state": true,
+      "id": "TST-0054-C2-not-assumed-uniform-resolution",
+      "kind": "measurement",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "json.loads of the fixture yields a one-key dict with name=second while object_pairs_hook still lists two name members. A dict-key uniqueness checker would miss the duplicate.",
+      "fired_on_bad_state": true,
+      "id": "TST-0054-C3-naive-json-loads-hides-duplicate",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 TST-0054: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. SUCCESS:TST-0054",
+  "output_path": "command-center/receipts/TST-0054.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "produced_by": {
+    "execution_substrate": "linux-worktree",
+    "model": "grok-4.6",
+    "role": "platform-test-engineer",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "question_or_target": "Target: a document with a repeated key is resolved differently by different JSON parsers (first-wins, last-wins, error). Determine the behaviour of every parser in the pipeline and require the producer to make duplicates impossible. Distinct from :11309 - same case, repeated key.",
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial control is the live matrix plus the pairs-hook count; a stdlib json.loads uniqueness check is proven to hide the duplicate. Not a self-attested prose review.",
+    "reviewer_id": "TST-0054-probe2-live-parser-matrix",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0054",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json TST-0054: a document with a repeated key is resolved differently by different JSON parsers (first-wins, last-wins, error). Distinct from TST-0053 / :11309 (case-distinct keys).",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0054/probe1_producer_rejects_duplicate_keys.py",
+      "exit_code": 0,
+      "id": "test_duplicate_key_is_rejected_by_the_producer",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0054/probe2_consumer_behaviours_recorded.py",
+      "exit_code": 0,
+      "id": "test_each_consumer_parser_behaviour_is_recorded_not_assumed",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:30:58Z",
+    "started_at": "2026-08-25T01:30:58Z"
+  },
+  "title": "Duplicate-key last-wins divergence across parsers",
+  "unit_id": "TST-0054"
+}

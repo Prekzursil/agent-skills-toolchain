@@ -1,0 +1,12 @@
+I'll start from the existing BLD-0008 probe tree and resume from whatever is already there, rather than rebuilding from scratch.The BLD-0008 probe tree is almost empty—I'll pull the catalog, measure contract, and any existing refute notes next.I’ll pull the catalog contract, a delivered unit’s return shape, and the current BLD-0008 receipt so we can resume against the real gate.I have the catalog question and G-1 gate. Next I’ll inspect the receipt schema, a delivered BLD pattern, and whether original probe scripts still exist.I'll confirm the shipped three-route trap still discriminates on this Linux box, then implement the live probes against that.The three-route trap works here. I’ll build two live probes, a completeness gate that rejects empty or all-blocked matrices, and a packer that writes an honest SUCCESS receipt.**SUCCESS:delivered BLD-0008** `predicate=delivered state=SUCCESS probes=2 raws=7 notes=probe1_parser_matrix.py:0,probe2_route_and_review.py:0`
+
+G-1 holds for this unit. Live named probes re-run to exit 0, the receipt is `state=SUCCESS` (not BLOCKED), and the per-unit manifest row matches the live LF sha256.
+
+What was restored and measured:
+
+- **Probe 1** (`probe1_parser_matrix.py`): 15 shipped engines × 6 byte forms = **90 cells** (46 accept, 26 named reject, 18 runtime-blocked). The completeness gate now **rejects** empty and all-blocked matrices (the defect that previously let `MATRIX-VALID` through).
+- **Probe 2** (`probe2_route_and_review.py`): archive vs `cat-file` still diverges on an `eol=crlf` fixture (PASS) and goes RED without that attribute; REGISTER.md LF sha256 matches provenance `721c4e57…`; CRLF raw sha256 is `60a4d35f…`; `validate.py` accepts the CRLF copy after LF normalisation. Independent remasure of `catalog.load` LF and CRLF both ACCEPT with `alpha=1`.
+- **Blocked on this box (named, not folded into PASS):** `pwsh` ConvertFrom-Json / ConvertFrom-Yaml, and `tomllib` on Python 3.10.
+- **Answer:** no executed parser is LF-only. JSON/JSONL/manifest/receipt accept LF/CRLF/MIXED and reject BOM/UTF-16 with named errors (`bom_key_present` never true). YAML accepts BOM. Front-matter still loses metadata on BOM/UTF-16 (open P2).
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no key rotation, no wave relaunch. `CLOUD-OK-REFUTE.json` was left in place.

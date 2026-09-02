@@ -1,0 +1,34 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.local/command-center/p2-wave/probes/CNF-0143/confirmation-record.schema.json",
+  "title": "CNF-0143 confirmation record (BLOCKED requires a named prerequisite)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": ["claim_id", "verdict"],
+  "properties": {
+    "claim_id": { "type": "string", "minLength": 1 },
+    "verdict": {
+      "type": "string",
+      "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+    },
+    "prerequisite": { "type": "string" },
+    "unblock_experiment": { "type": "string" },
+    "source_probe": { "type": "string" },
+    "verifier_probe": { "type": "string" }
+  },
+  "allOf": [
+    {
+      "if": {
+        "properties": { "verdict": { "const": "BLOCKED" } },
+        "required": ["verdict"]
+      },
+      "then": {
+        "required": ["prerequisite", "unblock_experiment"],
+        "properties": {
+          "prerequisite": { "type": "string", "minLength": 1, "pattern": "\\S" },
+          "unblock_experiment": { "type": "string", "minLength": 8 }
+        }
+      }
+    }
+  ]
+}

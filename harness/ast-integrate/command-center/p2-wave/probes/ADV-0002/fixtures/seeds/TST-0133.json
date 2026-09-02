@@ -1,0 +1,641 @@
+{
+ "evidence": [
+  {
+   "claim": "TST-0133 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0133.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0133.json",
+     "raw_output": "bytes=15126 sha256=6e750fe35b58dfd241cb0e5d58d6a899e769f4ec9d848afd4a297ff106fed061",
+     "fingerprint": "0929c63f2105467a5665c6a6c4d41882",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0133",
+     "raw_output": "schema-check",
+     "fingerprint": "f28e46b5fb199d9733ee316f01f0d4b1",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0133 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0133",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0133",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "4f5325c9147ed977f69a1c90f9a71fa0",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0133",
+     "raw_output": "schema-valid",
+     "fingerprint": "56e8a228532470bca25d81510d123dae",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0133",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0133.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "TST-0133",
+ "extensions": {
+  "legacy_root": {
+   "allowed_run_completed": true,
+   "answer": "Pre-remediation, the audit listed test_planted_url_fetch, test_package_download_get as tests whose green depends on undeclared network access (blocked fail / allowed pass, no `network` declaration). Each received an explicit `network` declaration. After that, the undeclared list is empty and every test not declaring network has identical blocked vs allowed outcomes. Declared-network tests may still fail under the block. SUCCESS:TST-0133",
+   "blocked_egress_log": [
+    {
+     "host": "127.0.0.1",
+     "port": 46807,
+     "run": "blocked",
+     "step": "test_planted_url_fetch",
+     "via": "socket.connect"
+    },
+    {
+     "host": "127.0.0.1",
+     "port": 46807,
+     "run": "blocked",
+     "step": "test_package_download_get",
+     "via": "socket.connect"
+    },
+    {
+     "host": "127.0.0.1",
+     "port": 46807,
+     "run": "blocked",
+     "step": "test_declared_healthcheck",
+     "via": "socket.connect"
+    },
+    {
+     "host": "127.0.0.1",
+     "port": 46807,
+     "run": "blocked",
+     "step": "test_planted_url_fetch",
+     "via": "socket.connect"
+    },
+    {
+     "host": "127.0.0.1",
+     "port": 46807,
+     "run": "blocked",
+     "step": "test_package_download_get",
+     "via": "socket.connect"
+    },
+    {
+     "host": "127.0.0.1",
+     "port": 46807,
+     "run": "blocked",
+     "step": "test_declared_healthcheck",
+     "via": "socket.connect"
+    }
+   ],
+   "blocked_run_completed": true,
+   "both_states_control": {
+    "post_remediation_list_empty": true,
+    "post_undeclared_outcomes_identical": true,
+    "pre_remediation_list_non_empty": true
+   },
+   "cloud_ok": false,
+   "completion_sentinel": "SUCCESS:TST-0133",
+   "detector_control": {
+    "fired_on_planted_url_fetch": true,
+    "planted_test_id": "test_planted_url_fetch",
+    "pre_ids": [
+     "test_planted_url_fetch",
+     "test_package_download_get"
+    ],
+    "procedure": "Plant test_planted_url_fetch which urllib.request.urlopen's the local registry fixture. Confirm the audit lists it before treating a post-remediation empty list as PASS.",
+    "trusted_zero_only_after_fire": true
+   },
+   "fixture": {
+    "host": "127.0.0.1",
+    "port": 46807,
+    "proto": "http"
+   },
+   "inputs_on_this_tree": {
+    "B07_as_catalog_id": false,
+    "_USER-PROMPTS.md": false,
+    "stand_in": "probes/TST-0133/suite.py models B07 registry + package-download clients with a local HTTP fixture",
+    "tools/lib/net-allowlist.mjs": false
+   },
+   "output_schema": "command-center/schema/receipt.schema.json#/$defs/fault_injection_report",
+   "pass_fail_delta": {
+    "post_remediation_undeclared": [],
+    "pre_remediation_undeclared": [
+     {
+      "allowed_ok": true,
+      "blocked_ok": false,
+      "id": "test_planted_url_fetch"
+     },
+     {
+      "allowed_ok": true,
+      "blocked_ok": false,
+      "id": "test_package_download_get"
+     }
+    ]
+   },
+   "produced_at": "2026-08-25T01:07:59Z",
+   "question": "Run the full suite with all egress blocked and enumerate every test that changes outcome. Target: produce the exact list of tests whose green depends on undeclared network access, and add an explicit `network` declaration to each. PASS requires: after remediation, the egress-blocked run and the egress-allowed run produce identical outcomes for every test not declaring network.",
+   "remediation": {
+    "method": "suite.cases(extra_network=...) adds an explicit `network` declaration to each test the audit named. Not a comment.",
+    "network_declarations_added": [
+     "test_package_download_get",
+     "test_planted_url_fetch"
+    ]
+   },
+   "report_kind": "fault_injection_report",
+   "runs": {
+    "post_allowed": {
+     "attempted_destinations": [
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      }
+     ],
+     "completed": true,
+     "mode": "allowed",
+     "steps": [
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_local_index_parse",
+       "network": false,
+       "ok": true,
+       "result": "pass",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_cached_blob_digest",
+       "network": false,
+       "ok": true,
+       "result": "pass:979e173c9346",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": null,
+       "id": "test_planted_url_fetch",
+       "network": true,
+       "ok": true,
+       "result": "pass",
+       "role": "planted-detector"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": null,
+       "id": "test_package_download_get",
+       "network": true,
+       "ok": true,
+       "result": "pass",
+       "role": "undeclared-download"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": null,
+       "id": "test_declared_healthcheck",
+       "network": true,
+       "ok": true,
+       "result": "pass",
+       "role": "declared-network"
+      }
+     ]
+    },
+    "post_blocked": {
+     "attempted_destinations": [
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      }
+     ],
+     "completed": true,
+     "mode": "blocked",
+     "steps": [
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_local_index_parse",
+       "network": false,
+       "ok": true,
+       "result": "pass",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_cached_blob_digest",
+       "network": false,
+       "ok": true,
+       "result": "pass:979e173c9346",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+       "id": "test_planted_url_fetch",
+       "network": true,
+       "ok": false,
+       "result": null,
+       "role": "planted-detector"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+       "id": "test_package_download_get",
+       "network": true,
+       "ok": false,
+       "result": null,
+       "role": "undeclared-download"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+       "id": "test_declared_healthcheck",
+       "network": true,
+       "ok": false,
+       "result": null,
+       "role": "declared-network"
+      }
+     ]
+    },
+    "pre_allowed": {
+     "attempted_destinations": [
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      }
+     ],
+     "completed": true,
+     "mode": "allowed",
+     "steps": [
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_local_index_parse",
+       "network": false,
+       "ok": true,
+       "result": "pass",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_cached_blob_digest",
+       "network": false,
+       "ok": true,
+       "result": "pass:979e173c9346",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": null,
+       "id": "test_planted_url_fetch",
+       "network": false,
+       "ok": true,
+       "result": "pass",
+       "role": "planted-detector"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": null,
+       "id": "test_package_download_get",
+       "network": false,
+       "ok": true,
+       "result": "pass",
+       "role": "undeclared-download"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": null,
+       "id": "test_declared_healthcheck",
+       "network": true,
+       "ok": true,
+       "result": "pass",
+       "role": "declared-network"
+      }
+     ]
+    },
+    "pre_blocked": {
+     "attempted_destinations": [
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      },
+      {
+       "host": "127.0.0.1",
+       "port": 46807,
+       "via": "socket.connect"
+      }
+     ],
+     "completed": true,
+     "mode": "blocked",
+     "steps": [
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_local_index_parse",
+       "network": false,
+       "ok": true,
+       "result": "pass",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [],
+       "error": null,
+       "id": "test_cached_blob_digest",
+       "network": false,
+       "ok": true,
+       "result": "pass:979e173c9346",
+       "role": "hermetic"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+       "id": "test_planted_url_fetch",
+       "network": false,
+       "ok": false,
+       "result": null,
+       "role": "planted-detector"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+       "id": "test_package_download_get",
+       "network": false,
+       "ok": false,
+       "result": null,
+       "role": "undeclared-download"
+      },
+      {
+       "attempted_destinations": [
+        {
+         "host": "127.0.0.1",
+         "port": 46807,
+         "via": "socket.connect"
+        }
+       ],
+       "error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+       "id": "test_declared_healthcheck",
+       "network": true,
+       "ok": false,
+       "result": null,
+       "role": "declared-network"
+      }
+     ]
+    }
+   },
+   "title": "Hermetic audit: which tests silently reach the network",
+   "undeclared_network_tests": {
+    "post_remediation": [],
+    "pre_remediation": [
+     {
+      "allowed_ok": true,
+      "blocked_destinations": [
+       {
+        "host": "127.0.0.1",
+        "port": 46807,
+        "via": "socket.connect"
+       }
+      ],
+      "blocked_error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+      "blocked_ok": false,
+      "id": "test_planted_url_fetch",
+      "network_declared": false
+     },
+     {
+      "allowed_ok": true,
+      "blocked_destinations": [
+       {
+        "host": "127.0.0.1",
+        "port": 46807,
+        "via": "socket.connect"
+       }
+      ],
+      "blocked_error": "URLError: <urlopen error [Errno 101] Network unreachable (TST-0133 egress block) dest=127.0.0.1:46807>",
+      "blocked_ok": false,
+      "id": "test_package_download_get",
+      "network_declared": false
+     }
+    ]
+   }
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#TST-0133",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0133.json",
+   "bytes": 15126,
+   "sha256": "6e750fe35b58dfd241cb0e5d58d6a899e769f4ec9d848afd4a297ff106fed061",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0133/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0133"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0133.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0133.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "5e4aeb9e5e0dcc68bc885858d7cd3c75",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "fault_injection_report",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 15126,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0133.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

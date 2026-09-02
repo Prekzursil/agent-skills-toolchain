@@ -1,0 +1,366 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "p16-grand-jury-threshold",
+  "preset": "custom",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Decide only whether there is enough evidentiary substance to justify convening a full council; never decide the merits.",
+    "charter": "JUDICIAL family, front door for any council at cost tier deep or above. Output space is PROCEED / INSUFFICIENT / DISMISS. Any statement on the merits is out of scope and must be struck.",
+    "risk_tier": "moderate",
+    "desired_output": "go_no_go",
+    "success_criteria": [
+      "the output is exactly one of PROCEED, INSUFFICIENT or DISMISS",
+      "a DISMISS names the single anchor that would reverse it",
+      "no seat expressed a position on the merits"
+    ],
+    "consensus_intent": "adjudicate",
+    "confidence_target": 0.7,
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "any",
+      "min_independent_sources": 1,
+      "evidence_outranks_votes": true
+    },
+    "owner_constraints": {
+      "approval_required": false,
+      "deadline_minutes": 20,
+      "budget_ceiling_tokens": 120000
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact"
+      ],
+      "explain_choices": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 3,
+      "min": 3,
+      "max": 3
+    },
+    "diversity": {
+      "min_distinct_vendors": 2,
+      "min_distinct_expertise": 2
+    },
+    "roster": [
+      {
+        "participant_id": "sufficiency-1",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "evidentiary sufficiency",
+          "triage"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "effort": "low"
+      },
+      {
+        "participant_id": "sufficiency-2",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": [
+          "evidentiary sufficiency",
+          "cost control"
+        ],
+        "role": "juror",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "effort": "low"
+      },
+      {
+        "participant_id": "reversal-clerk",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": [
+          "reversal anchors",
+          "logging"
+        ],
+        "role": "verifier",
+        "authority": "voter",
+        "vote_weight": 1.0,
+        "effort": "low"
+      }
+    ],
+    "recruitment": {
+      "dynamic": false,
+      "triggers": [
+        "missing_expertise"
+      ],
+      "max_recruits": 0
+    },
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": false,
+    "independent_prep": true,
+    "min_sources": 1
+  },
+  "topology": {
+    "kind": "flat"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "blind_independent_first_pass",
+        "stage_id": "sufficiency-read",
+        "independent": true,
+        "rounds": 1
+      },
+      {
+        "kind": "round_robin",
+        "stage_id": "threshold-call",
+        "rounds": 1,
+        "quotas": {
+          "objections_per_participant": 1
+        },
+        "exit_when": {
+          "any_of": [
+            {
+              "metric": "custom:threshold_verdict",
+              "op": "==",
+              "value": "PROCEED",
+              "value_type": "string",
+              "producer": "sufficiency_tally",
+              "note": "PROCEED routes to the full council; the merits stay untouched"
+            },
+            {
+              "metric": "custom:dismiss_reversal_anchor_present",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "dismiss_anchor_logger",
+              "note": "a DISMISS is only admissible when the anchor that would reverse it is logged"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "routing-note",
+        "rounds": 1
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 1,
+      "max": 2,
+      "divergence_before_convergence": false
+    },
+    "turn": {
+      "max_words": 250
+    },
+    "obligations": {
+      "must_respond_to_prior": false,
+      "must_cite_evidence": true,
+      "cross_examination": false,
+      "rebuttal_required": true,
+      "steelman_before_rebuttal": true,
+      "declare_confidence": true,
+      "declare_conflicts": true,
+      "forced_dissent": false
+    },
+    "critique_intensity": "standard",
+    "experiments": {
+      "allowed": false,
+      "max_experiments": 0,
+      "runner": "local"
+    }
+  },
+  "budgets": {
+    "effort": "low",
+    "time_minutes": 20,
+    "tokens": 120000,
+    "tool_calls": 20,
+    "sources": 5,
+    "turns": 6,
+    "speaking_quota_per_participant": 2,
+    "min_engagement_turns": 1,
+    "max_inactivity_rounds": 1,
+    "rebuttal_depth": 1
+  },
+  "targets": {
+    "objections": 2,
+    "evidence_items": 3,
+    "novelty_ratio": 0.5,
+    "dedup": {
+      "enabled": true,
+      "max_similarity": 0.85,
+      "trivial_variant_policy": "reject"
+    }
+  },
+  "voting": {
+    "method": "supermajority",
+    "supermajority_threshold": 0.66,
+    "quorum": {
+      "min_voters": 3,
+      "on_failure": "escalate_to_owner"
+    },
+    "abstention": {
+      "allowed": false,
+      "counts_toward_quorum": false,
+      "must_justify": true,
+      "strategic_abstention_check": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true,
+      "evidence_outranks_majority": true,
+      "reject_evidence_free_majority": true
+    },
+    "tie_break": "extend_rounds"
+  },
+  "consensus": {
+    "threshold": 0.66,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "min_dissenters_to_block": 1,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "all_participants_spoke == true AND (consensus >= 0.66 OR rounds_elapsed >= 2)",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "all_participants_spoke",
+          "op": "==",
+          "value": true
+        },
+        {
+          "any_of": [
+            {
+              "metric": "consensus",
+              "op": ">=",
+              "value": 0.66
+            },
+            {
+              "metric": "rounds_elapsed",
+              "op": ">=",
+              "value": 2
+            }
+          ]
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 3,
+      "every_participant_spoke": true,
+      "min_evidence_items": 2
+    },
+    "hard_caps": {
+      "max_rounds": 2,
+      "max_minutes": 20,
+      "on_cap": "no_decision"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "conditional_decision",
+      "no_decision",
+      "minority_report",
+      "dissent"
+    ],
+    "conditional_decision_requires": [
+      "INSUFFICIENT names exactly what additional evidence would flip it to PROCEED",
+      "DISMISS logs the anchor that would reverse it and that path is reversible on request"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 1,
+      "vote_oscillation_rounds": 2
+    },
+    "resolution": [
+      "narrow_scope",
+      "escalate_to_owner",
+      "declare_no_decision"
+    ],
+    "escalation": {
+      "after_attempts": 1,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "may_override_vote": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "silence",
+      "strategic_abstention",
+      "moderator_capture",
+      "missing_expertise",
+      "premature_convergence",
+      "minority_suppression"
+    ],
+    "fast_unanimity_response": [
+      "forced_dissent",
+      "strongest_counterexample"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "independent_opening_positions",
+      "votes_by_round",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "retain_days": 90,
+      "pii_policy": "redact"
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    },
+    "calibration": {
+      "post_run": true,
+      "score": "brier"
+    }
+  },
+  "metadata": {
+    "title": "P16 grand-jury threshold",
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:356-371"
+    ],
+    "notes": "The card's silent-veto failure mode is answered structurally: abstention is FORBIDDEN, minority_report is REQUIRED, and a DISMISS is inadmissible unless custom:dismiss_reversal_anchor_present is true (producer dismiss_anchor_logger). The three output tokens PROCEED / INSUFFICIENT / DISMISS are carried as a custom:threshold_verdict metric because the schema's outcome enum has no merits-free routing verdict - that is a substrate gap, reported not hidden."
+  }
+}

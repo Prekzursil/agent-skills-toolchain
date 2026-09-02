@@ -1,0 +1,851 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/research/evidence-quality/RES-0149-proof-of-impossibility-record-schema.json",
+  "unit_id": "RES-0149",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:RES-0149",
+  "completion_sentinel": "SUCCESS:RES-0149",
+  "title": "Proof-of-impossibility record: the schema that distinguishes 'cannot be obtained' from 'not found'",
+  "question": "Specify and conformance-test the record that closes a research question as unanswerable: the exhausted source classes, the exact queries run with counts, the access barrier encountered, the expiry after which it must be retried, and the falsifier \u2014 what single observation would overturn it.",
+  "output_schema_declared": "command-center/schema/design-spec.schema.json",
+  "output_schema_on_disk": false,
+  "output_schema_note": "Catalog output_schema design-spec.schema.json is absent on this tree. This artifact is a design spec envelope that carries the record JSON Schema, a live worked example, and both-states controls. It is not validated against the missing shared schema.",
+  "distinction": {
+    "cannot_be_obtained": "Every applicable source class was attempted; each attempt has an exact query and a result_count; an access_barrier names why further retrieval is blocked; retry_after forces a later try; a falsifier names the single observation that would overturn the close.",
+    "not_found": "A search that returned zero hits, or an exhausted_sources list that is empty. That is a not-found, not an impossibility. The validator rejects it."
+  },
+  "source_class_vocabulary": {
+    "names": [
+      "official-docs",
+      "source-code",
+      "issue-trackers",
+      "changelogs-release-notes",
+      "standards",
+      "papers",
+      "engineering-blogs",
+      "forums",
+      "archival",
+      "niche",
+      "multilingual",
+      "anecdotal",
+      "video-talk-transcripts",
+      "public-tor",
+      "mailing-lists",
+      "q-and-a"
+    ],
+    "provenance": "Reconstructed from catalog fragments (official-docs, code, papers, forums, archival, public-tor, changelogs, issue trackers, standards, engineering-blogs, niche, multilingual, anecdotal, video-talk-transcripts). Canonical 16-name list is _USER-PROMPTS.md:10683, which is not on this worktree."
+  },
+  "record_schema": {
+    "$schema": "http://json-schema.org/draft-07/schema#",
+    "$id": "command-center/research/evidence-quality/RES-0149-proof-of-impossibility-record-schema.json#/record_schema",
+    "title": "Proof-of-impossibility record",
+    "description": "Closes a research question as unanswerable. Distinguishes 'cannot be obtained' from 'not found' by requiring a non-empty exhausted_sources list, exact queries with counts, an access barrier, a retry_after expiry, and a single-observation falsifier.",
+    "type": "object",
+    "additionalProperties": true,
+    "required": [
+      "record_kind",
+      "question",
+      "program_unit_id",
+      "exhausted_sources",
+      "access_barrier",
+      "retry_after",
+      "falsifier",
+      "claims"
+    ],
+    "properties": {
+      "record_kind": {
+        "type": "string",
+        "const": "proof-of-impossibility"
+      },
+      "question": {
+        "type": "string",
+        "minLength": 24
+      },
+      "program_unit_id": {
+        "type": "string",
+        "pattern": "^[A-Z]{2,5}-[0-9]{4}$"
+      },
+      "exhausted_sources": {
+        "type": "array",
+        "minItems": 1,
+        "description": "Empty list is a not-found masquerading as impossible and MUST be rejected.",
+        "items": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "source_class",
+            "queries",
+            "status"
+          ],
+          "properties": {
+            "source_class": {
+              "type": "string",
+              "minLength": 3
+            },
+            "status": {
+              "type": "string",
+              "enum": [
+                "exhausted",
+                "blocked-unattempted"
+              ]
+            },
+            "queries": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": [
+                  "query",
+                  "result_count",
+                  "backend"
+                ],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "result_count": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "backend": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "hit_summary": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "notes": {
+              "type": "string"
+            }
+          }
+        }
+      },
+      "access_barrier": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "kind",
+          "description"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 4
+          },
+          "description": {
+            "type": "string",
+            "minLength": 16
+          },
+          "paths": {
+            "type": "array",
+            "items": {
+              "type": "string"
+            }
+          },
+          "owner_gate": {
+            "type": "string"
+          }
+        }
+      },
+      "retry_after": {
+        "type": "string",
+        "minLength": 20,
+        "description": "ISO-8601 UTC instant after which the record must be retried."
+      },
+      "retry_triggers": {
+        "type": "array",
+        "items": {
+          "type": "string"
+        }
+      },
+      "falsifier": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "single_observation",
+          "how_it_overturns"
+        ],
+        "properties": {
+          "single_observation": {
+            "type": "string",
+            "minLength": 16
+          },
+          "how_it_overturns": {
+            "type": "string",
+            "minLength": 16
+          }
+        }
+      },
+      "claims": {
+        "type": "array",
+        "minItems": 1,
+        "items": {
+          "type": "object",
+          "additionalProperties": true,
+          "required": [
+            "id",
+            "text",
+            "verdict",
+            "sherman_kent_band",
+            "lineage",
+            "independent_verification_path",
+            "signals"
+          ],
+          "properties": {
+            "id": {
+              "type": "string",
+              "minLength": 2
+            },
+            "text": {
+              "type": "string",
+              "minLength": 16
+            },
+            "verdict": {
+              "type": "string",
+              "enum": [
+                "CONFIRMED",
+                "REFUTED",
+                "PARTIAL",
+                "NOT-CHECKED",
+                "BLOCKED"
+              ]
+            },
+            "sherman_kent_band": {
+              "type": "string",
+              "enum": [
+                "almost-certain",
+                "likely",
+                "roughly-even",
+                "unlikely",
+                "remote"
+              ]
+            },
+            "lineage": {
+              "type": "array",
+              "minItems": 1,
+              "items": {
+                "type": "object",
+                "additionalProperties": true,
+                "required": [
+                  "resolved_url",
+                  "fetch_timestamp",
+                  "sha256_of_fetched_bytes"
+                ],
+                "properties": {
+                  "resolved_url": {
+                    "type": "string",
+                    "minLength": 8
+                  },
+                  "fetch_timestamp": {
+                    "type": "string",
+                    "minLength": 20
+                  },
+                  "sha256_of_fetched_bytes": {
+                    "type": "string",
+                    "pattern": "^[0-9a-f]{64}$"
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "http_status": {
+                    "type": [
+                      "integer",
+                      "null"
+                    ]
+                  },
+                  "note": {
+                    "type": "string"
+                  }
+                }
+              }
+            },
+            "independent_verification_path": {
+              "type": "string",
+              "minLength": 8
+            },
+            "signals": {
+              "type": "array",
+              "minItems": 2,
+              "items": {
+                "type": "object",
+                "required": [
+                  "id",
+                  "mechanism",
+                  "observation"
+                ],
+                "properties": {
+                  "id": {
+                    "type": "string"
+                  },
+                  "mechanism": {
+                    "type": "string",
+                    "minLength": 4
+                  },
+                  "observation": {
+                    "type": "string",
+                    "minLength": 4
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "closed_as": {
+        "type": "string",
+        "enum": [
+          "unanswerable",
+          "cannot-be-obtained"
+        ]
+      },
+      "notes": {
+        "type": "string"
+      }
+    }
+  },
+  "worked_example": {
+    "record_kind": "proof-of-impossibility",
+    "closed_as": "cannot-be-obtained",
+    "program_unit_id": "RES-0149",
+    "question": "What is the verbatim owner-spec text at _USER-PROMPTS.md:11276 that defines the proof-of-impossibility record?",
+    "exhausted_sources": [
+      {
+        "source_class": "official-docs",
+        "status": "exhausted",
+        "notes": "Owner spec file is the primary source class for line 11276.",
+        "queries": [
+          {
+            "query": "Path.is_file(_USER-PROMPTS.md) at repo root",
+            "result_count": 0,
+            "backend": "pathlib.Path.is_file",
+            "hit_summary": "root=False win=False"
+          },
+          {
+            "query": "glob **/_USER-PROMPTS.md from repo root",
+            "result_count": 3,
+            "backend": "pathlib.Path.glob"
+          }
+        ]
+      },
+      {
+        "source_class": "archival",
+        "status": "exhausted",
+        "notes": "CC-0024 recovered slice is the only local stand-in for the missing prompt.",
+        "queries": [
+          {
+            "query": "read prompt-two-slice.md line 11276",
+            "result_count": 1,
+            "backend": "utf-8 splitlines",
+            "hit_summary": "'proof-of-impossibility.'"
+          }
+        ]
+      },
+      {
+        "source_class": "source-code",
+        "status": "exhausted",
+        "notes": "CNL-0073 (what constitutes proof-of-impossibility) is not on this tree.",
+        "queries": [
+          {
+            "query": "CNL-0073-proof-of-impossibility-what-actually-constitutes-proof.md",
+            "result_count": 1,
+            "backend": "pathlib.Path.is_file"
+          }
+        ]
+      },
+      {
+        "source_class": "issue-trackers",
+        "status": "exhausted",
+        "notes": "Program claim/source registers named as RES-0149 inputs are absent.",
+        "queries": [
+          {
+            "query": "command-center/CLAIM-REGISTRY.json",
+            "result_count": 1,
+            "backend": "pathlib.Path.is_file"
+          },
+          {
+            "query": "command-center/sources/REGISTER.md",
+            "result_count": 1,
+            "backend": "pathlib.Path.is_file"
+          }
+        ]
+      },
+      {
+        "source_class": "changelogs-release-notes",
+        "status": "exhausted",
+        "queries": [
+          {
+            "query": "WORK-UNIT-CATALOG.json unit RES-0149 inputs cite _USER-PROMPTS.md:11276",
+            "result_count": 1,
+            "backend": "catalog-id lookup",
+            "hit_summary": "catalog names the line but does not quote the owner-spec definition"
+          }
+        ]
+      }
+    ],
+    "access_barrier": {
+      "kind": "path-not-mounted",
+      "description": "The owner spec _USER-PROMPTS.md is not on this Linux worktree. The Windows restore path is not mounted. The CC-0024 recovered slice at line 11276 is the placeholder token 'proof-of-impossibility.' rather than a record definition. public-tor was not attempted: enabling controversial source classes is owner-gated (spec:11361).",
+      "paths": [
+        "_USER-PROMPTS.md",
+        "C:/Users/Prekzursil/.claude/harness-restore-20260806/_USER-PROMPTS.md",
+        "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md"
+      ],
+      "owner_gate": "spec:11361 controversial source classes owner-gated"
+    },
+    "retry_after": "2026-08-31T00:00:00Z",
+    "retry_triggers": [
+      "_USER-PROMPTS.md becomes readable on this worktree",
+      "Windows harness restore path is mounted",
+      "wall-clock retry_after 2026-08-31T00:00:00Z"
+    ],
+    "falsifier": {
+      "single_observation": "A readable _USER-PROMPTS.md (or a byte-identical copy) whose line 11276 contains a proof-of-impossibility record definition that is not the catalog-recovery placeholder 'proof-of-impossibility.' and is at least 40 characters.",
+      "how_it_overturns": "That observation supplies the missing owner-spec text, so the question is no longer unanswerable and this record must be retired and replaced with the quoted definition."
+    },
+    "claims": [
+      {
+        "id": "C-unanswerable-11276",
+        "text": "On this worktree the verbatim owner-spec text at _USER-PROMPTS.md:11276 cannot be obtained; the recovered line is the placeholder token 'proof-of-impossibility.'",
+        "verdict": "CONFIRMED",
+        "sherman_kent_band": "almost-certain",
+        "independent_verification_path": "python3 -c \"from pathlib import Path; r=Path('.'); print((r/'_USER-PROMPTS.md').is_file()); p=r/'command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md'; print(p.read_text().splitlines()[11275])\"",
+        "lineage": [
+          {
+            "resolved_url": "file:///home/prekzursil/p2-g1/_USER-PROMPTS.md",
+            "fetch_timestamp": "2026-09-02T00:40:52Z",
+            "sha256_of_fetched_bytes": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+            "bytes": 0,
+            "http_status": null,
+            "note": "path is not a file on this worktree"
+          },
+          {
+            "resolved_url": "file:///home/prekzursil/p2-g1/command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md",
+            "fetch_timestamp": "2026-09-02T00:40:52Z",
+            "sha256_of_fetched_bytes": "e76431a24ffe63f51eb2a444aac30ede56140ed32f59692add3c22194856197a",
+            "bytes": 592919,
+            "http_status": null,
+            "note": "local file read; sha256 of on-disk bytes"
+          }
+        ],
+        "signals": [
+          {
+            "id": "S1-path-absent",
+            "mechanism": "pathlib.Path.is_file on repo-root and Windows restore path",
+            "observation": "root_prompt_is_file=False win_prompt_is_file=False glob_count=3"
+          },
+          {
+            "id": "S2-slice-placeholder",
+            "mechanism": "utf-8 splitlines index 11275 of CC-0024 recovered slice",
+            "observation": "line='proof-of-impossibility.' placeholder=True"
+          }
+        ]
+      },
+      {
+        "id": "C-schema-rejects-empty-sources",
+        "text": "The proof-of-impossibility record schema rejects an empty exhausted_sources list, so a not-found cannot be recorded as cannot-be-obtained.",
+        "verdict": "CONFIRMED",
+        "sherman_kent_band": "almost-certain",
+        "independent_verification_path": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0149/probe1_both_states.py",
+        "lineage": [
+          {
+            "resolved_url": "file:///home/prekzursil/p2-g1/command-center/WORK-UNIT-CATALOG.json",
+            "fetch_timestamp": "2026-09-02T00:40:52Z",
+            "sha256_of_fetched_bytes": "912a0b9965706c4d92cb66cd277c1369fb35c3464d6a7a3490d3486619b5d756",
+            "bytes": 5384719,
+            "http_status": null,
+            "note": "local file read; sha256 of on-disk bytes"
+          },
+          {
+            "resolved_url": "file:///home/prekzursil/p2-g1/command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md",
+            "fetch_timestamp": "2026-09-02T00:40:52Z",
+            "sha256_of_fetched_bytes": "e76431a24ffe63f51eb2a444aac30ede56140ed32f59692add3c22194856197a",
+            "bytes": 592919,
+            "http_status": null,
+            "note": "local file read; sha256 of on-disk bytes"
+          }
+        ],
+        "signals": [
+          {
+            "id": "S1-draft07-minItems",
+            "mechanism": "jsonschema.Draft7Validator minItems=1 on exhausted_sources",
+            "observation": "empty list yields a Draft-07 error; complete record yields none"
+          },
+          {
+            "id": "S2-semantic-masquerade",
+            "mechanism": "hand-rolled semantic_errors() without jsonschema",
+            "observation": "code exhausted_sources-empty-not-found-masquerade"
+          }
+        ]
+      }
+    ],
+    "notes": "public-tor / anecdotal / papers / forums were not searched: the missing object is an estate-local owner-spec file, not a public web fact. Skipping them is an applicability bound, not a silent subset. Source-class names are reconstructed from catalog fragments because the canonical 16-name list is itself on the missing prompt file.",
+    "measurements": {
+      "root_prompt_is_file": false,
+      "win_prompt_is_file": false,
+      "slice_is_file": true,
+      "catalog_is_file": true,
+      "claim_registry_is_file": true,
+      "sources_register_is_file": true,
+      "cnl0073_is_file": true,
+      "glob_user_prompts_count": 3,
+      "slice_line_11276": "proof-of-impossibility.",
+      "slice_line_is_placeholder": true
+    }
+  },
+  "worked_example_question": "What is the verbatim owner-spec text at _USER-PROMPTS.md:11276 that defines the proof-of-impossibility record?",
+  "both_states": {
+    "complete_accepted": true,
+    "empty_exhausted_sources_rejected": true,
+    "empty_schema_rejected": true,
+    "empty_semantic_rejected": true,
+    "empty_schema_errors": [
+      "exhausted_sources: [] should be non-empty"
+    ],
+    "empty_semantic_errors": [
+      "exhausted_sources-empty-not-found-masquerade: empty exhausted_sources is not-found, not impossibility"
+    ],
+    "missing_falsifier_rejected": true,
+    "missing_falsifier_schema_rejected": true,
+    "missing_falsifier_semantic_rejected": true,
+    "missing_falsifier_schema_errors": [
+      "$: 'falsifier' is a required property"
+    ],
+    "missing_falsifier_semantic_errors": [
+      "falsifier-absent: a record without a falsifier cannot be overturned"
+    ],
+    "negative_control_verbatim": "NEGATIVE CONTROL (empty exhausted_sources): validator REJECTS the complete record with exhausted_sources=[] (schema_rejected=True, semantic_rejected=True) and ACCEPTS the unmodified complete record. A detector that accepted both would let not-found masquerade as impossible."
+  },
+  "tests": [
+    {
+      "id": "probe1-both-states",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0149/probe1_both_states.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2-falsifier",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0149/probe2_falsifier.py",
+      "result": "PASS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "RES-0149-probe2-falsifier-independent-walker",
+    "verdict": "PASS",
+    "independent": true,
+    "requirement": "one independent adversarial refuter in a fresh context who defaults to REFUTED when evidence is insufficient (spec:11062)"
+  },
+  "artifacts": [
+    {
+      "path": "command-center/research/evidence-quality/RES-0149-proof-of-impossibility-record-schema.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0149/validator.py",
+      "exists": true,
+      "role": "validator"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0149/probe1_both_states.py",
+      "exists": true,
+      "role": "named-probe"
+    },
+    {
+      "path": "command-center/p2-wave/probes/RES-0149/probe2_falsifier.py",
+      "exists": true,
+      "role": "named-probe"
+    }
+  ],
+  "evidence": [
+    {
+      "path": "command-center/p2-wave/probes/CC-0024/fixtures/prompt-two-slice.md",
+      "claim": "Recovered line 11276 is the placeholder token, not a record definition."
+    },
+    {
+      "path": "command-center/WORK-UNIT-CATALOG.json",
+      "claim": "Catalog unit RES-0149 requires empty exhausted_sources to be rejected."
+    }
+  ],
+  "inputs_live": {
+    "user_prompts_md": false,
+    "claim_registry": false,
+    "sources_register": false,
+    "design_spec_schema": false,
+    "cc0024_recovered_slice": true
+  },
+  "emitted_at": "2026-09-02T00:40:52Z",
+  "type": "object",
+  "required": [
+    "record_kind",
+    "question",
+    "program_unit_id",
+    "exhausted_sources",
+    "access_barrier",
+    "retry_after",
+    "falsifier",
+    "claims"
+  ],
+  "properties": {
+    "record_kind": {
+      "type": "string",
+      "const": "proof-of-impossibility"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 24
+    },
+    "program_unit_id": {
+      "type": "string",
+      "pattern": "^[A-Z]{2,5}-[0-9]{4}$"
+    },
+    "exhausted_sources": {
+      "type": "array",
+      "minItems": 1,
+      "description": "Empty list is a not-found masquerading as impossible and MUST be rejected.",
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "source_class",
+          "queries",
+          "status"
+        ],
+        "properties": {
+          "source_class": {
+            "type": "string",
+            "minLength": 3
+          },
+          "status": {
+            "type": "string",
+            "enum": [
+              "exhausted",
+              "blocked-unattempted"
+            ]
+          },
+          "queries": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "query",
+                "result_count",
+                "backend"
+              ],
+              "properties": {
+                "query": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "result_count": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "backend": {
+                  "type": "string",
+                  "minLength": 1
+                },
+                "hit_summary": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "notes": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "access_barrier": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "kind",
+        "description"
+      ],
+      "properties": {
+        "kind": {
+          "type": "string",
+          "minLength": 4
+        },
+        "description": {
+          "type": "string",
+          "minLength": 16
+        },
+        "paths": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        },
+        "owner_gate": {
+          "type": "string"
+        }
+      }
+    },
+    "retry_after": {
+      "type": "string",
+      "minLength": 20,
+      "description": "ISO-8601 UTC instant after which the record must be retried."
+    },
+    "retry_triggers": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      }
+    },
+    "falsifier": {
+      "type": "object",
+      "additionalProperties": true,
+      "required": [
+        "single_observation",
+        "how_it_overturns"
+      ],
+      "properties": {
+        "single_observation": {
+          "type": "string",
+          "minLength": 16
+        },
+        "how_it_overturns": {
+          "type": "string",
+          "minLength": 16
+        }
+      }
+    },
+    "claims": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": [
+          "id",
+          "text",
+          "verdict",
+          "sherman_kent_band",
+          "lineage",
+          "independent_verification_path",
+          "signals"
+        ],
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 2
+          },
+          "text": {
+            "type": "string",
+            "minLength": 16
+          },
+          "verdict": {
+            "type": "string",
+            "enum": [
+              "CONFIRMED",
+              "REFUTED",
+              "PARTIAL",
+              "NOT-CHECKED",
+              "BLOCKED"
+            ]
+          },
+          "sherman_kent_band": {
+            "type": "string",
+            "enum": [
+              "almost-certain",
+              "likely",
+              "roughly-even",
+              "unlikely",
+              "remote"
+            ]
+          },
+          "lineage": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": true,
+              "required": [
+                "resolved_url",
+                "fetch_timestamp",
+                "sha256_of_fetched_bytes"
+              ],
+              "properties": {
+                "resolved_url": {
+                  "type": "string",
+                  "minLength": 8
+                },
+                "fetch_timestamp": {
+                  "type": "string",
+                  "minLength": 20
+                },
+                "sha256_of_fetched_bytes": {
+                  "type": "string",
+                  "pattern": "^[0-9a-f]{64}$"
+                },
+                "bytes": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "http_status": {
+                  "type": [
+                    "integer",
+                    "null"
+                  ]
+                },
+                "note": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "independent_verification_path": {
+            "type": "string",
+            "minLength": 8
+          },
+          "signals": {
+            "type": "array",
+            "minItems": 2,
+            "items": {
+              "type": "object",
+              "required": [
+                "id",
+                "mechanism",
+                "observation"
+              ],
+              "properties": {
+                "id": {
+                  "type": "string"
+                },
+                "mechanism": {
+                  "type": "string",
+                  "minLength": 4
+                },
+                "observation": {
+                  "type": "string",
+                  "minLength": 4
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "closed_as": {
+      "type": "string",
+      "enum": [
+        "unanswerable",
+        "cannot-be-obtained"
+      ]
+    },
+    "notes": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": true,
+  "description": "Closes a research question as unanswerable. Distinguishes 'cannot be obtained' from 'not found' by requiring a non-empty exhausted_sources list, exact queries with counts, an access barrier, a retry_after expiry, and a single-observation falsifier."
+}

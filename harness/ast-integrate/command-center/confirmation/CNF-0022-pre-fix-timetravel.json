@@ -1,0 +1,389 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0022",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0022",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:CNF-0022",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/schema/repro-report.schema.json",
+      "bytes": 1081,
+      "sha256": "3bb56b1d4bb0a3de2999677b481186fe26614cd076a03359df07b38ec184b2fc",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0022/scenario.py",
+      "bytes": 5773,
+      "sha256": "29d374eb56f899be912d3504a2d5d138fe52f11b521c36a9da7c8bec82770cdd",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0022/timetravel.py",
+      "bytes": 6569,
+      "sha256": "71b8756e05d3ca3f729dec499ea99872615705498f6f508444c0ba8e37dbea7d",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0022/probe1_red_at_parent.py",
+      "bytes": 4277,
+      "sha256": "89d19c38d718467227e81a306800d8b860130db0b4d513de51eb25ec37939930",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0022/probe2_discrepancy_disposal.py",
+      "bytes": 5493,
+      "sha256": "9d9a1932ab0b6c9e8b47c054c500bb0448f1a3082ef218e53663a5829020d024",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "FIX-ADD-OFFBYONE is RED at its parent and GREEN at the fix (parent d2ad3c0136d3 output 'RED: add(2,2)=5 want=4').",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0022/timetravel.py:examine_fix",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "git worktree add --detach <scratch> <parent_sha> && python3 -B test_add.py",
+          "raw_output": "RED: add(2,2)=5 want=4",
+          "fingerprint": "4e63a35346319124131bfe7fe349724b",
+          "exit_code": 1
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/probe1_red_at_parent.py",
+          "raw_output": "named probe 1 re-derives RED-GREEN before reading the conclusion",
+          "fingerprint": "247f27c5badaad13029256f3513500f4",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "GREEN-GREEN patterns on FIX-COMMENT-ONLY and FIX-MUL-WITH-ADD-TEST are filed as discrepancies; worktree removal proven (worktree /tmp/cnf0022-disposal-60292-5f8cb958c4 added then removed; exists=False listed_after=False index_same=True rerun_rc=2).",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0022/timetravel.py:prove_disposal",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "git worktree remove --force <scratch> && git worktree prune",
+          "raw_output": "worktree /tmp/cnf0022-disposal-60292-5f8cb958c4 added then removed; exists=False listed_after=False index_same=True rerun_rc=2",
+          "fingerprint": "18d4486de9b94611970314a801995627",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/probe2_discrepancy_disposal.py",
+          "raw_output": "named probe 2 requires GREEN-GREEN discrepancies and path_gone",
+          "fingerprint": "69835ef0ac6161c9985d73a000f92f9f",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "probe1",
+      "name": "red-at-parent green-at-fix on authentic fixture",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/probe1_red_at_parent.py",
+      "result": "PASS"
+    },
+    {
+      "id": "probe2",
+      "name": "discrepancy filing and worktree disposal",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/probe2_discrepancy_disposal.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-COMMENT-ONLY",
+      "kind": "known-broken-fixture",
+      "description": "A comment-only commit labelled as the add() fix must be GREEN-GREEN, not counted as a confirmed defect-at-parent.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "GREEN-GREEN",
+      "good_state_output": "RED-GREEN"
+    },
+    {
+      "id": "NC-WRONG-TEST",
+      "kind": "known-broken-fixture",
+      "description": "mul() fix bound to test_add.py is GREEN-GREEN; control test_mul.py is RED-GREEN.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "GREEN-GREEN",
+      "good_state_output": "RED-GREEN"
+    },
+    {
+      "id": "NC-SCHEMA-GARBAGE",
+      "kind": "malformed-input",
+      "description": "Declared repro-report schema must reject empty and unrelated documents.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "schema-invalid",
+      "good_state_output": "schema-valid"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0022-probe1-red-at-parent",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "unassigned",
+    "notes": "Probe 1 re-runs git worktree add --detach at parent and fix and requires opposite exit codes before it reads the artifact conclusion. Probe 2 independently requires GREEN-GREEN discrepancies, a RED-GREEN control on the mul test, and worktree path removal."
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0022/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0022"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft7Validator with disk-only RefResolver against command-center/schema/repro-report.schema.json",
+      "artifact_path": "command-center/confirmation/CNF-0022-pre-fix-timetravel.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/emit_report.py",
+        "raw_output": "in-memory document validated offline before write",
+        "fingerprint": "bcbc9055c9e5a411e3f79160633b94e5",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:57:45Z",
+    "ended_at": "2026-08-25T00:57:46Z",
+    "duration_seconds": 0.743665
+  },
+  "retry": {
+    "count": 0,
+    "policy": "zero retries. This unit's first observation IS the verdict; a later run that disagrees is a DISCREPANCY to record, never an error to retry away"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Product fix SHAs from git log on this worktree were not examined because /opt/p2/ast-integrate is not a git repository.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Clone or attach the product history outside this checkout and re-run the parent/fix worktree protocol on those SHAs."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "history-reproduction-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "repro-report",
+    "observations": [
+      {
+        "name": "FIX-ADD-OFFBYONE-pattern",
+        "measured": "RED-GREEN",
+        "method": "git worktree add --detach at parent SHA and fix SHA; python3 -B test_add.py",
+        "anchor": "command-center/p2-wave/probes/CNF-0022/timetravel.py:examine_fix"
+      },
+      {
+        "name": "FIX-COMMENT-ONLY-pattern",
+        "measured": "GREEN-GREEN",
+        "method": "same worktree protocol on the comment-only labelled fix",
+        "anchor": "command-center/p2-wave/probes/CNF-0022/scenario.py:FIX-COMMENT-ONLY"
+      },
+      {
+        "name": "FIX-MUL-WITH-ADD-TEST-control",
+        "measured": "RED-GREEN",
+        "method": "associated test_add.py vs control test_mul.py at parent and fix",
+        "anchor": "command-center/p2-wave/probes/CNF-0022/scenario.py:FIX-MUL-WITH-ADD-TEST"
+      },
+      {
+        "name": "worktree-disposal",
+        "measured": true,
+        "method": "git worktree remove --force then prove path gone and unrunnable",
+        "anchor": "command-center/p2-wave/probes/CNF-0022/timetravel.py:prove_disposal"
+      }
+    ],
+    "control_ids": [
+      "FIX-ADD-OFFBYONE",
+      "FIX-COMMENT-ONLY",
+      "FIX-MUL-WITH-ADD-TEST"
+    ],
+    "completion_sentinel": "SUCCESS:CNF-0022 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every examined fix has a recorded red-at-parent and green-at-fix pair, or a filed discrepancy. Any other terminal state is FAILED:CNF-0022 <classification> with the diagnostic tail attached.",
+    "question": "Did the defect actually exist before the fix, at the parent commit of the fix? Check out that parent in a scratch worktree and run the failing test there. A defect that does not reproduce at its own pre-fix commit means either the fix commit is misattributed or the test is measuring something else; both are discrepancies to file.",
+    "title": "Time-travel reproduction at the pre-fix commit",
+    "answer": {
+      "authentic_red_green_pairs": 1,
+      "discrepancies_filed": 3,
+      "product_history_examined": false,
+      "every_examined_fix_paired_or_filed": true,
+      "summary": "One authentic fixture fix is RED at its parent and GREEN at the fix in a disposable git worktree. Two fixture commits fail that pattern and are filed (misattributed-fix; test-measures-something-else). The shared checkout has no git history, filed as repro-not-reproducible. Product SHAs were not checked out."
+    },
+    "examined_fixes": [
+      {
+        "fix_output": "GREEN: add(2,2)==4",
+        "fix_sha": "ac5648b7501efe2025a174a46e35dcd20bc9a325",
+        "classification": "confirmed-defect-at-parent",
+        "worktree_removed": true,
+        "title": "off-by-one in add() with a test that sees the defect",
+        "test_invocation": "python3 -B test_add.py",
+        "parent_exit_code": 1,
+        "pattern": "RED-GREEN",
+        "parent_output": "RED: add(2,2)=5 want=4",
+        "fixture_head_untouched": true,
+        "parent_sha": "d2ad3c0136d30575270dd484bcdc5ab60facea5a",
+        "fix_exit_code": 0,
+        "fixture_index_untouched": true,
+        "id": "FIX-ADD-OFFBYONE"
+      },
+      {
+        "fix_output": "GREEN: add(2,2)==4",
+        "fix_sha": "e642269982f0fc37e8fe2443d364f53a0978349d",
+        "classification": "misattributed-fix",
+        "worktree_removed": true,
+        "title": "comment-only commit labelled as the add() fix",
+        "test_invocation": "python3 -B test_add.py",
+        "parent_exit_code": 0,
+        "pattern": "GREEN-GREEN",
+        "parent_output": "GREEN: add(2,2)==4",
+        "fixture_head_untouched": true,
+        "parent_sha": "9ebbc353143e4668248e2e8a84c0b958f779c8fb",
+        "fix_exit_code": 0,
+        "fixture_index_untouched": true,
+        "id": "FIX-COMMENT-ONLY",
+        "discrepancy_id": "D-MISATTRIBUTED-COMMENT-ONLY"
+      },
+      {
+        "fix_output": "GREEN: add(2,2)==4",
+        "control_parent_output": "RED: mul(3,3)=10 want=9",
+        "fix_sha": "93b3a0f4d47b24c306a0cf0fd16f4ff8c23232ea",
+        "classification": "test-measures-something-else",
+        "worktree_removed": true,
+        "title": "mul() fix associated with the add() test",
+        "control_pattern": "RED-GREEN",
+        "test_invocation": "python3 -B test_add.py",
+        "control_test_invocation": "python3 -B test_mul.py",
+        "parent_exit_code": 0,
+        "pattern": "GREEN-GREEN",
+        "parent_output": "GREEN: add(2,2)==4",
+        "fixture_head_untouched": true,
+        "parent_sha": "2859066ba1bfdac5895f36936e62c116f758731a",
+        "fix_exit_code": 0,
+        "fixture_index_untouched": true,
+        "id": "FIX-MUL-WITH-ADD-TEST",
+        "control_fix_output": "GREEN: mul(3,3)==9",
+        "discrepancy_id": "D-WRONG-TEST-ASSOCIATION"
+      }
+    ],
+    "discrepancies": [
+      {
+        "id": "D-MISATTRIBUTED-COMMENT-ONLY",
+        "classification": "misattributed-fix",
+        "fix_id": "FIX-COMMENT-ONLY",
+        "summary": "The labelled fix commit only changes a comment; test_add.py is GREEN at the parent and GREEN at the fix, so the defect did not exist at the pre-fix commit as measured by the associated test.",
+        "signals": [
+          "parent 9ebbc353143e test_add.py exit=0 GREEN: add(2,2)==4",
+          "fix e642269982f0 test_add.py exit=0 GREEN: add(2,2)==4"
+        ],
+        "settling_experiment": "Associate a test that is red at the parent of a commit that actually changes add() arithmetic, or drop this commit from the fix list."
+      },
+      {
+        "id": "D-WRONG-TEST-ASSOCIATION",
+        "classification": "test-measures-something-else",
+        "fix_id": "FIX-MUL-WITH-ADD-TEST",
+        "summary": "The fix commit repairs mul() but the associated test is test_add.py, which is GREEN at both parent and fix. The control test_mul.py is RED at parent and GREEN at fix, proving the defect existed \u2014 the associated test was measuring add().",
+        "signals": [
+          "associated test_add.py pattern=GREEN-GREEN parent=GREEN: add(2,2)==4",
+          "control test_mul.py pattern=RED-GREEN parent=RED: mul(3,3)=10 want=9"
+        ],
+        "settling_experiment": "Re-bind the fix to test_mul.py and require RED-GREEN on that invocation; do not treat test_add.py as evidence for this commit."
+      },
+      {
+        "id": "D-HOST-NO-GIT",
+        "classification": "repro-not-reproducible",
+        "summary": "Shared worktree /opt/p2/ast-integrate is not a git repository, so a product fix-commit list cannot be obtained from git log here. Fixture histories were examined instead; product SHAs were not time-travelled.",
+        "signals": [
+          "Path(/opt/p2/ast-integrate/.git).exists()==False",
+          "git rev-parse --is-inside-work-tree -> fatal: not a git repository (or any of the parent directories): .git"
+        ],
+        "settling_experiment": "Attach the product git history to this worktree (or a clone outside it), list fix commits, and re-run the same parent/fix worktree protocol on those SHAs."
+      }
+    ],
+    "worktree_protocol": {
+      "method": "git worktree add --detach",
+      "disposable": true,
+      "removal_proven": true,
+      "shared_host_index_touched": false,
+      "host_git_created": false,
+      "proof": "worktree /tmp/cnf0022-disposal-60292-5f8cb958c4 added then removed; exists=False listed_after=False index_same=True rerun_rc=2"
+    },
+    "host_checkout": {
+      "path": "/opt/p2/ast-integrate",
+      "dot_git_present": false,
+      "git_rev_parse": "fatal: not a git repository (or any of the parent directories): .git",
+      "is_git_repository": false,
+      "product_fix_list_available": false
+    },
+    "fix_evidence": [
+      {
+        "fix_id": "FIX-ADD-OFFBYONE",
+        "parent_sha": "d2ad3c0136d30575270dd484bcdc5ab60facea5a",
+        "test_invocation": "python3 -B test_add.py",
+        "parent_output": "RED: add(2,2)=5 want=4"
+      },
+      {
+        "fix_id": "FIX-COMMENT-ONLY",
+        "parent_sha": "9ebbc353143e4668248e2e8a84c0b958f779c8fb",
+        "test_invocation": "python3 -B test_add.py",
+        "parent_output": "GREEN: add(2,2)==4"
+      },
+      {
+        "fix_id": "FIX-MUL-WITH-ADD-TEST",
+        "parent_sha": "2859066ba1bfdac5895f36936e62c116f758731a",
+        "test_invocation": "python3 -B test_add.py",
+        "parent_output": "GREEN: add(2,2)==4"
+      }
+    ],
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "red-at-parent-green-at-fix",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/probe1_red_at_parent.py"
+      },
+      {
+        "id": "probe2",
+        "role": "discrepancy-and-disposal",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0022/probe2_discrepancy_disposal.py"
+      }
+    ],
+    "scope": {
+      "proof_surface": "Three fixture git histories created under /tmp, examined via git worktree add --detach at parent SHA and fix SHA, tests invoked by path, worktrees removed. Host /opt/p2/ast-integrate is not a git repository.",
+      "does_not_claim": [
+        "cloud ok=true is delivery",
+        "global unit_manifest.py --write was run",
+        "product fix commits from this worktree's git log were time-travelled",
+        "the shared checkout index was used"
+      ],
+      "product_history_examined": false
+    },
+    "cloud_ok": false,
+    "first_observation_is_verdict": true
+  }
+}

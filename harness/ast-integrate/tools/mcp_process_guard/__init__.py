@@ -1,0 +1,1 @@
+"""MCP process-table guard."""

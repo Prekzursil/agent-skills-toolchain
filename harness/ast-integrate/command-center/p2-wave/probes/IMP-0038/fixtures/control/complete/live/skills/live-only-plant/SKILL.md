@@ -1,0 +1,2 @@
+# live-only skill
+planted

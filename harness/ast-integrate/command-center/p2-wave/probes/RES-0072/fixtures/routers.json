@@ -1,0 +1,183 @@
+{
+  "fetched_at": "2026-08-24T18:45:00Z",
+  "question": "What do published routers (cost-quality cascades, learned routers) claim, and has any of the claimed cost saving been reproduced by an independent party on a different task distribution?",
+  "routers": [
+    {
+      "router_id": "frugalgpt-cascade",
+      "router_name": "FrugalGPT LLM cascade",
+      "router_class": "cost-quality-cascade",
+      "authors": "Chen, Zaharia, Zou",
+      "year": 2023,
+      "arxiv": "2305.05176",
+      "doi": "10.48550/arXiv.2305.05176",
+      "url": "https://arxiv.org/abs/2305.05176",
+      "snapshot_sha256": "1768c826c18623c5fe7b91f13045fb123dbc26509778cbc74e9107dc9480a057",
+      "effect_size": "98.3% inference-cost reduction while matching GPT-4 accuracy (FrugalGPT cost 0.6 vs GPT-4 cost 33.1 in paper units)",
+      "baseline": "best individual LLM = GPT-4 at cost 33.1 to reach the same accuracy on HEADLINES (Table 3)",
+      "benchmark": "HEADLINES (financial news gold-price classification; Chen et al. Table 2: 10000 examples)",
+      "figure_locus": "Table 3 row HEADLINES; also Figure 1(c) caption",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [
+        {
+          "by": "AutoMix (Aggarwal et al. 2024) arXiv:2310.12963 Table 1",
+          "distribution": "COQA / QASPER / QUALITY / MUTUAL / DIPLOMAT (not HEADLINES)",
+          "result": "FrugalGPT-style DistilBERT cascade reimplemented as a baseline. Mistral-7B SLM: ΔIBC -16.7 on COQA, +16.8 on DIPLOMAT, +7.7 on QASPER. Llama-2-13B SLM: ΔIBC +87.2 on QASPER. The 98.3% HEADLINES saving was not reproduced.",
+          "reproduced_headline": false
+        },
+        {
+          "by": "RouterBench (Hu et al. 2024) arXiv:2403.12031 Figure 5",
+          "distribution": "MMLU / MBPP / GSM8K",
+          "result": "Independent cascade implementation beats Zero-router and individual LLMs when judge error ≤ 0.1 and degrades rapidly above 0.2. No 98% cost figure reported.",
+          "reproduced_headline": false
+        }
+      ],
+      "notes": "Figure 3 HEADLINES case study at budget $6.5 (one-fifth of GPT-4) reports 80% cost cut and +1.5% accuracy vs GPT-4 — still author-own. Table 3 also reports OVERRULING 73.3% (GPT-4 9.7 vs 2.6) and COQA 59.2% (GPT-3 72.5 vs 29.6)."
+    },
+    {
+      "router_id": "routellm-mf",
+      "router_name": "RouteLLM matrix-factorization router",
+      "router_class": "learned-router",
+      "authors": "Ong, Almahairi, Wu, Chiang, Wu, Gonzalez, Kadous, Stoica",
+      "year": 2024,
+      "arxiv": "2406.18665",
+      "doi": "10.48550/arXiv.2406.18665",
+      "url": "https://arxiv.org/abs/2406.18665",
+      "snapshot_sha256": "5406bd853a9324f917b349223cd025fb6195c07d33236e53221326f5d3b39284",
+      "effect_size": "3.66x cost saving vs GPT-4 at CPT(50%) while holding 95% of GPT-4 quality (MT-Bench 8.8 vs GPT-4 9.3)",
+      "baseline": "GPT-4-only serving; equivalently random-router CPT(50%) = 49.03% (±4) GPT-4 calls (Table 1). Mixtral-8x7B is the weak model. GPT-4 $24.7/MTok vs Mixtral $0.24/MTok (Appendix D).",
+      "benchmark": "MT-Bench (strong=GPT-4, weak=Mixtral 8x7B)",
+      "figure_locus": "Table 6 column CPT(50%) row MT Bench; Table 1 note on 8.8 vs 9.3",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [],
+      "notes": "Same authors also report 1.41x on MMLU and 1.49x on GSM8K at CPT(50%) in Table 6. Different public benches, same authors — still self-reported-only under the unit rule. Figure 2 compares to Martian and Unify on MT-Bench (competitor eval, not independent replication of 3.66x)."
+    },
+    {
+      "router_id": "hybridllm-rtrans",
+      "router_name": "HybridLLM rtrans (DeBERTa router)",
+      "router_class": "learned-router",
+      "authors": "Ding, Mallick, Wang, Sim, Mukherjee, Ruhle, Lakshmanan, Awadallah",
+      "year": 2024,
+      "arxiv": "2404.14618",
+      "doi": "10.48550/arXiv.2404.14618",
+      "url": "https://arxiv.org/abs/2404.14618",
+      "snapshot_sha256": "b35ef352bd3d44986e66b15cb25936481704d414c5432a7253562d58f49a8814",
+      "effect_size": "40% cost advantage (queries routed to the small model) with 0.0% BART-score drop vs all-at-large for Llama-2-7B vs Llama-2-13B (rtrans, Table 1). Abstract headline is 'up to 40% fewer calls to the large model, with no drop in response quality'.",
+      "baseline": "all-at-large (always the large model). Same table: 40% cost advantage with 10.3% quality drop for FLAN-T5-800M vs Llama-2-13B (large gap). Figure 1(c): 22% fewer GPT-3.5-turbo calls with <1% BART drop using Llama-2-13B as small model.",
+      "benchmark": "MixInstruct (Jiang et al. 2023); 10k train / 5k val / 5k test",
+      "figure_locus": "Table 1 (rtrans, 40% row, Llama-2 7b vs 13b and FLAN-t5 vs Llama-2-13b); Figure 1(c); abstract",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [
+        {
+          "by": "AutoMix (Aggarwal et al. 2024) arXiv:2310.12963 Table 1",
+          "distribution": "DIPLOMAT / MUTUAL / COQA / QASPER / QUALITY",
+          "result": "HybridLLM reimplemented as a DeBERTa baseline. ΔIBC is not the MixInstruct 40%/0-drop figure; Mistral-7B SLM HybridLLM ΔIBC +67.1 DIPLOMAT, +0.4 QASPER. Headline 40% not reproduced.",
+          "reproduced_headline": false
+        }
+      ],
+      "notes": "RouteLLM §related-work states Hybrid-LLM evaluates on MixInstruct and 'lacks evidence of out-of-domain generalization' (Ong et al. 2024)."
+    },
+    {
+      "router_id": "automix-pomdp",
+      "router_name": "AutoMix POMDP + few-shot self-verification",
+      "router_class": "cost-quality-cascade",
+      "authors": "Aggarwal, Madaan, et al.",
+      "year": 2024,
+      "arxiv": "2310.12963",
+      "doi": "10.48550/arXiv.2310.12963",
+      "url": "https://arxiv.org/abs/2310.12963",
+      "snapshot_sha256": "d929aa0fb13c96c510be091d11fb9cb65792ca77216d9ef9716a00062010c260",
+      "effect_size": "Abstract: reducing computational cost by over 50% for comparable performance. Table 1: AutoMix+POMDP ΔIBC 151.2 on DIPLOMAT, 18.8 MUTUAL, 65.0 COQA, 114.7 QASPER, 24.1 QUALITY with Llama-2-13B as one SLM setting; DIPLOMAT average 122% ΔIBC across SLMs.",
+      "baseline": "SLM→LLM cost-performance curve plus reimplemented FrugalGPT and HybridLLM (0-cost verifiers at inference). ΔIBC is incremental benefit per cost vs that mix, not vs GPT-4 dollars.",
+      "benchmark": "QASPER, QUALITY, COQA, MUTUAL, DIPLOMAT (1000-instance validation samples; AutoMix §5 / Appendix B)",
+      "figure_locus": "Abstract sentence on 50% cost; Table 1 ΔIBC; Figure 4 Mistral-7B cost-quality curves",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [],
+      "notes": "The 50% abstract headline is not a single Table 1 cell against a named dollar baseline; the tabled quantity is ΔIBC. Both are author-own. AutoMix is the independent rerun of FrugalGPT/HybridLLM, not an independent rerun of AutoMix."
+    },
+    {
+      "router_id": "routerbench-cascade",
+      "router_name": "RouterBench cascading router (independent cascade evaluation)",
+      "router_class": "cost-quality-cascade",
+      "authors": "Hu, Bieker, Li, Jiang, Keigwin, Ranganath, Keutzer, Upadhyay",
+      "year": 2024,
+      "arxiv": "2403.12031",
+      "doi": "10.48550/arXiv.2403.12031",
+      "url": "https://arxiv.org/abs/2403.12031",
+      "snapshot_sha256": "7831dc4d841cef8cd8f16f570abd26862d9db2442b1734956c20ba9d8911deca",
+      "effect_size": "Cascade AIQ exceeds Zero-router and individual LLMs when judge error rate ≤ 0.1; performance deteriorates rapidly when judge error exceeds 0.2. No single percent-cost-saving vs GPT-4 is reported.",
+      "baseline": "Zero-router and Oracle on the RouterBench cost-quality plane; individual LLMs on MMLU/MBPP/GSM8K",
+      "benchmark": "RouterBench MMLU, MBPP, GSM8K (Figure 5). Dataset also covers 405k precomputed inferences across eight tasks plus RAG.",
+      "figure_locus": "Figure 5 and accompanying paragraph 'Cascading Router'",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [],
+      "notes": "Different authors and different tasks than FrugalGPT Table 3. This independently re-runs the cascade *class* and does not reproduce 98.3%. Predictive KNN/MLP routers in Figure 4 do not significantly beat Zero-router on several tasks."
+    },
+    {
+      "router_id": "martian-commercial",
+      "router_name": "Martian Router (commercial)",
+      "router_class": "commercial",
+      "authors": "Martian",
+      "year": 2024,
+      "arxiv": "",
+      "doi": "",
+      "url": "https://withmartian.com/",
+      "snapshot_sha256": "",
+      "effect_size": "",
+      "baseline": "",
+      "benchmark": "",
+      "figure_locus": "",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [
+        {
+          "by": "RouteLLM (Ong et al. 2024) Figure 2",
+          "distribution": "MT-Bench, gpt-4-turbo-2024-04-09 vs mixtral-8x7b or llama-2-70b",
+          "result": "RouteLLM MF and causal-LLM routers, trained on Arena+judge, 'outperforming the commercial routing systems by achieving the same performance with up to 40% fewer calls routed to GPT-4.' Martian configured at $10.45/MTok max (~50% GPT-4 calls). This is a competitor measurement, not a Martian DOI/section/baseline.",
+          "reproduced_headline": false
+        }
+      ],
+      "notes": "No primary paper DOI/arXiv with a named effect size AND baseline was retrieved for Martian's own claim. Status unknown. RouteLLM Figure 2 is E3 for promoting Martian (competitor, own bench)."
+    },
+    {
+      "router_id": "unifyai-commercial",
+      "router_name": "Unify AI router (commercial)",
+      "router_class": "commercial",
+      "authors": "UnifyAI",
+      "year": 2024,
+      "arxiv": "",
+      "doi": "",
+      "url": "https://unify.ai",
+      "snapshot_sha256": "",
+      "effect_size": "",
+      "baseline": "",
+      "benchmark": "",
+      "figure_locus": "",
+      "own_authors_own_benchmark": true,
+      "independent_reproduction_of_this_figure": false,
+      "independent_reruns": [
+        {
+          "by": "RouteLLM (Ong et al. 2024) Figure 2",
+          "distribution": "MT-Bench",
+          "result": "Same competitor overlay as Martian. Unify configuration taken from the user dashboard 'best-performing' setting. No Unify-authored DOI/section/baseline retrieved.",
+          "reproduced_headline": false
+        }
+      ],
+      "notes": "Unknown replication status: no citable own figure with baseline."
+    }
+  ],
+  "intended_partitions": [
+    {
+      "id": "partition-A-cascade",
+      "source_ids": ["frugalgpt-cascade", "automix-pomdp", "routerbench-cascade"]
+    },
+    {
+      "id": "partition-B-learned-commercial",
+      "source_ids": ["routellm-mf", "hybridllm-rtrans", "martian-commercial", "unifyai-commercial"]
+    }
+  ]
+}

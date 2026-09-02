@@ -1,0 +1,96 @@
+{
+  "id": "cnl-0075.scripted.severed-option-card-to-claim",
+  "ideas": [
+    {
+      "id": "idea.http-cache",
+      "author": "alice",
+      "round": 1,
+      "mechanism": "http-cache-control-max-age",
+      "text": "Emit Cache-Control on GET /api.",
+      "duplicates": [],
+      "supporters": ["alice", "bob"],
+      "fate": "promoted"
+    },
+    {
+      "id": "idea.eager-prefetch",
+      "author": "carol",
+      "round": 1,
+      "mechanism": "client-eager-prefetch-bundle",
+      "text": "Prefetch the whole bundle on session start.",
+      "duplicates": [],
+      "supporters": ["carol"],
+      "fate": "rejected"
+    }
+  ],
+  "option_cards": [
+    {
+      "id": "opt.http-cache",
+      "promoted_from_idea_ids": ["idea.http-cache"],
+      "mechanism": "http-cache-control-max-age",
+      "cost": "S",
+      "risk": "low"
+    }
+  ],
+  "claims": [
+    {
+      "id": "cl.cache-cuts-origin",
+      "about_option_card_ids": [],
+      "text": "Cache-Control on GET /api cuts origin load without prefetching the session bundle."
+    }
+  ],
+  "arguments": [
+    {
+      "id": "arg.support-cache",
+      "cites_claim_ids": ["cl.cache-cuts-origin"],
+      "kind": "SUPPORTS",
+      "by": "bob"
+    }
+  ],
+  "votes": [
+    {
+      "id": "vote.alice.adopt",
+      "rests_on_argument_ids": ["arg.support-cache"],
+      "choice": "adopt",
+      "weight": 1,
+      "voter": "alice"
+    },
+    {
+      "id": "vote.bob.adopt",
+      "rests_on_argument_ids": ["arg.support-cache"],
+      "choice": "adopt",
+      "weight": 1,
+      "voter": "bob"
+    }
+  ],
+  "decisions": [
+    {
+      "id": "dec.adopt-cache",
+      "tally_of_vote_ids": ["vote.alice.adopt", "vote.bob.adopt"],
+      "rule": "majority",
+      "outcome": "adopt"
+    }
+  ],
+  "action_plan": [
+    {
+      "id": "act.ship-headers",
+      "implements_decision_ids": ["dec.adopt-cache"],
+      "owner": "platform",
+      "text": "Ship Cache-Control: max-age=60 on GET /api."
+    }
+  ],
+  "recommendation": {
+    "text": "Adopt short-lived HTTP caching on GET /api. Ship Cache-Control: max-age=60 on GET /api.",
+    "sentences": [
+      {
+        "id": "s1",
+        "text": "Adopt short-lived HTTP caching on GET /api.",
+        "cites": ["dec.adopt-cache"]
+      },
+      {
+        "id": "s2",
+        "text": "Ship Cache-Control: max-age=60 on GET /api.",
+        "cites": ["act.ship-headers"]
+      }
+    ]
+  }
+}

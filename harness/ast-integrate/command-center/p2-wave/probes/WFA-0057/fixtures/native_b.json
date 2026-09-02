@@ -1,0 +1,61 @@
+{
+  "id": "wf-saved-licence-audit",
+  "name": "licence-audit donor (GPL-3.0)",
+  "licence_class": "gpl-3.0",
+  "roles": [
+    {
+      "id": "auditor",
+      "title": "licence auditor"
+    }
+  ],
+  "stages": [
+    {
+      "id": "audit-licence",
+      "kind": "licence-scan",
+      "inputs": ["candidates.json"],
+      "outputs": ["licence-report.json"]
+    }
+  ],
+  "gates": [
+    {
+      "id": "copyleft-stop",
+      "when": "before-emit"
+    }
+  ],
+  "tool_policy": {
+    "id": "licence-read",
+    "allow": ["Read"]
+  },
+  "fan_out": {
+    "id": "per-candidate",
+    "barrier": "join-audits"
+  },
+  "barrier": {
+    "id": "join-audits"
+  },
+  "loop": {
+    "id": "until-classified",
+    "convergence": "no-unclassified",
+    "max_iterations": 2
+  },
+  "checkpoint": {
+    "id": "legal-look",
+    "human": true
+  },
+  "retry": {
+    "id": "audit-retry",
+    "max_attempts": 2
+  },
+  "resume": {
+    "id": "from-audit",
+    "cursor": "audit-licence"
+  },
+  "stop": {
+    "id": "halt-on-unknown-licence",
+    "expression": "unclassified>0"
+  },
+  "lineage": {
+    "id": "licence-lineage",
+    "from": "fetched-licence-file"
+  }
+}

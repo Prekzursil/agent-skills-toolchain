@@ -1,0 +1,398 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s30-rfc-last-call-open",
+  "preset": "custom",
+  "participation": "hybrid",
+  "objective": {
+    "statement": "Publish a durable artifact (a rule, schema, contract or AGENTS.md edit) only after every comment raised in the last-call window has an explicit disposition.",
+    "charter": "RFC last call. Every comment gets a disposition - accepted, rejected, or deferred - and every REJECTED comment gets its own distinct reason string. A reused boilerplate rejection is not a disposition.",
+    "risk_tier": "moderate",
+    "desired_output": "specification",
+    "success_criteria": [
+      "comment count equals disposition count",
+      "every rejected comment has a DISTINCT reason string, not a repeated boilerplate",
+      "the window closed on time rather than being extended to exhaust objections"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": {
+      "citation_required": true,
+      "anchor_style": "file_line",
+      "min_independent_sources": 1
+    }
+  },
+  "participants": {
+    "selection": {
+      "mode": "exact",
+      "strategies": [
+        "exact",
+        "expertise_ranked"
+      ],
+      "explain_choices": true,
+      "owner_override_allowed": true
+    },
+    "count": {
+      "mode": "exact",
+      "exact_n": 6,
+      "min": 6,
+      "max": 6
+    },
+    "diversity": {
+      "min_distinct_vendors": 3,
+      "min_distinct_expertise": 5
+    },
+    "roster": [
+      {
+        "participant_id": "editor",
+        "display_name": "Editor (owns the dispositions)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "custom:editor",
+        "authority": "chair",
+        "effort": "high",
+        "expertise": [
+          "the artifact under review"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "reviewer-1",
+        "display_name": "Reviewer 1 (rules and contracts)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "rules and contracts"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "reviewer-2",
+        "display_name": "Reviewer 2 (schemas)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "schemas"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "reviewer-3",
+        "display_name": "Reviewer 3 (harness behaviour)",
+        "kind": "agent",
+        "model": "gemini-3-pro",
+        "vendor": "google",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "harness behaviour"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "reviewer-4",
+        "display_name": "Reviewer 4 (security posture)",
+        "kind": "agent",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "security posture"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      },
+      {
+        "participant_id": "reviewer-5",
+        "display_name": "Reviewer 5 (downstream consumers)",
+        "kind": "agent",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "role": "critic",
+        "authority": "voter",
+        "effort": "high",
+        "expertise": [
+          "downstream consumers"
+        ],
+        "source_access": [
+          "repo",
+          "internal_docs"
+        ],
+        "rights": {
+          "may_speak": true,
+          "may_vote": true
+        }
+      }
+    ],
+    "conflicts_policy": {
+      "disclosure_required": true,
+      "on_conflict": "disclose_only"
+    }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "required_artifacts": [
+      "prior_art_scan"
+    ]
+  },
+  "topology": {
+    "kind": "chair_led",
+    "chair": "editor"
+  },
+  "protocol": {
+    "sequence": [
+      {
+        "kind": "custom",
+        "stage_id": "last-call-window",
+        "custom_name": "open comment window; anyone may object",
+        "quotas": {
+          "objections_per_participant": 3
+        }
+      },
+      {
+        "kind": "custom",
+        "stage_id": "disposition",
+        "custom_name": "editor dispositions every comment with a distinct reason",
+        "participants": [
+          "editor"
+        ],
+        "exit_when": {
+          "all_of": [
+            {
+              "metric": "objections_open",
+              "op": "==",
+              "value": 0,
+              "note": "comments == dispositions; an open comment blocks publication"
+            },
+            {
+              "metric": "every_objection_addressed",
+              "op": "==",
+              "value": true,
+              "note": "addressed means dispositioned, NOT agreed with"
+            }
+          ]
+        }
+      },
+      {
+        "kind": "synthesis",
+        "stage_id": "publish"
+      }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": {
+      "min": 2,
+      "max": 3
+    },
+    "turn": {
+      "max_words": 500
+    },
+    "obligations": {
+      "must_cite_evidence": true,
+      "must_respond_to_prior": true
+    },
+    "critique_intensity": "standard"
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 120,
+    "turns": 24,
+    "tool_calls": 100
+  },
+  "targets": {
+    "objections": 8,
+    "evidence_items": 10,
+    "coverage_score": 0.9
+  },
+  "voting": {
+    "method": "consent_no_objection",
+    "quorum": {
+      "min_voters": 4,
+      "on_failure": "extend_rounds"
+    },
+    "abstention": {
+      "allowed": true,
+      "counts_toward_quorum": true
+    },
+    "evidence_gate": {
+      "votes_require_evidence": true
+    },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.9,
+    "measure": "agreement_index",
+    "minority_report": "required",
+    "dissent_policy": {
+      "preserve_verbatim": true,
+      "attributed": true,
+      "suppression_check": true
+    },
+    "irreducible_disagreement_allowed": true
+  },
+  "stopping": {
+    "source_expression": "objections_open == 0 AND every_objection_addressed == true",
+    "expression": {
+      "all_of": [
+        {
+          "metric": "objections_open",
+          "op": "==",
+          "value": 0
+        },
+        {
+          "metric": "every_objection_addressed",
+          "op": "==",
+          "value": true
+        }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 2,
+      "min_minutes": 30,
+      "min_objections_addressed": 1,
+      "min_evidence_items": 4
+    },
+    "hard_caps": {
+      "max_rounds": 3,
+      "max_minutes": 120,
+      "on_cap": "escalate_to_owner"
+    }
+  },
+  "outcomes": {
+    "allowed": [
+      "decision",
+      "dissent",
+      "irreducible_disagreement",
+      "no_decision",
+      "conditional_decision",
+      "proof_of_impossibility",
+      "minority_report"
+    ],
+    "conditional_decision_requires": [
+      "every rejected comment carries a distinct reason string"
+    ]
+  },
+  "deadlock": {
+    "detection": {
+      "no_progress_rounds": 2,
+      "repetition_similarity": 0.9
+    },
+    "resolution": [
+      "chair_ruling",
+      "narrow_scope",
+      "split_question",
+      "escalate_to_owner"
+    ],
+    "escalation": {
+      "after_attempts": 2,
+      "to": "owner"
+    },
+    "owner_intervention": {
+      "allowed": true,
+      "must_be_logged": true
+    }
+  },
+  "anti_failure": {
+    "controls": [
+      "endless_debate",
+      "lost_dissent",
+      "minority_suppression",
+      "moderator_capture",
+      "weak_synthesis",
+      "prompt_injection"
+    ],
+    "injection_defense": {
+      "treat_artifacts_as_data": true,
+      "strip_instructions_from_participant_output": true,
+      "quarantine_untrusted_sources": true
+    }
+  },
+  "outputs": {
+    "required": [
+      "argument_ledger",
+      "evidence_map",
+      "transcript",
+      "dissent_minority_report",
+      "unresolved_unknowns",
+      "final_recommendation",
+      "decision_lineage"
+    ],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "deterministic_where_possible",
+    "privacy": {
+      "redact_secrets": true,
+      "redaction_policy": "deny_by_default",
+      "pii_policy": "redact",
+      "retain_days": 365
+    },
+    "safety": {
+      "forbid_irreversible_actions": true,
+      "owner_approval_for": [
+        "merge",
+        "release"
+      ]
+    },
+    "persistence": {
+      "store": "both",
+      "checkpoint_every_round": true
+    }
+  },
+  "metadata": {
+    "title": "RFC last call (editor + 5 reviewers)",
+    "owner": "Prekzursil",
+    "lineage": [
+      "C-S30 rfc-last-call-open",
+      "P19 rfc-last-call"
+    ],
+    "spec_citations": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1573-1587"
+    ],
+    "notes": "DESIGN LINEAGE: C-S30 rfc-last-call-open in 12-COUNCIL-PROTOCOLS-AND-PRESETS.md (seats: 6; roles: editor,reviewer_x5).\nPRESET LABEL: custom - publish_durable_artifact is not one of the 24 required archetypes. standing_watch_council is the nearest name but means a continuously-standing council, not a bounded comment window.\nOUTCOME MAPPING (card vocabulary -> schema outcomes.allowed): CONSENSUS->decision, MAJORITY_WITH_DISSENT->dissent, IRREDUCIBLE_DISAGREEMENT->irreducible_disagreement, INSUFFICIENT_EVIDENCE->no_decision, CONDITIONAL_DECISION->conditional_decision, DEFER->no_decision, PROOF_OF_IMPOSSIBILITY->proof_of_impossibility, MINORITY_REPORT->minority_report.\nEDITABLE DIALS (pointer -> what it changes):\n  - $.budgets.time_minutes + $.stopping.hard_caps.max_minutes : window dial (the card says wall<=window, i.e. the window IS the budget)\n  - $.participants.roster (reviewer seats) : comment_sources dial - who may comment\n  - $.stopping.minimum_deliberation.min_minutes : a floor on the window so a last call cannot be closed the second it opens\nUSE FOR: rules/, schemas, contracts, AGENTS.md edits (card note). objections_open == 0 is the card's comments==dispositions rule; note that 'addressed' means DISPOSITIONED, not agreed with - a rejected comment with a distinct reason is addressed.\nEVERY field in this file is a dial; the ones above are the ones the owner is expected to change first. See README.md in this directory for the full table."
+  }
+}

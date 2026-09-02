@@ -1,0 +1,218 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0031",
+  "id": "IMP-0031",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0031",
+  "completion_sentinel": "SUCCESS:IMP-0031",
+  "title": "Three-way merge strategy for user-edited deployed files",
+  "spec_anchor": "_USER-PROMPTS.md:10994",
+  "min_bytes_threshold": 128,
+  "question": "Implement a three-way merge (base = shipped vN, ours = live user-edited, theirs = shipped vN+1) with format-aware strategies: structural merge for JSON/TOML settings, line merge for markdown/scripts, and refuse-with-report for binary.",
+  "artifacts": [
+    {
+      "path": "tools/plugin/three_way_merge.py",
+      "bytes": 22035,
+      "sha256": "fd73abe34ca6e0cadac25b1388885bfd49b2810285d2b0178ab6556bceb4f2a3",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/three_way_oracle.py",
+      "bytes": 3398,
+      "sha256": "91e35d28d936e91230a13e64894d3d14b2bda84e9e4d97e9a294968f3c188083",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/ours_invariant.py",
+      "bytes": 3929,
+      "sha256": "76c61094479123f2f7f1da8ee16c74f6972e1fbe0d003dba3e03792d517073dd",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/tests/test_three_way_merge.py",
+      "bytes": 3367,
+      "sha256": "820889f7654c96cf681c1ebcd69ef7027c7e57c0e4abb5ed0b052d199ed36ada",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/plugin/tests/fixtures/three_way/manifest.json",
+      "bytes": 1116,
+      "sha256": "f1879a75703f2880a36da8ca07562ee055f0a082eb80fe7b6e7c7a122ea013f9",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0031/probe1_fixture_oracle.py",
+      "bytes": 1750,
+      "sha256": "d5a21c862b3757b6a388f9bcd99f0941061369ff5789f0eaad006b03e6649ee3",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0031/probe2_property.py",
+      "bytes": 2990,
+      "sha256": "eecf8a17f763517bca3c3f7ee302f4d6c5250341ea112d134a26b59e70e2622d",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Signal 1: merge output equals a hand-authored expected file for each of 7 fixture triples (7 passed). JSON structural, TOML structural, markdown line-diff3, binary refuse, and the reviewer key-reorder-plus-comment triple are included.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/tests/fixtures/three_way/manifest.json",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/plugin/tests/test_three_way_merge.py",
+          "exit_code": 0,
+          "raw_output": "PASS test_fixture_oracle\nPASS test_json_structural_additive\nPASS test_line_based_additive\nPASS test_binary_refuse\nPASS test_property_unique_ours_lines_survive\nPASS test_negative_control_two_way_overwrite_fails_property\nSUCCESS:IMP-0031 tests"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0031/probe1_fixture_oracle.py",
+          "exit_code": 0,
+          "raw_output": "fixtures=7 passed=7 failed=[]"
+        }
+      ]
+    },
+    {
+      "claim": "Signal 2: over 200 seeded random line triples, every line unique to ours survived in merge text or a conflict record (failures=0, with_unique=166). A two-way overwrite of the same triples failed the property (153 failures), so the test discriminates.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/ours_invariant.py:run_property",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONPATH=tools python3 -B -c 'from plugin.ours_invariant import run_property; from plugin.three_way_merge import merge_bytes; print(run_property(merge_bytes))'",
+          "exit_code": 0,
+          "raw_output": "{\"samples\": 200, \"failures\": 0, \"ok\": true, \"seed\": 31}"
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0031/probe2_property.py",
+          "exit_code": 0,
+          "raw_output": "property_ok=True overwrite_failures=153"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "test_fixture_oracle",
+      "command": "python3 -B tools/plugin/tests/test_three_way_merge.py::test_fixture_oracle",
+      "result": "PASS"
+    },
+    {
+      "id": "test_json_structural_additive",
+      "command": "python3 -B tools/plugin/tests/test_three_way_merge.py::test_json_structural_additive",
+      "result": "PASS"
+    },
+    {
+      "id": "test_line_based_additive",
+      "command": "python3 -B tools/plugin/tests/test_three_way_merge.py::test_line_based_additive",
+      "result": "PASS"
+    },
+    {
+      "id": "test_binary_refuse",
+      "command": "python3 -B tools/plugin/tests/test_three_way_merge.py::test_binary_refuse",
+      "result": "PASS"
+    },
+    {
+      "id": "test_property_unique_ours_lines_survive",
+      "command": "python3 -B tools/plugin/tests/test_three_way_merge.py::test_property_unique_ours_lines_survive",
+      "result": "PASS"
+    },
+    {
+      "id": "test_negative_control_two_way_overwrite_fails_property",
+      "command": "python3 -B tools/plugin/tests/test_three_way_merge.py::test_negative_control_two_way_overwrite_fails_property",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0031-C1-two-way-overwrite",
+      "kind": "known-broken-implementation",
+      "description": "A two-way overwrite (take theirs, drop ours, no conflict record) must FAIL the unique-ours-line property on the same 200 seeded triples the real merger passes.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "two_way_overwrite failures=153 ok=False",
+      "good_state_output": "three_way_merge failures=0 ok=True"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0031-probe2-adversarial-reorder-comment",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Adversarial triple: JSON key reorder of alpha/beta plus a leading // comment and a new timeout key on ours, gamma added on theirs. Structural merge kept the comment, timeout, and gamma without treating reorder as a conflict."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0031/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0031.json",
+      "executed": false,
+      "read_ok": true,
+      "exit_code": 0
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:49:36Z",
+    "ended_at": "2026-08-25T00:49:36Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "report": {
+    "kind": "three-way-merge",
+    "does_not_run_update": true,
+    "base_from": "IMP-0033 provenance record (base_bytes/base_path)",
+    "fixture_oracle": {
+      "fixtures": 7,
+      "passed": 7,
+      "failed": []
+    },
+    "property": {
+      "samples": 200,
+      "with_unique_ours_lines": 166,
+      "failures": 0,
+      "seed": 31
+    },
+    "two_way_overwrite_failures": 153,
+    "test_output": "PASS test_fixture_oracle\nPASS test_json_structural_additive\nPASS test_line_based_additive\nPASS test_binary_refuse\nPASS test_property_unique_ours_lines_survive\nPASS test_negative_control_two_way_overwrite_fails_property\nSUCCESS:IMP-0031 tests"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "JSON pretty-print commas are not a stable line identity: a user line '  \"timeout\": 30' can become '  \"timeout\": 30,' after a theirs-only key is appended. The unique-ours-line property is therefore enforced on the line-diff3 strategy, not on dumped JSON.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "If IMP-0024 needs byte-identical JSONC round-trips including trailing-comma placement, add a JSONC printer that preserves per-key original lines."
+    },
+    {
+      "claim": "IMP-0033's on-disk provenance ledger is not present on this worktree. merge_with_provenance consumes an explicit record (base_bytes or base_path) rather than fetching git blobs.",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Wire merge_with_provenance to the IMP-0033 ledger once that unit lands, and re-run probe2 against a live deploy snapshot."
+    }
+  ]
+}

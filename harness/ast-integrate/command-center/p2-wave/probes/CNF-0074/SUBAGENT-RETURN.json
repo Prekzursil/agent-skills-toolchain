@@ -1,0 +1,44 @@
+{
+ "artifacts": [
+  {
+   "bytes": 10564,
+   "exists": true,
+   "path": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+   "role": "primary",
+   "sha256": "4eb1ebb36f9c291083bb6799c0a74a03be3fa3acfb2d431fe964ec3ef9cd5d03"
+  }
+ ],
+ "cloud_ok": false,
+ "id": "CNF-0074",
+ "manifest_path": "command-center/p2-wave/probes/CNF-0074/UNIT-ARTIFACT-MANIFEST.json",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0074/probe1_replay.py",
+   "exit_code": 0,
+   "id": "probe1",
+   "raw_output": "{\n  \"wf.catalog-class.discovery-only\": {\n    \"byte_identical_normalized\": true,\n    \"byte_identical_raw\": true,\n    \"n_diffs\": 0,\n    \"verdict\": \"DETERMINISTIC\"\n  },\n  \"wf.overclaim-unseeded-sample\": {\n    \"byte_identical_normalized\": false,\n    \"byte_identical_raw\": false,\n    \"n_diffs\": 1,\n    \"verdict\": \"OVERCLAIM\"\n  },\n  \"wf.path-leaking\": {\n    \"byte_identical_normalized\": false,\n    \"byte_identical_raw\": false,\n    \"n_diffs\": 2,\n    \"verdict\": \"NONDETERMINISTIC\"\n  },\n  \"wf.seeded-stable\": {\n    \"byte_identical_normalized\": true,\n    \"byte_identical_raw\": true,\n    \"n_diffs\": 0,\n    \"verdict\": \"DETERMINISTIC\"\n  },\n  \"wf.timestamp-wallclock\": {\n    \"byte_identical_normalized\": true,\n    \"byte_identical_raw\": false,\n    \"n_diffs\": 2,\n    \"verdict\": \"TIMESTAMP-ONLY\"\n  }\n}\nSUCCESS:CNF-0074-probe1 replay identity timestamp-normalise cause-attribution",
+   "role": "identical-input-replay"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0074/probe2_control.py",
+   "exit_code": 0,
+   "id": "probe2",
+   "raw_output": "change_one_input artifacts_differ=True cache_masking_ruled_out=True changed=alpha.txt\nbroken_cache_detector fired=True id-only cache served the pre-mutation artifact\noverclaim_detector fired=True verdict=OVERCLAIM paths=['$.chosen', '$.chosen_sha256', '$.sample_nonce']\nSUCCESS:CNF-0074-probe2 change-one-input and detector-control",
+   "role": "change-one-input-detector-control"
+  }
+ ],
+ "notes": "G-1 for CNF-0074: live named probes exit 0, confirmation artifact state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild circle.",
+ "output_path": "command-center/confirmation/CNF-0074-workflow-replay-determinism.json",
+ "output_schema": "command-center/schema/determinism-report.schema.json",
+ "registered": true,
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "CNF-0074-probe2-detector-control",
+  "verdict": "PASS"
+ },
+ "sentinel": "SUCCESS:CNF-0074",
+ "state": "SUCCESS",
+ "status": "DELIVERED",
+ "ts": "2026-08-24T18:57:03Z",
+ "unit_id": "CNF-0074"
+}

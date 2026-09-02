@@ -1,0 +1,27 @@
+I'll start from the existing AUD-0079 probe tree and read its return artifact so we resume rather than rebuild.There's no `SUBAGENT-RETURN.json` yet. Next I’ll read the existing probe artifacts, the measure script, and the unit’s contract so we know what G-1 actually requires.The live receipt already claims SUCCESS while the per-unit manifest hash is stale. I’ll inspect the catalog unit, the existing probes, and a delivered sibling so we resume against the real G-1 bar.The receipt already claims SUCCESS; I’ll check the schema, packer, and `ready_units` gate, then re-run the named probes on this Linux tree.This worktree is sparse—only `command-center` and `tools`. I’ll locate a full source tree and see which credential consumers we can actually re-run here.Probes are already on disk; I’ll make them re-runnable on this sparse Linux seed (marketplace/pwsh are absent) and keep the both-states discriminator honest.Cite-check fails closed as expected. Next I’ll re-run both named probes on this tree.Measure printed `SUCCESS:delivered`. I’ll write `SUBAGENT-RETURN.json` with the live hashes and confirm we didn’t mutate git or the global catalog.**SUCCESS:delivered AUD-0079** `predicate=delivered state=SUCCESS probes=2 raws=4 notes=probe_runtime.py:0,probe_static.py:0`
+
+AUD-0079 is G-1 contract-green on this Linux worktree. Existing `probe_static.py` / `probe_runtime.py` were resumed (not scrapped), re-ran exit 0, and the catalog receipt is an honest `SUCCESS` with a matching per-unit manifest row. Cloud `ok=true` was not treated as delivery.
+
+What was measured live:
+
+| Gate | Result |
+|---|---|
+| Named probes | `probe_static.py` exit 0, `probe_runtime.py` exit 0 |
+| Receipt | `command-center/audit/AUD-0079-credential-consumer-audit.json` — 56885 B, `state=SUCCESS` |
+| LF sha256 | `067f1fed76b0b43e668f93e4bc9402a55b75587c3a33b3386c391ed1f9e956ce` |
+| Per-unit manifest | same path + sha256 |
+| `ready_units.artifact_delivered` | `(True, 'delivered')` |
+| Schema | 0 errors |
+
+Probe science on this seed (only `command-center` + `tools` are mounted; marketplace, `plugin.proc`, `ci/harness`, `cs-lib.ps1`, and `pwsh` are absent):
+
+- Probe 1: 454 files, 50 env-read rows, 15 named variables
+- Probe 2: 14 unset/wrong cases, 7 pairs, 1 distinguishable
+- Both-states: full matrix RED=6 / PASS=1; known-good is `HOOK_AUDIT_REPO` via `check_citations.py`; `DETECTOR-DISCRIMINATES=true`
+
+Written:
+
+- `command-center/p2-wave/probes/AUD-0079/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/AUD-0079/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no key rotation, no wave relaunch.

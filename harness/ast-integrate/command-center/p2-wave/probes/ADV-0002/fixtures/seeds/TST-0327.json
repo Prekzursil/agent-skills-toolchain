@@ -1,0 +1,521 @@
+{
+ "schema_version": 1,
+ "unit_id": "TST-0327",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:TST-0327",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:TST-0327",
+ "min_bytes_threshold": 2048,
+ "manifest_registration": {
+  "manifest_path": "command-center/p2-wave/probes/TST-0327/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "timestamps": {
+  "started_at": "2026-08-25T01:03:11Z",
+  "ended_at": "2026-08-25T01:03:11Z"
+ },
+ "retry": {
+  "count": 0,
+  "policy": "No automatic retry: a failure here is a finding, not a transient."
+ },
+ "reviewer": {
+  "reviewer_id": "TST-0327-probe2-both-states",
+  "independent": true,
+  "fresh_context": false,
+  "verdict": "PASS",
+  "notes": "Mechanically independent probe 2 re-derives both-states on in-memory twins and live-executes the genuine control. Not a fresh-context human reviewer; the catalog names one, which this lane cannot supply without self-certifying."
+ },
+ "tests": [
+  {
+   "id": "census-resolves-or-unresolved",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe1_resolution_and_planted.py",
+   "result": "PASS",
+   "output_tail": "Every declaration has path+run_id or unresolved=true"
+  },
+  {
+   "id": "planted-fake-control-path",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe1_resolution_and_planted.py",
+   "result": "PASS",
+   "output_tail": "suite.planted-ghost flagged path_missing; not covered"
+  },
+  {
+   "id": "both-states-observed-failing",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe2_both_states.py",
+   "result": "PASS",
+   "output_tail": "Genuine FAIL observation covers; planted missing path does not"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "planted-ghost-path",
+   "kind": "absent-input",
+   "description": "Register a suite whose negative_control.path does not exist. The census must flag path_missing and must not count it as covered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "path_missing",
+   "good_state_output": "observed_failing"
+  },
+  {
+   "id": "pass-only-not-coverage",
+   "kind": "known-broken-fixture",
+   "description": "A control observed only PASSING is equivalent to no control for coverage. Only an observed FAIL counts.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0327/census.py:classify_declaration",
+   "claim": "Every declared control resolves to a repo-relative path plus a run id, or is marked unresolved. A planted missing path is flagged.",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe1_resolution_and_planted.py",
+     "exit_code": 0,
+     "fingerprint": "5ab15eff30dc90e1cacd772409ae4bbbef2ab233f02da3469538d1626ccaf265",
+     "raw_output": "{\"counts\": {\"covered\": 1, \"declared_never_failed\": 3, \"n_suites\": 5, \"no_declared_control\": 1, \"observed_failing\": 1, \"sum_equals_n\": true}, \"covered_path\": \"command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py\", \"covered_run_id\": \"run-covered-fail-001\", \"every_declaration_resolved_or_unresolved\": true, \"live_counts\": {\"covered\": 0, \"declared_never_failed\": 0, \"n_suites\": 4, \"no_declared_control\": 4, \"observed_failing\": 0, \"sum_equals_n\": true}, \"live_registry_present\": true, \"pass\": true, \"planted_flagged\": true, \"planted_status\": \"path_missing\", \"planted_suite\": \"suite.planted-ghost\", \"probe\": \"probe1-resolution-and-planted\", \"unit_id\": \"TST-0327\"}\nplanted_flagged=True covered=1 never_failed=3 none=1 live_registry_present=True\nSUCCESS:TST-0327-probe1 census resolves declarations; planted ghost flagged"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "emit-time recompute fixture_census",
+     "exit_code": 0,
+     "fingerprint": "400494c3f2e456acf9fad0f666594c4ac1b5b90836b97834c096d42121e38707",
+     "raw_output": "{\"counts\": {\"covered\": 1, \"declared_never_failed\": 3, \"n_suites\": 5, \"no_declared_control\": 1, \"observed_failing\": 1, \"sum_equals_n\": true}, \"covered_run_id\": \"run-covered-fail-001\", \"planted\": \"suite.planted-ghost\", \"planted_path_missing\": true}"
+    }
+   ]
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0327/census.py:three_counts",
+   "claim": "Three counts are reported; only observed_failing counts as covered. Both-states: live FAIL covers; planted missing path does not.",
+   "confidence": "almost-certain",
+   "verdict": "CONFIRMED",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe2_both_states.py",
+     "exit_code": 0,
+     "fingerprint": "4019d640a0f91f090db5a2d2ae35497a8cfe0c5172cdc4cfcd96cef66a4c0f4b",
+     "raw_output": "{\"bad_counts\": {\"covered\": 0, \"declared_never_failed\": 1, \"n_suites\": 1, \"no_declared_control\": 0, \"observed_failing\": 0, \"sum_equals_n\": true}, \"covered_on_observed_failing\": true, \"fired_on_bad\": true, \"good_counts\": {\"covered\": 1, \"declared_never_failed\": 0, \"n_suites\": 1, \"no_declared_control\": 0, \"observed_failing\": 1, \"sum_equals_n\": true}, \"independence\": \"in-memory twins; no fixtures/registry.json\", \"live_fail_exit_code\": 1, \"live_fail_run_id\": \"run-fb4191a42ca1\", \"live_pass_run_id\": \"run-2c1d187476de\", \"not_covered_on_pass_only\": true, \"not_covered_on_planted_missing\": true, \"pass\": true, \"probe\": \"probe2-both-states\", \"silent_counts\": {\"covered\": 0, \"declared_never_failed\": 1, \"n_suites\": 1, \"no_declared_control\": 0, \"observed_failing\": 0, \"sum_equals_n\": true}, \"silent_on_good\": false, \"unit_id\": \"TST-0327\"}\nboth-states covered_on_fail=True planted_not_covered=True pass_only_not_covered=True live_fail_rc=1\nSUCCESS:TST-0327-probe2 both-states: observed-failing covers; planted ghost does not"
+    },
+    {
+     "role": "verifier",
+     "method": "command",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe1_resolution_and_planted.py",
+     "exit_code": 0,
+     "fingerprint": "5ab15eff30dc90e1cacd772409ae4bbbef2ab233f02da3469538d1626ccaf265",
+     "raw_output": "{\"counts\": {\"covered\": 1, \"declared_never_failed\": 3, \"n_suites\": 5, \"no_declared_control\": 1, \"observed_failing\": 1, \"sum_equals_n\": true}, \"covered_path\": \"command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py\", \"covered_run_id\": \"run-covered-fail-001\", \"every_declaration_resolved_or_unresolved\": true, \"live_counts\": {\"covered\": 0, \"declared_never_failed\": 0, \"n_suites\": 4, \"no_declared_control\": 4, \"observed_failing\": 0, \"sum_equals_n\": true}, \"live_registry_present\": true, \"pass\": true, \"planted_flagged\": true, \"planted_status\": \"path_missing\", \"planted_suite\": \"suite.planted-ghost\", \"probe\": \"probe1-resolution-and-planted\", \"unit_id\": \"TST-0327\"}\nplanted_flagged=True covered=1 never_failed=3 none=1 live_registry_present=True\nSUCCESS:TST-0327-probe1 census resolves declarations; planted ghost flagged"
+    }
+   ]
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Production TEST-REGISTRY suites do not declare path-typed negative_control or mutation artifacts, and no results ledger is present. Fixture three-counts are the contract; live observed-failing coverage is 0 rather than an inventory of red_proof narratives.",
+   "settling_experiment": "Add path-typed negative_control entries to TEST-REGISTRY.json and append-only FAIL observations to a results ledger, then re-run both named probes; fixture shape remains the contract.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "consumer": "json.loads of catalog output_path TST-0327.json",
+   "artifact_path": "command-center/receipts/TST-0327.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "source",
+    "method": "command",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,pathlib; p=pathlib.Path('command-center/receipts/TST-0327.json'); t=p.read_text(encoding='utf-8'); d=json.loads(t); assert d.get('unit_id')=='TST-0327'; assert d.get('state')=='SUCCESS'; assert 'SUCCESS:TST-0327' in t; c=d.get('counts') or {}; print('CONSUME', c.get('no_declared_control'), c.get('declared_never_failed'), c.get('observed_failing'))\"",
+    "raw_output": "CONSUME 1 3 1",
+    "fingerprint": "ceee8966725a32bd2445c3a6764222378260b6e6ef8a43769344618b59bf0cd7",
+    "exit_code": 0
+   }
+  }
+ ],
+ "artifacts": [
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/census.py",
+   "sha256": "22a2c775ce15fd610a838cf0ed5352911b13095f01b65f289c893f0205c60eeb",
+   "bytes": 13732,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/probe1_resolution_and_planted.py",
+   "sha256": "2042aa70d513fc0e644784046b91fc244a97b9c26af412c419318bb988e1565a",
+   "bytes": 5297,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/probe2_both_states.py",
+   "sha256": "609e3731fd8239ac018e3bb72128eb51c53abbf7b538967f864265c05a0a39ce",
+   "bytes": 7102,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/fixtures/registry.json",
+   "sha256": "3797779da08235cff4c8f87e013ef2ae2bbac1ab39f4cf36f3878ad959a29ea3",
+   "bytes": 1424,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/fixtures/ledger.json",
+   "sha256": "7a2c1324c6c26da9753e00995d6148ee7a8d7f5047e7e701a1ad0200e5238ca3",
+   "bytes": 700,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py",
+   "sha256": "581d5fcaec3743c17742b944d6a1dc134e4d98fb2ace5dd68ad90a554d871e4b",
+   "bytes": 177,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/never_run.py",
+   "sha256": "0ace61c1b0885a244cc93c6b3ebb1ec01ca6e8503c341b9bf96cf2b21c170952",
+   "bytes": 199,
+   "exists": true,
+   "role": "supporting"
+  },
+  {
+   "path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/pass_only.py",
+   "sha256": "a31e4b7100083e03f9c6817a7d479b756fff40a504016cc4074d75d573eea9f5",
+   "bytes": 167,
+   "exists": true,
+   "role": "supporting"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:TST-0327",
+   "completion_marker": "UNIT-COMPLETE:TST-0327",
+   "title": "Census every suite for a declared negative control and fail the ones that have none",
+   "question": "For each registered suite, does a declared negative control resolve to an executable artifact plus a results-ledger run id, and has that control ever been observed to FAIL? Only observed-failing counts as covered.",
+   "answer": "The census classifies every suite into exactly one of three counts: no declared control=1, declared but never observed failing=3, observed failing (covered)=1. A planted fake control path is flagged path_missing and is not covered. A genuine control executed to FAIL is covered without a manual override. Live TEST-REGISTRY.json is present with n_suites=4: no_declared_control=4, declared_never_failed=0, observed_failing=0. Those suites carry red_proof prose, not path-typed negative_control declarations, so they bucket as no_declared_control. No results ledger is on disk, so a future path-typed declaration could not yet be observed-failing.",
+   "output_path": "command-center/receipts/TST-0327.json",
+   "output_schema": "command-center/schema/receipt.schema.json",
+   "registered": true,
+   "counts": {
+    "no_declared_control": 1,
+    "declared_never_failed": 3,
+    "observed_failing": 1,
+    "covered": 1,
+    "n_suites": 5,
+    "sum_equals_n": true
+   },
+   "fixture_counts": {
+    "no_declared_control": 1,
+    "declared_never_failed": 3,
+    "observed_failing": 1,
+    "covered": 1,
+    "n_suites": 5,
+    "sum_equals_n": true
+   },
+   "live_registry": {
+    "present": true,
+    "path": "command-center/TEST-REGISTRY.json",
+    "ledger_present": false,
+    "ledger_path": null,
+    "counts": {
+     "no_declared_control": 4,
+     "declared_never_failed": 0,
+     "observed_failing": 0,
+     "covered": 0,
+     "n_suites": 4,
+     "sum_equals_n": true
+    },
+    "note": "results ledger absent; declared controls cannot be observed-failing",
+    "suite_buckets": [
+     {
+      "suite_id": "tools/command-center/tests/test_validate.py",
+      "bucket": "no_declared_control"
+     },
+     {
+      "suite_id": "tools/command-center/tests/test_close.py",
+      "bucket": "no_declared_control"
+     },
+     {
+      "suite_id": "agent-self/harness/tests/test_register_gate.py",
+      "bucket": "no_declared_control"
+     },
+     {
+      "suite_id": "tools/command-center/tests/test_registry.py",
+      "bucket": "no_declared_control"
+     }
+    ]
+   },
+   "live_receipt_controls_advisory": {
+    "population": "receipts-with-negative_controls",
+    "n_receipts_with_declaration": 143,
+    "n_with_fired_on_bad": 143,
+    "mixed_into_suite_counts": false,
+    "sample_unit_ids": [
+     "ADV-0009",
+     "ADV-0017",
+     "ADV-0025",
+     "AUD-0006",
+     "BLD-0001",
+     "BLD-0002",
+     "BLD-0004",
+     "BLD-0006",
+     "BLD-0008",
+     "BLD-0010",
+     "BLD-0016",
+     "BLD-0023",
+     "BLD-0024",
+     "BLD-0027",
+     "BLD-0028",
+     "BLD-0031",
+     "BLD-0040",
+     "BLD-0041",
+     "BLD-0042",
+     "BLD-0044"
+    ]
+   },
+   "only_observed_failing_counts_as_covered": true,
+   "both_states": {
+    "covered_on_observed_failing": true,
+    "not_covered_on_planted_missing": true,
+    "not_covered_on_pass_only": true,
+    "live_fail_run_id": "run-fb4191a42ca1",
+    "live_fail_exit_code": 1,
+    "method": "probe2 constructs in-memory twin registries, executes genuine_failing.py and pass_only.py, and requires covered iff the ledger observed FAIL",
+    "independence": "in-memory twins; no fixtures/registry.json"
+   },
+   "fixture_rows": [
+    {
+     "suite_id": "suite.none",
+     "suite_path": "command-center/p2-wave/probes/TST-0327/fixtures/suites/none.py",
+     "declared": false,
+     "declarations": [],
+     "bucket": "no_declared_control",
+     "counts_as_covered": false,
+     "unresolved_flags": [],
+     "covered_controls": []
+    },
+    {
+     "suite_id": "suite.planted-ghost",
+     "suite_path": "command-center/p2-wave/probes/TST-0327/fixtures/suites/planted.py",
+     "declared": true,
+     "declarations": [
+      {
+       "suite_id": "suite.planted-ghost",
+       "control_id": "nc-ghost",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/DOES-NOT-EXIST.py",
+       "resolved_path": null,
+       "path_present": false,
+       "path_reason": "missing-file",
+       "run_id": null,
+       "fully_resolved": false,
+       "unresolved": true,
+       "observation_count": 0,
+       "fail_count": 0,
+       "pass_count": 0,
+       "status": "path_missing",
+       "counts_as_covered": false
+      }
+     ],
+     "bucket": "declared_never_failed",
+     "counts_as_covered": false,
+     "unresolved_flags": [
+      {
+       "suite_id": "suite.planted-ghost",
+       "control_id": "nc-ghost",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/DOES-NOT-EXIST.py",
+       "resolved_path": null,
+       "path_present": false,
+       "path_reason": "missing-file",
+       "run_id": null,
+       "fully_resolved": false,
+       "unresolved": true,
+       "observation_count": 0,
+       "fail_count": 0,
+       "pass_count": 0,
+       "status": "path_missing",
+       "counts_as_covered": false
+      }
+     ],
+     "covered_controls": [],
+     "planted_path_missing": true
+    },
+    {
+     "suite_id": "suite.never-run",
+     "suite_path": "command-center/p2-wave/probes/TST-0327/fixtures/suites/never_run.py",
+     "declared": true,
+     "declarations": [
+      {
+       "suite_id": "suite.never-run",
+       "control_id": "nc-never-run",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/never_run.py",
+       "resolved_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/never_run.py",
+       "path_present": true,
+       "path_reason": "ok",
+       "run_id": null,
+       "fully_resolved": false,
+       "unresolved": true,
+       "observation_count": 0,
+       "fail_count": 0,
+       "pass_count": 0,
+       "status": "never_observed",
+       "counts_as_covered": false
+      }
+     ],
+     "bucket": "declared_never_failed",
+     "counts_as_covered": false,
+     "unresolved_flags": [
+      {
+       "suite_id": "suite.never-run",
+       "control_id": "nc-never-run",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/never_run.py",
+       "resolved_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/never_run.py",
+       "path_present": true,
+       "path_reason": "ok",
+       "run_id": null,
+       "fully_resolved": false,
+       "unresolved": true,
+       "observation_count": 0,
+       "fail_count": 0,
+       "pass_count": 0,
+       "status": "never_observed",
+       "counts_as_covered": false
+      }
+     ],
+     "covered_controls": [],
+     "planted_path_missing": false
+    },
+    {
+     "suite_id": "suite.pass-only",
+     "suite_path": "command-center/p2-wave/probes/TST-0327/fixtures/suites/pass_only.py",
+     "declared": true,
+     "declarations": [
+      {
+       "suite_id": "suite.pass-only",
+       "control_id": "nc-pass-only",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/pass_only.py",
+       "resolved_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/pass_only.py",
+       "path_present": true,
+       "path_reason": "ok",
+       "run_id": "run-pass-only-001",
+       "fully_resolved": true,
+       "unresolved": false,
+       "observation_count": 1,
+       "fail_count": 0,
+       "pass_count": 1,
+       "status": "never_failed",
+       "counts_as_covered": false
+      }
+     ],
+     "bucket": "declared_never_failed",
+     "counts_as_covered": false,
+     "unresolved_flags": [],
+     "covered_controls": [],
+     "planted_path_missing": false
+    },
+    {
+     "suite_id": "suite.covered",
+     "suite_path": "command-center/p2-wave/probes/TST-0327/fixtures/suites/covered.py",
+     "declared": true,
+     "declarations": [
+      {
+       "suite_id": "suite.covered",
+       "control_id": "nc-genuine",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py",
+       "resolved_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py",
+       "path_present": true,
+       "path_reason": "ok",
+       "run_id": "run-covered-fail-001",
+       "fully_resolved": true,
+       "unresolved": false,
+       "observation_count": 1,
+       "fail_count": 1,
+       "pass_count": 0,
+       "status": "observed_failing",
+       "counts_as_covered": true
+      }
+     ],
+     "bucket": "observed_failing",
+     "counts_as_covered": true,
+     "unresolved_flags": [],
+     "covered_controls": [
+      {
+       "suite_id": "suite.covered",
+       "control_id": "nc-genuine",
+       "declared_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py",
+       "resolved_path": "command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py",
+       "path_present": true,
+       "path_reason": "ok",
+       "run_id": "run-covered-fail-001",
+       "fully_resolved": true,
+       "unresolved": false,
+       "observation_count": 1,
+       "fail_count": 1,
+       "pass_count": 0,
+       "status": "observed_failing",
+       "counts_as_covered": true
+      }
+     ],
+     "planted_path_missing": false
+    }
+   ],
+   "implementation": {
+    "module": "command-center/p2-wave/probes/TST-0327/census.py",
+    "fixture_registry": "command-center/p2-wave/probes/TST-0327/fixtures/registry.json",
+    "fixture_ledger": "command-center/p2-wave/probes/TST-0327/fixtures/ledger.json",
+    "buckets": [
+     "no_declared_control",
+     "declared_never_failed",
+     "observed_failing"
+    ]
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe1_resolution_and_planted.py",
+     "exit_code": 0,
+     "role": "resolution-and-planted",
+     "raw_output": "{\"counts\": {\"covered\": 1, \"declared_never_failed\": 3, \"n_suites\": 5, \"no_declared_control\": 1, \"observed_failing\": 1, \"sum_equals_n\": true}, \"covered_path\": \"command-center/p2-wave/probes/TST-0327/fixtures/controls/genuine_failing.py\", \"covered_run_id\": \"run-covered-fail-001\", \"every_declaration_resolved_or_unresolved\": true, \"live_counts\": {\"covered\": 0, \"declared_never_failed\": 0, \"n_suites\": 4, \"no_declared_control\": 4, \"observed_failing\": 0, \"sum_equals_n\": true}, \"live_registry_present\": true, \"pass\": true, \"planted_flagged\": true, \"planted_status\": \"path_missing\", \"planted_suite\": \"suite.planted-ghost\", \"probe\": \"probe1-resolution-and-planted\", \"unit_id\": \"TST-0327\"}\nplanted_flagged=True covered=1 never_failed=3 none=1 live_registry_present=True\nSUCCESS:TST-0327-probe1 census resolves declarations; planted ghost flagged"
+    },
+    {
+     "id": "probe2",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0327/probe2_both_states.py",
+     "exit_code": 0,
+     "role": "both-states",
+     "raw_output": "{\"bad_counts\": {\"covered\": 0, \"declared_never_failed\": 1, \"n_suites\": 1, \"no_declared_control\": 0, \"observed_failing\": 0, \"sum_equals_n\": true}, \"covered_on_observed_failing\": true, \"fired_on_bad\": true, \"good_counts\": {\"covered\": 1, \"declared_never_failed\": 0, \"n_suites\": 1, \"no_declared_control\": 0, \"observed_failing\": 1, \"sum_equals_n\": true}, \"independence\": \"in-memory twins; no fixtures/registry.json\", \"live_fail_exit_code\": 1, \"live_fail_run_id\": \"run-fb4191a42ca1\", \"live_pass_run_id\": \"run-2c1d187476de\", \"not_covered_on_pass_only\": true, \"not_covered_on_planted_missing\": true, \"pass\": true, \"probe\": \"probe2-both-states\", \"silent_counts\": {\"covered\": 0, \"declared_never_failed\": 1, \"n_suites\": 1, \"no_declared_control\": 0, \"observed_failing\": 0, \"sum_equals_n\": true}, \"silent_on_good\": false, \"unit_id\": \"TST-0327\"}\nboth-states covered_on_fail=True planted_not_covered=True pass_only_not_covered=True live_fail_rc=1\nSUCCESS:TST-0327-probe2 both-states: observed-failing covers; planted ghost does not"
+    }
+   ],
+   "cloud_ok": false,
+   "required_fix": null,
+   "notes": "G-1 for TST-0327: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery."
+  }
+ },
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 24051,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0327.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

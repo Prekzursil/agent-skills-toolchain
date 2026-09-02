@@ -1,0 +1,45 @@
+{
+  "artifacts": [
+    {
+      "bytes": 17531,
+      "exists": true,
+      "path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+      "role": "primary",
+      "sha256": "2d6bb527535b2312d5c05ddcccd49d7d55b8f7241e5643020554af80c5dab101"
+    }
+  ],
+  "cloud_ok": false,
+  "id": "ADV-0027",
+  "manifest_path": "command-center/p2-wave/probes/ADV-0027/UNIT-ARTIFACT-MANIFEST.json",
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0027/probe1_extract_matrix.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "raw_output": "{\"computed_not_asserted\": true, \"naive_tar_extractall_landed_outside\": true, \"negative_controls\": [{\"fired_on_bad_state\": true, \"id\": \"NC-NAIVE-TAR-EXTRACTALL\", \"note\": \"stdlib tarfile.extractall writes ../ outside dest; import path does not.\", \"silent_on_good_state\": true}], \"pass\": true, \"platform\": {\"python\": \"3.12.3\", \"release\": \"6.8.0-136-generic\", \"system\": \"Linux\"}, \"probe\": \"probe1-extract-matrix\", \"ratio_observed\": 333333.3333333333, \"targets\": [{\"error\": \"TRAVERSAL: ../escape.beacon (normalised to '../escape.beacon')\", \"escaped\": false, \"id\": \"T1-relative-traversal\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": [{\"code\": \"TRAVERSAL\", \"detail\": \"normalised to '../escape.beacon'\", \"member\": \"../escape.beacon\"}], \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"ABSOLUTE: /tmp/adv0027-matrix-f_6vsl6g/abs.beacon (absolute member path)\", \"escaped\": false, \"id\": \"T2-absolute-path\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": [{\"code\": \"ABSOLUTE\", \"detail\": \"absolute member path\", \"member\": \"/tmp/adv0027-matrix-f_6vsl6g/abs.beacon\"}], \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"SYMLINK: link (linkname='../outside.beacon')\", \"escaped\": false, \"id\": \"T3-external-symlink\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": [{\"code\": \"SYMLINK\", \"detail\": \"linkname='../outside.beacon'\", \"member\": \"link\"}], \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"HARDLINK: linked.txt (linkname='/tmp/adv0027-matrix-f_6vsl6g/hardlink-target.txt')\", \"escaped\": false, \"id\": \"T4-hardlink\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": [{\"code\": \"HARDLINK\", \"detail\": \"linkname='/tmp/adv0027-matrix-f_6vsl6g/hardlink-target.txt'\", \"member\": \"linked.txt\"}], \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"DEVICE_NAME: CON (Windows reserved device 'CON')\", \"escaped\": false, \"id\": \"T5-device-name\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": [{\"code\": \"DEVICE_NAME\", \"detail\": \"Windows reserved device 'CON'\", \"member\": \"CON\"}], \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"RATIO: bomb.bin (compression ratio 333333.3:1 exceeds 100:1)\", \"escaped\": false, \"id\": \"T6-compression-ratio\", \"import_ok\": false, \"lands\": \"nowhere\", \"outside_new\": [], \"rejected\": [{\"code\": \"RATIO\", \"detail\": \"compression ratio 333333.3:1 exceeds 100:1\", \"member\": \"bomb.bin\"}], \"verdict\": \"REFUTED\", \"written\": []}, {\"error\": \"TRAVERSAL: pkg/../../nested-escape.beacon (normalised to '../nested-escape.beacon')\", \"escaped\": false, \"id\": \"T1b-nested-dotdot-pre-normalize-bypass\", \"import_ok\": false, \"lands\": \"nowhere\", \"note\": \"pkg/../../escape bypasses startswith('..'); post-normpath rejects it.\", \"outside_new\": [], \"rejected\": [{\"code\": \"TRAVERSAL\", \"detail\": \"normalised to '../nested-escape.beacon'\", \"member\": \"pkg/../../nested-escape.beacon\"}], \"verdict\": \"REFUTED\", \"written\": []}], \"tests\": [{\"id\": \"T-CONTROL-BENIGN-ARCHIVE\", \"result\": \"PASS\", \"written\": [\"pkg/manifest.json\", \"pkg/payload.txt\"]}, {\"crash\": false, \"handling\": \"EXPLICIT-REJECT\", \"id\": \"T-DEVICE-NAME-EXPLICIT\", \"note\": \"Linux will create a regular file named CON; an unhandled open is not a crash here. The import path rejects DEVICE_NAME before any create, which is distinct from a successful traversal.\", \"platform\": \"Linux\", \"result\": \"PASS\"}], \"unit_id\": \"ADV-0027\"}\nbenign_ok=True naive_red=True ratio=333333.3:1 targets_refuted=7 platform=Linux\nSUCCESS:ADV-0027-probe1 import-path matrix: hostile members rejected, benign extracts\n.................\n----------------------------------------------------------------------\nRan 17 tests in 0.006s\n\nOK",
+      "role": "import-path-member-matrix"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ADV-0027/probe2_static_containment.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "raw_output": "{\"bypass_member\": \"pkg/../../escape.beacon\", \"checks\": {\"contain_calls_normalize_first\": true, \"contain_uses_relative_to\": true, \"extract_calls_containment\": true, \"extractall_in_import_path\": [], \"garbage_rejected\": [{\"n_errs\": 12, \"sample\": {}}, {\"n_errs\": 12, \"sample\": {\"unit_id\": 1}}, {\"n_errs\": 12, \"sample\": {\"nope\": true}}], \"normalize_uses_posixpath_normpath\": true, \"other_tools_extractall\": [\"tools/release/bundle_secret_scan.py\", \"tools/marketplace/tests/test_archive_extract.py\"], \"post_normalize_raises_TRAVERSAL\": true, \"pre_normalize_startswith_dotdot\": false, \"schema_validates_artifact_if_present\": true}, \"computed_not_asserted\": true, \"post\": {\"code\": \"TRAVERSAL\", \"member\": \"pkg/../../escape.beacon\", \"raised\": true}, \"probe\": \"probe2-static-post-normalization-containment\", \"source\": \"tools/marketplace/archive_extract.py\", \"unit_id\": \"ADV-0027\"}\npost_normpath_TRAVERSAL=True startswith_bypass=True no_extractall=True other_tools=['tools/release/bundle_secret_scan.py', 'tools/marketplace/tests/test_archive_extract.py']\nSUCCESS:ADV-0027-probe2 static: containment runs AFTER normalisation",
+      "role": "static-post-normalization-containment"
+    }
+  ],
+  "notes": "G-1 for ADV-0027: live named probes exit 0, artifact state=SUCCESS (hostile members REFUTED), per-unit manifest row. Did not run global unit_manifest.py --write.",
+  "output_path": "command-center/adversarial/ADV-0027-archive-extraction-traversal-attacks.json",
+  "output_schema": "command-center/schema/exploit-proof.schema.json",
+  "registered": true,
+  "reviewer": {
+    "independent": true,
+    "reviewer_id": "ADV-0027-probe2-static-post-normalization-containment",
+    "verdict": "PASS"
+  },
+  "sentinel": "SENTINEL:ADV-0027:ARCHIVE-EXTRACTION-TRAVERSAL-MATRIX",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "ts": "2026-08-24T19:15:36Z",
+  "unit_id": "ADV-0027",
+  "completion_sentinel": "SUCCESS:ADV-0027 emitted ONLY when the artifact at output_path exists, is non-empty, parses against output_schema, records BOTH named probes verbatim with their raw output, carries exactly one verdict from {CONFIRMED|REFUTED|PARTIAL|NOT-CHECKED|BLOCKED} per enumerated target, and records the result of every listed control/negative test. Any missing control downgrades the unit's verdicts to NOT-CHECKED. Otherwise FAILED:ADV-0027 <reason>."
+}

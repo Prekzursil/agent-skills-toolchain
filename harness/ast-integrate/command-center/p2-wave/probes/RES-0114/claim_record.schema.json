@@ -1,0 +1,194 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/RES-0114/claim_record.schema.json",
+  "title": "RES-0114 research claim-record (unit-local; catalog family is RES-0001)",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "claim_id",
+    "state",
+    "sentinel",
+    "canonical_mechanism",
+    "source_lineage",
+    "evidence_tier",
+    "confidence_band",
+    "named_settling_probe",
+    "contradiction_edges",
+    "support_edges",
+    "freshness_stamp",
+    "snapshot_sha256",
+    "property_list",
+    "silent_download_mapping",
+    "impossible_property",
+    "mechanisms",
+    "promoted_mechanisms",
+    "e3_held_out",
+    "reviewer",
+    "tests",
+    "question"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "RES-0114" },
+    "claim_id": { "type": "string", "const": "RES-0114" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": {
+      "type": "string",
+      "minLength": 80,
+      "pattern": "^SUCCESS:RES-0114"
+    },
+    "canonical_mechanism": { "type": "string", "minLength": 40 },
+    "source_lineage": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "locator"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "kind": {
+            "type": "string",
+            "enum": [
+              "arxiv",
+              "doi",
+              "official-doc",
+              "estate-catalog",
+              "estate-artifact",
+              "presentation"
+            ]
+          },
+          "locator": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "evidence_tier": { "type": "string", "enum": ["E1", "E2", "E3", "E4"] },
+    "confidence_band": { "type": "string", "minLength": 8 },
+    "named_settling_probe": { "type": "string", "minLength": 16 },
+    "contradiction_edges": { "type": "array", "minItems": 1 },
+    "support_edges": { "type": "array", "minItems": 1 },
+    "freshness_stamp": { "type": "string", "minLength": 10 },
+    "snapshot_sha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+    "property_list": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "agent_run_adoptable",
+          "impossible_for_live_model_and_web",
+          "catches_silent_download"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "name": { "type": "string", "minLength": 8 },
+          "agent_run_adoptable": { "type": "boolean" },
+          "impossible_for_live_model_and_web": { "type": "boolean" },
+          "catches_silent_download": { "type": "boolean" }
+        }
+      }
+    },
+    "silent_download_mapping": {
+      "type": "object",
+      "required": [
+        "motivating_case",
+        "catching_property_id",
+        "would_have_caught",
+        "why_it_would_have_caught",
+        "comment_is_not_evidence"
+      ],
+      "properties": {
+        "motivating_case": { "type": "string", "minLength": 40 },
+        "catching_property_id": { "type": "string", "const": "P-UNDECLARED-EGRESS" },
+        "would_have_caught": { "type": "boolean", "const": true },
+        "why_it_would_have_caught": { "type": "string", "minLength": 40 },
+        "comment_is_not_evidence": { "type": "boolean", "const": true }
+      }
+    },
+    "impossible_property": {
+      "type": "object",
+      "required": [
+        "id",
+        "name",
+        "satisfiable_by_agent_run_with_live_model_and_web",
+        "reason"
+      ],
+      "properties": {
+        "id": { "type": "string", "const": "P-CLOSED-WORLD-BIT-IDENTITY" },
+        "name": { "type": "string", "minLength": 16 },
+        "satisfiable_by_agent_run_with_live_model_and_web": {
+          "type": "boolean",
+          "const": false
+        },
+        "reason": { "type": "string", "minLength": 40 }
+      }
+    },
+    "mechanisms": {
+      "type": "array",
+      "minItems": 4,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "evidence_tier",
+          "promoted",
+          "arxiv_or_doi",
+          "locator"
+        ]
+      }
+    },
+    "promoted_mechanisms": {
+      "type": "array",
+      "minItems": 1
+    },
+    "e3_held_out": {
+      "type": "array",
+      "minItems": 1
+    },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "reviewer_id",
+        "independent",
+        "default",
+        "verdict",
+        "read_conclusion_first",
+        "refuted_claims",
+        "surviving_claims"
+      ],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 8 },
+        "independent": { "type": "boolean", "const": true },
+        "default": { "type": "string", "const": "REFUTED" },
+        "verdict": { "type": "string", "enum": ["PASS", "REFUTED", "PARTIAL"] },
+        "read_conclusion_first": { "type": "boolean", "const": false },
+        "refuted_claims": { "type": "array", "minItems": 1 },
+        "surviving_claims": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": ["id", "strongest_caveat"],
+            "properties": {
+              "id": { "type": "string" },
+              "strongest_caveat": { "type": "string", "minLength": 16 }
+            }
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"]
+      }
+    },
+    "question": { "type": "string", "minLength": 40 }
+  }
+}

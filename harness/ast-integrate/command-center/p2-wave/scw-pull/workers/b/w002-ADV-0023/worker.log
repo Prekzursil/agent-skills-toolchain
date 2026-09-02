@@ -1,0 +1,16 @@
+I'll start from the existing ADV-0023 probe tree, read any return artifact, and resume from what's already built rather than scrap it.Existing probe files are in place. Next I’ll read the return artifact, handoff, and the G-1 measurement contract so we resume from that instead of rebuilding.The unit is still BLOCKED on disk. I’ll pull the catalog contract, `artifact_delivered`, and a successful sibling so we know what G-1 actually requires here.ADV-0023 is a close-bucket unit: probes exist, the artifact is still BLOCKED. I’ll inspect a delivered sibling, the receipt schema, and whether gitleaks is available on this box.I’ll locate the receipt schema, gitleaks, and corpus size next so the Linux probes stay honest and finish inside the 180s re-run window.Repo minus probe trees is 372MB, which is scannable. Next I’ll install gitleaks 8.30.1 and Linux-port the named probes.I’ll port the named probes to Linux, skip the 6.3G probe trees so gitleaks stays inside the 180s window, and prefix helper scripts so measure re-runs the real probes.**SUCCESS:delivered ADV-0023** `predicate=delivered state=SUCCESS probes=3 raws=4 notes=control_negative.py:0,probe1_gitleaks_entropy.py:0,probe2_canary.py:0`
+
+G-1 holds for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not rebuilt from scratch.
+
+**What was green**
+- Named probes re-ran to exit 0: gitleaks 8.30.1 plus Shannon entropy, then planted-canary recall.
+- Catalog output `command-center/adversarial/ADV-0023-corpus-secret-canary-sweep.json` is `state=SUCCESS` (78,283 bytes, LF).
+- Per-unit `command-center/p2-wave/probes/ADV-0023/UNIT-ARTIFACT-MANIFEST.json` names that path with live sha256 `70f8814b8f81232762c1148ba7a2ff06125fa769097b9158e3bd71d63e26526d`.
+- `SUBAGENT-RETURN.json` records the same measure line.
+
+**Science (honest, not a clean sweep)**
+- Probe 2: planted 10, found 8, recall 0.80, expected-hit 8/8. CAN-08 (AWS digit-gap) and CAN-09 (Anthropic default-rule gap) still miss. Canaries were TEMP-only and cleaned (`cleanup_ok=true`).
+- Probe 1: command-center minus `p2-wave/probes` (those are measurement working dirs, 6.3G). Tier A gitleaks **3628** (upper bound, untriaged). No event-ledger on this box, so Tier B is 0 / `ledger_exists=false`.
+- D1 is `not-present-on-this-worktree`, not rotated. D2 (gitleaks AWS `[A-Z2-7]` gap) stays open P2.
+
+**Constraints kept:** no git mutate, no global `unit_manifest.py --write`, no key rotation or printing, no finish-everything / cloud-ok relaunch. Helper scripts were prefixed `_status_` / `_pack_` so the measure re-runs the named probes.

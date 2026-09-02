@@ -1,0 +1,18 @@
+I'll start from the existing BLD-0028 probe tree and measure what's already there before writing anything.Existing probe tree is substantial. Next I’ll read the return, manifest, catalog spec, and measurement contract so we resume instead of rebuilding.SUBAGENT-RETURN already claims delivered; I’ll verify against the live measure script and catalog contract instead of trusting that claim.Probe2 already shows hash drift and a 75-vs-76 control split. I’ll read the probe scripts, schema, and `ready_units` so we know what a live re-run will actually fail on.I'll re-run the live probes, check hashes and schema, and isolate the 75-vs-76 classification disagreement.Next I’ll re-run the measure, load the schema resolver, and isolate the one classification that harvest and verify disagree on.Measure is red: verify now hits live pointer errors, so the freeze is stale. I’ll inspect that failure and the AUD-0006 control mismatch before re-harvesting.Stale freeze is the live red: 2,264 pointer errors after sibling receipts moved. I’ll fix the producer-control join, then re-harvest against the current corpus.I'll keep the existing probes and fix the join so a zero is controlled when its publishing receipt already records both detector halves. Then I'll re-harvest.Control suite is green and the mutant goes red. Next I’ll freeze a new census against the live corpus.Harvest and verify now agree: 466 documents, 75 controlled, 7095 uncontrolled, zero pointer errors. I’ll write the receipt and per-unit manifest from those live numbers.I’ll emit the receipt from the live probe outputs, then lock the per-unit manifest to that file’s hash.Measure printed `SUCCESS:delivered`. I’ll lock that line into SUBAGENT-RETURN and confirm the live hashes still match.**SUCCESS:delivered**
+
+`python command-center/p2-wave/_measure_one_delivered.py BLD-0028` printed:
+
+`SUCCESS:delivered BLD-0028 predicate=delivered state=SUCCESS probes=2 raws=3 notes=harvest_uncontrolled_zeros.py:0,verify_census.py:0`
+
+Resumed the existing probe tree. Did not treat cloud `ok=true` as delivery. The previous SUCCESS receipt was stale: live verify failed with 2264 pointer errors after sibling receipts moved, mainly `BLD-0042`. Re-harvested against the live corpus and kept SUCCESS only after the named probes exited 0.
+
+**Catalog answer (this freeze):** 466 JSON documents, 99 lane reports in scope (omitted=0), **7170** semantic zero-like results, **75 CONTROLLED-ZERO**, **7095 UNCONTROLLED-ZERO** requeued to **221** producers. Verify recount matches (`disposition_mismatches=0`, `source_pointer_errors=0`). Uncontrolled zeros stay requeued; producers were not rebuilt.
+
+**Artifacts**
+- `command-center/receipts/BLD-0028.json` — 49619 B, `state=SUCCESS`
+- `command-center/p2-wave/probes/BLD-0028/UNIT-ARTIFACT-MANIFEST.json` — sha256 `08f96b47882411ed0e56116a96d3195b654012c397e5fccd18e363de9e26ce4f` matches the live LF hash
+- `command-center/p2-wave/probes/BLD-0028/SUBAGENT-RETURN.json`
+
+Controls: planted uncontrolled caught, controlled twin not flagged, quoted “no findings” excluded, detector-disabled mutant exits 1.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Anthropic-vendor recount remains a residual, not a withheld SUCCESS.

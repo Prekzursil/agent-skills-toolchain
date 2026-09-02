@@ -1,0 +1,648 @@
+{
+  "access_control": {
+    "access_log_actors": [
+      "detector",
+      "harness",
+      "release-gate"
+    ],
+    "access_log_purposes": [
+      "detector-control",
+      "draw",
+      "score-release"
+    ],
+    "access_log_rows": 5,
+    "owner": "root",
+    "tune_purpose_refused": true,
+    "uid": 0,
+    "vault_mode": "600",
+    "who_could_have_seen": "owner uid=0 name=root (mode 600); group/other bits are off so a non-owner process cannot read the vault",
+    "world_or_group_readable": false
+  },
+  "artifact_paths": [
+    "command-center/receipts/TST-0306.json",
+    "tools/bench/shadow_split.py",
+    "tools/bench/__init__.py",
+    "command-center/p2-wave/probes/TST-0306/probe1_gap_series.py",
+    "command-center/p2-wave/probes/TST-0306/probe2_leak_and_access.py",
+    "command-center/bench/cases/dev-manifest.json",
+    "command-center/bench/shadow-vault/split.json",
+    "command-center/bench/shadow-vault/ACCESS.log"
+  ],
+  "artifacts": [
+    {
+      "bytes": 19827,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/bench/shadow_split.py",
+      "role": "primary-implementation",
+      "sha256": "7be117a650914ff9af9f45fb7646f4c307b60d4942d0842d7dddf8869d6bc4cb"
+    },
+    {
+      "bytes": 674,
+      "eol": "LF",
+      "exists": true,
+      "path": "tools/bench/__init__.py",
+      "role": "supporting",
+      "sha256": "bcaab82b28f3eec62fa2107d03d29bebe7b3ab463cf22c87e3950bfa235f9a1a"
+    },
+    {
+      "bytes": 5466,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0306/probe1_gap_series.py",
+      "role": "supporting",
+      "sha256": "1338a3472cfd2e2fc0a5639c8a8a0620f5773d808f7f33e0b14ecb6d86f4b644"
+    },
+    {
+      "bytes": 7067,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/p2-wave/probes/TST-0306/probe2_leak_and_access.py",
+      "role": "supporting",
+      "sha256": "38ea2b8eca70418d92900c7f3f4006b8435f4b1a06d35083ea9938216ff33b66"
+    },
+    {
+      "bytes": 7153,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/bench/cases/dev-manifest.json",
+      "role": "supporting",
+      "sha256": "fcbbda3d33ab94f580587ff9913afb5a14a136007f08a2886bbd75a31f7d0b31"
+    },
+    {
+      "bytes": 4183,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/bench/shadow-vault/split.json",
+      "role": "supporting",
+      "sha256": "5980df7e48f1eaf87de35fec5bd659252aa522b42d922ec851467541006f3b7b"
+    },
+    {
+      "bytes": 579,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/bench/shadow-vault/ACCESS.log",
+      "role": "supporting",
+      "sha256": "4cd7a3b0a7baab00ad84cd9a0794310f1684b9b9613f6c7a40a0b6371b47beb6"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:TST-0306",
+  "evidence": [
+    {
+      "anchor": "tools/bench/shadow_split.py:overfitting_verdict",
+      "claim": "Dev-versus-shadow gain gap is a per-iteration series of 10 improvement steps plus baseline. An honest learner is ALLOW; a DEV-memorizing learner is BLOCK_OVERFIT even when DEV accuracy is high. A one-point spike that recovers is ALLOW, so the gate is not max(gap).",
+      "detail": "honest=ALLOW gap=-0.0750; gamed=BLOCK_OVERFIT gap=0.4500 slope=0.0455 early=0.0500; spike=ALLOW peak=0.5500",
+      "kind": "command",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe1_gap_series.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"checks\": {\n    \"gamed_block\": true,\n    \"gamed_blocks_claim_despite_dev\": true,\n    \"gamed_early_gap_below_threshold\": true,\n    \"gamed_final_gap_ge_threshold\": true,\n    \"gamed_series_len\": true,\n    \"gamed_slope_ge_threshold\": true,\n    \"honest_allow\": true,\n    \"honest_does_not_block_claim\": true,\n    \"honest_series_len\": true,\n    \"implementer_report_hides_shadow\": true,\n    \"n_iter_is_10\": true,\n    \"spike_allow\": true,\n    \"spike_max_would_block\": true,\n    \"spike_proves_not_max_snapshot\": true,\n    \"threshold_versioned\": true,\n    \"tune_on_one_shadow_gap_still_wide\": true,\n    \"tune_on_one_shadow_still_blocks\": true,\n    \"tuned_series_len\": true\n  },\n  \"gamed\": {\n    \"early_gap\": 0.05,\n    \"final_dev\": 1.0,\n    \"final_gap\": 0.45,\n    \"final_shadow\": 0.45,\n    \"series\": [\n      {\n        \"dev\": 0.55,\n        \"gain_dev\": 0.0,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.0,\n        \"iteration\": 0,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.6,\n        \"gain_dev\": 0.04999999999999993,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.04999999999999993,\n        \"iteration\": 1,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.65,\n        \"gain_dev\": 0.09999999999999998,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.09999999999999998,\n        \"iteration\": 2,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.7,\n        \"gain_dev\": 0.1499999999999999,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.1499999999999999,\n        \"iteration\": 3,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.75,\n        \"gain_dev\": 0.19999999999999996,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.19999999999999996,\n        \"iteration\": 4,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.775,\n        \"gain_dev\": 0.22499999999999998,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.22499999999999998,\n        \"iteration\": 5,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.825,\n        \"gain_dev\": 0.2749999999999999,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.2749999999999999,\n        \"iteration\": 6,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.875,\n        \"gain_dev\": 0.32499999999999996,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.32499999999999996,\n        \"iteration\": 7,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.925,\n        \"gain_dev\": 0.375,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.375,\n        \"iteration\": 8,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.975,\n        \"gain_dev\": 0.42499999999999993,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.42499999999999993,\n        \"iteration\": 9,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 1.0,\n        \"gain_dev\": 0.44999999999999996,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.44999999999999996,\n        \"iteration\": 10,\n        \"shadow\": 0.45\n      }\n    ],\n    \"slope\": 0.045455,\n    \"verdict\": \"BLOCK_OVERFIT\"\n  },\n  \"honest\": {\n    \"final_gap\": -0.075,\n    \"series\": [\n      {\n        \"dev\": 0.55,\n        \"gain_dev\": 0.0,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.0,\n        \"iteration\": 0,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.575,\n        \"gain_dev\": 0.02499999999999991,\n        \"gain_shadow\": 0.04999999999999999,\n        \"gap\": -0.025000000000000078,\n        \"iteration\": 1,\n        \"shadow\": 0.5\n      },\n      {\n        \"dev\": 0.625,\n        \"gain_dev\": 0.07499999999999996,\n        \"gain_shadow\": 0.10000000000000003,\n        \"gap\": -0.025000000000000078,\n        \"iteration\": 2,\n        \"shadow\": 0.55\n      },\n      {\n        \"dev\": 0.675,\n        \"gain_dev\": 0.125,\n        \"gain_shadow\": 0.14999999999999997,\n        \"gap\": -0.024999999999999967,\n        \"iteration\": 3,\n        \"shadow\": 0.6\n      },\n      {\n        \"dev\": 0.725,\n        \"gain_dev\": 0.17499999999999993,\n        \"gain_shadow\": 0.2,\n        \"gap\": -0.025000000000000078,\n        \"iteration\": 4,\n        \"shadow\": 0.65\n      },\n      {\n        \"dev\": 0.775,\n        \"gain_dev\": 0.22499999999999998,\n        \"gain_shadow\": 0.24999999999999994,\n        \"gap\": -0.024999999999999967,\n        \"iteration\": 5,\n        \"shadow\": 0.7\n      },\n      {\n        \"dev\": 0.8,\n        \"gain_dev\": 0.25,\n        \"gain_shadow\": 0.3,\n        \"gap\": -0.04999999999999999,\n        \"iteration\": 6,\n        \"shadow\": 0.75\n      },\n      {\n        \"dev\": 0.85,\n        \"gain_dev\": 0.29999999999999993,\n        \"gain_shadow\": 0.35000000000000003,\n        \"gap\": -0.0500000000000001,\n        \"iteration\": 7,\n        \"shadow\": 0.8\n      },\n      {\n        \"dev\": 0.9,\n        \"gain_dev\": 0.35,\n        \"gain_shadow\": 0.39999999999999997,\n        \"gap\": -0.04999999999999999,\n        \"iteration\": 8,\n        \"shadow\": 0.85\n      },\n      {\n        \"dev\": 0.95,\n        \"gain_dev\": 0.3999999999999999,\n        \"gain_shadow\": 0.45,\n        \"gap\": -0.0500000000000001,\n        \"iteration\": 9,\n        \"shadow\": 0.9\n      },\n      {\n        \"dev\": 0.975,\n        \"gain_dev\": 0.42499999999999993,\n        \"gain_shadow\": 0.49999999999999994,\n        \"gap\": -0.07500000000000001,\n        \"iteration\": 10,\n        \"shadow\": 0.95\n      }\n    ],\n    \"slope\": -0.005682,\n    \"verdict\": \"ALLOW\"\n  },\n  \"idset_sha256\": \"0846ef1083fa271e0c027728b6d48dd8482270bc71225b18b98e2b274478466a\",\n  \"implementer_report_keys\": [\n    \"dev\",\n    \"iteration\"\n  ],\n  \"pass\": true,\n  \"probe\": \"probe1-dev-versus-shadow-gap-series\",\n  \"spike_snapshot_control\": {\n    \"final_gap\": 0.0,\n    \"peak_gap\": 0.55,\n    \"snapshot_max_would_block\": true,\n    \"verdict\": \"ALLOW\"\n  },\n  \"tune_on_shadow_control\": {\n    \"final_gap\": 0.4,\n    \"final_shadow\": 0.5,\n    \"note\": \"Learner was given one shadow case to special-case. The rest of the shadow split does not rise with DEV, so the gap still widens.\",\n    \"verdict\": \"BLOCK_OVERFIT\"\n  },\n  \"unit_id\": \"TST-0306\"\n}\nSUCCESS:TST-0306-probe1 series n=11 gamed=BLOCK_OVERFIT honest=ALLOW tune-on-shadow=BLOCK_OVERFIT spike=ALLOW",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/bench/shadow_split.py:leak_audit",
+      "claim": "Leak audit greps the tree for shadow-case ids; a planted prompt hit invalidates the split and forces a re-draw. The vault is mode 0600 and open_vault refuses tune/train and a world-readable file. Access log records actor and purpose.",
+      "detail": "live_hits=0 redraws=0; vault_mode=600 owner=root; log_rows=5; probe2_pass=True",
+      "kind": "command",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe2_leak_and_access.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"access_control\": {\n    \"access_log_rows\": 4,\n    \"actors\": [\n      \"detector\",\n      \"harness\"\n    ],\n    \"mode_octal\": \"600\",\n    \"ok\": true,\n    \"owner\": \"root\",\n    \"purposes\": [\n      \"draw\",\n      \"leak-audit\",\n      \"redraw\"\n    ],\n    \"train_denied\": true,\n    \"tune_denied\": true,\n    \"uid\": 0,\n    \"who_could_have_seen\": \"owner uid=0 name=root (mode 600); group/other bits are off so a non-owner process cannot read the vault\",\n    \"world_or_group_readable\": false,\n    \"world_readable_control\": {\n      \"message\": \"vault-group-or-world-readable\",\n      \"ok\": true,\n      \"original_mode\": \"600\",\n      \"raised\": true,\n      \"restored_mode\": \"600\"\n    }\n  },\n  \"checks\": {\n    \"access_log_nonempty\": true,\n    \"access_log_records_actor\": true,\n    \"clean_tree_silent\": true,\n    \"forbidden_includes_tune\": true,\n    \"implementer_manifest_has_no_shadow_ids\": true,\n    \"live_tree_ok\": true,\n    \"planted_hit_count\": true,\n    \"planted_prompt_invalidates\": true,\n    \"receipt_ok\": true,\n    \"redraw_changed_idset\": true,\n    \"redraw_clears_new_ids_from_planted_prompt\": true,\n    \"redraw_forced\": true,\n    \"retired_id_not_in_new_shadow\": true,\n    \"train_purpose_denied\": true,\n    \"tune_purpose_denied\": true,\n    \"vault_mode_owner_only\": true,\n    \"world_readable_vault_denied\": true\n  },\n  \"clean_tree\": {\n    \"hit_count\": 0,\n    \"invalidated\": false\n  },\n  \"idset_sha256\": \"2a97cc74266119d1baa66c74585d989a2fa59336c1cc6b30a69423c59d476426\",\n  \"live_tree\": {\n    \"access_log_rows\": 5,\n    \"hit_count\": 0,\n    \"hits\": [],\n    \"mode_octal\": \"600\",\n    \"ok\": true,\n    \"present\": true,\n    \"skipped\": false\n  },\n  \"pass\": true,\n  \"planted_leak\": {\n    \"clean_after_redraw\": true,\n    \"hit_count\": 1,\n    \"hits\": [\n      {\n        \"id_sha256_16\": \"e5639a345950032f\",\n        \"path\": \"prompts/system.md\"\n      }\n    ],\n    \"idset_changed\": true,\n    \"invalidated\": true,\n    \"redraws\": 1\n  },\n  \"probe\": \"probe2-leak-audit-and-access\",\n  \"receipt_id_leak\": {\n    \"ok\": true,\n    \"present\": false,\n    \"skipped\": true\n  },\n  \"unit_id\": \"TST-0306\"\n}\nSUCCESS:TST-0306-probe2 leak-audit redraws on planted prompt; vault mode=600; live_tree_hits=0",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "tools/bench/shadow_split.py:run_improvement_loop",
+      "claim": "Detector control: deliberately tuning on one shadow case does not hide overfitting. DEV still climbs; the rest of the shadow split does not; the gap still widens and BLOCKS.",
+      "detail": "tune_on_shadow verdict=BLOCK_OVERFIT final_gap=0.4000 final_shadow=0.5000",
+      "kind": "command",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe1_gap_series.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "{\n  \"checks\": {\n    \"gamed_block\": true,\n    \"gamed_blocks_claim_despite_dev\": true,\n    \"gamed_early_gap_below_threshold\": true,\n    \"gamed_final_gap_ge_threshold\": true,\n    \"gamed_series_len\": true,\n    \"gamed_slope_ge_threshold\": true,\n    \"honest_allow\": true,\n    \"honest_does_not_block_claim\": true,\n    \"honest_series_len\": true,\n    \"implementer_report_hides_shadow\": true,\n    \"n_iter_is_10\": true,\n    \"spike_allow\": true,\n    \"spike_max_would_block\": true,\n    \"spike_proves_not_max_snapshot\": true,\n    \"threshold_versioned\": true,\n    \"tune_on_one_shadow_gap_still_wide\": true,\n    \"tune_on_one_shadow_still_blocks\": true,\n    \"tuned_series_len\": true\n  },\n  \"gamed\": {\n    \"early_gap\": 0.05,\n    \"final_dev\": 1.0,\n    \"final_gap\": 0.45,\n    \"final_shadow\": 0.45,\n    \"series\": [\n      {\n        \"dev\": 0.55,\n        \"gain_dev\": 0.0,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.0,\n        \"iteration\": 0,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.6,\n        \"gain_dev\": 0.04999999999999993,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.04999999999999993,\n        \"iteration\": 1,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.65,\n        \"gain_dev\": 0.09999999999999998,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.09999999999999998,\n        \"iteration\": 2,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.7,\n        \"gain_dev\": 0.1499999999999999,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.1499999999999999,\n        \"iteration\": 3,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.75,\n        \"gain_dev\": 0.19999999999999996,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.19999999999999996,\n        \"iteration\": 4,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.775,\n        \"gain_dev\": 0.22499999999999998,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.22499999999999998,\n        \"iteration\": 5,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.825,\n        \"gain_dev\": 0.2749999999999999,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.2749999999999999,\n        \"iteration\": 6,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.875,\n        \"gain_dev\": 0.32499999999999996,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.32499999999999996,\n        \"iteration\": 7,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.925,\n        \"gain_dev\": 0.375,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.375,\n        \"iteration\": 8,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.975,\n        \"gain_dev\": 0.42499999999999993,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.42499999999999993,\n        \"iteration\": 9,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 1.0,\n        \"gain_dev\": 0.44999999999999996,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.44999999999999996,\n        \"iteration\": 10,\n        \"shadow\": 0.45\n      }\n    ],\n    \"slope\": 0.045455,\n    \"verdict\": \"BLOCK_OVERFIT\"\n  },\n  \"honest\": {\n    \"final_gap\": -0.075,\n    \"series\": [\n      {\n        \"dev\": 0.55,\n        \"gain_dev\": 0.0,\n        \"gain_shadow\": 0.0,\n        \"gap\": 0.0,\n        \"iteration\": 0,\n        \"shadow\": 0.45\n      },\n      {\n        \"dev\": 0.575,\n        \"gain_dev\": 0.02499999999999991,\n        \"gain_shadow\": 0.04999999999999999,\n        \"gap\": -0.025000000000000078,\n        \"iteration\": 1,\n        \"shadow\": 0.5\n      },\n      {\n        \"dev\": 0.625,\n        \"gain_dev\": 0.07499999999999996,\n        \"gain_shadow\": 0.10000000000000003,\n        \"gap\": -0.025000000000000078,\n        \"iteration\": 2,\n        \"shadow\": 0.55\n      },\n      {\n        \"dev\": 0.675,\n        \"gain_dev\": 0.125,\n        \"gain_shadow\": 0.14999999999999997,\n        \"gap\": -0.024999999999999967,\n        \"iteration\": 3,\n        \"shadow\": 0.6\n      },\n      {\n        \"dev\": 0.725,\n        \"gain_dev\": 0.17499999999999993,\n        \"gain_shadow\": 0.2,\n        \"gap\": -0.025000000000000078,\n        \"iteration\": 4,\n        \"shadow\": 0.65\n      },\n      {\n        \"dev\": 0.775,\n        \"gain_dev\": 0.22499999999999998,\n        \"gain_shadow\": 0.24999999999999994,\n        \"gap\": -0.024999999999999967,\n        \"iteration\": 5,\n        \"shadow\": 0.7\n      },\n      {\n        \"dev\": 0.8,\n        \"gain_dev\": 0.25,\n        \"gain_shadow\": 0.3,\n        \"gap\": -0.04999999999999999,\n        \"iteration\": 6,\n        \"shadow\": 0.75\n      },\n      {\n        \"dev\": 0.85,\n        \"gain_dev\": 0.29999999999999993,\n        \"gain_shadow\": 0.35000000000000003,\n        \"gap\": -0.0500000000000001,\n        \"iteration\": 7,\n        \"shadow\": 0.8\n      },\n      {\n        \"dev\": 0.9,\n        \"gain_dev\": 0.35,\n        \"gain_shadow\": 0.39999999999999997,\n        \"gap\": -0.04999999999999999,\n        \"iteration\": 8,\n        \"shadow\": 0.85\n      },\n      {\n        \"dev\": 0.95,\n        \"gain_dev\": 0.3999999999999999,\n        \"gain_shadow\": 0.45,\n        \"gap\": -0.0500000000000001,\n        \"iteration\": 9,\n        \"shadow\": 0.9\n      },\n      {\n        \"dev\": 0.975,\n        \"gain_dev\": 0.42499999999999993,\n        \"gain_shadow\": 0.49999999999999994,\n        \"gap\": -0.07500000000000001,\n        \"iteration\": 10,\n        \"shadow\": 0.95\n      }\n    ],\n    \"slope\": -0.005682,\n    \"verdict\": \"ALLOW\"\n  },\n  \"idset_sha256\": \"0846ef1083fa271e0c027728b6d48dd8482270bc71225b18b98e2b274478466a\",\n  \"implementer_report_keys\": [\n    \"dev\",\n    \"iteration\"\n  ],\n  \"pass\": true,\n  \"probe\": \"probe1-dev-versus-shadow-gap-series\",\n  \"spike_snapshot_control\": {\n    \"final_gap\": 0.0,\n    \"peak_gap\": 0.55,\n    \"snapshot_max_would_block\": true,\n    \"verdict\": \"ALLOW\"\n  },\n  \"tune_on_shadow_control\": {\n    \"final_gap\": 0.4,\n    \"final_shadow\": 0.5,\n    \"note\": \"Learner was given one shadow case to special-case. The rest of the shadow split does not rise with DEV, so the gap still widens.\",\n    \"verdict\": \"BLOCK_OVERFIT\"\n  },\n  \"unit_id\": \"TST-0306\"\n}\nSUCCESS:TST-0306-probe1 series n=11 gamed=BLOCK_OVERFIT honest=ALLOW tune-on-shadow=BLOCK_OVERFIT spike=ALLOW",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "gap_series": {
+    "detector_control_tune_on_one_shadow": {
+      "final_gap": 0.4,
+      "final_shadow": 0.5,
+      "series": [
+        {
+          "dev": 0.55,
+          "gain_dev": 0.0,
+          "gain_shadow": 0.0,
+          "gap": 0.0,
+          "iteration": 0,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.6,
+          "gain_dev": 0.04999999999999993,
+          "gain_shadow": 0.04999999999999999,
+          "gap": -5.551115123125783e-17,
+          "iteration": 1,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.65,
+          "gain_dev": 0.09999999999999998,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.04999999999999999,
+          "iteration": 2,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.7,
+          "gain_dev": 0.1499999999999999,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.09999999999999992,
+          "iteration": 3,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.75,
+          "gain_dev": 0.19999999999999996,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.14999999999999997,
+          "iteration": 4,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.775,
+          "gain_dev": 0.22499999999999998,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.175,
+          "iteration": 5,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.825,
+          "gain_dev": 0.2749999999999999,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.22499999999999992,
+          "iteration": 6,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.875,
+          "gain_dev": 0.32499999999999996,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.27499999999999997,
+          "iteration": 7,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.925,
+          "gain_dev": 0.375,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.325,
+          "iteration": 8,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.975,
+          "gain_dev": 0.42499999999999993,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.37499999999999994,
+          "iteration": 9,
+          "shadow": 0.5
+        },
+        {
+          "dev": 1.0,
+          "gain_dev": 0.44999999999999996,
+          "gain_shadow": 0.04999999999999999,
+          "gap": 0.39999999999999997,
+          "iteration": 10,
+          "shadow": 0.5
+        }
+      ],
+      "verdict": "BLOCK_OVERFIT"
+    },
+    "gamed_overfit_to_dev": {
+      "blocks_improvement_claim": true,
+      "early_gap_iteration_1": 0.05,
+      "final_dev": 1.0,
+      "final_gap": 0.45,
+      "final_shadow": 0.45,
+      "reason": "widening dev-versus-shadow gain gap blocks the improvement claim",
+      "series": [
+        {
+          "dev": 0.55,
+          "gain_dev": 0.0,
+          "gain_shadow": 0.0,
+          "gap": 0.0,
+          "iteration": 0,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.6,
+          "gain_dev": 0.04999999999999993,
+          "gain_shadow": 0.0,
+          "gap": 0.04999999999999993,
+          "iteration": 1,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.65,
+          "gain_dev": 0.09999999999999998,
+          "gain_shadow": 0.0,
+          "gap": 0.09999999999999998,
+          "iteration": 2,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.7,
+          "gain_dev": 0.1499999999999999,
+          "gain_shadow": 0.0,
+          "gap": 0.1499999999999999,
+          "iteration": 3,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.75,
+          "gain_dev": 0.19999999999999996,
+          "gain_shadow": 0.0,
+          "gap": 0.19999999999999996,
+          "iteration": 4,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.775,
+          "gain_dev": 0.22499999999999998,
+          "gain_shadow": 0.0,
+          "gap": 0.22499999999999998,
+          "iteration": 5,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.825,
+          "gain_dev": 0.2749999999999999,
+          "gain_shadow": 0.0,
+          "gap": 0.2749999999999999,
+          "iteration": 6,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.875,
+          "gain_dev": 0.32499999999999996,
+          "gain_shadow": 0.0,
+          "gap": 0.32499999999999996,
+          "iteration": 7,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.925,
+          "gain_dev": 0.375,
+          "gain_shadow": 0.0,
+          "gap": 0.375,
+          "iteration": 8,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.975,
+          "gain_dev": 0.42499999999999993,
+          "gain_shadow": 0.0,
+          "gap": 0.42499999999999993,
+          "iteration": 9,
+          "shadow": 0.45
+        },
+        {
+          "dev": 1.0,
+          "gain_dev": 0.44999999999999996,
+          "gain_shadow": 0.0,
+          "gap": 0.44999999999999996,
+          "iteration": 10,
+          "shadow": 0.45
+        }
+      ],
+      "slope": 0.045455,
+      "verdict": "BLOCK_OVERFIT"
+    },
+    "honest": {
+      "final_gap": -0.075,
+      "reason": "final gain gap is below the versioned threshold",
+      "series": [
+        {
+          "dev": 0.55,
+          "gain_dev": 0.0,
+          "gain_shadow": 0.0,
+          "gap": 0.0,
+          "iteration": 0,
+          "shadow": 0.45
+        },
+        {
+          "dev": 0.575,
+          "gain_dev": 0.02499999999999991,
+          "gain_shadow": 0.04999999999999999,
+          "gap": -0.025000000000000078,
+          "iteration": 1,
+          "shadow": 0.5
+        },
+        {
+          "dev": 0.625,
+          "gain_dev": 0.07499999999999996,
+          "gain_shadow": 0.10000000000000003,
+          "gap": -0.025000000000000078,
+          "iteration": 2,
+          "shadow": 0.55
+        },
+        {
+          "dev": 0.675,
+          "gain_dev": 0.125,
+          "gain_shadow": 0.14999999999999997,
+          "gap": -0.024999999999999967,
+          "iteration": 3,
+          "shadow": 0.6
+        },
+        {
+          "dev": 0.725,
+          "gain_dev": 0.17499999999999993,
+          "gain_shadow": 0.2,
+          "gap": -0.025000000000000078,
+          "iteration": 4,
+          "shadow": 0.65
+        },
+        {
+          "dev": 0.775,
+          "gain_dev": 0.22499999999999998,
+          "gain_shadow": 0.24999999999999994,
+          "gap": -0.024999999999999967,
+          "iteration": 5,
+          "shadow": 0.7
+        },
+        {
+          "dev": 0.8,
+          "gain_dev": 0.25,
+          "gain_shadow": 0.3,
+          "gap": -0.04999999999999999,
+          "iteration": 6,
+          "shadow": 0.75
+        },
+        {
+          "dev": 0.85,
+          "gain_dev": 0.29999999999999993,
+          "gain_shadow": 0.35000000000000003,
+          "gap": -0.0500000000000001,
+          "iteration": 7,
+          "shadow": 0.8
+        },
+        {
+          "dev": 0.9,
+          "gain_dev": 0.35,
+          "gain_shadow": 0.39999999999999997,
+          "gap": -0.04999999999999999,
+          "iteration": 8,
+          "shadow": 0.85
+        },
+        {
+          "dev": 0.95,
+          "gain_dev": 0.3999999999999999,
+          "gain_shadow": 0.45,
+          "gap": -0.0500000000000001,
+          "iteration": 9,
+          "shadow": 0.9
+        },
+        {
+          "dev": 0.975,
+          "gain_dev": 0.42499999999999993,
+          "gain_shadow": 0.49999999999999994,
+          "gap": -0.07500000000000001,
+          "iteration": 10,
+          "shadow": 0.95
+        }
+      ],
+      "slope": -0.005682,
+      "verdict": "ALLOW"
+    },
+    "implementer_sees_only_dev": [
+      {
+        "dev": 0.55,
+        "iteration": 0
+      },
+      {
+        "dev": 0.6,
+        "iteration": 1
+      },
+      {
+        "dev": 0.65,
+        "iteration": 2
+      },
+      {
+        "dev": 0.7,
+        "iteration": 3
+      },
+      {
+        "dev": 0.75,
+        "iteration": 4
+      },
+      {
+        "dev": 0.775,
+        "iteration": 5
+      },
+      {
+        "dev": 0.825,
+        "iteration": 6
+      },
+      {
+        "dev": 0.875,
+        "iteration": 7
+      },
+      {
+        "dev": 0.925,
+        "iteration": 8
+      },
+      {
+        "dev": 0.975,
+        "iteration": 9
+      },
+      {
+        "dev": 1.0,
+        "iteration": 10
+      }
+    ],
+    "spike_is_not_widening": {
+      "final_gap": 0.0,
+      "peak_gap": 0.55,
+      "snapshot_max_would_block": true,
+      "verdict": "ALLOW"
+    }
+  },
+  "id": "TST-0306",
+  "implementation": {
+    "api_module": "tools/bench/shadow_split.py",
+    "dev_manifest": "command-center/bench/cases/dev-manifest.json",
+    "entry_points": [
+      "bench.shadow_split.draw_session",
+      "bench.shadow_split.run_improvement_loop",
+      "bench.shadow_split.overfitting_verdict",
+      "bench.shadow_split.leak_audit",
+      "bench.shadow_split.implementer_report"
+    ],
+    "format": "bench.shadow_split.v1",
+    "gap_threshold": 0.25,
+    "module_bytes": 19827,
+    "module_sha256": "7be117a650914ff9af9f45fb7646f4c307b60d4942d0842d7dddf8869d6bc4cb",
+    "n_iter": 10,
+    "threshold_version": "tst-0306-gap-v1",
+    "vault": "command-center/bench/shadow-vault/split.json"
+  },
+  "leak_audit": {
+    "idset_sha256": "fe6ce3064367edd63c906578ebe34088fc4ff8e9128f5e459beac57f04ec8b6d",
+    "live_hit_count": 0,
+    "live_invalidated": false,
+    "note": "Live-tree grep of prompts, fixtures and program corpus for shadow-case ids. Vault directory is excluded. Hits invalidate the split and force a re-draw. Probe 2 plants a prompt hit in a temp tree and checks redraw.",
+    "redraws": 0
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/TST-0306/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 1024,
+  "negative_control_ids": [
+    "TST-0306-C1-gamed-dev-memorizer",
+    "TST-0306-C2-tune-on-one-shadow",
+    "TST-0306-C3-spike-max-snapshot",
+    "TST-0306-C4-planted-shadow-id-in-prompt",
+    "TST-0306-C5-world-readable-vault"
+  ],
+  "negative_controls": [
+    {
+      "description": "Honest threshold learner ALLOW; id-memorizer BLOCK_OVERFIT despite high DEV scores.",
+      "fired_on_bad_state": true,
+      "id": "TST-0306-C1-gamed-dev-memorizer",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Giving the memorizer one shadow case still leaves a widening gap on the rest of the holdout.",
+      "fired_on_bad_state": true,
+      "id": "TST-0306-C2-tune-on-one-shadow",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "A one-point gap spike that recovers is ALLOW; max(gap) would BLOCK. Proves the gate uses the series.",
+      "fired_on_bad_state": true,
+      "id": "TST-0306-C3-spike-max-snapshot",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "Clean tree is silent; planting a shadow id in a prompt invalidates the split and forces redraw.",
+      "fired_on_bad_state": true,
+      "id": "TST-0306-C4-planted-shadow-id-in-prompt",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "description": "chmod 0644 on the vault makes open_vault raise.",
+      "fired_on_bad_state": true,
+      "id": "TST-0306-C5-world-readable-vault",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 TST-0306: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild. SUCCESS:TST-0306",
+  "output_path": "command-center/receipts/TST-0306.json",
+  "output_schema": "command-center/schema/test-receipt.schema.json",
+  "premise": {
+    "action": "Created tools/bench/shadow_split.py and on-disk DEV/shadow splits. Did not exit on predicate:absent. Did not invent the missing user-prompt file. Did not run unit_manifest.py --write.",
+    "catalog_inputs": [
+      "_USER-PROMPTS.md:11059 (benchmark gaming refuter)",
+      "command-center/bench/cases/",
+      "command-center/bench/results/",
+      "_USER-PROMPTS.md:11135-11150 (Phase 16 self-improvement loop, 10 steps)",
+      "TST-0295",
+      "TST-0298"
+    ],
+    "inputs_were_absent": true
+  },
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-4.6",
+    "role": "adversarial-refuter",
+    "vendor": "cursor"
+  },
+  "profile": "p2-wave-g1-unit",
+  "question": "After N iterations of the self-improvement loop, has the system improved, or has it learned the benchmark? Spec :11059 assigns a refuter to benchmark gaming. A widening gap between dev-split gain and shadow-split gain is overfitting and must block the improvement claim regardless of how good the dev numbers are.",
+  "question_or_target": "Question: after N iterations of the self-improvement loop, has the system improved, or has it learned the benchmark? Maintain a shadow split that is never shown to implementers, never used for tuning and never reported until a release decision, then compare the dev-split gain against the shadow-split gain.",
+  "report_kind": "test-receipt",
+  "residual_unknowns": [
+    {
+      "claim": "Catalog output_schema command-center/schema/receipt.schema.json is absent. This receipt uses test-receipt.schema.json plus the G-1 fields (question, tests, reviewer, artifacts, evidence).",
+      "settling_experiment": "Validate against receipt.schema.json once that schema is authored.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "_USER-PROMPTS.md:11059 and :11135-11150, TST-0295 corpus, and TST-0298 paired stats are not on this tree.",
+      "settling_experiment": "Re-bind the vault to the TST-0295 case ids when that unit lands.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "reviewer": {
+    "independent": true,
+    "notes": "Adversarial controls are the planted prompt leak, the world-readable vault, forbidden tune/train purposes, and the spike-vs-series gate \u2014 not a self-attested prose review.",
+    "reviewer_id": "TST-0306-probe2-leak-audit-and-access",
+    "verdict": "PASS"
+  },
+  "reviewer_verdict": "PASS",
+  "schema_version": 1,
+  "sentinel": "SUCCESS:TST-0306",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json TST-0306: maintain a shadow split never shown to implementers, never used for tuning, never reported until a release decision; widening dev-vs-shadow gain gap blocks the improvement claim. Catalog inputs _USER-PROMPTS.md:11059 and :11135-11150, tools/bench/, and command-center/bench/cases/ were absent; this unit created the platform module and the on-disk splits.",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "test_ids": [
+    "test_dev_versus_shadow_gap_tracked_per_iteration",
+    "test_leak_audit_invalidates_and_redraws",
+    "test_tune_on_shadow_case_widens_gap",
+    "test_access_control_permissions_and_log"
+  ],
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe1_gap_series.py",
+      "exit_code": 0,
+      "id": "test_dev_versus_shadow_gap_tracked_per_iteration",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe2_leak_and_access.py",
+      "exit_code": 0,
+      "id": "test_leak_audit_invalidates_and_redraws",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe1_gap_series.py",
+      "exit_code": 0,
+      "id": "test_tune_on_shadow_case_widens_gap",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0306/probe2_leak_and_access.py",
+      "exit_code": 0,
+      "id": "test_access_control_permissions_and_log",
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:36:32Z",
+    "started_at": "2026-08-25T01:36:23Z"
+  },
+  "title": "Hold out a shadow case set that never informs development, and use it to detect benchmark overfitting",
+  "unit_id": "TST-0306"
+}

@@ -1,0 +1,206 @@
+{
+  "SUCCESS:WFA-0137": true,
+  "answer": "Regression on leaf bp-000 (failed rerun both-states-fail) flips that record to DECERTIFIED and re-gates the reverse-BFS embed closure: packs ['pack-00', 'pack-01', 'pack-02', 'pack-05', 'pack-10'], presets ['preset-00', 'preset-01', 'preset-03'], fusions ['fusion-00', 'fusion-02']. Unrelated packs ['pack-03', 'pack-04', 'pack-06', 'pack-07', 'pack-08', 'pack-09', 'pack-11'] stay SERVING. Serve() refuses every re-gated consumer (forward embed walk hits the DECERTIFIED ledger row); no consumer keeps serving the decertified version. Decertify-nothing (passing rerun) touches 0 packs. Composition graph used for the 108-node/1-CC contract is a stand-in: stand-in:108-node undirected path graph (10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json absent on this tree).",
+  "artifacts": [
+    {
+      "exists": true,
+      "path": "command-center/foundry/WFA-0137-decertification-path-when-a-certified-workflow-later.json",
+      "role": "primary"
+    },
+    {
+      "exists": true,
+      "path": "command-center/foundry/revocation/engine.py",
+      "role": "engine"
+    },
+    {
+      "exists": true,
+      "path": "command-center/foundry/revocation/graph.py",
+      "role": "graph"
+    },
+    {
+      "exists": true,
+      "path": "command-center/schema/foundry-artifact.schema.json",
+      "role": "schema"
+    }
+  ],
+  "both_states": {
+    "decertify_nothing_zero_packs_touched": true,
+    "dependent_packs": [
+      "pack-00",
+      "pack-01",
+      "pack-02",
+      "pack-05",
+      "pack-10"
+    ],
+    "leaf_decertify_all_dependent_packs_regated": true,
+    "packs_touched_when_nothing_decertified": 0
+  },
+  "evidence": [
+    {
+      "claim": "Reverse-BFS over the embed DAG computes the re-gate set; it is not a hand-listed pack roster",
+      "kind": "live-tree",
+      "line": 89,
+      "path": "command-center/foundry/revocation/engine.py",
+      "snippet": "\"\"\"PROPAGATE-FINGERPRINT: reverse-BFS over the directed embed DAG.\"\"\""
+    },
+    {
+      "claim": "Serve() forward-walks each consumer and refuses when an embedded blueprint is DECERTIFIED, independently of the re-gate mark",
+      "kind": "probe",
+      "line": 159,
+      "path": "command-center/foundry/revocation/engine.py",
+      "snippet": "\"\"\"SERVE-FINGERPRINT: forward embed walk + certification ledger.\"\"\""
+    },
+    {
+      "claim": "Blueprint universe is 108 nodes in one connected component, measured by BFS on the undirected composition edges",
+      "kind": "live-tree",
+      "line": 6,
+      "path": "command-center/foundry/revocation/graph.py",
+      "snippet": "measures as exactly one connected component."
+    }
+  ],
+  "graph": {
+    "blueprint_nodes": 108,
+    "computed_not_hand_listed": true,
+    "connected_components": 1,
+    "leaf": "bp-000",
+    "live_map_present": false,
+    "propagation_relation": "directed embed DAG (consumer embeds source); not the undirected 1-CC compat spanning tree, which cannot distinguish dependents",
+    "source": "stand-in:108-node undirected path graph (10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json absent on this tree)",
+    "undirected_edges": 107
+  },
+  "inputs_on_this_tree": {
+    "composition_maps": false,
+    "map_candidates": [
+      "/opt/p2/ast-integrate/C:/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/mnt/c/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/c/Users/Prekzursil/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/root/.claude/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/opt/p2/harness-restore-20260806/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/opt/p2/ast-integrate/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/opt/p2/ast-integrate/command-center/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/opt/p2/ast-integrate/command-center/sources/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/opt/p2/ast-integrate/command-center/foundry/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json",
+      "/opt/p2/ast-integrate/command-center/wfa/sources/10-WORKFLOW-MERGE-AND-COMPOSITION-MAPS.json"
+    ],
+    "stand_in": "108-node one-CC composition graph plus computed embed DAG; not a recount of the missing Windows merge maps",
+    "wfa0134_certification_records": false,
+    "wfa0152_pack_contract": false
+  },
+  "kind": "revocation-engine",
+  "mechanism": "failed-regression-rerun flips CERTIFIED to DECERTIFIED, then reverse-BFS over the embed DAG marks packs/presets/fusions RE_GATE_REQUIRED; serve() independently forward-walks each consumer and refuses if any embedded blueprint is DECERTIFIED",
+  "question": "Implement revocation: when a previously CERTIFIED workflow fails a later regression or benchmark rerun, flip its record to DECERTIFIED, propagate to every pack, preset and fusion that embeds it, and surface the affected downstream set. Question: given a regression on one blueprint, exactly which packs, presets and fused workflows must be re-gated, and does any consumer keep serving the decertified version?",
+  "re_gated": {
+    "fusions": [
+      "fusion-00",
+      "fusion-02"
+    ],
+    "packs": [
+      "pack-00",
+      "pack-01",
+      "pack-02",
+      "pack-05",
+      "pack-10"
+    ],
+    "presets": [
+      "preset-00",
+      "preset-01",
+      "preset-03"
+    ]
+  },
+  "regression": {
+    "prior_status": "CERTIFIED",
+    "run_id": "both-states-fail",
+    "trigger": "failed-regression-rerun",
+    "workflow_id": "bp-000"
+  },
+  "reviewer": {
+    "independent": true,
+    "reviewer_id": "WFA-0137-probe2-untouched-control",
+    "scope": "Probe 2 never calls the leaf-fail path; it only checks that a passing rerun and an idle world touch zero packs",
+    "verdict": "PASS"
+  },
+  "revoked": {
+    "status": "DECERTIFIED",
+    "workflow_id": "bp-000"
+  },
+  "sentinel": "SUCCESS:WFA-0137",
+  "serving": {
+    "any_consumer_serving_decertified": false,
+    "refusals": [
+      {
+        "id": "fusion-00",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "fusion-02",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "pack-00",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "pack-01",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "pack-02",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "pack-05",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "pack-10",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "preset-00",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "preset-01",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      },
+      {
+        "id": "preset-03",
+        "ok": false,
+        "reason": "decertified:bp-000"
+      }
+    ],
+    "still_serving_unrelated": [
+      "pack-03",
+      "pack-04",
+      "pack-06",
+      "pack-07",
+      "pack-08",
+      "pack-09",
+      "pack-11"
+    ]
+  },
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0137/probe1_leaf_decertify.py",
+      "id": "probe1-leaf-decertify",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0137/probe2_untouched.py",
+      "id": "probe2-untouched",
+      "result": "PASS"
+    }
+  ],
+  "ts": "2026-08-25T00:59:59Z",
+  "unit_id": "WFA-0137"
+}

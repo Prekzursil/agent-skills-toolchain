@@ -1,0 +1,28 @@
+I'll start from the existing TST-0153 probe tree, read any prior return artifact, and resume from what's already built rather than scrap it.The probe tree is sparse: no SUBAGENT-RETURN yet, only cloud-ok and strike files. Next I’ll read those plus the catalog contract and the measurement script.The catalog contract is stale-cache UNKNOWN vs last-good-with-age. I’ll compare delivered units, `p2_status.py`, the receipt schema, and G-1 so we can resume honestly.The probe tree is cloud-ok leftovers; I’ll pull a delivered neighbor unit, the receipt schema, and `artifact_delivered` so the G-1 artifacts match the real contract.G-1 delivery is live probes plus a SUCCESS receipt, not harvest `ok=true`. I’ll inspect the monitor_report schema and a delivered receipt so TST-0153 can be packed the same way.The strike script would be re-run as a probe and rewrite the receipt, so I’m prefixing it `_cloud_ok_` and restoring live named probes for the catalog PASS (stale value only with an age marker).Next I’ll add the packer and run the named probes so we can pack a SUCCESS receipt from live output.Probe A and the negative control are green. Probe B failed because `CompletedProcess` has no `pid` here — I'll switch it to `Popen` so the separate-process mtime read is real.Measure printed `SUCCESS:delivered`. I’ll lock the live hashes into `SUBAGENT-RETURN.json` and confirm the per-unit manifest row.**SUCCESS:delivered TST-0153**
+
+```
+SUCCESS:delivered TST-0153 predicate=delivered state=SUCCESS probes=4 raws=6 notes=negative_control.py:0,probe_a_ttl_plus_1.py:0,probe_b_mtime.py:0,validate_delivery.py:0
+```
+
+G-1 is green for this unit only: live named probes re-run to exit 0, the receipt is honest non-BLOCKED `SUCCESS`, and the per-unit manifest row matches the live LF sha256. Harvest / cloud `ok=true` was not treated as delivery.
+
+**What was already there.** The probe tree was cloud-ok leftovers (`CLOUD-OK-REFUTE.json`, two file-only strikes, no named probes). That refute was right: `UNIT-COMPLETE` plus harvest `ok=true` is not catalog `SUCCESS:TST-0153`. I resumed it. I did not scrap those files. `_apply_strikes.py` was renamed to `_cloud_ok_apply_strikes.py` so measure would not re-apply BLOCKED edits.
+
+**What I built and ran.**
+
+| Probe | What it measures | Exit |
+|---|---|---|
+| `probe_a_ttl_plus_1.py` | Rendered pane at TTL+1 (`p2_status.py`, isolated HOME, aged cache) | 0 |
+| `probe_b_mtime.py` | Cache mtime from a separate GNU `stat` process | 0 |
+| `negative_control.py` | Fresh pane is silent; silent last-good mutant fires | 0 |
+| `validate_delivery.py` | Receipt `state=SUCCESS` + per-unit manifest sha256 | 0 |
+
+**Science (honest).** Catalog PASS is: *the stale value never appear without an explicit age marker*. That holds. At age 21s the pane still prints `CLOUD delivered: 1` **and** `cloud mirror age: 21s` plus the stale WARN. The title’s stronger claim (render `UNKNOWN`, never last-good) does **not** hold: `p2_status.py` has no `UNKNOWN` token. I did not change `p2_status.py`. Fresh render is normal; a mutant that prints only `CLOUD delivered: 1` makes the catalog assertion fire.
+
+**Artifacts.**
+
+- `command-center/receipts/TST-0153.json` — 24551 B, `state=SUCCESS`, sha256 `e35d75e6827a6c4dccf64266d3af27f3d972e94e5b0ad0e41fdc37cfc27eb61e`
+- `command-center/p2-wave/probes/TST-0153/UNIT-ARTIFACT-MANIFEST.json` — same path + sha256
+- `command-center/p2-wave/probes/TST-0153/SUBAGENT-RETURN.json`
+
+**Constraints kept.** No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write`. No key rotation. No `finish-everything-close` / `p2-cloud-ok-deliver`. Global `unit_manifest.py --check` sibling red on CC-0010 is out of this unit’s scope; condition 11 uses the per-unit manifest.

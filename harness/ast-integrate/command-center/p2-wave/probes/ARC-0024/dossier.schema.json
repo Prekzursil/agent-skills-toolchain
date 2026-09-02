@@ -1,0 +1,111 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "arc-0024-a4-dossier/v1",
+  "title": "ARC-0024 A4 gateway dossier (probe-local, no network $ref)",
+  "$comment": "The catalog architecture-dossier.schema.json is a generated shim whose $ref targets ast-integrate.invalid. This file is the live emit gate: it rejects garbage and requires the fields named probes and G-1 read.",
+  "type": "object",
+  "required": [
+    "schema_version",
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "architecture_id",
+    "answer",
+    "index_format",
+    "selection_interface",
+    "lifecycle",
+    "per_session_budget",
+    "budget",
+    "resident_set",
+    "evidence",
+    "tests",
+    "negative_controls",
+    "min_bytes_threshold"
+  ],
+  "properties": {
+    "schema_version": { "const": 1 },
+    "unit_id": { "const": "ARC-0024" },
+    "state": { "const": "SUCCESS" },
+    "sentinel": { "const": "SUCCESS:ARC-0024" },
+    "completion_sentinel": { "const": "SUCCESS:ARC-0024" },
+    "architecture_id": { "const": "A4" },
+    "min_bytes_threshold": { "type": "integer", "minimum": 2048 },
+    "answer": { "type": "string", "minLength": 200 },
+    "index_format": {
+      "type": "object",
+      "required": ["schema", "path", "record_fields", "kinds"],
+      "properties": {
+        "schema": { "const": "a4-index/v1" },
+        "path": { "type": "string", "minLength": 8 },
+        "record_fields": { "type": "array", "minItems": 6 },
+        "kinds": { "type": "array", "minItems": 6 }
+      }
+    },
+    "selection_interface": {
+      "type": "object",
+      "required": ["name", "activates", "outputs"],
+      "properties": {
+        "name": { "const": "Gateway.select" },
+        "activates": { "const": false }
+      }
+    },
+    "lifecycle": {
+      "type": "object",
+      "required": ["deactivate_by_kind", "totality", "leaks_declared"],
+      "properties": {
+        "leaks_declared": { "const": false },
+        "totality": {
+          "type": "object",
+          "required": ["every_kind_has_deactivate", "per_kind"],
+          "properties": {
+            "every_kind_has_deactivate": { "const": true },
+            "per_kind": { "type": "array", "minItems": 6 }
+          }
+        }
+      }
+    },
+    "per_session_budget": {
+      "type": "object",
+      "required": ["on_exhaustion", "max_activated_processes", "demonstration"],
+      "properties": {
+        "on_exhaustion": { "const": "REFUSE" },
+        "max_activated_processes": { "type": "integer", "minimum": 1 }
+      }
+    },
+    "budget": {
+      "type": "object",
+      "required": ["on_exhaustion"],
+      "properties": {
+        "on_exhaustion": { "const": "REFUSE" }
+      }
+    },
+    "resident_set": {
+      "type": "object",
+      "required": [
+        "measurement_method",
+        "same_method_for_floor_and_baseline",
+        "floor",
+        "baseline_always_on"
+      ],
+      "properties": {
+        "same_method_for_floor_and_baseline": { "const": true },
+        "floor": {
+          "type": "object",
+          "required": ["processes", "bytes"],
+          "properties": {
+            "processes": { "type": "integer", "minimum": 1 },
+            "bytes": { "type": "integer", "minimum": 1 }
+          }
+        },
+        "baseline_always_on": {
+          "type": "object",
+          "required": ["processes", "bytes"]
+        }
+      }
+    },
+    "evidence": { "type": "array", "minItems": 2 },
+    "tests": { "type": "array", "minItems": 2 },
+    "negative_controls": { "type": "array", "minItems": 2 }
+  }
+}

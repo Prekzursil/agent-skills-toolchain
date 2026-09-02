@@ -1,0 +1,100 @@
+SHARD-00 G-1 HANDOFF (2026-08-26)
+================================
+Goal: leftover catch-all. Process EVERY ID in shard-00.txt on Windows repo
+C:\Users\Prekzursil\source\ast-integrate. Census rsyncs to WSL ~/p2-g1.
+G-1 SUCCESS is ONLY last line of:
+  wsl.exe bash -lc 'export AST_INTEGRATE_ROOT=$HOME/p2-g1; cd $HOME/p2-g1; python3 command-center/p2-wave/_measure_one_delivered.py <ID>'
+Do not skip because catalog output_path exists. Do not invent SUCCESS:delivered.
+Do not git add/commit/push/stash/checkout. Do not run global unit_manifest.py --write.
+
+STATUS: PARTIAL attempted=57 ok=42 fail=15 verified=42
+remaining_n=15
+remaining_fp=e4dd147e801b01844e87c05a588365274b041c239285030bf485e4b7104384c0
+remaining_path=C:\Users\Prekzursil\source\ast-integrate\command-center\p2-wave\ovh-monitor\g1-shards\shard-00.remaining.txt
+result_json=C:\Users\Prekzursil\source\ast-integrate\command-center\p2-wave\ovh-monitor\g1-shards\shard-00.txt.result.json
+fail_reasons=C:\Users\Prekzursil\source\ast-integrate\command-center\p2-wave\ovh-monitor\g1-shards\shard-00.fail-reasons.json
+HANDOFF.json=same dir shard-00.HANDOFF.json
+
+OK (42):
+ADV-0005 ADV-0031 ADV-0059 ADV-0136 ARC-0030 ARC-0074
+AUD-0012 AUD-0040 AUD-0079 BLD-0023 CNF-0096 CNF-0139
+CNF-0157 CNL-0057 CNL-0103 IMP-0013 IMP-0028 IMP-0059
+IMP-0084 IMP-0112 IMP-0131 IMP-0149 IMP-0192 IMP-0225
+IMP-0256 IMP-0279 IMP-0303 IMP-0329 IMP-0350 IMP-0374
+IMP-0415 IMP-0445 IMP-0472 RES-0017 SYN-0006 TST-0081
+TST-0120 TST-0152 TST-0254 TST-0280 WFA-0105 WFA-0152
+
+NEW OK THIS TURN (14):
+ADV-0136 ARC-0030 ARC-0074 CNF-0157 CNL-0103 IMP-0028
+IMP-0059 IMP-0279 IMP-0350 IMP-0374 RES-0017 TST-0254
+TST-0280 WFA-0105
+
+FAIL (15) — last live WSL G-1 inner (log BATCH ok=7 fail=15 n=22):
+ADV-0085 probe2 artifact missing ablation rows n=0 (probe1 PASS)
+ADV-0109 probe2 manufactured drift {} vs live SYN-* map (probe1 PASS)
+BLD-0057 probe1 schema True was expected
+AUD-0077 probe1 fingerprint mismatch live_n=1259 recorded_n=1152
+CNF-0052 probe1 blocked control not recorded as rejected
+RES-0089 probe1 partition A mismatch (table_ok=True)
+RES-0141 probe1 labelled-set-size mismatch
+RES-0172 probe2 minimal set artifact CP-01..04 vs live CP-TOR-OPT-IN/UNBOUNDED-SPEND/SHIP-CONTROVERSIAL/ESCALATE-OWNER-BLOCKED (probe1 PASS)
+SYN-0048 probe2 edge mismatch pkg=[resume-from-status->handoff-package, store-mcp-only->file-vault] live=[] (probe1 PASS)
+TST-0039 probe1 receipt accepted garbage probe 0
+TST-0185 probe2 receipt lost_id is not 2^53+1 (probe1 PASS)
+TST-0221 probe2 user-created command was removed or mutated (probe1 PASS; mode/canary now ok)
+TST-0309 probe2 rewritten oracle_kind laundered the lint (probe1 PASS kappa=0.72 n=50)
+WFA-0001 probe2 jsonschema already imported (probe1 PASS 36 cases)
+WFA-0064 probe2 recall-unread-empty (probe1 PASS; salvage extracted)
+
+NEXT AGENT (highest EV first):
+1. AUD-0077: on WSL after rsync, scan_repo(), write fingerprints (n=1259) into
+   command-center/audit/AUD-0077-secret-scan-repo-live.json, remanifest, measure.
+   Windows cannot run the ELF gitleaks. Last Windows dump overwrote WSL 1259 with 1152.
+2. ADV-0085: artifact probe2_ablation.from_term_drop is empty. Call
+   probe_common.ablation_bundle() and write from_term_drop (4 terms: correctness,
+   coverage, recovery, usability) plus ranked totals into
+   command-center/adversarial/ADV-0085-degenerate-strategy-metric-attack.json
+   then remanifest. Do not skip because file exists.
+3. ADV-0109: write live manufactured-consensus map into receipt (keys SYN-REPRESENTED
+   SYN-RESOLVED SYN-DROP SYN-MANUFACTURED SYN-HONEST-AGREE SYN-BOTH-AS-AGREE).
+4. TST-0221: tools/marketplace/revocation_health.py remove_revoked() rmtree of
+   plugins/tst0221-revoked-widget deletes user-created.md. Preserve
+   plugins/tst0221-revoked-widget/commands/user-created.md across remove.
+5. TST-0309: tools/bench/ledger.py lint_official_ledger must fire LINT_CODE when
+   the CASE (via by_id) is overlap/deterministic even if row.oracle_kind was
+   rewritten to "judged".
+6. WFA-0001: jsonschema is in sys.modules before probe2. g1_python skip of
+   p2_jsonschema_hook for WFA-0001/probe2 did not work. Find sitecustomize or
+   lazy-install the hook. Do not stub _measure_one_delivered.py.
+7. WFA-0064: set recall_limit.unread to a non-empty list AFTER the last dump;
+   remanifest on WSL.
+8. CNF-0052: interleaving.blocked_control {blocked:true, interleaved:false} at
+   the path probe1 reads (root, not only extensions).
+9. TST-0185: tests.float_negative_control.lost_id = 9007199254740993 (2^53+1).
+10. RES-0172: replace artifact minimal/retained ids CP-01..04 with live engine ids.
+
+MEASURE / RSYNC:
+  wsl.exe bash -lc 'bash /mnt/c/Users/Prekzursil/source/ast-integrate/command-center/p2-wave/ovh-monitor/g1-shards/_shard00_rsync.sh'
+  also rsync tools/bench tools/plugin tools/marketplace
+  wsl: python3 command-center/p2-wave/seed-stage/rewrite_schema_file_ids.py
+  remaining IDs: shard-00.remaining.txt (LF, 15 lines, trailing newline)
+  measure each with stdin /dev/null; strip \\r from IDs.
+  helper: _shard00_remeasure_fail.sh  _shard00_refresh.py (catalog sentinel is LONG)
+
+IMPLEMENTATIONS LANDED (do not revert):
+permission_enforcement.py, memory.py PromptItem/ScanResult, axiom_tests cycle+mutant,
+txn_journal.py, dupes.py cluster means, writeback workflow JSON, bench overlap corpus
++ oracle_first/extrapolate/kappa bootstrap, revocation_health notes.txt+remove flags,
+RUNBOOK/RELEASE-CHECKLIST workflow fences, ADV-0136/CNL-0103 schema overlays,
+ARC-0030 DESIGN.json keys.
+
+GOTCHAS:
+- Catalog completion_sentinel is often a long SUCCESS:... paragraph, not SUCCESS:UID.
+  After any JSON dump run _shard00_refresh.py then remanifest.
+- refresh.py walks ALL 57 and can clobber a hoist (CNF-0052 benches live under extensions).
+- AUD fingerprints must be written on WSL last.
+- Flattening generated $ref shims to additionalProperties:true makes TST-0039 vacuous.
+- Agent-written .sh and remaining.txt must be LF.
+
+Did not invent SUCCESS:delivered. Did not git write. Did not unit_manifest.py --write.
+Did not provision OVH. Did not rotate credentials.

@@ -1,0 +1,144 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-d38-triz-8",
+  "preset": "innovation_moonshot_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Dissolve a stated trade-off instead of splitting it: find the option that gets both sides of the contradiction, or prove that no such option exists.",
+    "charter": "A contradiction framer states the trade-off FORMALLY - improving X currently degrades Y, and here is the mechanism by which it does. Five inventors then attack the mechanism, not the balance point. A compromise answer ('do 60% of X and 40% of Y') is REJECTED by construction: the whole point of this council is that a compromise means the contradiction was never dissolved. One inventive round only; if nothing dissolves it, hand the trade-off to an ordinary tradeoff council rather than grinding.",
+    "risk_tier": "moderate",
+    "desired_output": "recommendation",
+    "success_criteria": [
+      "the contradiction is stated formally: improving X degrades Y, via a named mechanism",
+      "every compromise-shaped answer is rejected with the reason recorded",
+      "at least three genuinely non-compromise candidates were generated",
+      "either one candidate dissolves the contradiction, or impossibility is argued"
+    ],
+    "consensus_intent": "seek_consensus",
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 1 },
+    "owner_constraints": { "deadline_minutes": 45 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "adversarial", "model_diverse"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 8 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 4 },
+    "roster": [
+      { "participant_id": "framer", "display_name": "Contradiction framer (chair)", "model": "opus-5", "vendor": "anthropic", "expertise": ["TRIZ", "contradiction analysis"], "role": "chair", "authority": "chair", "effort": "xhigh", "context": { "briefing": "State the contradiction as: improving X degrades Y BECAUSE <mechanism>. Without the mechanism there is nothing for an inventor to attack." } },
+      { "participant_id": "inventor-1", "display_name": "Inventor 1 (separation in time)", "model": "opus-5", "vendor": "anthropic", "expertise": ["TRIZ separation principles"], "role": "proposer", "authority": "voter", "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "inventor-2", "display_name": "Inventor 2 (separation in space)", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["TRIZ separation principles"], "role": "proposer", "authority": "voter", "independence": { "fresh_context": true, "sees_peers_before_first_position": false } },
+      { "participant_id": "inventor-3", "display_name": "Inventor 3 (constraint relaxation)", "model": "gemini-3-pro", "vendor": "google", "expertise": ["constraint relaxation"], "role": "proposer", "authority": "voter", "context": { "briefing": "Ask which constraint is assumed rather than real. A relaxed false constraint dissolves more contradictions than cleverness does." } },
+      { "participant_id": "inventor-4", "display_name": "Inventor 4 (change the system boundary)", "model": "opus-5", "vendor": "anthropic", "expertise": ["systems thinking"], "role": "proposer", "authority": "voter" },
+      { "participant_id": "inventor-5", "display_name": "Inventor 5 (invert the requirement)", "model": "gpt-5-codex", "vendor": "openai", "expertise": ["inversion", "counterfactual design"], "role": "proposer", "authority": "voter" },
+      { "participant_id": "methodologist", "display_name": "Methodologist (compromise detector)", "model": "opus-5", "vendor": "anthropic", "expertise": ["TRIZ", "answer classification"], "role": "custom:methodologist", "authority": "veto_holder", "rights": { "may_speak": true, "may_vote": true, "may_veto": true }, "context": { "briefing": "Classify every candidate: DISSOLVES or COMPROMISE. A candidate that trades X against Y at any ratio is a COMPROMISE and is out of scope here, however good it is." } },
+      { "participant_id": "cost-analyst", "display_name": "Cost analyst", "model": "gemini-3-pro", "vendor": "google", "expertise": ["cost modelling"], "role": "custom:cost_analyst", "authority": "voter" }
+    ],
+    "replacement": { "enabled": true, "triggers": ["role_collapse", "inactivity"], "preserve_prior_positions": true }
+  },
+  "preparation": { "research_required": true, "independent_prep": true, "min_sources": 1, "prep_time_minutes": 5, "required_artifacts": ["position_memo"] },
+  "topology": { "kind": "chair_led", "chair": "framer" },
+  "protocol": {
+    "sequence": [
+      { "kind": "custom", "stage_id": "state-the-contradiction", "custom_name": "P29 formal contradiction statement: improving X degrades Y via a named mechanism", "rounds": 1, "participants": ["framer"] },
+      { "kind": "brainstorm", "stage_id": "inventive-round", "rounds": 1, "independent": true, "quotas": { "ideas_per_participant": 3, "novel_ideas_per_round": 1 } },
+      { "kind": "custom", "stage_id": "relax-a-constraint", "custom_name": "P31 constraint relaxation: for each constraint, ask whether it is real or assumed", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "chair-synthesis" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 2, "divergence_before_convergence": true },
+    "obligations": { "must_cite_evidence": false, "must_respond_to_prior": false, "steelman_before_rebuttal": true, "declare_confidence": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "required_before_decision": false, "max_experiments": 2, "runner": "sandbox" }
+  },
+  "budgets": { "effort": "high", "time_minutes": 45, "turns": 16, "speaking_quota_per_participant": 3, "max_inactivity_rounds": 1 },
+  "targets": {
+    "unique_ideas": 12,
+    "novelty_ratio": 0.6,
+    "dedup": { "enabled": true, "max_similarity": 0.8, "trivial_variant_policy": "reject" }
+  },
+  "voting": {
+    "method": "synthesis_only",
+    "evidence_gate": { "votes_require_evidence": false, "evidence_outranks_majority": true },
+    "veto": { "holders": ["methodologist"], "scope": "any_option", "must_justify": true, "overridable_by_owner": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.5,
+    "measure": "agreement_index",
+    "minority_report": "optional",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": false
+  },
+  "stopping": {
+    "expression": {
+      "any_of": [
+        {
+          "all_of": [
+            {
+              "metric": "custom:contradiction_stated_formally",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "framer's contradiction card, checked by the methodologist for the presence of X, Y, and the degradation MECHANISM",
+              "note": "DIAL 1 of 3. Without a named mechanism there is no target; the inventive round degenerates into ordinary brainstorming."
+            },
+            {
+              "metric": "custom:compromise_answers_rejected",
+              "op": "==",
+              "value": true,
+              "value_type": "boolean",
+              "producer": "methodologist's per-candidate DISSOLVES/COMPROMISE classification, with the rejection reason recorded per candidate",
+              "note": "DIAL 2 of 3. Set the classifier to advisory if you want compromises kept as fallbacks - but then this is a tradeoff council, not a TRIZ one."
+            },
+            {
+              "metric": "novel_ideas",
+              "op": ">=",
+              "value": 3,
+              "note": "DIAL 3 of 3. Three non-compromise candidates is the floor for believing the space was probed at all. Bounded by targets.unique_ideas = 12."
+            }
+          ]
+        },
+        {
+          "metric": "proof_of_impossibility",
+          "op": "==",
+          "value": true,
+          "note": "The honest exit: the contradiction is real and irreducible. Take it to a tradeoff council instead of running a second inventive round here."
+        }
+      ]
+    },
+    "minimum_deliberation": { "min_rounds": 1, "min_independent_positions": 5, "min_minutes": 10, "every_participant_spoke": false },
+    "hard_caps": { "max_rounds": 2, "max_minutes": 45, "on_cap": "no_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "no_decision", "proof_of_impossibility"],
+    "conditional_decision_requires": []
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 1, "repetition_similarity": 0.85 },
+    "resolution": ["narrow_scope", "declare_no_decision"],
+    "escalation": { "after_attempts": 1, "to": "chair" }
+  },
+  "anti_failure": {
+    "controls": ["premature_convergence", "idea_count_gaming", "duplicate_novelty", "role_collapse", "weak_synthesis", "endless_debate"],
+    "injection_defense": { "treat_artifacts_as_data": true }
+  },
+  "outputs": {
+    "required": ["transcript", "idea_ledger", "option_cards", "argument_ledger", "unresolved_unknowns", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": false,
+    "determinism": "best_effort",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default" },
+    "persistence": { "store": "filesystem", "path": "platform/council/runs/c-d38/", "checkpoint_every_round": false }
+  },
+  "metadata": {
+    "title": "TRIZ contradiction council (8 seats, 45 minutes, one inventive round)",
+    "owner": "Prekzursil",
+    "notes": "WHEN TO USE: a trade-off someone has already tried to split and you suspect the split is the bug (fast AND thorough, cheap AND safe, autonomous AND supervised). WHEN NOT TO USE: as a general ideation council - the compromise veto makes it useless for balanced options - and never for a second round: the design mandates ONE inventive round, then fall through to a tradeoff protocol. That deliberate under-persistence is the anti-grind control, so protocol.rounds.min is 1. The design's named dial is contradiction_pair. EDITABLE DIALS: /objective/statement (state YOUR X and Y), /stopping/expression/any_of/0/all_of/2/value (candidates required), /voting/veto/holders (drop the methodologist veto to allow compromises), /budgets/time_minutes. STOPPING (human form): ALL[custom:contradiction_stated_formally == true, custom:compromise_answers_rejected == true, novel_ideas >= 3] OR proof_of_impossibility == true. source_expression absent per the SEM-001/SEM-012 collision proven by _probe_sem_rule_collision.py.",
+    "spec_citations": ["12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1693", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:570", "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:602", "_USER-PROMPTS.md:11213"],
+    "lineage": ["C-D38 deep-triz-8", "P29 triz-contradiction", "P31 constraint-relaxation"]
+  }
+}

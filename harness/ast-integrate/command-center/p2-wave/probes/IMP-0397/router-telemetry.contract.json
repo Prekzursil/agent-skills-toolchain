@@ -1,0 +1,79 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/IMP-0397/router-telemetry.contract.json",
+  "title": "IMP-0397 router-telemetry local contract",
+  "$comment": "Discriminating join-key contract for IMP-0397 probes. The catalog output_schema is a generated $ref shim that cannot reject unscoped join keys offline; this file is the executable control the named probes run.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "join_key",
+    "breadth",
+    "records",
+    "scrub"
+  ],
+  "properties": {
+    "unit_id": { "const": "IMP-0397" },
+    "state": {
+      "type": "string",
+      "minLength": 1,
+      "not": { "enum": ["BLOCKED", "FAILED", "SEVERED", "TIMEOUT"] }
+    },
+    "sentinel": {
+      "type": "string",
+      "pattern": "^SENTINEL:IMP-0397:ROUTER-TELEMETRY-SCRUBBED$"
+    },
+    "join_key": {
+      "type": "object",
+      "required": ["name", "scope"],
+      "properties": {
+        "name": { "const": "session_id" },
+        "scope": { "const": "session" },
+        "value_kind": { "const": "opaque-hash" }
+      },
+      "additionalProperties": true
+    },
+    "breadth": {
+      "type": "object",
+      "required": ["offered", "indexed", "fraction", "denominator_statement"],
+      "properties": {
+        "offered": { "type": "integer", "minimum": 0 },
+        "indexed": { "type": "integer", "minimum": 1 },
+        "fraction": { "type": "number", "minimum": 0, "maximum": 1 },
+        "denominator_statement": { "type": "string", "minLength": 8 }
+      },
+      "additionalProperties": true
+    },
+    "records": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["join_key", "join_key_scope", "offered", "used", "outcome"],
+        "properties": {
+          "join_key": { "type": "string", "minLength": 16, "pattern": "^[0-9a-f]+$" },
+          "join_key_scope": { "const": "session" },
+          "offered": { "type": "array" },
+          "used": { "type": "array" },
+          "outcome": { "type": ["string", "null"] }
+        }
+      }
+    },
+    "scrub": {
+      "type": "object",
+      "required": [
+        "secret_canary_absent",
+        "abs_path_canary_absent",
+        "emit_refused_on_leak"
+      ],
+      "properties": {
+        "secret_canary_absent": { "const": true },
+        "abs_path_canary_absent": { "const": true },
+        "emit_refused_on_leak": { "const": true }
+      },
+      "additionalProperties": true
+    }
+  },
+  "additionalProperties": true
+}

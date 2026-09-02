@@ -1,0 +1,16 @@
+I'll start from the existing TST-0230 probe tree, resume whatever is already built, and measure this unit only.The probe tree is sparse: only cloud-ok files. Next I’ll read the catalog row, the measurement contract, and nearby delivered units so we resume instead of rebuilding.The receipt is still BLOCKED with missing probes. I’ll inspect the delivery predicate, a nearby delivered unit, live `bench.py`, and the catalog schema next.I’ll read the rest of `bench.py`, the receipt schema, a delivered TST neighbor, and the current receipt so the fix matches the live contract.I’ll inspect the receipt schema, a SUCCESS benchmark receipt, foundry tests, and how other P2-delivered TST units packed probes.Schema resolver is missing here, so delivery hinges on an honest SUCCESS receipt plus live probes. I’ll inspect foundry tests, a sample workflow, and SUCCESS receipt fields, then implement the production gate.The two cloud-ok refutes named the same production gap, and that gap is fixable in `bench.py`. I’ll add the empty-input hard gate, per-case counts/floors, and a production timing control, then restore live named probes.Production scoring now flags empty cases and records counts. Next I’ll restore the four named probes so they re-run to exit 0 against that live API.Empty-case `input_bytes` still counted JSON wrapper. I’ll switch that to operational payload only so empty is truly 0.Probes are green. I’ll pack an honest SUCCESS receipt from the live raws and write the per-unit manifest.**SUCCESS:delivered TST-0230**
+
+`python command-center/p2-wave/_measure_one_delivered.py TST-0230` printed:
+
+`SUCCESS:delivered TST-0230 predicate=delivered state=SUCCESS probes=4 raws=2 notes=detector_control.py:0,nonempty_input_guard.py:0,probe_input_counts.py:0,probe_timing_separation.py:0`
+
+Cloud-ok harvest was not treated as delivery. The existing tree was BLOCKED: named probes were missing, and live `platform/lib/foundry/bench.py` scored an empty case. The two cloud-ok receipt-only strikes named the same remaining fix (change production scoring). That fix was applied instead of parking the unit or circling ADV/AUD/PVP.
+
+Production `foundry.bench` now:
+- **FLAG**s an empty case instead of scoring it; an empty case set is not `gate_ok`
+- emits per-case `input_bytes`, `input_items`, and declared floors
+- exposes `measure_known_work_separation()` as a production timing control (empty vs 1 MiB known-work; separation ~18.5 ms vs 1 ms floor)
+
+Restored live probes under `command-center/p2-wave/probes/TST-0230/`. Packed `command-center/receipts/TST-0230.json` (`state=SUCCESS`, 33241 B, LF sha256 `56ffbb5cf27d30732f45de3f2fef46a512d26d7f0e8a8276ab83c196e8a50811`) and registered that path in the per-unit `UNIT-ARTIFACT-MANIFEST.json`. Wrote `SUBAGENT-RETURN.json`.
+
+Constraints held: no git add/commit/push/stash/checkout/rebase; no `unit_manifest.py --write`; no key rotation; waves not relaunched.

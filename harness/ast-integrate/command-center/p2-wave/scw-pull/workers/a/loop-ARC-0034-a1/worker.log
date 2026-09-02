@@ -1,0 +1,35 @@
+
+===== launch 2026-08-20T07:41:44Z attempt=1 =====
+I'll start by reading the claim-verify-gate skill and inspecting the existing ARC-0034 probe tree so I can resume from what's already there.The probe tree is large; next I’ll inspect ARC-0034 specifically and the measure/contract scripts so we know what “delivered” actually requires.ARC-0034 has no probe tree yet. I’ll read the catalog entry, the measure script, and a completed ARC unit so we can build the same contract shape.I’ll inspect the architecture-review schema, existing A5 artifacts, and a delivered ARC unit so the SECURITY.json and probes match the contract.I’ll implement the live scrubber, canary/mention/isolation probes, and the architecture-review receipt next—the unit has no probe tree yet, so this is a build, not a park.Next I’ll write the packer that builds `SECURITY.json` from live probe output and registers the per-unit manifest.Measure printed `SUCCESS:delivered`. I’ll compute live hashes and write `SUBAGENT-RETURN.json` so the handoff matches the receipt.**G-1 contract-green for ARC-0034.** `python command-center/p2-wave/_measure_one_delivered.py ARC-0034` printed:
+
+`SUCCESS:delivered ARC-0034 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_canary.py:0,probe_isolation.py:0,probe_mention_fp.py:0,verify_controls.py:0`
+
+The unit had never been started (`probes/ARC-0034/` and `command-center/phase3/A5/SECURITY.json` were absent). That was `predicate:absent`, not a park. The probe tree and receipt were built and re-run.
+
+### What was specified and measured
+Credential handling for A5 (distributed workflow-runtime):
+
+- **Cloud-batch auth** is injection-only plus substrate workload identity. Auth files are not packed into images or harvest bundles.
+- **Leave gate** unpacks `json-receipt`, `markdown-log`, and `zip-bundle` and scans known-prefix shapes. A miss of a planted canary of that shape is P0.
+- **Worktree isolation** realpath-confines a unit to its bound root. Sibling trees and credential stores are denied and logged.
+
+Live catalog tests:
+
+| Test | Result |
+|---|---|
+| Canary (zero-entropy prefix `sk-ant-` + random body) in all three classes | **3/3 catch** with unpack; zip blob-scan **misses** (unpack is load-bearing) |
+| Mention-only `API_KEY` / `token` document | **0 findings**; assignment is caught |
+| Worktree A reads worktree B and a simulated `~/.ssh` | **DENY + log**; in-tree read allowed |
+| Declared false-negative budget | **0 misses** on the planted canary shape |
+
+Canary **values were never written** to receipts or raw files (shape + body sha256 only).
+
+### Artifacts
+- Receipt: `command-center/phase3/A5/SECURITY.json` (`state=SUCCESS`, architecture-review)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0034/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 `c0a5c22f894c684cd33d755bc95c0d10ad6615807aacd6fa2931326b77f01e9c`, 26865 bytes, match true)
+- Handoff: `command-center/p2-wave/probes/ARC-0034/SUBAGENT-RETURN.json`
+
+### Residuals (not parks)
+Windows doc 13, `A5/DESIGN.json` (ARC-0031), and a Codex MCP reviewer were **not** available on this tree and are recorded as `NOT-CHECKED` with named settling experiments.
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation/printing, no wave relaunch. Cloud `ok=true` is not this delivery.

@@ -1,0 +1,21 @@
+
+===== launch 2026-08-20T08:59:58Z attempt=1 =====
+I'll start from the existing IMP-0073 probe tree, resume any prior work, and only then implement and measure until the unit is delivered.Next I’ll pull the catalog contract, the measure script, and a delivered IMP unit so we can match the expected shape.The probe tree is missing, so I’ll inspect IMP-0067/IMP-0047, the receipt schema, and a delivered IMP unit for the contract shape.There’s already a marketplace package and a registry-index schema; I’ll inspect those plus the SUCCESS receipt contract before writing probes.`tools/marketplace` already exists, so I’ll extend it instead of replacing it.I'll extend the existing marketplace package with versioned index migration, then add the catalog tests and probes.The receipt schema needs object-shaped consumers, allowed artifact roles, and `residual_unknowns`. I’ll align the packer with that and re-pack.IMP-0073 is delivered. `python command-center/p2-wave/_measure_one_delivered.py IMP-0073` printed:
+
+**SUCCESS:delivered IMP-0073 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe_old_parser.py:0,probe_round_trip.py:0,run_required_tests.py:0**
+
+The probe tree did not exist, so it was created and implemented.
+
+**What landed**
+- `tools/marketplace/index_migration.py`: integer `schema_version`, invertible v1↔v2 steps, **`COMPATIBILITY_WINDOW = 1`** (a version count, not implicit).
+- v1→v2 adds `schema_version: 2`, `packages[]` 1:1 from `plugins`, and `channels: ["stable"]`. v2→v1 drops those v2-only keys with no plugin semantic loss.
+- A v1 parser given a v2 index returns **UNSUPPORTED** (`parsed_record_count` 0 ≠ `file_record_count` 6) instead of dropping `packages[]`.
+- Catalog tests: `tools/marketplace/tests/test_index_migration.py::test_round_trip_preserves_semantics` and `::test_old_parser_declares_unsupported`. Negative control: a license-dropping step fails the same round-trip predicate.
+- `tools/marketplace/storage.py` now stamps `schema_version: 2` on rebuilt indexes.
+
+**Artifacts**
+- Receipt: `command-center/receipts/IMP-0073.json` (`state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0073/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `560f06ae48868019c2b47ed4f795abe44090b5b49ebba01ef6d5692afca9a8bd`)
+- Return: `command-center/p2-wave/probes/IMP-0073/SUBAGENT-RETURN.json`
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no finish-everything / cloud-ok relaunch.

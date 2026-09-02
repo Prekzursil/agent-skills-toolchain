@@ -1,0 +1,174 @@
+
+===== launch 2026-08-19T18:04:54Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree, read any prior subagent return, and only resume what's already built.The probe tree is already populated. Next I’ll read the handoff, prior return, and the G-1 measure contract so I resume instead of rebuilding.Prior return claims delivery; I’ll re-run the live probes and check the catalog contract instead of trusting that.Catalog search missed the unit; I’ll pull the catalog row and the live receipt next.I'll re-run the four named probes on this tree, then measure against the live receipt instead of the prior claim.Probes all exited 0. I’ll compare live raw hashes to the receipt and re-pack only if they drifted.Measure printed `SUCCESS:delivered`. I’ll refresh the return files and confirm hashes still match after the live re-run.Hashes still match after the live re-run. I’ll write the per-unit manifest and subagent return, then remasure.**SUCCESS:delivered** ADV-0072 `predicate=delivered state=SUCCESS probes=4 raws=3 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0`
+
+G-1 is contract-green for this unit on `/opt/p2/ast-integrate`. The existing probe tree was resumed, not rebuilt.
+
+Live named probes re-ran to exit 0 against live `platform/lib` (`wfdsl_source=live`, `live_platform_present=true`):
+
+- `beacon_detector.py` — red on the planted fixture, green on a clean file
+- `probe1_import_beacon.py` — hostile six-field import stayed import-only; zero beacons; no workflow execution
+- `probe2_static_audit.py` — 42 runtime Python files scanned; all six free-text fields `INERT_DURING_IMPORT`
+- `run_controls.py` — benign import clean; detector discriminates both states
+
+Honest non-BLOCKED artifact:
+
+- path: `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json`
+- `state=SUCCESS`, overall science `PARTIAL` (implemented import path `REFUTED`; agent import path residual `NOT-CHECKED`)
+- 32778 bytes, LF sha256 `70249a507bcc70c693541297dbedfdc23fde7282a958fbf66bcff829b0faab5a`
+
+Per-unit manifest row at `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json` names that path with the matching digest. Return written at `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json`.
+
+Not treated as delivery: harvest `cloud ok=true`. Not run: git mutations, `unit_manifest.py --write`, finish-everything-close, p2-cloud-ok-deliver. Not parked: the two CLOUD-OK strikes were harvest-honesty (absent named probes), not two independent refutes of the same live-import hypothesis.
+
+===== launch 2026-08-19T18:08:50Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree, resume whatever is already built, and measure against the G-1 contract for this unit only.Existing probe tree is in place. Next I’ll read the return artifact, measure script, and unit contract so I can resume instead of rebuilding.The return file already claims delivered; I’ll re-run the live probes and the measure gate instead of trusting that.Catalog lookup came up empty, so I’ll locate the real catalog path and run the live measure next.I’ll re-run the four named probes, then check hashes and `artifact_delivered` against the current receipt.Probes all exited 0. Next I’ll check hashes, `artifact_delivered`, and the live measure gate.Measure printed `SUCCESS:delivered`. I’ll refresh the two required artifacts from this live run and re-check hashes.**SUCCESS:delivered** ADV-0072 `predicate=delivered state=SUCCESS probes=4 raws=3 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0`
+
+Resumed the existing ADV-0072 probe tree. Did not scrap the built probes. Re-ran the four named scripts against live `platform/lib` plus `platform/marketplace/mkt`; all four exited 0.
+
+| Probe | Last line | Meaning |
+|---|---|---|
+| `probe1_import_beacon.py` | `SUCCESS:ADV-0072-probe1-import-only` | Hostile six-field import stayed import-only; zero beacons |
+| `probe2_static_audit.py` | `SUCCESS:ADV-0072-probe2-static-audit` | All six free-text fields `INERT_DURING_IMPORT` (42 files scanned) |
+| `run_controls.py` | `SUCCESS:ADV-0072-controls` | Benign import clean; detector red on planted fixture, green on clean |
+| `beacon_detector.py` | `SUCCESS:ADV-0072-beacon-detector` | Both-states oracle discriminates |
+
+Science on the receipt is honest **PARTIAL**: implemented wfdsl import path **REFUTED**; end-to-end agent-import path **NOT-CHECKED** (no importer exists). `state=SUCCESS` was left in place because those live probes passed, not because cloud `ok=true`.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json` (`status=DELIVERED`, not parked)
+- `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json` (per-unit only)
+
+Receipt `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json` is 32778 bytes, LF sha256 `70249a507bcc70c693541297dbedfdc23fde7282a958fbf66bcff829b0faab5a`, matching the per-unit manifest row.
+
+Did not park: the two CLOUD-OK strikes were harvest-honesty (absent named probes / dropped `exists=false` sidecar rows), not two independent refutes of the same live-import hypothesis.
+
+Constraints kept: no git mutation, no `unit_manifest.py --write`, no key rotation, no wave relaunch. Re-ran `_measure_one_delivered.py` after writing the artifacts; it printed `SUCCESS:delivered` again.
+
+===== launch 2026-08-19T18:14:30Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree, read the unit contract and any prior return, then resume from what's already built.Existing probe files are in place. Next I’ll read the return, manifest, handoff, and measure script so we resume from the current contract.Prior artifacts claim delivery. I’ll re-run the live probes and the measure gate instead of trusting those receipts.I’ll re-run the four named probes now, then check whether the catalog receipt and per-unit manifest still match live bytes.Probes and receipt look intact. I’ll re-run the four named scripts against live `platform/lib`, then remeasure.All four probes exited 0. Next I’ll compare live raws to the packed receipt and refresh the return plus per-unit manifest.Measure-one printed `SUCCESS:delivered`. I’ll confirm the schema resolver actually ran, then write the return and per-unit manifest.Measure-one is green and live raws still match the packed receipt. I’ll write the per-unit manifest and this pass’s return, then recapture the measure line.**SUCCESS:delivered** ADV-0072. G-1 is contract-green on this worktree.
+
+Resumed `command-center/p2-wave/probes/ADV-0072/` (did not scrap probes). Live re-runs of `beacon_detector.py`, `probe1_import_beacon.py`, `probe2_static_audit.py`, and `run_controls.py` all exited 0 against live `platform/lib` (`wfdsl_source=live`). Hostile six-field import stayed import-only with zero beacons; all six free-text fields are `INERT_DURING_IMPORT`. Catalog receipt stayed honest `state=SUCCESS` because live raws matched the packed ones, so it was not rewritten.
+
+```
+SUCCESS:delivered ADV-0072 predicate=delivered state=SUCCESS probes=4 raws=3 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0
+```
+
+Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json` at LF sha256 `70249a507bcc70c693541297dbedfdc23fde7282a958fbf66bcff829b0faab5a` (32778 bytes). Science remains PARTIAL (implemented import path REFUTED; agent-import path NOT-CHECKED). cloud ok=true was not treated as delivery. Global `unit_manifest.py --write` was not run. Git was not mutated.
+
+===== launch 2026-08-19T18:17:23Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree and the measurement contract so this unit can be delivered without touching git or the global catalog.The probe tree is already populated. Next I’ll read the return artifact, catalog contract, and measure script so I know what “delivered” actually requires.Existing files claim delivery already. I’ll re-run the live probes and the measure gate instead of trusting those artifacts.I’ll re-run the four named probes and inspect `artifact_delivered` so we know whether the current receipt still satisfies the gate.Probes and receipt look intact. I’ll re-run them now and then check whether the packed artifact still matches the live outputs.All four probes exited 0. Next I’ll check whether the receipt still matches the live raws, then run the measure gate.Packed raws match the live rerun and the manifest hash is current. I’ll now run the official measure plus schema/`artifact_delivered` so the return file is based on this pass.Measure already printed `SUCCESS:delivered`, but the schema resolver came back `None`. I’m checking whether that skips the real contract.Schema resolver is missing on this tree, so I’ll validate the receipt against the physical profile directly and then refresh the return artifacts.The unit already meets the measure gate. I’ll refresh the per-unit return and manifest from this remasure, then run the measure again.**SUCCESS:delivered ADV-0072** `predicate=delivered state=SUCCESS probes=4 raws=3 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0`
+
+ADV-0072 is G-1 contract-green on this Linux worktree. Existing probes were resumed, not rebuilt.
+
+Live named probes all exited 0 against live `platform/lib` (`wfdsl_source=live`, `live_platform_present=true`):
+- `beacon_detector.py`
+- `probe1_import_beacon.py`
+- `probe2_static_audit.py`
+- `run_controls.py`
+
+Science on the implemented import path is **REFUTED** (hostile six-field import is import-only, zero beacons, six free-text fields `INERT_DURING_IMPORT`). The catalog agent-import question stays **NOT-CHECKED**, so the receipt overall is honest **PARTIAL** with `state=SUCCESS`, not BLOCKED.
+
+Per-unit manifest row:
+- path: `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json`
+- LF sha256: `70249a507bcc70c693541297dbedfdc23fde7282a958fbf66bcff829b0faab5a`
+- bytes: 32778 (matches live receipt; packed raws equal live raws)
+
+Written:
+- `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git mutation, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud `ok=true` was not treated as delivery.
+
+===== launch 2026-08-19T18:21:36Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree, read the unit contract and any prior return, then resume rather than rebuild.The probe tree is already there. Next I’ll read the return, manifest, handoff, and the measurement script so I know what “delivered” actually requires.Prior return claims DELIVERED; I’ll re-run the live probes and the measure script instead of trusting that claim.I’ll re-run the four named probes and the measure script against the live receipt, then inspect `ready_units` if anything is still red.I’ll re-run the four named probes from the repo root and capture live exit codes before trusting the packed receipt.Measure-one already printed `SUCCESS:delivered`. I’ll check the G-1 contract and whether the packed receipt is still honest after this live re-run.The packed negative-control tail is from `run_controls.py` while the command names `beacon_detector.py`. I’ll pack the detector’s own output, then re-apply and remeasure.Measure-one is green. I’ll write the per-unit return and manifest from this live run, then capture the measure line.**SUCCESS:delivered** ADV-0072. Live measure-one printed:
+
+`SUCCESS:delivered ADV-0072 predicate=delivered state=SUCCESS probes=4 raws=4 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0`
+
+Resumed the existing probe tree (did not scrap it). All four named probes re-ran against live `platform/lib` and exited 0:
+
+| Probe | Last line |
+|---|---|
+| `beacon_detector.py` | `SUCCESS:ADV-0072-beacon-detector` |
+| `probe1_import_beacon.py` | `SUCCESS:ADV-0072-probe1-import-only` |
+| `probe2_static_audit.py` | `SUCCESS:ADV-0072-probe2-static-audit` |
+| `run_controls.py` | `SUCCESS:ADV-0072-controls` |
+
+Hostile six-field import stayed import-only with zero beacons. All six free-text fields classify as `INERT_DURING_IMPORT`. Science is **PARTIAL** (implemented path **REFUTED**; agent-import path **NOT-CHECKED**). Receipt `state=SUCCESS` is not a hand-flip.
+
+Packed T-NEGATIVE-BEACON-GOES-RED now uses `beacon-detector.raw.txt` (the detector’s own both-states output), not the controls log.
+
+Per-unit manifest row:
+
+- path: `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json`
+- bytes: 32423
+- LF sha256: `dacd248901af143af630ecde18cc9310949b52b167547b10f07e24493acab449`
+
+Written:
+
+- `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json`
+
+cloud ok=true was not treated as delivery. No git mutation. No `unit_manifest.py --write`. Unit was not parked: the two CLOUD-OK strikes were harvest-honesty, not two independent refutes of the live-import hypothesis.
+
+===== launch 2026-08-19T18:30:43Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree and the unit contract, then resume whatever is already built instead of starting over.Existing probe tree is present. Next I’ll read the unit artifacts, measure script, and current SUBAGENT-RETURN so we resume from what’s already there.The tree already claims delivery; I’ll re-run the named probes and the measure script on live bytes so we don’t treat a stale SUCCESS as the real result.I’ll inspect `artifact_delivered` and the catalog row, then re-run the four named probes on this worktree.I'll re-run the four named probes against live `platform/lib`, then measure this unit rather than trust the prior SUCCESS claim.All four probes exited 0. Next I’ll check whether the packed receipt still matches live bytes, then re-apply if needed before measuring.Packed receipt already matches the live probe raws. I’ll re-apply so this session owns the timestamps, then run the official measure.Measure printed `SUCCESS:delivered`. I’ll re-check hashes, packed-vs-live raws, and the per-unit manifest, then write this session’s return files.Measure is green and hashes match. I’ll write this session’s per-unit manifest and SUBAGENT-RETURN, then re-run the official measure as the final check.**SUCCESS:delivered ADV-0072** `predicate=delivered state=SUCCESS probes=4 raws=4 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0`
+
+Resumed the existing probe tree (did not scrap it). Re-ran the four named probes against live `platform/lib`; all exited 0. Hostile six-field import stayed import-only with zero beacons. All six free-text fields are `INERT_DURING_IMPORT`. Detector is red on the known-bad fixture and green on a clean file.
+
+Receipt `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json` is `state=SUCCESS` (science overall `PARTIAL`: implemented path `REFUTED`, agent import path `NOT-CHECKED`). Packed raws equal live raws. Per-unit manifest row matches live LF sha256 `3b4d86e33366bdc282046e88e9141d777d3ed35bf7151c85d0c97648caf61b7b` (32423 bytes).
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json`
+
+`cloud ok=true` was not treated as delivery. Global `unit_manifest.py --write` was not run. Git was not mutated. `platform/lib/schema_resolver.py` is absent on this tree, so `ready_units` condition 4 was skipped rather than executed.
+
+===== launch 2026-08-19T18:35:47Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree, read the return artifact if present, and resume rather than rebuilding.Existing probe artifacts are in place. Next I’ll read the return, manifest, and measure contract so we resume from the last honest state.Prior artifacts claim delivery, so I’ll re-run the live probes and the measure script against the current worktree instead of trusting those files.Probes look complete. I’ll re-run them live, inspect the catalog unit and `ready_units` predicate, then measure.All four probes exited 0. Next I’ll check packed-vs-live hashes and run the delivery measure.Packed hashes already match. I’ll confirm the catalog entry, then run the official measure script.Measure printed `SUCCESS:delivered`. I’ll refresh the per-unit manifest and `SUBAGENT-RETURN.json` from this live re-run, then remeasure.**SUCCESS:delivered** ADV-0072. G-1 is contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0072` printed:
+
+```
+SUCCESS:delivered ADV-0072 predicate=delivered state=SUCCESS probes=4 raws=4 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0
+```
+
+Resumed the existing probe tree; did not scrap it. All four named probes re-ran to exit 0 against live `platform/lib` (`wfdsl_source=live`):
+
+| Probe | Last line | Exit |
+|---|---|---|
+| `beacon_detector.py` | `SUCCESS:ADV-0072-beacon-detector` | 0 |
+| `probe1_import_beacon.py` | `SUCCESS:ADV-0072-probe1-import-only` | 0 |
+| `probe2_static_audit.py` | `SUCCESS:ADV-0072-probe2-static-audit` | 0 |
+| `run_controls.py` | `SUCCESS:ADV-0072-controls` | 0 |
+
+Receipt `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json` is honest `state=SUCCESS` (science overall PARTIAL: implemented import path REFUTED, agent-import path NOT-CHECKED). Per-unit manifest row matches live LF sha256 `3b4d86e33366bdc282046e88e9141d777d3ed35bf7151c85d0c97648caf61b7b` (32423 bytes). Packed raws equal live raws.
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git mutation, no `unit_manifest.py --write`, no key rotation, no wave relaunch. `cloud ok=true` was not treated as delivery. Not parked: the two CLOUD-OK strikes were harvest-honesty, not two independent refutes of the live-import hypothesis.
+
+===== launch 2026-08-19T18:38:45Z attempt=1 =====
+I'll start from the existing ADV-0072 probe tree, read any prior return artifact, and resume from there rather than rebuilding.The probe tree already exists. Next I’ll read the handoff, return artifact, measure script, and catalog row so I resume from the real blockers.The prior return claims delivery; I’ll re-run the live probes and measure script instead of trusting that claim.I'll re-run the four named probes and inspect the receipt, controls, and delivery-predicate code for drift.I'll re-run the four named probes now, then check whether the live platform and schema resolver still match the receipt.Probes are green and measure-one already printed `SUCCESS:delivered`. I’ll refresh the per-unit artifacts from this live re-run, then measure again.Manifest is current. Next I’ll write this session’s return artifact, then run the official measure.**SUCCESS:delivered ADV-0072** `predicate=delivered state=SUCCESS probes=4 raws=4 notes=beacon_detector.py:0,probe1_import_beacon.py:0,probe2_static_audit.py:0,run_controls.py:0`
+
+Resumed the existing ADV-0072 probe tree. Did not scrap the built probes. All four named scripts re-ran to exit 0 against live `platform/lib` (`wfdsl_source=live`, `live_platform_present=true`):
+
+| Probe | Last line | Result |
+|---|---|---|
+| `beacon_detector.py` | `SUCCESS:ADV-0072-beacon-detector` | RED on planted fixture, GREEN on clean file |
+| `probe1_import_beacon.py` | `SUCCESS:ADV-0072-probe1-import-only` | Hostile six-field import stayed import-only; zero beacons |
+| `probe2_static_audit.py` | `SUCCESS:ADV-0072-probe2-static-audit` | 42 files scanned; all six free-text fields `INERT_DURING_IMPORT` |
+| `run_controls.py` | `SUCCESS:ADV-0072-controls` | Benign import clean; no execute calls |
+
+Catalog receipt `command-center/adversarial/ADV-0072-imported-workflow-definition-injection.json` is honest `state=SUCCESS` (science overall **PARTIAL**: implemented import path **REFUTED**, agent import path **NOT-CHECKED**). Packed raws equal live raws. Per-unit manifest row matches live LF sha256 `3b4d86e33366bdc282046e88e9141d777d3ed35bf7151c85d0c97648caf61b7b` (32423 bytes).
+
+Not parked: the two CLOUD-OK strikes were harvest-honesty (absent named probes / dropped sidecar rows), not two independent refutes of the live-import hypothesis.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0072/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0072/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run `unit_manifest.py --write`, did not treat cloud `ok=true` as delivery.

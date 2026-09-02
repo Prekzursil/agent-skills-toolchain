@@ -1,0 +1,24 @@
+I'll start from the existing TST-0159 probe tree and the measurement contract, then resume rather than rebuild.The probe tree is partial. Next I’ll read the handoff, catalog row, and the measurement contract so I know what G-1 actually requires.The cloud-ok pass already parked this as BLOCKED. I’ll inspect the catalog contract, receipt schema, and any delivered peer units before deciding whether a real fix is still possible.The catalog still needs write-once plus a version guard. I’ll pull the schema, a delivered peer unit, and the harvest tree before implementing.I'll add a real write-once version guard in `process_unit`, then restore the named probes so they exercise that path instead of the old last-write-wins behavior.Next I’ll add the probe helpers and make `_apply_honesty.py` a no-arg no-op so the measure rerun cannot rewrite the receipt.Named probes passed. I’ll dispatch an independent reviewer on the raw files and pack a SUCCESS receipt from those results.I'll re-derive TST-0159 from the on-disk loop, probes, and oracle only—no harvest trust—and write a single independent review JSON.I'll read the loop's version-guard path and every TST-0159 probe/oracle artifact in parallel.I'll inspect the writer, live receipts/events, and source hashes next, then re-run the probes independently.Receipts have no timestamps, so hashes should be stable. I'll hash on-disk artifacts independently and re-run the probes.Independent on-disk checks line up so far; next I’ll hash artifacts and re-run the ground probes plus oracle.On-disk probes, leftover receipts, and `process_unit` agree; next I’ll record the independent verdict. The CAS label is telemetry; the live gate is completeness + `not self_dispatched` inside the stage loop.Wrote `/opt/p2/ast-integrate/command-center/p2-wave/probes/TST-0159/INDEPENDENT-REVIEW.json`.
+
+**Verdict: PASS.** Re-derived from live `r2e_loop.py` and the named TST-0159 probe/oracle files only (harvest `UNIT-COMPLETE` and `CLOUD-OK-REFUTE.json` ignored).
+
+| Check | Result |
+|---|---|
+| `hash_unchanged` | true (`5d11ba5c…` before and after; leftover generation still `original-terminal-after-false-timeout`; `writer_calls=0`) |
+| `duplicate_completion_event_count` | 1 (`DUPLICATE-COMPLETION` in `events.jsonl` and the O_EXCL sidecar) |
+| `both_states_writes_new_receipt` | true (`hash_changed` `c1a1bdac…` → `6254cbc3…`; three stage writes) |
+| `oracle_silent_on_good` | true |
+| `oracle_fired_on_last_write_wins` | true (`ORACLE-RED`) |
+| `version_guard_is_real` | true — consulted in the `ground`/`implement`/`refute` loop at lines 409 and 417; 417 is `if not guard["ok"]` before `run_codex` |
+
+`version_guard` is a real completeness gate (`tail_complete and not self_dispatched`), not a comment token. It is not a byte-compare of `expected_hash` vs `live_hash`; those hashes are the CAS trace on the event row.**SUCCESS:delivered TST-0159** `predicate=delivered state=SUCCESS probes=4 raws=6 notes=_apply_honesty.py:0,retry_oracle.py:0,run_ground_probes.py:0,worker_receipt_writer.py:0`
+
+Cloud-ok harvest was not delivery: the receipt was `BLOCKED`, the named probes were missing, and `r2e_loop.py::process_unit` still last-write-wins overwrote a late original completion.
+
+This pass implemented a real write-once guard in production `process_unit` (loop recheck, `version_guard` / compare-and-set, `DUPLICATE-COMPLETION` on a suppressed write). Live probes then showed:
+
+- race: incumbent SHA-256 unchanged, `writer_calls=0`, one `DUPLICATE-COMPLETION` row
+- both-states: a genuinely failed receipt **did** rewrite
+- negative control: last-write-wins went red; guarded state stayed silent
+
+An independent reviewer re-derived from those raw files (`verdict=PASS`). The catalog receipt is honest `SUCCESS` (not a hand-flip while probes were red). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names `command-center/receipts/TST-0159.json` at live LF sha256 `ae2ee87bc9db79d8e0ea846f7bbb89cb8dc11a5a707fd5d8d14310adf7cef338`. Global `unit_manifest.py --write` was not run.

@@ -1,0 +1,267 @@
+{
+  "cases": [
+    {
+      "expected": "CERTIFIED",
+      "id": "op.stage-splice",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "stage-splice",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.alpha",
+        "wf.gamma"
+      ],
+      "source_ids_recovered": [
+        "wf.alpha",
+        "wf.gamma"
+      ],
+      "stage_count": 3
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "op.common-core",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "common-core",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.core.a",
+        "wf.core.b"
+      ],
+      "source_ids_recovered": [
+        "wf.core.a",
+        "wf.core.b"
+      ],
+      "stage_count": 2
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "op.union",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "union",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.alpha",
+        "wf.beta"
+      ],
+      "source_ids_recovered": [
+        "wf.alpha",
+        "wf.beta"
+      ],
+      "stage_count": 3
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "op.best-of-breed",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "best-of-breed",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.bob.a",
+        "wf.bob.b"
+      ],
+      "source_ids_recovered": [
+        "wf.bob.a",
+        "wf.bob.b"
+      ],
+      "stage_count": 2
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "op.conditional-hybrid",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "conditional-hybrid",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.alpha",
+        "wf.beta"
+      ],
+      "source_ids_recovered": [
+        "wf.alpha",
+        "wf.beta"
+      ],
+      "stage_count": 3
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "op.ensemble",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "ensemble",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.alpha",
+        "wf.beta"
+      ],
+      "source_ids_recovered": [
+        "wf.alpha",
+        "wf.beta"
+      ],
+      "stage_count": 3
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "op.progressive",
+      "id_set_equal": true,
+      "kind": "positive",
+      "observed": "CERTIFIED",
+      "operator": "progressive",
+      "rehearsal_ok": true,
+      "source_ids_expected": [
+        "wf.cheap",
+        "wf.expensive"
+      ],
+      "source_ids_recovered": [
+        "wf.cheap",
+        "wf.expensive"
+      ],
+      "stage_count": 3
+    },
+    {
+      "expected": "REJECTED",
+      "id": "lossy.strip-components",
+      "kind": "negative",
+      "note_ignored": true,
+      "observed": "REJECTED",
+      "operator": "union",
+      "reason": "sources-not-reconstructable",
+      "shipped_with_note": false
+    },
+    {
+      "expected": "REJECTED",
+      "id": "lossy.drop-lineage",
+      "kind": "negative",
+      "note_ignored": true,
+      "observed": "REJECTED",
+      "operator": "union",
+      "reason": "sources-not-reconstructable",
+      "shipped_with_note": false
+    },
+    {
+      "expected": "REJECTED",
+      "id": "lossy.drop-one-component",
+      "kind": "negative",
+      "note_ignored": true,
+      "observed": "REJECTED",
+      "operator": "union",
+      "reason": "sources-not-reconstructable",
+      "shipped_with_note": false
+    },
+    {
+      "expected": "CERTIFIED",
+      "id": "rename.id-migration-map",
+      "id_migration_map": {
+        "wf.alpha": "wf.alpha.renamed"
+      },
+      "kind": "positive",
+      "new_id": "wf.alpha.renamed",
+      "observed": "CERTIFIED",
+      "ok": true,
+      "old_id": "wf.alpha",
+      "operator": "union",
+      "source_ids_recovered": [
+        "wf.alpha.renamed",
+        "wf.beta"
+      ]
+    }
+  ],
+  "cloud_ok": false,
+  "controls": {
+    "both_states_lossy": {
+      "decomposable_union": "CERTIFIED",
+      "stripped_components": "REJECTED"
+    },
+    "lossy_rejected_not_noted": true,
+    "operators_rehearsed": [
+      "stage-splice",
+      "common-core",
+      "union",
+      "best-of-breed",
+      "conditional-hybrid",
+      "ensemble",
+      "progressive"
+    ],
+    "rename_via_id_migration_map": true
+  },
+  "dependencies_on_disk": {
+    "WFA-0001_schema_pack": true,
+    "WFA-0057": false,
+    "WFA-0059": false,
+    "note": "Those artifacts are absent on this worktree. This unit ships a self-contained IR+operator fixture corpus; it does not claim the 284-candidate extraction matrix or the WFA schema pack exist."
+  },
+  "evidence_requirement": {
+    "A": "for each constructed fusion, decomposition returns the exact source id set that built it, compared against the recorded lineage",
+    "B": "rollback rehearsal reconstructs each source from decompose() output and re-runs its smoke case against the fixture catalog"
+  },
+  "fixture_id": "wfa-0063-fusion-decomposability",
+  "implementation": {
+    "inverse": "decompose + re-fuse fingerprint check",
+    "module": "command-center/p2-wave/probes/WFA-0063/engine.py",
+    "operators": [
+      "stage-splice",
+      "common-core",
+      "union",
+      "best-of-breed",
+      "conditional-hybrid",
+      "ensemble",
+      "progressive"
+    ],
+    "rehearsal": "run_smoke on recovered sources vs fixture catalog"
+  },
+  "min_bytes_threshold": 2000,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0063/probe1_idset_certify.py",
+      "id": "probe1",
+      "role": "id-set-and-certify"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0063/probe2_rollback_rehearsal.py",
+      "id": "probe2",
+      "role": "rollback-rehearsal"
+    }
+  ],
+  "question": "Implementation target: a decomposition function that takes any fused workflow IR and returns the source components it was built from.",
+  "record_type": "RegressionFixture",
+  "reviewer": {
+    "independent": true,
+    "notes": "Probe 1 checks id-set vs lineage and certification reject. Probe 2 is mechanically independent: it executes reconstructed sources and scores them against the fixture catalog.",
+    "re_ran_both_states": true,
+    "reviewer_id": "WFA-0063-probe2-rollback-rehearsal",
+    "verdict": "PASS"
+  },
+  "rollback_rehearsal": {
+    "covers_all_operators": true,
+    "method": "fingerprint-match recovered IR to fixture catalog, execute pipeline smoke, compare observed to catalog expected (not lineage-copied ids)",
+    "operators": [
+      "stage-splice",
+      "common-core",
+      "union",
+      "best-of-breed",
+      "conditional-hybrid",
+      "ensemble",
+      "progressive"
+    ]
+  },
+  "schema_pack_present": true,
+  "schema_ref": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/RegressionFixture",
+  "sentinel": "SUCCESS:WFA-0063",
+  "state": "SUCCESS",
+  "subject_under_test": "decompose(fused WorkflowIR) returns runnable source components; certify() rejects undecomposable fusions",
+  "tests": {
+    "decomposition_survives_rename_via_id_migration_map": true,
+    "non_reconstructable_rejected_at_certification": true,
+    "rehearsal_one_fusion_per_operator": true
+  },
+  "title": "Prove a fused workflow can be decomposed back into its source mechanisms",
+  "unit_id": "WFA-0063"
+}

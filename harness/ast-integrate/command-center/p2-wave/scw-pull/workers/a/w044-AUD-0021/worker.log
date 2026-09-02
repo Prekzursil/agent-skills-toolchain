@@ -1,0 +1,27 @@
+I'll start from the existing AUD-0021 probe tree, read its return artifact, and measure what's already delivered before changing anything.There's no `SUBAGENT-RETURN.json` yet. Next I’ll read the measure script, the catalog row, and a delivered unit so I can resume the existing probes instead of starting over.The receipt is still `BLOCKED` on registration. I’ll read the catalog contract, schema, and a delivered sibling so I can tell whether SUCCESS is honest or whether this should stay parked.AUD-0028 already has a SUCCESS path. I’ll copy that contract pattern and check how probe scripts must run with no arguments.The tree is missing root manifests, `platform/`, and git-tracked locks. I’ll map what’s actually present before I decide whether SUCCESS is honest or this unit should be parked.This slice has no `.git` and no production Node manifests. I’ll resume the existing probes, remasure that fact live, and pack an honest SUCCESS the same way AUD-0001 did on this tree.Next I’ll remasure the live probes, then pack the receipt only if they stay green.Repo-root resolution was one directory too high (`/opt/p2` instead of this worktree). I’ll pin it to `parents[4]` from the script file and remasure.**SUCCESS:delivered AUD-0021**
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0021` printed:
+
+`SUCCESS:delivered AUD-0021 predicate=delivered state=SUCCESS probes=4 raws=5 notes=check_locks.py:0,probe1_manifests.py:0,probe2_locks.py:0,update_receipt.py:0`
+
+This worktree is a P2 slice (no `.git`, no production Node tree). The Windows harvest headline of 26 manifests / 5 production locks is false here. Live remasure:
+
+| Signal | This slice |
+|---|---|
+| `package.json` outside `node_modules` | **66** (all under `command-center/p2-wave/probes/`) |
+| Production / non-probe manifests | **0** |
+| Shape anomalies | **5** (array-valued `dependencies` fixtures) |
+| Deps prod / dev / peer / optional | **90 / 56 / 0 / 0** |
+| Lockfiles / registry integrity strings | **7 / 1468** |
+| Failing integrity / desynced | **0 / 0** |
+| Fixture control | corrupt lock names `node_modules/@hono/node-server` and exits 1; good lock silent exit 0 |
+
+Resumed the existing probe tree (`check_locks.py`, fixtures, raws). Added no-arg named probes. `update_receipt.py` is verify-only so a measure re-run cannot rewrite the receipt. Condition 11 uses the per-unit manifest, not a global `unit_manifest.py --write`.
+
+Wrote:
+
+- `command-center/audit/AUD-0021-node-dep-inventory.json` — 37954 B, `state=SUCCESS`, LF sha256 `618a903ccf81e45c6a5250bc34e4003e9bfe8c464fe5aa514b58fe9cfd51300d`
+- `command-center/p2-wave/probes/AUD-0021/UNIT-ARTIFACT-MANIFEST.json` — same path + hash
+- `command-center/p2-wave/probes/AUD-0021/SUBAGENT-RETURN.json`
+
+`platform/lib/schema_resolver.py` is absent on this checkout, so schema validation is unavailable; `ready_units.artifact_delivered` still returned delivered because the artifact is present, parses, and is not self-`BLOCKED`. Cloud `ok=true` was not used as delivery.

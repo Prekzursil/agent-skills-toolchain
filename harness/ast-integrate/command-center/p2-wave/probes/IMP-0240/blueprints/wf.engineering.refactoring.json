@@ -1,0 +1,47 @@
+{
+  "id": "wf.engineering.refactoring",
+  "kind": "workflow_blueprint",
+  "title": "Refactoring with an equivalence argument",
+  "discovery_only": false,
+  "example_id": "ex.refactoring.pure-normalize",
+  "preset_id": "preset.refactoring.pure-fn",
+  "stages": [
+    {
+      "id": "capture-before",
+      "kind": "record-pure-fn",
+      "inputs": ["source"],
+      "outputs": ["before-fn"]
+    },
+    {
+      "id": "apply-rewrite",
+      "kind": "transform",
+      "inputs": ["before-fn"],
+      "outputs": ["after-fn"]
+    },
+    {
+      "id": "differential-test",
+      "kind": "equivalence-check",
+      "inputs": ["before-fn", "after-fn", "generated-inputs"],
+      "outputs": ["equivalence-argument.json"]
+    }
+  ],
+  "stopping": {
+    "max_stages": 3,
+    "on_error": "halt",
+    "reject": "bare-no-functional-change"
+  },
+  "smoke_test": {
+    "id": "smoke.refactoring.equivalence",
+    "entry": "runner.smoke_refactoring"
+  },
+  "capability_vector": {
+    "taxonomy_id": "engineering-reliability.capability-taxonomy",
+    "taxonomy_version": "1.0.0",
+    "axes": {
+      "refactor.equivalence-argument": 1,
+      "migrate.rehearse-copy": 0,
+      "supply.advisory-decay": 0,
+      "vendor.canonical-roundtrip": 0
+    }
+  }
+}

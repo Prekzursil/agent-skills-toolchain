@@ -1,0 +1,210 @@
+{
+  "canonical_format": "agentspec.workflow.canonical",
+  "canonical_format_version": 1,
+  "workflow": {
+    "id": "wf.all-kinds",
+    "kind": "Workflow",
+    "nodes": [
+      {
+        "id": "n.fan",
+        "kind": "FanOut",
+        "on_failure": "abort",
+        "unit_ids": [
+          "u.a",
+          "u.b"
+        ]
+      },
+      {
+        "id": "n.bar",
+        "kind": "Barrier",
+        "on_failure": "abort",
+        "wait_for": [
+          "u.a",
+          "u.b"
+        ]
+      },
+      {
+        "id": "n.pipe",
+        "kind": "Pipeline",
+        "on_failure": "abort",
+        "stages": [
+          "u.scan",
+          "u.a"
+        ]
+      },
+      {
+        "id": "n.sub",
+        "id_namespace": "ns.",
+        "kind": "Subworkflow",
+        "on_failure": "abort",
+        "param_bindings": [
+          {
+            "name": "k",
+            "value": "v"
+          }
+        ],
+        "workflow_ref": "wf.inner"
+      },
+      {
+        "body": [
+          "u.body"
+        ],
+        "convergence_expr": "done",
+        "id": "n.loop",
+        "kind": "Loop",
+        "max_iterations": 3,
+        "on_bound_reached": "abort",
+        "on_failure": "abort"
+      },
+      {
+        "allowed_responses": [
+          "yes",
+          "no"
+        ],
+        "default_if_unanswered": "no",
+        "id": "n.gate",
+        "kind": "HumanCheckpoint",
+        "on_failure": "abort",
+        "pause_token": "tok.1",
+        "prompt_ref": "gate.md"
+      },
+      {
+        "id": "n.dyn",
+        "item_path": "$.xs",
+        "kind": "DynamicFanOut",
+        "max_cardinality": 7,
+        "on_failure": "abort",
+        "producer_unit": "u.producer",
+        "unit_template": "u.item"
+      }
+    ],
+    "params": [
+      {
+        "default": null,
+        "enum": [],
+        "name": "token",
+        "param_type": "secret_ref",
+        "required": true,
+        "secret_ref": "env:WORKFLOW_TOKEN"
+      }
+    ],
+    "spec_version": "7.0",
+    "units": [
+      {
+        "id": "u.scan",
+        "kind": "WorkUnit",
+        "on_failure": "abort",
+        "owner_flags": [],
+        "prompt_ref": "scan.md",
+        "routing": {
+          "fallbacks": [
+            "sonnet"
+          ],
+          "model": "opus",
+          "role": "implementer",
+          "vendor": "anthropic"
+        },
+        "source_policy": [
+          "code",
+          "official-docs"
+        ],
+        "tool_permissions": [
+          "Read",
+          "Grep"
+        ]
+      },
+      {
+        "id": "u.a",
+        "kind": "WorkUnit",
+        "on_failure": "abort",
+        "owner_flags": [],
+        "prompt_ref": "a.md",
+        "routing": {
+          "fallbacks": [
+            "sonnet"
+          ],
+          "model": "opus",
+          "role": "implementer",
+          "vendor": "anthropic"
+        },
+        "source_policy": [
+          "code",
+          "official-docs"
+        ],
+        "tool_permissions": [
+          "Read",
+          "Grep"
+        ]
+      },
+      {
+        "id": "u.b",
+        "kind": "WorkUnit",
+        "on_failure": "abort",
+        "owner_flags": [],
+        "prompt_ref": "b.md",
+        "routing": {
+          "fallbacks": [
+            "sonnet"
+          ],
+          "model": "opus",
+          "role": "implementer",
+          "vendor": "anthropic"
+        },
+        "source_policy": [
+          "code",
+          "official-docs"
+        ],
+        "tool_permissions": [
+          "Read",
+          "Grep"
+        ]
+      },
+      {
+        "id": "u.body",
+        "kind": "WorkUnit",
+        "on_failure": "abort",
+        "owner_flags": [],
+        "prompt_ref": "body.md",
+        "routing": {
+          "fallbacks": [
+            "sonnet"
+          ],
+          "model": "opus",
+          "role": "implementer",
+          "vendor": "anthropic"
+        },
+        "source_policy": [
+          "code",
+          "official-docs"
+        ],
+        "tool_permissions": [
+          "Read",
+          "Grep"
+        ]
+      },
+      {
+        "id": "u.producer",
+        "kind": "WorkUnit",
+        "on_failure": "abort",
+        "owner_flags": [],
+        "prompt_ref": "producer.md",
+        "routing": {
+          "fallbacks": [
+            "sonnet"
+          ],
+          "model": "opus",
+          "role": "implementer",
+          "vendor": "anthropic"
+        },
+        "source_policy": [
+          "code",
+          "official-docs"
+        ],
+        "tool_permissions": [
+          "Read",
+          "Grep"
+        ]
+      }
+    ]
+  }
+}

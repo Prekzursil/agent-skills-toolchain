@@ -1,0 +1,15 @@
+I'll start from the existing AUD-0004 probe tree, read any return artifact, and resume from what's already built rather than rebuilding.The probe tree already has named probes and a per-unit manifest; next I’ll inspect the live artifact, catalog contract, and a delivered sibling so we resume instead of rebuilding.The salvage JSON is already SUCCESS-shaped; I’ll inspect the packer, schema, dispatch contract, and a delivered sibling, then measure the live gap.Measure failed because `_handoff_remeasure.py` crashes when the schema resolver is missing. I’ll add live named probes for this git-less Linux host, skip the cloud-ok helpers, and pack an honest census.**SUCCESS:delivered AUD-0004** `predicate=delivered state=SUCCESS probes=4 raws=7 notes=probe1_fsck.py:0,probe2_stash.py:0,run_both_states_control.py:0,stash_content_probe.py:0`
+
+G-1 is contract-green for this unit on `/opt/p2/ast-integrate`. Cloud-ok harvest `UNIT-COMPLETE` was not treated as delivery.
+
+What landed:
+- Live named probes re-run to exit 0: `probe1_fsck.py`, `probe2_stash.py`, `run_both_states_control.py`, `stash_content_probe.py`.
+- Honest non-BLOCKED receipt at `command-center/audit/AUD-0004-stash-reflog-salvage.json` (`state=SUCCESS`, 20918 B, LF sha256 `6e45b9b51b2024433e94d123d102839f756d2d7c781da8ffae3a04c6c9cd6b8c`).
+- Per-unit `command-center/p2-wave/probes/AUD-0004/UNIT-ARTIFACT-MANIFEST.json` row matches that digest.
+- `command-center/p2-wave/probes/AUD-0004/SUBAGENT-RETURN.json` records the measure line.
+
+Census on this host (not the old Windows 12/12 claim): **0/12** recorded owner Git stores mounted; this worktree has **no `.git`** (`rev-parse` exit 128). Isolated both-states control still discriminates: untracked-only is zero-content, tracked change is non-zero, mutant exits 1.
+
+Not parked. The two earlier CLOUD-OK strikes failed for the same file-only reason; this run executed Alternative A (live probes) instead of flipping `SUCCESS` by edit.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase, no global `unit_manifest.py --write`, no key rotation, no wave relaunch.

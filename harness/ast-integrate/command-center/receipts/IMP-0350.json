@@ -1,0 +1,238 @@
+{
+ "artifact_paths": [
+  "command-center/receipts/IMP-0350.json",
+  "tools/council/participants/memory.py"
+ ],
+ "artifacts": [
+  {
+   "exists": true,
+   "note": "self; sha256 in per-unit manifest",
+   "path": "command-center/receipts/IMP-0350.json",
+   "role": "primary"
+  },
+  {
+   "bytes": 22278,
+   "exists": true,
+   "path": "tools/council/participants/memory.py",
+   "role": "implementation",
+   "sha256": "cf80008ec686dd6c7b460b4800ce61df157a47c0274562bdcb2f66d2b039993e"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0350",
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0350.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+   "executed": false,
+   "notes": "G-1 measure is run after this receipt is written",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "tools/council/participants/memory.py:compare_on_versus_off",
+   "claim": "Deterministic first-round briefs (prompt-echo contamination double, no live model) have Jaccard similarity to the prior conclusion of 0.0 under memory-off and 0.0 under memory-on default (conclusion withheld). Explicit import_conclusion raises similarity to 0.5 (delta vs off=0.5). Default memory-on therefore does not import the prior CONCLUSION as a prior; the explicit import mode does, and records independence_assumption_void.",
+   "confidence": "almost-certain",
+   "delta_import_minus_off": 0.5,
+   "id": "signal-1-brief-similarity-on-versus-off",
+   "import_conclusion_voids_independence": true,
+   "independence_preserved_by_default": true,
+   "kind": "computed-similarity",
+   "memory_off_similarity": 0.0,
+   "memory_on_default_similarity": 0.0,
+   "memory_on_import_conclusion_similarity": 0.5,
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe1_similarity.py",
+     "exit_code": 0,
+     "fingerprint": "0fb2494b78fc269605757436419607db",
+     "method": "command",
+     "raw_output": "{\"cross_seat_leak_detected\": true, \"delta_import_minus_off\": 0.5, \"import_conclusion_voids_independence\": true, \"independence_preserved_by_default\": true, \"memory_off_similarity\": 0.0, \"memory_on_default_similarity\": 0.0, \"memory_on_import_conclusion_similarity\": 0.5, \"mixed_roster_scope_ok\": true, \"pass\": true, \"prior_council_id\": \"C-PRIOR-2026-03-02-CREDENTIALS\", \"probe\": \"probe1-similarity-on-versus-off\", \"unit_id\": \"IMP-0350\", \"unknown_flag_fails_closed\": true}\noff=0.0000 on_default=0.0000 import=0.5000 delta=0.5000 scope_ok=True\nSUCCESS:IMP-0350-probe1 first-round brief similarity memory on vs off",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe1_similarity.py",
+     "exit_code": 0,
+     "fingerprint": "abd4ed75dedb623f701e8f365e339559",
+     "method": "computed-jaccard",
+     "raw_output": "off=0.0 on_default=0.0 import=0.5 delta=0.5",
+     "role": "verifier"
+    }
+   ],
+   "requirement": "first-round brief similarity to the prior council's conclusion, memory on versus off",
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/participants/memory.py:scan_prompt_for_conclusions",
+   "both_states_discriminates": true,
+   "claim": "Under memory-off the conclusion-marker scan hit_count is 0 (required zero). Memory-on default also withholds conclusion text (fired=False). Planting the prior conclusion into a memory-off prompt makes the same scan FIRE (fired=True, hits=8).",
+   "confidence": "almost-certain",
+   "id": "signal-2-memory-off-prompt-scan-zero",
+   "kind": "delivered-prompt-scan",
+   "leak_fired": true,
+   "memory_off_hit_count": 0,
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe2_prompt_scan.py",
+     "exit_code": 0,
+     "fingerprint": "68156627c1a00d48738c239897a7a578",
+     "method": "command",
+     "raw_output": "{\"both_states_discriminates\": true, \"leak_fired\": true, \"leak_hit_count\": 8, \"memory_off_hit_count\": 0, \"memory_on_default_fired\": false, \"mixed_roster_import_fires\": true, \"mixed_roster_off_silent\": true, \"pass\": true, \"probe\": \"probe2-prompt-scan-memory-off-zero\", \"required_zero_memory_off\": true, \"unit_id\": \"IMP-0350\"}\noff_hits=0 leak_fired=True leak_hits=8 both_states=True\nSUCCESS:IMP-0350-probe2 memory-off prompt scan zero; leak control FIRES",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe2_prompt_scan.py",
+     "exit_code": 0,
+     "fingerprint": "99793505edf5e88cf106249ffefc4635",
+     "method": "prompt-scan-both-states",
+     "raw_output": "memory_off_hits=0 leak_fired=True leak_hits=8",
+     "role": "verifier"
+    }
+   ],
+   "required_zero": true,
+   "requirement": "a delivered-prompt scan for prior-conclusion text under the memory-off setting, required zero",
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0350",
+ "implementation": {
+  "bytes": 22278,
+  "independence_rule": "memory-on carries prior-council metadata but withholds CONCLUSION unless import_conclusion=true, which sets independence_assumption_void",
+  "module": "tools/council/participants/memory.py",
+  "public_api": [
+   "resolve_policy",
+   "render_delivered_prompt",
+   "render_roster_prompts",
+   "scan_prompt_for_conclusions",
+   "draft_first_round_brief",
+   "brief_similarity_to_conclusion",
+   "enforce_memory_scope",
+   "plant_conclusion_leak",
+   "compare_on_versus_off"
+  ],
+  "sha256": "cf80008ec686dd6c7b460b4800ce61df157a47c0274562bdcb2f66d2b039993e"
+ },
+ "inputs_on_this_worktree": {
+  "11-COUNCIL-SPECIFICATION.md": "absent",
+  "11-COUNCIL-SPECIFICATION.schema.json": "absent",
+  "_USER-PROMPTS.md": "absent",
+  "tools/council/antifail/independence.py": "absent (IMP-0343 not delivered on this tree)",
+  "tools/council/participants/registry.py": "absent (IMP-0265 not delivered on this tree)"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0350/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe1_similarity.py",
+   "id": "probe1",
+   "role": "brief-similarity-on-versus-off"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe2_prompt_scan.py",
+   "id": "probe2",
+   "role": "memory-off-prompt-scan-and-leak"
+  }
+ ],
+ "negative_control_ids": [
+  "leak-prior-conclusion-under-memory-off"
+ ],
+ "negative_controls": [
+  {
+   "bad_state_output": "leak_hits=8",
+   "description": "Plant the prior conclusion into a memory-off delivered prompt; the prompt scan must FIRE. The unmodified memory-off prompt must stay at hit_count=0.",
+   "fired_on_bad_state": true,
+   "good_state_output": "off_hits=0",
+   "id": "leak-prior-conclusion-under-memory-off",
+   "kind": "both-states",
+   "silent_on_good_state": true
+  },
+  {
+   "description": "Copy an import_conclusion seat's prompt onto a memory-off seat; enforce_memory_scope must report a violation.",
+   "fired_on_bad_state": true,
+   "id": "cross-seat-conclusion-copy",
+   "kind": "scope-mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-runtime-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+ "produced_by": {
+  "execution_substrate": "linux-worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "question_or_target": "Implement tools/council/participants/memory.py deciding, per spec, whether a participant carries knowledge of prior councils, and enforcing that choice. Falsifiable question: does a memory-enabled participant import a prior council's CONCLUSION as a prior, thereby destroying the independence the current council assumes?",
+ "residual_unknowns": [
+  {
+   "claim": "11-COUNCIL-SPECIFICATION.md is not on this worktree. The carry/no-carry policy, the withhold-conclusion default, and the import_conclusion override are derived from the catalog target and evidence_requirement, not from the missing spec file.",
+   "settling_experiment": "Re-resolve resolve_policy against the live 11-COUNCIL-SPECIFICATION schema once that file is present and require the same enforcement at prompt construction.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "First-round briefs are a deterministic contamination double (echo conclusion markers iff they appear in the delivered prompt). A live model was not seated.",
+   "settling_experiment": "Seat a live participant under memory-off and memory-on with the same prior-council fixture and recompute Jaccard of actual first-round briefs to the prior conclusion.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Catalog reviewer_requirement is an independent adversarial reviewer in a fresh context who did not author the module. Probe2 is the mechanical reviewer that landed; a human/Codex reviewer did not run.",
+   "settling_experiment": "Run a fresh-context reviewer starting from probe1/probe2, not from this receipt's summary.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b): after two failures sharing an error fingerprint, enumerate >=2 alternative designs before a third attempt"
+ },
+ "reviewer": {
+  "finding": "Default memory-on does not import the prior CONCLUSION as a prior. Explicit import_conclusion does, and independence_assumption_void is set. Mixed-roster memory-off seats stay clean.",
+  "fresh_context": true,
+  "independent": true,
+  "reviewer_id": "IMP-0350-probe2-prompt-scan",
+  "starts_from": "scan tests (memory-off required zero; leak FIRES)",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "scope": {
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global unit_manifest.py --write was run",
+   "a live LLM first-round brief was collected",
+   "IMP-0265 registry.py or IMP-0343 independence.py were composed"
+  ]
+ },
+ "sentinel": "SUCCESS:IMP-0350",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#IMP-0350 (11-COUNCIL-SPECIFICATION.md absent on this worktree; policy taken from the catalog target and evidence_requirement)",
+ "state": "SUCCESS",
+ "test_ids": [
+  "memory-scope-enforcement-per-participant",
+  "first-round-brief-similarity-on-versus-off"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe1_similarity.py",
+   "id": "memory-scope-enforcement-per-participant",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe1_similarity.py",
+   "id": "first-round-brief-similarity-on-versus-off",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0350/probe2_prompt_scan.py",
+   "id": "memory-off-prompt-scan-required-zero",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:06:39Z",
+  "started_at": "2026-08-25T01:06:39Z"
+ },
+ "title": "Cross-council participant memory policy",
+ "unit_id": "IMP-0350"
+}

@@ -1,0 +1,31 @@
+
+===== launch 2026-08-20T07:42:29Z attempt=1 =====
+I'll start from the existing ARC-0031 probe tree and the measurement contract, then implement or resume until the unit is actually delivered.Next I’ll pull the catalog entry, the measure script, and any existing ARC probe pattern so we can implement from a real contract rather than guess.ARC-0031 has no probe tree yet. I’ll inspect the measure contract and a completed ARC unit so we can match the required shape.I’ll inspect `artifact_delivered`, the architecture-dossier schema, and a delivered unit’s probe/artifact shape next.I’ll pull the receipt schema, roster, and any existing DESIGN/runtime pieces so the dossier and probes match the real contract.I’ll read the SUCCESS receipt contract and the A5 candidate plus any live runtime code the dossier has to be grounded in.The live coordination code is the grounding for this design. I’ll read dispatch, store, reducer, and a complete SUCCESS receipt next.The published TST-0250 coordination runtime looks like the real A5 baseline. I’ll extract claim, dispatch, reducer, and exclusive-create behavior from it.I’ll implement a reference ledger plus named probes that actually exercise exclusive claims, idempotence, and the lifecycle table.I’ll tighten the racy-claim window so the negative control is reliable, then run the probes.**SUCCESS:delivered ARC-0031** — `predicate=delivered state=SUCCESS probes=3 raws=3`
+
+This unit had never been started (`probes/ARC-0031/` and `command-center/phase3/A5/DESIGN.json` were both missing). It is now G-1 contract-green for this unit only.
+
+The dossier specifies an A5 distributed work-unit runtime with:
+
+- a typed queue over the four catalog substrates (`local-parallel`, `local-serialized`, `worktree-isolated`, `cloud-batch`)
+- an append-only ledger
+- exclusive occupancy via a **`claim_record` created with `O_CREAT|O_EXCL`**
+- named **`lease_expires_at`** and **`work_fingerprint` / `dedupe_key`**
+- barriers, dynamic fan-out, and **one** shared completion reducer
+
+Delivery guarantee claimed: **at-least-once dispatch plus idempotent units**, not exactly-once execution.
+
+Named probes (all re-run exit 0):
+
+| Probe | Result |
+|---|---|
+| Duplicate dispatch | exclusive race: 1 winner; exists-then-write mutant: both proceed |
+| Idempotence | ARC-0001, WFA-0044, BLD-0016 overwrite-idempotent; journal is non-idempotent unless `dedupe_key` is used; `COMPLETED` denies a second claim |
+| Lifecycle | 16-row state table is executable; 3-unit fan-out closes on one reducer |
+
+Artifacts:
+
+- `command-center/phase3/A5/DESIGN.json` (architecture-dossier, `state=SUCCESS`, 30583 bytes)
+- `command-center/p2-wave/probes/ARC-0031/UNIT-ARTIFACT-MANIFEST.json` (catalog `output_path` + live LF sha256)
+- `command-center/p2-wave/probes/ARC-0031/SUBAGENT-RETURN.json`
+
+No git mutation, no global `unit_manifest.py --write`. Residual: paired refutation **ARC-0037** has not filed (recorded `NOT-CHECKED`, not folded into this SUCCESS).

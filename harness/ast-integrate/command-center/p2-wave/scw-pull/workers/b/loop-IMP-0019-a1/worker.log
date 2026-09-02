@@ -1,0 +1,24 @@
+
+===== launch 2026-08-20T08:57:50Z attempt=1 =====
+I'll start from the existing IMP-0019 probe tree and unit contract, then implement until the live measure prints SUCCESS:delivered.IMP-0019 has no probe tree yet, so I’ll pull the catalog contract and a delivered IMP unit as the template.IMP-0019 is the argv-array spawn layer. I’ll inspect the plugin process code, required tests, and receipt contract next.I’ll restore the missing glob-argv-guard, add the argv-only lint, and prove hostile filenames round-trip through every plugin spawn.I have the spawn behavior: argv arrays keep the hostile name intact; string concatenation does not. Next I’ll restore the guard and add the lint plus probes.Probes all exit 0. Next I’ll pack the receipt and per-unit manifest, then run the delivery measure.IMP-0019 is G-1 contract-green on this worktree.
+
+`python command-center/p2-wave/_measure_one_delivered.py IMP-0019` printed:
+
+`SUCCESS:delivered IMP-0019 predicate=delivered state=SUCCESS probes=4 raws=4 notes=behavioral.py:0,negative_control.py:0,run_required_tests.py:0,static_scan.py:0`
+
+The probe tree did not exist, so it was created and implemented (an absent first measure is not a park).
+
+**What landed**
+- Restored `tools/glob-argv-guard/` from HEAD (read-only `git show`, no checkout) and extended it with `argv_only_lint.py` plus `--lint-argv-only`.
+- Kept `plugin.proc.run` as argv-array-only (`shell=False`, rejects a command string), added `run_script`, and routed `lifecycle_rehearsal` through `proc.run`.
+- Catalog test: `tools/plugin/tests/test_argv_only.py::test_hostile_filenames_round_trip`.
+- Two independent signals: AST scan of `platform/plugin` is clean; a filename containing `'`, `"`, `$(id)`, and a space arrives intact at every spawn entrypoint.
+- Negative control: concatenated `f-string` + `shell=True` is flagged by the lint **and** corrupts that filename.
+- Reviewer extra (not in the catalog name): backtick `` `id` `` round-trips on argv and fails on the concatenated control.
+
+**Artifacts**
+- Receipt: `command-center/receipts/IMP-0019.json` (`state=SUCCESS`)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0019/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `a0b6a60cb8fec9c56219511036d4f9f72b303c17900c68aab834bb6cf36533f1`)
+- Return: `command-center/p2-wave/probes/IMP-0019/SUBAGENT-RETURN.json`
+
+No git add/commit/push/stash/checkout/rebase, no `unit_manifest.py --write`, no key rotation, no finish-everything / cloud-ok relaunch.

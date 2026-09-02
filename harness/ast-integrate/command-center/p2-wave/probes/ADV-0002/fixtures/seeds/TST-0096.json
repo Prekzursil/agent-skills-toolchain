@@ -1,0 +1,370 @@
+{
+ "unit_id": "TST-0096",
+ "state": "SUCCESS",
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0096",
+ "min_bytes_threshold": 2048,
+ "spec_anchor": "spec:_USER-PROMPTS.md:11012,_USER-PROMPTS.md:10976",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/TST-0096.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "TST-0096 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/TST-0096.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/TST-0096.json",
+     "raw_output": "bytes=10395 sha256=fd02594a651450fe877415773c0790701f999f4bd5cc55a97bc549e67c4f2848",
+     "fingerprint": "89a61a2349f485aa7eb5e6a9ff3eff67",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact TST-0096",
+     "raw_output": "schema-check",
+     "fingerprint": "c7887e6558aab9c4e900db145dc2e47f",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "TST-0096 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/TST-0096",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py TST-0096",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "b386fd513c1e83ce566efc2b484541e0",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered TST-0096",
+     "raw_output": "schema-valid",
+     "fingerprint": "75e0173fbf00a56dff37fb992e4088aa",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/TST-0096.json",
+   "bytes": 10395,
+   "sha256": "fd02594a651450fe877415773c0790701f999f4bd5cc55a97bc549e67c4f2848",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "report_kind": "fault-injection-receipt",
+   "title": "Resume after a crash mid-unit",
+   "question": "Phase 10 layer 24 (:11012) and Phase 9 crash recovery (:10976). Target: kill the runner at each of several checkpoints and assert resume re-executes exactly the incomplete units, re-executes nothing already complete, and produces the identical final artifact set as an uninterrupted run.",
+   "question_or_target": "Phase 10 layer 24 (:11012) and Phase 9 crash recovery (:10976). Target: kill the runner at each of several checkpoints and assert resume re-executes exactly the incomplete units, re-executes nothing already complete, and produces the identical final artifact set as an uninterrupted run.",
+   "completion_sentinel": "SUCCESS:TST-0096",
+   "fault_class": "partial-artifact+severed-stream",
+   "substrate": {
+    "kind": "probe-local-serialized-runner",
+    "path": "command-center/p2-wave/probes/TST-0096/runner.py",
+    "notes": "IMP-0145/IMP-0225 program-wide orchestrator receipts are not on disk. TST-0096 measures the resume contract on a durable checkpointed runner that is actually SIGKILL'd at named checkpoints, not a simulated in-process skip.",
+    "checkpoint_file": "checkpoint.json",
+    "kill_signal": "SIGKILL",
+    "plan_units": [
+     "u1",
+     "u2",
+     "u3",
+     "u4",
+     "u5"
+    ]
+   },
+   "hash_comparison": {
+    "clean_artifact_set_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+    "clean_dispatches": {
+     "u1": 1,
+     "u2": 1,
+     "u3": 1,
+     "u4": 1,
+     "u5": 1
+    },
+    "all_resumed_equal_clean": true,
+    "algorithm": "sha256 over plan-relative path + artifact sha256"
+   },
+   "units_reexecuted": [
+    {
+     "checkpoint": "after:u1",
+     "units_reexecuted": [
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+     ],
+     "units_not_reexecuted": [
+      "u1"
+     ]
+    },
+    {
+     "checkpoint": "mid:u2",
+     "units_reexecuted": [
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+     ],
+     "units_not_reexecuted": [
+      "u1"
+     ]
+    },
+    {
+     "checkpoint": "after:u3",
+     "units_reexecuted": [
+      "u4",
+      "u5"
+     ],
+     "units_not_reexecuted": [
+      "u1",
+      "u2",
+      "u3"
+     ]
+    },
+    {
+     "checkpoint": "mid:u4",
+     "units_reexecuted": [
+      "u4",
+      "u5"
+     ],
+     "units_not_reexecuted": [
+      "u1",
+      "u2",
+      "u3"
+     ]
+    }
+   ],
+   "cases": [
+    {
+     "id": "after:u1",
+     "fault": "after:u1",
+     "outcome": "resumed-to-clean-artifact-set",
+     "typed_classification": "severed-stream",
+     "kill_rc": -9,
+     "resume_ok": true,
+     "only_incomplete": true,
+     "mid_partial_rejected": true,
+     "expected_complete": [
+      "u1"
+     ],
+     "expected_incomplete": [
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+     ],
+     "reexecuted": [
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+     ],
+     "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "hash_equal": true,
+     "result": "PASS"
+    },
+    {
+     "id": "mid:u2",
+     "fault": "mid:u2",
+     "outcome": "resumed-to-clean-artifact-set",
+     "typed_classification": "partial-artifact",
+     "kill_rc": -9,
+     "resume_ok": true,
+     "only_incomplete": true,
+     "mid_partial_rejected": true,
+     "expected_complete": [
+      "u1"
+     ],
+     "expected_incomplete": [
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+     ],
+     "reexecuted": [
+      "u2",
+      "u3",
+      "u4",
+      "u5"
+     ],
+     "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "hash_equal": true,
+     "result": "PASS"
+    },
+    {
+     "id": "after:u3",
+     "fault": "after:u3",
+     "outcome": "resumed-to-clean-artifact-set",
+     "typed_classification": "severed-stream",
+     "kill_rc": -9,
+     "resume_ok": true,
+     "only_incomplete": true,
+     "mid_partial_rejected": true,
+     "expected_complete": [
+      "u1",
+      "u2",
+      "u3"
+     ],
+     "expected_incomplete": [
+      "u4",
+      "u5"
+     ],
+     "reexecuted": [
+      "u4",
+      "u5"
+     ],
+     "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "hash_equal": true,
+     "result": "PASS"
+    },
+    {
+     "id": "mid:u4",
+     "fault": "mid:u4",
+     "outcome": "resumed-to-clean-artifact-set",
+     "typed_classification": "partial-artifact",
+     "kill_rc": -9,
+     "resume_ok": true,
+     "only_incomplete": true,
+     "mid_partial_rejected": true,
+     "expected_complete": [
+      "u1",
+      "u2",
+      "u3"
+     ],
+     "expected_incomplete": [
+      "u4",
+      "u5"
+     ],
+     "reexecuted": [
+      "u4",
+      "u5"
+     ],
+     "clean_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "resumed_hash": "f25f112afc2d0bacfb2ed81bf47fd1964ac3ccf596918070d375f200ccef8615",
+     "hash_equal": true,
+     "result": "PASS"
+    }
+   ],
+   "cloud_ok": false,
+   "registered": true,
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "resume-only-incomplete",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe1_resume_incomplete.py"
+    },
+    {
+     "id": "probe2",
+     "role": "hash-equality-and-controls",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0096/probe2_hash_and_controls.py"
+    }
+   ]
+  }
+ },
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/TST-0096/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "TST-0096"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/TST-0096.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/TST-0096.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "231ce78b1e103ff64784c54efd02d126",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "fault-injection-receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 10395,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/TST-0096.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

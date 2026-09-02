@@ -1,0 +1,29 @@
+name: no-runtime-junk
+'on':
+  pull_request: {}
+  push: {}
+  workflow_dispatch: {}
+jobs:
+  no-runtime-junk:
+    runs-on: ubuntu-latest
+    name: gate-no-runtime-junk
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: actions/setup-python@5fda3b95a4ea91299a34e894583c3862153e4b97
+      with:
+        python-version: '3.11'
+    - name: fail if runtime junk is tracked
+      run: 'import subprocess, sys # Directory segments that must never be tracked (matched as a full path segment, # so "prevent/venv-notes.md"
+        does NOT trip on "venv"). BAD_DIR_SEGMENTS = { ".venv", "venv", "node_modules", "__pycache__", ".pytest_cache", ".ruff_cache",
+        } # Basenames that must never be tracked. BAD_BASENAMES = {"installed.json"} def tracked_files(): out = subprocess.check_output(["git",
+        "ls-files", "-z"]) return [p for p in out.decode("utf-8", "replace").split("\0") if p] def gitlinks(): # `git ls-files
+        -s`: mode objecthash stage\tpath ; gitlink mode == 160000. out = subprocess.check_out'
+      shell: python
+    - name: crcp reports must stay deny-by-default
+      run: 'import subprocess, sys # tools/crcp/reports/ holds live auth / session / health dumps (one of them has # carried
+        a value-shaped `sk-…` string). Its .gitignore must DENY the whole tree # and re-admit only the human-written .md narratives,
+        so a merely-renamed dump # cannot be committed by accident. A name-by-name allowlist fails OPEN. # # Both-states gate:
+        MUST_IGNORE catches removal/weakening of the deny patterns; # MUST_SEE catches an over-broad rewrite that also swallows
+        the .md narratives. # Every probe path is synthetic and untracked, so the check is index-independent. MUST_IGNORE
+        = [ "tool'
+      shell: python

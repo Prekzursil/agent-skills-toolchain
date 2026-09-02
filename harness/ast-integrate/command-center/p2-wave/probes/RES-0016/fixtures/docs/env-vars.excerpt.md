@@ -1,0 +1,7 @@
+# Frozen excerpt from https://code.claude.com/docs/en/env-vars fetched 2026-08-24
+
+| `CLAUDE_CODE_MAX_CONCURRENT_SUBAGENTS` | How many [subagents](/docs/en/sub-agents#concurrent-subagent-limit) can be running in one session before the Agent tool refuses to spawn another (default: 20). Accepts a positive whole number in plain digits; anything else is ignored, so the variable can adjust the cap but can't disable it. Requires Claude Code v2.1.217 or later |
+
+| `CLAUDE_CODE_MAX_SUBAGENTS_PER_SESSION` | Removed in v2.1.224 and now a no-op. Previously capped the total number of [subagents](/docs/en/sub-agents) Claude could spawn with the Agent tool in one session (default: 200); spawning past the cap failed with `Subagent spawn limit reached`. The [concurrent subagent limit](/docs/en/sub-agents#concurrent-subagent-limit) and the [depth limit](/docs/en/sub-agents#let-subagents-spawn-their-own-subagents) still apply |
+
+| `CLAUDE_CODE_MAX_SUBAGENT_SPAWN_DEPTH` | Number of [subagent layers](/docs/en/sub-agents#let-subagents-spawn-their-own-subagents) allowed below the main conversation (default: 3). At the default, subagents can spawn their own subagents, and a subagent at the third layer can't spawn further; set `1` to turn nesting off. In v2.1.217 through v2.1.218, the default was 1, so a subagent couldn't spawn its own unless you raised the limit; v2.1.219 raised the default to 3. Accepts a positive whole number in plain digits; anything else is ignored, so the limit can be adjusted but not removed. Requires Claude Code v2.1.217 or later |

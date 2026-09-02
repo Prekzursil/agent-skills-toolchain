@@ -1,0 +1,1577 @@
+{
+ "artifacts": [
+  {
+   "bytes": 49463,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/receipts/TST-0241.json",
+   "role": "primary",
+   "sha256": "e3779b29011b08952b579982392de13e96350e6a95268b72dca7977b77053112"
+  },
+  {
+   "bytes": 21837,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0241/harness.py",
+   "role": "supporting",
+   "sha256": "844a578fffa99a1c99016a968c267431f443603bfde26ef8798a09c707276310"
+  },
+  {
+   "bytes": 2633,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0241/ledger.py",
+   "role": "supporting",
+   "sha256": "c26edb562b134e724a24d0477fe96f0c39a195410dc42c62d8d14448e3ab8015"
+  },
+  {
+   "bytes": 902,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0241/dispatch.py",
+   "role": "supporting",
+   "sha256": "85568c359091b763066d0c06c76a8719c73607314ce383faaf9f4a2668222541"
+  },
+  {
+   "bytes": 2302,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/TST-0241/schema_local.py",
+   "role": "supporting",
+   "sha256": "dd5809d45d86d17f69e13077e6bd476ef5d30ec5541e43aa29f8fad1cc443736"
+  },
+  {
+   "bytes": 12238,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/foundry/candidate_registry.py",
+   "role": "supporting",
+   "sha256": "493a965b7a65e17b36c4395f9d3c47c9d6b37308b9d025f47b6268ad816a1911"
+  },
+  {
+   "bytes": 12414,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/command-center/close.py",
+   "role": "supporting",
+   "sha256": "b0402e2df48d76bb3338189be6b92f1db43f640296aa7fc371af6f53d2d6c811"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/TST-0241.json",
+   "consumer": "json.loads + Draft7Validator compiled $defs/benchmark_result",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/schema_local.py",
+    "exit_code": 0,
+    "fingerprint": "ab8ecd758c0406c83a5724f35b4c9edf884f96539df8b3c2a46ebf320c701c5a",
+    "method": "schema-validate",
+    "raw_output": "schema_local.errors(doc) == [] after emit",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0241/harness.py:capture",
+   "claim": "Per-unit dispatch stays flat from n=256 to n=2048 (ratio=0.974); total-time log-log slope=0.938.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/emit_receipt.py",
+     "exit_code": 0,
+     "fingerprint": "18256dafdef5ae8727a84ab3e9f91d2ee22202d9ca2565fcf4200dadc48089b2",
+     "method": "test-run",
+     "raw_output": "{\"loglog_slope_dispatch_total\": 0.9380255635212846, \"n2048_band\": {\"derived_from\": \"raw_ns\", \"formula\": \"half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns\", \"half_ns\": 66739672.0, \"hi_ns\": 100109508.0, \"lo_ns\": -33369836.0}, \"n2048_median_ns\": 33369836.0, \"per_unit_ns_n16\": 22771.75, \"per_unit_ns_n2048\": 16293.865234375, \"per_unit_ns_n256\": 16731.06640625}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/probe2_rewrite_quadratic.py",
+     "exit_code": 0,
+     "fingerprint": "34d4fe666c9357cb46b8a0e2839139921ec1f8e50493441158b6371d119e546a",
+     "method": "command",
+     "raw_output": "{\"band\": {\"derived_from\": \"raw_ns\", \"formula\": \"half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns\", \"half_ns\": 66739672.0, \"hi_ns\": 100109508.0, \"lo_ns\": -33369836.0}, \"frozen_n2048_median_ns\": 33369836.0, \"role\": \"live named probe 2 re-derives stats from raw_ns and re-times n=2048\"}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/TST-0241/ledger.py",
+   "claim": "Append-only write size stays O(1) (2048/16=1.0417); the O(n) rewrite mutant is quadratic (write 2048/16=137.4, cumulative 2048/16=16620.0); production foundry._append and close.append_event stay O(1).",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -c \"from pathlib import Path; import sys; sys.path.insert(0,'command-center/p2-wave/probes/TST-0241'); import harness as H; print(H.write_size_curve)\"",
+     "exit_code": 0,
+     "fingerprint": "5e39f1acfcd71344b08c93ff0f833b8f0478c8bd9506f7c66ebfa10b292c9ef9",
+     "method": "byte-compare",
+     "raw_output": "{\"append_curve\": [{\"bytes_this_write\": 96, \"cumulative_bytes\": 1477, \"file_size\": 1477, \"kind\": \"append\", \"n\": 16}, {\"bytes_this_write\": 97, \"cumulative_bytes\": 6027, \"file_size\": 6027, \"kind\": \"append\", \"n\": 64}, {\"bytes_this_write\": 94, \"cumulative_bytes\": 24685, \"file_size\": 24685, \"kind\": \"append\", \"n\": 256}, {\"bytes_this_write\": 97, \"cumulative_bytes\": 100173, \"file_size\": 100173, \"kind\": \"append\", \"n\": 1024}, {\"bytes_this_write\": 100, \"cumulative_bytes\": 202983, \"file_size\": 202983, \"kind\": \"append\", \"n\": 2048}], \"cum_ratio_rewrite\": 16619.98678910907, \"rewrite_curve\": [{\"bytes_this_write\": 1477, \"cumulative_bytes\": 12414, \"file_size\": 1477, \"kind\": \"rewrite\", \"n\": 16}, {\"bytes_this_write\": 6027, \"cumulative_bytes\": 194553, \"file_size\": 6027, \"kind\": \"rewrite\", \"n\": 64}, {\"bytes_this_write\": 24685, \"cumulative_bytes\": 3148240, \"file_size\": 24685, \"kind\": \"rewrite\", \"n\": 256}, {\"bytes_this_write\": 100173, \"cumulative_bytes\": 51043631, \"file_size\": 100173, \"kind\": \"rewrite\", \"n\": 1024}, {\"bytes_this_write\": 202983, \"cumulative_bytes\": 206320516, \"file_size\": 202983, \"kind\": \"rewrite\", \"n\": 2048}], \"write_ratio_append\": 1.0416666666666667, \"write_ratio_rewrite\": 137.42924847664185}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/probe1_scaling_flat.py",
+     "exit_code": 0,
+     "fingerprint": "3f0e9cdaa11faa37b1a5996c4a77fa50f610d34ae3ea3afabfd48b9697c7e489",
+     "method": "test-run",
+     "raw_output": "{\"close_o1\": true, \"foundry_o1\": true, \"production_close\": [{\"bytes_this_write\": 52, \"file_size_after\": 792, \"n\": 16, \"subject\": \"close.append_event\"}, {\"bytes_this_write\": 52, \"file_size_after\": 3192, \"n\": 64, \"subject\": \"close.append_event\"}, {\"bytes_this_write\": 54, \"file_size_after\": 13459, \"n\": 256, \"subject\": \"close.append_event\"}, {\"bytes_this_write\": 56, \"file_size_after\": 56234, \"n\": 1024, \"subject\": \"close.append_event\"}, {\"bytes_this_write\": 56, \"file_size_after\": 113578, \"n\": 2048, \"subject\": \"close.append_event\"}], \"production_foundry\": [{\"bytes_this_write\": 388, \"file_size_after\": 6119, \"n\": 16, \"subject\": \"foundry.CandidateRegistry._append\"}, {\"bytes_this_write\": 388, \"file_size_after\": 24551, \"n\": 64, \"subject\": \"foundry.CandidateRegistry._append\"}, {\"bytes_this_write\": 391, \"file_size_after\": 99258, \"n\": 256, \"subject\": \"foundry.CandidateRegistry._append\"}, {\"bytes_this_write\": 394, \"file_size_after\": 400129, \"n\": 1024, \"subject\": \"foundry.CandidateRegistry._append\"}, {\"bytes_this_write\": 394, \"file_size_after\": 803585, \"n\": 2048, \"subject\": \"foundry.CandidateRegistry._append\"}]}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "cloud_ok": false,
+  "completion_sentinel": "SUCCESS:TST-0241",
+  "named_probes": [
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/probe1_scaling_flat.py",
+    "id": "probe1",
+    "role": "scaling-flat-append"
+   },
+   {
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/probe2_rewrite_quadratic.py",
+    "id": "probe2",
+    "role": "rewrite-quadratic-detector"
+   }
+  ],
+  "notes": "G-1 for TST-0241. Did not run tools/command-center/unit_manifest.py --write. cloud ok=true is not delivery. Empty-input green is refused. Write-size, not a grep of 'append', is the ledger detector.",
+  "output_path": "command-center/receipts/TST-0241.json",
+  "output_schema": "command-center/schema/receipt.schema.json#/$defs/benchmark_result",
+  "title": "Dispatch cost is amortized O(1) per unit and the ledger write is not O(n)"
+ },
+ "manifest_registration": {
+  "entry_id": "TST-0241",
+  "manifest_path": "command-center/p2-wave/probes/TST-0241/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-08-25T01:12:01Z"
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "dispatch_cohort: n_inputs=0; FAIL rather than report a time | append ledger: n_inputs=0; FAIL rather than time",
+   "description": "Empty cohort and empty ledger write FAIL before a clock is read",
+   "fired_on_bad_state": true,
+   "good_state_output": "n16.median_ns=364348.000000 n_inputs=16",
+   "id": "NC-EMPTY-INPUT",
+   "kind": "absent-input",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "rewrite write 2048/16=137.4 cum=16620.0",
+   "description": "Deliberate O(n) rewrite mutant is quadratic; append-only stays O(1)",
+   "fired_on_bad_state": true,
+   "good_state_output": "append write 2048/16=1.0417",
+   "id": "NC-REWRITE-MUTANT",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-headless",
+  "model": "grok-4.6",
+  "role": "performance-tester",
+  "vendor": "xai"
+ },
+ "profile": "benchmark-result",
+ "report": {
+  "answer": "Yes. Append-only per-write bytes stay flat (2048/16 ratio=1.042); the O(n) rewrite mutant grows (ratio=137.4, cumulative ratio=16620.0). Per-unit dispatch at n=2048 is 16294 ns vs 16731 ns at n=256 (ratio=0.974); total-time log-log slope=0.938.",
+  "benchmarks": [
+   {
+    "arms": [
+     {
+      "bytes_mode": "append",
+      "id": "n16",
+      "n_inputs": 16,
+      "per_unit_ns": "22771.750000",
+      "printed": [
+       "n16.median_ns=364348.000000 n_inputs=16",
+       "n16.mean_ns=359088.272727 n_inputs=16",
+       "n16.iqr_ns=28383.000000 n_inputs=16",
+       "n16.ci95=[347783.181953,370393.363502] n_inputs=16",
+       "n16.per_unit_ns=22771.750000 n_inputs=16",
+       "n16.bytes_mode=append n_inputs=16"
+      ],
+      "raw_ns": [
+       370932,
+       344047,
+       364348,
+       337142,
+       368718,
+       368416,
+       381021,
+       338215,
+       358035,
+       338837,
+       380260
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 11305.0907743101,
+       "ci95_hi_ns": 370393.3635015828,
+       "ci95_lo_ns": 347783.1819529626,
+       "iqr_ns": 28383.0,
+       "max_ns": 381021.0,
+       "mean_ns": 359088.2727272727,
+       "median_ns": 364348.0,
+       "min_ns": 337142.0,
+       "n": 11,
+       "q1_ns": 341442.0,
+       "q3_ns": 369825.0,
+       "sample_variance_ns2": 283175902.8181818,
+       "stdev_ns": 16827.83119769692,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 728696.0,
+       "hi_ns": 1093044.0,
+       "lo_ns": -364348.0
+      }
+     },
+     {
+      "bytes_mode": "append",
+      "id": "n64",
+      "n_inputs": 64,
+      "per_unit_ns": "17850.515625",
+      "printed": [
+       "n64.median_ns=1142433.000000 n_inputs=64",
+       "n64.mean_ns=1146073.545455 n_inputs=64",
+       "n64.iqr_ns=21128.500000 n_inputs=64",
+       "n64.ci95=[1133184.775733,1158962.315176] n_inputs=64",
+       "n64.per_unit_ns=17850.515625 n_inputs=64",
+       "n64.bytes_mode=append n_inputs=64"
+      ],
+      "raw_ns": [
+       1123324,
+       1183798,
+       1175119,
+       1139809,
+       1127985,
+       1134757,
+       1152494,
+       1142433,
+       1144278,
+       1129146,
+       1153666
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 12888.76972112384,
+       "ci95_hi_ns": 1158962.3151756693,
+       "ci95_lo_ns": 1133184.7757334216,
+       "iqr_ns": 21128.5,
+       "max_ns": 1183798.0,
+       "mean_ns": 1146073.5454545454,
+       "median_ns": 1142433.0,
+       "min_ns": 1123324.0,
+       "n": 11,
+       "q1_ns": 1131951.5,
+       "q3_ns": 1153080.0,
+       "sample_variance_ns2": 368070587.8727273,
+       "stdev_ns": 19185.165828648114,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 2284866.0,
+       "hi_ns": 3427299.0,
+       "lo_ns": -1142433.0
+      }
+     },
+     {
+      "bytes_mode": "append",
+      "id": "n256",
+      "n_inputs": 256,
+      "per_unit_ns": "16731.066406",
+      "printed": [
+       "n256.median_ns=4283153.000000 n_inputs=256",
+       "n256.mean_ns=4285082.000000 n_inputs=256",
+       "n256.iqr_ns=58589.000000 n_inputs=256",
+       "n256.ci95=[4253482.489016,4316681.510984] n_inputs=256",
+       "n256.per_unit_ns=16731.066406 n_inputs=256",
+       "n256.bytes_mode=append n_inputs=256"
+      ],
+      "raw_ns": [
+       4307854,
+       4252352,
+       4244695,
+       4220457,
+       4306371,
+       4238864,
+       4291982,
+       4377013,
+       4269766,
+       4283153,
+       4343395
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 31599.510984335746,
+       "ci95_hi_ns": 4316681.510984336,
+       "ci95_lo_ns": 4253482.489015664,
+       "iqr_ns": 58589.0,
+       "max_ns": 4377013.0,
+       "mean_ns": 4285082.0,
+       "median_ns": 4283153.0,
+       "min_ns": 4220457.0,
+       "n": 11,
+       "q1_ns": 4248523.5,
+       "q3_ns": 4307112.5,
+       "sample_variance_ns2": 2212426795.0,
+       "stdev_ns": 47036.441138759634,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 8566306.0,
+       "hi_ns": 12849459.0,
+       "lo_ns": -4283153.0
+      }
+     },
+     {
+      "bytes_mode": "append",
+      "id": "n1024",
+      "n_inputs": 1024,
+      "per_unit_ns": "16457.037109",
+      "printed": [
+       "n1024.median_ns=16852006.000000 n_inputs=1024",
+       "n1024.mean_ns=16857444.818182 n_inputs=1024",
+       "n1024.iqr_ns=125259.500000 n_inputs=1024",
+       "n1024.ci95=[16803407.838929,16911481.797435] n_inputs=1024",
+       "n1024.per_unit_ns=16457.037109 n_inputs=1024",
+       "n1024.bytes_mode=append n_inputs=1024"
+      ],
+      "raw_ns": [
+       16773488,
+       16874983,
+       16981269,
+       16835623,
+       16878230,
+       16792586,
+       16945847,
+       16966147,
+       16852006,
+       16780972,
+       16750742
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 54036.97925278627,
+       "ci95_hi_ns": 16911481.797434602,
+       "ci95_lo_ns": 16803407.83892903,
+       "iqr_ns": 125259.5,
+       "max_ns": 16981269.0,
+       "mean_ns": 16857444.818181816,
+       "median_ns": 16852006.0,
+       "min_ns": 16750742.0,
+       "n": 11,
+       "q1_ns": 16786779.0,
+       "q3_ns": 16912038.5,
+       "sample_variance_ns2": 6469791912.563637,
+       "stdev_ns": 80435.01670642977,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 33704012.0,
+       "hi_ns": 50556018.0,
+       "lo_ns": -16852006.0
+      }
+     },
+     {
+      "bytes_mode": "append",
+      "id": "n2048",
+      "n_inputs": 2048,
+      "per_unit_ns": "16293.865234",
+      "printed": [
+       "n2048.median_ns=33369836.000000 n_inputs=2048",
+       "n2048.mean_ns=33428232.272727 n_inputs=2048",
+       "n2048.iqr_ns=236619.500000 n_inputs=2048",
+       "n2048.ci95=[33323912.103912,33532552.441543] n_inputs=2048",
+       "n2048.per_unit_ns=16293.865234 n_inputs=2048",
+       "n2048.bytes_mode=append n_inputs=2048"
+      ],
+      "raw_ns": [
+       33325297,
+       33458095,
+       33622348,
+       33673200,
+       33369836,
+       33503146,
+       33615346,
+       33237769,
+       33319956,
+       33252650,
+       33332912
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 104320.16881550515,
+       "ci95_hi_ns": 33532552.44154278,
+       "ci95_lo_ns": 33323912.10391177,
+       "iqr_ns": 236619.5,
+       "max_ns": 33673200.0,
+       "mean_ns": 33428232.272727273,
+       "median_ns": 33369836.0,
+       "min_ns": 33237769.0,
+       "n": 11,
+       "q1_ns": 33322626.5,
+       "q3_ns": 33559246.0,
+       "sample_variance_ns2": 24112639235.01818,
+       "stdev_ns": 155282.4498615931,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 66739672.0,
+       "hi_ns": 100109508.0,
+       "lo_ns": -33369836.0
+      }
+     }
+    ],
+    "id": "dispatch_per_unit",
+    "name": "per-unit dispatch wall time on an append-only ledger"
+   },
+   {
+    "arms": [
+     {
+      "bytes_this_write": "96",
+      "id": "n16",
+      "n_inputs": 16,
+      "printed": [
+       "n16.median_ns=28487.000000 n_inputs=16",
+       "n16.mean_ns=30705.090909 n_inputs=16",
+       "n16.iqr_ns=2550.000000 n_inputs=16",
+       "n16.ci95=[27550.034801,33860.147017] n_inputs=16",
+       "n16.bytes_this_write=96 n_inputs=16"
+      ],
+      "raw_ns": [
+       30662,
+       30653,
+       36965,
+       28598,
+       28487,
+       28427,
+       42337,
+       28068,
+       27586,
+       28147,
+       27826
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 3155.0561080236625,
+       "ci95_hi_ns": 33860.14701711457,
+       "ci95_lo_ns": 27550.034801067246,
+       "iqr_ns": 2550.0,
+       "max_ns": 42337.0,
+       "mean_ns": 30705.090909090908,
+       "median_ns": 28487.0,
+       "min_ns": 27586.0,
+       "n": 11,
+       "q1_ns": 28107.5,
+       "q3_ns": 30657.5,
+       "sample_variance_ns2": 22055776.89090909,
+       "stdev_ns": 4696.357832502661,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 56974.0,
+       "hi_ns": 85461.0,
+       "lo_ns": -28487.0
+      }
+     },
+     {
+      "bytes_this_write": "97",
+      "id": "n64",
+      "n_inputs": 64,
+      "printed": [
+       "n64.median_ns=28477.000000 n_inputs=64",
+       "n64.mean_ns=28763.545455 n_inputs=64",
+       "n64.iqr_ns=1017.000000 n_inputs=64",
+       "n64.ci95=[28045.555061,29481.535848] n_inputs=64",
+       "n64.bytes_this_write=97 n_inputs=64"
+      ],
+      "raw_ns": [
+       29228,
+       31625,
+       29089,
+       28278,
+       28207,
+       29138,
+       28579,
+       27916,
+       27986,
+       27876,
+       28477
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 717.990393708435,
+       "ci95_hi_ns": 29481.53584825389,
+       "ci95_lo_ns": 28045.55506083702,
+       "iqr_ns": 1017.0,
+       "max_ns": 31625.0,
+       "mean_ns": 28763.545454545456,
+       "median_ns": 28477.0,
+       "min_ns": 27876.0,
+       "n": 11,
+       "q1_ns": 28096.5,
+       "q3_ns": 29113.5,
+       "sample_variance_ns2": 1142208.6727272726,
+       "stdev_ns": 1068.7416304829117,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 56954.0,
+       "hi_ns": 85431.0,
+       "lo_ns": -28477.0
+      }
+     },
+     {
+      "bytes_this_write": "94",
+      "id": "n256",
+      "n_inputs": 256,
+      "printed": [
+       "n256.median_ns=29038.000000 n_inputs=256",
+       "n256.mean_ns=30849.727273 n_inputs=256",
+       "n256.iqr_ns=1163.500000 n_inputs=256",
+       "n256.ci95=[27044.146798,34655.307748] n_inputs=256",
+       "n256.bytes_this_write=94 n_inputs=256"
+      ],
+      "raw_ns": [
+       29379,
+       29038,
+       29019,
+       28587,
+       30793,
+       29781,
+       29821,
+       28688,
+       27887,
+       47767,
+       28587
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 3805.5804750200728,
+       "ci95_hi_ns": 34655.30774774734,
+       "ci95_lo_ns": 27044.1467977072,
+       "iqr_ns": 1163.5,
+       "max_ns": 47767.0,
+       "mean_ns": 30849.727272727272,
+       "median_ns": 29038.0,
+       "min_ns": 27887.0,
+       "n": 11,
+       "q1_ns": 28637.5,
+       "q3_ns": 29801.0,
+       "sample_variance_ns2": 32088543.618181817,
+       "stdev_ns": 5664.675067308081,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 58076.0,
+       "hi_ns": 87114.0,
+       "lo_ns": -29038.0
+      }
+     },
+     {
+      "bytes_this_write": "97",
+      "id": "n1024",
+      "n_inputs": 1024,
+      "printed": [
+       "n1024.median_ns=29199.000000 n_inputs=1024",
+       "n1024.mean_ns=29977.090909 n_inputs=1024",
+       "n1024.iqr_ns=626.500000 n_inputs=1024",
+       "n1024.ci95=[28546.266562,31407.915256] n_inputs=1024",
+       "n1024.bytes_this_write=97 n_inputs=1024"
+      ],
+      "raw_ns": [
+       29851,
+       36163,
+       29270,
+       28668,
+       30802,
+       29049,
+       28918,
+       29159,
+       29560,
+       29199,
+       29109
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 1430.8243466959168,
+       "ci95_hi_ns": 31407.915255786826,
+       "ci95_lo_ns": 28546.26656239499,
+       "iqr_ns": 626.5,
+       "max_ns": 36163.0,
+       "mean_ns": 29977.090909090908,
+       "median_ns": 29199.0,
+       "min_ns": 28668.0,
+       "n": 11,
+       "q1_ns": 29079.0,
+       "q3_ns": 29705.5,
+       "sample_variance_ns2": 4536081.290909091,
+       "stdev_ns": 2129.8078060963835,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 58398.0,
+       "hi_ns": 87597.0,
+       "lo_ns": -29199.0
+      }
+     },
+     {
+      "bytes_this_write": "100",
+      "id": "n2048",
+      "n_inputs": 2048,
+      "printed": [
+       "n2048.median_ns=29861.000000 n_inputs=2048",
+       "n2048.mean_ns=30785.181818 n_inputs=2048",
+       "n2048.iqr_ns=886.000000 n_inputs=2048",
+       "n2048.ci95=[28246.291645,33324.071992] n_inputs=2048",
+       "n2048.bytes_this_write=100 n_inputs=2048"
+      ],
+      "raw_ns": [
+       30120,
+       29749,
+       30032,
+       29371,
+       30572,
+       28949,
+       42066,
+       29960,
+       28948,
+       29861,
+       29009
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 2538.8901734217175,
+       "ci95_hi_ns": 33324.07199160354,
+       "ci95_lo_ns": 28246.291644760102,
+       "iqr_ns": 886.0,
+       "max_ns": 42066.0,
+       "mean_ns": 30785.18181818182,
+       "median_ns": 29861.0,
+       "min_ns": 28948.0,
+       "n": 11,
+       "q1_ns": 29190.0,
+       "q3_ns": 30076.0,
+       "sample_variance_ns2": 14282229.763636366,
+       "stdev_ns": 3779.183743037161,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 59722.0,
+       "hi_ns": 89583.0,
+       "lo_ns": -29861.0
+      }
+     }
+    ],
+    "id": "append_write",
+    "name": "one append at ledger size n (bytes must stay flat)"
+   },
+   {
+    "arms": [
+     {
+      "bytes_this_write": "1477",
+      "id": "n16",
+      "n_inputs": 16,
+      "printed": [
+       "n16.median_ns=136035.000000 n_inputs=16",
+       "n16.mean_ns=138416.909091 n_inputs=16",
+       "n16.iqr_ns=5516.000000 n_inputs=16",
+       "n16.ci95=[135068.180733,141765.637449] n_inputs=16",
+       "n16.bytes_this_write=1477 n_inputs=16"
+      ],
+      "raw_ns": [
+       136718,
+       146697,
+       134853,
+       144502,
+       134803,
+       136366,
+       136035,
+       135335,
+       146968,
+       135626,
+       134683
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 3348.7283576571585,
+       "ci95_hi_ns": 141765.63744856624,
+       "ci95_lo_ns": 135068.18073325194,
+       "iqr_ns": 5516.0,
+       "max_ns": 146968.0,
+       "mean_ns": 138416.9090909091,
+       "median_ns": 136035.0,
+       "min_ns": 134683.0,
+       "n": 11,
+       "q1_ns": 135094.0,
+       "q3_ns": 140610.0,
+       "sample_variance_ns2": 24846660.490909092,
+       "stdev_ns": 4984.642463698785,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 272070.0,
+       "hi_ns": 408105.0,
+       "lo_ns": -136035.0
+      }
+     },
+     {
+      "bytes_this_write": "6027",
+      "id": "n64",
+      "n_inputs": 64,
+      "printed": [
+       "n64.median_ns=144824.000000 n_inputs=64",
+       "n64.mean_ns=147279.181818 n_inputs=64",
+       "n64.iqr_ns=7956.500000 n_inputs=64",
+       "n64.ci95=[144027.368302,150530.995334] n_inputs=64",
+       "n64.bytes_this_write=6027 n_inputs=64"
+      ],
+      "raw_ns": [
+       149783,
+       143680,
+       143069,
+       153191,
+       153891,
+       143921,
+       155435,
+       144824,
+       143101,
+       143381,
+       145795
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 3251.8135161968016,
+       "ci95_hi_ns": 150530.99533437862,
+       "ci95_lo_ns": 144027.36830198503,
+       "iqr_ns": 7956.5,
+       "max_ns": 155435.0,
+       "mean_ns": 147279.18181818182,
+       "median_ns": 144824.0,
+       "min_ns": 143069.0,
+       "n": 11,
+       "q1_ns": 143530.5,
+       "q3_ns": 151487.0,
+       "sample_variance_ns2": 23429307.363636363,
+       "stdev_ns": 4840.382976959196,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 289648.0,
+       "hi_ns": 434472.0,
+       "lo_ns": -144824.0
+      }
+     },
+     {
+      "bytes_this_write": "24685",
+      "id": "n256",
+      "n_inputs": 256,
+      "printed": [
+       "n256.median_ns=177329.000000 n_inputs=256",
+       "n256.mean_ns=179787.000000 n_inputs=256",
+       "n256.iqr_ns=8772.500000 n_inputs=256",
+       "n256.ci95=[176380.990942,183193.009058] n_inputs=256",
+       "n256.bytes_this_write=24685 n_inputs=256"
+      ],
+      "raw_ns": [
+       182140,
+       180055,
+       186196,
+       176738,
+       175295,
+       175275,
+       187480,
+       175496,
+       174714,
+       186939,
+       177329
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 3406.009058003705,
+       "ci95_hi_ns": 183193.0090580037,
+       "ci95_lo_ns": 176380.9909419963,
+       "iqr_ns": 8772.5,
+       "max_ns": 187480.0,
+       "mean_ns": 179787.0,
+       "median_ns": 177329.0,
+       "min_ns": 174714.0,
+       "n": 11,
+       "q1_ns": 175395.5,
+       "q3_ns": 184168.0,
+       "sample_variance_ns2": 25703945.0,
+       "stdev_ns": 5069.90581766565,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 354658.0,
+       "hi_ns": 531987.0,
+       "lo_ns": -177329.0
+      }
+     },
+     {
+      "bytes_this_write": "100173",
+      "id": "n1024",
+      "n_inputs": 1024,
+      "printed": [
+       "n1024.median_ns=279496.000000 n_inputs=1024",
+       "n1024.mean_ns=285261.363636 n_inputs=1024",
+       "n1024.iqr_ns=12651.000000 n_inputs=1024",
+       "n1024.ci95=[270567.454021,299955.273252] n_inputs=1024",
+       "n1024.bytes_this_write=100173 n_inputs=1024"
+      ],
+      "raw_ns": [
+       293223,
+       272862,
+       287793,
+       273595,
+       280097,
+       283795,
+       279496,
+       272973,
+       273313,
+       347835,
+       272893
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 14693.909615475044,
+       "ci95_hi_ns": 299955.2732518387,
+       "ci95_lo_ns": 270567.4540208886,
+       "iqr_ns": 12651.0,
+       "max_ns": 347835.0,
+       "mean_ns": 285261.36363636365,
+       "median_ns": 279496.0,
+       "min_ns": 272862.0,
+       "n": 11,
+       "q1_ns": 273143.0,
+       "q3_ns": 285794.0,
+       "sample_variance_ns2": 478390904.8545455,
+       "stdev_ns": 21872.1490680396,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 558992.0,
+       "hi_ns": 838488.0,
+       "lo_ns": -279496.0
+      }
+     },
+     {
+      "bytes_this_write": "202983",
+      "id": "n2048",
+      "n_inputs": 2048,
+      "printed": [
+       "n2048.median_ns=412665.000000 n_inputs=2048",
+       "n2048.mean_ns=413105.727273 n_inputs=2048",
+       "n2048.iqr_ns=13872.500000 n_inputs=2048",
+       "n2048.ci95=[404397.420864,421814.033681] n_inputs=2048",
+       "n2048.bytes_this_write=202983 n_inputs=2048"
+      ],
+      "raw_ns": [
+       419650,
+       413046,
+       445462,
+       404400,
+       418517,
+       418047,
+       397025,
+       412665,
+       403226,
+       404419,
+       407706
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 8708.306408761106,
+       "ci95_hi_ns": 421814.0336814884,
+       "ci95_lo_ns": 404397.42086396617,
+       "iqr_ns": 13872.5,
+       "max_ns": 445462.0,
+       "mean_ns": 413105.7272727273,
+       "median_ns": 412665.0,
+       "min_ns": 397025.0,
+       "n": 11,
+       "q1_ns": 404409.5,
+       "q3_ns": 418282.0,
+       "sample_variance_ns2": 168025652.01818183,
+       "stdev_ns": 12962.470907129622,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 825330.0,
+       "hi_ns": 1237995.0,
+       "lo_ns": -412665.0
+      }
+     }
+    ],
+    "id": "rewrite_write",
+    "name": "one full-file rewrite at ledger size n (detector control)"
+   },
+   {
+    "arms": [
+     {
+      "id": "full_scaling_suite",
+      "n_inputs": 3408,
+      "printed": [
+       "full_scaling_suite.median_ns=58381380.000000 n_inputs=3408",
+       "full_scaling_suite.mean_ns=58403293.000000 n_inputs=3408",
+       "full_scaling_suite.iqr_ns=240537.500000 n_inputs=3408",
+       "full_scaling_suite.ci95=[58274313.228387,58532272.771613] n_inputs=3408"
+      ],
+      "raw_ns": [
+       58240102,
+       58402381,
+       58122423,
+       58325064,
+       58689833,
+       58279432,
+       58734233,
+       58454176,
+       58250434,
+       58556765,
+       58381380
+      ],
+      "statistics": {
+       "ci95_halfwidth_ns": 128979.7716130636,
+       "ci95_hi_ns": 58532272.77161306,
+       "ci95_lo_ns": 58274313.22838694,
+       "iqr_ns": 240537.5,
+       "max_ns": 58734233.0,
+       "mean_ns": 58403293.0,
+       "median_ns": 58381380.0,
+       "min_ns": 58122423.0,
+       "n": 11,
+       "q1_ns": 58264933.0,
+       "q3_ns": 58505470.5,
+       "sample_variance_ns2": 36859665801.0,
+       "stdev_ns": 191988.712691658,
+       "t_crit": 2.228138842064602
+      },
+      "variance_band": {
+       "derived_from": "raw_ns",
+       "formula": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns",
+       "half_ns": 116762760.0,
+       "hi_ns": 175144140.0,
+       "lo_ns": -58381380.0
+      }
+     }
+    ],
+    "id": "suite_wall_clock",
+    "name": "wall-clock of the 16..2048 append-only scaling suite"
+   }
+  ],
+  "empty_input_controls": [
+   {
+    "failed": true,
+    "id": "dispatch_cohort",
+    "message": "dispatch_cohort: n_inputs=0; FAIL rather than report a time",
+    "n_inputs": 0,
+    "reported_time": null
+   },
+   {
+    "failed": true,
+    "id": "append_ledger",
+    "message": "append ledger: n_inputs=0; FAIL rather than time",
+    "n_inputs": 0,
+    "reported_time": null
+   }
+  ],
+  "input_fingerprint": "718a6fb8f6652a32bd334e047cea78b218993e78880936c0de5b91eeef70b296",
+  "input_non_empty": true,
+  "kind": "benchmark_result",
+  "metrics": [
+   {
+    "baseline_value": 16731.06640625,
+    "n": 11,
+    "name": "per-unit dispatch median at n=2048",
+    "null_model": "per-unit dispatch cost grows with cohort size",
+    "unit": "nanoseconds",
+    "value": 16293.865234375,
+    "variance_band": "half = max(8*IQR, 6*stdev, 2*|median|); band = [median-half, median+half]; derived_from=raw_ns"
+   },
+   {
+    "baseline_value": 1.0,
+    "n": 5,
+    "name": "append write-size ratio 2048/16",
+    "null_model": "ledger write rewrites the whole file so bytes grow with n",
+    "unit": "ratio",
+    "value": 1.0416666666666667,
+    "variance_band": "must stay below 2.0 for O(1) per append"
+   },
+   {
+    "baseline_value": 32.0,
+    "n": 5,
+    "name": "rewrite mutant write-size ratio 2048/16",
+    "null_model": "the rewrite mutant is also O(1) per write",
+    "unit": "ratio",
+    "value": 137.42924847664185,
+    "variance_band": "detector control must be >= 32"
+   },
+   {
+    "baseline_value": 1.0,
+    "n": 5,
+    "name": "dispatch total-time log-log slope",
+    "null_model": "total dispatch time is quadratic in cohort size",
+    "unit": "dimensionless",
+    "value": 0.9380255635212846,
+    "variance_band": "0.55 to 1.45 for near-linear total time"
+   }
+  ],
+  "named_benchmarks": {
+   "fanout_throughput": "dispatch_per_unit",
+   "hook_overhead": "append_write",
+   "router_latency": "dispatch_per_unit",
+   "suite_wall_clock": "suite_wall_clock"
+  },
+  "pin": {
+   "content_sha256": "4bdaf5607b49e4fb5ef2171430c36774118c397d05a6fafc27394aafc5e7508a",
+   "git": {
+    "available": false,
+    "reason": "not a git repository"
+   },
+   "kind": "CONTENT-PINNED",
+   "sha": "4bdaf5607b49e4fb5ef2171430c36774118c397d05a6fafc27394aafc5e7508a",
+   "sources": [
+    {
+     "bytes": 12238,
+     "path": "tools/foundry/candidate_registry.py",
+     "present": true,
+     "sha256": "493a965b7a65e17b36c4395f9d3c47c9d6b37308b9d025f47b6268ad816a1911"
+    },
+    {
+     "bytes": 12414,
+     "path": "tools/command-center/close.py",
+     "present": true,
+     "sha256": "b0402e2df48d76bb3338189be6b92f1db43f640296aa7fc371af6f53d2d6c811"
+    },
+    {
+     "bytes": 2633,
+     "path": "command-center/p2-wave/probes/TST-0241/ledger.py",
+     "present": true,
+     "sha256": "c26edb562b134e724a24d0477fe96f0c39a195410dc42c62d8d14448e3ab8015"
+    },
+    {
+     "bytes": 902,
+     "path": "command-center/p2-wave/probes/TST-0241/dispatch.py",
+     "present": true,
+     "sha256": "85568c359091b763066d0c06c76a8719c73607314ce383faaf9f4a2668222541"
+    }
+   ]
+  },
+  "printed_cardinalities": [
+   "n16.median_ns=364348.000000 n_inputs=16",
+   "n16.mean_ns=359088.272727 n_inputs=16",
+   "n16.iqr_ns=28383.000000 n_inputs=16",
+   "n16.ci95=[347783.181953,370393.363502] n_inputs=16",
+   "n16.per_unit_ns=22771.750000 n_inputs=16",
+   "n16.bytes_mode=append n_inputs=16",
+   "n64.median_ns=1142433.000000 n_inputs=64",
+   "n64.mean_ns=1146073.545455 n_inputs=64",
+   "n64.iqr_ns=21128.500000 n_inputs=64",
+   "n64.ci95=[1133184.775733,1158962.315176] n_inputs=64",
+   "n64.per_unit_ns=17850.515625 n_inputs=64",
+   "n64.bytes_mode=append n_inputs=64",
+   "n256.median_ns=4283153.000000 n_inputs=256",
+   "n256.mean_ns=4285082.000000 n_inputs=256",
+   "n256.iqr_ns=58589.000000 n_inputs=256",
+   "n256.ci95=[4253482.489016,4316681.510984] n_inputs=256",
+   "n256.per_unit_ns=16731.066406 n_inputs=256",
+   "n256.bytes_mode=append n_inputs=256",
+   "n1024.median_ns=16852006.000000 n_inputs=1024",
+   "n1024.mean_ns=16857444.818182 n_inputs=1024",
+   "n1024.iqr_ns=125259.500000 n_inputs=1024",
+   "n1024.ci95=[16803407.838929,16911481.797435] n_inputs=1024",
+   "n1024.per_unit_ns=16457.037109 n_inputs=1024",
+   "n1024.bytes_mode=append n_inputs=1024",
+   "n2048.median_ns=33369836.000000 n_inputs=2048",
+   "n2048.mean_ns=33428232.272727 n_inputs=2048",
+   "n2048.iqr_ns=236619.500000 n_inputs=2048",
+   "n2048.ci95=[33323912.103912,33532552.441543] n_inputs=2048",
+   "n2048.per_unit_ns=16293.865234 n_inputs=2048",
+   "n2048.bytes_mode=append n_inputs=2048",
+   "n16.median_ns=28487.000000 n_inputs=16",
+   "n16.mean_ns=30705.090909 n_inputs=16",
+   "n16.iqr_ns=2550.000000 n_inputs=16",
+   "n16.ci95=[27550.034801,33860.147017] n_inputs=16",
+   "n16.bytes_this_write=96 n_inputs=16",
+   "n64.median_ns=28477.000000 n_inputs=64",
+   "n64.mean_ns=28763.545455 n_inputs=64",
+   "n64.iqr_ns=1017.000000 n_inputs=64",
+   "n64.ci95=[28045.555061,29481.535848] n_inputs=64",
+   "n64.bytes_this_write=97 n_inputs=64",
+   "n256.median_ns=29038.000000 n_inputs=256",
+   "n256.mean_ns=30849.727273 n_inputs=256",
+   "n256.iqr_ns=1163.500000 n_inputs=256",
+   "n256.ci95=[27044.146798,34655.307748] n_inputs=256",
+   "n256.bytes_this_write=94 n_inputs=256",
+   "n1024.median_ns=29199.000000 n_inputs=1024",
+   "n1024.mean_ns=29977.090909 n_inputs=1024",
+   "n1024.iqr_ns=626.500000 n_inputs=1024",
+   "n1024.ci95=[28546.266562,31407.915256] n_inputs=1024",
+   "n1024.bytes_this_write=97 n_inputs=1024",
+   "n2048.median_ns=29861.000000 n_inputs=2048",
+   "n2048.mean_ns=30785.181818 n_inputs=2048",
+   "n2048.iqr_ns=886.000000 n_inputs=2048",
+   "n2048.ci95=[28246.291645,33324.071992] n_inputs=2048",
+   "n2048.bytes_this_write=100 n_inputs=2048",
+   "n16.median_ns=136035.000000 n_inputs=16",
+   "n16.mean_ns=138416.909091 n_inputs=16",
+   "n16.iqr_ns=5516.000000 n_inputs=16",
+   "n16.ci95=[135068.180733,141765.637449] n_inputs=16",
+   "n16.bytes_this_write=1477 n_inputs=16",
+   "n64.median_ns=144824.000000 n_inputs=64",
+   "n64.mean_ns=147279.181818 n_inputs=64",
+   "n64.iqr_ns=7956.500000 n_inputs=64",
+   "n64.ci95=[144027.368302,150530.995334] n_inputs=64",
+   "n64.bytes_this_write=6027 n_inputs=64",
+   "n256.median_ns=177329.000000 n_inputs=256",
+   "n256.mean_ns=179787.000000 n_inputs=256",
+   "n256.iqr_ns=8772.500000 n_inputs=256",
+   "n256.ci95=[176380.990942,183193.009058] n_inputs=256",
+   "n256.bytes_this_write=24685 n_inputs=256",
+   "n1024.median_ns=279496.000000 n_inputs=1024",
+   "n1024.mean_ns=285261.363636 n_inputs=1024",
+   "n1024.iqr_ns=12651.000000 n_inputs=1024",
+   "n1024.ci95=[270567.454021,299955.273252] n_inputs=1024",
+   "n1024.bytes_this_write=100173 n_inputs=1024",
+   "n2048.median_ns=412665.000000 n_inputs=2048",
+   "n2048.mean_ns=413105.727273 n_inputs=2048",
+   "n2048.iqr_ns=13872.500000 n_inputs=2048",
+   "n2048.ci95=[404397.420864,421814.033681] n_inputs=2048",
+   "n2048.bytes_this_write=202983 n_inputs=2048",
+   "full_scaling_suite.median_ns=58381380.000000 n_inputs=3408",
+   "full_scaling_suite.mean_ns=58403293.000000 n_inputs=3408",
+   "full_scaling_suite.iqr_ns=240537.500000 n_inputs=3408",
+   "full_scaling_suite.ci95=[58274313.228387,58532272.771613] n_inputs=3408"
+  ],
+  "question": "Does per-unit dispatch cost stay flat as the cohort grows from 16 to 2,048 units, and is the ledger append O(1) rather than a rewrite? PASS requires a measured flat curve and an append-only ledger proven by write-size instrumentation.",
+  "scaling": {
+   "append_curve": [
+    {
+     "bytes_this_write": 96,
+     "cumulative_bytes": 1477,
+     "file_size": 1477,
+     "kind": "append",
+     "n": 16
+    },
+    {
+     "bytes_this_write": 97,
+     "cumulative_bytes": 6027,
+     "file_size": 6027,
+     "kind": "append",
+     "n": 64
+    },
+    {
+     "bytes_this_write": 94,
+     "cumulative_bytes": 24685,
+     "file_size": 24685,
+     "kind": "append",
+     "n": 256
+    },
+    {
+     "bytes_this_write": 97,
+     "cumulative_bytes": 100173,
+     "file_size": 100173,
+     "kind": "append",
+     "n": 1024
+    },
+    {
+     "bytes_this_write": 100,
+     "cumulative_bytes": 202983,
+     "file_size": 202983,
+     "kind": "append",
+     "n": 2048
+    }
+   ],
+   "append_write_sizes": {
+    "1024": 97,
+    "16": 96,
+    "2048": 100,
+    "256": 94,
+    "64": 97
+   },
+   "classification": {
+    "cum_ratio_append_2048_over_16": 137.42924847664185,
+    "cum_ratio_rewrite_2048_over_16": 16619.98678910907,
+    "loglog_slope_append_cumulative": 1.0144217429210765,
+    "loglog_slope_append_write": 0.005742841821619111,
+    "loglog_slope_dispatch_per_unit": -0.061974436478715166,
+    "loglog_slope_dispatch_total": 0.9380255635212846,
+    "loglog_slope_rewrite_cumulative": 2.003941763343091,
+    "loglog_slope_rewrite_write": 1.0144217429210765,
+    "pass": true,
+    "per_unit_ns_n16": 22771.75,
+    "per_unit_ns_n2048": 16293.865234375,
+    "per_unit_ns_n256": 16731.06640625,
+    "per_unit_ratio_2048_over_256": 0.9738688998501804,
+    "verdicts": {
+     "append_cumulative_linear": true,
+     "append_write_loglog_near_zero": true,
+     "append_write_o1": true,
+     "dispatch_per_unit_flat": true,
+     "dispatch_total_near_linear": true,
+     "rewrite_cumulative_quadratic": true,
+     "rewrite_write_grows": true,
+     "rewrite_write_loglog_near_one": true
+    },
+    "write_ratio_append_2048_over_16": 1.0416666666666667,
+    "write_ratio_rewrite_2048_over_16": 137.42924847664185
+   },
+   "dispatch": [
+    {
+     "median_total_ns": 364348.0,
+     "n": 16,
+     "per_unit_ns": 22771.75,
+     "raw_ns": [
+      370932,
+      344047,
+      364348,
+      337142,
+      368718,
+      368416,
+      381021,
+      338215,
+      358035,
+      338837,
+      380260
+     ],
+     "statistics": {
+      "ci95_halfwidth_ns": 11305.0907743101,
+      "ci95_hi_ns": 370393.3635015828,
+      "ci95_lo_ns": 347783.1819529626,
+      "iqr_ns": 28383.0,
+      "max_ns": 381021.0,
+      "mean_ns": 359088.2727272727,
+      "median_ns": 364348.0,
+      "min_ns": 337142.0,
+      "n": 11,
+      "q1_ns": 341442.0,
+      "q3_ns": 369825.0,
+      "sample_variance_ns2": 283175902.8181818,
+      "stdev_ns": 16827.83119769692,
+      "t_crit": 2.228138842064602
+     }
+    },
+    {
+     "median_total_ns": 1142433.0,
+     "n": 64,
+     "per_unit_ns": 17850.515625,
+     "raw_ns": [
+      1123324,
+      1183798,
+      1175119,
+      1139809,
+      1127985,
+      1134757,
+      1152494,
+      1142433,
+      1144278,
+      1129146,
+      1153666
+     ],
+     "statistics": {
+      "ci95_halfwidth_ns": 12888.76972112384,
+      "ci95_hi_ns": 1158962.3151756693,
+      "ci95_lo_ns": 1133184.7757334216,
+      "iqr_ns": 21128.5,
+      "max_ns": 1183798.0,
+      "mean_ns": 1146073.5454545454,
+      "median_ns": 1142433.0,
+      "min_ns": 1123324.0,
+      "n": 11,
+      "q1_ns": 1131951.5,
+      "q3_ns": 1153080.0,
+      "sample_variance_ns2": 368070587.8727273,
+      "stdev_ns": 19185.165828648114,
+      "t_crit": 2.228138842064602
+     }
+    },
+    {
+     "median_total_ns": 4283153.0,
+     "n": 256,
+     "per_unit_ns": 16731.06640625,
+     "raw_ns": [
+      4307854,
+      4252352,
+      4244695,
+      4220457,
+      4306371,
+      4238864,
+      4291982,
+      4377013,
+      4269766,
+      4283153,
+      4343395
+     ],
+     "statistics": {
+      "ci95_halfwidth_ns": 31599.510984335746,
+      "ci95_hi_ns": 4316681.510984336,
+      "ci95_lo_ns": 4253482.489015664,
+      "iqr_ns": 58589.0,
+      "max_ns": 4377013.0,
+      "mean_ns": 4285082.0,
+      "median_ns": 4283153.0,
+      "min_ns": 4220457.0,
+      "n": 11,
+      "q1_ns": 4248523.5,
+      "q3_ns": 4307112.5,
+      "sample_variance_ns2": 2212426795.0,
+      "stdev_ns": 47036.441138759634,
+      "t_crit": 2.228138842064602
+     }
+    },
+    {
+     "median_total_ns": 16852006.0,
+     "n": 1024,
+     "per_unit_ns": 16457.037109375,
+     "raw_ns": [
+      16773488,
+      16874983,
+      16981269,
+      16835623,
+      16878230,
+      16792586,
+      16945847,
+      16966147,
+      16852006,
+      16780972,
+      16750742
+     ],
+     "statistics": {
+      "ci95_halfwidth_ns": 54036.97925278627,
+      "ci95_hi_ns": 16911481.797434602,
+      "ci95_lo_ns": 16803407.83892903,
+      "iqr_ns": 125259.5,
+      "max_ns": 16981269.0,
+      "mean_ns": 16857444.818181816,
+      "median_ns": 16852006.0,
+      "min_ns": 16750742.0,
+      "n": 11,
+      "q1_ns": 16786779.0,
+      "q3_ns": 16912038.5,
+      "sample_variance_ns2": 6469791912.563637,
+      "stdev_ns": 80435.01670642977,
+      "t_crit": 2.228138842064602
+     }
+    },
+    {
+     "median_total_ns": 33369836.0,
+     "n": 2048,
+     "per_unit_ns": 16293.865234375,
+     "raw_ns": [
+      33325297,
+      33458095,
+      33622348,
+      33673200,
+      33369836,
+      33503146,
+      33615346,
+      33237769,
+      33319956,
+      33252650,
+      33332912
+     ],
+     "statistics": {
+      "ci95_halfwidth_ns": 104320.16881550515,
+      "ci95_hi_ns": 33532552.44154278,
+      "ci95_lo_ns": 33323912.10391177,
+      "iqr_ns": 236619.5,
+      "max_ns": 33673200.0,
+      "mean_ns": 33428232.272727273,
+      "median_ns": 33369836.0,
+      "min_ns": 33237769.0,
+      "n": 11,
+      "q1_ns": 33322626.5,
+      "q3_ns": 33559246.0,
+      "sample_variance_ns2": 24112639235.01818,
+      "stdev_ns": 155282.4498615931,
+      "t_crit": 2.228138842064602
+     }
+    }
+   ],
+   "production_close": [
+    {
+     "bytes_this_write": 52,
+     "file_size_after": 792,
+     "n": 16,
+     "subject": "close.append_event"
+    },
+    {
+     "bytes_this_write": 52,
+     "file_size_after": 3192,
+     "n": 64,
+     "subject": "close.append_event"
+    },
+    {
+     "bytes_this_write": 54,
+     "file_size_after": 13459,
+     "n": 256,
+     "subject": "close.append_event"
+    },
+    {
+     "bytes_this_write": 56,
+     "file_size_after": 56234,
+     "n": 1024,
+     "subject": "close.append_event"
+    },
+    {
+     "bytes_this_write": 56,
+     "file_size_after": 113578,
+     "n": 2048,
+     "subject": "close.append_event"
+    }
+   ],
+   "production_foundry": [
+    {
+     "bytes_this_write": 388,
+     "file_size_after": 6119,
+     "n": 16,
+     "subject": "foundry.CandidateRegistry._append"
+    },
+    {
+     "bytes_this_write": 388,
+     "file_size_after": 24551,
+     "n": 64,
+     "subject": "foundry.CandidateRegistry._append"
+    },
+    {
+     "bytes_this_write": 391,
+     "file_size_after": 99258,
+     "n": 256,
+     "subject": "foundry.CandidateRegistry._append"
+    },
+    {
+     "bytes_this_write": 394,
+     "file_size_after": 400129,
+     "n": 1024,
+     "subject": "foundry.CandidateRegistry._append"
+    },
+    {
+     "bytes_this_write": 394,
+     "file_size_after": 803585,
+     "n": 2048,
+     "subject": "foundry.CandidateRegistry._append"
+    }
+   ],
+   "rewrite_curve": [
+    {
+     "bytes_this_write": 1477,
+     "cumulative_bytes": 12414,
+     "file_size": 1477,
+     "kind": "rewrite",
+     "n": 16
+    },
+    {
+     "bytes_this_write": 6027,
+     "cumulative_bytes": 194553,
+     "file_size": 6027,
+     "kind": "rewrite",
+     "n": 64
+    },
+    {
+     "bytes_this_write": 24685,
+     "cumulative_bytes": 3148240,
+     "file_size": 24685,
+     "kind": "rewrite",
+     "n": 256
+    },
+    {
+     "bytes_this_write": 100173,
+     "cumulative_bytes": 51043631,
+     "file_size": 100173,
+     "kind": "rewrite",
+     "n": 1024
+    },
+    {
+     "bytes_this_write": 202983,
+     "cumulative_bytes": 206320516,
+     "file_size": 202983,
+     "kind": "rewrite",
+     "n": 2048
+    }
+   ],
+   "rewrite_write_sizes": {
+    "1024": 100173,
+    "16": 1477,
+    "2048": 202983,
+    "256": 24685,
+    "64": 6027
+   },
+   "sizes": [
+    16,
+    64,
+    256,
+    1024,
+    2048
+   ]
+  },
+  "seed": 241
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Catalog execution_substrate is cloud-batch; this G-1 capture ran on local Linux.",
+   "settling_experiment": "Re-run emit_receipt.py on a cloud-batch worker and compare write-size curves and per-unit ratios against this receipt.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "up to 3 attempts with full-jitter backoff; a flake rate above 1-in-20 reruns is filed as a DEFECT against the test, never absorbed as a retry"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 re-runs the rewrite mutant and re-derives statistics from raw_ns; it does not author the append-only ledger.",
+  "reviewed_at": "2026-08-25T01:12:01Z",
+  "reviewer_id": "TST-0241-probe2-rewrite-quadratic",
+  "vendor": "xai",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:TST-0241",
+ "spec_anchor": "_USER-PROMPTS.md:11022; command-center/WORK-UNIT-CATALOG.json:TST-0241",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 5,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/probe1_scaling_flat.py",
+   "id": "scaling-16-64-256-1024-2048",
+   "name": "per-unit dispatch stays flat across 16..2048",
+   "result": "PASS"
+  },
+  {
+   "assertions": 4,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/TST-0241/probe2_rewrite_quadratic.py",
+   "id": "on-rewrite-quadratic",
+   "name": "deliberate O(n) ledger write shows the quadratic curve",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:12:01Z",
+  "started_at": "2026-08-25T01:11:59Z"
+ },
+ "unit_id": "TST-0241"
+}

@@ -1,0 +1,26 @@
+I'll start from the existing AUD-0020 probe tree, read any SUBAGENT-RETURN, and resume toward a contract-green delivery without touching git or the global catalog.No SUBAGENT-RETURN yet. Next I’ll read the existing probes, the measurement script, and the unit contract so we resume from what’s already there.I'll inspect the catalog unit, `artifact_delivered`, and a delivered AUD unit so we can match the G-1 contract instead of the old BLOCKED receipt.The old receipt is BLOCKED on global manifest write. I’ll check a delivered AUD unit, the catalog row, and G-1 so we can use the per-unit manifest instead.I'll measure the current artifact, check schema validation, and see how slow a live inventory walk is before writing named probes.Git returned 128 and the walk only found six manifests — I'll inspect the worktree, resolver, and tree layout before writing probes.This worktree is sparse (no `.git`, no `platform/`). I’ll keep the existing probes, add named re-runnable scripts that work here, and pack an honest SUCCESS receipt plus a per-unit manifest.Writing named probes, shared helpers, fixtures, and the packer. Existing helper scripts that import missing `platform/lib` will be prefixed so measure-one does not re-run them.Python 3.10 has no `tomllib`, so lock and pyproject parses failed. I’ll add a fallback parser and re-run.Measure-one passed. I'll re-pack from the live re-run so hashes stay consistent, then write SUBAGENT-RETURN.json.**SUCCESS:delivered AUD-0020**
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0020` printed:
+
+`SUCCESS:delivered AUD-0020 predicate=delivered state=SUCCESS probes=4 raws=5 notes=control_out_of_range_pin.py:0,probe1_manifests.py:0,probe2_lock_reconciliation.py:0,probe_common.py:0`
+
+This worktree is a P2 seed slice (`command-center/` + `tools/command-center`). There is no `.git`, no `platform/lib`, and none of the 23 first-party packages from the earlier full-repo probe. The old receipt stayed `BLOCKED` because it pointed at the global `UNIT-ARTIFACT-MANIFEST.json` and could not run `unit_manifest.py --write`. That path was not rebuilt in a circle: the existing probe tree was kept, and condition 11 was satisfied with a **per-unit** manifest.
+
+**Live science on this tree**
+
+| Check | Result |
+|---|---|
+| Probe 1 (manifest table) | 7 manifests, 18 declared deps; first-party=0, probe-scratch=6, planted-control=1 |
+| Prior 23-manifest headline | **REFUTED** here (0/23 of those paths exist) |
+| Git verifier | `git ls-files` rc=128 — recorded NOT-CHECKED, not passed |
+| Walk vs rglob | set-equal; planted known-present found; planted-absent silent |
+| Probe 2 (lock diff) | 3 `uv.lock`, 4 lock-absent NOT-CHECKED, 0 out-of-range pins, 4 names missing from parent locks |
+| Catalog control | FIRED on `requests==1.2.3` vs `>=2.31,<3`; SILENT on `2.32.3`; `packaging.SpecifierSet` agrees |
+
+**Written**
+
+- `command-center/audit/AUD-0020-python-dep-inventory.json` — 27149 B, `state=SUCCESS`
+- `command-center/p2-wave/probes/AUD-0020/UNIT-ARTIFACT-MANIFEST.json` — LF sha256 `d9cf86c6a1017eb14ba9d1b31aa04c03436f7392cf37b6d3c27c6ca4b461d444`
+- `command-center/p2-wave/probes/AUD-0020/SUBAGENT-RETURN.json`
+
+Did not git add/commit/push/stash/checkout/rebase. Did not run `unit_manifest.py --write` on the global catalog. Did not touch API keys or relaunch finish-everything-close / p2-cloud-ok-deliver. Cloud `ok=true` was not used as delivery.

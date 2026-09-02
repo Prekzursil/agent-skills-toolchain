@@ -1,0 +1,19 @@
+I'll start from the existing BLD-0010 probe tree and resume from SUBAGENT-RETURN.json rather than rebuilding. First I'll inspect the unit artifacts and the delivery contract.The probe tree is partial. Next I’ll read SUBAGENT-RETURN, the catalog unit, the measure script, and a delivered unit’s artifact shape.The existing tree is a CLOUD-OK refute, not a G-1 delivery. I’ll pull the catalog unit, receipt contract, and a delivered unit’s probe/manifest shape next.The catalog is a measurement unit with four required tests. I’ll inspect the coverage-matrix schema, a delivered unit’s probes/manifest, and whether the original probe scripts still exist anywhere.Harvest listed the original probe scripts; they are missing here. I’ll recover them if possible and read the SUCCESS-state schema so we don’t hand-flip.I’ll preserve the CLOUD-OK scripts under `_cloud_ok_*` so measure won’t re-run them, then add live named probes for the four catalog tests on this worktree.Probes are live: DST, locale-sort, and the naive-datetime control pass; the cp1252 Japanese-path error is a real FAIL. Next I’ll pack the SUCCESS receipt from those runs.**SUCCESS:delivered BLD-0010** `predicate=delivered state=SUCCESS probes=2 raws=3 notes=probe1_environment.py:0,probe2_site_census.py:0`
+
+G-1 holds for this unit only. CLOUD-OK harvest/refute was not treated as delivery.
+
+What was on disk was a Windows CLOUD-OK refute: the receipt was `BLOCKED`, and the named probe scripts from the harvest (`probe_runtime.py`, `site_census.py`) were absent. Those CLOUD-OK files were kept (`_cloud_ok_*`, `CLOUD-OK-REFUTE.json`) and not re-run as delivery probes.
+
+Live named probes now exist and re-run to exit 0:
+
+| Catalog test | Result |
+|---|---|
+| T-CP1252-CONSOLE | **FAIL** — `tools/command-center/close.py:262` raises `UnicodeEncodeError` on a Japanese missing-path under a strict cp1252 stream (ASCII missing-path is clean) |
+| T-DST-FALL-BACK | PASS — 01:30 fold maps to UTC 05:30 then 06:30, strict order |
+| T-NAIVE-DATETIME-MUTANT | PASS — mutant goes RED |
+| T-LOCALE-SORT | PASS — Python codepoint sort is stable; live `sv_SE` collation control differs |
+| T-REAL-WINDOWS-CP1252 | NOT-RUN (honest; this is Linux) |
+
+This worktree has no `platform/`, `scripts/`, or `ci/`. The census covers `tools/command-center`, command-center product Python, and `.agents/skills`. Harvest-era sidecar inventories were not reused.
+
+Receipt `command-center/receipts/BLD-0010.json` is `state=SUCCESS` (coverage matrix delivered; D1 remains an open finding, not a silent pass). Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches live LF sha256 `cf39f787a39316d2a4dc8fcc4fa9a28b0285281d9aba4c05ed090b133703f2d7`. Global `unit_manifest.py --write` was not run. Git was not mutated.

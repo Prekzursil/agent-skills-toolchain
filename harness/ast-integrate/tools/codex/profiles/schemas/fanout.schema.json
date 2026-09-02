@@ -1,0 +1,47 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "codex-profiles/fanout.schema.json",
+  "title": "Codex fan-out structured result",
+  "description": "Reference JSON-Schema for the fanout-json profile's `--output-schema` (spec G5). Each detached `codex exec --json` fan-out worker returns an object matching this schema so the orchestrator can fan-in typed results without prose parsing. Extend per campaign; this is the conventional default.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["id", "status", "summary"],
+  "properties": {
+    "id": {
+      "type": "string",
+      "description": "Caller-assigned work-unit id, echoed back for fan-in correlation."
+    },
+    "status": {
+      "type": "string",
+      "enum": ["success", "failed", "partial"],
+      "description": "Terminal state of this fan-out unit (AGENTS.md §4 terminal-state convention)."
+    },
+    "summary": {
+      "type": "string",
+      "description": "One-paragraph result summary."
+    },
+    "findings": {
+      "type": "array",
+      "description": "Optional structured findings.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["title", "detail"],
+        "properties": {
+          "title": { "type": "string" },
+          "detail": { "type": "string" },
+          "severity": {
+            "type": "string",
+            "enum": ["low", "medium", "high", "critical"]
+          },
+          "evidence": { "type": "string" }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "description": "Absolute paths to files this unit produced.",
+      "items": { "type": "string" }
+    }
+  }
+}

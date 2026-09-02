@@ -1,0 +1,23 @@
+I'll start from the existing ADV-0018 probe tree, read the return artifact if present, and resume from there rather than rebuilding.The probe tree is already there. Next I’ll read the return artifact, catalog row, and measurement script so I know what “delivered” actually requires.The last return parked ADV-0018 as BLOCKED for a missing vault. I’ll independently re-check that, then read the probes and any successful sibling units before deciding whether this can still go green.The probes still assume `D:/basic-memory`. I’ll hunt for a real vault on this box, check git/hooks, and read how G-1 and `artifact_delivered` decide success.G-6 says the Windows vault cannot move here, but I’ll still search the box for a real vault, git history, and the inject-nopager hook before I accept a park.I’ll re-run the existing probes and a fresh oracle census on this tree, then refresh the parked artifacts if anything actually changed.Independent remasure matches the prior park: no vault, same probe exits. I’ll refresh the receipt and per-unit manifest hashes, then write the return artifact.**FAILED:ADV-0018** — parked. `python command-center/p2-wave/_measure_one_delivered.py ADV-0018` printed `FAILED:delivered ADV-0018 predicate:self-declared:BLOCKED`.
+
+G-1 is not met on this tree. The catalog target is the live basic-memory vault. That vault is not here, G-6 says it cannot move to this P2-competent subset, and two independent refutes share that reason, so G-7 D / G-11 require `BLOCKED`, not a hand-flipped `SUCCESS`.
+
+This refill resumed the existing probe tree and re-ran it:
+
+| probe | exit | result |
+|---|---|---|
+| `recall_control.py` | 1 | `CONTROL-RED:ADV-0018:RECALL-PATH-UNAVAILABLE` |
+| `probe1_topic_diff.py` | 2 | `PROBE-1-BLOCKED:ADV-0018:NO-BASIC-MEMORY-SURFACE` |
+| `probe2_frontmatter.py` | 2 | `PROBE-2-BLOCKED:ADV-0018:NO-VAULT` |
+| `negative_control.py` | 0 | detector still discriminates on fixtures |
+| `review_from_raw.py` | 1 | `FAILED:ADV-0018:REVIEW-FROM-RAW` |
+
+Live census: `D:/basic-memory` and every Linux fallback `is_dir=false`; 0 filename hits for the SSOT WORKTREE note or `inject-nopager.py`; `.git` absent (`git rev-parse HEAD` rc=128); basic-memory CLI absent; nothing listening on 8765.
+
+**required_fix:** mount or rsync the live Windows vault (historically 747–758 notes, including the SSOT WORKTREE control note), plus git history and both live+repo `hooks/cmd-rewrite/inject-nopager.py`. Then re-run the existing named probes. Do not invent a fixture vault.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0018/SUBAGENT-RETURN.json` (`status=BLOCKED`)
+- `command-center/p2-wave/probes/ADV-0018/UNIT-ARTIFACT-MANIFEST.json` (per-unit row; live sha256 `68ba8e0af1894332298f6c0b1e92a6731639105918004c5e981837640fac242a`)
+
+Did not git-mutate, did not run `unit_manifest.py --write`, did not weaken the named probes to force exit 0, did not treat harvest `ok=true` as delivery.

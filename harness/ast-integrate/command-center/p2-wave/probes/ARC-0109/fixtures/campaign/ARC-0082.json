@@ -1,0 +1,990 @@
+{
+  "$comment": "SUCCESS:ARC-0082 \u2014 declarative workflow DSL. certified_executable required set vs optional constructs. prompt_transport is file-only. A replayable workflow must declare resume. Inline prompt transport is rejected.",
+  "$defs": {
+    "barrier": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "wait_for": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        }
+      },
+      "required": [
+        "id",
+        "wait_for"
+      ],
+      "type": "object"
+    },
+    "dynamicFanOut": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "item_path": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "max_cardinality": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "producer_unit": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "unit_template": {
+          "type": "object"
+        }
+      },
+      "required": [
+        "id",
+        "producer_unit",
+        "item_path",
+        "max_cardinality"
+      ],
+      "type": "object"
+    },
+    "gate": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "predicate": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "maxLength": 32,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "predicate",
+        "role"
+      ],
+      "type": "object"
+    },
+    "humanCheckpoint": {
+      "additionalProperties": false,
+      "properties": {
+        "default_if_unanswered": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "pause_token": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "prompt_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "pause_token",
+        "default_if_unanswered"
+      ],
+      "type": "object"
+    },
+    "loop": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "convergence_expr": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "max_iterations": {
+          "minimum": 1,
+          "type": "integer"
+        },
+        "on_bound_reached": {
+          "enum": [
+            "abort",
+            "defer",
+            "emit-partial"
+          ],
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "body",
+        "convergence_expr",
+        "max_iterations"
+      ],
+      "type": "object"
+    },
+    "repairLoop": {
+      "additionalProperties": false,
+      "properties": {
+        "body": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "max_attempts": {
+          "maximum": 8,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "on_impossibility": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "body",
+        "max_attempts"
+      ],
+      "type": "object"
+    },
+    "resume": {
+      "additionalProperties": false,
+      "properties": {
+        "mode": {
+          "enum": [
+            "deterministic-replay",
+            "none"
+          ],
+          "type": "string"
+        },
+        "supported": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "supported",
+        "mode"
+      ],
+      "type": "object"
+    },
+    "retries": {
+      "additionalProperties": false,
+      "properties": {
+        "max_retries": {
+          "maximum": 8,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "repair_loop": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "max_retries",
+        "repair_loop"
+      ],
+      "type": "object"
+    },
+    "stage": {
+      "additionalProperties": false,
+      "properties": {
+        "allowed_responses": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "body": {
+          "type": [
+            "string",
+            "array"
+          ]
+        },
+        "convergence_expr": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "default_if_unanswered": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id_namespace": {
+          "maxLength": 32,
+          "minLength": 1,
+          "type": "string"
+        },
+        "inputs": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "item_path": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "kind": {
+          "$ref": "#/$defs/stageKind"
+        },
+        "max_attempts": {
+          "maximum": 8,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_cardinality": {
+          "maximum": 4096,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_iterations": {
+          "maximum": 1024,
+          "minimum": 1,
+          "type": "integer"
+        },
+        "max_retries": {
+          "maximum": 8,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "on_bound_reached": {
+          "enum": [
+            "abort",
+            "defer",
+            "emit-partial"
+          ],
+          "type": "string"
+        },
+        "on_failure": {
+          "additionalProperties": false,
+          "properties": {
+            "adapter-exit-n": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "blocked": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "degraded": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "partial-artifact": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "schema-invalid": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "severed-stream": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "timeout": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            },
+            "win-arg-limit": {
+              "enum": [
+                "abort",
+                "continue",
+                "escalate",
+                "quarantine",
+                "repair"
+              ],
+              "type": "string"
+            }
+          },
+          "required": [
+            "adapter-exit-n",
+            "blocked",
+            "degraded",
+            "partial-artifact",
+            "schema-invalid",
+            "severed-stream",
+            "timeout",
+            "win-arg-limit"
+          ],
+          "type": "object"
+        },
+        "on_impossibility": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "outputs": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "param_bindings": {
+          "type": "object"
+        },
+        "params": {
+          "type": "object"
+        },
+        "pause_token": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "producer_unit": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "prompt_ref": {
+          "maxLength": 512,
+          "minLength": 1,
+          "type": "string"
+        },
+        "role": {
+          "maxLength": 32,
+          "minLength": 1,
+          "type": "string"
+        },
+        "steps": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "minItems": 1,
+          "type": "array"
+        },
+        "unit_template": {
+          "type": "object"
+        },
+        "units": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "wait_for": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "workflow_ref": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "kind",
+        "role"
+      ],
+      "type": "object"
+    },
+    "stageKind": {
+      "enum": [
+        "WorkUnit",
+        "FanOut",
+        "Barrier",
+        "Pipeline",
+        "Subworkflow",
+        "Loop",
+        "HumanCheckpoint",
+        "DynamicFanOut",
+        "RepairLoop",
+        "work",
+        "fan-out",
+        "barrier",
+        "checkpoint",
+        "gate",
+        "static-scan",
+        "write-config"
+      ],
+      "type": "string"
+    },
+    "subworkflow": {
+      "additionalProperties": false,
+      "properties": {
+        "id": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "id_namespace": {
+          "maxLength": 32,
+          "minLength": 1,
+          "type": "string"
+        },
+        "param_bindings": {
+          "type": "object"
+        },
+        "workflow_ref": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "id",
+        "workflow_ref"
+      ],
+      "type": "object"
+    },
+    "toolPolicy": {
+      "additionalProperties": false,
+      "properties": {
+        "allow": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "default": {
+          "enum": [
+            "deny",
+            "allow"
+          ],
+          "type": "string"
+        },
+        "deny": {
+          "items": {
+            "maxLength": 64,
+            "minLength": 1,
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "required": [
+        "default",
+        "allow",
+        "deny"
+      ],
+      "type": "object"
+    },
+    "typedParam": {
+      "additionalProperties": false,
+      "allOf": [
+        {
+          "if": {
+            "required": [
+              "secret_ref"
+            ]
+          },
+          "then": {
+            "not": {
+              "required": [
+                "value"
+              ]
+            }
+          }
+        }
+      ],
+      "properties": {
+        "enum": {
+          "minItems": 1,
+          "type": "array"
+        },
+        "secret_ref": {
+          "maxLength": 256,
+          "minLength": 1,
+          "type": "string"
+        },
+        "type": {
+          "enum": [
+            "string",
+            "integer",
+            "number",
+            "boolean",
+            "array",
+            "object"
+          ],
+          "type": "string"
+        },
+        "value": true
+      },
+      "required": [
+        "type"
+      ],
+      "type": "object"
+    }
+  },
+  "$id": "https://ast-integrate.invalid/command-center/phase4/contracts/ARC-0082.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "certified_executable": {
+            "const": true
+          }
+        },
+        "required": [
+          "certified_executable"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "roles",
+          "tool_policy",
+          "parameters",
+          "retries",
+          "resume"
+        ]
+      }
+    },
+    {
+      "if": {
+        "properties": {
+          "replayable": {
+            "const": true
+          }
+        },
+        "required": [
+          "replayable"
+        ],
+        "type": "object"
+      },
+      "then": {
+        "required": [
+          "resume"
+        ]
+      }
+    }
+  ],
+  "certified_executable_required": [
+    "id",
+    "stages",
+    "entry",
+    "roles",
+    "tool_policy",
+    "parameters",
+    "failure_policy",
+    "retries",
+    "resume",
+    "replayable",
+    "prompt_transport"
+  ],
+  "certified_vs_optional": {
+    "optional": [
+      "subworkflows",
+      "dynamic_fan_out",
+      "barriers",
+      "loops",
+      "human_checkpoints",
+      "repair_loops",
+      "artifact_caching",
+      "dry_run",
+      "cost_estimate",
+      "time_estimate",
+      "model_routing",
+      "export_import",
+      "gates"
+    ],
+    "required_when_certified": [
+      "id",
+      "stages",
+      "entry",
+      "roles",
+      "tool_policy",
+      "parameters",
+      "failure_policy",
+      "retries",
+      "resume",
+      "replayable",
+      "prompt_transport"
+    ],
+    "rule": "certified_executable=true requires roles, tool_policy, parameters, retries, and resume. certified_executable=false may omit those. replayable=true independently requires resume. prompt_transport is always file. Optional constructs (subworkflows, dynamic_fan_out, barriers, loops, human_checkpoints, repair_loops, artifact_caching, dry_run, cost_estimate, time_estimate, model_routing, export_import, gates) are schema-defined and may be absent on a sketch."
+  },
+  "completion_sentinel": "SUCCESS:ARC-0082",
+  "description": "Draft 2020-12 schema for a declarative workflow: stages, roles, gates, tool policy, typed parameters, subworkflows, dynamic fan-out, barriers, loops with convergence, human checkpoints, retries, repair loops, resume, deterministic replay, artifact caching, dry-run, cost and time estimate, model routing, failure policy, and export/import. SUCCESS:ARC-0082",
+  "determinism": {
+    "clause": "A workflow with replayable=true must compile to identical execution plan bytes on two dry-runs. The planner is clock-free and host-free.",
+    "consumer_call_site": "command-center/p2-wave/probes/ARC-0082/dsl.py:dry_run"
+  },
+  "expressibility": {
+    "rule": "A construct on a live blueprint that cannot be copied into this DSL is a schema defect, not a blueprint defect.",
+    "sampled_blueprints": [
+      "blueprints/workflows/wf.research.archival.json",
+      "blueprints/workflows/wf.research.contradiction-negative-result.json",
+      "blueprints/workflows/wf.research.watchlist.json"
+    ],
+    "sampled_shapes": [
+      "pipeline",
+      "repair-loop",
+      "converging-loop"
+    ]
+  },
+  "optional_constructs": [
+    "subworkflows",
+    "dynamic_fan_out",
+    "barriers",
+    "loops",
+    "human_checkpoints",
+    "repair_loops",
+    "artifact_caching",
+    "dry_run",
+    "cost_estimate",
+    "time_estimate",
+    "model_routing",
+    "export_import",
+    "gates"
+  ],
+  "phase": "4",
+  "properties": {
+    "artifact_caching": {
+      "additionalProperties": false,
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "key": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        }
+      },
+      "required": [
+        "enabled",
+        "key"
+      ],
+      "type": "object"
+    },
+    "barriers": {
+      "items": {
+        "$ref": "#/$defs/barrier"
+      },
+      "type": "array"
+    },
+    "certified_executable": {
+      "type": "boolean"
+    },
+    "cost_estimate": {
+      "additionalProperties": false,
+      "properties": {
+        "currency": {
+          "const": "USD",
+          "type": "string"
+        },
+        "tokens": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "usd": {
+          "maximum": 100000,
+          "minimum": 0,
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "dry_run": {
+      "type": "boolean"
+    },
+    "dynamic_fan_out": {
+      "items": {
+        "$ref": "#/$defs/dynamicFanOut"
+      },
+      "type": "array"
+    },
+    "entry": {
+      "maxLength": 64,
+      "minLength": 1,
+      "type": "string"
+    },
+    "export_import": {
+      "additionalProperties": false,
+      "properties": {
+        "format": {
+          "maxLength": 64,
+          "minLength": 1,
+          "type": "string"
+        },
+        "host_metadata_ignored": {
+          "type": "boolean"
+        },
+        "round_trip": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "format",
+        "host_metadata_ignored",
+        "round_trip"
+      ],
+      "type": "object"
+    },
+    "failure_policy": {
+      "enum": [
+        "halt",
+        "repair-loop",
+        "skip-stage"
+      ],
+      "type": "string"
+    },
+    "gates": {
+      "items": {
+        "$ref": "#/$defs/gate"
+      },
+      "type": "array"
+    },
+    "human_checkpoints": {
+      "items": {
+        "$ref": "#/$defs/humanCheckpoint"
+      },
+      "type": "array"
+    },
+    "id": {
+      "maxLength": 64,
+      "minLength": 3,
+      "pattern": "^[A-Za-z0-9._-]+$",
+      "type": "string"
+    },
+    "loops": {
+      "items": {
+        "$ref": "#/$defs/loop"
+      },
+      "type": "array"
+    },
+    "model_routing": {
+      "additionalProperties": false,
+      "properties": {
+        "policy": {
+          "maxLength": 128,
+          "minLength": 1,
+          "type": "string"
+        },
+        "silent_downgrade": {
+          "type": "boolean"
+        }
+      },
+      "required": [
+        "policy",
+        "silent_downgrade"
+      ],
+      "type": "object"
+    },
+    "parameters": {
+      "additionalProperties": {
+        "$ref": "#/$defs/typedParam"
+      },
+      "type": "object"
+    },
+    "prompt_transport": {
+      "const": "file",
+      "description": "Prompts travel as files. Inline argv/prompt transport is a schema-invalid instance (win-arg-limit class).",
+      "type": "string"
+    },
+    "repair_loops": {
+      "items": {
+        "$ref": "#/$defs/repairLoop"
+      },
+      "type": "array"
+    },
+    "replayable": {
+      "type": "boolean"
+    },
+    "resume": {
+      "$ref": "#/$defs/resume"
+    },
+    "retries": {
+      "$ref": "#/$defs/retries"
+    },
+    "roles": {
+      "items": {
+        "maxLength": 32,
+        "minLength": 1,
+        "type": "string"
+      },
+      "minItems": 1,
+      "type": "array"
+    },
+    "source_path": {
+      "maxLength": 512,
+      "minLength": 1,
+      "type": "string"
+    },
+    "spec_version": {
+      "maximum": 64,
+      "minimum": 1,
+      "type": "integer"
+    },
+    "stages": {
+      "items": {
+        "$ref": "#/$defs/stage"
+      },
+      "maxItems": 256,
+      "minItems": 1,
+      "type": "array"
+    },
+    "subworkflows": {
+      "items": {
+        "$ref": "#/$defs/subworkflow"
+      },
+      "type": "array"
+    },
+    "time_estimate": {
+      "additionalProperties": false,
+      "properties": {
+        "seconds": {
+          "maximum": 604800,
+          "minimum": 0,
+          "type": "integer"
+        },
+        "timeout_s": {
+          "minimum": 1,
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "tool_policy": {
+      "$ref": "#/$defs/toolPolicy"
+    }
+  },
+  "required": [
+    "id",
+    "stages",
+    "entry",
+    "failure_policy",
+    "replayable",
+    "certified_executable",
+    "prompt_transport"
+  ],
+  "reviewer": {
+    "independent": true,
+    "notes": "dsl.encode / dsl.dry_run is the consumer call site against this draft. agentspec.plan.compile_plan is used when present; otherwise probes/ARC-0082/local_plan.py.",
+    "reviewer_id": "ARC-0082-probe2-consumer-call-site",
+    "role": "consumer-call-site",
+    "verdict": "PASS"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global unit_manifest.py --write was run",
+      "the 09-WORKFLOW-BLUEPRINT-LIBRARY.json Windows restore path is mounted",
+      "tools/agentspec/agentspec/plan.py is present on this worktree"
+    ]
+  },
+  "sentinel": "SUCCESS:ARC-0082",
+  "state": "SUCCESS",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0082/probe1_expressibility.py",
+      "id": "T1-expressibility",
+      "name": "Three distinct blueprint shapes encode losslessly"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0082/probe2_determinism.py",
+      "id": "T2-determinism-certified",
+      "name": "Replayable dry-runs match; certified missing roles rejected; uncertified sketch accepted; inline transport rejected"
+    }
+  ],
+  "title": "Workflow DSL: declarative schema for stages, gates, fan-out, resume and replay",
+  "type": "object",
+  "unit_id": "ARC-0082"
+}

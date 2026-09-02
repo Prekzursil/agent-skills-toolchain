@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+"""Fixture Git/MSYS bash: CRLF-tolerant, distinct path from System32 bash."""
+from __future__ import annotations
+
+import os
+import shutil
+import subprocess
+import sys
+import tempfile
+from pathlib import Path
+
+
+def real_bash() -> str:
+    env = os.environ.get("IMP0461_REAL_BASH", "").strip()
+    if env:
+        return env
+    found = shutil.which("bash")
+    if found:
+        return found
+    for cand in ("/bin/bash", "/usr/bin/bash"):
+        if os.path.isfile(cand):
+            return cand
+    raise SystemExit("IMP0461 fixture: no real bash to wrap")
+
+
+def main(argv: list[str]) -> int:
+    here = Path(__file__).resolve()
+    if argv[:1] == ["--imp0461-identity"]:
+        sys.stdout.write(f"family=msys\npath={here}\n")
+        return 0
+    real = real_bash()
+    if argv and not str(argv[0]).startswith("-") and os.path.isfile(argv[0]):
+        data = Path(argv[0]).read_bytes().replace(b"\r\n", b"\n").replace(b"\r", b"\n")
+        fd, tmp = tempfile.mkstemp(prefix="imp0461-msys-", suffix=".sh")
+        try:
+            os.write(fd, data)
+            os.close(fd)
+            os.chmod(tmp, 0o700)
+            return subprocess.call([real, tmp, *argv[1:]])
+        finally:
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+    return subprocess.call([real, *argv])
+
+
+if __name__ == "__main__":
+    raise SystemExit(main(sys.argv[1:]))

@@ -1,0 +1,52 @@
+docs(rule-audit): independent VERIFY lane -- every DoD item re-executed, one overclaim found
+
+Re-measured the RULERESEARCH build lane by executing its claims rather than reading them.
+Every quoted command re-run, every claimed file Test-Path'd, both commits scope-audited.
+
+REPRODUCES EXACTLY
+- rule_audit.py re-run: 88/78/88 files, always-on 8/4/8, 17,107/1,201/15,141 always-on tok,
+  repo-vs-live content_differs=29, repo-vs-agent-self load_semantics_differs=3. Identical.
+- Token arithmetic recomputed from a fresh scan: floor 23,050 = 15,141 + 2,422 + 2,707 + 2,780;
+  working total 31,570 = floor + the 8,520 of lazily-injected rules; 8,194/15,141 = 54.1%.
+- The +38 tok cost of the single-signal edit, measured from the committed blobs: 3,634 -> 3,672.
+- 167 rule tests pass; both ruff gates clean; lazy_predict 16/16 + 1/1.
+
+INDEPENDENTLY CONFIRMED IN A THIRD SESSION (the harness, not the builder's predictor)
+My own turn-0 prompt carried exactly the 8 no-frontmatter live rules and no others, 8/8 with
+zero false positives across 88 files. owner-ops-authorization.md carries the broadest possible
+paths:["**/*"] and was ABSENT at turn 0, arriving only after a .py Read -- the discriminating
+control that separates "frontmatter gates injection" from "glob breadth gates it", and direct
+evidence for the inverse-intuition claim. After that Read the harness injected exactly the 16
+rules hardcoded as OBSERVED_INJECTED and withheld common/hooks.md.
+
+CONTRADICTIONS RE-VERIFIED AT SOURCE, NOT ACCEPTED FROM THE DIGEST
+sync-from-live.ps1:477 omits $Report from the write gate, so the always-on live rule advertising
+"-Report json to see drift" teaches a writing command as read-only. agent-self/config/AGENTS.md
+is missing the live section 9 credential bullet entirely and inverts 9b -- confirmed by a
+line-for-line diff against live; the force-copy is bootstrap.ps1:45, whose comment is :44.
+sync-rules.ps1:14-15 claims three files are unversioned that are present in rules/common, and
+:57 has no -Recurse. cross-vendor-dispatch.md:9 collides with AGENTS.md:63. context-budget is
+absent from 5/5 skill roots with a positive control.
+
+MY OWN INDEPENDENT SWEEP FOUND NO TENTH CONTRADICTION
+_verify_pathrefs.py checks 21 path references across the 8 always-on live rules with a
+both-states control. Two unresolvable, both refuted: codex-rescue.md exists in the plugin cache
+(my root set was too narrow), and check_no_regression.py is a war-story mention, not a
+dependency -- use-vs-mention. Evidence for the builder's "floor, not a census" scoping.
+
+THE ONE OVERCLAIM: "20 detector controls" is 17
+An AST walk of self_test() finds 17 check() call sites and the runtime prints 17 PASS lines; the
+report's own enumeration sums to 18, so no method yields 20. The report also quotes the tool as
+printing "SUCCESS: all controls passed (20)" -- it prints "SUCCESS:rule_audit-self-test all
+controls passed". rule_audit.py claims no count anywhere: the tool is honest, the prose is not.
+The third fail-closed behaviour counted as a control IS implemented and does fire --
+_verify_failclosed.py supplies the missing both-states test (broken -> 1, healthy -> 0) -- it is
+simply not exercised by --self-test.
+
+The ruff-format trap reproduced on ME: my own two probes passed ruff check and failed
+ruff format --check on first write, the same defect the build lane documented. Formatted, then
+proved semantics-preserving.
+
+No real defects. No commit swept a foreign path (detector controlled against a sibling commit
+that correctly reports one). The full-suite fsdecode failure is pre-existing by three
+independent signals: platform encoding, zero references to this lane's paths, and ci/ untouched.

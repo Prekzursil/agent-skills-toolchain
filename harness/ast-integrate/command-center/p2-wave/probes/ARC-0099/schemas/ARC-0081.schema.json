@@ -1,0 +1,95 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/ARC-0099/schemas/ARC-0081.schema.json",
+  "title": "Permission model (ARC-0081 catalog-derived stand-in)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "vocabulary",
+    "evaluation_site",
+    "least_privilege",
+    "rules"
+  ],
+  "properties": {
+    "vocabulary": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "string",
+        "enum": [
+          "tool_call",
+          "file_path",
+          "network_egress",
+          "subprocess",
+          "credential_read"
+        ]
+      }
+    },
+    "evaluation_site": {
+      "type": "string",
+      "minLength": 3
+    },
+    "least_privilege": {
+      "type": "string",
+      "minLength": 8
+    },
+    "rules": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "effect",
+          "capability",
+          "resource"
+        ],
+        "properties": {
+          "effect": {
+            "type": "string",
+            "enum": [
+              "grant",
+              "deny"
+            ]
+          },
+          "capability": {
+            "type": "string",
+            "enum": [
+              "tool_call",
+              "file_path",
+              "network_egress",
+              "subprocess",
+              "credential_read"
+            ]
+          },
+          "resource": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "if": {
+          "properties": {
+            "effect": {
+              "const": "grant"
+            },
+            "capability": {
+              "const": "credential_read"
+            }
+          },
+          "required": [
+            "effect",
+            "capability"
+          ]
+        },
+        "then": {
+          "properties": {
+            "resource": {
+              "type": "string",
+              "pattern": "^[^*]+$"
+            }
+          }
+        }
+      }
+    }
+  }
+}

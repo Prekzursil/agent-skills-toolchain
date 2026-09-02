@@ -1,0 +1,226 @@
+{
+  "artifacts": [
+    {
+      "bytes": 8367,
+      "exists": true,
+      "path": "tools/agentspec/agentspec/human_checkpoint.py",
+      "role": "implementation",
+      "sha256": "dedc251fd7bc04aec22d461dd1cbe9a10251b5f8653f2630cdba63cffb4f0cc4"
+    },
+    {
+      "bytes": 656,
+      "exists": true,
+      "path": "tools/agentspec/agentspec/checkpoint_node.py",
+      "role": "implementation",
+      "sha256": "cfb42717baf727771b6241cca4eb5eaac4beba0c4292a7e76b32b04963f461a8"
+    },
+    {
+      "bytes": 1532,
+      "exists": true,
+      "path": "tools/agentspec/agentspec/owner_packet.py",
+      "role": "implementation",
+      "sha256": "6588a7416425bfbc6861d77bf4816d7044dca7f5a9bea901e66a6353c45982bd"
+    },
+    {
+      "bytes": 7429,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0218/probe1_process_table.py",
+      "role": "probe",
+      "sha256": "3ae2ab3e6ad38e196de5a2e18702812f5fbac032669b21d50ce2930c69b5add9"
+    },
+    {
+      "bytes": 9612,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0218/probe2_question_payload.py",
+      "role": "probe",
+      "sha256": "4f5820f0a4c5b90820720f48175b7a9fa8598f15f88b74bdd36578250be44aa7"
+    },
+    {
+      "bytes": 1065,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0218/proc_count.py",
+      "role": "probe",
+      "sha256": "ea2a9d1b3ecdf6c94e868a410ea7bd9a3f5a0afd1201038d44601ea288f71d1d"
+    },
+    {
+      "bytes": 446,
+      "exists": true,
+      "path": "command-center/p2-wave/probes/IMP-0218/busywait_control.py",
+      "role": "probe",
+      "sha256": "14e7bfd99ea91c8565c45bf0e17c116f74fcf743f033a9463aa7aa3f3abc161b"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:IMP-0218",
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/IMP-0218.json",
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "executed": true,
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0218/probe1_process_table.py",
+      "claim": "Process count matching the executor marker returns to the pre-checkpoint baseline after execute_checkpoint returns (baseline=0, after=0, exit=0). AST busy-wait surface on the executor is empty ([]).",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0218/probe1_process_table.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "baseline=0 after_checkpoint=0 fired_on_bad=True silent_after_kill=True busywait_surface=[]\nSUCCESS:IMP-0218-probe1 no resident process after checkpoint",
+          "role": "source"
+        },
+        {
+          "command": "read probe1-process-table.raw.json",
+          "method": "file-read",
+          "raw_output": "{\"after_checkpoint_count\": 0, \"after_checkpoint_pids\": [], \"baseline_good\": 0, \"busywait_control\": {\"after_kill_count\": 0, \"baseline_bad\": 0, \"during_count\": 1, \"fired_on_bad\": true, \"silent_after_kill\": true}, \"envelope_status\": \"PAUSED_FOR_OWNER\", \"executor_busywait_surface\": [], \"executor_exit_code\": 0, \"hang\": false, \"pass\": true, \"pause_record_exists\": true, \"probe\": \"probe1-process-table\", \"resident_waiter\": false, \"unit_id\": \"IMP-0218\"}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/IMP-0218/probe2_question_payload.py",
+      "claim": "The emitted owner packet has foundation_question_count=1, recommendation/tradeoff/default/durable_record all non-empty, durable record exists on disk (1046 B), resume re_dispatch_count=0 for completed units ['IMP-0131', 'IMP-0129'].",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0218/probe2_question_payload.py",
+          "exit_code": 0,
+          "method": "command",
+          "raw_output": "qcount=1 rec=True tradeoff=True default='ratify' durable=True re_dispatch=0 two_q_fired=True missing_rec_fired=True\nSUCCESS:IMP-0218-probe2 question payload recommendation/tradeoff/default/durable",
+          "role": "source"
+        },
+        {
+          "command": "read probe2-question-payload.raw.json",
+          "method": "file-read",
+          "raw_output": "{\"answer\": \"override\", \"default_resume_answer\": \"ratify\", \"durable_bytes\": 1046, \"durable_record_exists\": true, \"field_errors\": [], \"fields\": {\"default\": \"ratify\", \"durable_record\": \"/tmp/imp-0218-p2-_z__xi1k/pauses/hcp__0NMIzq2ZQBTndGt0dsRpQ.json\", \"question\": \"Ratify architecture A2, or override it?\", \"recommendation\": \"Ratify A2; downstream IMP units are staged against it.\", \"tradeoff\": \"Override is reversible but freezes every unit that depends on ratification.\"}, \"foundation_question_count\": 1, \"negative_control\": {\"good_packet_silent\": true, \"missing_recommendation_errors\": [\"missing_or_empty:recommendation\"], \"missing_recommendation_fired\": true, \"two_question_errors\": [\"foundation_question_count=2 expected=1\", \"missing_or_empty:question\"], \"two_question_fired\": true}, \"pass\": true, \"probe\": \"probe2-question-payload\", \"resume_re_dispatch_count\": 0, \"skipped_completed\": [\"IMP-0131\", \"IMP-0129\"], \"unit_id\": \"IMP-0218\"}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "id": "IMP-0218",
+  "implementation": {
+    "busy_wait": false,
+    "bytes": {
+      "checkpoint_node.py": 656,
+      "human_checkpoint.py": 8367,
+      "owner_packet.py": 1532
+    },
+    "executor": "tools/agentspec/agentspec/human_checkpoint.py",
+    "node": "tools/agentspec/agentspec/checkpoint_node.py",
+    "owner_packet": "tools/agentspec/agentspec/owner_packet.py",
+    "resume": "reinvoke with pause_token and answer or default_if_unanswered",
+    "sha256": {
+      "checkpoint_node.py": "cfb42717baf727771b6241cca4eb5eaac4beba0c4292a7e76b32b04963f461a8",
+      "human_checkpoint.py": "dedc251fd7bc04aec22d461dd1cbe9a10251b5f8653f2630cdba63cffb4f0cc4",
+      "owner_packet.py": "6588a7416425bfbc6861d77bf4816d7044dca7f5a9bea901e66a6353c45982bd"
+    }
+  },
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0218/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  },
+  "min_bytes_threshold": 128,
+  "named_probes": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0218/probe1_process_table.py",
+      "exit_code": 0,
+      "id": "probe1",
+      "raw_output": "baseline=0 after_checkpoint=0 fired_on_bad=True silent_after_kill=True busywait_surface=[]\nSUCCESS:IMP-0218-probe1 no resident process after checkpoint"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0218/probe2_question_payload.py",
+      "exit_code": 0,
+      "id": "probe2",
+      "raw_output": "qcount=1 rec=True tradeoff=True default='ratify' durable=True re_dispatch=0 two_q_fired=True missing_rec_fired=True\nSUCCESS:IMP-0218-probe2 question payload recommendation/tradeoff/default/durable"
+    }
+  ],
+  "negative_controls": [
+    {
+      "bad_state_output": "{\"after_kill_count\": 0, \"baseline_bad\": 0, \"during_count\": 1, \"fired_on_bad\": true, \"silent_after_kill\": true}",
+      "description": "A resident busy-wait control must appear in /proc cmdline counts while alive and disappear after kill; the real executor must not appear after it returns.",
+      "fired_on_bad_state": true,
+      "good_state_output": "after_checkpoint_count=0 exit=0",
+      "id": "IMP-0218-C1-busywait-process-table",
+      "kind": "both-states",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "{\"good_packet_silent\": true, \"missing_recommendation_errors\": [\"missing_or_empty:recommendation\"], \"missing_recommendation_fired\": true, \"two_question_errors\": [\"foundation_question_count=2 expected=1\", \"missing_or_empty:question\"], \"two_question_fired\": true}",
+      "description": "Two-question packets and recommendation-less packets must fail check_owner_packet; a one-question packet with all fields must be silent.",
+      "fired_on_bad_state": true,
+      "good_state_output": "{\"default\": \"ratify\", \"durable_record\": \"/tmp/imp-0218-p2-_z__xi1k/pauses/hcp__0NMIzq2ZQBTndGt0dsRpQ.json\", \"question\": \"Ratify architecture A2, or override it?\", \"recommendation\": \"Ratify A2; downstream IMP units are staged against it.\", \"tradeoff\": \"Override is reversible but freezes every unit that depends on ratification.\"}",
+      "id": "IMP-0218-C2-owner-packet-checker",
+      "kind": "malformed-input",
+      "silent_on_good_state": true
+    }
+  ],
+  "notes": "G-1 for IMP-0218: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write.",
+  "output_path": "command-center/receipts/IMP-0218.json",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "question_or_target": "Target: on reaching a checkpoint, persist state, emit a terminal envelope with the exact question, and exit - then resume on answer. Acceptance: no process remains resident waiting, measured by process count before and after; and the question presented is ONE foundation-level question with a recommendation and a stated default.",
+  "report": {
+    "busywait_fired_on_bad": true,
+    "foundation_question_count": 1,
+    "kind": "human-checkpoint-executor",
+    "process_count_after_checkpoint": 0,
+    "resume_re_dispatch_count": 0
+  },
+  "residual_unknowns": [
+    {
+      "claim": "_USER-PROMPTS.md:11364-11370 is not on this worktree. Packet fields are reconstructed from catalog citations of that span (one foundation question, recommendation, strongest tradeoff, default if unanswered, durable record).",
+      "settling_experiment": "When _USER-PROMPTS.md is present, re-run check_owner_packet against the literal 11364-11370 bullets.",
+      "verdict": "DISCLOSED"
+    },
+    {
+      "claim": "IMP-0131 (frozen HumanCheckpoint node in agentspec.spec) is not delivered on this worktree. This unit ships the node dataclass the executor consumes plus the executor; it does not claim the full workflow-spec integration of IMP-0131.",
+      "settling_experiment": "Deliver IMP-0131 and import HumanCheckpoint from spec.py.",
+      "verdict": "DISCLOSED"
+    }
+  ],
+  "reviewer": {
+    "fresh_context": true,
+    "independent": true,
+    "notes": "Mechanical adversarial check of the owner-interaction packet against the catalog field list. Starts from probe2 assertions, not from the executor's self-description. A second human reviewer was not dispatched in this G-1 lane.",
+    "reviewer_id": "IMP-0218-probe2-owner-packet-fields",
+    "verdict": "PASS"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:IMP-0218",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json IMP-0218; owner-interaction contract reconstructed from catalog citations of _USER-PROMPTS.md:11364-11370 (file absent on this worktree)",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "assertions": 4,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0218/probe1_process_table.py",
+      "id": "no-resident-process-after-checkpoint",
+      "output_tail": [
+        "baseline=0 after_checkpoint=0 fired_on_bad=True silent_after_kill=True busywait_surface=[]",
+        "SUCCESS:IMP-0218-probe1 no resident process after checkpoint"
+      ],
+      "result": "PASS"
+    },
+    {
+      "assertions": 6,
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0218/probe2_question_payload.py",
+      "id": "question-payload-recommendation-tradeoff-default-durable",
+      "output_tail": [
+        "qcount=1 rec=True tradeoff=True default='ratify' durable=True re_dispatch=0 two_q_fired=True missing_rec_fired=True",
+        "SUCCESS:IMP-0218-probe2 question payload recommendation/tradeoff/default/durable"
+      ],
+      "result": "PASS"
+    }
+  ],
+  "timestamps": {
+    "ended_at": "2026-08-25T01:02:45Z"
+  },
+  "title": "Implement the HumanCheckpoint executor as an owner gate that never busy-waits",
+  "unit_id": "IMP-0218"
+}

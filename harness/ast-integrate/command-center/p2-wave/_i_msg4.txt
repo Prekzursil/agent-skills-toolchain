@@ -1,0 +1,44 @@
+docs(p2): the INTEGRATE dossier -- what got wired, its red-proof, and the residual
+
+Closes the P2 lane. What "integrated" concretely means here, and the four things shipped:
+
+  1. A CI GATE. tools/measure-guard/unitgate.py, invoked by a new `gate-p2-delivery` step in
+     quality.yml with jsonschema==4.25.1 pinned to match test-platform. Its own step rather than
+     folded into gate-tests-coverage measure-guard, because that step's comment honestly says it
+     "keeps to what it can honestly install" and records a real diagnosed failure from leaning on
+     a sibling's transitive dependency.
+  2. ENROLLED IN THE REGISTER. .quality/charter.yml carries a p2-delivery entry; charter_check.sh
+     reports 7 gates consistent.
+  3. A SELF-DEFENDING SEAM. test_unitgate.py asserts the invocation from the COMMITTED quality.yml
+     blob while running under a DIFFERENT CI step. A gate cannot defend its own presence --
+     deleting its step deletes the complainer -- so this is the only arrangement where removing the
+     wiring still turns something red. Both halves tested.
+  4. THE SOURCE FIX, so the thing being wired cannot go dark and stay green.
+
+THE GAP, executable-proven: `grep -rn "ready_units" .github/workflows/ tools/` returned 0 hits. The
+predicate three rounds of build/audit/refutation hardened ran only when a human typed the command.
+
+RED-PROOF (_i2_redproof.py, driving the REAL binary): GREEN on the unmodified tree twice, RED on
+all four known-broken states -- predicate regression with 4b reverted, dark contract checker, a
+forged completion in the catalog, and the CI wiring removed. Attribution is checked, not just
+redness: M1 fires on the exact defect the adversarial verifier refuted the build lane over.
+
+HONEST RESIDUAL, inline in the dossier rather than in a trailing section:
+  * 4 committed artifacts are rejected by their own declared contract (ADV-0007/0022/0040/0041) --
+    REPORTED not gated, because they sit in a directory this lane may not touch and a live sibling
+    wave is still writing; settling experiment named.
+  * ADV-0040 exposes a blind spot in my own gate: worktree and blob differ in REASON but agree in
+    BOOLEAN, and the divergence check compares the boolean.
+  * one overclaim of my own, corrected rather than deleted (WFA-0001 was not a surviving mutation;
+    my mutation was not a corruption).
+  * NOT-CHECKED: the gate has never run on a real GitHub runner -- Linux/LF behaviour is inferred
+    from the blob-parity check, not observed; tools/measure-guard has no registered suite floor, so
+    the 21 new tests are ungated against collapse, and adding one over a directory siblings are
+    extending is the nuisance-gate shape suitefloor's own casualty note warns about.
+  * the lane did NOT end contested -- but no adversarial reviewer read this integration, and I am
+    the one saying so.
+
+Also records the git hazard that changed the facts: a sibling's f087a6f6 swept this lane's
+uncommitted quality.yml edit, which briefly left main invoking a script main did not contain, and
+made a wiring test pass before anything had been committed. Caught only because the result was
+self-contradicting.

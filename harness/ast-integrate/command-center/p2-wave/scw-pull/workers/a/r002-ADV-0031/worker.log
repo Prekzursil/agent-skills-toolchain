@@ -1,0 +1,21 @@
+I'll start from the existing ADV-0031 probe tree and the claim-verify-gate, then resume whatever is already built instead of scrapping it.The probe tree already exists. Next I’ll read the handoff, current return artifacts, and the measurement contract so I can resume from what’s there.The return file already claims SUCCESS; I’ll re-run the live probes and the delivery measure instead of trusting that claim.I’ll inspect the catalog, schema, packer, and current probe files, then re-run the live measure.I’ll validate the current artifact against the schema and inspect `generic_report` so we know whether packing or probes need a live re-run.I’ll run schema validation on the current artifact, then re-run the named probes so the measure sees live exit-0 transcripts.Probe 1 is still running the 231-cell matrix; I’ll wait on that before packing or measuring.Both named probes exited 0. I’ll pack the catalog artifact and per-unit manifest from this live matrix, then measure immediately while the cache is still warm.Measure printed `SUCCESS:delivered`. I’ll lock the return artifact to this run’s hashes and probe exits.The measure is green. I’ll write `SUBAGENT-RETURN.json` from this live run; the per-unit manifest already matches the packed artifact.**SUCCESS:delivered** ADV-0031 `predicate=delivered state=SUCCESS probes=2 raws=8 notes=probe1_canary.py:0,probe2_ostable.py:0`
+
+G-1 holds for this unit on `/opt/p2/ast-integrate`. Existing probes were resumed, not rebuilt.
+
+Live named probes (231 runs, 11 adapters × 21 payloads, wall 93.81s, warmup decoy captured at 0.021s):
+
+- `probe1_canary.py` exit 0 — 21 canary fires, benign control PASS
+- `probe2_ostable.py` exit 0 — 210 captured cells, 67 argv divergences, 501 watcher records
+
+Science (honest, not flipped):
+
+| Adapters | Verdict |
+|---|---|
+| A3, A3B, A4, A7, A9B | **CONFIRMED** execution injection (canary file created) |
+| A1, A2, A5, A8 | **REFUTED** (argv-array safe) |
+| A9 quoted IEX | **PARTIAL** (argv divergence, no canary) |
+| A6 arithmetic | **NOT-CHECKED** (no sleeper; canary silent under `set -u`) |
+
+Catalog artifact `command-center/adversarial/ADV-0031-workflow-parameter-command-injection.json`: `state=SUCCESS`, `report.kind=injection-corpus-result`, schema 0 errors, 1 394 729 B, LF sha256 `154780ed2f64714b18ff5a4a13410fcb9f501ef638a437172a5ecfbf9b2042cf`. Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches that path+digest.
+
+Did not git-mutate, did not run global `unit_manifest.py --write`, did not relaunch finish-everything-close / p2-cloud-ok-deliver. Cloud `ok=true` is not this delivery.

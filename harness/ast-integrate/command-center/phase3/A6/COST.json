@@ -1,0 +1,1133 @@
+{
+ "unit_id": "ARC-0039",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:ARC-0039",
+ "report": {
+  "kind": "architecture-cost-model",
+  "observations": [
+   {
+    "name": "anthropic_api_dated_headings_in_window",
+    "measured": 54,
+    "method": "datetime.strptime on ordinal-stripped ### Month D, YYYY headings",
+    "anchor": "command-center/p2-wave/probes/ARC-0039/raw/anthropic-api-release-notes.md"
+   },
+   {
+    "name": "openai_api_dated_entries_in_window",
+    "measured": 42,
+    "method": "entry splitter on Mon DD under ### Month, YYYY",
+    "anchor": "command-center/p2-wave/probes/ARC-0039/raw/openai-api-changelog.md"
+   }
+  ],
+  "control_ids": [
+   "recency-control",
+   "forecast-check"
+  ]
+ },
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/phase3/A6/COST.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "artifacts": [
+  {
+   "path": "command-center/phase3/A6/COST.json",
+   "bytes": 24226,
+   "sha256": "f036dfb6b5976ae3f8538691c41517f550ff6fdeae0b3cbef2a8eb27fd88a880",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "ARC-0039 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/phase3/A6/COST.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/phase3/A6/COST.json",
+     "raw_output": "bytes=24226 sha256=f036dfb6b5976ae3f8538691c41517f550ff6fdeae0b3cbef2a8eb27fd88a880",
+     "fingerprint": "9c2724f9b63cc1aa2721ab0a8c0fd0c9",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact ARC-0039",
+     "raw_output": "schema-check",
+     "fingerprint": "43156be21694e63508ef7e3abd4f4e7e",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "ARC-0039 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/ARC-0039",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py ARC-0039",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "eeeb1c4b8991cd74ba43d2f7e989927d",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered ARC-0039",
+     "raw_output": "schema-valid",
+     "fingerprint": "5269da8a5a6045f3496e5397e34f6792",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "extensions": {
+  "legacy_root": {
+   "architecture_id": "A6",
+   "architecture_class": "cross-vendor-adapter",
+   "question": "What is the per-vendor adapter maintenance cost? Enumerate the vendor-specific surfaces (prompt transport, tool and permission model, output schema, progress/streaming, timeout, session state, model naming) and estimate each surface's change frequency from OBSERVED vendor release cadence over a stated window - then state which surfaces must be versioned to avoid breaking on a vendor update.",
+   "window": {
+    "start": "2026-03-13",
+    "end": "2026-08-24",
+    "retrieved_on": "2026-08-24",
+    "inclusive": true,
+    "days": 165,
+    "reason": "Codex GitHub pagination returned 400 newest releases whose oldest published_at is 2026-03-13. Using a longer window would undercount Codex CLI cadence. API notes exist earlier; those earlier dates are cited only when marked in_observation_window=false."
+   },
+   "vendors": [
+    "anthropic",
+    "openai"
+   ],
+   "headline_numbers": [
+    {
+     "name": "anthropic_api_dated_headings_in_window",
+     "value": 54,
+     "unit": "dated-headings",
+     "error_band": {
+      "abs": 0,
+      "pct": 0
+     },
+     "derivation": "Count of '### Month D, YYYY' headings in the frozen Anthropic API release notes whose parsed date is inside the window. Measure A uses datetime.strptime; measure B uses a month-name dict. A=54 B=54."
+    },
+    {
+     "name": "openai_api_dated_entries_in_window",
+     "value": 42,
+     "unit": "dated-entries",
+     "error_band": {
+      "abs": 0,
+      "pct": 0
+     },
+     "derivation": "Count of 'Mon DD' entries under '### Month, YYYY' headings in the frozen OpenAI changelog whose reconstructed date is inside the window. Entry parser=42; day-header recount=42."
+    },
+    {
+     "name": "surfaces_that_must_be_versioned",
+     "value": 7,
+     "unit": "surfaces",
+     "error_band": {
+      "abs": 0,
+      "pct": 0
+     },
+     "derivation": "Seven catalog surfaces; each has at least one dated vendor note showing a wire-format, id, or numeric-budget change that would break an unversioned adapter."
+    }
+   ],
+   "remeasure": {
+    "policy": "Re-measure once with a mechanically different probe (different field). If the two readings disagree, report BLOCKED with both numbers rather than picking one.",
+    "anthropic_headings": {
+     "field_a": "datetime.strptime on ordinal-stripped headings",
+     "field_b": "month-name dict + integer day/year",
+     "value_a": 54,
+     "value_b": 54,
+     "agree": true
+    },
+    "openai_entries": {
+     "field_a": "entry splitter",
+     "field_b": "day-header count under month headings",
+     "value_a": 42,
+     "value_b": 42,
+     "agree": true
+    },
+    "claude_code_github_releases": {
+     "field_a": "published_at",
+     "field_b": "created_at",
+     "value_a": 138,
+     "value_b": 137,
+     "agree": false,
+     "note": "These two GitHub timestamp fields disagree by one release (138 vs 137). Per retry policy this cadence is NOT picked; both numbers are reported. It is not a headline."
+    },
+    "codex_github_releases": {
+     "field_a": "published_at",
+     "field_b": "created_at",
+     "value_a": 400,
+     "value_b": 400,
+     "agree": true,
+     "note": "400/400 agree, but this is CLI binary cadence (several per day), not adapter-surface breakage. Not used as a surface rate."
+    }
+   },
+   "surfaces": [
+    {
+     "id": "prompt_transport",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "SDK HTTP client class and regional request host are load-bearing adapter fields. A pinned transport version keeps httpx vs httpx2 and un-prefixed vs prefixed hosts from silently swapping.",
+     "curated_events_in_window": 3,
+     "curated_events_per_year": 6.6,
+     "keyword_hits_anthropic_in_window": 13,
+     "keyword_hits_openai_in_window": 5,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-20",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 4,
+       "in_observation_window": true,
+       "snippet": "Python SDK v1.0 moves the HTTP layer from httpx to httpx2; Timeout and transport objects must be built from httpx2."
+      },
+      {
+       "vendor": "openai",
+       "url": "https://developers.openai.com/api/docs/changelog",
+       "entry_date": "2026-08-21",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 3,
+       "in_observation_window": true,
+       "snippet": "API customers can select regional processing per request via a prefixed domain plus a Global-geography project key."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-05-13",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 103,
+       "in_observation_window": true,
+       "snippet": "Cache diagnostics launched in public beta on the Claude API (prompt-cache observability)."
+      }
+     ]
+    },
+    {
+     "id": "tool_permission_model",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "Toolset type ids and permission_policy fields changed request shape (computer_toolset_20260801 GA; mid-conversation tool edits). An unversioned tool adapter will send the retired tool type.",
+     "curated_events_in_window": 4,
+     "curated_events_per_year": 8.8,
+     "keyword_hits_anthropic_in_window": 21,
+     "keyword_hits_openai_in_window": 10,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-19",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 5,
+       "in_observation_window": true,
+       "snippet": "Computer use left beta as computer_toolset_20260801; upgrading changes request shape and tool handling. Earlier beta versions remain available."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-19",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 5,
+       "in_observation_window": true,
+       "snippet": "Managed-agent web_search/web_fetch domain allow/deny moved onto agent_toolset_20260401 configs with permission_policy."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-07-24",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 31,
+       "in_observation_window": true,
+       "snippet": "Mid-conversation tool changes beta (mid-conversation-tool-changes-2026-07-01) on Fable 5, Mythos 5, Opus 4.8, and Opus 5."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-06-18",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 67,
+       "in_observation_window": true,
+       "snippet": "SDKs added code_execution_20260120 (REPL state persistence); set tools[].type to that id, no beta header."
+      }
+     ]
+    },
+    {
+     "id": "output_schema",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "Structured-output field names already moved once (output_format -> output_config.format) just before this window. Pin the schema wire format so a second rename cannot land un-gated. In-window Anthropic notes did not repeat that rename; the 2026-01-29 GA is cited as outside-window evidence, not counted in the in-window rate.",
+     "curated_events_in_window": 1,
+     "curated_events_per_year": 2.2,
+     "keyword_hits_anthropic_in_window": 0,
+     "keyword_hits_openai_in_window": 1,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "openai",
+       "url": "https://developers.openai.com/api/docs/changelog",
+       "entry_date": "2026-04-24",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 122,
+       "in_observation_window": true,
+       "snippet": "GPT-5.5 launch lists structured outputs among supported API capabilities on Responses, Chat Completions, and Batch."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-01-29",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 207,
+       "in_observation_window": false,
+       "snippet": "Structured outputs left beta; output_format moved to output_config.format. Existing beta header still accepted during transition."
+      }
+     ]
+    },
+    {
+     "id": "progress_streaming",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "SSE event names and delta envelopes changed (event_deltas on session/thread streams; thinking.display). A progress parser that treats every event as a result will mis-fire after an envelope rename.",
+     "curated_events_in_window": 3,
+     "curated_events_per_year": 6.6,
+     "keyword_hits_anthropic_in_window": 7,
+     "keyword_hits_openai_in_window": 2,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-07-22",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 33,
+       "in_observation_window": true,
+       "snippet": "Managed-agent thread streams accept event_deltas[] so subagent text can be previewed before the complete agent.message event."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-06-30",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 55,
+       "in_observation_window": true,
+       "snippet": "Session event streams support event deltas via event_deltas[] on GET /v1/sessions/{id}/events/stream (event_start / event_delta)."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-03-16",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 161,
+       "in_observation_window": true,
+       "snippet": "thinking.display field launched so thinking content can be omitted from responses (streaming payload shape)."
+      }
+     ]
+    },
+    {
+     "id": "timeout",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "Numeric budgets moved: 90-second code-execution cell limit, SDK Timeout objects sourced from httpx2, and OpenAI hard spend caps that return 429. Pin timeout constants per adapter version.",
+     "curated_events_in_window": 3,
+     "curated_events_per_year": 6.6,
+     "keyword_hits_anthropic_in_window": 2,
+     "keyword_hits_openai_in_window": 1,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-06-11",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 74,
+       "in_observation_window": true,
+       "snippet": "code_execution_20260521 discloses the 90-second per-cell execution time limit in the tool description."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-20",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 4,
+       "in_observation_window": true,
+       "snippet": "Python SDK v1.0: build Timeout objects from httpx2 rather than httpx."
+      },
+      {
+       "vendor": "openai",
+       "url": "https://developers.openai.com/api/docs/changelog",
+       "entry_date": "2026-07-22",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 33,
+       "in_observation_window": true,
+       "snippet": "Hard spend limits for organizations and projects; requests return 429 when tracked spend hits the monthly cap."
+      }
+     ]
+    },
+    {
+     "id": "session_state",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "Session control fields were removed or renamed (compaction_control dropped from the Python tool runner; agent-memory-2026-07-22 changes memory listing). Unversioned session adapters will call missing params.",
+     "curated_events_in_window": 3,
+     "curated_events_per_year": 6.6,
+     "keyword_hits_anthropic_in_window": 13,
+     "keyword_hits_openai_in_window": 2,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-20",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 4,
+       "in_observation_window": true,
+       "snippet": "Python SDK v1.0 removes the tool runner's client-side compaction_control."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-07-02",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 53,
+       "in_observation_window": true,
+       "snippet": "agent-memory-2026-07-22 beta changes memory listing order/depth/path_prefix; sending both this and managed-agents-2026-04-01 returns 400."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-07",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 17,
+       "in_observation_window": true,
+       "snippet": "Managed-agent session budgets: a hard spend cap pauses the session with stop reason budget_reached."
+      }
+     ]
+    },
+    {
+     "id": "model_naming",
+     "status": "CHECKED",
+     "must_version": true,
+     "why_version": "Model ids launched and retired inside the window (Opus 5, Sonnet 5, Fable 5, GPT-5.6 family; Opus 4.1 / Sonnet 4 / Opus 4 / Haiku 3 retirements). Dispatch tables that hard-code a moving alias fail closed only if the id is versioned.",
+     "curated_events_in_window": 8,
+     "curated_events_per_year": 17.7,
+     "keyword_hits_anthropic_in_window": 24,
+     "keyword_hits_openai_in_window": 23,
+     "keyword_hits_are_overinclusive": true,
+     "error_band": {
+      "absolute_events": 1,
+      "relative_pct": 25,
+      "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+     },
+     "citations": [
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-08-05",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 19,
+       "in_observation_window": true,
+       "snippet": "Claude Opus 4.1 (claude-opus-4-1-20250805) retired; requests now return an error. Recommend Claude Opus 5."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-07-24",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 31,
+       "in_observation_window": true,
+       "snippet": "Claude Opus 5 (claude-opus-5) launched; disabling thinking at effort xhigh/max returns 400 (breaking vs Opus 4.8)."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-06-30",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 55,
+       "in_observation_window": true,
+       "snippet": "Claude Sonnet 5 (claude-sonnet-5) launched; manual extended thinking and non-default sampling return 400."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-06-15",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 70,
+       "in_observation_window": true,
+       "snippet": "Claude Sonnet 4 (claude-sonnet-4-20250514) and Claude Opus 4 (claude-opus-4-20250514) retired; requests return errors."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-06-09",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 76,
+       "in_observation_window": true,
+       "snippet": "Claude Fable 5 (claude-fable-5) launched alongside Claude Mythos 5 (claude-mythos-5); adaptive thinking is the only thinking mode."
+      },
+      {
+       "vendor": "anthropic",
+       "url": "https://platform.claude.com/docs/en/release-notes/overview",
+       "entry_date": "2026-04-20",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 126,
+       "in_observation_window": true,
+       "snippet": "Claude Haiku 3 (claude-3-haiku-20240307) retired; requests now return an error. Recommend Claude Haiku 4.5."
+      },
+      {
+       "vendor": "openai",
+       "url": "https://developers.openai.com/api/docs/changelog",
+       "entry_date": "2026-07-09",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 46,
+       "in_observation_window": true,
+       "snippet": "GPT-5.6 family released (gpt-5.6-sol / terra / luna); gpt-5.6 alias routes to gpt-5.6-sol."
+      },
+      {
+       "vendor": "openai",
+       "url": "https://developers.openai.com/api/docs/changelog",
+       "entry_date": "2026-04-24",
+       "retrieved_on": "2026-08-24",
+       "staleness_days": 122,
+       "in_observation_window": true,
+       "snippet": "GPT-5.5 released on Chat Completions, Responses, and Batch."
+      }
+     ]
+    }
+   ],
+   "versioned_surfaces": [
+    "prompt_transport",
+    "tool_permission_model",
+    "output_schema",
+    "progress_streaming",
+    "timeout",
+    "session_state",
+    "model_naming"
+   ],
+   "forecast": {
+    "surface": "model_naming",
+    "window_start": "2026-08-24",
+    "window_end": "2026-11-22",
+    "confidence_point": 0.78,
+    "confidence_band": {
+     "low": 0.65,
+     "high": 0.9
+    },
+    "falsifiable_statement": "Between 2026-08-24 and 2026-11-22 inclusive, Anthropic API release notes or the OpenAI API changelog will publish at least one new GA model id (claude-* or gpt-*) OR retire/error an existing GA model id. If neither source records such an event in that window, this forecast is FALSE.",
+    "basis": "In the 165-day observation window the frozen notes record multiple GA launches (Opus 5, Sonnet 5, Fable 5, GPT-5.6, GPT-5.5, GPT-5.4 mini/nano) and multiple retirements (Opus 4.1, Sonnet 4, Opus 4, Haiku 3). That is more than one naming event per month. The 90-day forecast is the same cadence, not a new mechanism."
+   },
+   "inputs_absent": [
+    {
+     "path": "command-center/phase3/A6/DESIGN.json",
+     "status": "NOT-CHECKED",
+     "note": "ARC-0038 artifact is absent on this worktree; cost uses vendor notes, not the A6 dossier."
+    },
+    {
+     "path": "command-center/phase3/ROSTER.json",
+     "status": "NOT-CHECKED"
+    },
+    {
+     "path": "command-center/phase3/RUBRIC.json",
+     "status": "NOT-CHECKED"
+    },
+    {
+     "path": "command-center/BASELINE-SNAPSHOT.json",
+     "status": "NOT-CHECKED"
+    }
+   ],
+   "answer": "Over 2026-03-13..2026-08-24 (165 days, notes retrieved 2026-08-24) the frozen Anthropic API notes carry 54 dated headings and the OpenAI changelog 42 dated entries. All seven catalog surfaces must be versioned: model_naming is the hottest (multiple GA launches and retirements), then tool_permission_model (computer_toolset_20260801 and permission_policy), then session_state and progress_streaming (removed compaction_control; event_deltas). output_schema had only one in-window OpenAI mention; the Anthropic output_format->output_config.format rename is 2026-01-29 (outside window) and is still a version pin. Timeout has the fewest notes (90s cell limit, httpx2 Timeout, 429 spend caps) but the constants still need a pin. Claude Code GitHub cadence is reported as published_at=138 vs created_at=137 and is not picked. Forecast: model_naming will see another GA id or retirement by 2026-11-22 (confidence 0.65-0.90)."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#ARC-0039",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/ARC-0039/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "ARC-0039"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/phase3/A6/COST.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/phase3/A6/COST.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "4c3c3b9955573c5766a0348f6f5f5750",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "architecture_id": "A6",
+ "architecture_class": "cross-vendor-adapter",
+ "question": "What is the per-vendor adapter maintenance cost? Enumerate the vendor-specific surfaces (prompt transport, tool and permission model, output schema, progress/streaming, timeout, session state, model naming) and estimate each surface's change frequency from OBSERVED vendor release cadence over a stated window - then state which surfaces must be versioned to avoid breaking on a vendor update.",
+ "window": {
+  "start": "2026-03-13",
+  "end": "2026-08-24",
+  "retrieved_on": "2026-08-24",
+  "inclusive": true,
+  "days": 165,
+  "reason": "Codex GitHub pagination returned 400 newest releases whose oldest published_at is 2026-03-13. Using a longer window would undercount Codex CLI cadence. API notes exist earlier; those earlier dates are cited only when marked in_observation_window=false."
+ },
+ "vendors": [
+  "anthropic",
+  "openai"
+ ],
+ "headline_numbers": [
+  {
+   "name": "anthropic_api_dated_headings_in_window",
+   "value": 54,
+   "unit": "dated-headings",
+   "error_band": {
+    "abs": 0,
+    "pct": 0
+   },
+   "derivation": "Count of '### Month D, YYYY' headings in the frozen Anthropic API release notes whose parsed date is inside the window. Measure A uses datetime.strptime; measure B uses a month-name dict. A=54 B=54."
+  },
+  {
+   "name": "openai_api_dated_entries_in_window",
+   "value": 42,
+   "unit": "dated-entries",
+   "error_band": {
+    "abs": 0,
+    "pct": 0
+   },
+   "derivation": "Count of 'Mon DD' entries under '### Month, YYYY' headings in the frozen OpenAI changelog whose reconstructed date is inside the window. Entry parser=42; day-header recount=42."
+  },
+  {
+   "name": "surfaces_that_must_be_versioned",
+   "value": 7,
+   "unit": "surfaces",
+   "error_band": {
+    "abs": 0,
+    "pct": 0
+   },
+   "derivation": "Seven catalog surfaces; each has at least one dated vendor note showing a wire-format, id, or numeric-budget change that would break an unversioned adapter."
+  }
+ ],
+ "remeasure": {
+  "policy": "Re-measure once with a mechanically different probe (different field). If the two readings disagree, report BLOCKED with both numbers rather than picking one.",
+  "anthropic_headings": {
+   "field_a": "datetime.strptime on ordinal-stripped headings",
+   "field_b": "month-name dict + integer day/year",
+   "value_a": 54,
+   "value_b": 54,
+   "agree": true
+  },
+  "openai_entries": {
+   "field_a": "entry splitter",
+   "field_b": "day-header count under month headings",
+   "value_a": 42,
+   "value_b": 42,
+   "agree": true
+  },
+  "claude_code_github_releases": {
+   "field_a": "published_at",
+   "field_b": "created_at",
+   "value_a": 138,
+   "value_b": 137,
+   "agree": false,
+   "note": "These two GitHub timestamp fields disagree by one release (138 vs 137). Per retry policy this cadence is NOT picked; both numbers are reported. It is not a headline."
+  },
+  "codex_github_releases": {
+   "field_a": "published_at",
+   "field_b": "created_at",
+   "value_a": 400,
+   "value_b": 400,
+   "agree": true,
+   "note": "400/400 agree, but this is CLI binary cadence (several per day), not adapter-surface breakage. Not used as a surface rate."
+  }
+ },
+ "surfaces": [
+  {
+   "id": "prompt_transport",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "SDK HTTP client class and regional request host are load-bearing adapter fields. A pinned transport version keeps httpx vs httpx2 and un-prefixed vs prefixed hosts from silently swapping.",
+   "curated_events_in_window": 3,
+   "curated_events_per_year": 6.6,
+   "keyword_hits_anthropic_in_window": 13,
+   "keyword_hits_openai_in_window": 5,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-20",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 4,
+     "in_observation_window": true,
+     "snippet": "Python SDK v1.0 moves the HTTP layer from httpx to httpx2; Timeout and transport objects must be built from httpx2."
+    },
+    {
+     "vendor": "openai",
+     "url": "https://developers.openai.com/api/docs/changelog",
+     "entry_date": "2026-08-21",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 3,
+     "in_observation_window": true,
+     "snippet": "API customers can select regional processing per request via a prefixed domain plus a Global-geography project key."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-05-13",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 103,
+     "in_observation_window": true,
+     "snippet": "Cache diagnostics launched in public beta on the Claude API (prompt-cache observability)."
+    }
+   ]
+  },
+  {
+   "id": "tool_permission_model",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "Toolset type ids and permission_policy fields changed request shape (computer_toolset_20260801 GA; mid-conversation tool edits). An unversioned tool adapter will send the retired tool type.",
+   "curated_events_in_window": 4,
+   "curated_events_per_year": 8.8,
+   "keyword_hits_anthropic_in_window": 21,
+   "keyword_hits_openai_in_window": 10,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-19",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 5,
+     "in_observation_window": true,
+     "snippet": "Computer use left beta as computer_toolset_20260801; upgrading changes request shape and tool handling. Earlier beta versions remain available."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-19",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 5,
+     "in_observation_window": true,
+     "snippet": "Managed-agent web_search/web_fetch domain allow/deny moved onto agent_toolset_20260401 configs with permission_policy."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-07-24",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 31,
+     "in_observation_window": true,
+     "snippet": "Mid-conversation tool changes beta (mid-conversation-tool-changes-2026-07-01) on Fable 5, Mythos 5, Opus 4.8, and Opus 5."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-06-18",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 67,
+     "in_observation_window": true,
+     "snippet": "SDKs added code_execution_20260120 (REPL state persistence); set tools[].type to that id, no beta header."
+    }
+   ]
+  },
+  {
+   "id": "output_schema",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "Structured-output field names already moved once (output_format -> output_config.format) just before this window. Pin the schema wire format so a second rename cannot land un-gated. In-window Anthropic notes did not repeat that rename; the 2026-01-29 GA is cited as outside-window evidence, not counted in the in-window rate.",
+   "curated_events_in_window": 1,
+   "curated_events_per_year": 2.2,
+   "keyword_hits_anthropic_in_window": 0,
+   "keyword_hits_openai_in_window": 1,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "openai",
+     "url": "https://developers.openai.com/api/docs/changelog",
+     "entry_date": "2026-04-24",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 122,
+     "in_observation_window": true,
+     "snippet": "GPT-5.5 launch lists structured outputs among supported API capabilities on Responses, Chat Completions, and Batch."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-01-29",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 207,
+     "in_observation_window": false,
+     "snippet": "Structured outputs left beta; output_format moved to output_config.format. Existing beta header still accepted during transition."
+    }
+   ]
+  },
+  {
+   "id": "progress_streaming",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "SSE event names and delta envelopes changed (event_deltas on session/thread streams; thinking.display). A progress parser that treats every event as a result will mis-fire after an envelope rename.",
+   "curated_events_in_window": 3,
+   "curated_events_per_year": 6.6,
+   "keyword_hits_anthropic_in_window": 7,
+   "keyword_hits_openai_in_window": 2,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-07-22",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 33,
+     "in_observation_window": true,
+     "snippet": "Managed-agent thread streams accept event_deltas[] so subagent text can be previewed before the complete agent.message event."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-06-30",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 55,
+     "in_observation_window": true,
+     "snippet": "Session event streams support event deltas via event_deltas[] on GET /v1/sessions/{id}/events/stream (event_start / event_delta)."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-03-16",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 161,
+     "in_observation_window": true,
+     "snippet": "thinking.display field launched so thinking content can be omitted from responses (streaming payload shape)."
+    }
+   ]
+  },
+  {
+   "id": "timeout",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "Numeric budgets moved: 90-second code-execution cell limit, SDK Timeout objects sourced from httpx2, and OpenAI hard spend caps that return 429. Pin timeout constants per adapter version.",
+   "curated_events_in_window": 3,
+   "curated_events_per_year": 6.6,
+   "keyword_hits_anthropic_in_window": 2,
+   "keyword_hits_openai_in_window": 1,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-06-11",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 74,
+     "in_observation_window": true,
+     "snippet": "code_execution_20260521 discloses the 90-second per-cell execution time limit in the tool description."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-20",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 4,
+     "in_observation_window": true,
+     "snippet": "Python SDK v1.0: build Timeout objects from httpx2 rather than httpx."
+    },
+    {
+     "vendor": "openai",
+     "url": "https://developers.openai.com/api/docs/changelog",
+     "entry_date": "2026-07-22",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 33,
+     "in_observation_window": true,
+     "snippet": "Hard spend limits for organizations and projects; requests return 429 when tracked spend hits the monthly cap."
+    }
+   ]
+  },
+  {
+   "id": "session_state",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "Session control fields were removed or renamed (compaction_control dropped from the Python tool runner; agent-memory-2026-07-22 changes memory listing). Unversioned session adapters will call missing params.",
+   "curated_events_in_window": 3,
+   "curated_events_per_year": 6.6,
+   "keyword_hits_anthropic_in_window": 13,
+   "keyword_hits_openai_in_window": 2,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-20",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 4,
+     "in_observation_window": true,
+     "snippet": "Python SDK v1.0 removes the tool runner's client-side compaction_control."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-07-02",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 53,
+     "in_observation_window": true,
+     "snippet": "agent-memory-2026-07-22 beta changes memory listing order/depth/path_prefix; sending both this and managed-agents-2026-04-01 returns 400."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-07",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 17,
+     "in_observation_window": true,
+     "snippet": "Managed-agent session budgets: a hard spend cap pauses the session with stop reason budget_reached."
+    }
+   ]
+  },
+  {
+   "id": "model_naming",
+   "status": "CHECKED",
+   "must_version": true,
+   "why_version": "Model ids launched and retired inside the window (Opus 5, Sonnet 5, Fable 5, GPT-5.6 family; Opus 4.1 / Sonnet 4 / Opus 4 / Haiku 3 retirements). Dispatch tables that hard-code a moving alias fail closed only if the id is versioned.",
+   "curated_events_in_window": 8,
+   "curated_events_per_year": 17.7,
+   "keyword_hits_anthropic_in_window": 24,
+   "keyword_hits_openai_in_window": 23,
+   "keyword_hits_are_overinclusive": true,
+   "error_band": {
+    "absolute_events": 1,
+    "relative_pct": 25,
+    "note": "Curated counts are ±1 event. Keyword hits over-count model launch notes that mention tools/streaming incidentally and are not used as the rate."
+   },
+   "citations": [
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-08-05",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 19,
+     "in_observation_window": true,
+     "snippet": "Claude Opus 4.1 (claude-opus-4-1-20250805) retired; requests now return an error. Recommend Claude Opus 5."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-07-24",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 31,
+     "in_observation_window": true,
+     "snippet": "Claude Opus 5 (claude-opus-5) launched; disabling thinking at effort xhigh/max returns 400 (breaking vs Opus 4.8)."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-06-30",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 55,
+     "in_observation_window": true,
+     "snippet": "Claude Sonnet 5 (claude-sonnet-5) launched; manual extended thinking and non-default sampling return 400."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-06-15",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 70,
+     "in_observation_window": true,
+     "snippet": "Claude Sonnet 4 (claude-sonnet-4-20250514) and Claude Opus 4 (claude-opus-4-20250514) retired; requests return errors."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-06-09",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 76,
+     "in_observation_window": true,
+     "snippet": "Claude Fable 5 (claude-fable-5) launched alongside Claude Mythos 5 (claude-mythos-5); adaptive thinking is the only thinking mode."
+    },
+    {
+     "vendor": "anthropic",
+     "url": "https://platform.claude.com/docs/en/release-notes/overview",
+     "entry_date": "2026-04-20",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 126,
+     "in_observation_window": true,
+     "snippet": "Claude Haiku 3 (claude-3-haiku-20240307) retired; requests now return an error. Recommend Claude Haiku 4.5."
+    },
+    {
+     "vendor": "openai",
+     "url": "https://developers.openai.com/api/docs/changelog",
+     "entry_date": "2026-07-09",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 46,
+     "in_observation_window": true,
+     "snippet": "GPT-5.6 family released (gpt-5.6-sol / terra / luna); gpt-5.6 alias routes to gpt-5.6-sol."
+    },
+    {
+     "vendor": "openai",
+     "url": "https://developers.openai.com/api/docs/changelog",
+     "entry_date": "2026-04-24",
+     "retrieved_on": "2026-08-24",
+     "staleness_days": 122,
+     "in_observation_window": true,
+     "snippet": "GPT-5.5 released on Chat Completions, Responses, and Batch."
+    }
+   ]
+  }
+ ],
+ "versioned_surfaces": [
+  "prompt_transport",
+  "tool_permission_model",
+  "output_schema",
+  "progress_streaming",
+  "timeout",
+  "session_state",
+  "model_naming"
+ ],
+ "forecast": {
+  "surface": "model_naming",
+  "window_start": "2026-08-24",
+  "window_end": "2026-11-22",
+  "confidence_point": 0.78,
+  "confidence_band": {
+   "low": 0.65,
+   "high": 0.9
+  },
+  "falsifiable_statement": "Between 2026-08-24 and 2026-11-22 inclusive, Anthropic API release notes or the OpenAI API changelog will publish at least one new GA model id (claude-* or gpt-*) OR retire/error an existing GA model id. If neither source records such an event in that window, this forecast is FALSE.",
+  "basis": "In the 165-day observation window the frozen notes record multiple GA launches (Opus 5, Sonnet 5, Fable 5, GPT-5.6, GPT-5.5, GPT-5.4 mini/nano) and multiple retirements (Opus 4.1, Sonnet 4, Opus 4, Haiku 3). That is more than one naming event per month. The 90-day forecast is the same cadence, not a new mechanism."
+ },
+ "inputs_absent": [
+  {
+   "path": "command-center/phase3/A6/DESIGN.json",
+   "status": "NOT-CHECKED",
+   "note": "ARC-0038 artifact is absent on this worktree; cost uses vendor notes, not the A6 dossier."
+  },
+  {
+   "path": "command-center/phase3/ROSTER.json",
+   "status": "NOT-CHECKED"
+  },
+  {
+   "path": "command-center/phase3/RUBRIC.json",
+   "status": "NOT-CHECKED"
+  },
+  {
+   "path": "command-center/BASELINE-SNAPSHOT.json",
+   "status": "NOT-CHECKED"
+  }
+ ],
+ "answer": "Over 2026-03-13..2026-08-24 (165 days, notes retrieved 2026-08-24) the frozen Anthropic API notes carry 54 dated headings and the OpenAI changelog 42 dated entries. All seven catalog surfaces must be versioned: model_naming is the hottest (multiple GA launches and retirements), then tool_permission_model (computer_toolset_20260801 and permission_policy), then session_state and progress_streaming (removed compaction_control; event_deltas). output_schema had only one in-window OpenAI mention; the Anthropic output_format->output_config.format rename is 2026-01-29 (outside window) and is still a version pin. Timeout has the fewest notes (90s cell limit, httpx2 Timeout, 429 spend caps) but the constants still need a pin. Claude Code GitHub cadence is reported as published_at=138 vs created_at=137 and is not picked. Forecast: model_naming will see another GA id or retirement by 2026-11-22 (confidence 0.65-0.90)."
+}

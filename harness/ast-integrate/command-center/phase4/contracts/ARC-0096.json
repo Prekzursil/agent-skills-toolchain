@@ -1,0 +1,506 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/command-center/phase4/contracts/ARC-0096.json",
+  "title": "Telemetry and privacy contract (ARC-0096)",
+  "description": "Telemetry and privacy contract for this program.\nSUCCESS:ARC-0096\nNo telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log.\nWhen telemetry is disabled the system emits literally nothing: no outbound socket, no queued flush, and no new local telemetry record.\nLocal-only sink may persist allow-listed events without opt-in when enabled=true and local_recording=true. Egress (any payload leaving the machine, including localhost observers used as a sandbox stand-in for a remote collector) requires enabled=true AND a durable OPT-IN record whose scope is telemetry-egress. Configuration flags are not evidence of egress.\nEvery value is redacted before local persist or egress. Secrets, absolute paths, and personal data are scrubbed or the event is rejected. A write that drops the whole event is not redaction; a write that still contains the planted canary or home path is a leak.\nLocal telemetry records are retained at most 14 days then deleted. Egress copies are not retained on this machine after a successful POST. Disable does not flush a backlog: there is no backlog.\nOwner opt-in is an append-only decision-log record with id, ts, owner, decision=OPT-IN, scope=telemetry-egress, and destination_class. Last record for that scope wins. OPT-OUT or REVOKED cancels prior OPT-IN. Absent record defaults to no egress. A test fixture labeled sandbox-only is not a production owner ruling.\nOnly allow-listed coded fields may be recorded: schema_version, event_id, ts, unit_id, contract_id, event_kind, outcome, phase, duration_ms, probe_id, host_os_family, error_class. Prompts, file contents, env values, hostnames, usernames, IP addresses, command lines, and free-text payloads are forbidden.\nEgress is verified by an actual network observation (an observer that accepted a TCP connection), not by reading configuration. A probe silent in both enabled and disabled states measures nothing.\nThis document is a Draft 2020-12 JSON Schema. Used as a contract it must reject the empty object and unrelated garbage. It validates the POST-REDACTION telemetry event that may be stored locally or sent after owner opt-in. Unknown fields are forbidden. Inputs that still contain a canary secret or an absolute home path are invalid.\nUpstream architecture ratification (ARC-0077) is not on disk in this worktree; the privacy rules are substrate-agnostic and do not wait on an ADV rebuild of the architecture packet.",
+  "$comment": "SUCCESS:ARC-0096 unit=ARC-0096 schema_version=arc-0096.telemetry.v1 contract_id=ARC-0096. No telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "schema_version",
+    "event_id",
+    "ts",
+    "unit_id",
+    "contract_id",
+    "event_kind",
+    "outcome"
+  ],
+  "properties": {
+    "schema_version": {
+      "type": "string",
+      "const": "arc-0096.telemetry.v1"
+    },
+    "event_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 36,
+      "pattern": "^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$",
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    },
+    "ts": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 20,
+      "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    },
+    "unit_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 12,
+      "pattern": "^[A-Z]{2,5}-[0-9]{4}$",
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    },
+    "contract_id": {
+      "type": "string",
+      "const": "ARC-0096"
+    },
+    "event_kind": {
+      "type": "string",
+      "enum": [
+        "probe",
+        "lifecycle",
+        "conformance",
+        "heartbeat",
+        "error"
+      ]
+    },
+    "outcome": {
+      "type": "string",
+      "enum": [
+        "success",
+        "fail",
+        "skip"
+      ]
+    },
+    "phase": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 8,
+      "pattern": "^[0-9A-Z]{1,8}$",
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    },
+    "duration_ms": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 86400000
+    },
+    "probe_id": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 64,
+      "pattern": "^[A-Za-z0-9._-]{1,64}$",
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    },
+    "host_os_family": {
+      "type": "string",
+      "enum": [
+        "linux",
+        "windows",
+        "darwin"
+      ]
+    },
+    "error_class": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 65,
+      "pattern": "^[A-Z][A-Z0-9_-]{1,64}$",
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "safe_string": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 256,
+      "not": {
+        "anyOf": [
+          {
+            "pattern": "CANARY-ARC-0096"
+          },
+          {
+            "pattern": "/home/"
+          },
+          {
+            "pattern": "/Users/"
+          },
+          {
+            "pattern": "[A-Za-z]:\\\\Users\\\\"
+          },
+          {
+            "pattern": "[A-Za-z]:/Users/"
+          },
+          {
+            "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+          }
+        ]
+      }
+    },
+    "telemetry_event": {
+      "$ref": "#"
+    },
+    "telemetry_policy": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "enabled",
+        "local_recording",
+        "retention_days_local",
+        "egress_requires_opt_in",
+        "schema_version",
+        "contract_id"
+      ],
+      "properties": {
+        "enabled": {
+          "type": "boolean"
+        },
+        "local_recording": {
+          "type": "boolean"
+        },
+        "retention_days_local": {
+          "type": "integer",
+          "minimum": 0,
+          "maximum": 14
+        },
+        "egress_requires_opt_in": {
+          "type": "boolean",
+          "const": true
+        },
+        "schema_version": {
+          "type": "string",
+          "const": "arc-0096.telemetry.v1"
+        },
+        "contract_id": {
+          "type": "string",
+          "const": "ARC-0096"
+        }
+      }
+    },
+    "owner_opt_in_record": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "id",
+        "ts",
+        "owner",
+        "decision",
+        "scope",
+        "destination_class"
+      ],
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 81,
+          "pattern": "^[A-Z0-9][A-Z0-9._:-]{2,80}$",
+          "not": {
+            "anyOf": [
+              {
+                "pattern": "CANARY-ARC-0096"
+              },
+              {
+                "pattern": "/home/"
+              },
+              {
+                "pattern": "/Users/"
+              },
+              {
+                "pattern": "[A-Za-z]:\\\\Users\\\\"
+              },
+              {
+                "pattern": "[A-Za-z]:/Users/"
+              },
+              {
+                "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+              }
+            ]
+          }
+        },
+        "ts": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 20,
+          "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+          "not": {
+            "anyOf": [
+              {
+                "pattern": "CANARY-ARC-0096"
+              },
+              {
+                "pattern": "/home/"
+              },
+              {
+                "pattern": "/Users/"
+              },
+              {
+                "pattern": "[A-Za-z]:\\\\Users\\\\"
+              },
+              {
+                "pattern": "[A-Za-z]:/Users/"
+              },
+              {
+                "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+              }
+            ]
+          }
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 64,
+          "pattern": "^[A-Za-z0-9._-]{1,64}$",
+          "not": {
+            "anyOf": [
+              {
+                "pattern": "CANARY-ARC-0096"
+              },
+              {
+                "pattern": "/home/"
+              },
+              {
+                "pattern": "/Users/"
+              },
+              {
+                "pattern": "[A-Za-z]:\\\\Users\\\\"
+              },
+              {
+                "pattern": "[A-Za-z]:/Users/"
+              },
+              {
+                "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+              }
+            ]
+          }
+        },
+        "decision": {
+          "type": "string",
+          "enum": [
+            "OPT-IN",
+            "OPT-OUT",
+            "REVOKED"
+          ]
+        },
+        "scope": {
+          "type": "string",
+          "const": "telemetry-egress"
+        },
+        "destination_class": {
+          "type": "string",
+          "enum": [
+            "sandbox-observer",
+            "owner-named-collector"
+          ]
+        },
+        "sandbox_only": {
+          "type": "boolean"
+        },
+        "text": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 256,
+          "not": {
+            "anyOf": [
+              {
+                "pattern": "CANARY-ARC-0096"
+              },
+              {
+                "pattern": "/home/"
+              },
+              {
+                "pattern": "/Users/"
+              },
+              {
+                "pattern": "[A-Za-z]:\\\\Users\\\\"
+              },
+              {
+                "pattern": "[A-Za-z]:/Users/"
+              },
+              {
+                "pattern": "(?i)(api[_-]?key|secret|password|token)\\s*[:=]"
+              }
+            ]
+          }
+        }
+      }
+    },
+    "decision_log": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "records"
+      ],
+      "properties": {
+        "records": {
+          "type": "array",
+          "items": {
+            "$ref": "#/$defs/owner_opt_in_record"
+          }
+        }
+      }
+    },
+    "normative_rules": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "egress_rule",
+        "disabled_rule",
+        "local_vs_egress",
+        "redaction_rule",
+        "retention_rule",
+        "opt_in_rule",
+        "recordable_rule",
+        "observation_rule"
+      ],
+      "properties": {
+        "egress_rule": {
+          "type": "string",
+          "const": "No telemetry payload may leave the machine without an explicit owner opt-in recorded in the decision log."
+        },
+        "disabled_rule": {
+          "type": "string",
+          "const": "When telemetry is disabled the system emits literally nothing: no outbound socket, no queued flush, and no new local telemetry record."
+        },
+        "local_vs_egress": {
+          "type": "string",
+          "const": "Local-only sink may persist allow-listed events without opt-in when enabled=true and local_recording=true. Egress (any payload leaving the machine, including localhost observers used as a sandbox stand-in for a remote collector) requires enabled=true AND a durable OPT-IN record whose scope is telemetry-egress. Configuration flags are not evidence of egress."
+        },
+        "redaction_rule": {
+          "type": "string",
+          "const": "Every value is redacted before local persist or egress. Secrets, absolute paths, and personal data are scrubbed or the event is rejected. A write that drops the whole event is not redaction; a write that still contains the planted canary or home path is a leak."
+        },
+        "retention_rule": {
+          "type": "string",
+          "const": "Local telemetry records are retained at most 14 days then deleted. Egress copies are not retained on this machine after a successful POST. Disable does not flush a backlog: there is no backlog."
+        },
+        "opt_in_rule": {
+          "type": "string",
+          "const": "Owner opt-in is an append-only decision-log record with id, ts, owner, decision=OPT-IN, scope=telemetry-egress, and destination_class. Last record for that scope wins. OPT-OUT or REVOKED cancels prior OPT-IN. Absent record defaults to no egress. A test fixture labeled sandbox-only is not a production owner ruling."
+        },
+        "recordable_rule": {
+          "type": "string",
+          "const": "Only allow-listed coded fields may be recorded: schema_version, event_id, ts, unit_id, contract_id, event_kind, outcome, phase, duration_ms, probe_id, host_os_family, error_class. Prompts, file contents, env values, hostnames, usernames, IP addresses, command lines, and free-text payloads are forbidden."
+        },
+        "observation_rule": {
+          "type": "string",
+          "const": "Egress is verified by an actual network observation (an observer that accepted a TCP connection), not by reading configuration. A probe silent in both enabled and disabled states measures nothing."
+        }
+      }
+    }
+  }
+}

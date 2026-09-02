@@ -1,0 +1,2133 @@
+[
+ {
+  "id": "WFC-0097",
+  "name": "two-tier-verify",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 97,
+  "source_registry_id": "skill-two-tier-verify",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when repeated code edits are triggering a full test-suite rerun each iteration and burning tokens/time, or before any commit. Splits verification into a cheap INNER loop per edit (only the affected/related tests plus type-check and lint on touched files) and a single OUTER loop at the commit boundary (full suite plus coverage plus held-out E2E/golden-journey plus a scoped mutation check). Gives concrete jest/vitest/playwright and pytest command recipes and the decision rule for which tier to run. NOT a replacement for the golden-journey done-signal (see seed-golden-journey); NOT for one-off single-file scripts where a full run is already trivial.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/two-tier-verify/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/two-tier-verify/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md",
+  "primary_size": "7909 B / 141 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.844184Z (7909 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (7487 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (7487 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [7487, 7909]",
+  "task_fit": "Per-work-unit verification cost control: run the affected tests + touched-file lint per edit, full suite once at the unit boundary.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "cosmic-ray",
+   "git",
+   "jest",
+   "mutmut",
+   "playwright",
+   "pytest",
+   "ruff",
+   "stryker",
+   "testmon",
+   "vitest"
+  ],
+  "stop_rules": [
+   "| Budget | seconds (aim < 30s) | minutes — pay it once |  [C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md:34]",
+   "| On failure | fix, re-run INNER | map failure back to the change, drop to INNER |  [C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md:36]",
+   "until green. Do NOT run the full suite between edits.  [C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md:41]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "That is the single biggest token/time sink in long repair sessions — ProjDevBench measured  [C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md:9]",
+   "cuts test time **32–70%** by running only the tests reachable from the change.  [C:/Users/Prekzursil/.agents/skills/two-tier-verify/SKILL.md:12]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Cheap-INNER-per-edit / expensive-OUTER-at-commit split is exactly the shape of this program's two gates (12-condition per-unit gate A vs 21-condition program gate). Declares its own budget ('aim < 30s') and failure route ('fix, re-run INNER'); no external runtime beyond the test tools it already names.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = smallest-check-ladder at similarity 0.034 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0098",
+  "name": "triage-dispatch",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 98,
+  "source_registry_id": "skill-triage-dispatch",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when repairing an app with MULTIPLE bugs or broken user-journeys at once (not a single fix) — instead of edit-one-file / rerun-the-whole-suite / hope, first map the broken journeys with evidence, capture each REAL error (never infer the failing stage from surviving artifacts), build a defect graph, then dispatch parallel bounded-scope fix agents and verify only impacted regions before an outer full+e2e+mutation gate. NOT for a single well-understood one-line fix, and NOT a substitute for the held-out golden-journey done-signal.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/triage-dispatch/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/triage-dispatch/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/triage-dispatch/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/triage-dispatch/SKILL.md",
+  "primary_size": "4576 B / 68 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.844184Z (4576 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (4337 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (4337 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [4337, 4576]",
+  "task_fit": "Multi-defect repair scheduling across a work-unit cohort; produces the dependency order the orchestrator needs before fanning out fixers.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "reviewer",
+   "verifier"
+  ],
+  "tools": [
+   "git"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "scope-creep the misalignment study measured.  [C:/Users/Prekzursil/.agents/skills/triage-dispatch/SKILL.md:43]",
+   "loop) — Ekstazi/TIA/CloudBees cut test time 32-70%. Do not re-run the whole suite per edit.  [C:/Users/Prekzursil/.agents/skills/triage-dispatch/SKILL.md:47]",
+   "- \"Green units / 100% coverage\" cited as done (Goodhart — see `seed-golden-journey`).  [C:/Users/Prekzursil/.agents/skills/triage-dispatch/SKILL.md:62]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Builds a defect graph from CAPTURED errors and dispatches parallel repair lanes; explicitly forbids inferring the failing stage from surviving artifacts, which is the same anti-pattern this program's evidence rules ban.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = to-prd at similarity 0.020 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0099",
+  "name": "team-builder",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 99,
+  "source_registry_id": "skill-team-builder",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Interactive agent picker for composing and dispatching parallel teams",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/team-builder/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/team-builder/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md",
+  "primary_size": "6412 B / 162 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "community",
+  "maintenance_state": [
+   "agents-live mtime 2026-04-04T22:10:57.712848Z (6412 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (6412 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (6412 B)"
+  ],
+  "copy_consistency": "all 3 copies agree at 6412 B",
+  "task_fit": "Composing a per-unit reviewer/implementer roster from the agent inventory.",
+  "stages": [
+   "### Step 1: Discover Available Agents  [C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md:58]",
+   "### Step 2: Present Domain Menu  [C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md:68]",
+   "### Step 3: Handle Selection  [C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md:82]",
+   "### Step 4: Spawn Agents in Parallel  [C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md:97]",
+   "### Step 5: Synthesize Results  [C:/Users/Prekzursil/.agents/skills/team-builder/SKILL.md:107]"
+  ],
+  "roles": [
+   "architect",
+   "persona",
+   "reviewer"
+  ],
+  "tools": [
+   "Glob"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-WITH-WRAPPER",
+  "classification_basis": "Five explicit stages (Discover / Menu / Selection / Spawn-parallel / Synthesize) are reusable, but stage 2-3 are an INTERACTIVE menu; an autonomous orchestrator needs a declarative selector substituted for the human choice.",
+  "prior_classification": "ADOPT-WITH-WRAPPER",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = dispatching-parallel-agents at similarity 0.037 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0100",
+  "name": "plan-orchestrate",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 100,
+  "source_registry_id": "skill-plan-orchestrate",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when converting a multi-step plan into dependency-aware agent chains and ready-to-run orchestration prompts without executing the plan.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/plan-orchestrate/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/plan-orchestrate/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md",
+  "primary_size": "18312 B / 263 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-10T21:02:15.707525Z (18312 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (18055 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (18055 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [18055, 18312]",
+  "task_fit": "Turning a plan into the work-unit dependency graph and ready-to-run dispatch prompts.",
+  "stages": [
+   "### Phase 0 — Detect ECC mode + language  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:84]",
+   "### Phase 1 — Decompose steps  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:102]",
+   "### Phase 2 — Tag and pick chain  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:113]",
+   "### Phase 3 — Compress task description  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:147]",
+   "### Phase 4 — Output  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:156]",
+   "## Step 1 — <title>  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:187]",
+   "### Phase 5 — Self-check (run before emitting)  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:202]",
+   "## Step 2 — Encrypt sensitive UserProfile fields  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:237]"
+  ],
+  "roles": [
+   "architect",
+   "orchestrate",
+   "orchestration",
+   "reviewer"
+  ],
+  "tools": [
+   "git"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "- `tdd-guide` — write tests → implement → 80%+ coverage  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:63]",
+   "`vendor/`, `node_modules/`, `dist/`, `build/`, `.venv/`, generated files, and obvious test fixtures). On a tie or when no language exceeds 60% of source files, set `lang=unknown`.  [C:/Users/Prekzursil/.agents/skills/plan-orchestrate/SKILL.md:97]"
+  ],
+  "classification": "ADOPT-WITH-WRAPPER",
+  "classification_basis": "Six phases from decompose to self-check, emitting dependency-aware agent chains without executing them - directly reusable - but Phase 0 detects 'ECC mode', an external harness this program does not run, so that phase must be stubbed.",
+  "prior_classification": "ADOPT-WITH-WRAPPER",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = agentic-humanizer at similarity 0.019 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0101",
+  "name": "dispatching-parallel-agents",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 101,
+  "source_registry_id": "skill-dispatching-parallel-agents",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when facing 2+ independent tasks that can be worked on without shared state or sequential dependencies",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/dispatching-parallel-agents/SKILL.md :: last commit 2026-04-04T02:48:06+03:00|0cd5a00",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/dispatching-parallel-agents/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md",
+  "primary_size": "6257 B / 181 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.527388Z (6257 B)",
+   "mirror:skills last commit 2026-04-04T02:48:06+03:00|0cd5a00 (6077 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (6077 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [6077, 6257]",
+  "task_fit": "The admission test for whether a set of work units may run concurrently.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "- File C tests: Abort functionality  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:52]",
+   "Each domain is independent - fixing tool approval doesn't affect abort tests.  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:54]",
+   "Task(\"Fix agent-tool-abort.test.ts failures\")  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:68]",
+   "Fix the 3 failing tests in src/agents/agent-tool-abort.test.ts:  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:90]"
+  ],
+  "failure_behaviour": [
+   "- File C tests: Abort functionality  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:52]",
+   "Each domain is independent - fixing tool approval doesn't affect abort tests.  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:54]",
+   "Task(\"Fix agent-tool-abort.test.ts failures\")  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:68]",
+   "Fix the 3 failing tests in src/agents/agent-tool-abort.test.ts:  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:90]",
+   "1. \"should abort tool with partial output capture\" - expects 'interrupted at' in message  [C:/Users/Prekzursil/.agents/skills/dispatching-parallel-agents/SKILL.md:92]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Vendor-neutral rule for when tasks may be fanned out (2+ independent, no shared state, no sequential dependency) with worked Task() examples; no runtime dependency.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = team-builder at similarity 0.025 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0102",
+  "name": "subagent-driven-development",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 102,
+  "source_registry_id": "skill-subagent-driven-development",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when executing an implementation plan by dispatching a fresh subagent per independent task with two-stage spec-then-quality review in the current session ; do NOT use when tasks have sequential dependencies or need a separate session with batch checkpoints (use executing-plans) ; returns per-task subagent outputs reviewed for spec compliance and code quality.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/subagent-driven-development/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/subagent-driven-development/SKILL.md :: last commit 2026-06-11T01:01:05+03:00|88af95d",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/subagent-driven-development/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/subagent-driven-development/SKILL.md",
+  "primary_size": "10483 B / 243 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.823831Z (10483 B)",
+   "mirror:skills last commit 2026-06-11T01:01:05+03:00|88af95d (10241 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (10241 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [10241, 10483]",
+  "task_fit": "The per-unit execution loop this wave already uses: dispatch, then review independently.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "reviewer"
+  ],
+  "tools": [
+   "git"
+  ],
+  "stop_rules": [
+   "- Repeat until approved  [C:/Users/Prekzursil/.agents/skills/subagent-driven-development/SKILL.md:223]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "- Added tests, 5/5 passing  [C:/Users/Prekzursil/.agents/skills/subagent-driven-development/SKILL.md:112]",
+   "- 8/8 tests passing  [C:/Users/Prekzursil/.agents/skills/subagent-driven-development/SKILL.md:132]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Fresh subagent per independent task plus a two-stage spec-then-quality review, and its own description states the boundary against executing-plans, so the two do not overlap.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = imagegen at similarity 0.016 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0103",
+  "name": "executing-plans",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 103,
+  "source_registry_id": "skill-executing-plans",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when loading a written implementation plan and executing tasks in batches with user review checkpoints between batches, typically in a separate session ; do NOT use when all tasks are independent and can be dispatched in parallel within the current session (use subagent-driven-development) ; returns batch-by-batch progress with review pauses.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/executing-plans/SKILL.md :: last commit 2026-06-11T01:01:05+03:00|88af95d",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/executing-plans/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md",
+  "primary_size": "2878 B / 85 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.537659Z (2878 B)",
+   "mirror:skills last commit 2026-06-11T01:01:05+03:00|88af95d (2794 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (2794 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [2794, 2878]",
+  "task_fit": "Sequenced, checkpointed execution for units that are NOT independent.",
+  "stages": [
+   "### Step 1: Load and Review Plan  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:17]",
+   "### Step 2: Execute Batch  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:23]",
+   "### Step 3: Report  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:32]",
+   "### Step 4: Continue  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:38]",
+   "### Step 5: Complete Development  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:44]"
+  ],
+  "roles": [
+   "architect"
+  ],
+  "tools": [
+   "git"
+  ],
+  "stop_rules": [
+   "- Repeat until complete  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:43]"
+  ],
+  "failure_behaviour": [
+   "- Stop when blocked, don't guess  [C:/Users/Prekzursil/.agents/skills/executing-plans/SKILL.md:76]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Batch execution with a review checkpoint between batches and an explicit 'Stop when blocked, do not guess' rule. The checkpoint maps onto this program's PR-ONLY release mode (owner reviews the PR), so no wrapper is needed.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = parallel-execution-optimizer at similarity 0.051 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0104",
+  "name": "autonomous-loops",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 104,
+  "source_registry_id": "skill-autonomous-loops",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Patterns and architectures for autonomous Claude Code loops — from simple sequential pipelines to RFC-driven multi-agent DAG systems.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/autonomous-loops/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/autonomous-loops/SKILL.md :: last commit 2026-07-31T00:49:17+03:00|f72366f",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/autonomous-loops/SKILL.md :: last commit 2026-07-31T00:49:17+03:00|f72366f"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/autonomous-loops/SKILL.md",
+  "primary_size": "26319 B / 628 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-31T21:33:01.068409Z (26319 B)",
+   "mirror:skills last commit 2026-07-31T00:49:17+03:00|f72366f (26319 B)",
+   "mirror:.agents/skills last commit 2026-07-31T00:49:17+03:00|f72366f (26319 B)"
+  ],
+  "copy_consistency": "all 3 copies agree at 26319 B",
+  "task_fit": "Source of loop/DAG topologies (sequential pipeline through RFC-driven multi-agent DAG) for the workflow blueprint library.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestrates",
+   "orchestration",
+   "orchestrator",
+   "reviewer",
+   "worker"
+  ],
+  "tools": [
+   "Bash",
+   "Glob",
+   "Grep",
+   "MCP",
+   "gh",
+   "git"
+  ],
+  "stop_rules": [
+   "4. **Exit codes propagate** — `set -e` stops the pipeline on failure.  [C:/Users/Prekzursil/.agents/skills/autonomous-loops/SKILL.md:89]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "DISTILL",
+  "classification_basis": "628 lines / 26,319 bytes of loop and DAG ARCHITECTURE prose with no executable entry point; its one concrete artifact is an upstream installer URL (continuous-claude). Value is the extracted topologies, not the document.",
+  "prior_classification": "ADOPT-WITH-WRAPPER",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = writing-skills at similarity 0.021 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0105",
+  "name": "ralph-loop",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 105,
+  "source_registry_id": "skill-ralph-loop",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Run, monitor, resume, merge, and debug Ralph loops. Use this skill whenever the user asks to operate `ralph run` or `ralph loops`, inspect loop state, recover suspended loops, analyze diagnostics, or unblock merge queue issues.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/ralph-loop/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/ralph-loop/SKILL.md :: last commit 2026-03-31T02:28:48+03:00|cc13a42",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/ralph-loop/SKILL.md :: last commit 2026-03-31T02:28:48+03:00|cc13a42",
+   "mirror:skills-claude-only :: 07f465f37d49:skills-claude-only/ralph-loop/SKILL.md :: last commit 2026-04-04T02:48:32+03:00|9bc65e4"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/ralph-loop/SKILL.md",
+  "primary_size": "1967 B / 48 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 3 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.701664Z (1967 B)",
+   "mirror:skills last commit 2026-03-31T02:28:48+03:00|cc13a42 (1920 B)",
+   "mirror:.agents/skills last commit 2026-03-31T02:28:48+03:00|cc13a42 (1920 B)",
+   "mirror:skills-claude-only last commit 2026-04-04T02:48:32+03:00|9bc65e4 (1920 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [1920, 1967]",
+  "task_fit": "Long-running resumable loop supervision (run / monitor / resume / merge) with recoverable suspended state.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-WITH-WRAPPER",
+  "classification_basis": "Operates an EXTERNAL runtime that is verified present on this box (ralph 2.9.3 at C:/Users/Prekzursil/.cargo/bin/ralph.exe, state dir ~/.ralph with agent/, specs/, loops.json). Adoptable only through that CLI, hence a wrapper, not as-is.",
+  "prior_classification": "ADOPT-WITH-WRAPPER",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = wsl-vmware-cutover at similarity 0.046 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0106",
+  "name": "ralph-hats",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 106,
+  "source_registry_id": "skill-ralph-hats",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Create, inspect, validate, explain, and improve Ralph hat collections. Use this skill whenever the user asks to make or refine a `.ralph/hats/*.yml` workflow, debug hat routing, explain event topology, or tune a multi-hat Ralph run.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/ralph-hats/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/ralph-hats/SKILL.md :: last commit 2026-03-31T02:28:48+03:00|cc13a42",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/ralph-hats/SKILL.md :: last commit 2026-03-31T02:28:48+03:00|cc13a42",
+   "mirror:skills-claude-only :: 07f465f37d49:skills-claude-only/ralph-hats/SKILL.md :: last commit 2026-04-04T02:48:32+03:00|9bc65e4"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/ralph-hats/SKILL.md",
+  "primary_size": "2826 B / 66 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 3 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.697111Z (2826 B)",
+   "mirror:skills last commit 2026-03-31T02:28:48+03:00|cc13a42 (2761 B)",
+   "mirror:.agents/skills last commit 2026-03-31T02:28:48+03:00|cc13a42 (2761 B)",
+   "mirror:skills-claude-only last commit 2026-04-04T02:48:32+03:00|9bc65e4 (2761 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [2761, 2826]",
+  "task_fit": "Prior art for a declarative, role-routed, event-driven workflow schema - the closest existing analogue to this program's Workflow DSL.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestration"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "TRANSLATE",
+  "classification_basis": "Declarative multi-hat workflow + event-topology spec in a FOREIGN schema (.ralph/hats/*.yml). The runtime is installed (ralph 2.9.3) but NO hat collection exists on this box - there is no ~/.ralph/hats directory - so nothing can be adopted directly; the model must be re-expressed in platform/schema/workflow-dsl.schema.json.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = parallel-execution-optimizer at similarity 0.055 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0107",
+  "name": "ralph-orchestrator-setup",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 107,
+  "source_registry_id": "skill-ralph-orchestrator-setup",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when installing, updating, validating, or troubleshooting the local Ralph Orchestrator CLI, its MCP server registration, or the mirrored Ralph skills for Codex, Claude, and Gemini.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/ralph-orchestrator-setup/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/ralph-orchestrator-setup/SKILL.md :: last commit 2026-03-31T02:28:48+03:00|cc13a42",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/ralph-orchestrator-setup/SKILL.md :: last commit 2026-03-31T02:28:48+03:00|cc13a42",
+   "mirror:skills-claude-only :: 07f465f37d49:skills-claude-only/ralph-orchestrator-setup/SKILL.md :: last commit 2026-04-04T02:48:32+03:00|9bc65e4"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/ralph-orchestrator-setup/SKILL.md",
+  "primary_size": "2107 B / 40 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 3 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.703495Z (2107 B)",
+   "mirror:skills last commit 2026-03-31T02:28:48+03:00|cc13a42 (2068 B)",
+   "mirror:.agents/skills last commit 2026-03-31T02:28:48+03:00|cc13a42 (2068 B)",
+   "mirror:skills-claude-only last commit 2026-04-04T02:48:32+03:00|9bc65e4 (2068 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [2068, 2107]",
+  "task_fit": "Bring-up and health-check procedure for the Ralph rail before any loop workflow runs.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestrator"
+  ],
+  "tools": [
+   "MCP"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "- If `ralph doctor` reports warnings or any client still shows a disconnected MCP entry, capture the exact blocked state instead of silently degrading the install.  [C:/Users/Prekzursil/.agents/skills/ralph-orchestrator-setup/SKILL.md:31]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Install / update / validate / troubleshoot runbook for a runtime that is verified installed and registered (ralph 2.9.3 on PATH; 'ralph' present in ~/.claude.json), and it carries its own diagnostic escalation rule via ralph doctor.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = ralph-loop at similarity 0.036 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0108",
+  "name": "ralphinho-rfc-pipeline",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 108,
+  "source_registry_id": "skill-ralphinho-rfc-pipeline",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "RFC-driven multi-agent DAG execution pattern with quality gates, merge queues, and work unit orchestration.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/ralphinho-rfc-pipeline/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/ralphinho-rfc-pipeline/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/ralphinho-rfc-pipeline/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/ralphinho-rfc-pipeline/SKILL.md",
+  "primary_size": "1522 B / 68 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-04-04T22:10:57.663649Z (1522 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (1522 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (1522 B)"
+  ],
+  "copy_consistency": "all 3 copies agree at 1522 B",
+  "task_fit": "Reference topology for gated work-unit DAG execution with a merge queue and a declared rollback path.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestration"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "- `rollback_plan`  [C:/Users/Prekzursil/.agents/skills/ralphinho-rfc-pipeline/SKILL.md:31]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "DISTILL",
+  "classification_basis": "1,522 bytes / 68 lines naming exactly the primitives this program needs - RFC-driven multi-agent DAG, quality gates, merge queues, work-unit orchestration, rollback_plan - but at that size it is a pattern sketch, not an implementation.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = frida-mcp at similarity 0.050 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0109",
+  "name": "recursive-decision-ledger",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 109,
+  "source_registry_id": "skill-recursive-decision-ledger",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when the user asks for repeated rollouts, marked decision processes, high-dimensional search, stochastic optimization, local-optima exploration, ensemble comparison, or recursive reasoning with a visible evidence trail.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/recursive-decision-ledger/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/recursive-decision-ledger/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/recursive-decision-ledger/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/recursive-decision-ledger/SKILL.md",
+  "primary_size": "2601 B / 80 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-05-28T06:24:48.372308Z (2601 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (2522 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (2522 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [2522, 2601]",
+  "task_fit": "Recording and re-scoring council/decision rollouts so a superseded decision is retired rather than re-walked.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "lead"
+  ],
+  "tools": [
+   "Bash",
+   "Glob",
+   "Grep"
+  ],
+  "stop_rules": [
+   "below threshold.  [C:/Users/Prekzursil/.agents/skills/recursive-decision-ledger/SKILL.md:78]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "Rollout 15 complete. The prior winner still holds, but edge deteriorated 17%.  [C:/Users/Prekzursil/.agents/skills/recursive-decision-ledger/SKILL.md:76]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Repeated-rollout decision process with a visible evidence trail and per-rollout deltas (its own example reports 'Rollout 15 complete ... edge deteriorated 17%'), which is the audit shape a council needs; declares its tools in frontmatter.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = parallel-execution-optimizer at similarity 0.087 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0110",
+  "name": "claim-verify-gate",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 110,
+  "source_registry_id": "skill-claim-verify-gate",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when an answer, research finding, audit verdict, or status report is about to be treated as true and the next action depends on it. Decomposes the answer into atomic, individually-checkable claims (SAFE, arXiv 2403.18802), runs Chain-of-Verification (arXiv 2309.11495 - draft, plan verification questions, answer them independently, revise), and re-probes each claim with a MECHANICALLY DIFFERENT instrument than produced it (different tool, engine, shell or measured field; re-running the same probe never counts as CONFIRMED). Emits a per-claim CONFIRMED / REFUTED / UNVERIFIED table with the settling experiment, and forces an overclaim to be rewritten to the scope actually measured - an hone",
+  "provenance": [
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md :: last commit 2026-07-24T06:23:54+03:00|d34b74a"
+  ],
+  "primary_anchor": "07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md",
+  "primary_size": "12014 B / 210 lines",
+  "deployment_state": "MIRROR-ONLY (undeployed: absent from both live skill vaults)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "mirror:.agents/skills last commit 2026-07-24T06:23:54+03:00|d34b74a (12014 B)"
+  ],
+  "copy_consistency": "all 1 copies agree at 12014 B",
+  "task_fit": "The claim-decomposition + independent-verifier gate the program's honesty rules depend on; grounded in Chain-of-Verification and SAFE.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "critic",
+   "judge",
+   "orchestrator",
+   "verifier"
+  ],
+  "tools": [
+   "Bash"
+  ],
+  "stop_rules": [
+   "- `agent-self/config/AGENTS.md` §4 terminal states, §7 honesty.  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:200]"
+  ],
+  "failure_behaviour": [
+   "ttling experiment, and forces an overclaim to be rewritten to the scope actually measured - an honestly-scoped residual does NOT block. Ships scripts/claim_gate.py, a deterministic 10-rule checker wit  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:3]",
+   "- a status report whose next action is disruptive (a restart, a kill, a re-fix, a rollback);  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:25]"
+  ],
+  "benchmark_evidence": [
+   "arXiv 2309.11495",
+   "arXiv 2403.18802",
+   "t is about to be treated as true and the next action depends on it. Decomposes the answer into atomic, individually-checkable claims (SAFE, arXiv 2403.18802), runs Chain-of-Verification (arXiv 2309.11  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:3]",
+   "claim with a MECHANICALLY DIFFERENT instrument than produced it (different tool, engine, shell or measured field; re-running the same probe never counts as CONFIRMED). Emits a per-claim CONFIRMED / RE  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:3]",
+   "eriment, and forces an overclaim to be rewritten to the scope actually measured - an honestly-scoped residual does NOT block. Ships scripts/claim_gate.py, a deterministic 10-rule checker with a built-  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:3]",
+   "Chain-of-Verification (arXiv 2309.11495) is the shape: the model  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:49]",
+   "SAFE (arXiv 2403.18802) breaks a long-form response into a set of **individual  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:56]",
+   "`fan-out-contract.md:25` measured, where two agents \"CONFIRMED\" a false briefed  [07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md:98]"
+  ],
+  "classification": "REPAIR",
+  "classification_basis": "MIRROR-ONLY: resolves at 07f465f37d49:.agents/skills/claim-verify-gate/SKILL.md and is absent from BOTH live vaults (1 of 1 locations is the mirror), yet a LIVE rule (rules/common/single-signal-verification.md) cites its script by file:line AND documents a specific hole - a CONFIRMED verdict with no source_probe passes. Undeployed and known-defective, so REPAIR, not ADOPT.",
+  "prior_classification": "REPAIR",
+  "classification_changed": false,
+  "distinctness": "not present in the agents-live vault, so the vault near-duplicate scan does not apply; distinctness rests on the mirror path being unique",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0111",
+  "name": "delegated-build-verify",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 111,
+  "source_registry_id": "skill-delegated-build-verify",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when delegating a large build to a generator (Codex fan-out, subagents, or a Workflow) and you must independently verify the result - the \\\"agent builds X, then you evaluate\\\" pattern. Turns a converged plan/grill into an authoritative build-spec that doubles as the evaluation rubric, fans out the generator, then verifies with an active fabrication hunt. Triggers: \\\"build X then evaluate\\\".",
+  "provenance": [
+   "mirror:skills :: 07f465f37d49:skills/delegated-build-verify/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/delegated-build-verify/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "07f465f37d49:skills/delegated-build-verify/SKILL.md",
+  "primary_size": "3480 B / 49 lines",
+  "deployment_state": "MIRROR-ONLY (undeployed: absent from both live skill vaults)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (3480 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (3480 B)"
+  ],
+  "copy_consistency": "all 2 copies agree at 3480 B",
+  "task_fit": "Exactly this wave's shape: an orchestrator delegates a build to a fan-out and must verify the result against a rubric fixed BEFORE the build.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "reviewer",
+   "verifier"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "r a Workflow) and you must independently verify the result - the \\\"agent builds X, then you evaluate\\\" pattern. Turns a converged plan/grill into an authoritative build-spec that doubles as the evalua  [07f465f37d49:skills/delegated-build-verify/SKILL.md:3]",
+   "- Downstream of `grill-me-extensive`, once the scope has converged into decisions.  [07f465f37d49:skills/delegated-build-verify/SKILL.md:14]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "| \"The generator said it's 100% covered.\" | Verify it yourself; self-reported coverage is a gameable proxy. |  [07f465f37d49:skills/delegated-build-verify/SKILL.md:40]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "REPO-ONLY (both locations are mirror paths; absent from the live vaults), but reading it settles the prior UNKNOWN-NEEDS-PROBE: it is a complete 'generator builds, you verify' contract that turns a converged plan into a build-spec doubling as the evaluation rubric. Nothing to repair - it needs deploying.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "not present in the agents-live vault, so the vault near-duplicate scan does not apply; distinctness rests on the mirror path being unique",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0112",
+  "name": "parallel-execution-optimizer",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 112,
+  "source_registry_id": "skill-parallel-execution-optimizer",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when the user wants a task done much faster through parallel work, concurrent agents, batched tool calls, isolated worktrees, or many independent verification lanes without losing correctness.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/parallel-execution-optimizer/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/parallel-execution-optimizer/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/parallel-execution-optimizer/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/parallel-execution-optimizer/SKILL.md",
+  "primary_size": "2680 B / 73 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-05-28T06:24:48.366784Z (2680 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (2608 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (2608 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [2608, 2680]",
+  "task_fit": "Deciding lane width and worktree isolation for a concurrent work-unit cohort.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "Bash",
+   "Glob",
+   "Grep",
+   "git"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "- Blocked lane: deploy readback, waiting on DNS propagation  [C:/Users/Prekzursil/.agents/skills/parallel-execution-optimizer/SKILL.md:61]"
+  ],
+  "benchmark_evidence": [
+   "- Benchmarking the tool instead of the task.  [C:/Users/Prekzursil/.agents/skills/parallel-execution-optimizer/SKILL.md:69]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Prior UNKNOWN-NEEDS-PROBE settled by reading it: a concrete lane model over batched tool calls and isolated worktrees, with a blocked-lane report shape and an explicit anti-pattern ('Benchmarking the tool instead of the task'). Declares its tools.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = recursive-decision-ledger at similarity 0.068 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0113",
+  "name": "long-copy-orchestrator",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 113,
+  "source_registry_id": "skill-long-copy-orchestrator",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when moving large trees between Windows, WSL, VMs, or mounted disks and you need to choose rsync, tar, robocopy, or offline copy, track progress, detect stalls, and resume safely.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/long-copy-orchestrator/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/long-copy-orchestrator/SKILL.md :: last commit 2026-03-10T10:44:06+02:00|68647f8",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/long-copy-orchestrator/SKILL.md :: last commit 2026-03-29T17:45:12Z|52c8ca2"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/long-copy-orchestrator/SKILL.md",
+  "primary_size": "2436 B / 48 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.608963Z (2436 B)",
+   "mirror:skills last commit 2026-03-10T10:44:06+02:00|68647f8 (2389 B)",
+   "mirror:.agents/skills last commit 2026-03-29T17:45:12Z|52c8ca2 (2389 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [2389, 2436]",
+  "task_fit": "Harvest only the zero-throughput stall rule and resume-safety policy for long-running unit supervision; reject the copy-tool decision tree.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestrator"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "## Stop Rules  [C:/Users/Prekzursil/.agents/skills/long-copy-orchestrator/SKILL.md:32]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "DISTILL",
+  "classification_basis": "Prior UNKNOWN-NEEDS-PROBE settled: the subject is DATA MOVEMENT (rsync/tar/robocopy selection), not agent orchestration, so it is out of scope as a workflow. Its '## Stop Rules' section is however a reusable liveness rule - 'Stop and re-evaluate if throughput falls to zero across multiple sample windows' - and a resume-safe policy.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = format-codex-sessions at similarity 0.037 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0114",
+  "name": "multi-agent-quickstart",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 114,
+  "source_registry_id": "skill-multi-agent-quickstart",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when learning how to choose between the Codex multi-agent orchestration tools in the Windows-first setup.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/multi-agent-quickstart/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/multi-agent-quickstart/SKILL.md :: last commit 2026-04-04T02:48:06+03:00|0cd5a00",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/multi-agent-quickstart/SKILL.md :: last commit 2026-03-29T17:45:12Z|52c8ca2"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/multi-agent-quickstart/SKILL.md",
+  "primary_size": "1272 B / 31 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-30T19:07:22.442235Z (1272 B)",
+   "mirror:skills last commit 2026-04-04T02:48:06+03:00|0cd5a00 (1014 B)",
+   "mirror:.agents/skills last commit 2026-03-29T17:45:12Z|52c8ca2 (1242 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [1014, 1242, 1272]",
+  "task_fit": "Redundant entry point; its only unique content is the Windows-first framing.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "critic",
+   "orchestration"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "MERGE",
+  "classification_basis": "1,272 bytes whose stated job is 'choose between the Codex multi-agent orchestration tools' - the SAME decision codex-orchestrate (position 115) claims as 'Route a task to the right Codex orchestration tool by intent - one skill, all modes'. Two routers for one decision; merge into the larger.",
+  "prior_classification": "DISTILL",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = angr at similarity 0.076 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0115",
+  "name": "codex-orchestrate",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 115,
+  "source_registry_id": "skill-codex-orchestrate",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Route a task to the right Codex (codex-as-MCP) orchestration tool by intent - one skill, all modes. Trigger phrases - 'brainstorm/discuss/coordinate/review/audit/curate/triage with Codex', 'get a Codex second opinion', 'have Codex split roles and combine', 'pick the best option with Codex', 'Codex risk/gap audit', 'Codex governance call'. Maps intent to the codex_* tool + profile - brainstorm ideas (codex_brainstorm), debate tradeoffs (codex_discuss), split-roles or fix-path (codex_coordinate), review or audit a plan/diff (codex_review), curate or govern a final pick (codex_curate), fast triage of next steps (codex_consult). Replaces the per-mode wrappers codex-audit, codex-brainstorm, codex",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/codex-orchestrate/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/codex-orchestrate/SKILL.md :: last commit 2026-06-29T09:05:40+03:00|a947032",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/codex-orchestrate/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/codex-orchestrate/SKILL.md",
+  "primary_size": "4175 B / 63 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "MIT",
+  "license_source": "declared in SKILL.md frontmatter (C:/Users/Prekzursil/.agents/skills/codex-orchestrate/SKILL.md:4)",
+  "third_party_license_anchors": [
+   "MIT  [C:/Users/Prekzursil/.agents/skills/codex-orchestrate/SKILL.md:4]"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T23:30:08.502291Z (4175 B)",
+   "mirror:skills last commit 2026-06-29T09:05:40+03:00|a947032 (3634 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (4113 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [3634, 4113, 4175]",
+  "task_fit": "The single dispatch surface for cross-vendor Codex work units (brainstorm / discuss / coordinate / review / audit / curate / triage).",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestrate",
+   "orchestration"
+  ],
+  "tools": [
+   "MCP",
+   "codex"
+  ],
+  "stop_rules": [
+   "> `mcp__codex__codex` directly (frame the intent/role in the prompt) or the `codex-invoke` exec-rail until > this skill is rebased onto the real two-tool surface.  [C:/Users/Prekzursil/.agents/skills/codex-orchestrate/SKILL.md:10]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-WITH-WRAPPER",
+  "classification_basis": "One of only TWO candidates in this slice carrying a declared license (license: MIT in frontmatter). Routes by intent across all Codex modes, but every mode is a call into the codex-as-MCP mount, so it is adoptable only where that mount is up.",
+  "prior_classification": "ADOPT-WITH-WRAPPER",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = tiktok-public-research at similarity 0.024 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0116",
+  "name": "codex-databricks-fanout",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 116,
+  "source_registry_id": "skill-codex-databricks-fanout",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when fanning out Codex CLI agents onto Databricks - running many parallel Codex/LLM work units on job clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out. Carries the measured constraints from a 608-unit production run, a 48-unit auth-research re-prove, and CRCP ops so a session does not re-derive them wrong.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/codex-databricks-fanout/SKILL.md",
+   "claude-live :: C:/Users/Prekzursil/.claude/skills/codex-databricks-fanout/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/codex-databricks-fanout/SKILL.md :: last commit 2026-07-30T02:20:31+03:00|c673852",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/codex-databricks-fanout/SKILL.md :: last commit 2026-07-30T02:20:31+03:00|c673852"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/codex-databricks-fanout/SKILL.md",
+  "primary_size": "18258 B / 375 lines",
+  "deployment_state": "deployed in 2 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-20T05:53:28.403452Z (15390 B)",
+   "claude-live mtime 2026-07-19T18:28:46.886068Z (10743 B)",
+   "mirror:skills last commit 2026-07-30T02:20:31+03:00|c673852 (18258 B)",
+   "mirror:.agents/skills last commit 2026-07-30T02:20:31+03:00|c673852 (18258 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [10743, 15390, 18258]",
+  "task_fit": "Scaling a fan-out past the local RAM ceiling; the source of the concurrency-cap and batch-env constraints.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestration",
+   "worker"
+  ],
+  "tools": [
+   "MCP",
+   "codex",
+   "longrun",
+   "pytest"
+  ],
+  "stop_rules": [
+   "`BATCH_CONCURRENCY` via `spark_env_vars`; cap at unit count.  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:179]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "clusters, scaling past a local RAM ceiling, or deciding between Databricks / local / Modal / RunPod for a large agent fan-out. Carries the measured constraints from a 608-unit production run, a 48-uni  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:3]",
+   "Everything below was **measured** on workspace `bolt-datascience`  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:8]",
+   "(`costin.ionescu@bolt.eu` / profile DEFAULT). Facts marked MEASURED are not to be  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:9]",
+   "The measured constraints in this doc are enforced by executable code under  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:18]",
+   "This SKILL.md is the measured-constraints doc; `contract.py` is the machine copy of the same rail.  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:23]",
+   "held at 100% line+branch by their own CI step. The `scripts/e2e/` round-trips need a live Databricks  [07f465f37d49:skills/codex-databricks-fanout/SKILL.md:51]"
+  ],
+  "classification": "SPECIALIZE",
+  "classification_basis": "Carries constraints MEASURED on a 608-unit production run plus a 48-unit re-prove, and states its own machine-readable twin (contract.py). Platform-specific to Databricks job clusters, so it specialises the generic fan-out rather than replacing it. DRIFT: three copies disagree in size - agents-live 15,390 B, claude-live 10,743 B, mirror 18,258 B.",
+  "prior_classification": "SPECIALIZE",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = caption-burn at similarity 0.015 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0117",
+  "name": "codex-fleet-github",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 117,
+  "source_registry_id": "skill-codex-fleet-github",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when dispatching, sweeping, monitoring, or planning autonomous Codex-on-GitHub runs across the private fleet via the codex-fleet-github MCP server. Drives the Wave-1 workflow_dispatch runner (codex-runner.yml) with propose-only draft PRs and a fail-closed auth model. Covers the four tools (fleet_dispatch, fleet_sweep, fleet_status, fleet_orchestrate), token setup, and the pre-PR-68 runner-branch caveat. Do NOT use for local Codex CLI consultation (use codex-consult) or for editing the runner workflow itself.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/codex-fleet-github/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/codex-fleet-github/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md",
+  "primary_size": "5456 B / 87 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.456308Z (5456 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (5251 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (5251 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [5251, 5456]",
+  "task_fit": "Remote autonomous fan-out that can only ever PROPOSE, never merge; the reference fail-closed auth pattern.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "MCP",
+   "codex",
+   "gh"
+  ],
+  "stop_rules": [
+   "`gh workflow run` targets. The server defaults to `main`, BUT until **PR #68**  [C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md:63]",
+   "`CODEX_RUNNER_REF=feat/codex-parity-runner` until then, then switch back to  [C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md:65]"
+  ],
+  "failure_behaviour": [
+   "leet-github MCP server. Drives the Wave-1 workflow_dispatch runner (codex-runner.yml) with propose-only draft PRs and a fail-closed auth model. Covers the four tools (fleet_dispatch, fleet_sweep, flee  [C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md:3]",
+   "## Safety model (propose-only + fail-closed)  [C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md:39]",
+   "- **Fail-closed auth.** No usable token ⇒ the tool refuses and returns an error;  [C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md:43]",
+   "fail-closed is working.  [C:/Users/Prekzursil/.agents/skills/codex-fleet-github/SKILL.md:86]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "SPECIALIZE",
+  "classification_basis": "Propose-only draft PRs plus a fail-closed auth model ('No usable token => the tool refuses') - directly aligned with this program's PR-ONLY release mode - but bound to one private runner (codex-runner.yml) and its four MCP tools.",
+  "prior_classification": "SPECIALIZE",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = run-agent-monitor at similarity 0.024 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0118",
+  "name": "mcp-code-orchestrate",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 118,
+  "source_registry_id": "skill-mcp-code-orchestrate",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when one task needs the SAME tool-call shape repeated across MANY items - an xref-walk over dozens of functions, a descriptor sweep over many SMILES, batch-resolving or screening a list of papers, or aggregating one query across several MCP servers. Write ONE script (Python via the Bash tool) that calls the underlying provider CLIs, native libraries, or MCP stdio, filters and aggregates IN-CODE, and returns ONLY the distilled result, instead of N model round-trips that each bloat context with raw tool output. This is Anthropic's code-execution-with-MCP pattern (up to ~98.7% fewer tokens on fan-out work). Decision rule - reach for it once you would otherwise make more than about 5 same-sh",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/mcp-code-orchestrate/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/mcp-code-orchestrate/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md",
+  "primary_size": "14325 B / 301 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "MIT",
+  "license_source": "declared in SKILL.md frontmatter (C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:4)",
+  "third_party_license_anchors": [
+   "MIT  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:4]"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.613576Z (14325 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (13672 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (13672 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [13672, 14325]",
+  "task_fit": "Any sweep where the same tool-call shape repeats across many items - the token-efficient alternative to fanning the sweep out to agents.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "orchestrate",
+   "orchestrator"
+  ],
+  "tools": [
+   "Bash",
+   "MCP",
+   "gh",
+   "longrun"
+  ],
+  "stop_rules": [
+   "THRESHOLD = 15  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:152]",
+   "if len(xrefs) >= THRESHOLD:  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:158]",
+   "print(f\"{len(hits)} functions with >= {THRESHOLD} callers\")  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:163]",
+   "covers metadata directly; escalate to the paper-search / scholarly-access MCP  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:203]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "t, instead of N model round-trips that each bloat context with raw tool output. This is Anthropic's code-execution-with-MCP pattern (up to ~98.7% fewer tokens on fan-out work). Decision rule - reach f  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:3]",
+   "> **The 98.7% fan-out token-cut.** When you would otherwise call the same MCP  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:9]",
+   "> example dropping from ~150,000 tokens of tool chatter to ~2,000 (≈98.7% fewer)  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:13]",
+   "`KEPT 12/4180 functions` or `SHORTLIST 8 papers -> shortlist.json`.  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:272]",
+   "agents\"** (2025): the canonical write-up of this pattern and the ~98.7%  [C:/Users/Prekzursil/.agents/skills/mcp-code-orchestrate/SKILL.md:291]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Second of the two license-declared candidates (license: MIT). 301 lines implementing the code-execution-over-MCP pattern - ONE script iterating many items instead of N model round-trips - with a measured ~98.7% token cut and a terse result contract ('KEPT 12/4180 functions'). This is the mechanised form of the estate's own rule that a mechanical comparison must be an algorithm, not LLM judgement.",
+  "prior_classification": "UNKNOWN-NEEDS-PROBE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = ui-invariant-walk at similarity 0.023 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0119",
+  "name": "eval-harness",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 119,
+  "source_registry_id": "skill-eval-harness",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Formal evaluation framework for Claude Code sessions implementing eval-driven development (EDD) principles",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/eval-harness/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/eval-harness/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md",
+  "primary_size": "6494 B / 271 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-04-04T22:10:57.579115Z (6494 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (6494 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (6494 B)"
+  ],
+  "copy_consistency": "all 3 copies agree at 6494 B",
+  "task_fit": "Defining eval-driven acceptance thresholds for a work unit and reporting pass@k / pass^k.",
+  "stages": [
+   "### Phase 1: Define (10 min)  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:210]",
+   "### Phase 2: Implement (varies)  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:223]",
+   "### Phase 3: Evaluate  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:226]",
+   "### Phase 4: Report  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:229]"
+  ],
+  "roles": [
+   "judge"
+  ],
+  "tools": [
+   "Bash",
+   "Glob",
+   "Grep"
+  ],
+  "stop_rules": [
+   "Recommended thresholds:  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:255]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "- Benchmarking agent performance across model versions  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:18]",
+   "- Typical target: pass@3 > 90%  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:98]",
+   "- pass@3 > 90% for capability evals  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:123]",
+   "- pass^3 = 100% for regression evals  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:124]",
+   "Overall: 3/3 passed  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:150]",
+   "Overall: 3/3 passed  [C:/Users/Prekzursil/.agents/skills/eval-harness/SKILL.md:156]"
+  ],
+  "classification": "ADOPT-WITH-WRAPPER",
+  "classification_basis": "Four phases (Define / Implement / Evaluate / Report) with NUMERIC stopping thresholds - 'pass@3 > 90%' for capability and 'pass^3 = 100%' for regression - but no runner: the phases are prose, so a harness must supply execution and scoring.",
+  "prior_classification": "ADOPT-WITH-WRAPPER",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = source-command-prime at similarity 0.011 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0120",
+  "name": "verification-loop",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 120,
+  "source_registry_id": "skill-verification-loop",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "A comprehensive verification system for Claude Code sessions.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/verification-loop/SKILL.md :: last commit 2026-07-27T02:36:44+03:00|266ab7c",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/verification-loop/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md",
+  "primary_size": "2491 B / 127 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "ECC",
+  "maintenance_state": [
+   "agents-live mtime 2026-04-04T22:10:57.713920Z (2491 B)",
+   "mirror:skills last commit 2026-07-27T02:36:44+03:00|266ab7c (2491 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (2491 B)"
+  ],
+  "copy_consistency": "all 3 copies agree at 2491 B",
+  "task_fit": "The standard per-unit verification sequence before a completion claim.",
+  "stages": [
+   "### Phase 1: Build Verification  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:20]",
+   "### Phase 2: Type Check  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:30]",
+   "### Phase 3: Lint Check  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:41]",
+   "### Phase 4: Test Suite  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:50]",
+   "### Phase 5: Security Scan  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:65]",
+   "### Phase 6: Diff Review  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:75]"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "git",
+   "ruff"
+  ],
+  "stop_rules": [
+   "# Check coverage threshold  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:56]"
+  ],
+  "failure_behaviour": [
+   "- Failed: X  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:63]"
+  ],
+  "benchmark_evidence": [
+   "# Target: 80% minimum  [C:/Users/Prekzursil/.agents/skills/verification-loop/SKILL.md:57]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Six ordered phases (Build / Type / Lint / Test / Security / Diff review) with a coverage floor ('# Target: 80% minimum') and a per-phase failure line; a directly runnable sequence needing no external runtime.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = source-command-pr-shepherd at similarity 0.045 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0121",
+  "name": "verification-before-completion",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 121,
+  "source_registry_id": "skill-verification-before-completion",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when about to claim work is complete, fixed, or passing, before committing or creating PRs - requires running verification commands and confirming output before making any success claims; evidence before assertions always",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/verification-before-completion/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/verification-before-completion/SKILL.md :: last commit 2026-04-04T02:48:06+03:00|0cd5a00",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/verification-before-completion/SKILL.md :: last commit 2026-07-18T20:49:30+03:00|faae06d"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/verification-before-completion/SKILL.md",
+  "primary_size": "4291 B / 140 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.883888Z (4291 B)",
+   "mirror:skills last commit 2026-04-04T02:48:06+03:00|0cd5a00 (4152 B)",
+   "mirror:.agents/skills last commit 2026-07-18T20:49:30+03:00|faae06d (4152 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [4152, 4291]",
+  "task_fit": "The gate between 'work done' and 'work claimed done' - condition-1/7 style evidence discipline.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "## Common Failures  [C:/Users/Prekzursil/.agents/skills/verification-before-completion/SKILL.md:40]"
+  ],
+  "failure_behaviour": [
+   "NOT-EXTRACTED - no fail-open/fail-closed/advisory/never-blocks/exit-code sentence matched; failure posture is undeclared in the SKILL.md"
+  ],
+  "benchmark_evidence": [
+   "[Run test command] [See: 34/34 pass] \"All tests pass\"  [C:/Users/Prekzursil/.agents/skills/verification-before-completion/SKILL.md:80]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Requires the verification command to be RUN and its output confirmed before any success claim, with a worked evidence example ('[Run test command] [See: 34/34 pass]'). Its '## Common Failures' section is the anti-pattern list. Note: my tombstone regex flagged this file, and the use-vs-mention check REFUTED that - 0 tombstone hits in the body.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = source-command-plan at similarity 0.021 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0122",
+  "name": "smallest-check-ladder",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 122,
+  "source_registry_id": "skill-smallest-check-ladder",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when you need to run \"the smallest test that could still catch this change\" instead of blindly running the whole suite (or nothing). Provides an invocable L0 to L3 ladder — L0 lint the edited file, L1 impacted tests via deterministic selectors (pytest --testmon / jest or vitest related), L2 full suite via longrun, L3 e2e — so a claim of \"tests pass\" is backed by a proportionate, real check. Deterministic dependency and coverage-map selection ONLY; never ML \"predictive test selection\". Triggers include \"run the relevant tests\", \"smallest check for this diff\", \"which tests cover this file\", \"is it worth running the full suite\". NOT for authoring new tests (use tdd-workflow) and NOT a cover",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md",
+   "claude-live :: C:/Users/Prekzursil/.claude/skills/smallest-check-ladder/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/smallest-check-ladder/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/smallest-check-ladder/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md",
+  "primary_size": "7220 B / 125 lines",
+  "deployment_state": "deployed in 2 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "gem-hunt-2026-07-12 (A-Tier2, verification-gates #4/#5)",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-19T08:53:28.399703Z (7220 B)",
+   "claude-live mtime 2026-07-12T08:03:53.218182Z (7220 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (6840 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (6840 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [6840, 7220]",
+  "task_fit": "Choosing the proportionate check for a diff so 'tests pass' is a measured claim rather than a whole-suite reflex.",
+  "stages": [
+   "### L0 — edited-file lint / typecheck  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:34]",
+   "### L1 — impacted tests (deterministic selectors)  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:45]",
+   "### L2 — full suite (always via longrun; it exceeds 60s)  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:61]",
+   "### L3 — e2e against the built artifact  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:73]"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "ffmpeg",
+   "jest",
+   "longrun",
+   "pytest",
+   "ruff",
+   "testmon",
+   "vitest"
+  ],
+  "stop_rules": [
+   "escalate only when the rung passes and you need broader confidence. The point is to make  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:10]",
+   "# Prerequisite (one-time): pip install pytest-testmon # the --testmon flag is absent until installed  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:50]",
+   "Coverage thresholds are **not** decided here — `.coverage-thresholds.json` remains the single  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:71]",
+   "**L2** (via longrun) and check `.coverage-thresholds.json`.  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:93]"
+  ],
+  "failure_behaviour": [
+   "`FAILED:<id> L1 2 failed …`. Never claim \"tests pass\" from L0 alone.  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:96]",
+   "council C5, in **shadow mode** (observe/annotate only — never blocks, never nags). This skill  [C:/Users/Prekzursil/.agents/skills/smallest-check-ladder/SKILL.md:118]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Four named rungs (L0 edited-file lint, L1 impacted tests via deterministic selectors, L2 full suite via longrun, L3 e2e on the built artifact), a terminal-state output contract ('FAILED:<id> L1 2 failed'), and an explicit shadow-mode posture. Frontmatter records its own provenance: origin: gem-hunt-2026-07-12 (A-Tier2, verification-g...).",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = two-tier-verify at similarity 0.039 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0123",
+  "name": "packaged-artifact-smoke",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 123,
+  "source_registry_id": "skill-packaged-artifact-smoke",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": ">-",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md",
+   "claude-live :: C:/Users/Prekzursil/.claude/skills/packaged-artifact-smoke/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/packaged-artifact-smoke/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/packaged-artifact-smoke/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md",
+  "primary_size": "7744 B / 163 lines",
+  "deployment_state": "deployed in 2 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-19T08:53:28.398191Z (7744 B)",
+   "claude-live mtime 2026-07-12T08:07:40.818662Z (7744 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (6958 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (6958 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [6958, 7744]",
+  "task_fit": "Proving a built deliverable runs, not merely that its source tree is green - the gap a CI-green source tree hides.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "ffmpeg",
+   "hypothesis"
+  ],
+  "stop_rules": [
+   "node postcondition.mjs run <manifest.json> # SHADOW (default): observe+log, ALWAYS exit 0  [C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md:123]",
+   "node postcondition.mjs run <manifest.json> --enforce # blocking: exit 1 on any journey failure  [C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md:124]"
+  ],
+  "failure_behaviour": [
+   "runs all journeys, prints per-journey `SUCCESS:<id>` / `FAILED:<id> …` markers and a  [C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md:117]",
+   "never block a build or nag. A caller opts into blocking with `--enforce` (or  [C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md:134]"
+  ],
+  "benchmark_evidence": [
+   "100%, and the shipped `.exe` / `.whl` still fails to launch or produces a broken  [C:/Users/Prekzursil/.agents/skills/packaged-artifact-smoke/SKILL.md:27]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "3-5 golden journeys driven against the PACKAGED artifact, each terminating in a DETERMINISTIC postcondition probe (ffprobe container/codec/resolution/duration, or existence + minimum size), emitting SUCCESS:<id>/FAILED:<id> per journey; advisory by default with an opt-in --enforce. Note: its description uses a YAML folded scalar (description: >-), which my naive frontmatter parser rendered as '>-' - a limitation of MY parser, NOT a defect in the file.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = seed-golden-journey at similarity 0.034 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0124",
+  "name": "ui-invariant-walk",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 124,
+  "source_registry_id": "skill-ui-invariant-walk",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when you want a property-based random-walk oracle that DRIVES a running web/Electron app and asserts UI invariants over a randomized command sequence — \"no enabled button is a dead click\" (an enabled, visible control must produce an observable state change) and \"no route errors\" (no navigation may reach an error route, throw an uncaught exception, or log a console error). Model-based testing via fast-check (`fc.commands` + `fc.asyncModelRun`) driving Playwright, with automatic shrinking to a minimal reproducing click/nav sequence. Ships as a SHADOW-mode advisory oracle (observe + log to a bounded rotating sink, never blocks CI or nags). Optionally deepen the existing Python Hypothesis su",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/ui-invariant-walk/SKILL.md",
+   "claude-live :: C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/ui-invariant-walk/SKILL.md :: last commit 2026-07-18T07:02:25+03:00|4ea0540",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/ui-invariant-walk/SKILL.md :: last commit 2026-07-21T16:53:48+03:00|9513a3b"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/ui-invariant-walk/SKILL.md",
+  "primary_size": "13858 B / 297 lines",
+  "deployment_state": "deployed in 2 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "AGPL  [C:/Users/Prekzursil/.agents/skills/ui-invariant-walk/SKILL.md:272]",
+   "AGPL  [C:/Users/Prekzursil/.agents/skills/ui-invariant-walk/SKILL.md:279]",
+   "MIT  [C:/Users/Prekzursil/.agents/skills/ui-invariant-walk/SKILL.md:283]"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-19T08:53:28.399703Z (13853 B)",
+   "claude-live mtime 2026-07-12T08:04:29.682234Z (13858 B)",
+   "mirror:skills last commit 2026-07-18T07:02:25+03:00|4ea0540 (13858 B)",
+   "mirror:.agents/skills last commit 2026-07-21T16:53:48+03:00|9513a3b (13853 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [13853, 13858]",
+  "task_fit": "Property-based liveness oracle for a driven UI; the counterexample-shrinking mechanism is the reusable part.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "critic",
+   "verifier"
+  ],
+  "tools": [
+   "fast-check",
+   "hypothesis",
+   "playwright"
+  ],
+  "stop_rules": [
+   "scripted path, this oracle explores thousands of paths and, on failure, **shrinks** to the shortest  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:14]"
+  ],
+  "failure_behaviour": [
+   "lRun`) driving Playwright, with automatic shrinking to a minimal reproducing click/nav sequence. Ships as a SHADOW-mode advisory oracle (observe + log to a bounded rotating sink, never blocks CI or na  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:3]",
+   "- As a **nightly / pre-PR** advisory sweep — surface dead controls and broken routes the scripted suite never visits.  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:35]",
+   "This oracle is **advisory / observe-only**. It is a *heuristic random explorer*, so it enters the ladder at **SHADOW**, never blocks, never nags:  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:44]",
+   "- **Exit code is always 0** in shadow mode — a violation is **logged, not failed**. CI stays green; the oracle only *reports*.  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:46]",
+   "// oracle.mjs — invariant random-walk UI oracle (fast-check + Playwright), SHADOW mode.  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:73]"
+  ],
+  "benchmark_evidence": [
+   "- Graduation SHADOW→ADVISE→ENFORCE is a **later, human** decision, justified only by a **measured escape/false-positive rate** from the shadow log — not by this skill.  [C:/Users/Prekzursil/.claude/skills/ui-invariant-walk/SKILL.md:48]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Model-based random walk (fast-check fc.commands + asyncModelRun) driving Playwright, asserting 'no enabled button is a dead click' and 'no route errors', with automatic SHRINKING to a minimal reproducing sequence and 'Exit code is always 0 in shadow mode'. Carries a third-party licence caveat in-body: AGPL anchors at lines 272 and 279 (HypoFuzz) against MIT at 283 - the AGPL component is the OPTIONAL deepening, not the shipped oracle. My tombstone regex fired here and use-vs-mention REFUTED it (single hit, line 273, the word 'moved' in prose).",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = rubric-verifier at similarity 0.027 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0125",
+  "name": "refactor-equivalence",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 125,
+  "source_registry_id": "skill-refactor-equivalence",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use when a change CLAIMS to be a pure/deterministic refactor — \"same behavior, cleaner code\", \"no functional change\", \"just simplified this\", extract-method, inline, rewrite a helper — and you want an EXTERNAL proof (not the author's opinion) that old and new are actually equivalent. CrossHair `diffbehavior` uses Z3 to search for a concrete input where old_fn(x) != new_fn(x); if none exists across all paths, the refactor is likely sound. A Hypothesis differential test is the fallback when CrossHair can't symbolically execute the function (C extensions, unsupported types, timeouts). Scoped to PURE, DETERMINISTIC functions only (no I/O, no globals, no clock/random/network). NOT for behavior-CH",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md",
+   "claude-live :: C:/Users/Prekzursil/.claude/skills/refactor-equivalence/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/refactor-equivalence/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/refactor-equivalence/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md",
+  "primary_size": "6517 B / 74 lines",
+  "deployment_state": "deployed in 2 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-19T08:53:28.399703Z (6517 B)",
+   "claude-live mtime 2026-07-12T08:04:07.164524Z (6517 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (6056 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (6056 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [6056, 6517]",
+  "task_fit": "Checking a claimed no-op refactor with a counterexample search instead of the author's opinion.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "verifier"
+  ],
+  "tools": [
+   "crosshair",
+   "git",
+   "hypothesis"
+  ],
+  "stop_rules": [
+   "- **Counterexample printed, exit 1** → NOT equivalent. The listed `(x=...)` input is a concrete reproducer where the two disagree; this is the silent behavior change. Surface it.  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:42]",
+   "- **`No differences found ... functions are likely the same!`, exit 0** → equivalent across all explored paths. Confidence scales with how much of the input space Z3 exhausted (\"All paths ex  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:43]",
+   "- **exit 2 / can't analyze** → CrossHair couldn't symbolically execute it → go to the fallback.  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:44]",
+   "- **True equivalence** `x + x` vs `x * 2`: `No differences found ... functions are likely the same!`, exit 0. ✅ no false positive.  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:72]"
+  ],
+  "failure_behaviour": [
+   "m/network). NOT for behavior-CHANGING edits, not a general test runner (use smallest-check-ladder), not for non-Python. Advisory/shadow: it reports a counterexample, it never blocks.  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:3]",
+   "- **exit 2 / can't analyze** → CrossHair couldn't symbolically execute it → go to the fallback.  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:44]",
+   "### 4. Report (advisory / shadow — never blocks)  [C:/Users/Prekzursil/.agents/skills/refactor-equivalence/SKILL.md:59]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "External equivalence proof via CrossHair diffbehavior (Z3) with a Hypothesis differential fallback, an explicit escape route ('exit 2 / cannot analyze -> go to the fallback'), a hard scope limit (pure deterministic functions only) and an advisory posture ('never blocks').",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = qiling-emulation at similarity 0.027 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0126",
+  "name": "mutation-check",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 126,
+  "source_registry_id": "skill-mutation-check",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use at the verify boundary to empirically test test-STRENGTH (not just coverage) — given a changed Python source file and the command that runs its tests, it applies a small high-signal mutation set to the function(s) under test and asserts each mutation makes at least one test go RED. A mutation the suite leaves green (\"survived\") is a Goodhart-green gap where the tests execute the code but don't assert its behaviour. Use it as a gate (exit 1 on any survivor) after coverage is already green; do NOT use it to find bugs in the source (it probes the TESTS) or on non-Python code.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/mutation-check/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/mutation-check/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md",
+  "primary_size": "4775 B / 94 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.623835Z (4775 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (4485 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (4485 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [4485, 4775]",
+  "task_fit": "Gate-A condition 8 (negative controls / mutations fail as expected) - the executable form of the both-states rule.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "NOT-EXTRACTED - no role/persona vocabulary matched"
+  ],
+  "tools": [
+   "pytest"
+  ],
+  "stop_rules": [
+   "- **Red baseline.** If the suite is already failing, exit 2 fires; fix the tests  [C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md:88]"
+  ],
+  "failure_behaviour": [
+   "- **Red baseline.** If the suite is already failing, exit 2 fires; fix the tests  [C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md:88]"
+  ],
+  "benchmark_evidence": [
+   "about whether the tests *assert its behaviour*. bFinder found **17.5%** of expected  [C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md:11]",
+   "behaviours untested even at >90% line+mutation coverage — the classic Goodhart-green  [C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md:12]",
+   "- When a suite looks suspiciously green (\"100% coverage, all pass\") and you want a  [C:/Users/Prekzursil/.agents/skills/mutation-check/SKILL.md:25]"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Tests test-STRENGTH not coverage: applies a high-signal mutation set and asserts each mutation turns at least one test RED, with a red-baseline guard ('If the suite is already failing, exit 2 fires'). Cites bFinder finding 17.5% of expected behaviours untested at >90% line+mutation coverage. Every unit in this wave already runs a mutation battery, so this is the shared primitive.",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = prototype at similarity 0.013 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0127",
+  "name": "acceptance-review",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 127,
+  "source_registry_id": "skill-acceptance-review",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "Use at the \"done\" boundary of an app change — before claiming a feature/app works, before a PR, or when a repair session says \"fixed / it works now / shorts generate\". Dispatches an INDEPENDENT, ideally CROSS-MODEL reviewer (Codex or Gemini CLI, else a fresh-context Claude subagent) that adversarially judges whether the real end-to-end user journey actually works or is green-but-broken — over the DIFF + declared golden-journeys + on-disk artifact evidence the journeys ran. Returns a structured SHIP / BLOCK verdict with the unproven journeys and concrete gaps. Do NOT use for ordinary code-quality review (use code-review) or for in-context self-checking (that is the biased judge this skill exi",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/acceptance-review/SKILL.md :: last commit 2026-07-31T22:18:54+03:00|01c9b9a",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/acceptance-review/SKILL.md :: last commit 2026-07-31T22:18:54+03:00|01c9b9a"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md",
+  "primary_size": "7218 B / 113 lines",
+  "deployment_state": "deployed in 1 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.265421Z (7218 B)",
+   "mirror:skills last commit 2026-07-31T22:18:54+03:00|01c9b9a (7141 B)",
+   "mirror:.agents/skills last commit 2026-07-31T22:18:54+03:00|01c9b9a (7141 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 3 copies: sizes [7141, 7218]",
+  "task_fit": "The independent-review condition of the completion predicate, with a real blocking mode when a gate wants one.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "adversarial",
+   "adversarially",
+   "judge",
+   "orchestrator",
+   "reviewer",
+   "verifier"
+  ],
+  "tools": [
+   "codex",
+   "git",
+   "longrun",
+   "playwright"
+  ],
+  "stop_rules": [
+   "dispatched BLOCK verdict (then exit 20) — for wiring into a gate.  [C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md:103]"
+  ],
+  "failure_behaviour": [
+   "**2. Dispatch an INDEPENDENT reviewer** (prefer a different model; degrade gracefully).  [C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md:52]",
+   "block the prompt mandates:  [C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md:72]",
+   "- **Advisory exit by default.** The helper exits 0 unless `--strict` is set with a  [C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md:102]",
+   "dispatched BLOCK verdict (then exit 20) — for wiring into a gate.  [C:/Users/Prekzursil/.agents/skills/acceptance-review/SKILL.md:103]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "ADOPT-AS-IS",
+  "classification_basis": "Dispatches an INDEPENDENT, preferably cross-model reviewer (Codex or Gemini, else a fresh-context Claude) with graceful degradation, and has a two-tier exit contract: advisory exit 0 by default, exit 20 on a dispatched BLOCK verdict under --strict. Maps one-to-one onto gate-A condition 9 (independent reviewer status is PASS).",
+  "prior_classification": "ADOPT-AS-IS",
+  "classification_changed": false,
+  "distinctness": "nearest neighbour among 328 vault skills = gem-hunt at similarity 0.019 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-0128",
+  "name": "design-review-loop",
+  "unit": "build/wfa-4",
+  "registry_slice": "candidates 97-128 of 160",
+  "registry_index": 128,
+  "source_registry_id": "skill-design-review-loop",
+  "family": "skills",
+  "kind": "agent-skill workflow mechanism (SKILL.md)",
+  "runtime": "claude-code / codex skill (SKILL.md)",
+  "what_it_does": "MOVED — renamed to design-studio. This is a redirect tombstone kept so in-flight invocations of the old name still resolve. Use the design-studio skill instead; it is the SAME TCR design-review loop (G0 PRIME to G7 VERIFY, revert-gate) plus a thin mode router. Pick a mode — direct, audit, mirror, critique, iterate, implement, verify, loop, drive, session — or run design-studio loop for the whole pass. Triggers that used to land here (design review, run the design-review loop, TCR loop, audit the UI, transpose or mirror to Figma, design critique, implement the design, iterate design, drive the app, interactive design tweak) now route through design-studio.",
+  "provenance": [
+   "agents-live :: C:/Users/Prekzursil/.agents/skills/design-review-loop/SKILL.md",
+   "claude-live :: C:/Users/Prekzursil/.claude/skills/design-review-loop/SKILL.md",
+   "mirror:skills :: 07f465f37d49:skills/design-review-loop/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee",
+   "mirror:.agents/skills :: 07f465f37d49:.agents/skills/design-review-loop/SKILL.md :: last commit 2026-07-24T08:28:24+03:00|87f94ee"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.agents/skills/design-review-loop/SKILL.md",
+  "primary_size": "2609 B / 42 lines",
+  "deployment_state": "deployed in 2 live vault(s) and present in 2 mirror path(s)",
+  "license": "UNDECLARED",
+  "license_source": "no license field in frontmatter, no LICENSE/COPYING/NOTICE in the skill directory (measured: 0 such files live and 0 in the mirror subtree), and NO top-level LICENSE exists in agent-skills-toolchain at 07f465f37d49 - so the prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source. Third-party SPDX tokens found in-body, if any, are listed under third_party_license_anchors and describe DEPENDENCIES.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared in frontmatter",
+  "maintenance_state": [
+   "agents-live mtime 2026-07-17T21:25:05.489106Z (2609 B)",
+   "claude-live mtime 2026-07-12T08:37:14.071915Z (2568 B)",
+   "mirror:skills last commit 2026-07-24T08:28:24+03:00|87f94ee (2278 B)",
+   "mirror:.agents/skills last commit 2026-07-24T08:28:24+03:00|87f94ee (2278 B)"
+  ],
+  "copy_consistency": "BYTE DRIFT across 4 copies: sizes [2278, 2568, 2609]",
+  "task_fit": "None as a workflow: it is a name-compatibility shim whose behaviour lives in design-studio.",
+  "stages": [
+   "NOT-EXTRACTED - no Stage/Step/Phase/Gate/L-n/Round heading; the skill is written as prose rules rather than an ordered pipeline"
+  ],
+  "roles": [
+   "persona"
+  ],
+  "tools": [
+   "NOT-EXTRACTED - no known tool token matched"
+  ],
+  "stop_rules": [
+   "NONE DECLARED - full-text regex over the SKILL.md found 0 stop/cap/until/escalate/exit-code matches; absence of a stop rule is itself the finding"
+  ],
+  "failure_behaviour": [
+   "name still resolve. Use the design-studio skill instead; it is the SAME TCR design-review loop (G0 PRIME to G7 VERIFY, revert-gate) plus a thin mode router. Pick a mode — direct, audit, mirror, critiq  [C:/Users/Prekzursil/.agents/skills/design-review-loop/SKILL.md:3]",
+   "| Figma→code + revert-gate | `design-studio implement` (→ `figma-implement-design`) |  [C:/Users/Prekzursil/.agents/skills/design-review-loop/SKILL.md:32]"
+  ],
+  "benchmark_evidence": [
+   "NONE - no arXiv id, DOI, percentage, pass@k or N/N figure in the SKILL.md"
+  ],
+  "classification": "RETIRE",
+  "classification_basis": "SELF-DECLARED TOMBSTONE. Its own frontmatter description opens 'MOVED - renamed to design-studio. This is a redirect tombstone kept so in-flight invocations of the old name still resolve', and the use-vs-mention probe put 4 tombstone markers on line 3 of the body (in_description=True, in_first900=True). The spec forbids counting a renamed copy, so this entry is registered for spine completeness with materially_distinct=false and does NOT count toward the 32.",
+  "prior_classification": "MERGE",
+  "classification_changed": true,
+  "distinctness": "nearest neighbour among 328 vault skills = social-find-post at similarity 0.013 (difflib ratio over full SKILL.md text); 0 byte-identical SKILL.md groups exist in the vault, so this is not a fork or renamed copy",
+  "materially_distinct": false,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Provenance, byte sizes, mtimes, mirror commit dates, license anchors, stage/role/tool/stop/failure/benchmark anchors and the near-duplicate ratio are MEASURED by script (command-center/_wfa4_*.py) and carry file:line. classification / classification_basis / task_fit are authored judgement resting on those anchors. Behaviour was NOT executed - no skill in this slice was invoked, so every 'what it does' claim is a read of the SKILL.md, not an observed run (UNVERIFIED as behaviour; settled by actually invoking the skill and recording its output)."
+ },
+ {
+  "id": "WFC-X0187",
+  "name": "harness-restore-live-full-power",
+  "unit": "build/wfa-4",
+  "registry_slice": "EXTENSION - substitutes for spine position 128 (design-review-loop), which is a self-declared redirect tombstone the spec forbids counting. Drawn from spine position 187, inside Family H (182-253), which lies OUTSIDE the 1-160 program window, so it cannot collide with any sibling unit's numbered range.",
+  "registry_index": 187,
+  "source_registry_id": "exec-harness-restore-live-full-power",
+  "family": "H-executed-corpus",
+  "is_extension": true,
+  "kind": "executed Claude Code Workflow script (.js, run-record backed)",
+  "runtime": "claude-code Workflow runtime",
+  "what_it_does": "Reconcile live harness <- origin/main (bidirectional-safe), repair dead firing paths (recall/agent-mail), verify every hook fires, restore proactive basic-memory + autonomy. Read-only diagnose; owner applies verified low-risk.",
+  "provenance": [
+   "live-script :: C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js"
+  ],
+  "primary_anchor": "C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js",
+  "primary_size": "29609 B / 320 lines",
+  "deployment_state": "executed-and-retained: the run record referenced this script and the file is still on disk (70 of the 72 catalogued Family-H provenance paths still resolve; the corpus itself records 364 of 668 scripts already swept away, so this population is decaying)",
+  "license": "UNDECLARED",
+  "license_source": "owner-authored scratch workflow under the Claude Code projects tree; no license header in the script, no LICENSE beside it, and no top-level LICENSE in agent-skills-toolchain at 07f465f37d49. The prior registry's 'owner-authored / private estate' is an assertion with no on-disk license source.",
+  "third_party_license_anchors": [
+   "none found in body"
+  ],
+  "vendoring_origin": "not declared",
+  "maintenance_state": [
+   "live-script mtime 2026-08-06T15:57:57.901337Z (29609 B)",
+   "prior registry maintenance string: run status=completed, agentCount=164, durationMs=19597131, phases=5; script file still on disk"
+  ],
+  "copy_consistency": "single copy on disk; no repo-side twin exists for the executed corpus",
+  "task_fit": "The direct ancestor of this program: a full-power harness-restore fan-out whose measured topology (phase count, fan-out width, typed fan-in count, null-tolerant barrier count) is the empirical baseline for what a real large wave on this estate looks like.",
+  "stages": [
+   "phase('Diagnose  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:219]",
+   "phase('Verify  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:247]",
+   "phase('Sweep  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:283]",
+   "phase('Synthesize  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:297]"
+  ],
+  "roles": [
+   "orchestrator",
+   "fan-out worker",
+   "synthesiser"
+  ],
+  "tools": [
+   "claude-code Workflow globals: agent(), parallel(), phase()"
+  ],
+  "stop_rules": [
+   "#199 git-hygiene budget, #223/#220 session-leak). Live may be STALE where main fixed things.  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:92]",
+   "log(`Sweep: ${fresh.length} new (CAP: 1 round only — did NOT converge to dry; coverage is bounded, not complete)`)  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:294]"
+  ],
+  "failure_behaviour": [
+   "const lanes = results.filter(Boolean)  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:236]",
+   "const g = vs.filter(Boolean)  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:263]",
+   "const sev = g.map(v => v.corrected_severity).filter(Boolean).sort((a,b)=>order.indexOf(a)-order.indexOf(b))  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:267]",
+   "const tiers = g.map(v => v.corrected_apply_tier).filter(Boolean).sort((a,b)=>tierRank[a]-tierRank[b])  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:270]",
+   "const judged = verdicts.filter(Boolean)  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:276]",
+   "const fresh = sweepResults.filter(Boolean).flatMap(r => r.findings || [])  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js:292]"
+  ],
+  "benchmark_evidence": [
+   "measured by reading the script: phase() sites=4, agent() sites=5, parallel() sites=3, schema: fan-ins=4, filter(Boolean) barriers=6, worktree mentions=0, longrun mentions=0, model pins=none  [C:/Users/Prekzursil/.claude/projects/C--Users-Prekzursil/30bd50d4-5a72-4c19-8fd5-85b6430c7b7d/workflows/scripts/harness-restore-live-full-power-wf_fb735c77-be5.js]",
+   "prior registry evidence (regex over the run record, NOT a read): run record C:\\Users\\Prekzursil\\.claude\\projects\\C--Users-Prekzursil\\30bd50d4-5a72-4c19-8fd5-85b6430c7b7d\\workflows\\wf_fb735c77-be5.json ; script 29199 bytes"
+  ],
+  "classification": "DISTILL",
+  "classification_basis": "First actual READ of this entry - the prior archaeology states every Family-H classification is 'derived from the run record plus a regex mechanism scan - not a read of the script' and marks it UNVERIFIED. The read shows a one-off scratch orchestration script (320 lines) bound to the Claude Code Workflow runtime with hard-coded, session-specific prompts, so it is not re-runnable as a product; its value is the measured topology (fan-out width, typed fan-in ratio, barrier discipline) which distils into the blueprint library. Prior mechanical classification was DISTILL.",
+  "prior_classification": "DISTILL",
+  "classification_changed": false,
+  "distinctness": "Distinct by construction: a run-record-backed executed script on the projects tree, not a SKILL.md; it shares no path, id or namespace with any of the 32 slice candidates, and the near-duplicate scan over the 328-skill vault does not apply to it.",
+  "materially_distinct": true,
+  "status": "VERIFIED-ON-DISK",
+  "coverage_note": "Topology counts are MEASURED by regex over the script bytes with line anchors; the script was NOT executed, so its behaviour is UNVERIFIED as behaviour (settled by re-running it against a scratch target and recording the run record). Only ONE of the 259 unread Family-H scripts was read here - the reservoir remains overwhelmingly unharvested, which is the honest residual, not a coverage claim."
+ }
+]

@@ -1,0 +1,299 @@
+{
+ "answer": "No. recompute_tally filters by recused seat identity. On the five-seat fixture the recorded tally is approve=3/reject=2 (decision approve) and the recomputed tally is 2-2 (no decision). The recused approve is in the ledger and the census, not the count.",
+ "artifact_paths": [
+  "tools/council/integrity/recusal.py",
+  "tools/council/integrity/__init__.py",
+  "tools/council/__init__.py",
+  "command-center/p2-wave/probes/IMP-0361/scenario.py",
+  "command-center/p2-wave/probes/IMP-0361/probe1_lifecycle.py",
+  "command-center/p2-wave/probes/IMP-0361/probe2_recused_ballot.py",
+  "command-center/receipts/IMP-0361.json"
+ ],
+ "artifacts": [
+  {
+   "bytes": 15073,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/integrity/recusal.py",
+   "role": "implementation",
+   "sha256": "185cd248f0f46741b776077e3b5d21e4f017d665e54e4559c0166910efbb239a"
+  },
+  {
+   "bytes": 256,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/integrity/__init__.py",
+   "role": "supporting",
+   "sha256": "21b692f97618295280263a423f238816a8e8a766a1e10a8ea2ab1b7708fed3a2"
+  },
+  {
+   "bytes": 69,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/council/__init__.py",
+   "role": "supporting",
+   "sha256": "eeae6dbe5a07b7105f94fbca52c53a63c372e61a1c1f797d46ca7908af3c91a1"
+  },
+  {
+   "bytes": 6501,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0361/scenario.py",
+   "role": "fixture",
+   "sha256": "4b1a49c71a2c719014794c4c4cbdd475232537ada6b441d97577dc686685d41b"
+  },
+  {
+   "bytes": 5480,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0361/probe1_lifecycle.py",
+   "role": "probe",
+   "sha256": "0c277ea6a4f0941efb2f033804f95e2e0626762095cc6964e47811c6d93e57ec"
+  },
+  {
+   "bytes": 2988,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0361/probe2_recused_ballot.py",
+   "role": "probe",
+   "sha256": "3c2ffaf52dce52195ff72003df8b205db6f4d279a186e4504cdd6a30fbd01193"
+  }
+ ],
+ "cloud_ok": false,
+ "completion_sentinel": "SUCCESS:IMP-0361",
+ "evidence": [
+  {
+   "anchor": "tools/council/integrity/recusal.py:320",
+   "claim": "Tally recomputation excluding recused ballots diverges from the recorded tally: recorded approve=3 elects approve; recomputed approve=2/reject=2 elects nobody. Recused seat seat-A is in recorded counting seats and absent from recomputed counting seats.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.declare_recuse_replace",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"differ\": true, \"recomputed\": {\"approve\": 2, \"reject\": 2}, \"recorded\": {\"approve\": 3, \"reject\": 2}}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0361/probe1_lifecycle.py",
+     "exit_code": null,
+     "method": "command",
+     "raw_output": "named probe1 re-runs lifecycle + quorum void/restore against the live module",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/integrity/recusal.py:325",
+   "claim": "Artifact census: idea-A1 hash is unchanged across recusal (1d041760ca8512c8\u2026). missing_ids empty. Recusal records retained_contribution_ids rather than deleting the recused author's ideas.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.declare_recuse_replace.census",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"hash_drift\": [], \"missing_ids\": [], \"post_ids\": [\"idea-A1\"], \"post_total\": 2, \"pre_ids\": [\"idea-A1\"], \"pre_total\": 2, \"recused_seat_id\": \"seat-A\", \"retained\": true}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/integrity/recusal.py:12",
+   "claim": "Replacement seat-F inherits 0 ballots (replace_inherited_ballots=0). Anchor tools/council/integrity/recusal.py:12.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.declare_recuse_replace.replace",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "inherited_ballots=0",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/council/integrity/recusal.py:355",
+   "claim": "Quorum: original floor 3 of 5. One recusal leaves eligible=4 (met). Recusing three seats leaves eligible=2 (void, no decision). Replacing one recused seat restores eligible=3.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "scenario.quorum_void_then_restore",
+     "exit_code": 0,
+     "method": "command",
+     "raw_output": "{\"restored_counts\": {\"approve\": 2}, \"restored_decision\": \"approve\", \"restored_eligible_n\": 3, \"restored_met\": true, \"restored_void\": false, \"void\": true, \"void_decision\": null, \"void_eligible_n\": 2, \"void_reason\": \"quorum\", \"void_required\": 3}",
+     "role": "source"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "id": "IMP-0361",
+ "implementation": {
+  "api": [
+   "RecusalSession.declare",
+   "RecusalSession.recuse",
+   "RecusalSession.replace",
+   "RecusalSession.recompute_tally",
+   "RecusalSession.recorded_tally",
+   "RecusalSession.audit_counting_ballots",
+   "RecusalSession.contribution_census",
+   "RecusalSession.recompute_quorum"
+  ],
+  "detector": "RECUSED_BALLOT_IN_TALLY",
+  "module": "tools/council/integrity/recusal.py",
+  "quorum_rule": "absolute floor ceil(original_n * ratio); eligible = non-recused seats including replacements; void if eligible < floor",
+  "replacement_inherits_ballots": false
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0361/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measured": {
+  "after_replace_eligible_n": 5,
+  "census_retained": true,
+  "differ": true,
+  "idea_a1_hash": "1d041760ca8512c8aa6f298166d1e1a7fa9b7035917de0acded55dd4cf329bd4",
+  "inherited_ballots": 0,
+  "negative_control": {
+   "both_states": true,
+   "code": "RECUSED_BALLOT_IN_TALLY",
+   "honest_fired": false,
+   "leaked_ballots": [
+    "b-seat-A-r1"
+   ],
+   "leaked_seats": [
+    "seat-A"
+   ],
+   "planted_fired": true
+  },
+  "post_recusal_eligible_n": 4,
+  "post_recusal_quorum_met": true,
+  "pre_decision": "approve",
+  "quorum_void": {
+   "restored_counts": {
+    "approve": 2
+   },
+   "restored_decision": "approve",
+   "restored_eligible_n": 3,
+   "restored_met": true,
+   "restored_void": false,
+   "void": true,
+   "void_decision": null,
+   "void_eligible_n": 2,
+   "void_reason": "quorum",
+   "void_required": 3
+  },
+  "recomputed_approve": 2,
+  "recomputed_decision": null,
+  "recomputed_reject": 2,
+  "recorded_approve": 3,
+  "recorded_decision": "approve",
+  "recorded_reject": 2,
+  "recused_seat": "seat-A",
+  "recused_still_counts": false,
+  "replacement_seat": "seat-F"
+ },
+ "min_bytes_threshold": 128,
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0361/probe1_lifecycle.py",
+   "id": "probe1",
+   "role": "lifecycle-quorum"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0361/probe2_recused_ballot.py",
+   "id": "probe2",
+   "role": "recused-ballot-in-tally"
+  }
+ ],
+ "negative_control_ids": [
+  "IMP-0361-NC-RECUSED-BALLOT-IN-TALLY"
+ ],
+ "negative_controls": [
+  {
+   "anchor": "tools/council/integrity/recusal.py:422",
+   "bad_state_output": "fired=True code=RECUSED_BALLOT_IN_TALLY leaked=['seat-A']",
+   "description": "Leave the recused seat's ballot in the proposed counting set. audit_counting_ballots must fire RECUSED_BALLOT_IN_TALLY. Honest recompute of the same session must be silent.",
+   "fired_on_bad_state": true,
+   "good_state_output": "fired=False code=SILENT",
+   "id": "IMP-0361-NC-RECUSED-BALLOT-IN-TALLY",
+   "kind": "known-broken-counting-set",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0361: live named probes must exit 0 against tools/council/integrity/recusal.py. cloud ok=true is not delivery. Did not run global unit_manifest.py --write.",
+ "output_path": "command-center/receipts/IMP-0361.json",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-runtime-module",
+ "produced_by": {
+  "execution_substrate": "linux-local",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "question_or_target": "Implement tools/council/integrity/recusal.py handling declare-recuse-replace, recomputing quorum and preserving the recused participant's pre-recusal contributions. Falsifiable question: after a recusal, does any vote cast by the recused participant still count toward the decision?",
+ "residual_unknowns": [
+  {
+   "claim": "Catalog inputs 11-COUNCIL-SPECIFICATION.md, 11-COUNCIL-SPECIFICATION.schema.json, and _USER-PROMPTS.md:10915-10946 are absent on this worktree. Quorum ratio 0.6 and majority-of-eligible are catalog-bound choices, not a parsed spec file.",
+   "settling_experiment": "When the spec files are present, parse the quorum and recusal clauses and diff them against RecusalSession.",
+   "verdict": "NOT-CHECKED"
+  },
+  {
+   "claim": "Dependency modules tools/council/vote/tally.py (IMP-0302), tools/council/participants/replace.py (IMP-0275), and tools/council/integrity/coi.py (IMP-0277) are absent. RecusalSession owns recusal-time exclusion, replacement seating without vote inheritance, and a declared-conflict record. A later tally.py must consume counting_ballots() rather than the raw ledger.",
+   "settling_experiment": "After IMP-0302 ships, pass recompute_tally's counting set into tally.py and assert the same 2-2 outcome.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 starts from audit_counting_ballots, not the author's lifecycle summary. It plants the recorded (recused-included) ballot list as the counting set and requires FIRE, then requires silence on counting_ballots() from the same session.",
+  "reviewer_id": "IMP-0361-probe2-recused-ballot-in-tally",
+  "verdict": "PASS"
+ },
+ "reviewer_verdict": "PASS",
+ "schema_version": 1,
+ "scope": {
+  "does_not_claim": [
+   "cloud ok=true is delivery",
+   "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+   "tools/council/vote/tally.py exists",
+   "11-COUNCIL-SPECIFICATION.md is on this tree"
+  ],
+  "proof_surface": "Hermetic five-seat RecusalSession in process memory. No live model calls. Detector is audit_counting_ballots."
+ },
+ "sentinel": "SUCCESS:IMP-0361",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0361 tools/council/integrity/recusal.py declare-recuse-replace; catalog evidence: tally recomputation excluding recused ballots compared to recorded tally; census of retained pre-recusal contributions. Inputs 11-COUNCIL-SPECIFICATION.md and _USER-PROMPTS.md:10915-10946 are absent on this Linux worktree.",
+ "state": "SUCCESS",
+ "test_ids": [
+  "IMP-0361-lifecycle-quorum",
+  "IMP-0361-recused-ballot-in-tally"
+ ],
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0361/probe1_lifecycle.py",
+   "id": "IMP-0361-lifecycle-quorum",
+   "name": "unit: recusal lifecycle and quorum recomputation",
+   "result": "PENDING-NAMED-PROBE"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0361/probe2_recused_ballot.py",
+   "id": "IMP-0361-recused-ballot-in-tally",
+   "name": "negative control: recused ballot left in tally FIRES",
+   "result": "PENDING-NAMED-PROBE"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:04:07+00:00",
+  "started_at": "2026-08-25T01:04:07+00:00"
+ },
+ "title": "Recusal workflow with quorum recomputation",
+ "unit_id": "IMP-0361"
+}

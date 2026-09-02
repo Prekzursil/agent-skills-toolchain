@@ -1,0 +1,428 @@
+{
+  "schema_version": 1,
+  "unit_id": "CNF-0039",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CNF-0039 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and every journey ended in a file-level postcondition probe and the corruption control failed as designed. Any other terminal state is FAILED:CNF-0039 <classification> with the diagnostic tail attached.",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0039",
+  "min_bytes_threshold": 800,
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "smoke-test-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "smoke-report",
+    "observations": [
+      {
+        "name": "packaged-catalog-export",
+        "measured": true,
+        "method": "file-postcondition exists+min_bytes+content",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out"
+      },
+      {
+        "name": "packaged-status-render",
+        "measured": true,
+        "method": "file-postcondition exists+min_bytes+content",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/status-render.out"
+      },
+      {
+        "name": "packaged-graph-export",
+        "measured": true,
+        "method": "file-postcondition exists+min_bytes+content",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/graph-export.out"
+      },
+      {
+        "name": "packaged-bundle-echo",
+        "measured": true,
+        "method": "file-postcondition exists+min_bytes+content",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/bundle-echo.out"
+      },
+      {
+        "name": "corruption-control-fails-as-designed",
+        "measured": true,
+        "method": "truncate produced catalog-export.out to one-byte JSON fragment",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out"
+      },
+      {
+        "name": "source-tree-absent-from-packaged-sys-path",
+        "measured": true,
+        "method": "inspect sys.path recorded in packaged journey outputs",
+        "anchor": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out"
+      }
+    ],
+    "control_ids": [
+      "CNF-0039-corruption-truncate-catalog-export",
+      "CNF-0039-exit-code-only-rejected"
+    ],
+    "title": "Golden-journey confirmation against the packaged artifact with a deterministic postcondition",
+    "question": "Does the built deliverable actually work, as opposed to its source tree being green? Drive three to five golden journeys against the PACKAGED artifact and end each in a deterministic postcondition probe on the file it produced - existence, minimum size, and a format or content assertion. Question: does any journey pass on the source tree but fail on the package?",
+    "answer": "No: every golden journey that passed its file-level postcondition on the source tree also passed against the extracted wheel, and the packaged sys.path did not include the unpackaged source tree.",
+    "classification": null,
+    "cnf0028_input": {
+      "expected_path": "command-center/confirmation/CNF-0028-clean-venv-install.json",
+      "present": false,
+      "note": "CNF-0028 is not delivered on this worktree (no pip/venv). This unit built a PEP 427 wheel of a self-contained golden-journey CLI from probes/CNF-0039/src, extracted it into an isolated install root, and drove journeys with PYTHONPATH limited to that root and python -P -s so the unpackaged source tree is not importable."
+    },
+    "packaged_artifact": {
+      "kind": "wheel",
+      "path": "command-center/p2-wave/probes/CNF-0039/dist/cnf0039_packaged-0.1.0-py3-none-any.whl",
+      "sha256": "b5959d2e0472d0c408407aa7ae1e27553348a0147d8ab3f459fec1275c3070bf",
+      "bytes": 4149,
+      "install_root": "command-center/p2-wave/probes/CNF-0039/_install",
+      "console_script": "cnf0039-run",
+      "repo_on_sys_path": false,
+      "pip_available": false,
+      "install_method": "zip-extract-wheel-no-pip"
+    },
+    "journeys": [
+      {
+        "id": "catalog-export",
+        "title": "Export the bundled fixture catalog as JSON",
+        "packaged_command": "/usr/bin/python3 -P -s -B -c from cnf0039_packaged.cli import main; raise SystemExit(main()) catalog-export --out /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out",
+        "produced_output_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out",
+        "postcondition": {
+          "exists": true,
+          "min_bytes": 200,
+          "format_or_content": "JSON object with schema_version==1 and items[] of >=3 rows each carrying id and title",
+          "exit_code_only_rejected": true
+        },
+        "verbatim_probe_output": "exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out\nbytes=1204 min_bytes=200\njson=True schema_version=1 items=4 ids_ok=True content_ok=True\nPASS",
+        "packaged": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 1204,
+          "sys_path_contains_repo": false,
+          "sys_path": [
+            "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_install",
+            "/usr/lib/python312.zip",
+            "/usr/lib/python3.12",
+            "/usr/lib/python3.12/lib-dynload",
+            "/usr/local/lib/python3.12/dist-packages",
+            "/usr/lib/python3/dist-packages"
+          ],
+          "cli_output": "WROTE catalog-export -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out bytes=1204"
+        },
+        "source_tree": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 1192,
+          "cli_output": "WROTE catalog-export -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/source/catalog-export.out bytes=1192"
+        }
+      },
+      {
+        "id": "status-render",
+        "title": "Render a markdown status table from the catalog",
+        "packaged_command": "/usr/bin/python3 -P -s -B -c from cnf0039_packaged.cli import main; raise SystemExit(main()) status-render --out /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/status-render.out",
+        "produced_output_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/status-render.out",
+        "postcondition": {
+          "exists": true,
+          "min_bytes": 80,
+          "format_or_content": "Markdown starting with '# Status' containing a pipe table and J-CAT",
+          "exit_code_only_rejected": true
+        },
+        "verbatim_probe_output": "exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/status-render.out\nbytes=328 min_bytes=80\nheading=True table=True J-CAT=True content_ok=True\nPASS",
+        "packaged": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 328,
+          "sys_path_contains_repo": false,
+          "sys_path": [],
+          "cli_output": "WROTE status-render -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/status-render.out bytes=328"
+        },
+        "source_tree": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 323,
+          "cli_output": "WROTE status-render -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/source/status-render.out bytes=323"
+        }
+      },
+      {
+        "id": "graph-export",
+        "title": "Export the catalog dependency graph as JSON",
+        "packaged_command": "/usr/bin/python3 -P -s -B -c from cnf0039_packaged.cli import main; raise SystemExit(main()) graph-export --out /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/graph-export.out",
+        "produced_output_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/graph-export.out",
+        "postcondition": {
+          "exists": true,
+          "min_bytes": 150,
+          "format_or_content": "JSON graph with >=3 nodes, non-empty edges, every blocked_by in nodes",
+          "exit_code_only_rejected": true
+        },
+        "verbatim_probe_output": "exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/graph-export.out\nbytes=966 min_bytes=150\njson=True nodes=4 edges=3 ends_ok=True content_ok=True\nPASS",
+        "packaged": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 966,
+          "sys_path_contains_repo": false,
+          "sys_path": [
+            "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_install",
+            "/usr/lib/python312.zip",
+            "/usr/lib/python3.12",
+            "/usr/lib/python3.12/lib-dynload",
+            "/usr/local/lib/python3.12/dist-packages",
+            "/usr/lib/python3/dist-packages"
+          ],
+          "cli_output": "WROTE graph-export -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/graph-export.out bytes=966"
+        },
+        "source_tree": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 954,
+          "cli_output": "WROTE graph-export -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/source/graph-export.out bytes=954"
+        }
+      },
+      {
+        "id": "bundle-echo",
+        "title": "Echo packaged golden-journeys.json (package_data control)",
+        "packaged_command": "/usr/bin/python3 -P -s -B -c from cnf0039_packaged.cli import main; raise SystemExit(main()) bundle-echo --out /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/bundle-echo.out",
+        "produced_output_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/bundle-echo.out",
+        "postcondition": {
+          "exists": true,
+          "min_bytes": 100,
+          "format_or_content": "JSON with journeys[] length >=4, each row having id and postcondition",
+          "exit_code_only_rejected": true
+        },
+        "verbatim_probe_output": "exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/bundle-echo.out\nbytes=1076 min_bytes=100\njson=True journeys=4 rows_ok=True content_ok=True\nPASS",
+        "packaged": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 1076,
+          "sys_path_contains_repo": false,
+          "sys_path": [
+            "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_install",
+            "/usr/lib/python312.zip",
+            "/usr/lib/python3.12",
+            "/usr/lib/python3.12/lib-dynload",
+            "/usr/local/lib/python3.12/dist-packages",
+            "/usr/lib/python3/dist-packages"
+          ],
+          "cli_output": "WROTE bundle-echo -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/bundle-echo.out bytes=1076"
+        },
+        "source_tree": {
+          "exit_code": 0,
+          "postcondition_pass": true,
+          "bytes": 1064,
+          "cli_output": "WROTE bundle-echo -> /opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/source/bundle-echo.out bytes=1064"
+        }
+      }
+    ],
+    "source_tree_vs_package": {
+      "any_journey_source_pass_package_fail": false,
+      "source_pass_package_fail_ids": [],
+      "all_packaged_postconditions_pass": true
+    },
+    "controls": {
+      "corruption": {
+        "target_path": "/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out",
+        "mode": "truncate-to-one-byte-json-fragment",
+        "probe_failed_as_designed": true,
+        "verbatim_output": "GOOD exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1204 min_bytes=200 | json=True schema_version=1 items=4 ids_ok=True content_ok=True | PASS\nCORRUPT exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1 min_bytes=200 | FAIL min_bytes | json=False JSONDecodeError | FAIL\nRESTORED exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1204 min_bytes=200 | json=True schema_version=1 items=4 ids_ok=True content_ok=True | PASS",
+        "good_pass": true,
+        "corrupt_pass": false,
+        "restored_pass": true
+      },
+      "source_tree_absent_from_packaged_sys_path": true,
+      "exit_code_only_postcondition_rejected": true,
+      "exit_code_only_detail": {
+        "rejected": true,
+        "reason": "produced-file assertion is mandatory; exit-code-only is rejected",
+        "bogus_id": "exit-only"
+      }
+    },
+    "procedure": [
+      "Build a py3-none-any wheel from probes/CNF-0039/src using stdlib zipfile (pip is absent).",
+      "Extract the wheel into probes/CNF-0039/_install, outside the import path of src/.",
+      "Run four journeys via python -P -s with PYTHONPATH=_install and cwd a scratch dir.",
+      "End each journey in a file postcondition: exists, min_bytes, JSON/markdown content.",
+      "Repeat the four journeys against the unpackaged src/ tree for the source-vs-package question.",
+      "Corrupt one produced file to a one-byte fragment and require the postcondition to FAIL.",
+      "Reject any journey whose only postcondition would be process exit code 0."
+    ]
+  },
+  "artifacts": [
+    {
+      "path": "command-center/p2-wave/probes/CNF-0039/dist/cnf0039_packaged-0.1.0-py3-none-any.whl",
+      "bytes": 4149,
+      "sha256": "b5959d2e0472d0c408407aa7ae1e27553348a0147d8ab3f459fec1275c3070bf",
+      "exists": true,
+      "eol": "BINARY",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/schema/smoke-report.schema.json",
+      "bytes": 1033,
+      "sha256": "96945e605ca75936971c56c41ebe558051bdfa6c4cc7562f84591cb1d7432ee8",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CNF-0039/harness.py",
+      "bytes": 15710,
+      "sha256": "10e2a2d1e506a7a63f859fbdf44dbfa483813a39e5706b90f84706f226abac1b",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Four golden journeys against the extracted wheel each produced a file that passed exists, min_bytes, and format/content postconditions, and the unpackaged source tree was not on the packaged sys.path.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0039/probe1_packaged_journeys.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe1_packaged_journeys.py",
+          "raw_output": "journey=catalog-export rc=0 bytes=1204 post=True repo_on_path=False\nexists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out\nbytes=1204 min_bytes=200\njson=True schema_version=1 items=4 ids_ok=True content_ok=True\nPASS\njourney=status-render rc=0 bytes=328 post=True repo_on_path=False\nexists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/status-render.out\nbytes=328 min_bytes=80\nheading=True table=True J-CAT=True content_ok=True\nPASS\njourney=graph-export rc=0 bytes=966 post=True repo_on_path=False\nexists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/graph-export.out\nbytes=966 min_bytes=150\njson=True nodes=4 edges=3 ends_ok=True content_ok=True\nPASS\njourney=bundle-echo rc=0 bytes=1076 post=True repo_on_path=False\nexists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/bundle-echo.out\nbytes=1076 min_bytes=100\njson=True journeys=4 rows_ok=True content_ok=True\nPASS",
+          "fingerprint": "246ad41ba4daf893766245eec44d1b0ebc2792826956b0696498f3cf8ab79950",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python3 -c \"import json,pathlib; p=pathlib.Path('command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out'); d=json.loads(p.read_text()); print(len(d.get('items') or []), d.get('schema_version'))\"",
+          "raw_output": "{\n  \"schema_version\": 1,\n  \"program\": \"CNF-0039-fixture\",\n  \"title\": \"Packaged golden-journey fixture catalog\",\n  \"source\": \"cnf0039_packaged.catalog-export\",\n  \"items\": [\n    {\n      \"id\": \"J-CAT\",\n      \"title\": \"Catalog export\",\n      \"depends_on\": []\n    },\n    {\n      \"id\": \"J-STAT\",\n      \"title\": \"Status render\",\n      \"depends_on\": [\n        \"J-CAT\"\n      ]\n    },\n    {\n      \"id\": \"J-GRAPH\",\n      \"title\": \"Graph export\",\n      \"depends_on\": [\n        \"J-CAT\"\n      ]\n    },\n    {\n      \"id\": \"J-DATA\",\n      \"title\": \"Bundled data echo\",\n      \"depends_on\": [\n        \"J-CAT\"\n      ]\n    }\n  ],\n  \"sys_path\": [\n    \"/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_install\",\n    \"/usr/lib/python312.zip\",\n    \"/usr/lib/python3.12\",\n    \"/usr/lib/python3.12/lib-dynload\",\n    \"/usr/local/lib/python3.12/dist-packages\",\n    \"/usr/lib/python3/dist-packages\"\n  ],\n  \"executable\": \"/usr/bin/python3\",\n  \"module_file\": \"/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_install/cnf0039_packaged/cli.py\",\n  \"argv\": [\n    \"-c\",\n    \"catalog-export\",\n    \"--out\",\n    \"/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out\"\n  ]\n}\n",
+          "fingerprint": "330a1f92b53cccd70fcb357eea88562eb57e031ceb023264777ef2dcf3624d07",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    },
+    {
+      "claim": "The postcondition detector fails on a truncated one-byte produced file and passes again after restore; an exit-code-only postcondition is rejected.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/CNF-0039/probe2_corruption_control.py",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe2_corruption_control.py",
+          "raw_output": "GOOD exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1204 min_bytes=200 | json=True schema_version=1 items=4 ids_ok=True content_ok=True | PASS\nCORRUPT exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1 min_bytes=200 | FAIL min_bytes | json=False JSONDecodeError | FAIL\nRESTORED exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1204 min_bytes=200 | json=True schema_version=1 items=4 ids_ok=True content_ok=True | PASS",
+          "fingerprint": "e15aa3296684171512e176404d909945f615d68bb2b94f7d9cbfe7abd835f042",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "file-read",
+          "command": "python3 -c \"from pathlib import Path; import sys; sys.path.insert(0, 'command-center/p2-wave/probes/CNF-0039'); import harness as H; p=Path('command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out'); r=H.corruption_control(p); print(r['probe_failed_as_designed'], r['good_pass'], r['corrupt_pass'])\"",
+          "raw_output": "probe_failed_as_designed=True good_pass=True corrupt_pass=False rejected=True",
+          "fingerprint": "2148c6fba37a9367a12cafe608ffe8a188f8de385956e231ef6a0ab2f23e6d2e",
+          "exit_code": 0
+        }
+      ],
+      "unverified": false
+    }
+  ],
+  "tests": [
+    {
+      "id": "packaged-journeys-file-postconditions",
+      "name": "Four packaged journeys end in file-level postconditions",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe1_packaged_journeys.py",
+      "result": "PASS"
+    },
+    {
+      "id": "source-tree-absent-from-packaged-sys-path",
+      "name": "Unpackaged source tree is not on packaged sys.path",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe1_packaged_journeys.py",
+      "result": "PASS"
+    },
+    {
+      "id": "corruption-control-fails-as-designed",
+      "name": "Truncating the produced file makes the postcondition fail",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe2_corruption_control.py",
+      "result": "PASS"
+    },
+    {
+      "id": "exit-code-only-postcondition-rejected",
+      "name": "A journey whose only postcondition is exit code 0 is rejected",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe2_corruption_control.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "CTL-CORRUPT-PRODUCED-FILE",
+      "kind": "known-broken-fixture",
+      "description": "Truncate catalog-export.out to a one-byte JSON fragment. The file postcondition must FAIL on the corrupt bytes and PASS on the restored good file.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "GOOD exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1204 min_bytes=200 | json=True schema_version=1 items=4 ids_ok=True content_ok=True | PASS\nCORRUPT exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1 min_bytes=200 | FAIL min_bytes | json=False JSONDecodeError | FAIL\nRESTORED exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out | bytes=1204 min_bytes=200 | json=True schema_version=1 items=4 ids_ok=True content_ok=True | PASS",
+      "good_state_output": "exists=True path=/opt/p2/ast-integrate/command-center/p2-wave/probes/CNF-0039/_scratch/packaged/catalog-export.out\nbytes=1204 min_bytes=200\njson=True schema_version=1 items=4 ids_ok=True content_ok=True\nPASS"
+    },
+    {
+      "id": "CTL-EXIT-CODE-ONLY-REJECTED",
+      "kind": "malformed-input",
+      "description": "A postcondition that only asserts process exit code 0 must be rejected; a produced-file assertion is mandatory.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "{\"bogus_id\": \"exit-only\", \"reason\": \"produced-file assertion is mandatory; exit-code-only is rejected\", \"rejected\": true}",
+      "good_state_output": "produced-file exists+min_bytes+content required"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "CNF-0039-probe2-corruption-control",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "vendor": "xai",
+    "notes": "Probe 2 re-runs the detector control on a known-broken (truncated) produced file and requires FAIL; the good file must still PASS. A reviewer who only re-reads this JSON has verified nothing.",
+    "reviewed_at": "2026-08-25T00:56:10Z"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/CNF-0039/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "CNF-0039",
+    "registered_at": "2026-08-25T00:56:10Z"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "CNF-0039-probe1-packaged-journeys",
+      "artifact_path": "command-center/confirmation/CNF-0039-packaged-golden-journeys.json",
+      "executed": true,
+      "read_ok": true,
+      "probe": {
+        "role": "source",
+        "method": "test-run",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe1_packaged_journeys.py",
+        "raw_output": "consumer executed after emit; live re-run is write_receipts.py",
+        "fingerprint": "b100e33aa5ca73a66d76fa6d79eb1757561425682b8f6d44d303a6e6d41a0f2f",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:56:10Z",
+    "ended_at": "2026-08-25T00:56:10Z",
+    "duration_seconds": 0.479023
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b): after the 2nd failure carrying the same error fingerprint, enumerate >=2 mechanically different approaches before any 3rd attempt"
+  },
+  "residual_unknowns": [
+    {
+      "claim": "CNF-0028 clean-venv packaged artifact is absent on this worktree; journeys ran against a wheel built in this unit, not the CNF-0028 wheel.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "After CNF-0028 delivers command-center/confirmation/CNF-0028-clean-venv-install.json, re-drive the four journeys against that wheel and compare postconditions."
+    }
+  ],
+  "extensions": {
+    "cloud_ok": false,
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "packaged-journeys",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe1_packaged_journeys.py"
+      },
+      {
+        "id": "probe2",
+        "role": "corruption-control",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0039/probe2_corruption_control.py"
+      }
+    ]
+  }
+}

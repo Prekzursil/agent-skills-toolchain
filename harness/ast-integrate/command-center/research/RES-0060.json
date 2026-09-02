@@ -1,0 +1,914 @@
+{
+  "answers": {
+    "how_much_is_install_count_feedback": {
+      "documented_default_install_feedback_factor_ids": [
+        "vscode-empty-query-sort-install-count",
+        "chrome-default-downloads-vs-uninstalls",
+        "jetbrains-default-log10-downloads-multiplier"
+      ],
+      "extension_marketplaces_with_documented_default_install_or_usage_input": [
+        "jetbrains-marketplace (log10 downloads multiplier)",
+        "chrome-web-store (downloads vs uninstalls; E3, weights unpublished)",
+        "vscode-marketplace (InstallCount only when the query is empty; text search uses unpublished relevance)"
+      ],
+      "numeric_share_of_rank_variance": "unpublished-in-all-surveyed-default-rankers-except-jetbrains-closed-form-multiplier",
+      "statement": "Install-count (or usage) feedback is a documented default-rank input on JetBrains (closed-form log10 multiplier) and, with unpublished weight, on Chrome (downloads vs uninstalls). VS Code documents install-count as the empty-query sort and as an optional @sort, and a live API probe shows text-search relevance is not identical to install sort. npm website documents download counts as optional sort only. PyPI search source has no download field. This program forbids a popularity term. No honest single percentage of 'the ranking' is install-count feedback across marketplaces; the unpublished-weight share of default-ranking mechanism items is stated below."
+    },
+    "new_package_in_this_programs_index": "Under IMP-0102, a useful new package is findable when the query matches its name, description, tags, or skill names (BM25; no popularity term). It does not need accumulated installs. IMP-0094 quality score is a separate decomposable number that also forbids popularity. The BM25 index is not implemented on this worktree; discoverability here is the contracted ranker, not a live hit list.",
+    "signals_that_drive_discovery": {
+      "documented": [
+        "vscode-optional-sort-installs",
+        "vscode-optional-sort-rating",
+        "vscode-optional-sort-name",
+        "vscode-optional-sort-publishedDate",
+        "vscode-optional-sort-updateDate",
+        "vscode-filter-featured",
+        "vscode-filter-popular",
+        "vscode-default-search-sort-none-or-relevance",
+        "vscode-empty-query-sort-install-count",
+        "chrome-default-user-ratings",
+        "chrome-default-downloads-vs-uninstalls",
+        "chrome-default-listing-metadata",
+        "chrome-default-qualitative-ux",
+        "chrome-badge-may-boost-rank",
+        "npm-default-keyword-matching",
+        "npm-default-spam-or-new-deprioritize-exists",
+        "npm-optional-sort-downloads",
+        "npm-optional-sort-dependents",
+        "npm-optional-sort-last-published",
+        "jetbrains-default-text-relevance",
+        "jetbrains-default-staff-pick-boost-exists",
+        "jetbrains-default-log10-downloads-multiplier",
+        "jetbrains-default-sqrt-rating-multiplier",
+        "jetbrains-category-top-downloaded-pure-downloads",
+        "pypi-default-lexical-field-boosts",
+        "pypi-default-no-download-count",
+        "program-imp0102-bm25-no-popularity",
+        "program-imp0094-quality-no-popularity"
+      ],
+      "inferred": [
+        "vscode-default-relevance-weights-unpublished",
+        "vscode-popular-filter-install-mapping-unpublished",
+        "chrome-default-relative-weights-unpublished",
+        "npm-spam-new-boost-magnitude-unpublished",
+        "jetbrains-staff-pick-coefficient-value-unpublished",
+        "jetbrains-text-field-match-weights-unpublished"
+      ]
+    }
+  },
+  "claims": [
+    {
+      "canonical_mechanism": "VS Code Marketplace documents install-count as an explicit optional sort key (@sort:installs) and the gallery API honours sortBy=4 as descending install count.",
+      "confidence_band": "high",
+      "evidence_tier": "E1",
+      "id": "C-VS-OPTIONAL-INSTALL-SORT",
+      "measured_fact": true,
+      "named_settling_probe": "probe2_dual_rail_and_api.py",
+      "rails": [
+        {
+          "bytes": 94988,
+          "capture_id": "vscode-docs-extension-marketplace",
+          "fetched_at": "2026-08-24T18:55:56Z",
+          "http_status": 200,
+          "kind": "prose",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-docs-extension-marketplace.html",
+          "permalink": "https://code.visualstudio.com/docs/configure/extensions/extension-marketplace",
+          "quoted_span": "installs</code> - Sort by Marketplace installation count, in descending order.",
+          "sha256": "1d7f43d2debfee0172cf4603c0abba05b024c8fd89fc41bcc233c25c80d85166"
+        },
+        {
+          "bytes": 195782,
+          "capture_id": "vscode-api-sort-installs",
+          "fetched_at": "2026-08-24T18:56:00Z",
+          "http_status": 200,
+          "kind": "api",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-api-sort-installs.json",
+          "permalink": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=7.2-preview.1",
+          "quoted_span": "\"statisticName\":\"install\"",
+          "sha256": "52d20529912d811cd75f95e81c02b56a01b308329dffbefbce025536012a371a"
+        }
+      ],
+      "strongest_caveat": "Optional sort is not the default text-search ranker."
+    },
+    {
+      "canonical_mechanism": "For query text 'python', gallery sortBy=0 (relevance) returns a different top-8 than sortBy=4 (installs). vscode source sends NoneOrRelevance when the query has text and InstallCount when it does not.",
+      "confidence_band": "high",
+      "evidence_tier": "E1",
+      "id": "C-VS-DEFAULT-NEQ-INSTALLS",
+      "measured_fact": true,
+      "named_settling_probe": "probe2_dual_rail_and_api.py",
+      "observation": {
+        "installs_sort_install_counts": [
+          233603782,
+          200436657,
+          138984895,
+          108377002,
+          77786236,
+          74433702,
+          62241895,
+          53739130
+        ],
+        "installs_top8": [
+          "ms-python.python",
+          "ms-python.vscode-pylance",
+          "ms-python.debugpy",
+          "ms-toolsai.jupyter",
+          "GitHub.copilot-chat",
+          "GitHub.copilot",
+          "VisualStudioExptTeam.vscodeintellicode",
+          "ms-python.vscode-python-envs"
+        ],
+        "orders_equal": false,
+        "query": "python",
+        "relevance_install_counts": [
+          233603782,
+          277664,
+          18508150,
+          138984895,
+          53739130,
+          14365424,
+          14144331,
+          6682178
+        ],
+        "relevance_top8": [
+          "ms-python.python",
+          "shiro.pythonpack",
+          "KevinRose.vsc-python-indent",
+          "ms-python.debugpy",
+          "ms-python.vscode-python-envs",
+          "donjayamanne.python-environment-manager",
+          "donjayamanne.python-extension-pack",
+          "tht13.python"
+        ]
+      },
+      "rails": [
+        {
+          "bytes": 89803,
+          "capture_id": "vscode-source-gallery-service",
+          "fetched_at": "2026-08-24T18:55:58Z",
+          "http_status": 200,
+          "kind": "prose",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-source-gallery-service.ts",
+          "permalink": "https://raw.githubusercontent.com/microsoft/vscode/main/src/vs/platform/extensionManagement/common/extensionGalleryService.ts",
+          "quoted_span": "query = query.withSortBy(SortBy.NoneOrRelevance);",
+          "sha256": "eb750cedfbb424f003adb4105a07898bbea306a073e831b1d71a9f16c8e4b16e"
+        },
+        {
+          "bytes": 143533,
+          "capture_id": "vscode-api-sort-relevance",
+          "fetched_at": "2026-08-24T18:56:00Z",
+          "http_status": 200,
+          "kind": "api",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-api-sort-relevance.json",
+          "permalink": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=7.2-preview.1",
+          "quoted_span": "\"extensionName\":\"python\"",
+          "sha256": "46c8fdde514617af4e34733e299ed6fea830b05ea16bed3362335c80fa5fc545"
+        }
+      ],
+      "strongest_caveat": "This refutes 'default rank IS install count'. It does not prove install count is unused inside relevance; that weight is unpublished."
+    },
+    {
+      "canonical_mechanism": "JetBrains Marketplace default search multiplies the post-staff-pick score by log10(1 + 5 * downloads_count) and then by sqrt(rating). That is documented install-count feedback in default ranking.",
+      "confidence_band": "high",
+      "evidence_tier": "E1",
+      "id": "C-JB-DEFAULT-DOWNLOAD-MULTIPLIER",
+      "measured_fact": true,
+      "named_settling_probe": "probe2_dual_rail_and_api.py",
+      "rails": [
+        {
+          "bytes": 10377,
+          "capture_id": "jetbrains-docs-ranking",
+          "fetched_at": "2026-08-24T18:55:58Z",
+          "http_status": 200,
+          "kind": "prose",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/jetbrains-docs-ranking.html",
+          "permalink": "https://plugins.jetbrains.com/docs/marketplace/plugins-ranking.html",
+          "quoted_span": "log10(1 + 5 * downloads_count)",
+          "sha256": "66f0dd6f23a4fa5d7db273967d8cc3cc93a9136c34a547371f10b0d4657210ba"
+        },
+        {
+          "bytes": 4459,
+          "capture_id": "jetbrains-api-search",
+          "fetched_at": "2026-08-24T18:56:02Z",
+          "http_status": 200,
+          "kind": "api",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/jetbrains-api-search.json",
+          "permalink": "https://plugins.jetbrains.com/api/searchPlugins?search=python&max=8&offset=0",
+          "quoted_span": "\"downloads\":",
+          "sha256": "558f3d24bde9ece9011e5c226d7d8b93be3e9f0ef22dad63b9d5adfa1251349d"
+        }
+      ],
+      "strongest_caveat": "The log10 term's share of any given ranking is query-dependent. Staff-pick coefficient and per-field text weights remain unpublished."
+    },
+    {
+      "canonical_mechanism": "npm website default search is keyword matching over title, description, readme, and keywords, with no subjective ranking except a minimal boost to deprioritize spammy or entirely new packages. Download counts are an optional sort, not the documented default.",
+      "confidence_band": "high",
+      "evidence_tier": "E1",
+      "id": "C-NPM-WEBSITE-DEFAULT-LEXICAL",
+      "measured_fact": true,
+      "named_settling_probe": "probe2_dual_rail_and_api.py",
+      "rails": [
+        {
+          "bytes": 492926,
+          "capture_id": "npm-docs-search",
+          "fetched_at": "2026-08-24T18:55:58Z",
+          "http_status": 200,
+          "kind": "prose",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/npm-docs-search.html",
+          "permalink": "https://docs.npmjs.com/searching-for-and-choosing-packages-to-download/",
+          "quoted_span": "No subjective ranking criteria are applied, except for a minimal boost to deprioritize spammy or entirely new packages",
+          "sha256": "a701baf3519363257269ed4e5a72df5dc2635899f8ee301198cf965091b78335"
+        },
+        {
+          "bytes": 7670,
+          "capture_id": "npm-registry-api-docs",
+          "fetched_at": "2026-08-24T18:55:58Z",
+          "http_status": 200,
+          "kind": "api",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/npm-registry-api-docs.md",
+          "permalink": "https://raw.githubusercontent.com/npm/registry/master/docs/REGISTRY-API.md",
+          "quoted_span": "| popularity | float | **Query** |",
+          "sha256": "c1a02613e268b1cc22304eadb37861fe3ee7deaaceae31def8e98670308b3e48"
+        }
+      ],
+      "strongest_caveat": "Registry API still documents quality/popularity/maintenance weights. Website docs (2025-02-13) say default web search does not apply those subjective criteria. The two surfaces disagree; this unit does not collapse them."
+    },
+    {
+      "canonical_mechanism": "PyPI Warehouse search ranks by lexical multi_match with published field boosts. SEARCH_FIELDS contains no download-count field. packaging.python.org states PyPI does not display download statistics.",
+      "confidence_band": "high",
+      "evidence_tier": "E1",
+      "id": "C-PYPI-SEARCH-NO-DOWNLOADS",
+      "measured_fact": true,
+      "named_settling_probe": "probe2_dual_rail_and_api.py",
+      "rails": [
+        {
+          "bytes": 3901,
+          "capture_id": "pypi-warehouse-search-source",
+          "fetched_at": "2026-08-24T18:55:59Z",
+          "http_status": 200,
+          "kind": "api",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/pypi-warehouse-search-source.py",
+          "permalink": "https://raw.githubusercontent.com/pypi/warehouse/main/warehouse/search/queries.py",
+          "quoted_span": "SEARCH_FIELDS = [",
+          "sha256": "873e38cb6f59aa3f3c9e80bb30a37eb00da8f65e95ec537c081e5ef99b593b51"
+        },
+        {
+          "bytes": 63027,
+          "capture_id": "pypi-download-stats-guide",
+          "fetched_at": "2026-08-24T18:55:59Z",
+          "http_status": 200,
+          "kind": "prose",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/pypi-download-stats-guide.html",
+          "permalink": "https://packaging.python.org/en/latest/guides/analyzing-pypi-package-downloads/",
+          "quoted_span": "PyPI does not display download statistics for a number of reasons:",
+          "sha256": "d93ee6df7745fdb4acb8650143daf6b4cc0559fe2e86b863211987c203c7e585"
+        }
+      ],
+      "strongest_caveat": "Absence of download stats on the project page is not by itself a search-rank proof; the SEARCH_FIELDS source is the rank proof. Together they are two rails."
+    },
+    {
+      "canonical_mechanism": "This program's contracted index (IMP-0102) is BM25 over package name, description, tags and skill names with no popularity term; ranking must be explainable from the query and the document alone. IMP-0094 independently forbids popularity as a quality-score input. The fixture registry has no install/download/popularity keys. A useful new package is discoverable iff its lexical fields match the query; it does not need an install ramp. The search index itself is not implemented on this worktree.",
+      "confidence_band": "high",
+      "evidence_tier": "E1",
+      "id": "C-PROGRAM-INDEX-FORBIDS-POPULARITY",
+      "measured_fact": true,
+      "named_settling_probe": "probe1_documented_inferred_split.py",
+      "rails": [
+        {
+          "bytes": 5284323,
+          "capture_id": null,
+          "fetched_at": "2026-08-26T02:06:50Z",
+          "http_status": 200,
+          "kind": "api",
+          "note": "IMP-0102 question_or_target in the catalog JSON.",
+          "path": "command-center/WORK-UNIT-CATALOG.json",
+          "permalink": "file://command-center/WORK-UNIT-CATALOG.json",
+          "quoted_span": "with no popularity term",
+          "sha256": "98eebae2b683e4e1f4c683b79c9c9ab7eb64dc3e272731a1fc8f427a4b8ba171"
+        },
+        {
+          "bytes": 537,
+          "capture_id": null,
+          "fetched_at": "2026-08-26T02:06:50Z",
+          "http_status": 200,
+          "kind": "prose",
+          "note": "IMP-0118 known-good fixture index has no popularity/install/download keys.",
+          "path": "tools/marketplace/fixture/registry/index.json",
+          "permalink": "file://tools/marketplace/fixture/registry/index.json",
+          "quoted_span": "\"schema\": \"marketplace-index/v1\"",
+          "sha256": "66d005f6b83b278ba89ba0689f92c8a2d22f37d55266896c5c5c1d49e3b061a9"
+        }
+      ],
+      "strongest_caveat": "This is a catalog contract plus fixture schema, not a live BM25 measurement. IMP-0102 search code is absent."
+    },
+    {
+      "canonical_mechanism": "Chrome Web Store operator docs state ranking is a heuristic over user ratings and usage statistics (downloads vs uninstalls over time), plus listing metadata, qualitative UX, and possible badge boosts. Weights are unpublished. No public ranking API was obtained.",
+      "confidence_band": "medium",
+      "evidence_tier": "E3",
+      "id": "C-CWS-DOCUMENTED-HEURISTIC-SINGLE-RAIL",
+      "measured_fact": false,
+      "named_settling_probe": "probe1_documented_inferred_split.py",
+      "rails": [
+        {
+          "bytes": 140180,
+          "capture_id": "chrome-docs-discovery",
+          "fetched_at": "2026-08-24T18:55:57Z",
+          "http_status": 200,
+          "kind": "prose",
+          "path": "command-center/p2-wave/probes/RES-0060/captures/chrome-docs-discovery.html",
+          "permalink": "https://developer.chrome.com/docs/webstore/discovery",
+          "quoted_span": "the number of downloads vs. uninstalls over time",
+          "sha256": "40f3ebfe45d02d4cd3b7b7322ec482c4a7187b2477c1d5bf49eeaeceaae7642b"
+        }
+      ],
+      "strongest_caveat": "Marketplace-documented, but one rail only → E3, not cited as measured fact. A blog repeating this would still be E3."
+    }
+  ],
+  "evidence_tier_vocabulary": [
+    "E1: two mechanically independent rails (structured API/source probe AND prose), each with permalink, fetch timestamp, HTTP status, sha256 of captured bytes",
+    "E3: one rail, or blog-only, or unpublished weights; may not be cited as measured fact",
+    "E4: local contract/fixture only when paired with a second local rail"
+  ],
+  "freshness": {
+    "artifact_written_at": "2026-08-26T02:06:50Z",
+    "captured_at_max": "2026-08-24T18:56:02Z",
+    "captured_at_min": "2026-08-24T18:55:56Z"
+  },
+  "id": "RES-0060",
+  "notes": "G-1 research record for RES-0060. Blog-only ranking factors were not promoted to documented. cloud ok=true is not delivery. Did not run global unit_manifest.py --write.",
+  "outputs": {
+    "path": "command-center/research/RES-0060.json",
+    "schema": "command-center/schema/research-claim-record.schema.json"
+  },
+  "question": "What signals drive discovery ranking in mature extension marketplaces, how much of ranking is install-count feedback (a rich-get-richer loop), and what would make a genuinely useful but new package discoverable in this program's index?",
+  "ranking_factor_list_split_documented_versus_inferred": true,
+  "ranking_factors": [
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional @sort:installs by Marketplace installation count",
+      "id": "vscode-optional-sort-installs",
+      "install_count_feedback": "yes-optional",
+      "marketplace": "vscode-marketplace",
+      "note": "Official VS Code docs list installs as a sort key.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional @sort:rating",
+      "id": "vscode-optional-sort-rating",
+      "install_count_feedback": "no",
+      "marketplace": "vscode-marketplace",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional @sort:name",
+      "id": "vscode-optional-sort-name",
+      "install_count_feedback": "no",
+      "marketplace": "vscode-marketplace",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional @sort:publishedDate",
+      "id": "vscode-optional-sort-publishedDate",
+      "install_count_feedback": "no",
+      "marketplace": "vscode-marketplace",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional @sort:updateDate",
+      "id": "vscode-optional-sort-updateDate",
+      "install_count_feedback": "no",
+      "marketplace": "vscode-marketplace",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "@featured merchandising filter",
+      "id": "vscode-filter-featured",
+      "install_count_feedback": "no",
+      "marketplace": "vscode-marketplace",
+      "note": "Official docs.",
+      "role": "merchandising",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "@popular merchandising filter (mapping unpublished)",
+      "id": "vscode-filter-popular",
+      "install_count_feedback": "unknown",
+      "marketplace": "vscode-marketplace",
+      "note": "Filter is documented; whether it equals install count is not.",
+      "role": "merchandising",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Text search uses SortBy.NoneOrRelevance",
+      "id": "vscode-default-search-sort-none-or-relevance",
+      "install_count_feedback": "not-documented-as-input",
+      "marketplace": "vscode-marketplace",
+      "note": "vscode extensionGalleryService.ts: text query -> NoneOrRelevance.",
+      "role": "default-mode",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Empty query uses SortBy.InstallCount",
+      "id": "vscode-empty-query-sort-install-count",
+      "install_count_feedback": "yes-default-when-empty",
+      "marketplace": "vscode-marketplace",
+      "note": "Same source: else branch sets InstallCount.",
+      "role": "default-mode-empty-query",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "inferred",
+      "evidence_tier": "E3",
+      "factor": "Weights inside default relevance scoring",
+      "id": "vscode-default-relevance-weights-unpublished",
+      "install_count_feedback": "unknown",
+      "marketplace": "vscode-marketplace",
+      "note": "Mode is documented; scoring function and weights are unpublished. Blog guesses are not measured fact.",
+      "role": "default-weights",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "inferred",
+      "evidence_tier": "E3",
+      "factor": "Whether @popular equals install-count rank",
+      "id": "vscode-popular-filter-install-mapping-unpublished",
+      "install_count_feedback": "unknown",
+      "marketplace": "vscode-marketplace",
+      "note": "Docs name the filter, not the ranking key.",
+      "role": "merchandising-mapping",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E3",
+      "factor": "User ratings enter the ranking heuristic",
+      "id": "chrome-default-user-ratings",
+      "install_count_feedback": "no",
+      "marketplace": "chrome-web-store",
+      "note": "Operator docs; no public ranking API, so not E1 measured fact.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E3",
+      "factor": "Usage statistics: downloads vs uninstalls over time",
+      "id": "chrome-default-downloads-vs-uninstalls",
+      "install_count_feedback": "yes-flow-not-stock",
+      "marketplace": "chrome-web-store",
+      "note": "Operator docs. Flow (install vs uninstall), not raw install stock.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E3",
+      "factor": "Store-listing metadata in search ranking",
+      "id": "chrome-default-listing-metadata",
+      "install_count_feedback": "no",
+      "marketplace": "chrome-web-store",
+      "note": "Operator docs.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E3",
+      "factor": "Qualitative UX (design, purpose, onboarding, ease of use)",
+      "id": "chrome-default-qualitative-ux",
+      "install_count_feedback": "no",
+      "marketplace": "chrome-web-store",
+      "note": "Operator docs; not mechanically scored here.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E3",
+      "factor": "Earned badges may receive higher search/filter rankings",
+      "id": "chrome-badge-may-boost-rank",
+      "install_count_feedback": "no",
+      "marketplace": "chrome-web-store",
+      "note": "Operator docs say 'may'.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "inferred",
+      "evidence_tier": "E3",
+      "factor": "Relative weights of ratings vs usage vs listing vs UX vs badges",
+      "id": "chrome-default-relative-weights-unpublished",
+      "install_count_feedback": "unknown",
+      "marketplace": "chrome-web-store",
+      "note": "Categories documented; weights unpublished.",
+      "role": "default-weights",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Default search: keyword match on title, description, readme, keywords",
+      "id": "npm-default-keyword-matching",
+      "install_count_feedback": "no",
+      "marketplace": "npm-website",
+      "note": "npm docs, 2025-02-13.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Minimal boost to deprioritize spammy or entirely new packages",
+      "id": "npm-default-spam-or-new-deprioritize-exists",
+      "install_count_feedback": "anti-new",
+      "marketplace": "npm-website",
+      "note": "Documented existence, not magnitude.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional sort by download counts",
+      "id": "npm-optional-sort-downloads",
+      "install_count_feedback": "yes-optional",
+      "marketplace": "npm-website",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional sort by most dependents",
+      "id": "npm-optional-sort-dependents",
+      "install_count_feedback": "no",
+      "marketplace": "npm-website",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Optional sort by last published date",
+      "id": "npm-optional-sort-last-published",
+      "install_count_feedback": "no",
+      "marketplace": "npm-website",
+      "note": "Official docs.",
+      "role": "optional-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "inferred",
+      "evidence_tier": "E3",
+      "factor": "Magnitude of the spam/new-package deprioritization boost",
+      "id": "npm-spam-new-boost-magnitude-unpublished",
+      "install_count_feedback": "anti-new",
+      "marketplace": "npm-website",
+      "note": "Existence documented; size unpublished.",
+      "role": "default-weights",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Initial score from ID, name, description, tags, vendor match",
+      "id": "jetbrains-default-text-relevance",
+      "install_count_feedback": "no",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Official ranking docs.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Staff-pick coefficient applied to initial score",
+      "id": "jetbrains-default-staff-pick-boost-exists",
+      "install_count_feedback": "no",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Existence documented; numeric coefficient unpublished.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Popularity multiplier log10(1 + 5 * downloads_count)",
+      "id": "jetbrains-default-log10-downloads-multiplier",
+      "install_count_feedback": "yes-default-multiplier",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Closed-form install-count feedback in default search.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Rating multiplier sqrt(rating) with Bayesian rating",
+      "id": "jetbrains-default-sqrt-rating-multiplier",
+      "install_count_feedback": "no",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Official ranking + rating docs.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Top downloaded category ranked by download count",
+      "id": "jetbrains-category-top-downloaded-pure-downloads",
+      "install_count_feedback": "yes-category",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Official docs.",
+      "role": "category-sort",
+      "used_in_default_ranking": false
+    },
+    {
+      "evidence_class": "inferred",
+      "evidence_tier": "E3",
+      "factor": "Numeric staff-pick coefficient",
+      "id": "jetbrains-staff-pick-coefficient-value-unpublished",
+      "install_count_feedback": "no",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Boost exists; value unpublished.",
+      "role": "default-weights",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "inferred",
+      "evidence_tier": "E3",
+      "factor": "Per-field text match weights (docs: scored differently)",
+      "id": "jetbrains-text-field-match-weights-unpublished",
+      "install_count_feedback": "no",
+      "marketplace": "jetbrains-marketplace",
+      "note": "Differential scoring stated; values unpublished.",
+      "role": "default-weights",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "OpenSearch multi_match with name^10, description^5, keywords^5, summary^5 plus exact-name boost 1000",
+      "id": "pypi-default-lexical-field-boosts",
+      "install_count_feedback": "no",
+      "marketplace": "pypi",
+      "note": "warehouse/search/queries.py on main.",
+      "role": "default-input",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "Download counts are not a search field; PyPI does not display download statistics",
+      "id": "pypi-default-no-download-count",
+      "install_count_feedback": "no-absent",
+      "marketplace": "pypi",
+      "note": "Source SEARCH_FIELDS + packaging.python.org guide.",
+      "role": "documented-absence",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "IMP-0102: BM25 over name, description, tags, skill names; no popularity term; rank from query+document only",
+      "id": "program-imp0102-bm25-no-popularity",
+      "install_count_feedback": "forbidden",
+      "marketplace": "this-program-index",
+      "note": "Catalog contract. Search index not implemented on this worktree.",
+      "role": "contracted-default",
+      "used_in_default_ranking": true
+    },
+    {
+      "evidence_class": "documented",
+      "evidence_tier": "E1",
+      "factor": "IMP-0094 quality score: no popularity input may change the score",
+      "id": "program-imp0094-quality-no-popularity",
+      "install_count_feedback": "forbidden",
+      "marketplace": "this-program-index",
+      "note": "Separate from search rank; still a discoverability-adjacent score.",
+      "role": "quality-not-search",
+      "used_in_default_ranking": false
+    }
+  ],
+  "reviewer": {
+    "default_to_refuted": true,
+    "independent": true,
+    "read_conclusion_first": false,
+    "refuted_as_measured_fact": [
+      "C-CWS-DOCUMENTED-HEURISTIC-SINGLE-RAIL",
+      "any numeric share of default rank variance attributed to install count outside JetBrains' published multiplier"
+    ],
+    "reviewer_id": "RES-0060-adversarial-refuter",
+    "scope_not_agreement": true,
+    "strongest_surviving_caveat": "Unpublished weights mean 'how much of ranking is install-count feedback' cannot be a single measured fraction except on JetBrains, where it is a documented multiplicative log10 term of unpublished relative contribution. Chrome's heuristic is operator-documented but E3. This program's index forbids popularity by contract; the BM25 implementation is absent.",
+    "surviving_claims": [
+      "C-VS-OPTIONAL-INSTALL-SORT",
+      "C-VS-DEFAULT-NEQ-INSTALLS",
+      "C-JB-DEFAULT-DOWNLOAD-MULTIPLIER",
+      "C-NPM-WEBSITE-DEFAULT-LEXICAL",
+      "C-PYPI-SEARCH-NO-DOWNLOADS",
+      "C-PROGRAM-INDEX-FORBIDS-POPULARITY"
+    ],
+    "verdict": "PARTIAL"
+  },
+  "schema_version": 1,
+  "sentinel": "SUCCESS:RES-0060 in the receipt AND a ranking-factor list split documented-versus-inferred with the undocumented proportion stated",
+  "snapshot_sha256_note": "Per-source sha256 is on each source_lineage row and each rail.",
+  "source_lineage": [
+    {
+      "fetched_at": "2026-08-24T18:55:56Z",
+      "http_status": 200,
+      "id": "vscode-docs-extension-marketplace",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-docs-extension-marketplace.html",
+      "sha256": "ce8c2f2e2fd372299888d5e8629d1f0ee124d30988edefaec8727034f7b15274",
+      "url": "https://code.visualstudio.com/docs/configure/extensions/extension-marketplace"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:57Z",
+      "http_status": 200,
+      "id": "chrome-docs-discovery",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/chrome-docs-discovery.html",
+      "sha256": "40f3ebfe45d02d4cd3b7b7322ec482c4a7187b2477c1d5bf49eeaeceaae7642b",
+      "url": "https://developer.chrome.com/docs/webstore/discovery"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:57Z",
+      "http_status": 200,
+      "id": "chrome-docs-discovery-md",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/chrome-docs-discovery-md.html",
+      "sha256": "95dbcf9143c55b96f9200dd638c67a9a63afbf951156c779d0f288aa9d115532",
+      "url": "https://developer.chrome.com/docs/webstore/discovery.md"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:58Z",
+      "http_status": 200,
+      "id": "npm-docs-search",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/npm-docs-search.html",
+      "sha256": "a701baf3519363257269ed4e5a72df5dc2635899f8ee301198cf965091b78335",
+      "url": "https://docs.npmjs.com/searching-for-and-choosing-packages-to-download/"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:58Z",
+      "http_status": 200,
+      "id": "jetbrains-docs-ranking",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/jetbrains-docs-ranking.html",
+      "sha256": "66f0dd6f23a4fa5d7db273967d8cc3cc93a9136c34a547371f10b0d4657210ba",
+      "url": "https://plugins.jetbrains.com/docs/marketplace/plugins-ranking.html"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:58Z",
+      "http_status": 200,
+      "id": "jetbrains-docs-rating",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/jetbrains-docs-rating.html",
+      "sha256": "66a5d24df78180ccd36d9ccd5c37e059abe2ba1da2093d7878efd6e0841026ba",
+      "url": "https://plugins.jetbrains.com/docs/marketplace/plugins-rating.html"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:58Z",
+      "http_status": 200,
+      "id": "vscode-source-gallery-service",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-source-gallery-service.ts",
+      "sha256": "eb750cedfbb424f003adb4105a07898bbea306a073e831b1d71a9f16c8e4b16e",
+      "url": "https://raw.githubusercontent.com/microsoft/vscode/main/src/vs/platform/extensionManagement/common/extensionGalleryService.ts"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:58Z",
+      "http_status": 200,
+      "id": "npm-registry-api-docs",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/npm-registry-api-docs.md",
+      "sha256": "c1a02613e268b1cc22304eadb37861fe3ee7deaaceae31def8e98670308b3e48",
+      "url": "https://raw.githubusercontent.com/npm/registry/master/docs/REGISTRY-API.md"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:59Z",
+      "http_status": 200,
+      "id": "pypi-warehouse-search-source",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/pypi-warehouse-search-source.py",
+      "sha256": "873e38cb6f59aa3f3c9e80bb30a37eb00da8f65e95ec537c081e5ef99b593b51",
+      "url": "https://raw.githubusercontent.com/pypi/warehouse/main/warehouse/search/queries.py"
+    },
+    {
+      "fetched_at": "2026-08-24T18:55:59Z",
+      "http_status": 200,
+      "id": "pypi-download-stats-guide",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/pypi-download-stats-guide.html",
+      "sha256": "d93ee6df7745fdb4acb8650143daf6b4cc0559fe2e86b863211987c203c7e585",
+      "url": "https://packaging.python.org/en/latest/guides/analyzing-pypi-package-downloads/"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:00Z",
+      "http_status": 200,
+      "id": "vscode-api-sort-relevance",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-api-sort-relevance.json",
+      "sha256": "46c8fdde514617af4e34733e299ed6fea830b05ea16bed3362335c80fa5fc545",
+      "url": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=7.2-preview.1"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:00Z",
+      "http_status": 200,
+      "id": "vscode-api-sort-installs",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-api-sort-installs.json",
+      "sha256": "52d20529912d811cd75f95e81c02b56a01b308329dffbefbce025536012a371a",
+      "url": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=7.2-preview.1"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:01Z",
+      "http_status": 200,
+      "id": "vscode-api-sort-weighted-rating",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/vscode-api-sort-weighted-rating.json",
+      "sha256": "9e6d9fd81be708e53559daf9d5e7c94035de7f689f34d94c10905b6eb80a4337",
+      "url": "https://marketplace.visualstudio.com/_apis/public/gallery/extensionquery?api-version=7.2-preview.1"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:02Z",
+      "http_status": 200,
+      "id": "npm-api-search-default",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/npm-api-search-default.json",
+      "sha256": "29d56fd609c169a4da06611764266781b3cfaa00ca29785e31939848f1ae0162",
+      "url": "https://registry.npmjs.org/-/v1/search?text=express&size=5"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:02Z",
+      "http_status": 200,
+      "id": "npm-api-search-popularity",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/npm-api-search-popularity.json",
+      "sha256": "d80bf4e609ecf047486a7d4dc0902613438645a138d33a2b00107448d2df9d08",
+      "url": "https://registry.npmjs.org/-/v1/search?text=express&size=5&popularity=1.0&quality=0.0&maintenance=0.0"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:02Z",
+      "http_status": 200,
+      "id": "jetbrains-api-search",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/jetbrains-api-search.json",
+      "sha256": "558f3d24bde9ece9011e5c226d7d8b93be3e9f0ef22dad63b9d5adfa1251349d",
+      "url": "https://plugins.jetbrains.com/api/searchPlugins?search=python&max=8&offset=0"
+    },
+    {
+      "fetched_at": "2026-08-24T18:56:02Z",
+      "http_status": 200,
+      "id": "pypi-api-requests-json",
+      "path": "command-center/p2-wave/probes/RES-0060/captures/pypi-api-requests-json.json",
+      "sha256": "bcfc6a202592e4e90f5a28ff002694eaa7c58ba741b76077f432b8bee1480111",
+      "url": "https://pypi.org/pypi/requests/json"
+    }
+  ],
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "tests": [
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0060/probe1_documented_inferred_split.py",
+      "id": "documented-versus-inferred-split",
+      "result": "PASS"
+    },
+    {
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/RES-0060/probe2_dual_rail_and_api.py",
+      "id": "undocumented-proportion-and-dual-rail-control",
+      "result": "PASS"
+    }
+  ],
+  "title": "Determine what makes a package findable and how ranking is computed in extension marketplaces",
+  "undocumented_proportion": {
+    "default_ranking_mechanism": {
+      "documented_count": 16,
+      "inferred_count": 5,
+      "proportion": 0.23809523809523808,
+      "total": 21
+    },
+    "documented_count": 28,
+    "inferred_count": 6,
+    "proportion": 0.17647058823529413,
+    "proportion_percent": 17.6,
+    "statement": "6 of 34 ranking-factor rows are inferred (6/34 = 0.1765, 17.6%). Of default-ranking mechanism items, 5 of 21 (0.2381) are unpublished weights or coefficients. Documented count=28.",
+    "total": 34
+  },
+  "undocumented_proportion_stated": true,
+  "unit_id": "RES-0060"
+}

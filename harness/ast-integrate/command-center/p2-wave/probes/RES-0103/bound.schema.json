@@ -1,0 +1,126 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/RES-0103/bound.schema.json",
+  "title": "RES-0103 research-claim discriminator (unit-local)",
+  "$comment": "Catalog output_schema is a generated $ref shim. jsonschema on this image cannot resolve ast-integrate.invalid without network (RefResolutionError, not ValidationError), and the physical research-claim-record fragment is a receipt envelope that does not constrain tau or source_lineage. This bound schema is the discrimination contract: garbage rejected, numeric Chow tau, required source_lineage.",
+  "type": "object",
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "completion_sentinel",
+    "source_lineage",
+    "mechanisms",
+    "threshold_recommendation",
+    "control_regime",
+    "transfer_verdict",
+    "answer",
+    "reviewer"
+  ],
+  "properties": {
+    "unit_id": { "const": "RES-0103" },
+    "state": { "type": "string", "enum": ["SUCCESS"] },
+    "sentinel": {
+      "type": "string",
+      "minLength": 80,
+      "pattern": "SUCCESS:RES-0103"
+    },
+    "completion_sentinel": {
+      "type": "string",
+      "minLength": 80,
+      "pattern": "SUCCESS:RES-0103"
+    },
+    "source_lineage": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["paper_id", "locator"],
+        "properties": {
+          "paper_id": { "type": "string", "minLength": 1 },
+          "permalink": { "type": "string", "minLength": 1 },
+          "locator": { "type": "string", "minLength": 1 },
+          "sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "mechanisms": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "paper_id",
+          "locator",
+          "effect_size",
+          "evidence_tier",
+          "promoted"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "name": { "type": "string", "minLength": 1 },
+          "paper_id": { "type": "string", "minLength": 1 },
+          "locator": { "type": "string", "minLength": 1 },
+          "effect_size": { "type": "string", "minLength": 1 },
+          "baseline": { "type": ["string", "null"] },
+          "evidence_tier": { "type": "string", "enum": ["E1", "E2", "E3", "E4"] },
+          "promoted": { "type": "boolean" },
+          "caveat": { "type": "string" },
+          "source_sha256": { "type": "string", "pattern": "^[0-9a-f]{64}$" }
+        }
+      }
+    },
+    "threshold_recommendation": {
+      "type": "object",
+      "required": [
+        "assumed_cost_wrong",
+        "assumed_cost_miss",
+        "tau",
+        "inverted_cost_wrong",
+        "inverted_cost_miss",
+        "inverted_tau"
+      ],
+      "properties": {
+        "assumed_cost_wrong": { "type": "number", "exclusiveMinimum": 0 },
+        "assumed_cost_miss": { "type": "number", "exclusiveMinimum": 0 },
+        "tau": { "type": "number", "minimum": 0, "maximum": 1 },
+        "inverted_cost_wrong": { "type": "number", "exclusiveMinimum": 0 },
+        "inverted_cost_miss": { "type": "number", "exclusiveMinimum": 0 },
+        "inverted_tau": { "type": "number", "minimum": 0, "maximum": 1 },
+        "empirical_best_tau_on_fixture": { "type": "number" },
+        "fixture_cost_at_chow_tau": { "type": "number" },
+        "fixture_cost_always_answer": { "type": "number" },
+        "inverted_fixture_cost_always_answer": { "type": "number" },
+        "inverted_fixture_cost_at_075": { "type": "number" },
+        "note": { "type": "string", "minLength": 1 }
+      }
+    },
+    "control_regime": {
+      "type": "object",
+      "required": ["when_abstention_strictly_worse", "demonstration"],
+      "properties": {
+        "when_abstention_strictly_worse": { "type": "string", "minLength": 1 },
+        "demonstration": { "type": "string", "minLength": 1 }
+      }
+    },
+    "transfer_verdict": {
+      "type": "string",
+      "enum": ["NOT-ESTABLISHED", "NOT_ESTABLISHED", "REFUTED", "UNSETTLED"]
+    },
+    "answer": { "type": "string", "minLength": 80 },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "independent", "verdict"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 1 },
+        "independent": { "const": true },
+        "verdict": { "const": "PASS" },
+        "scope_not_agreement": { "type": "boolean" },
+        "defaults_to_refuted": { "type": "boolean" },
+        "notes": { "type": "object" }
+      }
+    }
+  }
+}

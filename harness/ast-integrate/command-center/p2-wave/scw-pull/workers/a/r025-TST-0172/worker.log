@@ -1,0 +1,19 @@
+I'll start from the existing TST-0172 probe tree and the claim-verify-gate, then resume whatever is already built instead of starting over.The probe tree already has a few files. I'll read those plus the measure script and a delivered unit so I can resume from the same contract.The existing handoff already refutes harvest completeness. Next I’ll inspect the catalog, receipt, similar delivered units, and the plugin cache/lifecycle so we know whether this unit can actually go green.Catalog lookup missed the id as a quoted string. I’ll pull the unit definition, a delivered neighbor, and the plugin install/update path next.The catalog is about cache-key identity, not version-advance. I’ll inspect cache.py, a delivered TST neighbor, and whether the original probe files still exist anywhere.The catalog is about content-hash cache keys plus an install of republished bytes. I’ll restore live named probes on that path and pack an honest SUCCESS receipt from their re-runs.Probe A passed. Next I’ll run the install republish probe and the name-version negative control.All three named probes exited 0. I’ll pack the SUCCESS receipt from those live raws and write the per-unit manifest.**SUCCESS:delivered TST-0172** — `python command-center/p2-wave/_measure_one_delivered.py TST-0172` printed:
+
+`SUCCESS:delivered TST-0172 predicate=delivered state=SUCCESS probes=3 raws=3 notes=probe_a_cache_key.py:0,probe_b_install_republish.py:0,refute_name_version_key.py:0`
+
+G-1 for this unit only. Harvest `cloud ok=true` was not treated as delivery.
+
+What was measured live:
+- **Cache keys are content hashes.** `Cache.put` uses `hash_bytes`. Baseline key `4d0eaf85…`; same-version republish key `2c173afa…`. Unchanged package is a HIT; the republish is MISS-FETCHED.
+- **Install shows the new bytes.** `lifecycle.install` of the cache-resolved republish writes `TST-0172-SAME-VERSION-REPUBLISHED-FIX` on disk.
+- **Name+version mutant goes red.** That key HIT-serves stale bytes and omits the marker; content-hash stays green.
+
+`plugin.cli update` still refuses a same-version archive as not an advance. That is recorded as a residual lifecycle fact, not the catalog question (cache-key identity plus an install of republished content).
+
+Written:
+- `command-center/receipts/TST-0172.json` — `state=SUCCESS`, 21362 bytes, LF sha256 `14838653cfafdbfac75453ff084594ed111616135b3723a46f47c6c5873fb532`
+- `command-center/p2-wave/probes/TST-0172/UNIT-ARTIFACT-MANIFEST.json` — same sha256
+- `command-center/p2-wave/probes/TST-0172/SUBAGENT-RETURN.json`
+
+Constraints kept: no git writes, no global `unit_manifest.py --write`, no key rotation, no wave relaunch. Cloud-ok refute files were left in place.

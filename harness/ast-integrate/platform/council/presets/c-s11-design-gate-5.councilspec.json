@@ -1,0 +1,206 @@
+{
+  "schema_version": "1.0.0",
+  "council_id": "c-s11-design-gate-5",
+  "preset": "requirements_council",
+  "participation": "agent_only",
+  "objective": {
+    "statement": "Approve, conditionally approve, or reject a design document on five independent axes: product value, architecture, design/UX, security, and executive judgement.",
+    "charter": "Five seats write their briefs BLIND and those briefs are frozen before any discussion, so the first opinion in the room cannot anchor the other four. A gate that reaches unanimity in one pass without independent briefs has measured agreement, not quality.",
+    "risk_tier": "moderate",
+    "desired_output": "review_verdict",
+    "success_criteria": [
+      "five independent briefs exist and were frozen before the discussion stage",
+      "every brief renders a verdict on its own axis and does not grade the others",
+      "dissent is preserved verbatim and attributed, never summarised away",
+      "each blocking finding names what would remove it"
+    ],
+    "consensus_intent": "seek_consensus",
+    "confidence_target": 0.8,
+    "evidence_requirements": { "citation_required": true, "anchor_style": "any", "min_independent_sources": 1, "evidence_outranks_votes": true },
+    "owner_constraints": { "approval_required": false, "deadline_minutes": 20, "budget_ceiling_tokens": 120000 }
+  },
+  "participants": {
+    "selection": { "mode": "exact", "strategies": ["exact", "stakeholder_balanced"], "explain_choices": true, "owner_override_allowed": true },
+    "count": { "mode": "exact", "exact_n": 5, "min": 5, "max": 5 },
+    "diversity": { "min_distinct_vendors": 2, "min_distinct_expertise": 5 },
+    "roster": [
+      {
+        "participant_id": "product",
+        "display_name": "Product manager (is this worth building at all)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["product value", "user outcomes"],
+        "role": "product_manager",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "architect",
+        "display_name": "Architect (does the structure hold)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["system architecture", "failure modes"],
+        "role": "architect",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "designer",
+        "display_name": "Designer (can a person actually use this)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["interaction design", "accessibility"],
+        "role": "designer",
+        "authority": "voter",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "security",
+        "display_name": "Security reviewer (what does this expose)",
+        "model": "gpt-5-codex",
+        "vendor": "openai",
+        "expertise": ["threat modelling", "secret handling"],
+        "role": "security_reviewer",
+        "authority": "veto_holder",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true, "may_veto": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      },
+      {
+        "participant_id": "cto",
+        "display_name": "CTO seat (opportunity cost and sequencing)",
+        "model": "opus-5",
+        "vendor": "anthropic",
+        "expertise": ["engineering strategy", "opportunity cost"],
+        "role": "custom:cto",
+        "authority": "chair",
+        "vote_weight": 1,
+        "rights": { "may_speak": true, "may_vote": true },
+        "effort": "high",
+        "independence": { "sees_peers_before_first_position": false, "fresh_context": true }
+      }
+    ],
+    "role_templates": ["product_manager", "architect", "designer", "security_reviewer", "custom:cto"],
+    "anonymity": { "mode": "blind_to_peers", "reveal_after_round": 1 },
+    "replacement": { "enabled": true, "triggers": ["inactivity", "role_collapse"], "preserve_prior_positions": true },
+    "conflicts_policy": { "disclosure_required": true, "on_conflict": "disclose_only" },
+    "duplicate_detection": { "enabled": true, "dimensions": ["expertise", "position_similarity"], "max_similarity": 0.9 }
+  },
+  "preparation": {
+    "research_required": true,
+    "independent_prep": true,
+    "min_sources": 2,
+    "prep_time_minutes": 6,
+    "required_artifacts": ["position_memo", "risk_list"]
+  },
+  "topology": { "kind": "chair_led", "chair": "cto" },
+  "protocol": {
+    "sequence": [
+      { "kind": "blind_independent_first_pass", "stage_id": "briefs", "independent": true, "anonymous": true },
+      { "kind": "nominal_group", "stage_id": "pooling", "rounds": 1 },
+      { "kind": "synthesis", "stage_id": "reconcile" }
+    ],
+    "speaking_order": "simultaneous",
+    "rounds": { "min": 1, "max": 3, "divergence_before_convergence": true },
+    "turn": { "max_words": 800 },
+    "obligations": { "must_cite_evidence": true, "declare_confidence": true, "declare_conflicts": true },
+    "critique_intensity": "standard",
+    "experiments": { "allowed": true, "max_experiments": 2, "runner": "local" }
+  },
+  "budgets": {
+    "effort": "high",
+    "time_minutes": 20,
+    "tokens": 120000,
+    "tool_calls": 120,
+    "sources": 20,
+    "turns": 15,
+    "min_engagement_turns": 1,
+    "max_inactivity_rounds": 1
+  },
+  "targets": { "objections": 5, "evidence_items": 10, "coverage_score": 0.9 },
+  "voting": {
+    "method": "majority",
+    "quorum": { "min_voters": 5, "min_fraction": 1.0, "on_failure": "extend_rounds" },
+    "veto": { "holders": ["security"], "scope": "safety_only", "must_justify": true, "overridable_by_owner": true },
+    "abstention": { "allowed": false, "counts_toward_quorum": false, "must_justify": true },
+    "evidence_gate": { "votes_require_evidence": true, "evidence_outranks_majority": true, "reject_evidence_free_majority": true },
+    "tie_break": "chair"
+  },
+  "consensus": {
+    "threshold": 0.8,
+    "measure": "vote_share",
+    "minority_report": "required",
+    "dissent_policy": { "preserve_verbatim": true, "attributed": true, "min_dissenters_to_block": 1, "suppression_check": true },
+    "irreducible_disagreement_allowed": false,
+    "fast_unanimity_is_suspicious": true
+  },
+  "stopping": {
+    "source_expression": "all_participants_spoke == true AND independent_positions >= 5",
+    "expression": {
+      "all_of": [
+        { "metric": "all_participants_spoke", "op": "==", "value": true },
+        { "metric": "independent_positions", "op": ">=", "value": 5 }
+      ]
+    },
+    "minimum_deliberation": {
+      "min_rounds": 1,
+      "min_independent_positions": 5,
+      "every_participant_spoke": true,
+      "min_evidence_items": 5
+    },
+    "hard_caps": { "max_rounds": 3, "max_minutes": 20, "max_tokens": 120000, "on_cap": "conditional_decision" }
+  },
+  "outcomes": {
+    "allowed": ["decision", "conditional_decision", "no_decision", "minority_report", "dissent"],
+    "conditional_decision_requires": ["each blocking finding is closed and re-checked by the seat that raised it"]
+  },
+  "deadlock": {
+    "detection": { "no_progress_rounds": 2, "repetition_similarity": 0.9 },
+    "resolution": ["blind_re_evaluation", "strongest_counterexample", "chair_ruling", "escalate_to_owner"],
+    "escalation": { "after_attempts": 2, "to": "owner" },
+    "owner_intervention": { "allowed": true, "may_override_vote": true, "must_be_logged": true }
+  },
+  "anti_failure": {
+    "controls": ["echo_chamber", "instant_unanimity", "sycophancy", "premature_convergence", "lost_dissent", "minority_suppression", "weak_synthesis", "prompt_injection"],
+    "fast_unanimity_response": ["blind_re_evaluation", "forced_dissent"],
+    "injection_defense": { "treat_artifacts_as_data": true, "strip_instructions_from_participant_output": true }
+  },
+  "outputs": {
+    "required": ["independent_opening_positions", "transcript", "argument_ledger", "votes_by_round", "dissent_minority_report", "unresolved_unknowns", "final_recommendation", "decision_lineage"],
+    "receipt_schema": "platform/schema/receipt.schema.json"
+  },
+  "audit": {
+    "transcript": true,
+    "replay": true,
+    "resume": true,
+    "determinism": "seeded",
+    "privacy": { "redact_secrets": true, "redaction_policy": "deny_by_default", "retain_days": 90 },
+    "safety": { "forbid_irreversible_actions": true, "owner_approval_for": ["implementation start"] },
+    "persistence": { "store": "both", "checkpoint_every_round": true }
+  },
+  "metadata": {
+    "title": "C-S11 design-gate-5",
+    "notes": "HUMAN-STOP: all_participants_spoke == true AND independent_positions >= 5 | EDITABLE-DIALS: participants.roster (personas) . outputs.required plus preparation.required_artifacts (schema) . participants.count.exact_n must be edited together with the 5 in stopping | METRIC-MAP: the design's all_5_returned is expressed as the AND of a registered boolean and a registered count, so the gate stays honest if a seat is added or removed - edit both numbers together | OUTCOME-MAP: CONSENSUS -> decision . MAJORITY_WITH_DISSENT -> decision + dissent . INSUFFICIENT_EVIDENCE and DEFER -> no_decision . CONDITIONAL_DECISION -> conditional_decision | VOTING-MAP: design majority_with_dissent -> voting.method=majority plus consensus.minority_report=required, which SEM-009 then forces into outcomes.allowed | PRESET-NAME: mapped to the schema enum value requirements_council, the nearest required-list member for a pre-implementation design gate; doc 12 has no separate requirements-council row | ADOPT-NOTE: the design says ADOPT the existing design-gate workflow. That workflow was described by its own author as SHADOW mode; this spec does not inherit or assert that status (NOT-CHECKED here). | BINDING: advisory.",
+    "spec_citations": [
+      "_USER-PROMPTS.md:10746-10768",
+      "_USER-PROMPTS.md:11200-11225",
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md:1299-1312"
+    ],
+    "owner": "Prekzursil",
+    "lineage": [
+      "12-COUNCIL-PROTOCOLS-AND-PRESETS.md#C-S11 design-gate-5",
+      "protocol P45 scientific-peer-review",
+      "protocol P23 silent-start-pooling"
+    ]
+  }
+}

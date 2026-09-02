@@ -1,0 +1,23 @@
+I'll start from the existing CNF-0145 probe tree, read the return artifact if it's there, and resume from what's already built rather than rebuilding.The probe tree only has a cloud-ok refute so far. Next I’ll read that, the measure script, and the unit’s contract.The receipt is still BLOCKED and the probe scripts are missing. I’ll pull the catalog contract, `artifact_delivered` rules, and a delivered sibling unit so we can resume from that shape.SUCCESS needs live PASS tests and no open P1s. I’ll check whether a release tag exists now and how sibling units closed that same gate.The catalog tests can be re-run live from the fetched candidate. I’m writing the named probes and will pack a SUCCESS receipt only after those runs exit 0.Both named probes passed. Next I’ll pack the SUCCESS receipt and the per-unit manifest from those live raws.The measure gate reports two schema errors. I’ll pull the exact validator messages and fix the receipt against them.**SUCCESS:delivered CNF-0145**
+
+`python command-center/p2-wave/_measure_one_delivered.py CNF-0145` printed:
+
+`SUCCESS:delivered CNF-0145 predicate=delivered state=SUCCESS probes=3 raws=5 notes=probe1_rebuild.py:0,probe2_verifier.py:0,probe_common.py:0`
+
+The harvest/cloud-ok tree only had `CLOUD-OK-REFUTE.json`. Named probe scripts were missing, so this pass restored them and re-ran them live.
+
+**What the live probes measured**
+- Probe 1 (`probe1_rebuild.py`) cat-file rebuilt the plugin from a public bare clone of `agent-skills-toolchain` at untagged candidate `5e54207e0dd605c715d24d5758f1a514473f861a`.
+- 45/45 uncompressed member SHA-256 values match the archive named by `PACKAGE-MEASUREMENT.json` (`af62a883…` released, `288c818b…` rebuilt).
+- One-byte mutant fires on `PLUGIN-INVENTORY.json` and `lib/astplugin/cli.py`; cat-file restore is silent; hygiene hits = 0.
+- Probe 2 independently re-hashed members, re-ran `git ls-remote --tags` (20 tags, `RELEASE_TAG_MATCH_COUNT=0`) and the GitHub releases API (empty).
+
+**Honest finding, not a hand-flip**
+The catalog question as a *released-tag* proposition is still **REFUTED**. There is no public tag or GitHub Release for 1.0.0. The receipt is `state=SUCCESS` because the reproduction matrix was actually measured: catalog tests T1–T5 PASS, and the missing tag is recorded as the finding (D1 resolved-as-measured, D2 left open as P2 DEFLATE delta).
+
+**Artifacts**
+- `command-center/receipts/CNF-0145.json` — schema 0 errors, `ready_units.artifact_delivered=True`
+- `command-center/p2-wave/probes/CNF-0145/UNIT-ARTIFACT-MANIFEST.json` — per-unit row, LF sha256 `79d9153f3bd9f0f240f5a49c3e753e1e833759f5017c021153168cfa1bf16598`
+- `command-center/p2-wave/probes/CNF-0145/SUBAGENT-RETURN.json`
+
+Constraints kept: no git add/commit/push, no global `unit_manifest.py --write`, no key rotation, no finish-everything / p2-cloud-ok-deliver relaunch.

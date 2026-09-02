@@ -1,0 +1,28 @@
+
+===== launch 2026-08-20T08:57:26Z attempt=1 =====
+I'll start from the existing IMP-0002 probe tree, read its return artifact if present, and implement until the unit measure prints SUCCESS:delivered.IMP-0002 is the deterministic packer unit and has no probe tree yet. Next I’ll read the delivery predicate, a successful sibling unit, and the live packer code.IMP-0002 has no probe tree; I’ll implement `tools/plugin/pack.py` (git cat-file, NFC order, pinned metadata), then the named probes and per-unit artifacts.Tests and named probes all exited 0, including the real-mtime negative control. Next I’ll pack the receipt and per-unit manifest.**SUCCESS:delivered IMP-0002** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0002` printed:
+
+`SUCCESS:delivered IMP-0002 predicate=delivered state=SUCCESS probes=4 raws=4 notes=negative_control.py:0,probe1_two_builds.py:0,probe2_third_build.py:0,run_required_tests.py:0`
+
+The unit had never been started (`probes/IMP-0002/` and `tools/plugin/pack.py` were absent). This pass implemented it.
+
+**Packer.** `tools/plugin/pack.py` packs a git rev into a byte-identical zip:
+- blob bytes via `git cat-file -p <rev>:<path>` (archive porcelain is refused)
+- members sorted by NFC-normalised POSIX path
+- mtime pinned to the zip epoch; uid/gid extra fields omitted; mode pinned to 0644; DEFLATE level 9
+- `--mtime-source=real` is the catalog negative-control flag
+
+**Evidence (two independent signals).**
+1. Two consecutive packs of the same HEAD subset are identical: `2a3704955baef8b8d29f03a972ca9adfd8c46c1a9ce64155ee0ba6bfc85da399`
+2. A third pack from a different cwd/TMPDIR, `TZ=Pacific/Kiritimati`, and a one-year `time.time` offset hashes the same via `_pack_hash.py`
+
+CRLF worktree bytes are not packed; the blob is LF. Real mtimes turn `test_two_builds_identical` red.
+
+**Artifacts.**
+- `command-center/receipts/IMP-0002.json` — `state=SUCCESS`
+- `command-center/p2-wave/probes/IMP-0002/UNIT-ARTIFACT-MANIFEST.json` — live LF sha256 `2056e7d9ab7d71bef11c7c256851e7f7b5477c57ff8f13b58dc0e294aae6bdca`
+- `command-center/p2-wave/probes/IMP-0002/SUBAGENT-RETURN.json`
+
+`tools/plugin/payload-allowlist.json` (IMP-0001) is still absent. The packer consumes it when present; probes and tests pass `--path` and do not claim IMP-0001.
+
+No git writes, no global `unit_manifest.py --write`, no key rotation, no finish-everything / p2-cloud-ok-deliver relaunch.

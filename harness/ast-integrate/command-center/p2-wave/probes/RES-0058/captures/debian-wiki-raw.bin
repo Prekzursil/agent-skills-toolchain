@@ -1,0 +1,699 @@
+## page was renamed from RepositoryFormat
+= Debian Repository Format =
+
+This document is a work in progress that documents the structure of the official Debian repository and the format that is officially understood by clients. Its purpose is to define how a Debian repository should be structured, and how clients should interpret this. The goal is to become a sub-policy eventually.
+
+<<TableOfContents()>>
+
+== Overview ==
+
+Debian package archives are primarily used to store and retrieve packages automatically.
+
+Most if not all package managers use libapt for package retrieval from external media and the internet.
+
+The '''sources.list''' man page specifies this package source format:
+
+{{{
+   deb uri distribution [component1] [component2] [...]
+}}}
+
+and gives an example:
+
+{{{
+   deb https://deb.debian.org/debian stable main contrib non-free
+}}}
+
+Here __deb__ specifies that this is source for binary packages, deb-src is for source packages.
+
+An archive can have either source packages or binary packages or both but they have to be specified separately to apt.
+
+The __uri__, in this case ''{{{https://deb.debian.org/debian}}}'' specifies the root of the archive. Often Debian archives are in the ''debian/'' directory on the server but can be anywhere else (many mirrors for example have it in a ''pub/linux/debian'' directory, for example).
+
+The __distribution__ part (''stable'' in this case) specifies a subdirectory in '''$ARCHIVE_ROOT/dists'''. It can contain additional slashes to specify subdirectories nested deeper, eg. ''stable/updates''. __distribution__ typically corresponds to '''Suite''' or '''Codename''' specified in the '''Release''' files.
+'''''FIXME is this enforced anyhow?'''''
+
+To download packages from a repository apt would download an '''!InRelease''' or '''Release''' file from the '''$ARCHIVE_ROOT/dists/$DISTRIBUTION''' directory.
+
+'''!InRelease''' files are signed in-line while '''Release''' files should have an accompanying '''Release.gpg''' file.
+
+The '''Release''' file lists the index files for the '''distribution''' and their hashes (the index file listed are relative to '''Release''' file location).
+
+To download the index of the ''main'' component, apt would scan the Release file for hashes of files in the ''main'' directory. eg. ''{{{https://deb.debian.org/debian/dists/stable/main/binary-i386/Packages.gz}}}'' which would be listed in ''{{{https://deb.debian.org/debian/dists/stable/Release}}}'' as ''{{{main/binary-i386/Packages.gz}}}''
+
+Binary package indices are in '''binary-$arch''' subdirectory of the '''component''' directories. Source indices are in '''source''' subdirectory.
+
+Package indices list specific source or binary packages relative to the '''archive root'''.
+
+To avoid file duplication binary and source packages are usually kept in the {{{pool}}} subdirectory of the '''archive root'''. The '''Packages''' and '''Sources''' indices can list any path relative to '''archive root''', however. It is suggested that packages are placed in a subdirectory of '''archive root''' other than '''dists''' rather than directly in '''archive root'''. Placing packages directly in the '''archive root''' is not tested and some tools may fail to index or retrieve packages placed there.
+
+The '''Contents''' and '''Translation''' indices are not architecture-specific and are placed in '''dists/$DISTRIBUTION/$COMPONENT''' directory, not architecture subdirectory.
+
+=== Types of files ===
+
+The "Release" files, "Packages" and "Sources" indices, and files called "Index" that are used for translations and differences are control files, as defined in Policy, Chapter 5. In addition to the rules for control files, field names shall be generated using the case defined in this document, that is, code creating repositories shall be case-sensitive, but code reading repositories should not be case-sensitive.
+
+The file "Release.gpg" contains an OpenPGP signature. All files used for differences (all files in the .diff directories, except for the Index) are ed-style patch files. All files ending in ".deb" are Debian packages, all files ending in ".udeb" are Debian packages for the installer. Files ending in ".dsc" are Debian source package descriptions. They specify what files comprise the source package, typically .orig.tar and .debian.tar archives compressed using one of the supported compression methods. There might be other types of files in a repository (and files of the same type at different locations), but they are out of scope for this document.
+
+=== Compression of indices ===
+
+Unless a compression is indicated by the filename of the indices below, and index may be compressed in one or multiple of the following formats:
+
+ * No compression (no extension)
+ * XZ   (.xz extension)
+ * Gzip (.gz extension, usually for Contents files, and diffs)
+ * Bzip2 (.bz2 extension, usually for Translations)
+ * LZMA (.lzma extension)
+
+Clients must support xz compression, and must support gzip and bzip2 if they want to use the files that are listed as usual use cases of these formats. Support for all three formats is highly recommended, as gzip and bzip2 are historically more widespread.
+
+Servers should offer only xz compressed files, except for the special cases listed above. Some historical clients may only understand gzip compression, if these need to be supported, gzip-compressed files may be offered as well.
+
+'''Note well''': In March 2024, a backdoor was discovered in the 5.6 distribution of XZ Utils. Red Hat assigned CVE-2024-3094 to track the issue. See [[https://www.openwall.com/lists/oss-security/2024/03/29/4|backdoor in upstream xz/liblzma leading to ssh server compromise]] on the oss-security mailing list and [[https://lists.debian.org/debian-security-announce/2024/msg00057.html|[DSA 5649-1] xz-utils security update]] on the debian-security-announce mailing list.
+
+=== Duplicate Packages ===
+
+A repository must not include different packages (different content) with the same package name, version, and architecture. When a repository is meant to be used as a supplement to another repository this should hold for the joint main+supplement repository as well.
+
+A Sources index may contain multiple versions of one source package. A Packages index may contain multiple versions of one binary package, for the same architecture and/or multiple architectures (that is, {{{all}}} and the native architecture). In the official Debian archive, this is used to keep around old versions of an {{{Architecture: all}}} package that is still needed by the other packages.
+
+== "Release" files ==
+
+The file "dists/$DIST/InRelease" shall contain meta-information about the
+distribution and checksums for the indices, possibly signed with an OpenPGP clearsign
+signature (for example created by {{{sq sign --signer-file signer.pgp}}} or {{{gpg -a -s --clearsign}}}).
+For older clients there can also
+be a "dists/$DIST/Release" file without any signature and the file
+"dists/$DIST/Release.gpg" with a detached OpenPGP signature of the "Release" file (for example created by {{{sq sign --detached --signer-key signer.pgp}}} or {{{gpg -a -b -s}}})
+
+The following fields have a well defined meaning:
+
+  * These fields are optional. They may be displayed to the user by package management tool or used for pinning. It is suggested that any repository published for other users to use fills meaningful information in these fields so that the user can tell apart different repositories.
+
+    * Description
+
+    * Origin
+
+    * Label
+
+    * Version
+
+    * Suite
+
+    * Codename
+
+  . In Debian repositories the indices are stored in a directory named after Suite or Codename (actually one is symlinked to the other). The Release file may specify other location, though.
+
+  * These fields determine layout of the repository and should contain something meaningful to the user. In Debian these fields may contain lowercase characters, numbers, - and _. Other characters (eg. uppercase letters) should also work but these fields are used for file paths so use of special characters that might need special treatment in URIs or filesystem is discouraged.
+
+    * Components
+
+    * Architectures
+
+  * These fields are purely functional and used mostly internally by packaging tools.
+
+    * Date
+
+    * Valid-Until
+
+    * MD5Sum, SHA1, SHA256
+
+    * !NotAutomatic and !ButAutomaticUpgrades
+
+    * Changelogs and Snapshots
+
+Servers shall provide the !InRelease file, and might provide a Release files and its signed counterparts with at least the following keys:
+
+    * Suite and/or Codename
+    * Architectures
+    * Components
+    * Date
+    * SHA256
+
+Still having a unsigned Release file and MD5Sum is currently highly recommended.
+
+Clients may accept missing Release files, and Release files without the
+fields required for servers. They might reject Release files that do not
+contain at least one of the fields defined herein.
+
+=== Architectures ===
+
+Whitespace separated unique single words identifying Debian machine architectures
+as described in Architecture specification strings, Section 11.1. The field identifies
+which architectures are supported by this repository. A client should give a warning if
+it has a repository configured which doesn't support the machine architecture(s)
+configured in the client. Servers are allowed to declare support for an architecture
+even if they currently don't distribute indexes for this architecture. Clients should
+treat a missing entry for an architecture-specific index of a supported architecture as
+if that index file would exist, but is empty. If a server is not specifying the supported
+architectures with this field client behavior is unspecified in this case.
+
+The presence of the architecture {{{all}}} in this field indicates that the architecture-specific
+indexes do not include information about Architecture:all packages and have instead their
+own index file with the architecture all. Clients must download the {{{all}}} index files
+in this case, but must not download them if the Architectures field does not include {{{all}}}.
+
+=== No-Support-for-Architecture-all ===
+
+An optional field with a temporary and very specific usecase: Servers who already support
+and distribute indexes for the architecture {{{all}}}, but still include their content in
+the architecture-specific indexes as well can use this field to exclude certain indexes from
+the handling defined in the Architectures field. Clients should support the value {{{Packages}}},
+which excludes the Packages indexes from this handling. If they don't support it they will
+download needlessly duplicated data, which they have to deal with correctly.
+
+The field's purpose is to decouple the introduction of indexes like Contents-all from the
+introduction of Packages-all. Support by clients (if they choose to support it at all) is
+therefore bound to disappear after the transition to {{{all}}} for all indexes is done.
+
+=== Origin ===
+
+Optional field indicating the origin of the repository, a single line of free form text.
+
+=== Label ===
+
+Optional field including some kind of label, a single line of free form text.
+
+Typically used extensively in repositories split over multiple media such as repositories stored on CDs.
+
+=== Suite ===
+
+The Suite field may describe the suite. A suite is a single word. In Debian, this shall be one of
+oldstable, stable, testing, unstable, or experimental; with optional suffixes
+such as {{{-updates}}}.
+
+'''Example''':
+{{{
+Suite: stable
+}}}
+
+=== Codename ===
+
+The Codename field shall describe the codename of the release. A codename is a single word. Debian releases are codenamed after Toy Story Characters, and the {{{unstable}}} suite has the codename {{{sid}}}, the {{{experimental}}} suite has the codename {{{rc-buggy}}}.
+
+'''Example''':
+{{{
+   Codename: squeeze
+}}}
+
+=== Version ===
+
+The Version field, if specified, shall be the version of the release. This is usually a sequence of integers separated by the character {{{.}}} (full stop).
+
+'''Example''':
+{{{
+   Version: 6.0
+}}}
+
+=== Date, Valid-Until ===
+
+The Date field shall specify the time at which the Release file was created.
+Clients updating a local on-disk cache should ignore a Release file with an
+earlier date than the date in the already stored Release file.
+
+The Valid-Until field may specify at which time the Release file should be
+considered expired by the client. Client behaviour on expired Release files
+is unspecified.
+
+The format of the dates is the same as for the {{{Date}}} field in .changes files; and as used in debian/changelog files, and documented in Policy 4.4 ( Debian changelog: debian/changelog), but all dates must be represented as an instance of UTC (Coordinated Universal Time) as it is the case e.g. in [[https://tools.ietf.org/html/rfc7231#section-7.1.1.1|HTTP/1.1]], too. Thus, generating a valid value for the {{{Date}}} field can be achieved by running {{{date -R -u}}}.
+
+Example:
+
+{{{
+    Date: Sat, 02 Jul 2016 05:20:50 +0000
+}}}
+
+Further clarifications:
+
+The time zone must be specified using one of the strings {{{+0000}}}, {{{UTC}}}, {{{GMT}}}, or {{{Z}}}. Other values, such as different time zones, must not be used. Using the numerical value {{{+0000}}} is recommended.
+
+The numerical values for day, hour, minute, and second must be zero padded. Clients should also accept non-zero-terminated values for historical compatibility reasons.
+
+Clients may accept other formats in addition to the specified one, but files should not contain them.
+
+=== Components ===
+
+A whitespace separated list of areas.
+
+Example:
+{{{
+    Components: main contrib non-free
+}}}
+
+May also include be prefixed by parts of the path following the directory beneath dists, if the Release file is not in a directory directly beneath dists/. As an example, security updates are specified in APT as:
+
+{{{deb https://security.debian.org/ stable/updates main}}})
+
+The Release file would be located at {{{https://security.debian.org/dists/stable/updates/Release}}} and look like:
+
+{{{
+Suite: stable
+Components: updates/main updates/contrib updates/non-free
+}}}
+
+=== MD5Sum, SHA1, SHA256 ===
+
+note the upper-case S in MD5Sum (unlike in Packages and Sources files)
+
+These fields are used for two purposes:
+
+  1. describe what package index files are present
+  2. when release signature is available it certifies that listed index files and files referenced by those index files are genuine
+
+Those fields shall be multi-line fields containing multiple lines of whitespace
+separated data. Each line shall contain
+
+    1. The checksum of the file in the format corresponding to the field
+    1. The size of the file (integer >= 0)
+    1. The filename relative to the directory of the Release file
+
+Each datum must be separated by one or more whitespace characters.
+
+Server requirements:
+
+    The checksum and sizes shall match the actual existing files. If indexes are compressed, checksum data must be provided for uncompressed files as well, even if not present on the server.
+
+Client behaviour:
+
+    Any file should be checked at least once, either in compressed or
+    uncompressed form, depending on which data is available. If a file
+    has no associated data, the client shall inform the user about this
+    under possibly dangerous situations (such as installing a package
+    from that repository). If a file does not match the data specified
+    in the release file, the client shall not use any information from
+    that file, inform the user, and might use old information (such as
+    the previous locally kept information) instead.
+
+   Clients may not use the MD5Sum and SHA1 fields for security purposes,
+   and must require a SHA256 or a SHA512 field.
+
+=== NotAutomatic and ButAutomaticUpgrades ===
+
+The {{{NotAutomatic}}} and {{{ButAutomaticUpgrades}}} fields are optional boolean fields
+instructing the package manager. They may contain the values "{{{yes}}}"
+and "{{{no}}}". If one the fields is not specified, this has the same meaning as a value of "{{{no}}}".
+
+If a value of "{{{yes}}}" is specified for the {{{NotAutomatic}}} field, a package manager should not install packages (or upgrade to newer versions) from this repository without explicit user consent (APT assigns priority 1 to this) If the field {{{ButAutomaticUpgrades}}} is specified as well and has the value "{{{yes}}}", the package manager should automatically install package upgrades from this repository, if the installed version of the package is higher than the version of the package in other sources (APT assigns priority 100).
+
+Specifying "{{{yes}}}" for {{{ButAutomaticUpgrades}}} without specifying "{{{yes}}}" for {{{NotAutomatic}}} is invalid.
+
+=== Acquire-By-Hash ===
+
+An optional boolean field with the default value "{{{no}}}". A value of "{{{yes}}}" indicates that the server supports the optional "by-hash" locations as an alternative to the canonical location (and name) of an index file. A client is free to choose which locations it will try to get indexes from, but it is recommend to use the "by-hash" location if supported by the server for its benefits for servers and clients. A client may fallback to the canonical location if by-hash fails.
+
+=== Signed-By ===
+
+An optional field containing a comma separated list of OpenPGP key fingerprints to be used for validating the next Release file. The fingerprints must consist only of hex digits and may not contain spaces. The fingerprint specifies either the key the Release file must be signed with or the key the signature key must be a subkey of. The later match can be disabled by appending an exclamation mark to the fingerprint.
+
+If the field is present, a client should only accept future updates to the repository that are signed with keys listed in the field. The field should be ignored if the Valid-Until field is not present or if it is expired.
+
+Compatibility: This feature was introduced in APT 1.3 and required the concrete key used to sign the repository to be listed, that is, if a subkey is used, the subkey fingerprint must be listed in the field. APT 1.8 added automatic subkey support and support for disabling it via ! as used by gnupg. As APT before 1.8 will choke on this new syntax it should be avoided until all expected users have a sufficiently recent client.
+
+=== Packages-Require-Authorization ===
+
+A hint that package downloads will require authorization. This allows clients to prevent use of that repository if authorization has not been provided, avoiding problems with failing downloads.
+
+Currently in beta in apt 1.8, with the limitations that (1) the auth data must be provided in auth.conf(.d) files, not sources.list, and (2) it must be provided for the hostname, not a subdirectory on the domain. It is expected that APT 1.9 and later will solve the second limitation.
+
+Deprecated. Will be removed in a future apt version, as it breaks local mirroring of such repos if the local mirror is unauthorized but apt requires auth data and the local http server rejects authorization credentials for unprotected resources.
+
+=== Changelogs ===
+
+The {{{Changelogs}}} field tells the client where to find changelogs, for example, Debian uses:
+
+{{{
+Changelogs: https://metadata.ftp-master.debian.org/changelogs/@CHANGEPATH@_changelog
+}}}
+
+
+The value for @CHANGEPATH@ is: 
+
+ 1. if the package is from a component (e.g.  main) this is the first part otherwise it is omitted, 
+ 2. the first letter of source package name, except if the source package name starts with 'lib' in which case it will be the first four letters.
+ 3. The complete source package name. 
+ 4. the complete name again and 
+ 5. the source version. 
+
+The first (if present), second, third and fourth part are separated by a slash ('/') and between the fourth and fifth part is an underscore ('_'). 
+
+The special value 'no' is available for this field indicating that changelogs are not provided.
+
+
+=== Snapshots ===
+
+The {{{Snapshots}}} field tells the client where to find snapshots for this archive. The variable {{{@SNAPSHOTID@}}} is substituted for the snapshot ID, which should be a timestamp in the form of the {{{%Y%m%dT%H%M%SZ}}} time format string.
+
+Snapshot servers must respond successfully to any timestamp by offering the state the archive was in it at that point, and not just provide snapshots at the precise timestamp moments the snapshot was taken.
+
+{{{
+Snapshots: https://snapshot.debian.org/archive/debian/@SNAPSHOTID@/
+}}}
+
+The special value 'no' is available for this field indicating that snapshots are not provided.
+
+This field was introduced as a beta feature in APT 2.7.0.
+
+== Legacy per-component-and-architecture Release files ==
+
+Servers may provide legacy Release files in "dists/$DIST/$COMP/binary-$ARCH/Release".
+
+It should contain only the following fields:
+ * Archive (old name for Suite)
+ * Origin
+ * Label
+ * Acquire-By-Hash (optional)
+ * Component: $COMP (singular variant of Components)
+ * Architecture: $ARCH (current architecture)
+
+Clients must not use them.
+
+== "Packages" Indices ==
+
+The files dists/$DIST/$COMP/binary-$ARCH/Packages (and dists/$DIST/$COMP/debian-installer/binary-$ARCH/Packages for udebs) are called Binary Packages
+Indices. They consist of multiple stanzas, where each stanza has the
+format defined in [[https://www.debian.org/doc/debian-policy/#s-binarycontrolfiles|Policy 5.3 (Binary package control files -- DEBIAN/control)]],
+and the additional fields defined in this section, precisely:
+
+ * Filename (mandatory)
+ * Size (mandatory)
+ * MD5sum, SHA1, SHA256 (recommended)
+ * Description-md5 (optional)
+
+If the following fields exist in the control file of a {{{.deb}}} file they also must exist in the record about the package in the Packages file and the value must match ''exactly'' or a client might recognize a metadata mismatch and redownloads/reinstalls a package:
+
+ * Depends et al
+ * Installed-Size
+ * Multi-Arch
+
+Note that the control file of {{{.deb}}} files may contain additional fields
+not yet documented by policy or not yet documented here which then might
+also be found in this file.
+
+Each stanza shall begin with a "Package" field. Clients may also accept files where this is not the case.
+
+The Packages file for architecture {{{$ARCH}}} should include only stanzas concerning packages of the architecture {{{$ARCH}}}.
+It may also include packages of the architecture {{{all}}} depending on the value of the Architectures field in the Release file.
+
+=== Filename ===
+
+The mandatory {{{Filename}}} field shall list the path of the package archive relative to the base directory of the repository. The path should be in canonical form, that is, without any components denoting the current or parent directory ("{{{.}}}" or "{{{..}}}"). It also should not make use of any protocol-specific components, such as URL-encoded parameters.
+
+Example:
+{{{
+    Filename: pool/main/a/apt/apt_0.9.3_amd64.deb
+}}}
+
+=== Size, MD5sum, SHA1, SHA256, SHA512 ===
+
+The mandatory {{{Size}}} field describes the size of the package, in its compressed form, in units of bytes. Its value shall be a strictly positive integer, given in decimal notation, without any leading zeroes.
+
+The {{{MD5sum}}} (lower case s), {{{SHA1}}}, {{{SHA256}}}, {{{SHA512}}} fields provide cryptographic hashes for verifying the file integrity. Their values shall be given in hexadecimal notation, including any leading zeroes, and using lower case letters. At least one field providing a SHA2 hash shall be provided. Providing {{{SHA256}}} is highly recommended.
+
+Example:
+{{{
+    Size: 1158196
+    MD5sum: 2519c8c1afd27e70cf4ac10a5fa46e32
+    SHA1: 646eda5b6d51190181c15f5537428161f6f04c1d
+    SHA256: 3183eff291d1e9d905e78a6b467bbfb90b20fc2808d50b5e91bf55158b4c18be
+}}}
+
+Clients may not use the MD5Sum and SHA1 fields for security purposes, and must require a SHA256 or a SHA512 field.
+
+=== Description-md5 ===
+
+A lookup key into the Translations indices to find translated package descriptions. Since APT 2.7.7, this field is mandatory to find translation, other clients and earlier versions may also perform the calculation client-side to find translations.
+
+This should be an MD5 checksum of the complete English language description computed starting with the second byte after the colon following the field name containing the English language description ({{{Description}}} in the binary package) and includes the trailing newline of the field. The field value is processed as-is, without any formatting such as removing the indentation done. 
+
+If the value is specified, it must be a hex MD5 digest and must consist solely of the digits 012345679, and the lowercase characters abcdef. If the value contains any other character, such as uppercase characters, the behaviour is unspecified.
+
+In the example given below, the checksum is calculated starting from the {{{c}}} in {{{commandline}}} up to (and including) the newline character before {{{Description-md5}}}.
+
+'''Example''':
+{{{
+Description: commandline package manager
+ This package provides commandline tools for searching and
+ managing as well as querying information about packages
+ as a low-level access to all features of the libapt-pkg library.
+ .
+ These include:
+  * apt-get for retrieval of packages and information about them
+    from authenticated sources and for installation, upgrade and
+    removal of packages together with their dependencies
+  * apt-cache for querying available information about installed
+    as well as installable packages
+  * apt-cdrom to use removable media as a source for packages
+  * apt-config as an interface to the configuration settings
+  * apt-key as an interface to manage authentication keys
+Description-md5: 9fb97a88cb7383934ef963352b53b4a7
+}}}
+
+
+Since APT 1.4, any 32-byte string is supported. Starting with APT 2.7.7, the key is no longer validated at all and may be any string that matches up with the one in the translation file.
+
+=== Description ===
+
+As an exception to Policy 5.6.13 (Description), the value of the {{{Description}}} field may omit the long description if the {{{Description-md5}}} field is defined. In such a case, the description is found in the {{{Translation-en}}}.
+
+=== Phased-Update-Percentage ===
+
+A number between 0 and 100 (both inclusive) that defines a percentage of machines this update should be rolled out to.
+
+To determine whether an update is applicable to a given machine, a client shall seed a random number generator (APT uses std::minstd_rand) with the string:
+
+{{{ sourcePackage-version-machineID }}}
+
+where {{{sourcePackage}}} is the name of the source package, {{{version}}} the version, and {{{machineID}}} the contents of /etc/machine-id.
+
+It shall then extract an integer from a uniform integer distribution between 0 and 100.
+
+=== Tag ===
+
+Contains debtags information for the package.  The [[https://lists.debian.org/debian-devel/2023/11/msg00226.html|Debtags system has been sunsetted]], but the fields remains in some places.  There is a [[https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=1094656|bug open about removing them]].  For example {{{base-files}}} has the following value.
+
+Example:
+{{{
+    Tag: admin::configuring, admin::filesystem, admin::install, admin::login,
+     role::app-data, suite::debian
+}}}
+
+
+== "Sources" Indices ==
+
+The files dists/$DIST/$COMP/source/Sources are called Sources indices. They
+consist of multiple stanzas, where each stanza has the format defined
+in Policy 5.5 (5.4 Debian source control files -- .dsc), with the following
+changes and additional fields. The changes are:
+
+    * The "Source" field is renamed to "Package"
+    * A new mandatory field "Directory"
+    * A new optional field "Priority"
+    * A new optional field "Section"
+
+(Note that any fields present in .dsc files can end here as well, even if they
+are not documented by Debian policy, or not yet documented yet).
+
+Each stanza shall begin with a "Package" field. Clients may also accept files where this is not the case.
+
+Servers must provide Checksums-Sha256 and clients must fail if they cannot validate a file using that unless a stronger hash is available (clients may support a Checksums-Sha512 field). Clients must not use the Files or Checksums-Sha1 fields for security purposes.
+
+=== Directory ===
+
+The directory field shall list the location of the source package in the
+repository, relative to the base directory of the repository.
+
+Example:
+{{{
+    Directory: pool/main/a/apt
+}}}
+
+=== Priority ===
+
+Shall contain one of the values specified in Policy 2.5 (Priorities), or the value "source". '''Implementation Notes:''' dak currently uses "source", reprepro uses one of the normal priority values.
+
+Example:
+{{{
+    Priority: source
+}}}
+
+=== Section ===
+
+Shall contain the section specified for the source package?? '''''FIXME'''''
+
+Example:
+{{{
+    Section: admin
+}}}
+
+== "Contents" indices ==
+
+The files dists/$DIST/$COMP/Contents-$SARCH.gz (and dists/$DIST/$COMP/Contents-udeb-$SARCH.gz for udebs) are so called Contents indices. The variable $SARCH means either a binary architecture or the pseudo-architecture "source" that represents source packages. They are optional indices describing which files can be found in which packages. Prior to Debian wheezy, the files were located below "dists/$DIST/Contents-$SARCH.gz".
+
+Contents indices begin with zero or more lines of free form text followed by a table mapping filenames to one or more packages. The table SHALL have two columns, separated by one or more spaces. The first row of the table SHOULD have the columns "FILE" and "LOCATION", the following rows shall have the following columns:
+
+ 1. A filename relative to the root directory, without leading .
+ 2. A list of qualified package names, separated by comma. A qualified package name has the form {{{[[$AREA/]$SECTION/]$NAME}}}, where {{{$AREA}}} is the archive area, {{{$SECTION}}} the package section, and {{{$NAME}}} the name of the package. Inclusion of the area in the name should be considered deprecated.
+
+Clients should ignore lines not conforming to this scheme. Clients should correctly handle file names containing white space characters (possibly taking advantage of the fact that package names cannot include white space characters).
+
+== "Translation" indices ==
+
+The directory dists/$DIST/$COMP/i18n/ contains the file index, with a SHA1 field listing the description indices in that directory, in the same format as used for Release files, and one or more description indices.
+
+Each description index has the format {{{Translation-$LANG.bz2}}}, where {{{$LANG}}} is a language code corresponding to a locale.
+
+A Translation index is like a Packages index, but has the following fields only:
+
+ * {{{Package}}}
+ * {{{Description-md5}}}
+ * {{{Description-$LANG}}}
+
+The {{{Package}}} and {{{Description-md5}}} fields have the same meaning as for Packages indices. The {{{Description-$LANG}}} field, where {{{$LANG}}} is the same value as that of {{{$LANG}}} in the filename, shall be a description as described in Policy 5.6.13 Description, localized for that language.
+
+The file {{{Translation-en.bz2}}} contains the English language descriptions, if those are not supplied in the Packages index.
+
+Example:
+{{{
+Package: aspell-ca
+Description-md5: ac1a5e69d940eb04be1942837e419d62
+Description-ca: Diccionari català per aspell
+ Aquest paquet conté tots els fitxers necessaris per afegir suport per
+ l'idioma català pel corrector ortogràfic GNU Aspell.
+ .
+ Va ser recollit per en Joan Moratinos utilitzant dades de diverses fonts.
+}}}
+
+== indices acquisition via hashsums (by-hash) ==
+
+For each of the indices previously defined, the specified canonical name of the index should be a link to the most recent version of the file stored with its hashsum as filename in the "by-hash" location specified in this stanza. The current version must and two or more previous versions of a file should be available if support for by-hash is indicated with the {{{Acquire-By-Hash}}} in the Release file.
+
+For example, if the Release file contains:
+{{{
+Acquire-By-Hash: yes
+MD5Sum:
+ e9c66b2352c403a3387e240bae17f629              285 main/binary-i386/Packages
+ f21914a78219561b7056b23c3a3b0235              237 main/binary-i386/Packages.gz
+}}}
+(Note that MD5Sum is used in this example only for briefness, real implementations should follow the previously defined requirements for hashsums in this specification)
+
+The file {{{main/binary-i386/Packages}}} must be also available at {{{main/binary-i386/by-hash/MD5Sum/e9c66b2352c403a3387e240bae17f629}}} (if the server provides uncompressed indexes) and the file {{{main/binary-i386/Packages.gz}}} at {{{main/binary-i386/by-hash/MD5Sum/f21914a78219561b7056b23c3a3b0235}}}. Servers must provide by-hash with the strongest hashsum they support (and include in the Release file) and should provide by-hash for all hashsums. Clients supporting by-hash must use the strongest hashsum they support and is provided in the Release file.
+
+== indices difference files (diffs) ==
+
+For each of the indices previously defined, repositories may also provide indices difference files, that contain the differences to previous versions of the index.
+
+If an (uncompressed) index is located at the path $I, then a directory called $I.diff can exist. This directory contains the following files:
+
+ * Index
+ * Compressed Difference files in the format "%Y-%m-%d-%H%M.%S.gz"
+
+=== .diff/Index files ===
+
+The index file shall be a file with the following fields:
+
+ * $(HASH)-Current
+ * $(HASH)-History
+ * $(HASH)-Patches
+ * $(HASH)-Download
+
+here $(HASH) is a known hash algorithm like SHA1, SHA256 or SHA512.
+Multiple hashes can be specified in the same file and stanza in this way.
+The first three fields are required, $(HASH)-Download is strongly recommend for servers and clients.
+Traditionally servers and clients only supported SHA1, but it is strongly advised to add support for at least SHA256, too. Clients should reject SHA1 and require and validate a stronger hash algorithm of the SHA2 family.
+
+==== $(HASH)-Current ====
+
+The hashsum of the current index $I.
+This is the same one as listed in a hashsum field of the Release file to make sure it is the right diff file.
+
+==== $(HASH)-History, $(HASH)-Patches and $(HASH)-Download ====
+
+These field are multi-line fields, where each line consists of the following columns, separated by a single space:
+
+ 1. A checksum
+ 2. A size
+ 3. The name of a patch file
+
+For $(HASH)-History, the hashsum and the size describe the index to which the patch applies.
+For $(HASH)-Patches, the hashsum and the size refer to the uncompressed patch file.
+For $(HASH)-Download, the hashsum and the size apply to the compressed patch file.
+
+Example for a Index file containing only SHA1 hashes:
+{{{
+SHA1-Current: 8d190506d0c20b20b3cee06956e2061f3c083281 29137603
+SHA1-History:
+ a3cc0e588a41662db61e432f8c174a0d29aa4a9b 29086963 2012-05-04-2025.35
+SHA1-Patches:
+ 351c97e091e10313eb7e2aeb8a1dd8088726cf20   91134 2012-05-04-2025.35
+SHA1-Download:
+ dd6804a1538f8fe20f3027582ddb4d838df87891    2903 2012-05-04-2025.35.gz
+}}}
+
+Each patch applied to the old version of the index file listed in {{{SHA1-History}}}
+creates a new file that either is the file looked for or some other old version
+that is also listed in {{{SHA1-History}}}.
+
+DAK currently creates patches to be applied one by one. reprepro creates patches
+directly resulting in the final file. reprepro also adds a line
+
+{{{
+X-Patch-Precedence: merged
+}}}
+
+so clients wishing to optimize for one-by-one applying know that this is not possible.
+
+
+Those files are in a format that is a subset of the "patch --ed" format. The supported {{{ed}}} commands are {{{c}}} (change), {{{a}}} (add), and {{{d}}} (delete). The records must be reverse sorted by line number and may not overlap. According to APT documentation, diff seems to produce this format, but no guarantee is made.
+
+== Debian installer files - udeb packages ==
+
+The main repository also contains Debian installer files (.udeb packages) and their indices.
+
+These are used only by the Debian installer and are not installed on a Debian system under normal circumstances.
+
+= Flat Repository Format =
+
+A flat repository does not use the {{{dists}}} hierarchy of directories, and instead places meta index and indices directly into the archive root (or some part below it) In sources.list syntax, a flat repository is specified like this:
+
+{{{
+   deb uri directory/
+}}}
+
+Where {{{uri}}} specifies the archive root, and {{{directory}}} specifies the position of the meta index and the indices relative to the archive root. In Flat repositories, the following indices are supported:
+
+ * Packages (under the location {{{directory/Packages}}})
+ * Sources  (under the location {{{directory/Sources}}})
+
+!InRelease, Release, Release.gpg meta-information, and indices differences are supported as well. Translations, and Contents indices are not defined for that repository format (TODO: APT support Translations in some format, need to look closer at this). Indices may be compressed just like in the standard Debian repository format.
+
+= See Also =
+
+ * [[https://www.chiark.greenend.org.uk/~cjwatson/blog/no-more-hash-sum-mismatch-errors.html|No more “Hash Sum Mismatch” errors]] by Colin Watson for the reasons behind {{{InRelease}}} files and the {{{by-hash}}} directory
+ * DebianDak
+ * DakHowTo
+ * [[DebianRepository/Setup]]: instructions to setup such a repository and a review of the different tools available to do so
+
+= Licence =
+
+Copyright (C) 2012 various contributors
+
+Permission is hereby granted, free of charge, to any person
+obtaining a copy of this software and associated documentation files
+(the "Software"), to deal in the Software without restriction,
+including without limitation the rights to use, copy, modify, merge,
+publish, distribute, sublicense, and/or sell copies of the Software,
+and to permit persons to whom the Software is furnished to do so,
+subject to the following conditions:
+
+The above copyright notice and this permission notice shall be
+included in all copies or substantial portions of the Software.
+
+THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND,
+EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF
+MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND
+NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS
+BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN
+ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN
+CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+SOFTWARE.
+
+Note: In this case, the "Software" only consists of documentation files, though, and refers to this wiki page.

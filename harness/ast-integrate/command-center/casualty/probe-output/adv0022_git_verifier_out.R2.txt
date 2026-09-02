@@ -1,0 +1,68 @@
+ADV0022_GITV_BEGIN
+cwd=/c/Users/Prekzursil/source/ast-integrate
+head=b613c827
+
+--- C1 CONTROL: is hooks/ a populated pathspec? (a zero over an empty tree is meaningless)
+tracked_files_under_hooks=289
+
+--- Q1: files under hooks/ referencing tool_permissions (expect: none)
+git_grep_exit=1   (1 = no match, 0 = matched)
+
+--- C2 CONTROL: files repo-wide referencing tool_permissions (expect: many)
+SELF-MATCH GUARD: command-center/casualty/ IS TRACKED, so this lane's own probe outputs,
+  worklogs and builders contain the very tokens being counted. Excluding the lane is
+  mandatory - a probe that matches its own output measures itself.
+  [ROUND-2 D4 FIX] this block used to NARRATE a frozen pair of numbers ("219 files, of
+  which 12") two lines above the lines that COMPUTE them; both had since drifted, so the
+  probe contradicted itself in its own output. The delta is now computed, never quoted.
+raw_including_this_lane=225
+repo_wide_files_with_tool_permissions=208
+self_match_inflation=17   (files that are THIS lane matching its own output)
+
+--- Q2: callers of check_work_unit_authorization under hooks/ (expect: none)
+git_grep_exit=1   (1 = no match, 0 = matched)
+
+--- C3 CONTROL: files repo-wide with check_work_unit_authorization, EXCLUDING this lane
+                (expect the python scanner's caller set, not inflated by our own captures)
+raw_including_this_lane=16
+repo_wide_files=8
+self_match_inflation=8
+command-center/D2-WORKUNIT-AUTHZ.md
+command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json
+command-center/authz_apply_fixes.py
+command-center/wave3_floor_audit.py
+platform/lib/wfdsl/authz_census.py
+platform/lib/wfdsl/semantics.py
+platform/lib/wfdsl/test_work_unit_authorization.py
+platform/schema/work-unit-catalog.schema.json
+
+--- C4 USE-vs-MENTION: git finds MORE files than the python scanner found CALLERS.
+    The scanner matched literal call syntax; git matches the token anywhere. Classify,
+    because a file that NAMES the symbol is not a caller (use-vs-mention).
+  --- command-center/authz_apply_fixes.py
+      command-center/authz_apply_fixes.py:33:# platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). SAME
+  --- command-center/wave3_floor_audit.py
+      command-center/wave3_floor_audit.py:429:    # does the SHIPPED gate actually fire? drive check_work_unit_authorization directly
+      command-center/wave3_floor_audit.py:456:    fn = getattr(semantics, "check_work_unit_authorization", None)
+      command-center/wave3_floor_audit.py:458:        return {"ok": False, "error": "check_work_unit_authorization ABSENT"}
+  --- platform/schema/work-unit-catalog.schema.json
+      platform/schema/work-unit-catalog.schema.json:21:      "$comment": "The authorization plane for `work_units`, read by platform/lib/wfdsl/semantics.py::check_work_unit_authorization (SEM-008..SEM-011). It deliberately $refs the DSL plane's EXISTING `$defs/tool_policy` rather than declaring a second vocabulary: the two planes share one allow/deny/require_owner_approval partition with `default: deny`, so a policy authored for a workflow reads identically here (platform/architecture/TOURNAMENT-VERDICT.md 1.1 and 3.1 - a duplicate control plane was ruled inadmissible). OPTIONAL in the schema, but its ABSENCE is not permissive: SEM-008 fails closed and reports every requested tool as denied, so a catalog with no policy is a red gate, not a skipped one. Note that `$defs/tool_policy` sets additionalProperties:false, so the instance carries no `$comment` of its own - the rationale for each entry lives in command-center/authz_apply_fixes.py and command-center/D2-WORKUNIT-AUTHZ.md."
+  --- command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json
+      command-center/adversarial/ADV-0035-least-privilege-declared-vs-used.json:1872:    "anchor": "platform/lib/wfdsl/semantics.py:318 check_work_unit_authorization"
+
+    CLASSIFICATION (by reading each hit, not by counting documents):
+      authz_apply_fixes.py:33            MENTION  - a source comment
+      work-unit-catalog.schema.json:21   MENTION  - a schema $comment
+      ADV-0035-...json:1872              MENTION  - an anchor in a sibling artifact
+      wave3_floor_audit.py:456           *CALLER* - getattr(semantics,
+                                         "check_work_unit_authorization", None), a DYNAMIC
+                                         invocation the literal-call-syntax scanner missed.
+    NET: the real caller set is 5 files, not 4 - the python scanner UNDER-counted by one.
+    The conclusion is UNCHANGED and slightly strengthened: wave3_floor_audit.py is a
+    command-center floor-AUDIT probe, not a runtime hook, so all 5 callers remain
+    static/CI/audit-time and zero are call-time interceptors.
+
+--- Q3: is platform/architecture/security-first.md tracked? (settles the retracted claim)
+platform/architecture/security-first.md
+tracked=1
+ADV0022_GITV_END

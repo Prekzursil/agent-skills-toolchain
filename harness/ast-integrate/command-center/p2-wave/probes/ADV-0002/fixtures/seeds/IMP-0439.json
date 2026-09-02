@@ -1,0 +1,284 @@
+{
+  "id": "IMP-0439",
+  "unit_id": "IMP-0439",
+  "title": "Make the provenance hash read the committed blob, not the working tree",
+  "question": "After the fix, do the Windows and Linux runs produce the same digest for all fourteen manifest entries?",
+  "answer": "Yes. Hashing `git cat-file -p HEAD:path` (never `git archive`) yields the same sha256 for all 14 contracted command-center paths on an LF commit after the worktree is rewritten to CRLF. Raw working-tree sha256 differs for every file, so the blob-route green is not silence in both states. Two digests were re-derived with `git show`, not cat-file. Windows was simulated by CRLF worktree materialisation on this Linux box, not a native Windows checkout. SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "completion_sentinel": "SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "sentinel": "SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "min_bytes_threshold": 2048,
+  "cloud_ok": false,
+  "timestamps": {
+    "ended_at": "2026-08-25T01:01:12Z"
+  },
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0439",
+  "implementation": {
+    "helper": "tools/command-center/blob.py",
+    "recipe": "git -C <repo> cat-file -p <rev>:<path>",
+    "forbidden_recipe": "git archive",
+    "wired_into": [
+      "tools/command-center/validate.py:REACH-6",
+      "tools/command-center/seed.py:provenance.register_sha256",
+      "tools/command-center/render.py:render_manifest"
+    ],
+    "fallback": "LF-normalised working-tree bytes only when the path is not a blob (tmp fixtures, untracked files)",
+    "not_in_scope": [
+      "tools/measure-guard/blobread.py is IMP-0440",
+      ".gitattributes EOL policy is IMP-0441"
+    ]
+  },
+  "digest_table": {
+    "columns": [
+      "path",
+      "working_tree_sha256",
+      "blob_sha256",
+      "recorded_provenance_sha256"
+    ],
+    "n": 14,
+    "n_crlf_rewritten": 14,
+    "taken_on": "Linux fixture git repo; Windows checkout simulated by rewriting the worktree to CRLF after an LF commit (core.autocrlf materialisation)",
+    "blob_route_identical_crlf_vs_lf": true,
+    "working_tree_route_differs_for_all_14": true,
+    "rows": [
+      {
+        "path": "command-center/PROGRAM-CHARTER.md",
+        "working_tree_sha256": "74af1d941b56606e4f5ca9028a4aa70d5e5c2b92d42f35652013b0fdae6adb8c",
+        "blob_sha256": "6cf9a0c0188f9c7386d75dcbe6c4fb40390e48e53d4ab83965eb924a598909f8",
+        "recorded_provenance_sha256": "6cf9a0c0188f9c7386d75dcbe6c4fb40390e48e53d4ab83965eb924a598909f8",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/OWNER-DECISIONS.md",
+        "working_tree_sha256": "910157ee03d6918086bf5cef557bd53f42bb9db090ecdcb5a3e244e9f9a0aba5",
+        "blob_sha256": "89dd12d58a3e3681d1379d2476efdf30eb0bd31aa4cd6f75d1ebf0af935d744c",
+        "recorded_provenance_sha256": "89dd12d58a3e3681d1379d2476efdf30eb0bd31aa4cd6f75d1ebf0af935d744c",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/WORK-UNIT-CATALOG.json",
+        "working_tree_sha256": "12903fd5f2d7e7fafa75d8228943bce2d69bc8ef54af055b2244adce50e7dc7d",
+        "blob_sha256": "6056a3243ef07bbb5787c7d8e94ca8c7f19f3acc151463eede8d61dce466afe4",
+        "recorded_provenance_sha256": "6056a3243ef07bbb5787c7d8e94ca8c7f19f3acc151463eede8d61dce466afe4",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/DEPENDENCY-GRAPH.json",
+        "working_tree_sha256": "d44c0dc5d28e9a651fcb88d2d722025fdab2cc9768d206b9ae3bda95f61bf129",
+        "blob_sha256": "3e948b23a2d967e7af0804cdc4f7482d8a4ea4116abf935bfae5216851063f10",
+        "recorded_provenance_sha256": "3e948b23a2d967e7af0804cdc4f7482d8a4ea4116abf935bfae5216851063f10",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/ARTIFACT-MANIFEST.json",
+        "working_tree_sha256": "71c1d251442eaa3b13a70f63592a5cf5734ddc991b9d46ebd76bef72c27ce3e9",
+        "blob_sha256": "4cccda65a33ee7c895f4b1aa834bc155752d5fbec6fe7c3f4b2b25ced060c707",
+        "recorded_provenance_sha256": "4cccda65a33ee7c895f4b1aa834bc155752d5fbec6fe7c3f4b2b25ced060c707",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/CLAIM-REGISTRY.json",
+        "working_tree_sha256": "9fe84a86608bdee8d78ad8de1013f2484b9392e79780bd59fad1390965d1bc2f",
+        "blob_sha256": "3cf2fde0f2c42a4d21f32579b0c70153a89e0619fea68e38e2e4b3fe96579dda",
+        "recorded_provenance_sha256": "3cf2fde0f2c42a4d21f32579b0c70153a89e0619fea68e38e2e4b3fe96579dda",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/TEST-REGISTRY.json",
+        "working_tree_sha256": "8a575fdbd0eee203f6fb1c77e4dc204123e084d735cf90872643fb959c0e2d1d",
+        "blob_sha256": "f057b0e6710267fe6b8c8f5db03cebf7e66f05adec2da2dea5fe591caee94f02",
+        "recorded_provenance_sha256": "f057b0e6710267fe6b8c8f5db03cebf7e66f05adec2da2dea5fe591caee94f02",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/RISK-REGISTER.md",
+        "working_tree_sha256": "6e86b5b6d249fffd20420cb15b69c919d60ec42a350da5771454400980131d75",
+        "blob_sha256": "92b7dda2206c5c5d1e516ad43e21406d39b593d2c6d37b604700acf3ece73483",
+        "recorded_provenance_sha256": "92b7dda2206c5c5d1e516ad43e21406d39b593d2c6d37b604700acf3ece73483",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/UNKNOWNS-REGISTER.md",
+        "working_tree_sha256": "f7821e8e066b8c1f39ecc169b1dd02a350dff47f2d5330ca79b5592fb175c40e",
+        "blob_sha256": "00d86d91203fe019611694daee42cb8e12b0acadf82bdaa35114bf3afda9f705",
+        "recorded_provenance_sha256": "00d86d91203fe019611694daee42cb8e12b0acadf82bdaa35114bf3afda9f705",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/RELEASE-CHECKLIST.md",
+        "working_tree_sha256": "7ac5bdc07251726c7bc01773d7cb610773fde113fcf8fca16c8f6f7e93beebef",
+        "blob_sha256": "9b0df00b9c7e96adc0eb8b21dbc3a4d5ffd23d098f8440b0ec7e8efb841a3ef3",
+        "recorded_provenance_sha256": "9b0df00b9c7e96adc0eb8b21dbc3a4d5ffd23d098f8440b0ec7e8efb841a3ef3",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/ROLLBACK-MANIFEST.md",
+        "working_tree_sha256": "6c0a1644422a8a4a67abc5d85371a7ad9ccec69da616cabbdf5df9f8af86fe60",
+        "blob_sha256": "99ed4ccf435cb3fd0cda75528b21d68abac53295907228efc3f6728c80b8f334",
+        "recorded_provenance_sha256": "99ed4ccf435cb3fd0cda75528b21d68abac53295907228efc3f6728c80b8f334",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/RUNBOOK.md",
+        "working_tree_sha256": "da0803c146620aadc1f89914e73bdf4273343eeb7907e6ea158a3e76083c664d",
+        "blob_sha256": "428da618436bc968264df524153b7191915e0399701a4b2811099271d30673b8",
+        "recorded_provenance_sha256": "428da618436bc968264df524153b7191915e0399701a4b2811099271d30673b8",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/STATUS.md",
+        "working_tree_sha256": "0cb116d16653b65627c32f0d040faebbedc2bbad00cc1e6fd8b3b295ea40a439",
+        "blob_sha256": "126a5c2304330e6dddcd79ee56e11d7dc73301ae4038be88144859479eba59f4",
+        "recorded_provenance_sha256": "126a5c2304330e6dddcd79ee56e11d7dc73301ae4038be88144859479eba59f4",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      },
+      {
+        "path": "command-center/events/EVENTS.jsonl",
+        "working_tree_sha256": "a6602d634f897c5bc36d8d40c90f938a0218612362715439e098ea871d99411a",
+        "blob_sha256": "3f849af4e589d7a5c6feb1be92b6d7cfb41ae451ab0508c69623aaa63f3c7709",
+        "recorded_provenance_sha256": "3f849af4e589d7a5c6feb1be92b6d7cfb41ae451ab0508c69623aaa63f3c7709",
+        "blob_equals_recorded": true,
+        "working_tree_equals_blob": false
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "id": "E1",
+      "claim": "Blob sha256 is identical for all 14 contracted paths on LF vs CRLF worktrees; recorded provenance hash equals the blob.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/IMP-0439/probe1-digest-table.json",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0439/probe1_blob_parity.py",
+          "exit_code": 0,
+          "role": "source",
+          "method": "command",
+          "raw_output": "{\n  \"pass\": true,\n  \"probe\": \"probe1-blob-parity\",\n  \"unit_id\": \"IMP-0439\",\n  \"n_entries\": 14,\n  \"blob_route_identical_crlf_vs_lf\": true,\n  \"working_tree_route_differs_for_all_14\": true,\n  \"independent_git_show_matches_cat_file\": true,\n  \"table_path\": \"command-center/p2-wave/probes/IMP-0439/probe1-digest-table.json\",\n  \"independent_samples\": {\n    \"command-center/PROGRAM-CHARTER.md\": {\n      \"git_show\": \"6cf9a0c0188f9c7386d75dcbe6c4fb40390e48e53d4ab83965eb924a598909f8\",\n      \"git_cat_file\": \"6cf9a0c0188f9c7386d75dcbe6c4fb40390e48e53d4ab83965eb924a598909f8\"\n    },\n    \"command-center/WORK-UNIT-CATALOG.json\": {\n      \"git_show\": \"6056a3243ef07bbb5787c7d8e94ca8c7f19f3acc151463eede8d61dce466afe4\",\n      \"git_cat_file\": \"6056a3243ef07bbb5787c7d8e94ca8c7f19f3acc151463eede8d61dce466afe4\"\n    }\n  }\n}\nn=14 blob_identical=True working_tree_differs=True git_show_matches_cat_file=True table=command-center/p2-wave/probes/IMP-0439/probe1-digest-table.json\nSUCCESS:IMP-0439-probe1 blob-parity fourteen-entry table"
+        }
+      ]
+    },
+    {
+      "id": "E2",
+      "claim": "Two blob digests re-derived with git show match git cat-file; REACH-6 is silent on CRLF-only and fires on content change; working-tree hash differs from blob after CRLF rewrite.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "tools/command-center/blob.py:show_bytes",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0439/probe2_independent_show.py",
+          "exit_code": 0,
+          "role": "verifier",
+          "method": "command",
+          "raw_output": "{\n  \"pass\": true,\n  \"probe\": \"probe2-independent-show-and-reach6\",\n  \"unit_id\": \"IMP-0439\",\n  \"reviewer_id\": \"IMP-0439-probe2-independent-show\",\n  \"starts_from\": \"tests (blob parity + REACH-6 both-states), not author summary\",\n  \"independent_git_show_matches_cat_file\": true,\n  \"samples\": {\n    \"command-center/PROGRAM-CHARTER.md\": {\n      \"git_show\": \"6cf9a0c0188f9c7386d75dcbe6c4fb40390e48e53d4ab83965eb924a598909f8\",\n      \"git_cat_file\": \"6cf9a0c0188f9c7386d75dcbe6c4fb40390e48e53d4ab83965eb924a598909f8\"\n    },\n    \"command-center/WORK-UNIT-CATALOG.json\": {\n      \"git_show\": \"6056a3243ef07bbb5787c7d8e94ca8c7f19f3acc151463eede8d61dce466afe4\",\n      \"git_cat_file\": \"6056a3243ef07bbb5787c7d8e94ca8c7f19f3acc151463eede8d61dce466afe4\"\n    }\n  },\n  \"both_states\": {\n    \"silent_on_crlf_only\": true,\n    \"fires_on_content_change\": true,\n    \"working_tree_differs_from_blob_after_crlf\": true\n  }\n}\ngit_show_matches=True crlf_silent=True content_fires=True samples=[command-center/PROGRAM-CHARTER.md, command-center/WORK-UNIT-CATALOG.json]\nSUCCESS:IMP-0439-probe2 independent-show REACH-6 both-states"
+        }
+      ]
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0439-NC1-working-tree-differs",
+      "kind": "control",
+      "description": "Raw working-tree sha256 must differ from blob sha256 on a CRLF worktree, proving the blob route changed something.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "IMP0439-NC2-content-change-fires-reach6",
+      "kind": "mutation",
+      "description": "REACH-6 must fire when snapshot content actually changes.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "IMP0439-NC3-crlf-only-silent",
+      "kind": "mutation",
+      "description": "REACH-6 must stay silent on a CRLF-only rewrite of the same blob.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "negative_control_ids": [
+    "IMP0439-NC1-working-tree-differs",
+    "IMP0439-NC2-content-change-fires-reach6",
+    "IMP0439-NC3-crlf-only-silent"
+  ],
+  "reviewer": {
+    "independent": true,
+    "reviewer_id": "IMP-0439-probe2-independent-show",
+    "starts_from": "tests (blob parity + REACH-6 both-states), not author summary",
+    "verdict": "PASS",
+    "method": "git show <rev>:<path> vs git cat-file -p on two fixture paths"
+  },
+  "reviewer_verdict": "PASS",
+  "tests": [
+    {
+      "id": "pytest-blob-provenance",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/command-center/tests/test_blob_provenance.py",
+      "result": "PASS",
+      "exit_code": 0,
+      "output_tail": "SUCCESS:test_blob_provenance"
+    },
+    {
+      "id": "probe1-blob-parity",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0439/probe1_blob_parity.py",
+      "result": "PASS",
+      "exit_code": 0
+    },
+    {
+      "id": "probe2-independent-show",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0439/probe2_independent_show.py",
+      "result": "PASS",
+      "exit_code": 0
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "The 14-row table was taken on a Linux fixture repo with a CRLF worktree, not a native Windows checkout under core.autocrlf=true.",
+      "settling_experiment": "Re-run probe1 on a real Windows clone with core.autocrlf=true.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "command-center/sources/REGISTER.md is absent on this worktree, so live REACH-6 against the committed catalog cannot be greened here.",
+      "settling_experiment": "Re-run validate.py on a tree that still has the register snapshot.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": ".gitattributes is absent; IMP-0439 moved the fix into hashing rather than stealing IMP-0441's EOL policy.",
+      "settling_experiment": "IMP-0441 dual-platform gate proof.",
+      "verdict": "NOT-CHECKED"
+    }
+  ],
+  "notes": "G-1 for IMP-0439: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. Did not implement IMP-0440's shared blobread helper. Did not add .gitattributes. No git add/commit/push. No ADV rebuild. SENTINEL:IMP-0439:PROVENANCE-BLOB-HASHED",
+  "artifact_paths": [
+    "command-center/receipts/IMP-0439.json",
+    "tools/command-center/blob.py",
+    "tools/command-center/validate.py",
+    "tools/command-center/seed.py",
+    "tools/command-center/render.py",
+    "tools/command-center/tests/test_blob_provenance.py",
+    "command-center/p2-wave/probes/IMP-0439/probe1_blob_parity.py",
+    "command-center/p2-wave/probes/IMP-0439/probe2_independent_show.py"
+  ],
+  "manifest_registration": {
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+    "manifest_path": "command-center/p2-wave/probes/IMP-0439/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true
+  }
+}

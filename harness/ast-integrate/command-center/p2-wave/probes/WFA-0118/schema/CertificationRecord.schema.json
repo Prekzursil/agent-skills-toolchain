@@ -1,0 +1,137 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/WFA-0118/schema/CertificationRecord.schema.json",
+  "title": "WFA-0118 CertificationRecord stand-in",
+  "$comment": "Catalog output_schema points at command-center/wfa/schema/wfa-schema-pack.json#/$defs/CertificationRecord. That pack is a generated shim whose $defs fragment $refs a generic_report + report.kind const. This stand-in is the fixture validator for the seven-condition gate fields this unit actually emits.",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "record_type",
+    "unit_id",
+    "state",
+    "sentinel",
+    "fusion_id",
+    "source_ids",
+    "certified",
+    "verdict",
+    "conditions",
+    "cited_evidence",
+    "negative_controls",
+    "fusion_stage_count_ignored",
+    "reviewer",
+    "evidence",
+    "tests"
+  ],
+  "properties": {
+    "record_type": { "type": "string", "const": "CertificationRecord" },
+    "unit_id": { "type": "string", "const": "WFA-0118" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:WFA-0118" },
+    "fusion_id": { "type": "string", "minLength": 3 },
+    "source_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 3 }
+    },
+    "certified": { "type": "boolean" },
+    "verdict": {
+      "type": "string",
+      "enum": ["CERTIFIED", "REFUSED", "INCONCLUSIVE"]
+    },
+    "conditions": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "result", "reason"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL"] },
+          "reason": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "cited_evidence": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": true,
+        "required": ["id", "sha256", "packet"],
+        "properties": {
+          "id": { "type": "string" },
+          "sha256": { "type": "string", "minLength": 64, "maxLength": 64 },
+          "packet": { "type": "object" }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["removed_condition", "certified", "verdict"],
+        "properties": {
+          "removed_condition": { "type": "string" },
+          "certified": { "type": "boolean", "const": false },
+          "verdict": { "type": "string", "enum": ["REFUSED", "INCONCLUSIVE"] }
+        }
+      }
+    },
+    "fusion_stage_count_ignored": { "type": "boolean", "const": true },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "const": "PASS" },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "name", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "name": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    }
+  },
+  "if": {
+    "properties": {
+      "certified": { "const": true }
+    }
+  },
+  "then": {
+    "properties": {
+      "verdict": { "const": "CERTIFIED" }
+    }
+  }
+}

@@ -1,0 +1,264 @@
+
+===== launch 2026-08-19T18:04:04Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the claim-verify-gate, then resume whatever is already built instead of starting over.Existing artifacts are already in the probe tree. I'll read the return file, the unit manifest, and the measurement contract next.The tree already claims delivery; I'll re-run the named probes and inspect the live receipt instead of trusting that.I'll read the rest of the packer, the catalog unit, and the current receipt, then re-run the probes.I'll re-run the named probes live, then compare the catalog contract and receipt hashes against what's on disk.Both probes exited 0. Next I’ll pack the receipt from the live raws, refresh the per-unit manifest, and measure.The packed receipt still claims repo-root `platform/` is missing; that is no longer true, so I'll correct it and re-pack.Measure printed `SUCCESS:delivered`. I'll lock live hashes and write `SUBAGENT-RETURN.json` from this remesure.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing named probes instead of rebuilding them. Both re-ran to exit 0 on this worktree. The catalog receipt was re-packed from those live raws (`state=SUCCESS` only after those greens), then the per-unit manifest was locked to the live LF digest.
+
+| Item | Live value |
+|---|---|
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` |
+| Bytes / LF sha256 | 24932 / `e72f22c0b33ebfae07f5e637dd92cfd7059a36e47f2d853c9e45c8e2b344175a` |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json` (hash match) |
+| Measure | `python command-center/p2-wave/_measure_one_delivered.py ADV-0121` → `SUCCESS:delivered` |
+| Schema | 0 errors; kind mutant 3 |
+
+Science is still **PARTIAL**, not product-clean migrate: six variants are byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; the silent-discard control fired `0→1`. Cloud-ok `UNIT-COMPLETE` is not this delivery (`CLOUD-OK-REFUTE.json` was `BLOCKED` with named probes then absent).
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global `UNIT-ARTIFACT-MANIFEST.json` rewrite, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:07:46Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and unit contract, then resume only what's missing for G-1.The probe tree already exists. Next I’ll read the return files, measure script, and unit contract so we resume instead of rebuilding.Existing files claim delivery; I’ll re-run the live probes and measure instead of trusting that.I’ll re-run both named probes and the measure gate now, then pack only if the live hashes still match.I’ll inspect the schema contract and current hashes, then re-run the probes live.Raws have drifted from the packed receipt. I’ll re-run both named probes, then re-pack so the live hashes match.Measure printed `SUCCESS:delivered`. I’ll lock live hashes into the per-unit return files next.Pack and measure already wrote the per-unit manifest. I’ll now write `SUBAGENT-RETURN.json` from this session’s live hashes.**SUCCESS:delivered** for ADV-0121.
+
+`python command-center/p2-wave/_measure_one_delivered.py ADV-0121` printed:
+
+`SUCCESS:delivered ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing named probes (not rebuilt). Both re-ran to exit 0. Receipt re-packed from those live raws; per-unit manifest matches the live LF digest.
+
+| Item | Result |
+|---|---|
+| Probe 1 `probe1_migration_matrix.py` | exit 0, `SUCCESS:ADV-0121-probe1` |
+| Probe 2 `probe2_semantic_diff.py` | exit 0, `SUCCESS:ADV-0121-probe2` |
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` — `state=SUCCESS`, 24932 B, LF sha256 `10d79b640869ece7a026d8e6691421052aeb53d9a122038a204326914ef88e2c` |
+| Schema | `schema_resolver.validate_artifact` 0 errors; kind mutant 3 |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json` hash match |
+| Science | **PARTIAL**: six variants byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; silent-discard control fired 0→1 |
+
+G-1 here means live probes, a non-BLOCKED SUCCESS receipt, and a matching per-unit manifest row. It does **not** mean migrate is product-clean, and it does **not** treat cloud `ok=true` as delivery. Global `UNIT-ARTIFACT-MANIFEST.json` and `unit_manifest.py --write` were not touched.
+
+===== launch 2026-08-19T18:12:00Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the delivery contract, then resume from whatever is already built rather than scrapping it.Existing probes and returns are already on disk. Next I’ll read the contract files and the current measure output so we resume from the real failure, not a rebuild.Prior return claims delivered, but I’ll re-measure live and inspect the receipt, probes, and sibling success pattern before trusting that.I’ll re-run the live measure and inspect the catalog unit plus current receipt so we know whether this is already green or still red.Measure already printed `SUCCESS:delivered`. I’ll confirm probes, receipt honesty, and the exact SUBAGENT-RETURN shape the parent expects before writing.The live measure is already green. I’ll inspect the worker prompt and a few sibling returns so this session’s artifacts match the parent contract.Multiple sessions may already be racing this unit. I’ll inspect those workers and the receipt schema, then pack from the latest live raws.Receipt is still SUCCESS, but it was packed from older raws. I’ll re-pack from the live probe output, then re-measure so this session’s artifacts match.Pack and remesure are green. Next I’ll write this session’s SUBAGENT-RETURN and keep the per-unit manifest locked to the live receipt hash.**SUCCESS:delivered** ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0
+
+G-1 is contract-green for this unit only. Named probes were resumed, not rebuilt. Cloud-ok `UNIT-COMPLETE` was not treated as delivery.
+
+| Check | Result |
+|---|---|
+| `probe1_migration_matrix.py` | exit 0, `SUCCESS:ADV-0121-probe1` |
+| `probe2_semantic_diff.py` | exit 0, `SUCCESS:ADV-0121-probe2` |
+| Receipt | `state=SUCCESS`, 24932 B, schema 0 errors (kind mutant 3) |
+| Per-unit manifest | live LF sha256 `f2b0a44932468b64f1dc5a5a5c7af34ce54ac362752c4268d4f5c60847d4df6d` matches |
+| `ready_units.artifact_delivered` | `(True, 'delivered')` |
+
+Science remains **PARTIAL**: all six hand-edited variants are byte-preserved with no silent discard; `unknown_key`, `comments`, and `outside_current_enum` are migrate-success then strict-parser refuse. The silent-discard negative control fired `0->1`.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json`
+
+Did not git-mutate, did not run `unit_manifest.py --write`, did not rewrite the global catalog manifest.
+
+===== launch 2026-08-19T18:18:20Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the unit contract, then resume rather than rebuild.Existing probes and return files are in place; next I’ll read the contract, measure script, and current artifacts.I’ll re-run the live probes and the measure gate rather than trust the existing SUCCESS claim.I’ll re-run both named probes and the measure script on this worktree so the delivery status is live, not inherited.Probes are already in the tree; I’ll re-run them live, then pack the receipt from those raws.Both probes exited 0. Next I’ll pack the receipt from the live raws and re-measure.Measure printed `SUCCESS:delivered`. I’ll lock live hashes and write the per-unit artifacts from this remesure.Pack and measure both passed. I’ll write the per-unit return and manifest from this remesure’s live hashes.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+G-1 is contract-green for this unit on `/opt/p2/ast-integrate`. Existing named probes were resumed, not rebuilt. Cloud `ok=true` is not this delivery.
+
+Live remesure:
+- `probe1_migration_matrix.py` exit 0 → `SUCCESS:ADV-0121-probe1` (pristine N-2 control passed; silent-loss count 0)
+- `probe2_semantic_diff.py` exit 0 → `SUCCESS:ADV-0121-probe2` (negative control 0→1; actual silent-loss count 0)
+- Receipt packed only after those greens: `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` is `state=SUCCESS`, 24932 B, schema 0 errors (kind mutant 3)
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` sha256 matches live LF digest `a3e5e6ffa666f641aa504d39d32a0c45384f63d75ccbaa78be4da387345f24c0`
+- `python command-center/p2-wave/_measure_one_delivered.py ADV-0121` printed `SUCCESS:delivered`
+
+Science remains **PARTIAL**: all six variants were byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are fail-open migrate then fail-closed parser. That is the measured boundary, not a product-clean migrate.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global catalog manifest rewrite, no key rotation, no wave relaunch. Prior `CLOUD-OK-REFUTE.json` (missing sidecars / self-declared BLOCKED) is a different structural reason, so the unit was not parked.
+
+===== launch 2026-08-19T18:22:38Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and any SUBAGENT-RETURN, then resume delivery against the G-1 contract rather than rebuilding from scratch.Existing probes are on disk. Next I’ll read the return artifacts, measurement script, and claim-gate so I know what still fails.The return file already claims delivered; I’ll re-run the live measure and inspect the catalog receipt before trusting that.Prior artifacts claim delivered, but hashes already disagree. I’ll re-run the live probes and inspect the packer, catalog unit, and current receipt.Hashes in the return files already disagree. I’m running the live measure and checking `ready_units.artifact_delivered` next.Measure already printed SUCCESS:delivered. I’ll check whether the live raws drifted from the packed receipt so the return file stays honest.Measure is already green. I’ll look at a recent delivered unit’s return schema, then lock this remesure’s live hashes into the written artifacts.I’ll re-lock the receipt from this session’s live probe raws, then remesure and write the two required artifacts.Measure printed SUCCESS:delivered. I’ll write the return file from this remesure’s hashes and confirm the per-unit manifest row.Return files are written. I’ll remesure once more to confirm the gate still prints SUCCESS:delivered.**SUCCESS:delivered** ADV-0121 — `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing ADV-0121 probe tree. Did not scrap the named probes. Re-ran them live on this worktree; both exited 0 (`SUCCESS:ADV-0121-probe1`, `SUCCESS:ADV-0121-probe2`). Packed the catalog receipt only after those greens, then `_measure_one_delivered.py ADV-0121` printed `SUCCESS:delivered` again.
+
+| Check | Result |
+|---|---|
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` — `state=SUCCESS`, 24932 B |
+| Live LF sha256 | `1c9f5554b1d91fa002e6033d5e4e0dd5fd9694f215eea77dccf0eaaca8cc3aef` |
+| Per-unit manifest | matches that digest |
+| Schema | 0 errors; kind-mutant 3 |
+| `ready_units.artifact_delivered` | `(True, 'delivered')` |
+
+Science is still **PARTIAL**, not product-clean: all six variants are byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; the silent-discard control fired `0→1`. Cloud-ok `UNIT-COMPLETE` is not this delivery (`CLOUD-OK-REFUTE.json` was `BLOCKED` with named probes absent).
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git write, no `unit_manifest.py --write`, no global `UNIT-ARTIFACT-MANIFEST.json` rewrite, no key rotation, no wave relaunch. Not parked — the cloud-ok refute (missing sidecars / self-declared BLOCKED) is a different structural reason from a live probe-red.
+
+===== launch 2026-08-19T18:26:52Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree, read any prior return artifact, and resume from what's already built rather than starting over.The probe tree is already populated. Next I’ll read the prior return, the catalog unit spec, and the measure script so I resume from the real contract instead of guessing.Prior return claims delivered; I’ll re-measure live state, inspect the receipt and probes, and only treat SUCCESS if this run actually prints it.I’ll re-run the live measure and inspect the packer plus `artifact_delivered` so we know whether the existing receipt still holds.Existing probes look complete. I’ll remesure them live, relock the receipt from those raws, then run the official deliver gate.Subject and repo-root migrate/manifest hashes still match. Next I’ll re-run both named probes, then relock the receipt from those live raws.Both probes exited 0. I’ll pack the receipt from these live raws, then write the per-unit manifest and remesure.Measure printed `SUCCESS:delivered`. I’ll lock the per-unit return and confirm the manifest hash still matches the live receipt.Required artifacts are on disk. I’ll remesure after the write so the official gate is the last step.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing ADV-0121 probe tree instead of rebuilding it. Both named probes were re-run on this Linux worktree and exited 0. The receipt was then re-packed from those live raws, the per-unit manifest was written, and `_measure_one_delivered.py` printed `SUCCESS:delivered`.
+
+| Item | Result |
+|---|---|
+| Probe 1 | `probe1_migration_matrix.py` exit 0, `SUCCESS:ADV-0121-probe1` |
+| Probe 2 | `probe2_semantic_diff.py` exit 0, `SUCCESS:ADV-0121-probe2` |
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` — `state=SUCCESS`, 24932 B, schema 0 errors (kind mutant 3) |
+| Live LF sha256 | `5f98982ed972c4db561f91bc3864e8cb44efad34b58f1b85d9b13c63afc56e3f` |
+| Per-unit manifest | same sha256, path matches catalog `output_path` |
+| Science | **PARTIAL**: six variants byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; silent-discard control fired `0→1` |
+
+G-1 delivery means the named probes exist, re-run green, and the receipt is honest non-BLOCKED SUCCESS. It does not mean `migrate` is product-clean. Cloud-ok `UNIT-COMPLETE` is not this delivery (`CLOUD-OK-REFUTE.json` was `state=BLOCKED` with the named probes absent).
+
+Did not park: the two prior file-only refutes were missing sidecars, which is a different structural reason from a live probe-red. This remesure was probe-green.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global `UNIT-ARTIFACT-MANIFEST.json` rewrite, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:31:30Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the delivery contract, then resume whatever is already built instead of starting over.The probe tree is already there. Next I’ll read the return artifact, the measure script, and the unit contract so I can resume from the last honest status.Existing artifacts claim delivery, but I need a live remesure on this worktree. I'll inspect the probes and receipt, then re-run the named probes and the delivery gate.I’ll run the delivery measure and inspect the catalog row, receipt state, and remaining probe logic in parallel.Measure already printed `SUCCESS:delivered`. I’ll collect live hashes, confirm the receipt is still honest, and check how sibling units write `SUBAGENT-RETURN.json`.Live remesure is green; I’ll lock a receipt from these probe raws, then re-run the delivery measure so the artifact matches this session.I'll pack the receipt from this remesure's raws, then run the delivery gate again.Pack and measure are green. I’ll write `SUBAGENT-RETURN.json` from this remesure and leave the per-unit manifest that pack already locked.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing ADV-0121 probe tree. Did not scrap the named probes. Cloud-ok harvest `UNIT-COMPLETE` is still not this delivery (`CLOUD-OK-REFUTE.json` was `BLOCKED` with the named probes absent).
+
+What this remesure did:
+1. Re-ran `probe1_migration_matrix.py` and `probe2_semantic_diff.py` (both exit 0).
+2. Locked the catalog receipt with `_pack_receipt.py`.
+3. Re-ran `python command-center/p2-wave/_measure_one_delivered.py ADV-0121` — printed `SUCCESS:delivered`.
+4. Wrote the per-unit `UNIT-ARTIFACT-MANIFEST.json` row and `SUBAGENT-RETURN.json`.
+
+Live lock:
+- Receipt: `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` — 24932 B, `state=SUCCESS`
+- Live LF sha256: `fec7d859c3d201f15be81826628dc04294cd9222aef7bd6732ce58b104c2d71e` (matches the per-unit manifest)
+- `ready_units.artifact_delivered=(True, 'delivered')`; schema errors 0; kind-mutant 3
+
+Science is still **PARTIAL**, not product-clean: all six hand-edited N-2 variants were byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; silent-discard negative control fired `0→1`.
+
+Constraints kept: no git mutations, no `unit_manifest.py --write`, no global catalog write, no key rotation, no finish-everything / cloud-ok relaunch. Did not park: the two prior file-only cloud-ok refutes are a different structural reason from a live probe-red.
+
+===== launch 2026-08-19T18:34:49Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and measure what's already there before changing anything.Existing probe tree is present. Next I’ll read the return file, the catalog row, and the measure script so I can resume rather than rebuild.Prior return claims delivery; I’ll re-run the live measure and inspect the catalog plus current receipt so we don’t trust a stale green.Measure is already green. I’ll verify hashes, honesty of the receipt, and G-1 contract details before rewriting the return files.I'll capture live hashes and re-pack from the just-rerun probes so the receipt, manifest, and measure stay aligned.The unit is already green; I’ll lock a receipt from these live raws, refresh the per-unit manifest, and write this session’s return.Probes are still green. I’ll lock the receipt from the live raws, then remesure so the manifest and return match this session.Receipt is locked and the per-unit manifest matches. Next I’ll remesure and write this session’s SUBAGENT-RETURN from the live numbers.Measure printed `SUCCESS:delivered`. I’m writing this session’s SUBAGENT-RETURN against the live packed hashes.**SUCCESS:delivered** `ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing ADV-0121 probe tree. Did not scrap the named probes. Both scripts re-ran to exit 0, then `_pack_receipt.py` locked a non-BLOCKED `SUCCESS` receipt, and `_measure_one_delivered.py` printed `SUCCESS:delivered`.
+
+| Item | Result |
+|---|---|
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` — `state=SUCCESS`, 24932 B |
+| Live LF sha256 | `0a50f3b3f92c6b7f4e39282115c0fb23411d03d98aa251d970d5e7d5bb116c2a` |
+| Per-unit manifest | matches that digest |
+| `ready_units.artifact_delivered` | `(True, 'delivered')` |
+| Schema | `fault-injection-run` 0 errors; kind mutant 3 |
+| Science | **PARTIAL** — six variants byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; silent-discard control fired `0->1` |
+
+Cloud-ok harvest (`CLOUD-OK-REFUTE.json`, self-declared `BLOCKED`, probes then absent) is not this delivery. Global `UNIT-ARTIFACT-MANIFEST.json` and `unit_manifest.py --write` were not touched. No git mutations.
+
+===== launch 2026-08-19T18:38:47Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the unit's current return artifact so we resume instead of rebuilding.The probe tree is already there. Next I’ll read the return artifact, the unit manifest, and the measure script so we know what still fails.The tree already claims delivered; I’ll re-read the receipt, pack script, and probes, then remesure live instead of trusting that claim.I’ll remesure live now and inspect the catalog receipt so we know whether this is still green or already drifted.Measure already printed SUCCESS:delivered. I’ll check the return schema and then lock this session’s remesure into the artifacts.Probes are green on this remesure. I’ll pack the live raws into the receipt, remesure, then write the two required artifacts from those hashes.Pack and remesure are green. Next I’ll write the two required artifacts from this session’s live hashes.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+Resumed the existing ADV-0121 probe tree (did not scrap it). Both named probes re-ran to exit 0, `_pack_receipt.py` locked a non-BLOCKED `SUCCESS` receipt, and the per-unit manifest hash matches the live LF digest.
+
+| Item | Value |
+|---|---|
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` |
+| State | `SUCCESS` (science still **PARTIAL**) |
+| Live LF sha256 | `58b3e48632bfd703d0071029c099f67a9d45eee52d9f8bc2edf4aa8907b60136` |
+| Bytes | 24932 |
+| Schema | 0 errors; kind-mutant 3 errors |
+| Per-unit manifest | `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json` (hash match) |
+| Return | `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json` |
+
+**Science (honest, not product-clean):** six variants are byte-preserved. `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse. Silent-discard negative control fired `0→1`. Cloud-ok harvest `UNIT-COMPLETE` is not this delivery.
+
+Constraints kept: no git mutations, no `unit_manifest.py --write`, global `UNIT-ARTIFACT-MANIFEST.json` untouched (ADV-0121 hits=0). Not parked — the two prior cloud-ok refutes were file-only sidecar/BLOCKED, a different structural reason from a live probe-red.
+
+===== launch 2026-08-19T18:42:21Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the unit contract, then resume from whatever is already there instead of rebuilding.The probe tree is already populated. Next I’ll read the existing return artifact, the per-unit manifest, and the measure contract so I know what still has to turn green.Existing artifacts claim delivery, but the contract needs a live remesure. I'll inspect the receipt and probes, then run the named probes and the measure script.I'll remesure from the existing probes instead of trusting the previous SUCCESS claim, and I'll read the packer plus the live receipt first.The receipt already looks green. I’ll re-run the two named probes live, then remesure so the contract is based on this run, not the previous claim.I'll remesure the existing probes end to end: run both named probes, pack the receipt, then run `_measure_one_delivered.py`.Both probes exited 0. Next I’ll pack the receipt and run the official measure so the per-unit manifest matches the live digest.Measure printed `SUCCESS:delivered`. I’ll lock the live hashes into `SUBAGENT-RETURN.json` and confirm the per-unit manifest row.The per-unit manifest already matches the live receipt. I’ll write a fresh `SUBAGENT-RETURN.json` from this remesure, then confirm the measure line is still `SUCCESS:delivered`.**SUCCESS:delivered** ADV-0121 `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0`
+
+G-1 is contract-green for this unit only. Existing named probes were resumed, not rebuilt.
+
+**What was remesured**
+- `probe1_migration_matrix.py` and `probe2_semantic_diff.py` both exited 0 (`SUCCESS:ADV-0121-probe1` / `SUCCESS:ADV-0121-probe2`).
+- `_pack_receipt.py` locked a non-BLOCKED `state=SUCCESS` receipt at `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` (24932 B).
+- Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `736dd9cb328237a02a82e6b0a2621b24ff831041fea0f77513352d3ce3a51a23`. Hash match is true.
+- `python command-center/p2-wave/_measure_one_delivered.py ADV-0121` printed `SUCCESS:delivered` (exit 0). Schema errors 0; kind mutant 3.
+
+**Honest science (not product-clean)**
+Overall **PARTIAL**. All six variants are byte-preserved and there is no silent discard (negative control fired 0→1). `unknown_key`, `comments`, and `outside_current_enum` are fail-open migrate then fail-closed parser (`E_MANIFEST`). Pristine N-2, reorder, and CRLF are usable.
+
+**Not claimed**
+Cloud-ok `UNIT-COMPLETE` is not this delivery (`CLOUD-OK-REFUTE.json` was harvest `BLOCKED` with named probes absent). Global `UNIT-ARTIFACT-MANIFEST.json` was not written (ADV-0121 hits=0). No git mutation, no `unit_manifest.py --write`, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:45:18Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the unit contract, then resume rather than rebuild.Existing probe artifacts are in place. Next I’ll read the return files, the measurement script, and the unit contract.The tree already claims delivered. I’ll re-run the live measure and inspect the receipt, probes, and catalog unit.I'll inspect the catalog unit, packer, and probe scripts, then re-run the live measure.I’ll run the live measure now and check whether the receipt, probes, and per-unit manifest still line up.Measure already printed `SUCCESS:delivered`. I’ll capture this remesure’s live hashes and refresh the return artifact without rebuilding the probes.The unit is already green. I’ll check how the parent parses `SUBAGENT-RETURN.json`, then refresh that file with this remesure’s facts.The unit is already contract-green. I’ll refresh the return files with this remesure’s facts, then run the gate once more.Final remesure is green. I’ll lock the return file to the 18:48:14Z hashes.**SUCCESS:delivered** ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0
+
+Resumed the existing probe tree instead of rebuilding it. Live remesure on this Linux worktree re-ran both named probes to exit 0; the receipt stayed non-BLOCKED `SUCCESS`; the per-unit manifest hash matches the live LF digest.
+
+| Check | Result |
+|---|---|
+| `python command-center/p2-wave/_measure_one_delivered.py ADV-0121` | `SUCCESS:delivered` |
+| Receipt | `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` 24932 B, `state=SUCCESS` |
+| Live LF sha256 | `736dd9cb328237a02a82e6b0a2621b24ff831041fea0f77513352d3ce3a51a23` (matches per-unit manifest) |
+| Probes | `probe1_migration_matrix.py:0`, `probe2_semantic_diff.py:0` (`SUCCESS:ADV-0121-probe1/2`) |
+| Schema | 0 errors on the receipt; kind-mutant still fires (3) |
+
+Science remains **PARTIAL**: six variants byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are migrate-success then strict-parser refuse; silent-discard negative control fired `0→1`. Cloud-ok harvest `UNIT-COMPLETE` is not this delivery.
+
+Wrote:
+- `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global catalog rewrite, no key rotation, no wave relaunch.
+
+===== launch 2026-08-19T18:48:40Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree, read any return artifact, and only then measure what still blocks G-1.The probe tree is already populated. Next I’ll read the return artifact, measure script, and unit contract so I resume from the last honest state.Existing artifacts claim delivery, but I’ll re-run the live probes and the measure gate rather than trust the old SUCCESS line.I’ll re-run the named probes and the delivery measure now, then compare the live hashes against the packed receipt.I’ll collect live hashes and re-run the probes plus measure so the return file reflects this worktree, not the prior session.Measure printed `SUCCESS:delivered`. I’ll collect the post-measure hashes and probe tails, then write the return artifact from those live facts.Receipt, probes, and per-unit manifest already match. I’ll write this remesure’s return file, keep the manifest row, then run the measure gate once more as the final proof.**SUCCESS:delivered** ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0
+
+Resumed the existing ADV-0121 probe tree (did not scrap it). Both named probes re-ran to exit 0 on this Linux worktree:
+
+- `probe1_migration_matrix.py` → `SUCCESS:ADV-0121-probe1` (pristine N-2 control passed; silent-loss count 0)
+- `probe2_semantic_diff.py` → `SUCCESS:ADV-0121-probe2` (semantic diffs empty; silent-discard control 0→1)
+
+Receipt `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` is state=SUCCESS, 24932 B, live LF sha256 `736dd9cb328237a02a82e6b0a2621b24ff831041fea0f77513352d3ce3a51a23`. Schema validator: 0 errors (kind mutant 3). Per-unit `UNIT-ARTIFACT-MANIFEST.json` matches that digest. `ready_units.artifact_delivered=(True, 'delivered')`.
+
+Science remains **PARTIAL**: layout migrate is byte-preserving; unknown_key / comments / outside_current_enum are migrate-success then strict-parser refuse. Cloud-ok harvest UNIT-COMPLETE is not this delivery.
+
+Wrote:
+
+- `command-center/p2-wave/probes/ADV-0121/SUBAGENT-RETURN.json`
+- `command-center/p2-wave/probes/ADV-0121/UNIT-ARTIFACT-MANIFEST.json`
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global catalog row, no key rotation, no wave relaunch. Did not park: the two prior cloud-ok file-only strikes are not a live probe-red.
+
+===== launch 2026-08-19T18:53:00Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree and the unit's return artifact, then re-run the live probes and close only this unit's G-1 contract.Existing probe artifacts are in place; next I’ll read the return files and the measurement contract so we resume instead of rebuilding.Prior return already claims delivered; I’ll re-run the live probes and check the receipt and catalog so this unit is measured, not inherited.I’ll inspect the catalog unit, current receipt, and packer, then re-run the named probes on this worktree.Probes and a SUCCESS receipt are already on disk. I’ll re-run the named probes live, then measure this unit only.Both probes exited 0. I’ll lock the receipt from these live raws, then write the per-unit manifest and remesure.Measure printed `SUCCESS:delivered`. I’ll capture post-measure hashes and write the unit return plus per-unit manifest.Artifacts are on disk. I’ll confirm the manifest still matches the live receipt, then re-run the gate after those writes.SUCCESS:delivered ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0
+
+G-1 is contract-green for this unit only. Existing named probes were resumed, not rebuilt.
+
+**Live probes (exit 0)**
+- `probe1_migration_matrix.py` → `SUCCESS:ADV-0121-probe1` (pristine N-2 control passed; silent-loss count 0)
+- `probe2_semantic_diff.py` → `SUCCESS:ADV-0121-probe2` (negative control fired 0→1)
+
+**Artifact**
+- Receipt `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` is `state=SUCCESS`, 24932 B, schema_errors=0
+- Live LF sha256 `4ea77756c6893a180e6001243382dae57c3bc76ff07b3a8306794dd10c0a7aa0` matches per-unit `UNIT-ARTIFACT-MANIFEST.json`
+- `ready_units.artifact_delivered=(True, 'delivered')`
+
+**Science (still PARTIAL, not product-clean)**  
+Migrate is fail-open; the current parser is fail-closed. `unknown_key`, `comments`, and `outside_current_enum` migrate with SUCCESS then refuse under the strict parser. No silent byte or semantic discard.
+
+Cloud-ok harvest UNIT-COMPLETE is not this delivery. Global `UNIT-ARTIFACT-MANIFEST.json` and `unit_manifest.py --write` were not touched. No git writes.
+
+===== launch 2026-08-19T19:02:37Z attempt=1 =====
+I'll start from the existing ADV-0121 probe tree, read the unit contract and any prior return artifact, then work only this unit to G-1 without touching git or the global catalog.The probe tree is already populated. Next I’ll read the existing return artifacts, the measure script, and the G-1 contract so we resume from what’s there instead of rebuilding.Existing artifacts claim delivery, but hashes already disagree across handoff files. I’ll verify the live receipt, probes, and catalog against the measure script before treating that as real.Prior artifacts already disagree on hash, size, and BLOCKED vs SUCCESS. I’ll inspect the live receipt, packer, and catalog row, then re-run the probes rather than trust the last write.I’ll measure live hashes and re-run both named probes now; the previous SUCCESS claim is only valid if this Linux worktree still exits 0.Subject plugin files match repo-root. Next I’ll re-run both named probes, pack from those live raws, then run the delivery measure.Measure printed `SUCCESS:delivered`. I’ll lock live hashes, timestamps, and probe exits into the per-unit return artifacts.SUCCESS:delivered ADV-0121 predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_migration_matrix.py:0,probe2_semantic_diff.py:0
+
+Resumed the existing ADV-0121 probe tree. Did not scrap the named scripts. Live re-run:
+
+- `probe1_migration_matrix.py` exit 0 — `SUCCESS:ADV-0121-probe1`
+- `probe2_semantic_diff.py` exit 0 — `SUCCESS:ADV-0121-probe2`
+
+Packed `command-center/adversarial/ADV-0121-upgrade-from-handedited-config.json` only after those greens (`state=SUCCESS`, schema 0 errors, kind-mutant 3). Per-unit `UNIT-ARTIFACT-MANIFEST.json` names that path with live LF sha256 `b6992beaeabc22001802bd6aa6643e4395b9c8b9f4b0da847bcf1c0acede76fd` (24932 B). `ready_units.artifact_delivered=(True, 'delivered')`.
+
+Science remains **PARTIAL**, not product-clean: all six variants are byte-preserved; `unknown_key` / `comments` / `outside_current_enum` are fail-open migrate then fail-closed parser; silent-discard control fired `0→1`. Cloud-ok `UNIT-COMPLETE` is not this delivery.
+
+Constraints kept: no git writes, no `unit_manifest.py --write`, no global catalog rewrite, no key rotation, no wave relaunch.

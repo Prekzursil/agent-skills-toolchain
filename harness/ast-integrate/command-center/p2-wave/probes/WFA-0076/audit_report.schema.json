@@ -1,0 +1,230 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/WFA-0076/audit_report.schema.json",
+  "title": "WFA-0076 AuditReport (terminal-disposition reversibility)",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "output_path",
+    "output_schema",
+    "owner_approval_required",
+    "live_irreversible_action",
+    "schema_resolution",
+    "terminal_records",
+    "restoration_rehearsal",
+    "gate",
+    "squash_merge_policy",
+    "live_estate",
+    "findings",
+    "evidence",
+    "tests",
+    "reviewer",
+    "artifacts",
+    "named_probes"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "WFA-0076" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:WFA-0076" },
+    "report_kind": { "type": "string", "const": "AuditReport" },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "output_path": {
+      "type": "string",
+      "const": "command-center/wfa/WFA-0076-terminal-disposition-reversibility.json"
+    },
+    "output_schema": { "type": "string", "minLength": 20 },
+    "owner_approval_required": { "type": "boolean", "const": true },
+    "live_irreversible_action": { "type": "boolean", "const": false },
+    "schema_resolution": {
+      "type": "object",
+      "required": ["declared_pack", "pack_present", "validator"],
+      "properties": {
+        "declared_pack": { "type": "string", "minLength": 8 },
+        "pack_present": { "type": "boolean" },
+        "validator": { "type": "string", "minLength": 8 }
+      }
+    },
+    "terminal_records": {
+      "type": "array",
+      "minItems": 5,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "disposition",
+          "role",
+          "claimed_hash",
+          "location_kind",
+          "retrieval_ok",
+          "recorded",
+          "decision_reason"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "disposition": { "type": "string", "enum": ["RETIRE", "REJECT"] },
+          "role": { "type": "string", "minLength": 4 },
+          "claimed_hash": { "type": "string", "minLength": 16 },
+          "location_kind": { "type": "string", "minLength": 3 },
+          "named_location": { "type": "string" },
+          "retrieval_ok": { "type": "boolean" },
+          "retrieval_reason": { "type": "string" },
+          "retrieved_hash": { "type": ["string", "null"] },
+          "squash_merge_rejected": { "type": "boolean" },
+          "naive_ancestry_would_accept": { "type": "boolean" },
+          "recorded": { "type": "boolean" },
+          "decision_reason": { "type": "string", "minLength": 4 }
+        }
+      }
+    },
+    "restoration_rehearsal": {
+      "type": "object",
+      "required": ["ok", "end_to_end", "record_id", "disposition", "bytes"],
+      "properties": {
+        "ok": { "type": "boolean", "const": true },
+        "end_to_end": { "type": "boolean", "const": true },
+        "record_id": { "type": "string", "minLength": 3 },
+        "disposition": { "type": "string", "enum": ["RETIRE", "REJECT"] },
+        "bytes": { "type": "integer", "minimum": 1 },
+        "reason": { "type": "string" },
+        "dest_hash": { "type": "string" },
+        "claimed_hash": { "type": "string" }
+      }
+    },
+    "gate": {
+      "type": "object",
+      "required": [
+        "no_terminal_without_retrieval",
+        "squash_merge_refused",
+        "naive_would_accept_squash",
+        "happy_retire_recorded",
+        "happy_reject_recorded",
+        "missing_refused",
+        "mismatch_refused"
+      ],
+      "properties": {
+        "no_terminal_without_retrieval": { "type": "boolean", "const": true },
+        "squash_merge_refused": { "type": "boolean", "const": true },
+        "naive_would_accept_squash": { "type": "boolean", "const": true },
+        "happy_retire_recorded": { "type": "boolean", "const": true },
+        "happy_reject_recorded": { "type": "boolean", "const": true },
+        "missing_refused": { "type": "boolean", "const": true },
+        "mismatch_refused": { "type": "boolean", "const": true }
+      }
+    },
+    "squash_merge_policy": {
+      "type": "object",
+      "required": ["accepted_as_preservation_evidence", "reason"],
+      "properties": {
+        "accepted_as_preservation_evidence": { "type": "boolean", "const": false },
+        "reason": { "type": "string", "minLength": 20 }
+      }
+    },
+    "live_estate": {
+      "type": "object",
+      "required": [
+        "wfa0071_artifact_present",
+        "live_terminal_records_processed",
+        "note"
+      ],
+      "properties": {
+        "wfa0071_artifact_present": { "type": "boolean" },
+        "git_dir_present": { "type": "boolean" },
+        "registry_candidates": { "type": "array" },
+        "live_terminal_records_processed": { "type": "integer", "minimum": 0 },
+        "note": { "type": "string", "minLength": 20 }
+      }
+    },
+    "findings": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "severity", "status"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "title": { "type": "string", "minLength": 8 },
+          "severity": {
+            "type": "string",
+            "enum": ["info", "low", "medium", "high", "critical", "none"]
+          },
+          "status": {
+            "type": "string",
+            "enum": ["open", "absent", "verified", "not-applicable"]
+          }
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "kind", "detail"],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "kind": { "type": "string", "minLength": 1 },
+          "detail": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 3,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string", "minLength": 3 },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string", "minLength": 3 },
+        "independent": { "type": "boolean", "const": true }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string", "minLength": 8 },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "named_probes": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 }
+        }
+      }
+    },
+    "ts": { "type": "string" },
+    "adv_rebuild_circle": { "type": "boolean", "const": false }
+  }
+}

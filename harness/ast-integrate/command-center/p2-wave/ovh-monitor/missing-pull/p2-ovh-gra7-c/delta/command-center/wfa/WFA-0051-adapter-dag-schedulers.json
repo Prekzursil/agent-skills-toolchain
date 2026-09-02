@@ -1,0 +1,647 @@
+{
+ "adapter": {
+  "frameworks": [
+   "temporal",
+   "airflow",
+   "prefect",
+   "dagster"
+  ],
+  "ir_vocab_source": "WFA-0044 catalog field list; WFA-0044 artifact ABSENT",
+  "kind": "durable-dag-schedulers",
+  "mechanisms": [
+   "deterministic_replay",
+   "idempotency_keys",
+   "retry_backoff",
+   "sensors",
+   "backfill",
+   "task_sla"
+  ],
+  "source_mode": "published-source-reading-only",
+  "teardown_source": "WFA-0027 catalog question; WFA-0027 artifact ABSENT"
+ },
+ "architecture_tickets": [
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "temporal",
+   "id": "ARCH-LANE:WFA-0051:temporal:deterministic_replay",
+   "mechanism": "deterministic_replay",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "temporal",
+   "id": "ARCH-LANE:WFA-0051:temporal:idempotency_keys",
+   "mechanism": "idempotency_keys",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "temporal",
+   "id": "ARCH-LANE:WFA-0051:temporal:sensors",
+   "mechanism": "sensors",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "temporal",
+   "id": "ARCH-LANE:WFA-0051:temporal:backfill",
+   "mechanism": "backfill",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "airflow",
+   "id": "ARCH-LANE:WFA-0051:airflow:deterministic_replay",
+   "mechanism": "deterministic_replay",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "airflow",
+   "id": "ARCH-LANE:WFA-0051:airflow:backfill",
+   "mechanism": "backfill",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "airflow",
+   "id": "ARCH-LANE:WFA-0051:airflow:task_sla",
+   "mechanism": "task_sla",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "prefect",
+   "id": "ARCH-LANE:WFA-0051:prefect:deterministic_replay",
+   "mechanism": "deterministic_replay",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "prefect",
+   "id": "ARCH-LANE:WFA-0051:prefect:idempotency_keys",
+   "mechanism": "idempotency_keys",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "dagster",
+   "id": "ARCH-LANE:WFA-0051:dagster:deterministic_replay",
+   "mechanism": "deterministic_replay",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "dagster",
+   "id": "ARCH-LANE:WFA-0051:dagster:idempotency_keys",
+   "mechanism": "idempotency_keys",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  },
+  {
+   "forbidden_substitute": "file-backed event log / JSONL history / sqlite sidecar pretending to be Temporal history",
+   "framework": "dagster",
+   "id": "ARCH-LANE:WFA-0051:dagster:backfill",
+   "mechanism": "backfill",
+   "reason": "REQUIRES-DURABLE-LOG",
+   "routed_to": "architecture-lane"
+  }
+ ],
+ "both_states": {
+  "durable_log": {
+   "bad_file_fake_caught": true,
+   "good_routed_to_architecture": true
+  },
+  "replay": {
+   "bad_reverse_ready_differs": true,
+   "good_identical": true
+  }
+ },
+ "completion_sentinel": "SUCCESS:WFA-0051",
+ "dependencies": {
+  "WFA-0027": {
+   "path": "command-center/wfa/WFA-0027-teardown-adjacent-runtimes.json",
+   "present": false
+  },
+  "WFA-0044": {
+   "path": "command-center/wfa/WFA-0044-workflow-ir-spec.json",
+   "present": false
+  },
+  "schema_pack": {
+   "path": "command-center/wfa/schema/wfa-schema-pack.json",
+   "present": true
+  }
+ },
+ "evidence": {
+  "A": "Each of the six durability mechanisms on each of four schedulers is either mapped to an IR field or marked REQUIRES-DURABLE-LOG, with a published source_anchor.",
+  "B": "Replay experiment: same DAG + retry policy + scripted failures, two runs, identical stage sequence. Reverse ready-set sort is the BAD arm (sequences differ). This is measured on this estate's in-process IR sequencer, not claimed from scheduler documentation. Temporal event-history replay is UNACHIEVED."
+ },
+ "ir_fields": {
+  "catalog": [
+   "stages",
+   "roles",
+   "gates",
+   "tool_policy",
+   "fan_out",
+   "barriers",
+   "loop_convergence",
+   "human_checkpoints",
+   "retries",
+   "resume",
+   "stop_expressions",
+   "lineage"
+  ],
+  "durability_extensions": [
+   "idempotency_key",
+   "replay_cursor",
+   "backfill_window",
+   "sla_deadline"
+  ],
+  "notes": {
+   "backfill_window": "Historical partition/date range to materialise.",
+   "barriers": "Join points after fan-out.",
+   "fan_out": "Dynamic fan-out; out of this unit's six mechanisms.",
+   "gates": "Wait-until predicates; sensors/signals land here.",
+   "human_checkpoints": "Human-in-the-loop; Temporal signals can LOSSY-map here.",
+   "idempotency_key": "Caller-supplied or derived key that must collapse duplicate starts.",
+   "lineage": "Provenance of a stage result; not a substitute for event history.",
+   "loop_convergence": "Loop-until; not a first-class durability mechanism here.",
+   "replay_cursor": "Position in an event history. Empty unless a durable log exists.",
+   "resume": "Continue a partially completed run; requires durable run state.",
+   "retries": "Declarative retry/backoff policy (attempts, delay, exponential).",
+   "roles": "Who may run a stage (catalog IR).",
+   "sla_deadline": "Task-level deadline / miss condition.",
+   "stages": "Ordered work nodes; DAG topology lands here.",
+   "stop_expressions": "Stopping conditions.",
+   "tool_policy": "Allowed tools; operator/activity bodies do not map."
+  }
+ },
+ "licenses": {
+  "airflow": {
+   "repo": "github.com/apache/airflow",
+   "spdx": "Apache-2.0"
+  },
+  "dagster": {
+   "repo": "github.com/dagster-io/dagster",
+   "spdx": "Apache-2.0"
+  },
+  "prefect": {
+   "repo": "github.com/PrefectHQ/prefect",
+   "spdx": "Apache-2.0"
+  },
+  "temporal": {
+   "repo": "github.com/temporalio/sdk-go",
+   "spdx": "MIT"
+  }
+ },
+ "mechanism_mappings": [
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:temporal:deterministic_replay",
+   "disposition": "REQUIRES-DURABLE-LOG",
+   "framework": "temporal",
+   "history_file": null,
+   "ir_field": "replay_cursor",
+   "license": "MIT",
+   "mechanism": "deterministic_replay",
+   "native_construct": "workflow history event replay (SDK re-executes workflow code; activities are not re-run)",
+   "note": "Command-event replay needs the workflow event history. This estate has no Temporal history store. Routed to architecture-lane; not faked with a JSONL file.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/temporalio/sdk-go@v1.35.0 workflow/doc.go:76-77,374-375"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:temporal:idempotency_keys",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "temporal",
+   "history_file": null,
+   "ir_field": "idempotency_key",
+   "license": "MIT",
+   "mechanism": "idempotency_keys",
+   "native_construct": "WorkflowID + WorkflowIDReusePolicy on StartWorkflow",
+   "note": "The key maps to IR. Uniqueness/reuse enforcement needs the service's durable ID index.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/temporalio/sdk-go@v1.35.0 internal/internal_workflow.go:190-198 WorkflowOptions.WorkflowID / WorkflowIDReusePolicy"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "MAPPED",
+   "framework": "temporal",
+   "history_file": null,
+   "ir_field": "retries",
+   "license": "MIT",
+   "mechanism": "retry_backoff",
+   "native_construct": "common.v1.RetryPolicy on activities/workflows (InitialInterval, BackoffCoefficient, MaximumAttempts)",
+   "note": "Declarative policy is an IR field. Crash-resume of attempt counters still needs a log (see deterministic_replay).",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/temporalio/sdk-go@v1.35.0 internal/internal_workflow.go:198 RetryPolicy *commonpb.RetryPolicy"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:temporal:sensors",
+   "disposition": "LOSSY",
+   "framework": "temporal",
+   "history_file": null,
+   "ir_field": "gates",
+   "license": "MIT",
+   "mechanism": "sensors",
+   "native_construct": "no BaseSensorOperator; wait is workflow.Await / signals / activity polling",
+   "note": "LOSSY: Temporal has no poke-sensor. Signal inbox is durable state \u2192 architecture-lane.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/temporalio/sdk-go@v1.35.0 workflow/doc.go:86-90 workflow.Sleep / Channel / Selector (deterministic waits)"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:temporal:backfill",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "temporal",
+   "history_file": null,
+   "ir_field": "backfill_window",
+   "license": "MIT",
+   "mechanism": "backfill",
+   "native_construct": "ScheduleSpec + ScheduleBackfill on Temporal Schedules",
+   "note": "The window maps. Completing a historical schedule range needs schedule+history durability.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/temporalio/sdk-go@v1.35.0 (client.ScheduleBackfill); workflow/doc.go CronSchedule on WorkflowOptions:200"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "LOSSY",
+   "framework": "temporal",
+   "history_file": null,
+   "ir_field": "sla_deadline",
+   "license": "MIT",
+   "mechanism": "task_sla",
+   "native_construct": "ScheduleToCloseTimeout / StartToCloseTimeout / ScheduleToStartTimeout (timeouts, not SLA-miss callbacks)",
+   "note": "Timeouts map to sla_deadline with loss: no Airflow-style SLA miss email bundled by deadline.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/temporalio/sdk-go@v1.35.0 internal/internal_workflow.go:186-188 WorkflowExecutionTimeout / WorkflowRunTimeout / WorkflowTaskTimeout"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:airflow:deterministic_replay",
+   "disposition": "REQUIRES-DURABLE-LOG",
+   "framework": "airflow",
+   "history_file": null,
+   "ir_field": "stages",
+   "license": "Apache-2.0",
+   "mechanism": "deterministic_replay",
+   "native_construct": "DAG re-parse + TaskInstance state in metadata DB; not event-sourced workflow replay",
+   "note": "Airflow does not replay operator Python from an event log. Resume is metadata-DB state. Routed to architecture-lane. Topology still maps to IR stages (see replay experiment for the transferable subset).",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/apache/airflow@2.10.4 airflow/models/baseoperator.py:606-614 retries (state lives on TaskInstance, not in the operator class)"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "LOSSY",
+   "framework": "airflow",
+   "history_file": null,
+   "ir_field": "idempotency_key",
+   "license": "Apache-2.0",
+   "mechanism": "idempotency_keys",
+   "native_construct": "identity = dag_id + task_id + run_id; no caller-supplied idempotency_key",
+   "note": "Derived identity maps LOSSY onto idempotency_key. Operators are documented as should-be-idempotent by convention, not by a key API.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/apache/airflow@2.10.4 airflow/models/baseoperator.py (task_id / dag_id identity; no idempotency_key parameter on BaseOperator.__init__)"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "MAPPED",
+   "framework": "airflow",
+   "history_file": null,
+   "ir_field": "retries",
+   "license": "Apache-2.0",
+   "mechanism": "retry_backoff",
+   "native_construct": "retries, retry_delay, retry_exponential_backoff, max_retry_delay",
+   "note": "Policy maps onto IR retries. Attempt persistence is the metadata DB (architecture-lane via deterministic_replay row).",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/apache/airflow@2.10.4 airflow/models/baseoperator.py:606-616,210-216 DEFAULT_RETRIES / retry_exponential_backoff"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "MAPPED",
+   "framework": "airflow",
+   "history_file": null,
+   "ir_field": "gates",
+   "license": "Apache-2.0",
+   "mechanism": "sensors",
+   "native_construct": "BaseSensorOperator poke/reschedule, poke_interval, timeout, exponential_backoff",
+   "note": "Sensor wait-until is an IR gate. poke mode holding a worker slot is a runtime, not an IR field.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/apache/airflow@2.10.4 airflow/sensors/base.py BaseSensorOperator (mode in {poke, reschedule}, poke())"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:airflow:backfill",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "airflow",
+   "history_file": null,
+   "ir_field": "backfill_window",
+   "license": "Apache-2.0",
+   "mechanism": "backfill",
+   "native_construct": "airflow dags backfill over logical dates / data intervals",
+   "note": "The window maps. Which intervals already succeeded is metadata-DB state.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/apache/airflow@2.10.4 airflow/cli/commands/dag_command.py backfill; logical_date range on DagRun"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:airflow:task_sla",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "airflow",
+   "history_file": null,
+   "ir_field": "sla_deadline",
+   "license": "Apache-2.0",
+   "mechanism": "task_sla",
+   "native_construct": "sla timedelta on BaseOperator; SLA miss email + DB record",
+   "note": "Deadline maps. Miss recording/email is scheduler+DB \u2014 architecture-lane, not a side file.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/apache/airflow@2.10.4 airflow/models/baseoperator.py:691-701 :param sla"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:prefect:deterministic_replay",
+   "disposition": "REQUIRES-DURABLE-LOG",
+   "framework": "prefect",
+   "history_file": null,
+   "ir_field": "replay_cursor",
+   "license": "Apache-2.0",
+   "mechanism": "deterministic_replay",
+   "native_construct": "flow-run / task-run state in the Prefect API DB; result cache is not Temporal replay",
+   "note": "Prefect retries a task; it does not re-execute a deterministic workflow function against recorded commands. Routed to architecture-lane.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/PrefectHQ/prefect@3.1.11 src/prefect/tasks.py (task run state + cache_key_fn; no event-history replay API)"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:prefect:idempotency_keys",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "prefect",
+   "history_file": null,
+   "ir_field": "idempotency_key",
+   "license": "Apache-2.0",
+   "mechanism": "idempotency_keys",
+   "native_construct": "idempotency_key on run_deployment / arun_deployment / create_flow_run",
+   "note": "The parameter maps. Collapsing duplicate starts needs the API's durable run index.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/PrefectHQ/prefect@3.1.11 src/prefect/deployments/flow_runs.py arun_deployment(idempotency_key=...)"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "MAPPED",
+   "framework": "prefect",
+   "history_file": null,
+   "ir_field": "retries",
+   "license": "Apache-2.0",
+   "mechanism": "retry_backoff",
+   "native_construct": "retries, retry_delay_seconds (number, list, or callable exponential helper)",
+   "note": "Policy maps onto IR retries. Worked replay on this estate exercises this mapping.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/PrefectHQ/prefect@3.1.11 src/prefect/tasks.py:267-272,117-132 retry_backoff_callable / retries"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "LOSSY",
+   "framework": "prefect",
+   "history_file": null,
+   "ir_field": "gates",
+   "license": "Apache-2.0",
+   "mechanism": "sensors",
+   "native_construct": "Prefect 3 automations/triggers; no Airflow BaseSensorOperator in core 3.1.11",
+   "note": "LOSSY: wait-until can be an IR gate; Prefect's automation engine is not that class.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/PrefectHQ/prefect@3.1.11 (no src/prefect/sensors.py equivalent to Airflow BaseSensorOperator)"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "LOSSY",
+   "framework": "prefect",
+   "history_file": null,
+   "ir_field": "backfill_window",
+   "license": "Apache-2.0",
+   "mechanism": "backfill",
+   "native_construct": "no Airflow-style DAG logical_date backfill in core 3.1.11",
+   "note": "LOSSY: a date window can be stored on IR; Prefect 3.1.11 core does not ship Airflow backfill.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/PrefectHQ/prefect@3.1.11 src/prefect/tasks.py (no backfill= on Task.__init__)"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "LOSSY",
+   "framework": "prefect",
+   "history_file": null,
+   "ir_field": "sla_deadline",
+   "license": "Apache-2.0",
+   "mechanism": "task_sla",
+   "native_construct": "timeout_seconds on Task (hard timeout, not SLA-miss callback)",
+   "note": "LOSSY: timeout \u2260 SLA miss. Prefect Cloud SLA APIs are out of this pinned core tag.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/PrefectHQ/prefect@3.1.11 src/prefect/tasks.py:289,338 timeout_seconds"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:dagster:deterministic_replay",
+   "disposition": "REQUIRES-DURABLE-LOG",
+   "framework": "dagster",
+   "history_file": null,
+   "ir_field": "replay_cursor",
+   "license": "Apache-2.0",
+   "mechanism": "deterministic_replay",
+   "native_construct": "run event log / instance run storage; ops are not Temporal-style history-replayed functions",
+   "note": "Re-execution from failure uses instance storage. Routed to architecture-lane.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/dagster-io/dagster@1.9.6 python_modules/dagster/dagster/_core/definitions/policy.py RetryPolicy (retry is in-run; history is instance storage)"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:dagster:idempotency_keys",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "dagster",
+   "history_file": null,
+   "ir_field": "idempotency_key",
+   "license": "Apache-2.0",
+   "mechanism": "idempotency_keys",
+   "native_construct": "run_key on RunRequest / sensor RunRequest",
+   "note": "run_key maps. Dedup of runs needs instance run storage.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/dagster-io/dagster@1.9.6 python_modules/dagster/dagster/_core/definitions/sensor_definition.py RunRequest.run_key"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "MAPPED",
+   "framework": "dagster",
+   "history_file": null,
+   "ir_field": "retries",
+   "license": "Apache-2.0",
+   "mechanism": "retry_backoff",
+   "native_construct": "RetryPolicy(max_retries, delay, backoff=LINEAR|EXPONENTIAL, jitter)",
+   "note": "Policy maps. Jitter is NON-DETERMINISTIC if used; the worked replay uses delay without jitter.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/dagster-io/dagster@1.9.6 python_modules/dagster/dagster/_core/definitions/policy.py RetryPolicy / calculate_delay"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "MAPPED",
+   "framework": "dagster",
+   "history_file": null,
+   "ir_field": "gates",
+   "license": "Apache-2.0",
+   "mechanism": "sensors",
+   "native_construct": "@sensor / SensorDefinition yielding RunRequest | SkipReason",
+   "note": "Evaluation cursor is instance state; the wait-until shape is an IR gate.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/dagster-io/dagster@1.9.6 python_modules/dagster/dagster/_core/definitions/sensor_definition.py SensorDefinition"
+  },
+  {
+   "architecture_ticket": "ARCH-LANE:WFA-0051:dagster:backfill",
+   "disposition": "MAPPED-POLICY-ONLY",
+   "framework": "dagster",
+   "history_file": null,
+   "ir_field": "backfill_window",
+   "license": "Apache-2.0",
+   "mechanism": "backfill",
+   "native_construct": "partition backfills / BackfillPolicy on assets",
+   "note": "The window/policy maps. Completed partition materialisations are instance storage.",
+   "requires_durable_log": true,
+   "routed_to": "architecture-lane",
+   "source_anchor": "github.com/dagster-io/dagster@1.9.6 python_modules/dagster/dagster/_core/definitions/backfill_policy.py BackfillPolicy"
+  },
+  {
+   "architecture_ticket": null,
+   "disposition": "LOSSY",
+   "framework": "dagster",
+   "history_file": null,
+   "ir_field": "sla_deadline",
+   "license": "Apache-2.0",
+   "mechanism": "task_sla",
+   "native_construct": "FreshnessPolicy / freshness checks (asset freshness, not Airflow task SLA)",
+   "note": "LOSSY: freshness is not a per-op SLA miss. Closest IR field is sla_deadline with that caveat.",
+   "requires_durable_log": false,
+   "routed_to": null,
+   "source_anchor": "github.com/dagster-io/dagster@1.9.6 python_modules/dagster/dagster/_core/definitions/freshness_policy.py FreshnessPolicy"
+  }
+ ],
+ "output_schema": "command-center/wfa/schema/wfa-schema-pack.json#/$defs/AdapterConformanceReport",
+ "question_or_target": "Implementation target: extract the durability mechanisms these four schedulers provide - deterministic replay, idempotency keys, retry/backoff policy, sensors, backfill, task-level SLA - into IR fields, and state which require a durable execution log this estate does not have.",
+ "record_type": "AdapterConformanceReport",
+ "replay_experiment": {
+  "achieved": "IR-stage-sequence-under-retry-policy",
+  "bad_run": [
+   "extract:1:ok",
+   "transform_b:1:ok",
+   "transform_a:1:fail",
+   "transform_a:2:fail",
+   "transform_a:3:ok",
+   "load:1:ok"
+  ],
+  "expected": [
+   "extract:1:ok",
+   "transform_a:1:fail",
+   "transform_a:2:fail",
+   "transform_a:3:ok",
+   "transform_b:1:ok",
+   "load:1:ok"
+  ],
+  "good_run_1": [
+   "extract:1:ok",
+   "transform_a:1:fail",
+   "transform_a:2:fail",
+   "transform_a:3:ok",
+   "transform_b:1:ok",
+   "load:1:ok"
+  ],
+  "good_run_2": [
+   "extract:1:ok",
+   "transform_a:1:fail",
+   "transform_a:2:fail",
+   "transform_a:3:ok",
+   "transform_b:1:ok",
+   "load:1:ok"
+  ],
+  "jitter_refused": {
+   "reason": "jitter is non-deterministic; refuse",
+   "refused": true
+  },
+  "mapped_mechanism": "retry_backoff",
+  "unachieved": "Temporal/Airflow/Prefect/Dagster event-or-metadata-log command replay (REQUIRES-DURABLE-LOG \u2192 architecture-lane)"
+ },
+ "residual_unknowns": [
+  "WFA-0044 IR spec artifact absent; field names taken from the WFA-0044 catalog question plus this unit's ir_vocab, not from a delivered spec file.",
+  "WFA-0027 teardown artifact absent; second-control-plane line is catalog+source, not a measured teardown.",
+  "wfa-schema-pack.json is a generated shim; this document is AdapterConformanceReport-shaped and is not claimed valid against receipt.schema.json generic_report envelope."
+ ],
+ "reviewer": {
+  "independent": true,
+  "reviewer_id": "WFA-0051-probe2-durable-log-routing",
+  "verdict": "PASS"
+ },
+ "schedulers_installed": {
+  "binaries_on_path": [],
+  "clean": true,
+  "importable": []
+ },
+ "sentinel": "SUCCESS:WFA-0051",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "24-framework-mechanism-rows",
+   "pass": true
+  },
+  {
+   "id": "each-mechanism-mapped-or-requires-durable-log",
+   "pass": true
+  },
+  {
+   "id": "durable-log-routed-to-architecture-lane",
+   "pass": true
+  },
+  {
+   "id": "not-faked-with-a-file",
+   "pass": true
+  },
+  {
+   "id": "file-fake-mutant-caught",
+   "pass": true
+  },
+  {
+   "id": "deterministic-replay-worked-case",
+   "note": "Worked case is IR retry+DAG stage order on this estate. Temporal event-history replay remains UNACHIEVED / REQUIRES-DURABLE-LOG.",
+   "pass": true
+  },
+  {
+   "id": "replay-both-states",
+   "pass": true
+  },
+  {
+   "id": "jitter-refused",
+   "pass": true
+  },
+  {
+   "id": "no-scheduler-installed-or-run",
+   "pass": true
+  }
+ ],
+ "title": "Adapter: durable DAG schedulers (Temporal, Airflow, Prefect, Dagster) to IR",
+ "unit_id": "WFA-0051"
+}

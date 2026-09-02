@@ -1,0 +1,217 @@
+{
+  "artifacts": [
+    {
+      "bytes": 70410,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/adversarial/ADV-0009-detector-both-states-control-audit.json",
+      "role": "primary",
+      "sha256": "9fb42e52db8e8f7831d4fae914262fe7e38639738911021d671c3958e800216a"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:ADV-0002-partial-003 delivered",
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/adversarial/ADV-0009-detector-both-states-control-audit.json",
+      "consumer": "platform/lib/receipt_schema_gate.py --schema-only",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\platform\\lib\\receipt_schema_gate.py --schema-only C:\\Users\\Prekzursil\\source\\ast-integrate\\command-center\\adversarial\\ADV-0009-detector-both-states-control-audit.json",
+        "exit_code": 0,
+        "fingerprint": "4b06c161c159a96ac114f698b87690783895e95ea8467eac71a6857fcd4074e2",
+        "method": "schema-validate",
+        "raw_output": "SCHEMA-VALID:ADV-0009 (layer 1 only - this is NOT a completion verdict)",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "tools/command-center/validate.py:85,303",
+      "claim": "META-CONTROL: tools/command-center/validate.py V-FIELDS under the bare invocation (require_complete default False) is SILENT IN BOTH STATES. Deleting the entire defaults block leaves exit 0 + SUCCESS:cc-validate while the same run prints work_unit_fields_unresolved=1133. The armed twin --require-complete exits 1 with 1133 V-FIELDS violations.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "exit_code": 0,
+          "fingerprint": "eb1a4b67316b954dfe645695757a9913afbd05fad81e771d026e53e0c8ca2fef",
+          "method": "command",
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+          "role": "source"
+        },
+        {
+          "command": "read tools/command-center/validate.py:85 and :303",
+          "fingerprint": "6a12484935265d082ff8cd5001613446c86d742a2f718c4d4cfb2d77586e0a33",
+          "method": "file-read",
+          "raw_output": "line 85: require_complete: bool = False,\nline 303: if unresolved and require_complete:\nGOOD twin raw: cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/ADV-0009/pairs.json",
+      "claim": "22 both-states pairs were executed. Classification: DECORATIVE=1 (D01 V-FIELDS bare, the mandated meta-control) and VALID=21. Zero FALSE-POSITIVE-MACHINE after harness retries on D14/D17/D20. The audit did not classify the known-disarmed detector as VALID.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "python command-center/p2-wave/probes/ADV-0009/run_both_states.py && python command-center/p2-wave/probes/ADV-0009/reprobe_d14_d17_d20.py",
+          "exit_code": 0,
+          "fingerprint": "a2ec54019091173c9ee3318da13e8556abf9e341ada52a199c8023e7bfde4a3c",
+          "method": "test-run",
+          "raw_output": "SUCCESS:adv0009-runner pairs=22 meta=True counts={VALID: 19, DECORATIVE: 1, FALSE-POSITIVE-MACHINE: 2, INVERTED: 0, NOT-CHECKED: 0}\nSUCCESS:adv0009-reprobe {D14: VALID, D17: VALID, D20: VALID} {VALID: 21, DECORATIVE: 1, FALSE-POSITIVE-MACHINE: 0, INVERTED: 0, NOT-CHECKED: 0}",
+          "role": "source"
+        },
+        {
+          "command": "count classification values in command-center/p2-wave/probes/ADV-0009/pairs.json after reprobe",
+          "fingerprint": "abc162f14d0677f3801370274989ed718e79faff581835afa3f18bb392d68911",
+          "method": "static-analysis",
+          "raw_output": "{\"DECORATIVE\": 1, \"FALSE-POSITIVE-MACHINE\": 0, \"INVERTED\": 0, \"NOT-CHECKED\": 0, \"VALID\": 21}",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/ADV-0009/classifier-calibration.txt",
+      "claim": "The audit classifier is not a constant: on synthetic detectors whose true label is known by construction it returned DECORATIVE / FALSE-POSITIVE-MACHINE / VALID, 3/3.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "classifier_calibration() in run_both_states.py",
+          "exit_code": 0,
+          "fingerprint": "37a7997aca46384fd7d817c61181fd464e5f6931b6596b61d9abc28465bee499",
+          "method": "test-run",
+          "raw_output": "always-exit-0: good=0 bad=0 -> DECORATIVE (expected DECORATIVE) OK\nalways-exit-1: good=1 bad=1 -> FALSE-POSITIVE-MACHINE (expected FALSE-POSITIVE-MACHINE) OK\nexit-by-input: good=0 bad=1 -> VALID (expected VALID) OK",
+          "role": "source"
+        },
+        {
+          "command": "read command-center/p2-wave/probes/ADV-0009/classifier-calibration.txt",
+          "fingerprint": "ec4e96b55a3dbd355fb6538d9d91aed5b30a56db763f2f1227f3f01bed052c43",
+          "method": "file-read",
+          "raw_output": "always-exit-0: good=0 bad=0 -> DECORATIVE (expected DECORATIVE) OK\nalways-exit-1: good=1 bad=1 -> FALSE-POSITIVE-MACHINE (expected FALSE-POSITIVE-MACHINE) OK\nexit-by-input: good=0 bad=1 -> VALID (expected VALID) OK",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "failure": {
+    "blocked_on": "condition 9: two different-vendor reviewers must independently reproduce the D01 counterexample; condition 11: orchestrator must run tools/command-center/unit_manifest.py --write so this receipt row appears in command-center/UNIT-ARTIFACT-MANIFEST.json",
+    "classification": [
+      "single-signal",
+      "green-not-live"
+    ],
+    "reason": "Measurement is complete and no detector verdict is downgraded. Terminal state is BLOCKED rather than SUCCESS because two schema-mandated SUCCESS conditions cannot be satisfied honestly: condition 9 (independent cross-vendor reviewers have not run) and condition 11 (this agent is forbidden to run unit_manifest.py --write against the live UNIT-ARTIFACT-MANIFEST.json). Asserting either would be the fabrication this unit exists to detect."
+  },
+  "manifest_registration": {
+    "entry_id": "ADV-0009",
+    "global_unit_manifest_write_invoked": false,
+    "manifest_path": "command-center/p2-wave/probes/ADV-0009/UNIT-ARTIFACT-MANIFEST.json",
+    "registered": true,
+    "registered_at": "2026-08-19T11:51:06Z",
+    "route": "STRUCTURAL-CONDITION-11 per-unit manifest"
+  },
+  "min_bytes_threshold": 256,
+  "negative_controls": [
+    {
+      "bad_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+      "description": "Mandated meta-control. Entire defaults block deleted from a copy of WORK-UNIT-CATALOG.json. validate.py invoked bare (no --require-complete). Required outcome: silent in both states. Measured: silent in both states.",
+      "fired_on_bad_state": false,
+      "good_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+      "id": "META-CONTROL-VFIELDS-BARE",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "V-EMPTY -: catalog holds zero items (fail closed)\ncc-validate items=0\nFAILED:cc-validate violations=1",
+      "description": "Negative control that the harness is not failing everything. V-EMPTY must fire on an empty catalog and stay silent on the good catalog.",
+      "fired_on_bad_state": true,
+      "good_state_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all",
+      "id": "HARNESS-NOT-ALWAYS-RED-VEMPTY",
+      "kind": "known-broken-fixture",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "OK [exit 0]",
+      "description": "Synthetic always-exit-0 gate; classifier must label DECORATIVE.",
+      "fired_on_bad_state": false,
+      "good_state_output": "OK [exit 0]",
+      "id": "CLASSIFIER-DECORATIVE",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    },
+    {
+      "bad_state_output": "BOOM [exit 1]",
+      "description": "Synthetic always-exit-1 gate; classifier must label FALSE-POSITIVE-MACHINE.",
+      "fired_on_bad_state": true,
+      "good_state_output": "BOOM [exit 1]",
+      "id": "CLASSIFIER-FALSE-POSITIVE",
+      "kind": "mutation",
+      "silent_on_good_state": false
+    },
+    {
+      "bad_state_output": "BOOM [exit 1]",
+      "description": "Synthetic exit-by-input gate; classifier must label VALID.",
+      "fired_on_bad_state": true,
+      "good_state_output": "OK [exit 0]",
+      "id": "CLASSIFIER-VALID",
+      "kind": "mutation",
+      "silent_on_good_state": true
+    }
+  ],
+  "produced_by": {
+    "execution_substrate": "local-serialized",
+    "model": "grok-build",
+    "role": "paired-independent-refuter",
+    "vendor": "grok"
+  },
+  "report": {
+    "classification_counts": {
+      "DECORATIVE": 1,
+      "FALSE-POSITIVE-MACHINE": 0,
+      "INVERTED": 0,
+      "NOT-CHECKED": 0,
+      "VALID": 21
+    },
+    "control_ids": [
+      "META-CONTROL-VFIELDS-BARE",
+      "HARNESS-NOT-ALWAYS-RED-VEMPTY",
+      "CLASSIFIER-DECORATIVE",
+      "CLASSIFIER-FALSE-POSITIVE",
+      "CLASSIFIER-VALID"
+    ],
+    "detectors": [
+      {
+        "classification": "DECORATIVE",
+        "detector": "cc-validate V-FIELDS @ BARE invocation (META-CONTROL)",
+        "fires_on_known_broken": false,
+        "id": "D01",
+        "note": "require_complete defaults False. CI invokes this script bare. The audit MUST classify this pair DECORATIVE.",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=1133 work_unit_fields_from_defaults=0\nSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "probe_2_known_good_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-catalog.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 0,
+          "raw_output": "cc-validate items=103 open=58 closed=45 edges=18 acyclic=True owner_questions_open=22 work_unit_fields_unresolved=0 work_unit_fields_from_defaults=1133\nSUCCESS:cc-validate items=103 open=58 reachable=all"
+        },
+        "silent_on_known_good": true,
+        "verdict": "CONFIRMED"
+      },
+      {
+        "classification": "VALID",
+        "detector": "cc-validate V-FIELDS @ --require-complete (armed form)",
+        "fires_on_known_broken": true,
+        "id": "D02",
+        "probe_1_known_broken_fixture": {
+          "command": "C:\\Python314\\python.exe C:\\Users\\Prekzursil\\source\\ast-integrate\\tools\\command-center\\validate.py --catalog C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\broken-no-defaults.json --graph C:\\Users\\PREKZU~1\\AppData\\Local\\Temp\\adv0009_lcczq3l9\\good-graph.json --require-complete",
+          "cwd": "C:\\Users\\Prekzursil\\source\\ast-integrate",
+          "exit_code": 1,
+          "raw_output": "V

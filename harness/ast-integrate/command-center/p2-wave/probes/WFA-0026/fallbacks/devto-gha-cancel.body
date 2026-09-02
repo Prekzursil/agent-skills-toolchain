@@ -1,0 +1,12 @@
+cancel-in-progress:true Silently Dropped Our Deploys — GitHub Actions Concurrency Gotcha
+
+With multiple Claude Code instances pushing in parallel (VSCode, PowerShell, Windows), we noticed commits occasionally not showing up in production:
+
+Commit A → push → deploy-prod starts
+Commit B → push → deploy-prod starts → A's run gets CANCELLED
+Commit B's deploy succeeds. Commit A's changes never reach production.
+
+# Dangerous for deploy workflows
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: true

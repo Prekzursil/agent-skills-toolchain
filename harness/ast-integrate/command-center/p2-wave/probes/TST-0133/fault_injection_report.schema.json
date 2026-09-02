@@ -1,0 +1,281 @@
+{
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "report_kind",
+    "question",
+    "answer",
+    "blocked_run_completed",
+    "allowed_run_completed",
+    "pass_fail_delta",
+    "blocked_egress_log",
+    "undeclared_network_tests",
+    "detector_control",
+    "both_states_control",
+    "remediation",
+    "tests",
+    "reviewer",
+    "evidence"
+  ],
+  "properties": {
+    "unit_id": {
+      "type": "string",
+      "const": "TST-0133"
+    },
+    "state": {
+      "type": "string",
+      "enum": [
+        "SUCCESS",
+        "PARTIAL",
+        "BLOCKED",
+        "FAILED",
+        "TIMEOUT",
+        "SEVERED"
+      ]
+    },
+    "sentinel": {
+      "type": "string",
+      "const": "SUCCESS:TST-0133"
+    },
+    "report_kind": {
+      "type": "string",
+      "const": "fault_injection_report"
+    },
+    "question": {
+      "type": "string",
+      "minLength": 40
+    },
+    "answer": {
+      "type": "string",
+      "minLength": 40
+    },
+    "blocked_run_completed": {
+      "type": "boolean",
+      "const": true
+    },
+    "allowed_run_completed": {
+      "type": "boolean",
+      "const": true
+    },
+    "pass_fail_delta": {
+      "type": "object",
+      "required": [
+        "pre_remediation_undeclared",
+        "post_remediation_undeclared"
+      ],
+      "properties": {
+        "pre_remediation_undeclared": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "required": [
+              "id",
+              "blocked_ok",
+              "allowed_ok"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "minLength": 3
+              },
+              "blocked_ok": {
+                "type": "boolean"
+              },
+              "allowed_ok": {
+                "type": "boolean"
+              }
+            }
+          }
+        },
+        "post_remediation_undeclared": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "blocked_egress_log": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": [
+          "host",
+          "port",
+          "run",
+          "step"
+        ],
+        "properties": {
+          "host": {
+            "type": "string",
+            "minLength": 1
+          },
+          "port": {
+            "type": "integer",
+            "minimum": 1
+          },
+          "run": {
+            "type": "string",
+            "const": "blocked"
+          },
+          "step": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "undeclared_network_tests": {
+      "type": "object",
+      "required": [
+        "pre_remediation",
+        "post_remediation"
+      ],
+      "properties": {
+        "pre_remediation": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object"
+          }
+        },
+        "post_remediation": {
+          "type": "array",
+          "maxItems": 0
+        }
+      }
+    },
+    "detector_control": {
+      "type": "object",
+      "required": [
+        "planted_test_id",
+        "fired_on_planted_url_fetch",
+        "trusted_zero_only_after_fire"
+      ],
+      "properties": {
+        "planted_test_id": {
+          "type": "string",
+          "minLength": 8
+        },
+        "fired_on_planted_url_fetch": {
+          "type": "boolean",
+          "const": true
+        },
+        "trusted_zero_only_after_fire": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "both_states_control": {
+      "type": "object",
+      "required": [
+        "pre_remediation_list_non_empty",
+        "post_remediation_list_empty",
+        "post_undeclared_outcomes_identical"
+      ],
+      "properties": {
+        "pre_remediation_list_non_empty": {
+          "type": "boolean",
+          "const": true
+        },
+        "post_remediation_list_empty": {
+          "type": "boolean",
+          "const": true
+        },
+        "post_undeclared_outcomes_identical": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "remediation": {
+      "type": "object",
+      "required": [
+        "network_declarations_added"
+      ],
+      "properties": {
+        "network_declarations_added": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "string",
+            "minLength": 3
+          }
+        }
+      }
+    },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "name",
+          "result"
+        ],
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "result": {
+            "type": "string",
+            "enum": [
+              "PASS"
+            ]
+          }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": [
+        "reviewer_id",
+        "verdict",
+        "independent"
+      ],
+      "properties": {
+        "reviewer_id": {
+          "type": "string",
+          "minLength": 8
+        },
+        "verdict": {
+          "type": "string",
+          "const": "PASS"
+        },
+        "independent": {
+          "type": "boolean",
+          "const": true
+        }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": [
+          "kind",
+          "detail"
+        ],
+        "properties": {
+          "kind": {
+            "type": "string",
+            "minLength": 4
+          },
+          "detail": {
+            "type": "string",
+            "minLength": 8
+          }
+        }
+      }
+    }
+  }
+}

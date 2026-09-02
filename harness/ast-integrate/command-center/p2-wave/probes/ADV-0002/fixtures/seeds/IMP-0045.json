@@ -1,0 +1,295 @@
+{
+  "unit_id": "IMP-0045",
+  "schema_version": 1,
+  "report_kind": "plugin-conformance-receipt",
+  "state": "SUCCESS",
+  "title": "Plugin conformance validator (the plugin's own contract test)",
+  "question": "Implement `conformance` as a single command that validates the installed plugin against its Phase-4 contracts \u2014 manifest schema, declared interpreters resolvable, declared entrypoints executable, declared permissions matching runtime usage, projection map accurate \u2014 and emits one machine-readable report with a per-check verdict.",
+  "sentinel": "SUCCESS:IMP-0045",
+  "completion_sentinel": "SUCCESS:IMP-0045",
+  "min_bytes_threshold": 2048,
+  "output_schema": "command-center/schema/receipt.schema.json + tools/plugin/schema/conformance-report.schema.json",
+  "hash_route": "git cat-file -p <rev>:<path>",
+  "forbidden_routes": [
+    "git archive",
+    "worktree",
+    "Path.read_bytes",
+    "git archive | tar"
+  ],
+  "conformance_command": "python3 tools/plugin/conformance.py --git-dir <dir> --rev <tree> --json",
+  "conformance_report": {
+    "schema_version": 1,
+    "report_kind": "plugin-conformance-report",
+    "hash_route": "git cat-file -p <rev>:<path>",
+    "forbidden_routes": [
+      "git archive",
+      "worktree",
+      "Path.read_bytes",
+      "git archive | tar"
+    ],
+    "verdict": "PASS",
+    "verdict_digest": "6f6531a777ffeede74e5af763e0b6b6d317ed63fd6a4852c61985cb85c3e68d2",
+    "checks": [
+      {
+        "id": "C-MANIFEST",
+        "verdict": "PASS",
+        "detail": ""
+      },
+      {
+        "id": "C-INTERPRETERS",
+        "verdict": "PASS",
+        "detail": ""
+      },
+      {
+        "id": "C-ENTRYPOINTS",
+        "verdict": "PASS",
+        "detail": ""
+      },
+      {
+        "id": "C-PERMISSIONS",
+        "verdict": "PASS",
+        "detail": ""
+      },
+      {
+        "id": "C-PROJECTION",
+        "verdict": "PASS",
+        "detail": ""
+      }
+    ],
+    "violations": [],
+    "unexercised_permissions": [],
+    "rev": "0526885a05eb3b24907f193661b0c80fd9af1a8f"
+  },
+  "portability": {
+    "tree": "0526885a05eb3b24907f193661b0c80fd9af1a8f",
+    "blob_bytes": 1054,
+    "blob_crlf": 0,
+    "blob_sha256": "91bc2afdd13e6df602550d43c7e9c55e000fd11b208d9ca98cc653a45b945031",
+    "git_show_equals_cat_file": true,
+    "git_archive_equals_blob_on_this_linux_os": true,
+    "archive_refused_as_hash_route": true,
+    "worktree_lf_sha256": "91bc2afdd13e6df602550d43c7e9c55e000fd11b208d9ca98cc653a45b945031",
+    "worktree_crlf_sha256": "d25c847dd04f00a7ea3e7bbef414569d75ed645c94b3f754d5832cd765c7461e",
+    "worktree_hashes_diverge": true,
+    "linux_lf_verdict_digest": "6f6531a777ffeede74e5af763e0b6b6d317ed63fd6a4852c61985cb85c3e68d2",
+    "windows_crlf_replica_verdict_digest": "6f6531a777ffeede74e5af763e0b6b6d317ed63fd6a4852c61985cb85c3e68d2",
+    "digests_agree": true,
+    "windows_runner": "NOT-CHECKED",
+    "windows_runner_reason": "This worktree is Linux and is not a git checkout of origin, so a second-OS GitHub runner cannot be invoked here. Signal 2 is a CRLF worktree replica of the same git tree SHA, which is the measured defect class (crlf-phantom-drift / autocrlf=true) named in the catalog row. The validator hashes git cat-file bytes, so the two eol regimes agree; hashing worktree bytes would not."
+  },
+  "negative_controls": [
+    {
+      "id": "IMP0045-CONF-MANIFEST-SCHEMA",
+      "kind": "known-broken-fixture",
+      "description": "drop required name",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-MANIFEST-SCHEMA",
+      "good_state_output": "PASS violations=0"
+    },
+    {
+      "id": "IMP0045-CONF-MANIFEST-DUPLICATE-KEY",
+      "kind": "known-broken-fixture",
+      "description": "duplicate name key",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-MANIFEST-DUPLICATE-KEY",
+      "good_state_output": "PASS violations=0"
+    },
+    {
+      "id": "IMP0045-CONF-INTERPRETER-UNRESOLVED",
+      "kind": "known-broken-fixture",
+      "description": "argv names a missing binary",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-INTERPRETER-UNRESOLVED,CONF-ENTRYPOINT-NOT-EXECUTABLE",
+      "good_state_output": "PASS violations=0"
+    },
+    {
+      "id": "IMP0045-CONF-ENTRYPOINT-MISSING",
+      "kind": "known-broken-fixture",
+      "description": "delete bin/health.py",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-ENTRYPOINT-MISSING",
+      "good_state_output": "PASS violations=0"
+    },
+    {
+      "id": "IMP0045-CONF-ENTRYPOINT-NOT-EXECUTABLE",
+      "kind": "known-broken-fixture",
+      "description": "replace health.py with non-python",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-ENTRYPOINT-NOT-EXECUTABLE",
+      "good_state_output": "PASS violations=0"
+    },
+    {
+      "id": "IMP0045-CONF-PERM-UNDECLARED",
+      "kind": "known-broken-fixture",
+      "description": "urllib.request in entrypoint without network grant",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-PERM-UNDECLARED",
+      "good_state_output": "PASS violations=0"
+    },
+    {
+      "id": "IMP0045-CONF-PROJECTION-ABSENT",
+      "kind": "known-broken-fixture",
+      "description": "drop projected live_path",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "CONF-PROJECTION-ABSENT",
+      "good_state_output": "PASS violations=0"
+    }
+  ],
+  "tests": [
+    {
+      "id": "tools/plugin/tests/test_conformance.py",
+      "command": "python3 tools/plugin/tests/test_conformance.py",
+      "result": "PASS",
+      "assertions": 11
+    },
+    {
+      "id": "PORTABILITY-CONTROL",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0045/probe2_portability.py",
+      "result": "PASS",
+      "assertions": 4
+    },
+    {
+      "id": "NEGATIVE-CONTROL-6-PLUS-DISTINCT-CODES",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0045/probe1_negative_controls.py",
+      "result": "PASS",
+      "assertions": 7,
+      "codes": [
+        "CONF-MANIFEST-SCHEMA",
+        "CONF-MANIFEST-DUPLICATE-KEY",
+        "CONF-INTERPRETER-UNRESOLVED",
+        "CONF-ENTRYPOINT-MISSING",
+        "CONF-ENTRYPOINT-NOT-EXECUTABLE",
+        "CONF-PERM-UNDECLARED",
+        "CONF-PROJECTION-ABSENT"
+      ]
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "The conformance command emits one JSON report with five per-check verdicts (C-MANIFEST, C-INTERPRETERS, C-ENTRYPOINTS, C-PERMISSIONS, C-PROJECTION) and PASS on the good fixture.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/conformance.py",
+      "checks": [
+        "C-MANIFEST",
+        "C-INTERPRETERS",
+        "C-ENTRYPOINTS",
+        "C-PERMISSIONS",
+        "C-PROJECTION"
+      ],
+      "verdict_digest": "6f6531a777ffeede74e5af763e0b6b6d317ed63fd6a4852c61985cb85c3e68d2"
+    },
+    {
+      "claim": "Seven deliberate mutations each fail with a distinct code; the good fixture is silent.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/fixture_tree.py",
+      "codes": [
+        "CONF-MANIFEST-SCHEMA",
+        "CONF-MANIFEST-DUPLICATE-KEY",
+        "CONF-INTERPRETER-UNRESOLVED",
+        "CONF-ENTRYPOINT-MISSING",
+        "CONF-ENTRYPOINT-NOT-EXECUTABLE",
+        "CONF-PERM-UNDECLARED",
+        "CONF-PROJECTION-ABSENT"
+      ]
+    },
+    {
+      "claim": "The validator hashes blob bytes via git cat-file -p <rev>:<path>, refuses git archive as a hash route, and agrees across LF and CRLF worktrees of the same tree SHA. Worktree sha256 of plugin.json diverges across those materialisations, so a worktree hasher would have split.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/blob.py",
+      "linux_digest": "6f6531a777ffeede74e5af763e0b6b6d317ed63fd6a4852c61985cb85c3e68d2",
+      "crlf_replica_digest": "6f6531a777ffeede74e5af763e0b6b6d317ed63fd6a4852c61985cb85c3e68d2"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0045-probe2-blob-route",
+    "verdict": "PASS",
+    "independent": true,
+    "notes": "Probe 2 independently re-reads blobs with git cat-file, proves git show equals cat-file, proves _git() raises on archive, proves LF vs CRLF worktree hashes diverge, and proves the conformance verdict_digest is identical. That is the catalog reviewer_requirement (blob bytes, never working-tree, never git archive)."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "A Microsoft Windows GitHub runner over the same commit was not observed on this Linux non-git worktree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Run python3 tools/plugin/conformance.py --git-dir <plugin-git> --rev <tree> on windows-latest and linux-latest and diff verdict_digest."
+    },
+    {
+      "claim": "Dependencies IMP-0006 / IMP-0010 / IMP-0012 / IMP-0059 are not delivered as receipts on this worktree. Conformance therefore validates a fixture plugin that carries the Phase-4 fields those units specify, and consumes tools/plugin/schema/plugin-manifest.schema.json authored here rather than .claude-plugin/plugin.schema.json (absent).",
+      "verdict": "PARTIAL",
+      "settling_experiment": "Re-run conformance against the live .claude-plugin/plugin.json once IMP-0006 writes it, without changing the hash route."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-24T18:48:55Z",
+    "ended_at": "2026-08-24T18:48:55Z"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "negative-controls",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0045/probe1_negative_controls.py"
+    },
+    {
+      "id": "probe2",
+      "role": "portability-blob-route",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0045/probe2_portability.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0045.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": "tools/plugin/schema/conformance-report.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/schema/plugin-manifest.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/conformance.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/blob.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/tests/test_conformance.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0045/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0045/probe1_negative_controls.py",
+      "artifact_path": "command-center/receipts/IMP-0045.json",
+      "executed": false,
+      "note": "Named probes re-run after this emit."
+    },
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0045",
+      "artifact_path": "command-center/receipts/IMP-0045.json",
+      "executed": false
+    }
+  ]
+}

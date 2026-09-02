@@ -1,0 +1,47 @@
+{
+  "id": "wf.engineering.cross-vendor-compatibility",
+  "kind": "workflow_blueprint",
+  "title": "Cross-vendor message canonicalization",
+  "discovery_only": false,
+  "example_id": "ex.vendor.anthropic-openai-text",
+  "preset_id": "preset.vendor.canonical-text",
+  "stages": [
+    {
+      "id": "canonicalize-a",
+      "kind": "adapter",
+      "inputs": ["vendor-a-message"],
+      "outputs": ["canonical-a"]
+    },
+    {
+      "id": "canonicalize-b",
+      "kind": "adapter",
+      "inputs": ["vendor-b-message"],
+      "outputs": ["canonical-b"]
+    },
+    {
+      "id": "compare",
+      "kind": "equality",
+      "inputs": ["canonical-a", "canonical-b"],
+      "outputs": ["compat-receipt.json"]
+    }
+  ],
+  "stopping": {
+    "max_stages": 3,
+    "on_error": "record-and-halt",
+    "reject": "content-part-dropped"
+  },
+  "smoke_test": {
+    "id": "smoke.vendor.roundtrip",
+    "entry": "runner.smoke_cross_vendor"
+  },
+  "capability_vector": {
+    "taxonomy_id": "engineering-reliability.capability-taxonomy",
+    "taxonomy_version": "1.0.0",
+    "axes": {
+      "refactor.equivalence-argument": 0,
+      "migrate.rehearse-copy": 0,
+      "supply.advisory-decay": 0,
+      "vendor.canonical-roundtrip": 1
+    }
+  }
+}

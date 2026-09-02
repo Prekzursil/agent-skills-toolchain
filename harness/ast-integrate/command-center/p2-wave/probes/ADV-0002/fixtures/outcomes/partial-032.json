@@ -1,0 +1,188 @@
+{
+  "artifacts": [
+    {
+      "bytes": 40135,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/receipts/BLD-0007.json",
+      "role": "primary",
+      "sha256": "0294e1fb53ff187334fa44c4c5c7d1691a671840c4fa8f6121012dd917f42e78"
+    },
+    {
+      "bytes": 1096,
+      "eol": "LF",
+      "exists": true,
+      "path": "command-center/schema/coverage-matrix.schema.json",
+      "role": "supporting",
+      "sha256": "45505d2ce873c89fc56e529d4b617fb76272d92a89fc7abca8a8f033cbb55253"
+    }
+  ],
+  "completion_sentinel": "SUCCESS:ADV-0002-partial-032 delivered",
+  "defects": [
+    {
+      "id": "BLD0007-GITBASH-EMULATOR",
+      "severity": "P2",
+      "status": "open",
+      "summary": "Git Bash/MSYS is not installed on this Linux host. The discrimination PASS state is igncr emulation (CR strip) and is labelled as such, never a live Git Bash run."
+    }
+  ],
+  "downstream_consumers": [
+    {
+      "artifact_path": "command-center/receipts/BLD-0007.json",
+      "consumer": "json.loads + BLD-0007 matrix validator",
+      "executed": true,
+      "exit_code": 0,
+      "probe": {
+        "command": "python3 -c \"import json; from pathlib import Path; p=Path('command-center/receipts/BLD-0007.json'); d=json.loads(p.read_text()); print(d['unit_id'], d['state'])\"",
+        "exit_code": 0,
+        "fingerprint": "947cf1cd5d2817614b31cbd3cda9e7bc",
+        "method": "schema-validate",
+        "raw_output": "BLD-0007 SUCCESS",
+        "role": "source"
+      },
+      "read_ok": true
+    }
+  ],
+  "evidence": [
+    {
+      "anchor": "command-center/p2-wave/probes/BLD-0007/cells/windows__git-bash-msys.sh",
+      "claim": "The Git-Bash cell probe is a CRLF script that FAILs under host Linux bash (rc=2) and PASSes under igncr emulation (rc=0); both-states are not identical.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"from pathlib import Path; import json,sys; sys.path.insert(0,'command-center/p2-wave/probes/BLD-0007'); from crlf import discriminate; print(json.dumps(discriminate(Path('command-center/p2-wave/probes/BLD-0007/cells/windows__git-bash-msys.sh'))))\"",
+          "exit_code": 0,
+          "fingerprint": "e54fa1a8cc2f8167ceb8ffe9592b598d",
+          "method": "command",
+          "raw_output": "wsl_or_linux_bash_rc=2 gitbash_emulator_rc=0 ok=True both_same=False",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from pathlib import Path; p=Path('command-center/p2-wave/probes/BLD-0007/cells/windows__git-bash-msys.sh'); b=p.read_bytes(); print('crlf', b.count(b'\\r\\n'), 'lf_only', b.count(b'\\n')-b.count(b'\\r\\n'), 'has_crlf', b'\\r\\n' in b)\"",
+          "exit_code": 0,
+          "fingerprint": "801bda49c0e99d2fdc92048f9288df57",
+          "method": "byte-compare",
+          "raw_output": "crlf present in git-bash cell fixture; host-bash rejector is the WSL-equivalent real bash on this native Linux box",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    },
+    {
+      "anchor": "command-center/p2-wave/probes/BLD-0007/cells/windows__cmd.exe.py",
+      "claim": "The cmd.exe cell probe catches the named class `bare .sh invocation on Windows` (PATHEXT has no .SH, shebang not honored); a no-assertion fixture fails the matrix validator; an independent dash reviewer ran two emitted probes with no silent PASS.",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B -c \"import json,sys; sys.path.insert(0,'command-center/p2-wave/probes/BLD-0007'); from cmd_model import catch_bare_sh; print(json.dumps(catch_bare_sh()))\"",
+          "exit_code": 0,
+          "fingerprint": "c7005ec5f31b601d66f35d74ffee5e5e",
+          "method": "command",
+          "raw_output": "caught=True class=bare .sh invocation on Windows ext_in_pathext=False shebang=False; no_assertion=['no-assertion:/opt/p2/ast-integrate/command-center/p2-wave/probes/BLD-0007/fixtures/no_assertion.py']; reviewer silent_pass=False rcs=[0, 0]",
+          "role": "source"
+        },
+        {
+          "command": "python3 -c \"from pathlib import Path; t=Path('command-center/p2-wave/probes/BLD-0007/cmd_model.py').read_text(); print('PATHEXT_HAS_SH', '.SH' in t and 'DEFAULT_PATHEXT' in t); print('FAILURE_CLASS', 'bare .sh invocation on Windows' in t)\"",
+          "exit_code": 0,
+          "fingerprint": "343fbd73eaf061aa48d68a5c0fa7d5b1",
+          "method": "static-analysis",
+          "raw_output": "FAILURE_CLASS present; DEFAULT_PATHEXT documented without .SH",
+          "role": "verifier"
+        }
+      ],
+      "verdict": "CONFIRMED"
+    }
+  ],
+  "extensions": {
+    "footguns": [
+      {
+        "catalog_anchors": [
+          "WORK-UNIT-CATALOG.json:9164 (windows-shell.md 1, 2, 8c, 9, 10)",
+          "WORK-UNIT-CATALOG.json:41720 (windows-shell.md#1 and #11 global suppression inverts the problem)",
+          "WORK-UNIT-CATALOG.json:32284 (MSYS rewriting POSIX-looking arguments)"
+        ],
+        "confidence": "CATALOG-RECONSTRUCTED",
+        "id": "WS-1",
+        "name": "MSYS path rewriting of POSIX-looking arguments",
+        "probe_cells": [
+          "windows__git-bash-msys"
+        ],
+        "section": "1"
+      },
+      {
+        "catalog_anchors": [
+          "WORK-UNIT-CATALOG.json:1371 (T0-7 PowerShell ${n}: footgun)",
+          "WORK-UNIT-CATALOG.json:32284 ('which' in Git Bash missing .cmd shims that Get-Command resolves)",
+          "WORK-UNIT-CATALOG.json:9164 (section 2)"
+        ],
+        "confidence": "CATALOG-RECONSTRUCTED",
+        "id": "WS-2",
+        "name": "PowerShell ${n}: drive-qualified parse / Git Bash which misses .cmd shims",
+        "probe_cells": [
+          "windows__powershell-7",
+          "windows__git-bash-msys"
+        ],
+        "section": "2"
+      },
+      {
+        "catalog_anchors": [
+          "WORK-UNIT-CATALOG.json:21186 (Git-Bash cell probe must FAIL on CRLF under WSL bash and PASS under Git Bash)",
+          "WORK-UNIT-CATALOG.json:41493 (windows-shell.md#3 agent-written CRLF breaks real bash)",
+          "WORK-UNIT-CATALOG.json:30137 (CRLF-bearing script must FAIL under WSL bash while passing under Git Bash)"
+        ],
+        "confidence": "CATALOG-RECONSTRUCTED",
+        "id": "WS-8c",
+        "name": "CRLF script: Git Bash igncr PASS vs real WSL/Linux bash FAIL",
+        "probe_cells": [
+          "windows__git-bash-msys",
+          "windows__wsl-bash"
+        ],
+        "section": "8c"
+      },
+      {
+        "catalog_anchors": [
+          "WORK-UNIT-CATALOG.json:4807 (windows-shell.md 9 and 10 payload scanned as a command)",
+          "WORK-UNIT-CATALOG.json:84804 (windows-shell.md:9 a here-string PAYLOAD is scanned as a command)"
+        ],
+        "confidence": "CATALOG-RECONSTRUCTED",
+        "id": "WS-9",
+        "name": "here-string payload scanned as a command",
+        "probe_cells": [
+          "windows__powershell-7"
+        ],
+        "section": "9"
+      },
+      {
+        "catalog_anchors": [
+          "WORK-UNIT-CATALOG.json:4807 (apostrophe breaks the tool's own quoting)",
+          "WORK-UNIT-CATALOG.json:41674 (windows-shell.md#10)"
+        ],
+        "confidence": "CATALOG-RECONSTRUCTED",
+        "id": "WS-10",
+        "name": "apostrophe breaks the tool's own quoting",
+        "probe_cells": [
+          "windows__powershell-7",
+          "windows__cmd.exe"
+        ],
+        "section": "10"
+      }
+    ],
+    "host": {
+      "bash": "/usr/bin/bash",
+      "os": "Linux",
+      "platform": "Linux-6.8.0-136-generic-x86_64-with-glibc2.39",
+      "python": "3.12.3",
+      "sh_resolves_to": "/usr/bin/dash",
+      "shells": {
+        "Git Bash/MSYS": null,
+        "POSIX sh": "/usr/bin/sh",
+        "PowerShell 7": null,
+        "WSL bash": null,
+        "cmd.exe": null,
+        "macOS zsh": null
+      },
+      "system": "Linux",
+      "uname": {
+        "machine": "x86_64",
+        "node": "p2-ovh-de1-a",
+        "processor":

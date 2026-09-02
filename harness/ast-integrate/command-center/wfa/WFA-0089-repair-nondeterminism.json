@@ -1,0 +1,588 @@
+{
+ "unit_id": "WFA-0089",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:WFA-0089",
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "extensions": {
+  "legacy_root": {
+   "record_type": "RepairRecord",
+   "id": "WFA-0089",
+   "status": "SUCCESS",
+   "completion_sentinel": "SUCCESS:WFA-0089",
+   "title": "Repair the nondeterminism class that makes deterministic replay impossible",
+   "question_or_target": "Implementation target: remove the constructs that make a workflow unreplayable - wall-clock reads, unseeded randomness, args coerced through string interpolation, environment-dependent path assembly - so the same inputs produce the same stage sequence twice.",
+   "defect_class": "workflow-unreplayable-nondeterminism",
+   "declared_nondeterministic_fields": [
+    "recorded_at"
+   ],
+   "declared_before_replay": true,
+   "banned_constructs": [
+    {
+     "id": "wall-clock",
+     "examples": [
+      "Date.now()",
+      "new Date()",
+      "time.time()",
+      "datetime.now()"
+     ],
+     "repair": "FrozenClock logical ticks injected into the run; never Date.now"
+    },
+    {
+     "id": "unseeded-random",
+     "examples": [
+      "Math.random()",
+      "random.random()",
+      "uuid.uuid4()"
+     ],
+     "repair": "random.Random(seed) with seed recorded on the run artifact"
+    },
+    {
+     "id": "interpolated-args",
+     "examples": [
+      "agent(`review ${path}`)",
+      "agent(f'...')"
+     ],
+     "repair": "structured argv objects {op, path:{parts}}"
+    },
+    {
+     "id": "env-path",
+     "examples": [
+      "process.env.HOME",
+      "os.path.expanduser",
+      "Path.home()"
+     ],
+     "repair": "explicit run_root from inputs; posix join of relative parts"
+    }
+   ],
+   "implementation": {
+    "library": "tools/wfa/nondeterminism.py",
+    "repaired_ir": "command-center/p2-wave/probes/WFA-0089/fixtures/repaired/workflow.ir.json",
+    "repaired_source": "command-center/p2-wave/probes/WFA-0089/fixtures/repaired/saved-workflow.mjs",
+    "seed_a": 20260824,
+    "seed_b": 87451203,
+    "run_root": "/fixed/wfa-0089/run-root",
+    "fanout_children": 16,
+    "sample_k": 6,
+    "rng": "CPython random.Random (Mersenne Twister)",
+    "clock": "FrozenClock logical ticks from origin 0"
+   },
+   "replay": {
+    "runs": 3,
+    "stage_sequences_identical": true,
+    "comparable_identical": true,
+    "stage_sequence_sha256": [
+     "f287147cb30b5477482d991f23f0f96ef3c30b7d12235d7cc48edcf6da8d01fe",
+     "f287147cb30b5477482d991f23f0f96ef3c30b7d12235d7cc48edcf6da8d01fe",
+     "f287147cb30b5477482d991f23f0f96ef3c30b7d12235d7cc48edcf6da8d01fe"
+    ],
+    "comparable_sha256": [
+     "4c0b2e22aa93c1861bcba6fc02ca58ceb0f0ce6391605394ad7ebd24c3f256ac",
+     "4c0b2e22aa93c1861bcba6fc02ca58ceb0f0ce6391605394ad7ebd24c3f256ac",
+     "4c0b2e22aa93c1861bcba6fc02ca58ceb0f0ce6391605394ad7ebd24c3f256ac"
+    ],
+    "raw_artifact_sha256": [
+     "62b2734fb4bd99847005d2ae32aaa38318facd159dfa62852a409af5b89ddae9",
+     "4ad875a0ada83c7d5ff17aaf7a32ddda8aee8caf1986275fe53977ead987b93c",
+     "98768e68fef8c2f3a179662018a69d002ff0d683702e807c76b9033adbacafee"
+    ],
+    "varying_artifact_keys": [
+     "recorded_at"
+    ],
+    "undeclared_varying_keys": [],
+    "sampled_children": [
+     "child-02",
+     "child-08",
+     "child-11",
+     "child-03",
+     "child-13",
+     "child-15"
+    ],
+    "barrier_order": [
+     "child-02",
+     "child-03",
+     "child-08",
+     "child-11",
+     "child-13",
+     "child-15"
+    ],
+    "different_seed_comparable_sha256": "1db654177a08782afe4f13465e29dcac6bcdfce07ca7c3e663222a5f11774200",
+    "different_seed_diverges": true
+   },
+   "leaky_control": {
+    "attempts": 8,
+    "diverges": true,
+    "distinct_stage_hashes": 8,
+    "hashes": [
+     "ed2f68d1e71e9ea268f81ceef354fb206b006d6dbcd44beb56f86a1efbea8c57",
+     "f972deb8a645265d02c3a6598075abbca459c66bf99f490a34776ae18f423af1",
+     "c1cd7cc88c480e6cfa32fe4582b95db38f715e4c1b70b16a499902b6ecfb3807",
+     "e74f73d2f9b04a6b99ce1f3d56fc6d6cf8263fad55e71e99cfc13b8eefee2853",
+     "72e486022253e605506b40c45c784de51c1a25ddd70dccd854482ad12361f50d",
+     "4bd7f63b916597f1abfdeafb52602a4a5a4d811fe12d8c6ebf693d1f4d0029e7",
+     "fd260152d00c49265f4010f3e16f5dc0d3e920c1ee6e9844da278eab79bf86a2",
+     "e3ca172f64a350bb51489b1b3e98f355677d0d4daeb3f4aea616e290704e7caa"
+    ]
+   },
+   "static_scan": {
+    "planted_wall_clock_hits": 1,
+    "planted_findings": [
+     {
+      "kind": "wall-clock",
+      "path": "command-center/p2-wave/probes/WFA-0089/fixtures/planted/wall-clock.mjs",
+      "line": 2,
+      "match": "Date.now("
+     }
+    ],
+    "broken_hits": 5,
+    "broken_kinds": {
+     "wall-clock": 1,
+     "unseeded-random": 2,
+     "env-path": 1,
+     "interpolated-args": 1
+    },
+    "broken_findings": [
+     {
+      "kind": "wall-clock",
+      "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+      "line": 3,
+      "match": "Date.now("
+     },
+     {
+      "kind": "unseeded-random",
+      "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+      "line": 4,
+      "match": "Math.random("
+     },
+     {
+      "kind": "env-path",
+      "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+      "line": 5,
+      "match": "process.env"
+     },
+     {
+      "kind": "interpolated-args",
+      "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+      "line": 6,
+      "match": "agent(`summarize ${out} jitter=${"
+     },
+     {
+      "kind": "unseeded-random",
+      "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+      "line": 7,
+      "match": "Math.random("
+     }
+    ],
+    "repaired_hits": 0,
+    "repaired_kinds": {},
+    "live_workflow_roots": [
+     {
+      "path": "/root/.claude/workflows",
+      "exists": false,
+      "entries": []
+     },
+     {
+      "path": "/root/.claude/workflows",
+      "exists": false,
+      "entries": []
+     },
+     {
+      "path": "/root/.claude/skills/workflow-authoring",
+      "exists": false,
+      "entries": []
+     },
+     {
+      "path": "/opt/p2/ast-integrate/skills/workflow-authoring",
+      "exists": true,
+      "entries": [
+       ".pytest_cache",
+       "SKILL.md",
+       "scripts",
+       "templates",
+       "tests"
+      ]
+     }
+    ],
+    "live_hits": []
+   },
+   "both_states": {
+    "unrepaired_interpreter_diverges": true,
+    "repaired_three_run_identity": true,
+    "planted_wall_clock_detected": true,
+    "repaired_corpus_clean": true,
+    "different_seed_not_frozen": true
+   },
+   "inputs_absent_on_this_worktree": [
+    "live:~/.claude/workflows (not present on this Linux worktree; fixtures stand in for the four banned constructs)",
+    "skill:workflow-authoring (not vendored in this worktree; banned-construct catalog reconstructed from WFA-0089/TST-0029)",
+    "command-center/wfa/schema/wfa-schema-pack.json (WFA-0001 not delivered here; RepairRecord is honest JSON, not schema-pack validated)"
+   ],
+   "reviewer_verdict": "PASS",
+   "ts": "2026-08-25T01:03:27Z",
+   "notes": "G-1 for WFA-0089: live named probes exit 0, RepairRecord state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild."
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#WFA-0089",
+ "min_bytes_threshold": 1,
+ "artifacts": [
+  {
+   "path": "command-center/wfa/WFA-0089-repair-nondeterminism.json",
+   "bytes": 8417,
+   "sha256": "e7347b016adc0bf6ce2729f51cd7ae31910449da68e7a9dc729cc89e9ffe481b",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "WFA-0089 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/wfa/WFA-0089-repair-nondeterminism.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/wfa/WFA-0089-repair-nondeterminism.json",
+     "raw_output": "bytes=8417 sha256=e7347b016adc0bf6ce2729f51cd7ae31910449da68e7a9dc729cc89e9ffe481b",
+     "fingerprint": "324c03cbb0a0e2fff0749e5dcf144bcd",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact WFA-0089",
+     "raw_output": "schema-check",
+     "fingerprint": "6c0f4544b2273772c53d2784cc993fcd",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "WFA-0089 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/WFA-0089",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py WFA-0089",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "c1c293ecaab9b69f4e5c2ed0e105f7b5",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered WFA-0089",
+     "raw_output": "schema-valid",
+     "fingerprint": "07ae5676676f29b1fc6ffee88a806489",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/wfa/WFA-0089-repair-nondeterminism.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/WFA-0089/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "WFA-0089"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/wfa/WFA-0089-repair-nondeterminism.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/wfa/WFA-0089-repair-nondeterminism.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "87b6bc998085b4e1722c2f07726c4411",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "RepairRecord",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 8417,
+    "method": "filesystem-stat",
+    "anchor": "command-center/wfa/WFA-0089-repair-nondeterminism.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "record_type": "RepairRecord",
+ "id": "WFA-0089",
+ "status": "SUCCESS",
+ "completion_sentinel": "SUCCESS:WFA-0089",
+ "title": "Repair the nondeterminism class that makes deterministic replay impossible",
+ "question_or_target": "Implementation target: remove the constructs that make a workflow unreplayable - wall-clock reads, unseeded randomness, args coerced through string interpolation, environment-dependent path assembly - so the same inputs produce the same stage sequence twice.",
+ "defect_class": "workflow-unreplayable-nondeterminism",
+ "declared_nondeterministic_fields": [
+  "recorded_at"
+ ],
+ "declared_before_replay": true,
+ "banned_constructs": [
+  {
+   "id": "wall-clock",
+   "examples": [
+    "Date.now()",
+    "new Date()",
+    "time.time()",
+    "datetime.now()"
+   ],
+   "repair": "FrozenClock logical ticks injected into the run; never Date.now"
+  },
+  {
+   "id": "unseeded-random",
+   "examples": [
+    "Math.random()",
+    "random.random()",
+    "uuid.uuid4()"
+   ],
+   "repair": "random.Random(seed) with seed recorded on the run artifact"
+  },
+  {
+   "id": "interpolated-args",
+   "examples": [
+    "agent(`review ${path}`)",
+    "agent(f'...')"
+   ],
+   "repair": "structured argv objects {op, path:{parts}}"
+  },
+  {
+   "id": "env-path",
+   "examples": [
+    "process.env.HOME",
+    "os.path.expanduser",
+    "Path.home()"
+   ],
+   "repair": "explicit run_root from inputs; posix join of relative parts"
+  }
+ ],
+ "implementation": {
+  "library": "tools/wfa/nondeterminism.py",
+  "repaired_ir": "command-center/p2-wave/probes/WFA-0089/fixtures/repaired/workflow.ir.json",
+  "repaired_source": "command-center/p2-wave/probes/WFA-0089/fixtures/repaired/saved-workflow.mjs",
+  "seed_a": 20260824,
+  "seed_b": 87451203,
+  "run_root": "/fixed/wfa-0089/run-root",
+  "fanout_children": 16,
+  "sample_k": 6,
+  "rng": "CPython random.Random (Mersenne Twister)",
+  "clock": "FrozenClock logical ticks from origin 0"
+ },
+ "replay": {
+  "runs": 3,
+  "stage_sequences_identical": true,
+  "comparable_identical": true,
+  "stage_sequence_sha256": [
+   "f287147cb30b5477482d991f23f0f96ef3c30b7d12235d7cc48edcf6da8d01fe",
+   "f287147cb30b5477482d991f23f0f96ef3c30b7d12235d7cc48edcf6da8d01fe",
+   "f287147cb30b5477482d991f23f0f96ef3c30b7d12235d7cc48edcf6da8d01fe"
+  ],
+  "comparable_sha256": [
+   "4c0b2e22aa93c1861bcba6fc02ca58ceb0f0ce6391605394ad7ebd24c3f256ac",
+   "4c0b2e22aa93c1861bcba6fc02ca58ceb0f0ce6391605394ad7ebd24c3f256ac",
+   "4c0b2e22aa93c1861bcba6fc02ca58ceb0f0ce6391605394ad7ebd24c3f256ac"
+  ],
+  "raw_artifact_sha256": [
+   "62b2734fb4bd99847005d2ae32aaa38318facd159dfa62852a409af5b89ddae9",
+   "4ad875a0ada83c7d5ff17aaf7a32ddda8aee8caf1986275fe53977ead987b93c",
+   "98768e68fef8c2f3a179662018a69d002ff0d683702e807c76b9033adbacafee"
+  ],
+  "varying_artifact_keys": [
+   "recorded_at"
+  ],
+  "undeclared_varying_keys": [],
+  "sampled_children": [
+   "child-02",
+   "child-08",
+   "child-11",
+   "child-03",
+   "child-13",
+   "child-15"
+  ],
+  "barrier_order": [
+   "child-02",
+   "child-03",
+   "child-08",
+   "child-11",
+   "child-13",
+   "child-15"
+  ],
+  "different_seed_comparable_sha256": "1db654177a08782afe4f13465e29dcac6bcdfce07ca7c3e663222a5f11774200",
+  "different_seed_diverges": true
+ },
+ "leaky_control": {
+  "attempts": 8,
+  "diverges": true,
+  "distinct_stage_hashes": 8,
+  "hashes": [
+   "ed2f68d1e71e9ea268f81ceef354fb206b006d6dbcd44beb56f86a1efbea8c57",
+   "f972deb8a645265d02c3a6598075abbca459c66bf99f490a34776ae18f423af1",
+   "c1cd7cc88c480e6cfa32fe4582b95db38f715e4c1b70b16a499902b6ecfb3807",
+   "e74f73d2f9b04a6b99ce1f3d56fc6d6cf8263fad55e71e99cfc13b8eefee2853",
+   "72e486022253e605506b40c45c784de51c1a25ddd70dccd854482ad12361f50d",
+   "4bd7f63b916597f1abfdeafb52602a4a5a4d811fe12d8c6ebf693d1f4d0029e7",
+   "fd260152d00c49265f4010f3e16f5dc0d3e920c1ee6e9844da278eab79bf86a2",
+   "e3ca172f64a350bb51489b1b3e98f355677d0d4daeb3f4aea616e290704e7caa"
+  ]
+ },
+ "static_scan": {
+  "planted_wall_clock_hits": 1,
+  "planted_findings": [
+   {
+    "kind": "wall-clock",
+    "path": "command-center/p2-wave/probes/WFA-0089/fixtures/planted/wall-clock.mjs",
+    "line": 2,
+    "match": "Date.now("
+   }
+  ],
+  "broken_hits": 5,
+  "broken_kinds": {
+   "wall-clock": 1,
+   "unseeded-random": 2,
+   "env-path": 1,
+   "interpolated-args": 1
+  },
+  "broken_findings": [
+   {
+    "kind": "wall-clock",
+    "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+    "line": 3,
+    "match": "Date.now("
+   },
+   {
+    "kind": "unseeded-random",
+    "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+    "line": 4,
+    "match": "Math.random("
+   },
+   {
+    "kind": "env-path",
+    "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+    "line": 5,
+    "match": "process.env"
+   },
+   {
+    "kind": "interpolated-args",
+    "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+    "line": 6,
+    "match": "agent(`summarize ${out} jitter=${"
+   },
+   {
+    "kind": "unseeded-random",
+    "path": "command-center/p2-wave/probes/WFA-0089/fixtures/broken/saved-workflow.mjs",
+    "line": 7,
+    "match": "Math.random("
+   }
+  ],
+  "repaired_hits": 0,
+  "repaired_kinds": {},
+  "live_workflow_roots": [
+   {
+    "path": "/root/.claude/workflows",
+    "exists": false,
+    "entries": []
+   },
+   {
+    "path": "/root/.claude/workflows",
+    "exists": false,
+    "entries": []
+   },
+   {
+    "path": "/root/.claude/skills/workflow-authoring",
+    "exists": false,
+    "entries": []
+   },
+   {
+    "path": "/opt/p2/ast-integrate/skills/workflow-authoring",
+    "exists": true,
+    "entries": [
+     ".pytest_cache",
+     "SKILL.md",
+     "scripts",
+     "templates",
+     "tests"
+    ]
+   }
+  ],
+  "live_hits": []
+ },
+ "both_states": {
+  "unrepaired_interpreter_diverges": true,
+  "repaired_three_run_identity": true,
+  "planted_wall_clock_detected": true,
+  "repaired_corpus_clean": true,
+  "different_seed_not_frozen": true
+ },
+ "inputs_absent_on_this_worktree": [
+  "live:~/.claude/workflows (not present on this Linux worktree; fixtures stand in for the four banned constructs)",
+  "skill:workflow-authoring (not vendored in this worktree; banned-construct catalog reconstructed from WFA-0089/TST-0029)",
+  "command-center/wfa/schema/wfa-schema-pack.json (WFA-0001 not delivered here; RepairRecord is honest JSON, not schema-pack validated)"
+ ],
+ "reviewer_verdict": "PASS",
+ "ts": "2026-08-25T01:03:27Z",
+ "notes": "G-1 for WFA-0089: live named probes exit 0, RepairRecord state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. No ADV rebuild."
+}

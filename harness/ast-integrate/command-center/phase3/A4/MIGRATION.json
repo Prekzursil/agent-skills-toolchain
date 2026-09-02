@@ -1,0 +1,594 @@
+{
+  "schema_version": 1,
+  "unit_id": "ARC-0028",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:ARC-0028",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json ARC-0028 question_or_target",
+  "min_bytes_threshold": 2048,
+  "artifacts": [
+    {
+      "path": "command-center/phase3/A4/MIGRATION.json",
+      "bytes": 24587,
+      "sha256": "314170e143033ae10a2cb0cd0ff6b27132e10fae014395622758cb9018accf50",
+      "exists": true,
+      "eol": "LF",
+      "role": "primary"
+    },
+    {
+      "path": "command-center/schema/migration-plan.schema.json",
+      "bytes": 1091,
+      "sha256": "42139a8cd8a91a399b0020a9b05056965bef52f8a877d19c0d79a830e03b45a5",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0028/scenario.py",
+      "bytes": 3219,
+      "sha256": "3320970ea4d88735cdfe8ae34c0efdf4e63db9ed1ef01c678549dc90c27ce747",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0028/curation.py",
+      "bytes": 20149,
+      "sha256": "8e12b34833f3a5e2bae6535a9e60c206c77ec9850ef29a0c712f1051af37973c",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0028/probe1_roundtrip.py",
+      "bytes": 5789,
+      "sha256": "fa42d365e1c145f1ad57420fde09585cdb0c223f2a632885ac44bf5611ef7fa2",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    },
+    {
+      "path": "command-center/p2-wave/probes/ARC-0028/probe2_rollback.py",
+      "bytes": 4341,
+      "sha256": "5a1734f9d9d7978d6fcbf8c6631290954e01db6b288e231623479016cc9a9acf",
+      "exists": true,
+      "eol": "LF",
+      "role": "supporting"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Export-import-export of the two-source curation set is byte-equal on canonical sha256 ebcaa71289b890643e56b0d1c4776d86f4c0fb172005441fba0cf2372ba7b2f6 and on the tuple set; drop-never-activate removes ['mcp:agentbridge', 'plugin:agentbridge'].",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0028/curation.py:diff_records",
+      "probes": [
+        {
+          "role": "source",
+          "method": "byte-compare",
+          "command": "records_digest(export_from_gateway(import_into_gateway(records)))",
+          "raw_output": "equal=True before=ebcaa71289b890643e56b0d1c4776d86f4c0fb172005441fba0cf2372ba7b2f6 after=ebcaa71289b890643e56b0d1c4776d86f4c0fb172005441fba0cf2372ba7b2f6 records=7",
+          "fingerprint": "canon-sha256-roundtrip",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "static-analysis",
+          "command": "record_tuples(before) == record_tuples(after)",
+          "raw_output": "tuple_equal=True digest_equal=True",
+          "fingerprint": "tuple-set-roundtrip",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "Gateway fail-to-start restores settings-file sha256 and the live process-name set; skip-settings restore fails the rehearsal.",
+      "verdict": "CONFIRMED",
+      "confidence": "almost-certain",
+      "anchor": "command-center/p2-wave/probes/ARC-0028/curation.py:rollback",
+      "probes": [
+        {
+          "role": "source",
+          "method": "file-read",
+          "command": "sha256(home/.claude/settings.json + .mcp.json + .claude.json) after rollback",
+          "raw_output": "pass=True settings=True process=True plugin=True",
+          "fingerprint": "settings-bytes-rollback",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "process-table",
+          "command": "sorted(live/processes.json names) vs freeze running_mcp",
+          "raw_output": "want=['filesystem', 'github'] got=['filesystem', 'github']",
+          "fingerprint": "process-set-rollback",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "T-ROUNDTRIP",
+      "name": "Round-trip set equality plus refuse-drop-disabled",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0028/probe1_roundtrip.py",
+      "result": "PASS",
+      "assertions": 7
+    },
+    {
+      "id": "T-ROLLBACK",
+      "name": "Gateway fail-to-start rollback rehearsal",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0028/probe2_rollback.py",
+      "result": "PASS",
+      "assertions": 3
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "NC-DROP-NEVER-ACTIVATE",
+      "kind": "mutation",
+      "description": "Importer that drops never-activate ids must fail set-equality; the faithful importer must stay silent on the good set.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "equal=False missing=['mcp:agentbridge', 'plugin:agentbridge']",
+      "good_state_output": "equal=True before=ebcaa71289b890643e56b0d1c4776d86f4c0fb172005441fba0cf2372ba7b2f6 after=ebcaa71289b890643e56b0d1c4776d86f4c0fb172005441fba0cf2372ba7b2f6 records=7"
+    },
+    {
+      "id": "NC-SKIP-SETTINGS-RESTORE",
+      "kind": "mutation",
+      "description": "Rollback that restores process JSON but skips settings bytes must fail; full rollback must keep plugin agentbridge disabled.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "pass=False settings_restored=False plugin_disabled=False",
+      "good_state_output": "pass=True settings=True process=True plugin=True"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "ARC-0028-probe1-roundtrip",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": false,
+    "vendor": "xai",
+    "notes": "Probe 1 re-exports in both directions (settings/live -> gateway -> records) and compares canonical sha256 against the tuple set. Probe 2 uses a mechanically different field (settings-file sha256 + process-name set) for fail-to-start rollback. Catalog scoring by a second human migration engineer remains independent of G-1 probe-green. SUCCESS:ARC-0028"
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/ARC-0028/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "ARC-0028"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "jsonschema Draft202012Validator + local RefResolver store",
+      "artifact_path": "command-center/phase3/A4/MIGRATION.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "schema-validate",
+        "command": "python3 command-center/p2-wave/probes/ARC-0028/emit_migration.py",
+        "raw_output": "local store; remote https://ast-integrate.invalid fetch refused",
+        "fingerprint": "offline-schema-validate",
+        "exit_code": 0
+      }
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-24T19:00:00Z",
+    "ended_at": "2026-08-25T00:56:33Z",
+    "duration_seconds": 1
+  },
+  "retry": {
+    "count": 1,
+    "policy": "re-measure once with a MECHANICALLY DIFFERENT probe (different shell, different data field); if the two readings disagree report BLOCKED with both numbers rather than picking one",
+    "attempts": [
+      {
+        "attempt": 1,
+        "error_fingerprint": "ref-resolution-remote-ast-integrate.invalid",
+        "outcome": "FAILED",
+        "started_at": "2026-08-25T00:49:00Z"
+      }
+    ],
+    "pivot_alternatives": [
+      "local RefResolver store over platform/schema on disk",
+      "receipt_core reshape with domain payload under report"
+    ]
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Owner live Windows ~/.claude estate was not read on this Linux worker.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Mount C:/Users/Prekzursil/.claude and re-run freeze_snapshot against live settings + process inventory."
+    },
+    {
+      "claim": "command-center/phase3/A4/DESIGN.json (ARC-0024) is absent on this tree.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Deliver ARC-0024 DESIGN.json and re-import against that index format."
+    }
+  ],
+  "produced_by": {
+    "vendor": "xai",
+    "model": "grok-4.6",
+    "role": "migration-engineer",
+    "execution_substrate": "linux-local"
+  },
+  "report": {
+    "kind": "migration-plan",
+    "observations": [
+      {
+        "name": "round-trip-set-equality",
+        "measured": true,
+        "method": "canonical-record-sha256 plus sorted tuples",
+        "anchor": "command-center/p2-wave/probes/ARC-0028/curation.py:diff_records"
+      },
+      {
+        "name": "records-checked",
+        "measured": 7,
+        "method": "fixture estate freeze_snapshot merge_records",
+        "anchor": "command-center/p2-wave/probes/ARC-0028/scenario.py"
+      },
+      {
+        "name": "drop-disabled-control-fails",
+        "measured": true,
+        "method": "import_into_gateway(drop_never_activate=True) set inequality",
+        "anchor": "command-center/p2-wave/probes/ARC-0028/probe1_roundtrip.py"
+      },
+      {
+        "name": "rollback-settings-and-process-set",
+        "measured": true,
+        "method": "settings sha256 AND process-name set after fail-to-start",
+        "anchor": "command-center/p2-wave/probes/ARC-0028/probe2_rollback.py"
+      },
+      {
+        "name": "live-windows-estate-present",
+        "measured": false,
+        "method": "Path.is_dir on /root/.claude and /home/ubuntu/.claude",
+        "anchor": "command-center/p2-wave/probes/ARC-0028/emit_migration.py"
+      }
+    ],
+    "control_ids": [
+      "NC-DROP-NEVER-ACTIVATE",
+      "NC-SKIP-SETTINGS-RESTORE"
+    ],
+    "architecture_id": "A4",
+    "title": "A4 gateway cut-over that imports hand-curated MCP/plugin enablement without destroying the exposed-versus-active split",
+    "question": "Design the cut-over from today's always-on inventory to gateway mediation WITHOUT losing the existing hand curation (the measured exposed-versus-active MCP split and the disabled-plugin state that the owner has declared load-bearing and must never be destroyed): specify how that state is imported, how it is verified after import, and what the rollback is if the gateway itself fails to start.",
+    "completion_sentinel": "SUCCESS:ARC-0028",
+    "source_layout": {
+      "roots": [
+        "command-center/p2-wave/probes/ARC-0028/scenario.py (B02-encoded fixture estate)",
+        "home/.mcp.json (declared MCP servers)",
+        "home/.claude.json (root inert disable + per-project effective disable)",
+        "home/.claude/settings.json (enabledPlugins map)",
+        "live/processes.json + live/tools.json (spawned MCP + reachable plugin skills)"
+      ],
+      "two_sources": {
+        "settings_file": "home/.mcp.json + home/.claude.json + home/.claude/settings.json captured as bytes before any mutation",
+        "live_inventory": "live/processes.json process-name set AND live/tools.json reachable skills, captured before any mutation"
+      },
+      "scope_trap": {
+        "root_disabledMcpServers_inert": true,
+        "effective_key": "projects[<cwd>].disabledMcpServers (per-project; root key is inert)",
+        "enabledPlugins_file": "home/.claude/settings.json (not home/.claude.json)"
+      }
+    },
+    "target_layout": {
+      "root": "command-center/p2-wave/probes/ARC-0028/gateway/",
+      "index_format": "a4-gateway-index/v1",
+      "load_order": [
+        "freeze snapshot of settings bytes + live process/tool inventory",
+        "merge two sources into canonical curation records (BLOCKED on contradiction)",
+        "import every record into the gateway index, including never-activate",
+        "start gateway; on fail-to-start restore freeze bytes and process set"
+      ],
+      "mapping": [
+        {
+          "from": "MCP declared+running (active)",
+          "to": "gateway entry mediation=indexed-active (resident until first deactivate)"
+        },
+        {
+          "from": "MCP declared+not-running (exposed-inactive)",
+          "to": "gateway entry mediation=indexed-inactive (index only, do not spawn)"
+        },
+        {
+          "from": "MCP/plugin effectively disabled (load-bearing)",
+          "to": "gateway entry mediation=never-activate (kept in index; drop forbidden)"
+        }
+      ]
+    },
+    "snapshot_procedure": {
+      "before_any_change": true,
+      "sources": [
+        {
+          "id": "signal-1-settings-files",
+          "reads": "declared MCP servers, per-project disabledMcpServers, enabledPlugins",
+          "command_or_method": "sha256 of LF-normalised home/.mcp.json + home/.claude.json + home/.claude/settings.json; then parse maps"
+        },
+        {
+          "id": "signal-2-live-inventory",
+          "reads": "spawned MCP process names and reachable plugin skills",
+          "command_or_method": "set of live/processes.json names plus live/tools.json plugin_skills_reachable (different field from file digest)"
+        }
+      ],
+      "merge_rule": "Union of declared MCP names and enabledPlugins keys. Root disabledMcpServers is recorded as inert and does not flip effective_enabled. Per-project disable and enabledPlugins=false are the effective disable. Exposed-inactive is effective_enabled AND NOT live_active and MUST be preserved, not collapsed.",
+      "disagreement_rule": "If settings say disabled but a process is running, or an enabled plugin is unreachable, or process-set and tool-server set disagree, report BLOCKED with both readings. Do not pick a winner. records_sha256 vs record_tuples must agree.",
+      "notes": "This Linux worktree has no owner ~/.claude live estate and no A4 DESIGN.json. The fixture encodes AUD-0015/0016 measured traps (root disable inert; enabledPlugins in settings.json; known-disabled agentbridge)."
+    },
+    "import_procedure": {
+      "steps": [
+        "Freeze two-source snapshot; refuse to proceed if merge is BLOCKED.",
+        "Map split=active -> indexed-active, exposed-inactive -> indexed-inactive, disabled -> never-activate.",
+        "Write every record into a4-gateway-index/v1, including never-activate ids.",
+        "Refuse any importer that drops never-activate (negative control must fail set-equality).",
+        "Diff re-export against the pre-change canonical set (id, split, effective_enabled, live_active)."
+      ],
+      "disabled_state_is_load_bearing": true,
+      "never_activate_kept_in_index": true,
+      "drop_disabled_forbidden": true,
+      "notes": "Missing-from-index is not equivalent to disabled. A dropped disable would re-enable on first select."
+    },
+    "verification_procedure": {
+      "round_trip_rule": "export(settings, live) -> import(gateway) -> export(gateway) must equal the original canonical set. Disabled plugin agentbridge and exposed-inactive MCP memory must survive.",
+      "diff_against_prechange_snapshot": true,
+      "signals": [
+        {
+          "id": "signal-1-canonical-sha256",
+          "reads": "sha256 of canonical JSON of curation records",
+          "command_or_method": "records_digest(export_from_gateway(index)) vs freeze records_sha256"
+        },
+        {
+          "id": "signal-2-tuple-set",
+          "reads": "sorted (id, kind, split, effective_enabled, live_active, never_destroy) tuples",
+          "command_or_method": "record_tuples before vs after; disagreement with sha256 is BLOCKED"
+        }
+      ],
+      "notes": "Probe 1 is the independent both-directions content-preservation check required before scoring."
+    },
+    "rollback": {
+      "trigger": "gateway process fails to start after index write (simulated-start-failure)",
+      "steps": [
+        "Keep freeze copies of settings bytes and live process/tool JSON taken before mutation.",
+        "On fail-to-start: restore those exact bytes; do not keep the partial gateway index live.",
+        "Re-check settings sha256 AND process-name set; disagreement is BLOCKED not a picked winner.",
+        "Skipping settings restore after a naive cut-over that enabled all plugins must fail (control)."
+      ],
+      "restore_command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0028/probe2_rollback.py",
+      "forbids": [
+        "dropping never-activate entries to make the gateway start clean",
+        "treating root disabledMcpServers as effective",
+        "rewriting enabledPlugins into ~/.claude.json",
+        "leaving a partial gateway index as the live inventory after fail-to-start"
+      ],
+      "restores_settings_bytes": true,
+      "restores_live_process_set": true
+    },
+    "sample": [
+      {
+        "id": "mcp:agentbridge",
+        "kind": "mcp",
+        "name": "agentbridge",
+        "split": "disabled",
+        "settings_declared": true,
+        "effective_enabled": false,
+        "live_active": false,
+        "never_destroy": true,
+        "decision": "INDEX-AS-NEVER-ACTIVATE",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": false,
+        "project_disabled": true,
+        "signal1_settings": {
+          "declared_in_mcp_json": false,
+          "declared_in_project": true,
+          "root_disabled_listed": false,
+          "project_disabled": true,
+          "effective_enabled": false
+        },
+        "signal2_live": {
+          "process_running": false,
+          "tools_present": false
+        },
+        "reason": "per-project disable is load-bearing"
+      },
+      {
+        "id": "mcp:filesystem",
+        "kind": "mcp",
+        "name": "filesystem",
+        "split": "active",
+        "settings_declared": true,
+        "effective_enabled": true,
+        "live_active": true,
+        "never_destroy": false,
+        "decision": "INDEX-AND-KEEP-RESIDENT-UNTIL-FIRST-DEACTIVATE",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": true,
+        "project_disabled": false,
+        "signal1_settings": {
+          "declared_in_mcp_json": true,
+          "declared_in_project": false,
+          "root_disabled_listed": true,
+          "project_disabled": false,
+          "effective_enabled": true
+        },
+        "signal2_live": {
+          "process_running": true,
+          "tools_present": true
+        },
+        "reason": "settings declare enabled and live inventory confirms active"
+      },
+      {
+        "id": "mcp:github",
+        "kind": "mcp",
+        "name": "github",
+        "split": "active",
+        "settings_declared": true,
+        "effective_enabled": true,
+        "live_active": true,
+        "never_destroy": false,
+        "decision": "INDEX-AND-KEEP-RESIDENT-UNTIL-FIRST-DEACTIVATE",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": false,
+        "project_disabled": false,
+        "signal1_settings": {
+          "declared_in_mcp_json": true,
+          "declared_in_project": false,
+          "root_disabled_listed": false,
+          "project_disabled": false,
+          "effective_enabled": true
+        },
+        "signal2_live": {
+          "process_running": true,
+          "tools_present": true
+        },
+        "reason": "settings declare enabled and live inventory confirms active"
+      },
+      {
+        "id": "mcp:memory",
+        "kind": "mcp",
+        "name": "memory",
+        "split": "exposed-inactive",
+        "settings_declared": true,
+        "effective_enabled": true,
+        "live_active": false,
+        "never_destroy": false,
+        "decision": "INDEX-DO-NOT-SPAWN",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": false,
+        "project_disabled": false,
+        "signal1_settings": {
+          "declared_in_mcp_json": true,
+          "declared_in_project": false,
+          "root_disabled_listed": false,
+          "project_disabled": false,
+          "effective_enabled": true
+        },
+        "signal2_live": {
+          "process_running": false,
+          "tools_present": false
+        },
+        "reason": "declared in settings but no live process: preserve exposed-inactive split"
+      },
+      {
+        "id": "plugin:agentbridge",
+        "kind": "plugin",
+        "name": "agentbridge",
+        "split": "disabled",
+        "settings_declared": true,
+        "effective_enabled": false,
+        "live_active": false,
+        "never_destroy": true,
+        "decision": "INDEX-AS-NEVER-ACTIVATE",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": false,
+        "project_disabled": true,
+        "signal1_settings": {
+          "enabled_plugins_value": false,
+          "file": "home/.claude/settings.json"
+        },
+        "signal2_live": {
+          "skills_reachable": false
+        },
+        "reason": "per-project disable is load-bearing"
+      },
+      {
+        "id": "plugin:council",
+        "kind": "plugin",
+        "name": "council",
+        "split": "active",
+        "settings_declared": true,
+        "effective_enabled": true,
+        "live_active": true,
+        "never_destroy": false,
+        "decision": "INDEX-AND-KEEP-RESIDENT-UNTIL-FIRST-DEACTIVATE",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": false,
+        "project_disabled": false,
+        "signal1_settings": {
+          "enabled_plugins_value": true,
+          "file": "home/.claude/settings.json"
+        },
+        "signal2_live": {
+          "skills_reachable": true
+        },
+        "reason": "settings declare enabled and live inventory confirms active"
+      },
+      {
+        "id": "plugin:harness",
+        "kind": "plugin",
+        "name": "harness",
+        "split": "active",
+        "settings_declared": true,
+        "effective_enabled": true,
+        "live_active": true,
+        "never_destroy": false,
+        "decision": "INDEX-AND-KEEP-RESIDENT-UNTIL-FIRST-DEACTIVATE",
+        "unique_identity_preserved": true,
+        "root_disabled_inert": false,
+        "project_disabled": false,
+        "signal1_settings": {
+          "enabled_plugins_value": true,
+          "file": "home/.claude/settings.json"
+        },
+        "signal2_live": {
+          "skills_reachable": true
+        },
+        "reason": "settings declare enabled and live inventory confirms active"
+      }
+    ],
+    "tests": {
+      "round_trip_fidelity": {
+        "pass": true,
+        "records_checked": 7,
+        "set_equal": true,
+        "disabled_plugin_preserved": true,
+        "exposed_inactive_preserved": true,
+        "drop_disabled_control_fails": true,
+        "records_failed": []
+      },
+      "rollback_rehearsal": {
+        "pass": true,
+        "gateway_failed_to_start": true,
+        "settings_bytes_restored": true,
+        "live_process_set_restored": true,
+        "disabled_plugin_still_disabled": true,
+        "skip_settings_restore_control_fails": true,
+        "restored_path": "home/.claude/settings.json + live/processes.json"
+      }
+    },
+    "scope": {
+      "live_windows_estate_present": false,
+      "a4_design_present": false,
+      "baseline_snapshot_present": true,
+      "proof_surface": "executable two-source snapshot, gateway import/export set-equality, drop-disabled negative control, and fail-to-start rollback rehearsal on a B02-encoded fixture estate",
+      "does_not_claim": [
+        "cloud_ok=true is delivery",
+        "global unit_manifest.py --write was run",
+        "C:/Users/Prekzursil or ~/.claude live estate was read on this host",
+        "command-center/phase3/A4/DESIGN.json (ARC-0024) was consumed",
+        "command-center/BASELINE-SNAPSHOT.json was present and hashed"
+      ]
+    },
+    "named_probes": [
+      {
+        "id": "probe1",
+        "role": "round-trip-fidelity",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0028/probe1_roundtrip.py"
+      },
+      {
+        "id": "probe2",
+        "role": "rollback-rehearsal",
+        "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/ARC-0028/probe2_rollback.py"
+      }
+    ],
+    "notes": "records_sha256=ebcaa71289b890643e56b0d1c4776d86f4c0fb172005441fba0cf2372ba7b2f6 record_count=7 invariants={'filesystem_root_disable_inert': True, 'memory_exposed_inactive': True, 'mcp_agentbridge_disabled': True, 'plugin_agentbridge_disabled': True, 'filesystem_not_disabled_by_root': True} drop_missing=['mcp:agentbridge', 'plugin:agentbridge']"
+  },
+  "extensions": {
+    "cloud_ok": false,
+    "completion_sentinel": "SUCCESS:ARC-0028",
+    "invariants": {
+      "filesystem_root_disable_inert": true,
+      "memory_exposed_inactive": true,
+      "mcp_agentbridge_disabled": true,
+      "plugin_agentbridge_disabled": true,
+      "filesystem_not_disabled_by_root": true
+    }
+  }
+}

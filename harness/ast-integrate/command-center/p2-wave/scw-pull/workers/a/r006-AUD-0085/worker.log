@@ -1,0 +1,20 @@
+I'll start from the existing AUD-0085 probe tree, read any SUBAGENT-RETURN, and resume rather than rebuild.Existing probe tree is in place. Next I’ll read the catalog row, measure script, and current artifacts so I can resume rather than rebuild.The prior return already claims DELIVERED. I’ll re-run the live measure and inspect probes so that claim is checked, not trusted.The measure is still running — likely the full-repo census. I’ll inspect the probe entry points and wait for it to finish.Measure already printed `SUCCESS:delivered`. I’ll check whether the receipt is still honest after the live re-run, then refresh the two required artifacts if needed.Live probe counts drifted from the packed receipt. I’ll re-pack from the current census and check the G-1 / `artifact_delivered` contract so SUCCESS stays honest.I’ll re-pack the receipt from the live probe files so the SUCCESS artifact matches the census we just measured.Measure is green, but the receipt is a few files behind the live census. I’ll re-pack from the latest probe output, then write the return files.Receipt and per-unit manifest are packed from the live census. Next I’ll write `SUBAGENT-RETURN.json` and run the delivery measure.**SUCCESS:delivered AUD-0085** `predicate=delivered state=SUCCESS probes=2 raws=8 notes=control_check.py:0,encoding_census.py:0`
+
+Resumed the existing probe tree (did not scrap it). Cloud-ok `BLOCKED` is not the delivery. Named probes were re-run live; both exited 0. The catalog receipt was re-packed from that census so it is `SUCCESS`, not a hand-flip.
+
+| Gate | Result |
+|---|---|
+| `ready_units.artifact_delivered` | `(True, "delivered")` |
+| Schema | 0 errors; contract discriminates |
+| Named probes | `encoding_census.py` exit 0, `control_check.py` exit 0 |
+| Controls | fire on double-decoded fixture; silent on correct non-ASCII and U+00D7 U+00A5; any-non-ASCII mutant goes red |
+| Per-unit manifest | `command-center/p2-wave/probes/AUD-0085/UNIT-ARTIFACT-MANIFEST.json` |
+| Global `unit_manifest.py --write` | not invoked |
+| Git | not mutated |
+
+Live census packed into `command-center/audit/AUD-0085-encoding-bom-mojibake-census.json`:
+
+- decode-attempted **30499**, invalid UTF-8 **227** (text-scope **2**), BOM **11**, read errors **3**
+- parse-first mojibake **8**, all path-specific strict consumers, extension-only **0**
+- plugin manifests **424**, anomalies **0**
+- receipt **50511** bytes, sha256 `4f0e843ae8d2809f755183e8ab3585e4b5d337757c98b5218605b63a9058d01a`

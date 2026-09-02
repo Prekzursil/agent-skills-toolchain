@@ -1,0 +1,376 @@
+{
+ "unit_id": "CNF-0013",
+ "schema_version": 1,
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:CNF-0013",
+ "evidence": [
+  {
+   "claim": "CNF-0013 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/confirmation/CNF-0013-discrepancy-router.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/confirmation/CNF-0013-discrepancy-router.json",
+     "raw_output": "bytes=8838 sha256=96c1b82b491b5dafa4f88fdee8d065ba3f58c4134796e3970fddc37b8c8f7ed7",
+     "fingerprint": "d60c62c016c450806dce66ca8ca9b3a1",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact CNF-0013",
+     "raw_output": "schema-check",
+     "fingerprint": "dc3a4fecbb3e972880ce838d81559d02",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "CNF-0013 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/CNF-0013",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py CNF-0013",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "fa1f9115e074e03fec1aed67630fadde",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered CNF-0013",
+     "raw_output": "schema-valid",
+     "fingerprint": "8ab96e45e93c89431981b7172914ea3f",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/confirmation/CNF-0013-discrepancy-router.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "min_bytes_threshold": 2048,
+ "extensions": {
+  "legacy_root": {
+   "discrepancy_id": "DSC-CNF-0013-silent-closure",
+   "claim_id": "CNF-0013",
+   "completion_sentinel": "SUCCESS:CNF-0013 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the null-disposition close was refused and the fully dispositioned close succeeded in the same run. Any other terminal state is FAILED:CNF-0013 <classification> with the diagnostic tail attached.",
+   "title": "Discrepancy triage router that cannot close a discrepancy without a disposition",
+   "question": "Implementation target: route every recorded discrepancy (spec 11039) into exactly one disposition - implementation-defect, confirmation-defect, specification-ambiguity, environment-difference, or accepted-residual - and open a severity-tagged defect for the first two. Question: can any discrepancy currently reach a closed state without a disposition, and does the router block that?",
+   "answer": "Yes, before the gate: naive_close() sets status=closed and leaves disposition null, so a discrepancy can reach a closed state without a disposition (corpus silent-closed count=0, plus the planted naive_close control). After the gate is armed: no. close() refuses a null/blank disposition, persist() refuses a silent close, accepted-residual without a named settling experiment is refused, and a fully dispositioned close with a second confirmer succeeds in the same run. implementation-defect and confirmation-defect each open a severity-tagged defect. The implementer may contest in writing and cannot close; the confirmation author cannot close either.",
+   "verdict": "CONFIRMED",
+   "status": "closed",
+   "defect": {
+    "id": "DEF-DSC-CNF-0013-silent-closure",
+    "severity": "P1",
+    "kind": "implementation-defect",
+    "title": "A discrepancy could reach status=closed with disposition=null via naive JSON mutation; the router now refuses that close."
+   },
+   "first_observation": {
+    "probe_fingerprint": "55c29f4076829b0d44e960f7dff8a738af17f577ef00b8db275ed02e5e8953a0",
+    "output": "naive_close set status=closed with disposition=null",
+    "note": "Pre-gate JSON mutation: a discrepancy reached closed without a disposition."
+   },
+   "later_observation": {
+    "probe_fingerprint": "8d7ae55a9a17263d525e676789c29c041786e53af5f545c2a36d9ae9d977988a",
+    "output": "close(disposition=None) raised REFUSED:null-disposition; fully dispositioned close succeeded",
+    "note": "Armed router: silent close refused and a routed close succeeded in the same run."
+   },
+   "confirmer": {
+    "id": "cnf-0013-confirmer",
+    "role": "confirmation-author",
+    "vendor": "this-unit"
+   },
+   "implementer": {
+    "id": "cnf-0013-implementer",
+    "role": "original-implementer"
+   },
+   "closer": {
+    "id": "cnf-0013-second-confirmer",
+    "role": "second-confirmer"
+   },
+   "source_probe": {
+    "id": "probe1-null-disposition",
+    "fingerprint": "55c29f4076829b0d44e960f7dff8a738af17f577ef00b8db275ed02e5e8953a0",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe1_null_disposition.py"
+   },
+   "verifier_probe": {
+    "id": "probe2-full-close",
+    "fingerprint": "8d7ae55a9a17263d525e676789c29c041786e53af5f545c2a36d9ae9d977988a",
+    "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe2_full_close.py"
+   },
+   "verbatim_probe_output": "{\"accepted_residual_without_experiment_refused\": true, \"confirmation_defect_opened\": true, \"fully_dispositioned_close_succeeded\": true, \"implementation_defect_opened\": true, \"null_disposition_refused\": true}",
+   "residual": "command-center/RISK-REGISTER.md is absent on this worktree, so defect severity uses the closed P0-P3 set rather than a cited rubric clause. _USER-PROMPTS.md:11039 is also absent; the five-disposition set is taken from the CNF-0013 catalog entry. CNF-0001 has not landed confirmation-receipt.schema.json; this unit authored discrepancy-record.schema.json so the router artifact can parse against its declared output_schema. Live confirmation/receipts corpus silent-closed count is 0 of 0 scanned matching records (empty-set reported explicitly, not read as a pass of the corpus). The measured hole is the missing close gate, demonstrated by naive_close and closed by arming tools/command-center/discrepancy_router.py.",
+   "can_reach_closed_without_disposition_before_gate": true,
+   "router_blocks_silent_close": true,
+   "null_disposition_close_refused": true,
+   "fully_dispositioned_close_succeeded": true,
+   "accepted_residual_requires_named_settling_experiment": true,
+   "closed_without_disposition_count_before": 1,
+   "closed_without_disposition_count_after": 0,
+   "corpus_silent_closed": [],
+   "same_run_controls": {
+    "pass": true,
+    "naive_close_silent": true,
+    "null_disposition_refused": true,
+    "empty_disposition_refused": true,
+    "accepted_residual_without_experiment_refused": true,
+    "implementer_close_refused": true,
+    "confirmation_author_close_refused": true,
+    "contest_did_not_close": true,
+    "fully_dispositioned_close_succeeded": true,
+    "implementation_defect_opened": true,
+    "confirmation_defect_opened": true,
+    "accepted_residual_with_experiment_succeeded": true,
+    "persist_silent_close_refused": true,
+    "closed_without_disposition_after_ledger": 0,
+    "closed_record_ids": [
+     "DSC-CNF-0013-fully-dispositioned",
+     "DSC-CNF-0013-impl-defect",
+     "DSC-CNF-0013-cnf-defect",
+     "DSC-CNF-0013-accepted-residual"
+    ]
+   },
+   "router": {
+    "path": "tools/command-center/discrepancy_router.py",
+    "gate_snippet": "raise CloseRefused(NULL_DISPOSITION_REFUSAL)",
+    "file_line": "tools/command-center/discrepancy_router.py:41",
+    "close_function": "tools/command-center/discrepancy_router.py:212",
+    "naive_close_function": "tools/command-center/discrepancy_router.py:174",
+    "persist_function": "tools/command-center/discrepancy_router.py:281",
+    "null_disposition_constant": "tools/command-center/discrepancy_router.py:29",
+    "dispositions": [
+     "implementation-defect",
+     "confirmation-defect",
+     "specification-ambiguity",
+     "environment-difference",
+     "accepted-residual"
+    ]
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "null-disposition-refuse",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe1_null_disposition.py"
+    },
+    {
+     "id": "probe2",
+     "role": "fully-dispositioned-close",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe2_full_close.py"
+    }
+   ],
+   "cloud_ok": false
+  }
+ },
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CNF-0013",
+ "artifacts": [
+  {
+   "path": "command-center/confirmation/CNF-0013-discrepancy-router.json",
+   "bytes": 8838,
+   "sha256": "96c1b82b491b5dafa4f88fdee8d065ba3f58c4134796e3970fddc37b8c8f7ed7",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/CNF-0013/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "CNF-0013"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/confirmation/CNF-0013-discrepancy-router.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/confirmation/CNF-0013-discrepancy-router.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "cddcb355614cbfa8dc7642704ee9b6c0",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "discrepancy-record",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 8838,
+    "method": "filesystem-stat",
+    "anchor": "command-center/confirmation/CNF-0013-discrepancy-router.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "discrepancy_id": "DSC-CNF-0013-silent-closure",
+ "claim_id": "CNF-0013",
+ "completion_sentinel": "SUCCESS:CNF-0013 emitted only when the artifact at output_path exists, is non-empty, parses against output_schema, and the null-disposition close was refused and the fully dispositioned close succeeded in the same run. Any other terminal state is FAILED:CNF-0013 <classification> with the diagnostic tail attached.",
+ "title": "Discrepancy triage router that cannot close a discrepancy without a disposition",
+ "question": "Implementation target: route every recorded discrepancy (spec 11039) into exactly one disposition - implementation-defect, confirmation-defect, specification-ambiguity, environment-difference, or accepted-residual - and open a severity-tagged defect for the first two. Question: can any discrepancy currently reach a closed state without a disposition, and does the router block that?",
+ "answer": "Yes, before the gate: naive_close() sets status=closed and leaves disposition null, so a discrepancy can reach a closed state without a disposition (corpus silent-closed count=0, plus the planted naive_close control). After the gate is armed: no. close() refuses a null/blank disposition, persist() refuses a silent close, accepted-residual without a named settling experiment is refused, and a fully dispositioned close with a second confirmer succeeds in the same run. implementation-defect and confirmation-defect each open a severity-tagged defect. The implementer may contest in writing and cannot close; the confirmation author cannot close either.",
+ "verdict": "CONFIRMED",
+ "status": "closed",
+ "defect": {
+  "id": "DEF-DSC-CNF-0013-silent-closure",
+  "severity": "P1",
+  "kind": "implementation-defect",
+  "title": "A discrepancy could reach status=closed with disposition=null via naive JSON mutation; the router now refuses that close."
+ },
+ "first_observation": {
+  "probe_fingerprint": "55c29f4076829b0d44e960f7dff8a738af17f577ef00b8db275ed02e5e8953a0",
+  "output": "naive_close set status=closed with disposition=null",
+  "note": "Pre-gate JSON mutation: a discrepancy reached closed without a disposition."
+ },
+ "later_observation": {
+  "probe_fingerprint": "8d7ae55a9a17263d525e676789c29c041786e53af5f545c2a36d9ae9d977988a",
+  "output": "close(disposition=None) raised REFUSED:null-disposition; fully dispositioned close succeeded",
+  "note": "Armed router: silent close refused and a routed close succeeded in the same run."
+ },
+ "confirmer": {
+  "id": "cnf-0013-confirmer",
+  "role": "confirmation-author",
+  "vendor": "this-unit"
+ },
+ "implementer": {
+  "id": "cnf-0013-implementer",
+  "role": "original-implementer"
+ },
+ "closer": {
+  "id": "cnf-0013-second-confirmer",
+  "role": "second-confirmer"
+ },
+ "source_probe": {
+  "id": "probe1-null-disposition",
+  "fingerprint": "55c29f4076829b0d44e960f7dff8a738af17f577ef00b8db275ed02e5e8953a0",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe1_null_disposition.py"
+ },
+ "verifier_probe": {
+  "id": "probe2-full-close",
+  "fingerprint": "8d7ae55a9a17263d525e676789c29c041786e53af5f545c2a36d9ae9d977988a",
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe2_full_close.py"
+ },
+ "verbatim_probe_output": "{\"accepted_residual_without_experiment_refused\": true, \"confirmation_defect_opened\": true, \"fully_dispositioned_close_succeeded\": true, \"implementation_defect_opened\": true, \"null_disposition_refused\": true}",
+ "residual": "command-center/RISK-REGISTER.md is absent on this worktree, so defect severity uses the closed P0-P3 set rather than a cited rubric clause. _USER-PROMPTS.md:11039 is also absent; the five-disposition set is taken from the CNF-0013 catalog entry. CNF-0001 has not landed confirmation-receipt.schema.json; this unit authored discrepancy-record.schema.json so the router artifact can parse against its declared output_schema. Live confirmation/receipts corpus silent-closed count is 0 of 0 scanned matching records (empty-set reported explicitly, not read as a pass of the corpus). The measured hole is the missing close gate, demonstrated by naive_close and closed by arming tools/command-center/discrepancy_router.py.",
+ "can_reach_closed_without_disposition_before_gate": true,
+ "router_blocks_silent_close": true,
+ "null_disposition_close_refused": true,
+ "fully_dispositioned_close_succeeded": true,
+ "accepted_residual_requires_named_settling_experiment": true,
+ "closed_without_disposition_count_before": 1,
+ "closed_without_disposition_count_after": 0,
+ "corpus_silent_closed": [],
+ "same_run_controls": {
+  "pass": true,
+  "naive_close_silent": true,
+  "null_disposition_refused": true,
+  "empty_disposition_refused": true,
+  "accepted_residual_without_experiment_refused": true,
+  "implementer_close_refused": true,
+  "confirmation_author_close_refused": true,
+  "contest_did_not_close": true,
+  "fully_dispositioned_close_succeeded": true,
+  "implementation_defect_opened": true,
+  "confirmation_defect_opened": true,
+  "accepted_residual_with_experiment_succeeded": true,
+  "persist_silent_close_refused": true,
+  "closed_without_disposition_after_ledger": 0,
+  "closed_record_ids": [
+   "DSC-CNF-0013-fully-dispositioned",
+   "DSC-CNF-0013-impl-defect",
+   "DSC-CNF-0013-cnf-defect",
+   "DSC-CNF-0013-accepted-residual"
+  ]
+ },
+ "router": {
+  "path": "tools/command-center/discrepancy_router.py",
+  "gate_snippet": "raise CloseRefused(NULL_DISPOSITION_REFUSAL)",
+  "file_line": "tools/command-center/discrepancy_router.py:41",
+  "close_function": "tools/command-center/discrepancy_router.py:212",
+  "naive_close_function": "tools/command-center/discrepancy_router.py:174",
+  "persist_function": "tools/command-center/discrepancy_router.py:281",
+  "null_disposition_constant": "tools/command-center/discrepancy_router.py:29",
+  "dispositions": [
+   "implementation-defect",
+   "confirmation-defect",
+   "specification-ambiguity",
+   "environment-difference",
+   "accepted-residual"
+  ]
+ },
+ "named_probes": [
+  {
+   "id": "probe1",
+   "role": "null-disposition-refuse",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe1_null_disposition.py"
+  },
+  {
+   "id": "probe2",
+   "role": "fully-dispositioned-close",
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/CNF-0013/probe2_full_close.py"
+  }
+ ],
+ "cloud_ok": false
+}

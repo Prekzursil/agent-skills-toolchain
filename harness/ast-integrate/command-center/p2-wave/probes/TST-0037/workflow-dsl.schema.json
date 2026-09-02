@@ -1,0 +1,85 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/TST-0037/workflow-dsl.schema.json",
+  "title": "TST-0037 workflow DSL contract (suite written before broad implementation)",
+  "type": "object",
+  "required": ["spec_version", "entry", "nodes"],
+  "properties": {
+    "spec_version": { "type": ["integer", "string"] },
+    "id": { "type": "string" },
+    "entry": { "type": "string", "minLength": 1 },
+    "nodes": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/definitions/node" }
+    },
+    "edges": { "type": "array" },
+    "workflows": { "type": "object" }
+  },
+  "definitions": {
+    "node": {
+      "type": "object",
+      "required": ["id", "type"],
+      "properties": {
+        "id": { "type": "string", "minLength": 1 },
+        "type": {
+          "type": "string",
+          "enum": [
+            "unit",
+            "fanout",
+            "fan-out",
+            "barrier",
+            "loop-with-convergence",
+            "human-checkpoint",
+            "subworkflow",
+            "retry",
+            "resume",
+            "pipeline",
+            "repair-loop"
+          ]
+        }
+      }
+    },
+    "fan-out": {
+      "description": "schema-rule fanout-empty: members minItems 1",
+      "type": "object",
+      "required": ["id", "type", "members"],
+      "properties": {
+        "members": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "barrier": {
+      "description": "schema-rule barrier-empty-awaits: awaits minItems 1",
+      "type": "object",
+      "required": ["id", "type", "awaits"],
+      "properties": {
+        "awaits": { "type": "array", "minItems": 1, "items": { "type": "string", "minLength": 1 } }
+      }
+    },
+    "loop-with-convergence": {
+      "description": "schema-rule loop-unbounded: convergence_expr or max_iterations required (enforced semantically)",
+      "type": "object",
+      "required": ["id", "type", "body"]
+    },
+    "human-checkpoint": {
+      "description": "schema-rule checkpoint-missing-prompt",
+      "type": "object",
+      "required": ["id", "type", "prompt_ref"]
+    },
+    "subworkflow": {
+      "description": "schema-rule subworkflow-cycle",
+      "type": "object",
+      "required": ["id", "type", "workflow_ref", "id_namespace"]
+    },
+    "retry": {
+      "description": "schema-rule retry-unbounded: max_attempts >= 1",
+      "type": "object",
+      "required": ["id", "type", "target", "max_attempts"]
+    },
+    "resume": {
+      "description": "schema-rule resume-missing-token",
+      "type": "object",
+      "required": ["id", "type", "from_token"]
+    }
+  }
+}

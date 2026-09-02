@@ -1,0 +1,276 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0102",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0102",
+  "spec_anchor": "_USER-PROMPTS.md:10861 (search, categories, tags, collections)",
+  "min_bytes_threshold": 128,
+  "artifacts": [
+    {
+      "path": "tools/marketplace/search.py",
+      "bytes": 9185,
+      "sha256": "18c843374f30f64e84e0a8c8267c8e4838e0cc9d2d654d6d5fa8bfaf47676e23",
+      "exists": true,
+      "role": "primary",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/marketplace/corpus.py",
+      "bytes": 5654,
+      "sha256": "f6791305c616153b572c08dca3e595617419487808f7b6bd0a7cdc583ed6ddd4",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/marketplace/fixtures/registry_corpus.json",
+      "bytes": 2003,
+      "sha256": "df842f59bcb6b832b8b4fae6037de351af7cc51f017d99391c5f5d4a541daf90",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/marketplace/tests/test_search_determinism.py",
+      "bytes": 2194,
+      "sha256": "3387587952a1091c0161a631837a8ec19ee37049420a16d9f735aa8d84ae49a6",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/marketplace/tests/test_search_recall.py",
+      "bytes": 3716,
+      "sha256": "2ffcc7e59fdfbaeb15cedde4e53df73b85d076966740307c9731e79adad1fa96",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0102/probe1_repeat_shuffle.py",
+      "bytes": 2418,
+      "sha256": "16ef9b47e18621306024de61af39ecdeb68e4e161c7337be47eb1d549f88a5df",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0102/probe2_recall_empty.py",
+      "bytes": 2725,
+      "sha256": "177b807774f6c0ded4014143416591853db884333ccdb0eb47463d513d09b54a",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Query 'quuxzorch' run 50 times on one index and 50 rebuilds from the original plugin list yields one distinct ordering; alpha-tie and beta-tie are a true score tie broken by stable_key.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/tests/test_search_determinism.py:test_repeat_and_shuffle_invariance",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_determinism.py",
+          "raw_output": "ordering=['alpha-tie', 'beta-tie'] tie_equal=True distinct=1",
+          "fingerprint": "31161c0e1e9e2db95dbc123a9f9e5ad7",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_determinism.py",
+          "raw_output": "16 shuffled rebuilds plus reversed insertion matched baseline ordering",
+          "fingerprint": "31161c0e1e9e2db95dbc123a9f9e5ad7",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "The same ordering is recovered after 16 shuffled insertion orders and after reversing the plugins[] array, so ranking is independent of insertion order.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/search.py:SearchIndex.__init__",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_determinism.py",
+          "raw_output": "ordering=['alpha-tie', 'beta-tie'] tie_equal=True distinct=1",
+          "fingerprint": "31161c0e1e9e2db95dbc123a9f9e5ad7",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_determinism.py",
+          "raw_output": "16 shuffled rebuilds plus reversed insertion matched baseline ordering",
+          "fingerprint": "31161c0e1e9e2db95dbc123a9f9e5ad7",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "canonical-hello is findable by package name and by skill name hello-operator; obscure-bundle is findable only via skills[] (binary-diff-oracle); council-pack is findable via skills/skill.council/SKILL.md.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/tests/test_search_recall.py:test_known_package_is_findable_by_name_and_by_skill",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+          "raw_output": "name=canonical-hello skill=['canonical-hello', 'sigma-notes'] skill_only=obscure-bundle council=['council-pack']",
+          "fingerprint": "d21d6fe36d0a5ac1bcdd15bf3944dd24",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+          "raw_output": "empty.kind=empty missing.kind=index_error distinct=True",
+          "fingerprint": "d21d6fe36d0a5ac1bcdd15bf3944dd24",
+          "exit_code": 0
+        }
+      ]
+    },
+    {
+      "claim": "A query with no matches returns kind=empty with ok=true and no error; a missing marketplace.json returns kind=index_error with ok=false. The two outcomes are distinct. Popularity fields do not move ranking. POPULARITY_TERM is 0.0. Per-term contributions reconstruct the score.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/marketplace/tests/test_search_recall.py:test_empty_result_distinct_from_index_error",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+          "raw_output": "name=canonical-hello skill=['canonical-hello', 'sigma-notes'] skill_only=obscure-bundle council=['council-pack']",
+          "fingerprint": "d21d6fe36d0a5ac1bcdd15bf3944dd24",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+          "raw_output": "empty.kind=empty missing.kind=index_error distinct=True",
+          "fingerprint": "d21d6fe36d0a5ac1bcdd15bf3944dd24",
+          "exit_code": 0
+        }
+      ]
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T00:58:30Z",
+    "ended_at": "2026-08-25T00:58:30Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "tests": [
+    {
+      "id": "test_repeat_and_shuffle_invariance",
+      "command": "python3 -B tools/marketplace/tests/test_search_determinism.py",
+      "result": "PASS"
+    },
+    {
+      "id": "test_known_package_is_findable_by_name_and_by_skill",
+      "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+      "result": "PASS"
+    },
+    {
+      "id": "negative_control_empty_vs_index_error",
+      "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+      "result": "PASS"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "empty-vs-index-error",
+      "kind": "known-broken-fixture",
+      "description": "No-match query is kind=empty; missing registry file is kind=index_error.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": {
+        "kind": "index_error",
+        "ok": false,
+        "error": "missing:/opt/p2/ast-integrate/tools/marketplace/fixtures/no-such-marketplace.json",
+        "hit_count": 0,
+        "keys": [],
+        "hits": []
+      },
+      "good_state_output": {
+        "kind": "empty",
+        "ok": true,
+        "error": null,
+        "hit_count": 0,
+        "keys": [],
+        "hits": []
+      }
+    },
+    {
+      "id": "popularity-does-not-rank",
+      "kind": "gaming-control",
+      "description": "Inflating downloads/stars on popular-decoy does not change quuxzorch order.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "mutated popularity fields; ordering unchanged",
+      "good_state_output": [
+        "alpha-tie",
+        "beta-tie"
+      ]
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0102-probe2-skills-coverage",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Probe 2 is mechanically different from probe 1 (recall and result-kind, not repeat/shuffle). It confirms skills[] is indexed: obscure-bundle is returned for binary-diff-oracle although that token is absent from name and description; council-pack is returned for council via SKILL.md parent name. Popularity is excluded. Empty is not an index error."
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0102/UNIT-ARTIFACT-MANIFEST.json"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/_measure_one_delivered.py",
+      "artifact_path": "command-center/receipts/IMP-0102.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "verifier",
+        "method": "command",
+        "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0102",
+        "raw_output": "G-1 measure re-runs named probes after this receipt is on disk",
+        "fingerprint": "42df08ece9e8a5b5f9c49b316df7e678",
+        "exit_code": 0
+      }
+    },
+    {
+      "consumer": "tools/marketplace/search.py:SearchIndex.search",
+      "artifact_path": "tools/marketplace/fixtures/registry_corpus.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0,
+      "probe": {
+        "role": "source",
+        "method": "command",
+        "command": "python3 -B tools/marketplace/tests/test_search_recall.py",
+        "raw_output": "name=canonical-hello skill=['canonical-hello', 'sigma-notes'] skill_only=obscure-bundle council=['council-pack']",
+        "fingerprint": "d21d6fe36d0a5ac1bcdd15bf3944dd24",
+        "exit_code": 0
+      }
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": ".claude-plugin/marketplace.json is absent on this sparse worktree. Probes index tools/marketplace/fixtures/registry_corpus.json, which uses the same plugins[].skills[] shape. SearchIndex.from_marketplace_path reads whatever marketplace.json the caller supplies; it does not invent a second registry file. Declared BM25 parameters: k1=1.2, b=0.75, field_weights={'name': 4.0, 'description': 1.0, 'tags': 1.5, 'skills': 2.5}, popularity_term=0.0; tie-break is stable_key; tie_ordering=['alpha-tie', 'beta-tie']; empty_kind=empty; index_error_kind=index_error; documents=8; score_reconstructed=True.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run SearchIndex over live .claude-plugin/marketplace.json when that file is present in a full checkout."
+    }
+  ]
+}

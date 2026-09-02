@@ -1,0 +1,99 @@
+{
+  "schema_version": 1,
+  "generator_id": "a2-ssot-generator",
+  "generator_version": "1.0.0",
+  "entries": [
+    {
+      "id": "plugin.harness",
+      "kind": "plugin_manifest",
+      "name": "harness",
+      "version": "1.0.0",
+      "description": "A2 generated plugin manifest for the harness control plane.",
+      "skill_ids": ["skill.council"],
+      "hook_ids": ["hook.pre-tool"],
+      "rule_ids": ["rule.no-secrets"]
+    },
+    {
+      "id": "marketplace.harness",
+      "kind": "marketplace_entry",
+      "plugin_id": "plugin.harness",
+      "name": "harness",
+      "version": "1.0.0",
+      "description": "Marketplace listing generated from the typed registry.",
+      "category": "control-plane"
+    },
+    {
+      "id": "skill.council",
+      "kind": "skill",
+      "name": "council",
+      "description": "Four-voice prompt skill (Architect, Skeptic, Pragmatist, Critic). Not a CouncilSpec compiler.",
+      "instructions": "Invoke the four named roles as static prompt sections. No executable policy. No CouncilSpec expression tree.",
+      "roles": ["Architect", "Skeptic", "Pragmatist", "Critic"]
+    },
+    {
+      "id": "hook.pre-tool",
+      "kind": "hook",
+      "event": "PreToolUse",
+      "script": "hooks/pre-tool.py",
+      "enabled": true
+    },
+    {
+      "id": "rule.no-secrets",
+      "kind": "rule",
+      "title": "No secrets in generated artifacts",
+      "body": "Generated files must not embed API keys, tokens, or credentials. Fail closed if a registry field matches a secret pattern."
+    },
+    {
+      "id": "doc.a2-overview",
+      "kind": "doc",
+      "title": "A2 generated SSOT",
+      "body": "All plugin, marketplace, skill, hook, rule, docs, workflow-catalog, and council-catalog artifacts are generated from REGISTRY.json. Hand-edits of generated files are tampered, not drift."
+    },
+    {
+      "id": "wf.catalog-class.discovery-only",
+      "kind": "workflow_blueprint",
+      "discovery_only": true,
+      "stages": [
+        {
+          "id": "discover",
+          "kind": "static-scan",
+          "inputs": ["repo"],
+          "outputs": ["candidates.json"]
+        },
+        {
+          "id": "record",
+          "kind": "write-config",
+          "inputs": ["candidates.json"],
+          "outputs": ["blueprint.json"]
+        }
+      ],
+      "stopping": {
+        "max_stages": 2,
+        "on_error": "halt"
+      }
+    },
+    {
+      "id": "council.preset.catalog-class.editable",
+      "kind": "council_preset",
+      "roles": ["Architect", "Skeptic", "Pragmatist", "Critic"],
+      "voting": {
+        "rule": "unanimous-or-record-dissent",
+        "quorum": 4
+      },
+      "stopping": {
+        "max_rounds": 8,
+        "on_timeout": "halt"
+      }
+    },
+    {
+      "id": "catalog.workflows",
+      "kind": "workflow_catalog",
+      "member_ids": ["wf.catalog-class.discovery-only"]
+    },
+    {
+      "id": "catalog.council",
+      "kind": "council_catalog",
+      "member_ids": ["council.preset.catalog-class.editable"]
+    }
+  ]
+}

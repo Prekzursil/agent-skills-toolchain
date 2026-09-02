@@ -1,0 +1,27 @@
+# rules/common/harness-vcs-hygiene.md
+shared:rules/common/harness-vcs-hygiene.md
+repo-unique:rules/common/harness-vcs-hygiene.md
+repo-pad:rules/common/harness-vcs-hygiene.md:0
+repo-pad:rules/common/harness-vcs-hygiene.md:1
+repo-pad:rules/common/harness-vcs-hygiene.md:2
+repo-pad:rules/common/harness-vcs-hygiene.md:3
+repo-pad:rules/common/harness-vcs-hygiene.md:4
+repo-pad:rules/common/harness-vcs-hygiene.md:5
+repo-pad:rules/common/harness-vcs-hygiene.md:6
+repo-pad:rules/common/harness-vcs-hygiene.md:7
+repo-pad:rules/common/harness-vcs-hygiene.md:8
+repo-pad:rules/common/harness-vcs-hygiene.md:9
+repo-pad:rules/common/harness-vcs-hygiene.md:10
+repo-pad:rules/common/harness-vcs-hygiene.md:11
+repo-pad:rules/common/harness-vcs-hygiene.md:12
+repo-pad:rules/common/harness-vcs-hygiene.md:13
+repo-pad:rules/common/harness-vcs-hygiene.md:14
+repo-pad:rules/common/harness-vcs-hygiene.md:15
+repo-pad:rules/common/harness-vcs-hygiene.md:16
+repo-pad:rules/common/harness-vcs-hygiene.md:17
+repo-pad:rules/common/harness-vcs-hygiene.md:18
+repo-pad:rules/common/harness-vcs-hygiene.md:19
+repo-pad:rules/common/harness-vcs-hygiene.md:20
+repo-pad:rules/common/harness-vcs-hygiene.md:21
+repo-pad:rules/common/harness-vcs-hygiene.md:22
+repo-pad:rules/common/harness-vcs-hygiene.md:23

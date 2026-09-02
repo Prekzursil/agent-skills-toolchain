@@ -1,0 +1,249 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0364",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:IMP-0364",
+  "completion_sentinel": "SUCCESS:IMP-0364",
+  "title": "Council re-run answer-stability measurement",
+  "question": "Implement tools/council/stability.py re-running the same council specification N times and reporting how often the decision changes. Falsifiable question: what is the answer-stability rate for each preset, and is any preset producing a different decision on a majority of re-runs while still reporting high confidence?",
+  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0364",
+  "report_kind": "council-runtime-module",
+  "profile": "council-runtime-module",
+  "min_bytes_threshold": 2048,
+  "output_schema": "command-center/schema/receipt.schema.json profile=council-runtime-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+  "artifact_paths": [
+    "command-center/receipts/IMP-0364.json",
+    "tools/council/stability.py",
+    "tools/council/fixtures/stability/presets.json"
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0364.json",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/council/stability.py",
+      "bytes": 10838,
+      "sha256": "a4fe6512ae5e1b4d9c0ca2c063f2dab0ad8cee6e539390f75766ad5f3d3061dc",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/council/fixtures/stability/presets.json",
+      "bytes": 16852,
+      "sha256": "5d51bcd9a8550aa416e52127c822506ca30227075b10ce0abb31b14e1e2f31ce",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "measurement": {
+    "n": 10,
+    "preset_count": 3,
+    "stability_rates": {
+      "preset.deterministic-fixture": 1.0,
+      "preset.unstable-overclaim": 0.3,
+      "preset.mostly-stable-unflattering": 0.8
+    },
+    "decision_change_rates": {
+      "preset.deterministic-fixture": 0.0,
+      "preset.unstable-overclaim": 0.7,
+      "preset.mostly-stable-unflattering": 0.19999999999999996
+    },
+    "mean_reported_confidence": {
+      "preset.deterministic-fixture": 1.0,
+      "preset.unstable-overclaim": 0.94,
+      "preset.mostly-stable-unflattering": 1.0
+    },
+    "disagreements": [
+      {
+        "preset_id": "preset.unstable-overclaim",
+        "kind": "high-confidence-majority-change",
+        "mean_reported_confidence": 0.94,
+        "stability_rate": 0.3,
+        "decision_change_rate": 0.7
+      },
+      {
+        "preset_id": "preset.mostly-stable-unflattering",
+        "kind": "reported-confidence-exceeds-stability",
+        "mean_reported_confidence": 1.0,
+        "stability_rate": 0.8,
+        "gap": 0.19999999999999996
+      }
+    ],
+    "unflattering_published": true,
+    "high_confidence_majority_change": true,
+    "presets": [
+      {
+        "preset_id": "preset.deterministic-fixture",
+        "n": 10,
+        "stability_rate": 1.0,
+        "decision_change_rate": 0.0,
+        "mean_reported_confidence": 1.0,
+        "majority_re_runs_differ": false,
+        "modal_decision": "SHIP",
+        "decision_counts": {
+          "SHIP": 10
+        }
+      },
+      {
+        "preset_id": "preset.unstable-overclaim",
+        "n": 10,
+        "stability_rate": 0.3,
+        "decision_change_rate": 0.7,
+        "mean_reported_confidence": 0.94,
+        "majority_re_runs_differ": true,
+        "modal_decision": "SHIP",
+        "decision_counts": {
+          "SHIP": 3,
+          "HOLD": 2,
+          "REWORK": 2,
+          "DEFER": 2,
+          "ABSTAIN": 1
+        }
+      },
+      {
+        "preset_id": "preset.mostly-stable-unflattering",
+        "n": 10,
+        "stability_rate": 0.8,
+        "decision_change_rate": 0.19999999999999996,
+        "mean_reported_confidence": 1.0,
+        "majority_re_runs_differ": false,
+        "modal_decision": "SHIP",
+        "decision_counts": {
+          "SHIP": 8,
+          "HOLD": 2
+        }
+      }
+    ]
+  },
+  "evidence": [
+    {
+      "claim": "Decision-change rate over N=10 re-runs per preset: {\"preset.deterministic-fixture\": 0.0, \"preset.mostly-stable-unflattering\": 0.19999999999999996, \"preset.unstable-overclaim\": 0.7}. Stability rates: {\"preset.deterministic-fixture\": 1.0, \"preset.mostly-stable-unflattering\": 0.8, \"preset.unstable-overclaim\": 0.3}.",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0364",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 -B tools/council/stability.py --n 10 --compact",
+          "raw_output": "{\n  \"decision_change_rates\": {\n    \"preset.deterministic-fixture\": 0.0,\n    \"preset.mostly-stable-unflattering\": 0.19999999999999996,\n    \"preset.unstable-overclaim\": 0.7\n  },\n  \"disagreements\": [\n    {\n      \"decision_change_rate\": 0.7,\n      \"kind\": \"high-confidence-majority-change\",\n      \"mean_reported_confidence\": 0.94,\n      \"preset_id\": \"preset.unstable-overclaim\",\n      \"stability_rate\": 0.3\n    },\n    {\n      \"gap\": 0.19999999999999996,\n      \"kind\": \"reported-confidence-exceeds-stability\",\n      \"mean_reported_confidence\": 1.0,\n      \"preset_id\": \"preset.mostly-stable-unflattering\",\n      \"stability_rate\": 0.8\n    }\n  ],\n  \"high_confidence_majority_change\": true,\n  \"mean_reported_confidence\": {\n    \"preset.deterministic-fixture\": 1.0,\n    \"preset.mostly-stable-unflattering\": 1.0,\n    \"preset.unstable-overclaim\": 0.94\n  },\n  \"n\": 10,\n  \"preset_count\": 3,\n  \"presets\": [\n    {\n      \"decision_change_rate\": 0.0,\n      \"decision_counts\": {\n        \"SHIP\": 10\n      },\n      \"majority_re_runs_differ\": false,\n      \"mean_reported_confidence\": 1.0,\n      \"modal_decision\": \"SHIP\",\n      \"n\": 10,\n      \"preset_id\": \"preset.deterministic-fixture\",\n      \"stability_rate\": 1.0\n    },\n    {\n      \"decision_change_rate\": 0.7,\n      \"decision_counts\": {\n        \"ABSTAIN\": 1,\n        \"DEFER\": 2,\n        \"HOLD\": 2,\n        \"REWORK\": 2,\n        \"SHIP\": 3\n      },\n      \"majority_re_runs_differ\": true,\n      \"mean_reported_confidence\": 0.94,\n      \"modal_decision\": \"SHIP\",\n      \"n\": 10,\n      \"preset_id\": \"preset.unstable-overclaim\",\n      \"stability_rate\": 0.3\n    },\n    {\n      \"decision_change_rate\": 0.19999999999999996,\n      \"decision_counts\": {\n        \"HOLD\": 2,\n        \"SHIP\": 8\n      },\n      \"majority_re_runs_differ\": false,\n      \"mean_reported_confidence\": 1.0,\n      \"modal_decision\": \"SHIP\",\n      \"n\": 10,\n      \"preset_id\": \"preset.mostly-stable-unflattering\",\n      \"stability_rate\": 0.8\n    }\n  ],\n  \"stability_rates\": {\n    \"preset.deterministic-fixture\": 1.0,\n    \"preset.mostly-stable-unflattering\": 0.8,\n    \"preset.unstable-overclaim\": 0.3\n  },\n  \"unflattering_published\": true\n}",
+          "exit_code": 0,
+          "fingerprint": "6b1813fb975866813cbf5afdc49c8496"
+        }
+      ]
+    },
+    {
+      "claim": "Reported confidence compared against observed stability; 2 disagreement(s) listed, including preset.unstable-overclaim high-confidence-majority-change (confidence=0.94, stability=0.3).",
+      "verdict": "CONFIRMED",
+      "anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0364",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "verifier",
+          "method": "command",
+          "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0364/probe1_measurement.py",
+          "raw_output": "[{\"decision_change_rate\": 0.7, \"kind\": \"high-confidence-majority-change\", \"mean_reported_confidence\": 0.94, \"preset_id\": \"preset.unstable-overclaim\", \"stability_rate\": 0.3}, {\"gap\": 0.19999999999999996, \"kind\": \"reported-confidence-exceeds-stability\", \"mean_reported_confidence\": 1.0, \"preset_id\": \"preset.mostly-stable-unflattering\", \"stability_rate\": 0.8}]",
+          "exit_code": 0,
+          "fingerprint": "b32939215838c2356051da709aa430f9"
+        }
+      ]
+    }
+  ],
+  "test_ids": [
+    "IMP-0364-MEASUREMENT-RATES",
+    "IMP-0364-NEGATIVE-CONTROL-DETERMINISTIC"
+  ],
+  "tests": [
+    {
+      "id": "IMP-0364-MEASUREMENT-RATES",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0364/probe1_measurement.py",
+      "result": "PASS",
+      "name": "measurement: per-preset stability rate published, including unflattering ones"
+    },
+    {
+      "id": "IMP-0364-NEGATIVE-CONTROL-DETERMINISTIC",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0364/probe2_negative_control.py",
+      "result": "PASS",
+      "name": "negative control: a deterministic fixture council must show 100 percent stability, proving the harness is not injecting noise itself"
+    }
+  ],
+  "negative_control_ids": [
+    "IMP-0364-HARNESS-NOISE"
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP-0364-HARNESS-NOISE",
+      "kind": "known-broken-fixture",
+      "description": "Deterministic fixture is 100 percent stable (silent on good). Mutating one recorded decision drops stability below 1.0 (fires on bad).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "good_state_output": "stability_rate=1.0",
+      "bad_state_output": "mutate_one_decision -> fully_stable=False"
+    }
+  ],
+  "reviewer_verdict": "PASS",
+  "reviewer": {
+    "reviewer_id": "IMP-0364-probe2-negative-control",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "notes": "Named probe2 starts from the tests (100 percent stability on the deterministic fixture plus the noise-mutation red state). It does not author tools/council/stability.py. A second human reviewer was not seated on this Linux worktree."
+  },
+  "residual_unknowns": [
+    {
+      "claim": "Live vendor councils (IMP-0260 seed pinning, IMP-0329 calibration store, 12-COUNCIL-PROTOCOLS-AND-PRESETS.json 72 presets) were not executed. Rates are for the fixture pack in tools/council/fixtures/stability/presets.json.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Re-run tools/council/stability.py against a live compiled CouncilSpec once IMP-0260/IMP-0329 and the 72-preset file are on disk."
+    },
+    {
+      "claim": "command-center/schema/receipt.schema.json is absent on this worktree; G-1 _measure_one_delivered.py does not schema-validate. Profile fields are present by construction.",
+      "verdict": "NOT-CHECKED",
+      "settling_experiment": "Validate this receipt against receipt.schema.json when IMP-0433's schema is on disk."
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-08-25T01:00:13Z",
+    "ended_at": "2026-08-25T01:00:13Z"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two strikes then pivot (AGENTS.md 4b)"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0364/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "measurement",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0364/probe1_measurement.py"
+    },
+    {
+      "id": "probe2",
+      "role": "negative-control",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0364/probe2_negative_control.py"
+    }
+  ],
+  "cloud_ok": false,
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "live multi-vendor councils were re-run",
+      "72 catalog presets from 12-COUNCIL-PROTOCOLS-AND-PRESETS.json were measured"
+    ]
+  }
+}

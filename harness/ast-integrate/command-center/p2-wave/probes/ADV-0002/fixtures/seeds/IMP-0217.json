@@ -1,0 +1,285 @@
+{
+ "artifacts": [
+  {
+   "bytes": 8179,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/budget.py",
+   "role": "supporting",
+   "sha256": "3e2ce97dbd3eac8d3a81b232d20de0d0c2334d267fbd22a1abf33b0a2828bc1a"
+  },
+  {
+   "bytes": 6896,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/subworkflow_executor.py",
+   "role": "supporting",
+   "sha256": "cb8303ec06cbd59d0cfa86e9d1d8e321921b0f8266412d63e3462feabda61198"
+  },
+  {
+   "bytes": 1400,
+   "exists": true,
+   "path": "tools/agentspec/agentspec/__init__.py",
+   "role": "supporting",
+   "sha256": "3fe3df80b7e1fc9925d1252eb08fd25e5d7160a734723262d81c5fb02634ed72"
+  },
+  {
+   "bytes": 1136,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0217/fixtures/colliding-internal-id.json",
+   "role": "supporting",
+   "sha256": "9fd34abba499634d80ea2e8d0b778407a04074220b71c3860ba5e0c17362afd9"
+  },
+  {
+   "bytes": 1990,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0217/scenario.py",
+   "role": "supporting",
+   "sha256": "c5b33de5edfdd95e411799a52ff8a820596046ba366118acfd4258617ad31631"
+  },
+  {
+   "bytes": 4688,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0217/probe1_collision.py",
+   "role": "supporting",
+   "sha256": "05a1bf4de8b1be4c20b4e83b779491055788731cc6f6999b39c985db18396ea5"
+  },
+  {
+   "bytes": 3856,
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0217/probe2_budget_rollup.py",
+   "role": "supporting",
+   "sha256": "eb35bb60a02531ef4bab4479596025445361485061da87df5b66df44050405e0"
+  }
+ ],
+ "completion_sentinel": "SUCCESS:IMP-0217",
+ "dependencies": {
+  "IMP-0129": {
+   "note": "tools/agentspec/agentspec/spec.py is present; its Node union is still FanOut|Barrier|Pipeline. The executor carries a compatible frozen Subworkflow(id, workflow_ref, param_bindings, id_namespace). This receipt does not claim IMP-0129 delivered.",
+   "role": "Subworkflow node type",
+   "spec_py_present": true
+  },
+  "IMP-0189": {
+   "note": "Executor implements the roll-up this unit is contracted to execute.",
+   "role": "meta-workflow composition / budget roll-up policy"
+  }
+ },
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/receipts/IMP-0217.json",
+   "consumer": "command-center/p2-wave/_measure_one_delivered.py IMP-0217",
+   "executed": false,
+   "note": "Measure runs after this receipt and the per-unit manifest are on disk.",
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/IMP-0217/fixtures/colliding-internal-id.json",
+   "claim": "Colliding-internal-id fixture completed with two distinct receipts ['sib.left::shared-step', 'sib.right::shared-step'] and payloads {'sib.left::shared-step': 'ALPHA', 'sib.right::shared-step': 'BETA'}; isolated artifact spaces held ALPHA and BETA simultaneously.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "execute(colliding-internal-id, namespacing=True)",
+     "method": "fixture-run",
+     "raw_output": "{\"receipts\": [\"sib.left::shared-step\", \"sib.right::shared-step\"], \"payloads\": {\"sib.left::shared-step\": \"ALPHA\", \"sib.right::shared-step\": \"BETA\"}, \"spaces\": {\"sib.left\": \"sib.left\", \"sib.right\": \"sib.right\"}}",
+     "role": "source"
+    },
+    {
+     "command": "execute(colliding-internal-id, namespacing=False)",
+     "method": "both-states",
+     "raw_output": "{\"task_ids\": [\"shared-step\"], \"payloads\": {\"shared-step\": \"BETA\"}, \"collided\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/agentspec/agentspec/budget.py",
+   "claim": "Parent budget 14 equals sum(child_budgets)=14 on the immutable ledger (leaf spends only). Counting roll-ups as spend yields 42, so the no-double-count rule is not a tautology.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "BudgetLedger.assert_rollup_exact(parent-meta, [sib.left, sib.right])",
+     "method": "ledger-assertion",
+     "raw_output": "{\"exact\": true, \"rollup_matches\": true, \"naive_would_double_count\": true, \"parent_spend_total\": 14, \"child_sum\": 14, \"leaf_spend_count\": 2, \"rollup_count\": 3, \"naive_including_rollups\": 42}",
+     "role": "source"
+    },
+    {
+     "command": "ExecuteOpts(count_rollups_as_spend=True)",
+     "method": "mutation",
+     "raw_output": "{\"named_parent\": 14, \"mutant_parent\": 42}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "artifact_space_rule": "artifacts_root / id_namespace.split('::')",
+  "budget_ledger": "tools/agentspec/agentspec/budget.py",
+  "budget_rule": "leaf spend entries are the only additive amounts; Subworkflow and parent roll-ups are derived views. parent_spend_total == sum(child_namespace spends).",
+  "executor": "tools/agentspec/agentspec/subworkflow_executor.py",
+  "fixture": "command-center/p2-wave/probes/IMP-0217/fixtures/colliding-internal-id.json",
+  "namespacing_rule": "{id_namespace}::{internal_id}"
+ },
+ "live_run": {
+  "artifact_spaces_isolated": true,
+  "child_budgets": {
+   "sib.left": 7,
+   "sib.right": 7
+  },
+  "fixture_id": "colliding-internal-id",
+  "ledger": [
+   {
+    "amount": 7,
+    "kind": "spend",
+    "namespace": "sib.left",
+    "unit_id": "sib.left::shared-step"
+   },
+   {
+    "amount": 7,
+    "kind": "rollup",
+    "namespace": "sib.left",
+    "unit_id": "parent-meta"
+   },
+   {
+    "amount": 7,
+    "kind": "spend",
+    "namespace": "sib.right",
+    "unit_id": "sib.right::shared-step"
+   },
+   {
+    "amount": 7,
+    "kind": "rollup",
+    "namespace": "sib.right",
+    "unit_id": "parent-meta"
+   },
+   {
+    "amount": 14,
+    "kind": "rollup",
+    "namespace": "parent-meta",
+    "unit_id": "parent-meta"
+   }
+  ],
+  "mutant_count_rollups_as_spend": {
+   "inflated": true,
+   "parent_budget": 42
+  },
+  "mutant_without_namespacing": {
+   "collided": true,
+   "payloads": {
+    "shared-step": "BETA"
+   },
+   "task_ids": [
+    "shared-step"
+   ]
+  },
+  "named_payloads": {
+   "sib.left::shared-step": "ALPHA",
+   "sib.right::shared-step": "BETA"
+  },
+  "named_task_ids": [
+   "sib.left::shared-step",
+   "sib.right::shared-step"
+  ],
+  "parent_budget": 14,
+  "rollup_assertion": {
+   "child_sum": 14,
+   "exact": true,
+   "leaf_spend_count": 2,
+   "naive_including_rollups": 42,
+   "naive_would_double_count": true,
+   "parent_spend_total": 14,
+   "rollup_count": 3,
+   "rollup_matches": true
+  }
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0217/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "min_bytes_threshold": 2048,
+ "negative_controls": [
+  {
+   "bad_state_output": "{\"task_ids\": [\"shared-step\"], \"payloads\": {\"shared-step\": \"BETA\"}}",
+   "description": "Delete the namespacing step. Two sibling Subworkflows that share internal unit id shared-step must collide (one receipt id, last-write-wins payload). A namespacer that is a no-op would still look green on the named path.",
+   "fired_on_bad_state": true,
+   "good_state_output": "{\"task_ids\": [\"sib.left::shared-step\", \"sib.right::shared-step\"], \"payloads\": {\"sib.left::shared-step\": \"ALPHA\", \"sib.right::shared-step\": \"BETA\"}}",
+   "id": "IMP0217-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "mutant_parent=42",
+   "description": "Count roll-up lines as spend. Parent total must inflate above sum(children). Without this mutant, a ledger that added every line would still report a number.",
+   "fired_on_bad_state": true,
+   "good_state_output": "named_parent=14 child_sum=14",
+   "id": "IMP0217-C2",
+   "kind": "mutation",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "vendor": "cursor"
+ },
+ "profile": "selfimprove-measure-artifact",
+ "question_or_target": "Target: execute an embedded workflow with namespaced ids, an isolated artifact space and a budget that rolls up to the parent. Acceptance: two sibling subworkflows that use the SAME internal unit id do not collide, proven by running exactly that fixture.",
+ "report": {
+  "acceptance": {
+   "budget_roll_up_exact": true,
+   "no_double_count": true,
+   "sibling_internal_ids_do_not_collide": true,
+   "two_distinct_receipts": [
+    "sib.left::shared-step",
+    "sib.right::shared-step"
+   ]
+  },
+  "kind": "subworkflow-executor"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "IMP-0129 will author spec.py FanOut/Barrier/Pipeline/Subworkflow. This executor's local Subworkflow type matches the four contracted fields; a later field add on spec.py is not executed here.",
+   "settling_experiment": "Re-run colliding-internal-id after IMP-0129 delivers spec.py and bind execute() to spec.Subworkflow.",
+   "verdict": "PARTIAL"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "independent": true,
+  "note": "Catalog reviewer_requirement names a fresh-context adversarial reviewer. G-1 for this unit is live named probes plus an honest non-BLOCKED artifact. Waiting on an ADV rebuild of this unit is the circle the dispatch prompt forbids.",
+  "reviewer_id": "IMP-0217-named-probes",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0217",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:IMP-0217",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "assertions": 8,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0217/probe1_collision.py",
+   "id": "sibling-subworkflows-identical-internal-ids-do-not-collide",
+   "output_tail": "receipts=['sib.left::shared-step', 'sib.right::shared-step'] payloads={'sib.left::shared-step': 'ALPHA', 'sib.right::shared-step': 'BETA'} mutant_collided=True",
+   "result": "PASS"
+  },
+  {
+   "assertions": 7,
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0217/probe2_budget_rollup.py",
+   "id": "budget-roll-up-exact-no-double-count",
+   "output_tail": "parent=14 children={'sib.left': 7, 'sib.right': 7} naive=42 mutant=42",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T01:06:56+00:00",
+  "started_at": "2026-08-25T01:06:56+00:00"
+ },
+ "title": "Implement the Subworkflow executor with id namespacing and budget roll-up",
+ "unit_id": "IMP-0217"
+}

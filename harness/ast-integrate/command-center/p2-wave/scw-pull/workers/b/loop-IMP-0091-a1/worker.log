@@ -1,0 +1,32 @@
+
+===== launch 2026-08-20T09:00:40Z attempt=1 =====
+I'll start from the existing IMP-0091 probe tree and any SUBAGENT-RETURN, then implement until the per-unit measure prints SUCCESS:delivered.IMP-0091 has no probe tree yet. Next I’ll pull the receipt contract, related permission work, and a delivered IMP unit to copy the delivery shape.There's already a marketplace permissions module. I'll inspect that plus the receipt contract so IMP-0091 can reuse live code instead of inventing a parallel detector.I'll implement the detector in the live marketplace package, then add named probes, fixtures, and the per-unit receipt packer.Audit events match the design. Next I’ll add the analyzer, fixtures, probes, and packer.The undeclared fixture currently hides the host in names, so I’ll teach the static pass to resolve constant bindings without folding `join`/`getattr`.Fixtures and the catalog suite are green. Next I’ll pack the receipt from live probe output and run the delivery measure.**SUCCESS:delivered IMP-0091** — `python command-center/p2-wave/_measure_one_delivered.py IMP-0091` printed:
+
+`SUCCESS:delivered IMP-0091 predicate=delivered state=SUCCESS probes=4 raws=4 notes=probe_controls.py:0,probe_dynamic.py:0,probe_static.py:0,test_permission_analysis.py:0`
+
+`probes/IMP-0091/` was missing, so this unit was built rather than resumed.
+
+### What was implemented
+A declared-versus-used permission detector in the live marketplace package:
+
+- `platform/marketplace/mkt/permission_analysis.py` — two independent used-sets, then a named union
+  - **Static:** AST mapping of `open` / Path / socket / subprocess onto the closed `mkt.permissions` grammar
+  - **Dynamic:** child-process `sys.addaudithook` (`open`, `socket.connect`, `socket.getaddrinfo`)
+- Catalog fixtures (excessive, undeclared, exact-match) plus the seeded abuse class and a reviewer dynamic-dispatch case
+
+### Controls
+| Control | Result |
+|---|---|
+| Detector: undeclared `net:egress:203.0.113.91:4091` | Caught before any CLEAN |
+| Negative: exact-match fixture | Zero findings in the same run |
+| Reviewer: network call hidden behind `__import__` + `getattr` | Static misses it; dynamic catches it; union names `dynamic-only` |
+| Blinded mutation (drop `net:egress`) | Same fixture looks CLEAN — the instrument has a red state |
+
+`platform/marketplace/mkt/test_permission_analysis.py`: **8 passed**. Catalog path `tools/marketplace/` does not exist on this tree; the live marketplace is `platform/marketplace`.
+
+### Delivery artifacts
+- Receipt: `command-center/receipts/IMP-0091.json` (`state=SUCCESS`, 39955 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/IMP-0091/UNIT-ARTIFACT-MANIFEST.json` (LF sha256 `bc7061738d1742e236540723f7126257b227f501b7f65dd6f6f0d0e3f9c659c2`)
+- Handoff: `command-center/p2-wave/probes/IMP-0091/SUBAGENT-RETURN.json`
+
+No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write`. No global catalog manifest write. cloud ok=true was not treated as delivery.

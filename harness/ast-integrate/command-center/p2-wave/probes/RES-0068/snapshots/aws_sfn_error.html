@@ -1,0 +1,711 @@
+<!DOCTYPE html>
+    <html xmlns="http://www.w3.org/1999/xhtml" lang="en-US"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8" /><title>Handling errors in Step Functions workflows - AWS Step Functions</title><meta name="viewport" content="width=device-width,initial-scale=1" /><meta name="assets_root" content="/assets" /><meta name="target_state" content="concepts-error-handling" /><meta name="default_state" content="concepts-error-handling" /><link rel="icon" type="image/ico" href="/assets/images/favicon.ico" /><link rel="shortcut icon" type="image/ico" href="/assets/images/favicon.ico" /><link rel="canonical" href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html" /><meta name="description" content="Learn about handling workflow state errors, error types, fallback states, and redriving executions in Step Functions." /><meta name="deployment_region" content="IAD" /><meta name="product" content="AWS Step Functions" /><meta name="guide" content="Developer Guide" /><meta name="abstract" content="Describes how to build workflows and orchestrate services with AWS Step Functions." /><meta name="guide-locale" content="en_us" /><meta name="tocs" content="toc-contents.json" /><link rel="canonical" href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html" /><link rel="alternate" href="https://docs.aws.amazon.com/id_id/step-functions/latest/dg/concepts-error-handling.html" hreflang="id-id" /><link rel="alternate" href="https://docs.aws.amazon.com/id_id/step-functions/latest/dg/concepts-error-handling.html" hreflang="id" /><link rel="alternate" href="https://docs.aws.amazon.com/de_de/step-functions/latest/dg/concepts-error-handling.html" hreflang="de-de" /><link rel="alternate" href="https://docs.aws.amazon.com/de_de/step-functions/latest/dg/concepts-error-handling.html" hreflang="de" /><link rel="alternate" href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html" hreflang="en-us" /><link rel="alternate" href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html" hreflang="en" /><link rel="alternate" href="https://docs.aws.amazon.com/es_es/step-functions/latest/dg/concepts-error-handling.html" hreflang="es-es" /><link rel="alternate" href="https://docs.aws.amazon.com/es_es/step-functions/latest/dg/concepts-error-handling.html" hreflang="es" /><link rel="alternate" href="https://docs.aws.amazon.com/fr_fr/step-functions/latest/dg/concepts-error-handling.html" hreflang="fr-fr" /><link rel="alternate" href="https://docs.aws.amazon.com/fr_fr/step-functions/latest/dg/concepts-error-handling.html" hreflang="fr" /><link rel="alternate" href="https://docs.aws.amazon.com/it_it/step-functions/latest/dg/concepts-error-handling.html" hreflang="it-it" /><link rel="alternate" href="https://docs.aws.amazon.com/it_it/step-functions/latest/dg/concepts-error-handling.html" hreflang="it" /><link rel="alternate" href="https://docs.aws.amazon.com/ja_jp/step-functions/latest/dg/concepts-error-handling.html" hreflang="ja-jp" /><link rel="alternate" href="https://docs.aws.amazon.com/ja_jp/step-functions/latest/dg/concepts-error-handling.html" hreflang="ja" /><link rel="alternate" href="https://docs.aws.amazon.com/ko_kr/step-functions/latest/dg/concepts-error-handling.html" hreflang="ko-kr" /><link rel="alternate" href="https://docs.aws.amazon.com/ko_kr/step-functions/latest/dg/concepts-error-handling.html" hreflang="ko" /><link rel="alternate" href="https://docs.aws.amazon.com/pt_br/step-functions/latest/dg/concepts-error-handling.html" hreflang="pt-br" /><link rel="alternate" href="https://docs.aws.amazon.com/pt_br/step-functions/latest/dg/concepts-error-handling.html" hreflang="pt" /><link rel="alternate" href="https://docs.aws.amazon.com/zh_cn/step-functions/latest/dg/concepts-error-handling.html" hreflang="zh-cn" /><link rel="alternate" href="https://docs.aws.amazon.com/zh_tw/step-functions/latest/dg/concepts-error-handling.html" hreflang="zh-tw" /><link rel="alternate" href="https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html" hreflang="x-default" /><meta name="feedback-item" content="Step Functions" /><meta name="this_doc_product" content="AWS Step Functions" /><meta name="this_doc_guide" content="Developer Guide" /><head xmlns="http://www.w3.org/1999/xhtml"> <script defer="" src="/assets/r/awsdocs-doc-page.2.0.0.js"></script><link href="/assets/r/awsdocs-doc-page.2.0.0.css" rel="stylesheet"/></head>
+<script defer="" id="awsc-panorama-bundle" type="text/javascript" src="https://prod.pa.cdn.uis.awsstatic.com/panorama-nav-init.js" data-config="{'appEntity':'aws-documentation','region':'us-east-1','service':'step-functions'}"></script><meta id="panorama-serviceSubSection" value="Developer Guide" /><meta id="panorama-serviceConsolePage" value="Handling errors in Step Functions workflows" /></head><body class="awsdocs awsui"><div class="awsdocs-container"><p><a href="concepts-error-handling.md">View a markdown version of this page</a></p><awsdocs-header></awsdocs-header><awsui-app-layout id="app-layout" class="awsui-util-no-gutters" ng-controller="ContentController as $ctrl" header-selector="awsdocs-header" navigation-hide="false" navigation-width="$ctrl.navWidth" navigation-open="$ctrl.navOpen" navigation-change="$ctrl.onNavChange($event)" tools-hide="$ctrl.hideTools" tools-width="$ctrl.toolsWidth" tools-open="$ctrl.toolsOpen" tools-change="$ctrl.onToolsChange($event)"><div id="guide-toc" dom-region="navigation"><awsdocs-toc></awsdocs-toc></div><div id="main-column" dom-region="content" tabindex="-1"><awsdocs-view class="awsdocs-view"><div id="awsdocs-content"><head><title>Handling errors in Step Functions workflows - AWS Step Functions</title><meta name="pdf" content="/pdfs/step-functions/latest/dg/step-functions-dg.pdf#concepts-error-handling" /><meta name="rss" content="recent-updates.rss" /><meta name="forums" content="https://repost.aws/tags/TAcY-U_PLNSpyRRpAaT3B35A" /><meta name="feedback" content="https://docs.aws.amazon.com/forms/aws-doc-feedback?hidden_service_name=Step%20Functions&amp;topic_url=https://docs.aws.amazon.com/en_us/step-functions/latest/dg/concepts-error-handling.html" /><meta name="feedback-yes" content="feedbackyes.html?topic_url=https://docs.aws.amazon.com/en_us/step-functions/latest/dg/concepts-error-handling.html" /><meta name="feedback-no" content="feedbackno.html?topic_url=https://docs.aws.amazon.com/en_us/step-functions/latest/dg/concepts-error-handling.html" /><meta name="keywords" content="Step Functions,Workflow,state machine,visual workflow,microservices,service orchestration,handling errors,state machine error types" /><link rel="alternate" type="text/markdown" href="concepts-error-handling.md" title="Markdown version" /><script type="application/ld+json">
+{
+    "@context" : "https://schema.org",
+    "@type" : "BreadcrumbList",
+    "itemListElement" : [
+      {
+        "@type" : "ListItem",
+        "position" : 1,
+        "name" : "AWS",
+        "item" : "https://aws.amazon.com"
+      },
+      {
+        "@type" : "ListItem",
+        "position" : 2,
+        "name" : "AWS Step Functions",
+        "item" : "https://docs.aws.amazon.com/step-functions/index.html"
+      },
+      {
+        "@type" : "ListItem",
+        "position" : 3,
+        "name" : "Developer Guide",
+        "item" : "https://docs.aws.amazon.com/step-functions/latest/dg"
+      },
+      {
+        "@type" : "ListItem",
+        "position" : 4,
+        "name" : "Handling errors in Step Functions workflows",
+        "item" : "https://docs.aws.amazon.com/step-functions/latest/dg/concepts-error-handling.html"
+      }
+    ]
+}
+</script></head><body><div id="main"><div style="display: none"><a href="/pdfs/step-functions/latest/dg/step-functions-dg.pdf#concepts-error-handling" target="_blank" rel="noopener noreferrer" title="Open PDF"></a></div><div id="breadcrumbs" class="breadcrumb"><a href="/index.html">Documentation</a><a href="/step-functions/index.html">AWS Step Functions</a><a href="welcome.html">Developer Guide</a></div><div id="page-toc-src"><a href="#error-handling-error-representation">Error names</a><a href="#error-handling-retrying-after-an-error">Retrying after an error</a><a href="#error-handling-fallback-states">Fallback states</a><a href="#error-handling-examples">Examples using Retry and Catch</a></div><div id="main-content" class="awsui-util-container"><div id="main-col-body"><awsdocs-language-banner data-service="$ctrl.pageService"></awsdocs-language-banner><h1 class="topictitle" id="concepts-error-handling">Handling errors in Step Functions workflows</h1><div class="awsdocs-page-header-container"><awsdocs-page-header></awsdocs-page-header><awsdocs-filter-selector id="awsdocs-filter-selector"></awsdocs-filter-selector></div><p>All states, except <code class="code">Pass</code> and <code class="code">Wait</code> states, can encounter runtime errors. Errors can happen for various reasons, including the following:</p><div class="itemizedlist">
+         
+         
+         
+    <ul class="itemizedlist"><li class="listitem">
+            <p><b>State machine definition issues</b> - such as a Choice state without a matching rule</p>
+        </li><li class="listitem">
+            <p><b>Task failures</b> - such as an exception in a  AWS Lambda function</p>
+        </li><li class="listitem">
+            <p><b>Transient issues</b> - such as network partition events</p>
+        </li></ul></div><p>When a state reports an error, Step Functions defaults to failing the <b>entire</b> state machine execution. Step Functions also has more advanced error handling features. You can set up your state machine to catch errors, retry failed states, and gracefully implement error handling protocols.</p><p>Step Functions catchers are available for <b>Task</b>, <b>Parallel </b>and <b>Map</b> states, but not for
+        top-level state machine execution failures. To handle executions you anticipate might fail,
+        your caller can handle the error, or you might nest those executions inside child workflows
+        to catch errors inside your parent workflow. Alternatively, you might choose to listen for
+        <code class="code">TIMED_OUT</code> events from Standard workflows with an EventBridge bus and invoke an action to
+        handle the failed execution.</p><div class="awsdocs-note awsdocs-tip"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>Practical examples for handling errors</h6></div><div class="awsdocs-note-text"><p>To deploy an example of a workflow that includes error handling, see <a href="./tutorial-handling-error-conditions.html">Handling error conditions in a Step Functions state machine</a> tutorial in this guide, and <a href="https://catalog.workshops.aws/stepfunctions/handling-errors" rel="noopener noreferrer" target="_blank"><span>Error Handling</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a> in <em>The AWS Step Functions Workshop</em>.</p></div></div>
+        <h2 id="error-handling-error-representation">Error names</h2>
+
+        <p>Step Functions identifies errors using case-sensitive strings, known as <em>error
+            names</em>. The Amazon States Language defines a set of built-in strings that name well-known
+            errors, all beginning with the <code class="code">States.</code> prefix.</p>
+        <p>States can report errors with other names. However, the error names cannot begin with
+            the <code class="code">States.</code> prefix.</p>
+        <p>Ensure your production code can handle AWS Lambda service exceptions
+            (<code class="code">Lambda.ServiceException</code> and <code class="code">Lambda.SdkClientException</code>). For
+            more information, see how to <a href="./sfn-best-practices.html#bp-lambda-serviceexception">Handle transient Lambda service exceptions</a> in <em>Best practices</em>.</p>
+        <div class="variablelist">
+             
+            
+             
+            
+             
+            
+             
+
+             
+            
+             
+            
+             
+            
+             
+            
+             
+            
+             
+            
+             
+        <dl>
+                <dt><b><span class="term">
+                    <code class="code">States.ALL</code>
+                </span></b></dt>
+                <dd>
+                    <p>A wildcard that matches any known error name.</p>
+                    
+                    <p>The <code class="code">States.ALL</code> error type must appear alone in a <code class="code">Catcher</code> and cannot catch the <code class="code">States.DataLimitExceeded</code> terminal error or <code class="code">Runtime</code> error types. </p>
+                    <p>For more information, see <a href="#error-data-limit-exceed">States.DataLimitExceeded</a> and <a href="#states-runtime-error">States.Runtime</a>.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code"><div id="error-data-limit-exceed" xreflabel="States.DataLimitExceeded"></div>States.DataLimitExceeded</code>
+                </span></b></dt>
+                
+                <dd>
+                  <p>A terminal error which cannot be caught by the <code class="code">States.ALL</code> error type. However, you can catch or retry <code class="code">States.DataLimitExceeded</code> by explicitly specifying it in the <code class="code">ErrorEquals</code> field of a <code class="code">Catch</code> or <code class="code">Retry</code> block.</p>
+                  <p>Reported due to the following conditions:</p>
+                    <div class="itemizedlist">
+                         
+                         
+                         
+                    <ul class="itemizedlist"><li class="listitem">
+                            <p>Output of a connector is larger than payload size quota.</p>
+                        </li><li class="listitem">
+                            <p>Output of a state is larger than payload size quota.</p>
+                        </li><li class="listitem">
+                            <p>After <code class="code">Parameters</code> processing, the input of a
+                                state is larger than the payload size quota.</p>
+                        </li></ul></div>
+                    <p>For more information on quotas, see <a href="./service-quotas.html">Step Functions service quotas</a>.</p>
+                </dd>
+            
+                <dt><b><span class="term"><div id="tolthresholdexceederror" xreflabel="States.ExceedToleratedFailureThreshold"></div><code class="code">States.ExceedToleratedFailureThreshold</code></span></b></dt>
+                <dd><p>A <code class="code">Map</code> state failed because the number of failed items exceeded the threshold specified in the state machine definition. For more information, see <a href="./state-map-distributed.html#maprun-fail-threshold">Setting failure thresholds for Distributed Map states in Step Functions</a>.</p></dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">States.HeartbeatTimeout</code>
+                </span></b></dt>
+                <dd>
+                    <p>A <code class="code">Task</code> state failed to send a heartbeat for a period longer than the <code class="code">HeartbeatSeconds</code> value.</p>
+                    <p><code class="code">HeartbeatTimeout</code> is  available inside the <code class="code">Catch</code> and <code class="code">Retry</code> fields.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">States.Http.Socket</code>
+                </span></b></dt>
+                <dd>
+                    <p>Occurs when an HTTP task times out after 60 seconds. See <a href="./service-quotas.html#service-limits-http-task">Quotas related to HTTP Task</a>.</p>
+                </dd>
+            
+                <dt><b><span class="term"><div id="itemreaderfailed" xreflabel="States.ItemReaderFailed"></div><code class="code">States.ItemReaderFailed</code></span></b></dt>
+                <dd><p>A <code class="code">Map</code> state failed because it couldn't read from the item source specified in the
+                            <code class="code">ItemReader</code> field. For more information, see <code class="code"><a href="./input-output-itemreader.html">ItemReader (Map)</a></code>.</p></dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">States.Permissions</code>
+                </span></b></dt>
+                <dd>
+                    <p>A <code class="code">Task</code> state failed because it had insufficient privileges to
+                        run the specified code.</p>
+                </dd>
+            
+                <dt><b><span class="term"><div id="resultwriterfailed" xreflabel="States.ResultWriterFailed"></div><code class="code">States.ResultWriterFailed</code></span></b></dt>
+                <dd><p>A <code class="code">Map</code> state failed because it couldn't write results to the destination specified
+                        in the <code class="code">ResultWriter</code> field. For more information, see
+                                <code class="code"><a href="./input-output-resultwriter.html">ResultWriter (Map)</a></code>.</p></dd>
+            
+                <dt><b><span class="term"><code class="code"><div id="states-runtime-error" xreflabel="States.Runtime"></div>States.Runtime</code></span></b></dt>
+                <dd>
+                    <p>An execution failed due to some exception that it couldn't process. Often
+                        these are caused by errors at runtime, such as attempting to apply
+                            <code class="code">InputPath</code> or <code class="code">OutputPath</code> on a null JSON
+                        payload. A <code class="code">States.Runtime</code> error isn't retriable, and will
+                        always cause the execution to fail. A retry or catch on
+                            <code class="code">States.ALL</code> won't catch <code class="code">States.Runtime</code>
+                        errors.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">States.TaskFailed</code>
+                </span></b></dt>
+                <dd>
+                    <p>A <code class="code">Task</code> state failed during the execution. When used in a
+                        retry or catch, <code class="code">States.TaskFailed</code> acts as a wildcard that
+                        matches any known error name except for <code class="code">States.Timeout</code>.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <div id="statestimeout" xreflabel="States.Timeout"></div><code class="code">States.Timeout</code>
+                </span></b></dt>
+                <dd>
+                    <p></p>
+                    <p>Reported when a <code class="code">Task</code> state runs longer than the <code class="code">TimeoutSeconds</code> value or failed to send a heartbeat for a period longer than the <code class="code">HeartbeatSeconds</code> value.
+                    </p>
+                    <p>If a <em>nested state machine</em> throws a <code class="code">States.Timeout</code>, the parent will receive a <code class="code">States.TaskedFailed</code> error.
+                    </p>
+                    <p>A <code class="code">States.Timeout</code> error is also reported when an entire state machine execution runs longer than the specified <code class="code">TimeoutSeconds</code> value.
+                    </p>
+                </dd>
+            </dl></div> <div class="awsdocs-note"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>Note</h6></div><div class="awsdocs-note-text"><p>Unhandled errors in Lambda runtimes were historically reported only as <code class="code">Lambda.Unknown</code>. In newer runtimes, timeouts are reported as <code class="code">Sandbox.Timedout</code> in the
+                error output.</p><p>When Lambda exceeds the maximum number of invocations, the reported error will be <code class="code">Lambda.TooManyRequestsException</code>.</p><p>Match on <code class="code">Lambda.Unknown</code>, <code class="code">Sandbox.Timedout</code>, and <code class="code">States.TaskFailed</code> to handle possible errors. You can also use <code class="code">States.ALL</code>, but it must be alone and at the end of the list.</p><p>For more information about Lambda <code class="code">Handled</code> and <code class="code">Unhandled</code> errors, see <code class="code">FunctionError</code> in the <a href="https://docs.aws.amazon.com/lambda/latest/dg/API_Invoke.html#API_Invoke_ResponseSyntax">AWS Lambda Developer Guide</a>. </p></div></div>
+  
+        <h2 id="error-handling-retrying-after-an-error">Retrying after an error</h2>
+
+        <p><code class="code">Task</code>, <code class="code">Parallel</code>, and <code class="code">Map</code> states can have a field named <code class="code">Retry</code>, whose value
+            must be an array of objects known as <em>retriers</em>. An individual retrier represents a certain number of retries, usually at increasing time intervals.</p>
+        
+        <p>When one of these states reports an error and there's a <code class="code">Retry</code> field, Step Functions scans through the retriers in the order listed in the array. When the error name appears in the value of a retrier's <code class="code">ErrorEquals</code> field, the state machine makes retry attempts as defined in the <code class="code">Retry</code> field.</p>
+        
+        <p>If your redriven execution reruns a <a href="./state-task.html">Task workflow state</a>, <a href="./state-parallel.html">Parallel workflow state</a>, or <a href="./state-map-inline.html">Inline Map state</a>, for which you have defined retries, the retry attempt count for these states is reset to 0 to allow for the maximum number of attempts on redrive. For a redriven execution, you can track individual retry attempts of these states using the console. For more information, see <a href="./redrive-executions.html#redrive-retry-behavior">Retry behavior of redriven executions</a> in <a href="./redrive-executions.html">Restarting state machine executions with redrive in Step Functions</a>.</p>
+        
+        <p>A retrier contains the following
+            fields:</p>
+        
+        
+        <div class="variablelist">
+            
+             
+            
+             
+            
+             
+            
+             
+            
+             
+            
+             
+        <dl>
+                <dt><b><span class="term">
+                    <code class="code">ErrorEquals</code> (Required)</span></b></dt>
+                <dd>
+                    <p>A non-empty array of strings that match error names. When a state reports
+                        an error, Step Functions scans through the retriers. When the error name appears in
+                        this array, it implements the retry policy described in this retrier.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">IntervalSeconds</code> (Optional)</span></b></dt>
+                <dd>
+                    <p>A positive integer that represents the number of seconds before the first retry
+			    attempt (<code class="code">1</code> by default). <code class="code">IntervalSeconds</code> has a maximum value of 99,999,999.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">MaxAttempts</code> (Optional)</span></b></dt>
+                <dd>
+                    <p>A positive integer that represents the maximum number of retry attempts
+                            (<code class="code">3</code> by default). If the error recurs more times than
+                        specified, retries cease and normal error handling resumes. A value of
+                            <code class="code">0</code> specifies that the
+                        error
+                        is never retried. <code class="code">MaxAttempts</code> has a maximum value of 99,999,999.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">BackoffRate</code> (Optional)</span></b></dt>
+                <dd>
+                    <p>The multiplier by which the retry interval denoted by <code class="code">IntervalSeconds</code> increases after each retry attempt. By default, the 
+                        <code class="code">BackoffRate</code> value increases by <code class="code">2.0</code>.</p>
+                    
+                    <p>For example, say your <code class="code">IntervalSeconds</code> is 3, <code class="code">MaxAttempts</code> is 3, and <code class="code">BackoffRate</code> is 2. The first retry attempt takes place three seconds after the error occurs. The second retry takes place six seconds after the first retry attempt. While the third retry takes place 12 seconds after the second retry attempt.</p>
+                    
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">MaxDelaySeconds</code> (Optional)
+                </span></b></dt>
+                <dd>
+                    <p>A positive integer that sets the maximum value, in seconds, up to which a retry interval can increase. This field is helpful to use with the <code class="code">BackoffRate</code> field. The value you specify in this field limits the exponential wait times resulting from the backoff rate multiplier applied to each consecutive retry attempt. You must specify a value greater than 0 and less than 31622401 for <code class="code">MaxDelaySeconds</code>.</p>
+                    
+                    <p>If you don't specify this value, Step Functions doesn't limit the wait times between retry attempts.</p>
+                    
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">JitterStrategy</code> (Optional)
+                </span></b></dt>
+                <dd>
+                    <p>A string that determines whether or not to include jitter in the wait times between consecutive retry attempts. Jitter reduces simultaneous retry attempts by spreading these out over a randomized delay interval. This string accepts <code class="code">FULL</code> or <code class="code">NONE</code> as its values. The default value is <code class="code">NONE</code>.</p>
+                    
+                    <p>For example, say you have set <code class="code">MaxAttempts</code> as 3, <code class="code">IntervalSeconds</code> as 2, and <code class="code">BackoffRate</code> as 2. The first retry attempt takes place two seconds after the error occurs. The second retry takes place four seconds after the first retry attempt and the third retry takes place eight seconds after the second retry attempt. If you set <code class="code">JitterStrategy</code> as <code class="code">FULL</code>, the first retry interval is randomized between 0 and 2 seconds, the second retry interval is randomized between 0 and 4 seconds, and the third retry interval is randomized between 0 and 8 seconds.</p>
+                </dd>
+            </dl></div>
+
+        <div class="awsdocs-note"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>Note</h6></div><div class="awsdocs-note-text"><p>Retries are treated as state transitions. For information about how state transitions affect billing, see <a href="https://aws.amazon.com/step-functions/pricing/" rel="noopener noreferrer" target="_blank"><span>Step Functions Pricing</span><awsui-icon class="awsdocs-link-icon" name="external"></awsui-icon></a>.</p></div></div>
+        
+        
+         
+            
+            <h3 id="retry-field-examples">Retry field examples</h3>
+            
+            <p>This section includes the following <code class="code">Retry</code> field examples.</p>
+            
+            <div class="itemizedlist">
+                
+                 
+                
+                 
+                
+                 
+                
+                 
+                
+            <ul class="itemizedlist"><li class="listitem">
+                    <p><a href="#retrybackoffrate">Retry with BackoffRate</a></p>
+                </li><li class="listitem">
+                    <p><a href="#retrymaxdelayseconds">Retry with MaxDelaySeconds</a></p>
+                </li><li class="listitem">
+                    <p><a href="#retrytimeout">Retry all errors except States.Timeout</a></p>
+                </li><li class="listitem">
+                    <p><a href="#complexretryeg">Complex retry scenario</a></p>
+                </li></ul></div>
+            
+             
+                <h6><div id="retrybackoffrate" xreflabel="Retry with BackoffRate"></div>Example 1 – Retry with BackoffRate</h6>
+                <p>The following example of a <code class="code">Retry</code> makes two retry attempts with the first retry taking place after waiting for three seconds. Based on the <code class="code">BackoffRate</code> you specify, Step Functions increases the interval between each retry until the maximum number of retry attempts is reached. In the following example, the second retry attempt starts after waiting for three seconds after the first retry.</p>
+             
+            
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (none)--><code class="nohighlight">"Retry": [ <span>{</span>
+   "ErrorEquals": [ "States.Timeout" ],
+   "IntervalSeconds": 3,
+   "MaxAttempts": 2,
+   "BackoffRate": 1
+} ]</code></pre>
+            
+            
+             
+                <h6><div id="retrymaxdelayseconds" xreflabel="Retry with MaxDelaySeconds"></div>Example 2 – Retry with MaxDelaySeconds</h6>
+                <p>The following example makes three retry attempts and limits the wait time resulting from <code class="code">BackoffRate</code> at 5 seconds. The first retry takes place after waiting for three seconds. The second and third retry attempts take place after waiting for five seconds after the preceding retry attempt because of the maximum wait time limit set by <code class="code">MaxDelaySeconds</code>.</p>
+             
+            
+            
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (none)--><code class="nohighlight">"Retry": [ <span>{</span>
+    "ErrorEquals": [ "States.Timeout" ],
+    "IntervalSeconds": 3,
+    "MaxAttempts": 3,
+    "BackoffRate":2,
+    "MaxDelaySeconds": 5,
+    "JitterStrategy": "FULL"
+} ]</code></pre>
+            
+            <p>Without <code class="code">MaxDelaySeconds</code>, the second retry attempt would take place six seconds after the first retry, and the third retry attempt would take place 12 seconds after the second retry.</p>
+            
+            
+             
+                <h6><div id="retrytimeout" xreflabel="Retry all errors except States.Timeout"></div>Example 3 – Retry all errors except States.Timeout</h6>
+                <p>The reserved name <code class="code">States.ALL</code> that appears in a retrier's <code class="code">ErrorEquals</code> field is a wildcard that matches any error name. It must appear alone in the <code class="code">ErrorEquals</code> array and must appear in the last retrier in the <code class="code">Retry</code> array. The name <code class="code">States.TaskFailed</code> also acts a wildcard and matches any error except for <code class="code">States.Timeout</code>.</p>
+             
+            
+            <p>The following example of a <code class="code">Retry</code> field retries any error except <code class="code">States.Timeout</code>.</p>
+            
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (none)--><code class="nohighlight">"Retry": [ <span>{</span>
+   "ErrorEquals": [ "States.Timeout" ],
+   "MaxAttempts": 0
+}, <span>{</span>
+   "ErrorEquals": [ "States.ALL" ]
+} ]</code></pre>
+            
+            
+             
+                <h6><div id="complexretryeg" xreflabel="Complex retry scenario"></div>Example 4 – Complex retry scenario</h6>
+                <p>A retrier's parameters apply across all visits to the retrier in the context of a
+                    single-state execution. </p>
+             
+            
+            <p>Consider the following <code class="code">Task</code> state.</p>
+                
+                <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (none)--><code class="nohighlight">"X": <span>{</span>
+   "Type": "Task",
+   "Resource": "arn:aws:states:<code class="replaceable">region</code>:123456789012:task:X",
+   "Next": "Y",
+   "Retry": [ <span>{</span>
+      "ErrorEquals": [ "ErrorA", "ErrorB" ],
+      "IntervalSeconds": 1,
+      "BackoffRate": 2.0,
+      "MaxAttempts": 2
+   }, <span>{</span>
+      "ErrorEquals": [ "ErrorC" ],
+      "IntervalSeconds": 5
+   } ],
+   "Catch": [ <span>{</span>
+      "ErrorEquals": [ "States.ALL" ],
+      "Next": "Z"
+   } ]
+}</code></pre>
+                <p>This task fails four times in succession, outputting these error names: <code class="code">ErrorA</code>, <code class="code">ErrorB</code>, <code class="code">ErrorC</code>, and 
+                    <code class="code">ErrorB</code>. The following occurs as a result:</p>
+                <div class="itemizedlist">
+                     
+                    
+                     
+                    
+                     
+                <ul class="itemizedlist"><li class="listitem">
+                        <p>The first two errors match the first retrier and cause waits of one and two seconds.</p>
+                    </li><li class="listitem">
+                        <p>The third error matches the second retrier and causes a wait of five seconds.</p>
+                    </li><li class="listitem">
+                        <p>The fourth error also matches the first retrier. However,
+                            it
+                            already reached its maximum of two retries (<code class="code">MaxAttempts</code>) for
+                            that particular error. Therefore, that retrier fails and the execution
+                            redirects
+                            the workflow to the <code class="code">Z</code> state through the
+                            <code class="code">Catch</code> field.</p>
+                    </li></ul></div>
+        
+         
+     
+        <h2 id="error-handling-fallback-states">Fallback states</h2>
+
+        <p><code class="code">Task</code>,
+                <code class="code">Map</code> and <code class="code">Parallel</code> states can
+            each
+            have a field named <code class="code">Catch</code>. This field's value must be an
+            array of objects, known as <em>catchers</em>.</p>
+
+        <p>A catcher contains the following fields.</p>
+        <div class="variablelist">
+             
+             
+             
+        <dl>
+                <dt><b><span class="term">
+                    <code class="code">ErrorEquals</code> (Required)</span></b></dt>
+                <dd>
+                    <p>A non-empty array of strings that match error names, specified exactly as
+                        they are with the retrier field of the same name.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">Next</code> (Required)</span></b></dt>
+                <dd>
+                    <p>A string that must exactly match one of the state machine's state
+                        names.</p>
+                </dd>
+            
+                <dt><b><span class="term">
+                    <code class="code">ResultPath</code> (JSONPath, Optional)</span></b></dt>
+                <dd>
+                    <p>A <a href="./concepts-input-output-filtering.html">path</a> that
+                        determines what input
+                        the
+                        catcher sends to the state specified in the
+                            <code class="code">Next</code> field.</p>
+                </dd>
+            </dl></div>
+        <p>When a state reports an error and either there is no <code class="code">Retry</code> field, or if
+            retries fail to resolve the error, Step Functions scans through the catchers in the order listed
+            in the array. When the error name appears in the value of a catcher's
+                <code class="code">ErrorEquals</code> field, the state machine transitions to the state named in
+            the <code class="code">Next</code> field.</p>
+        <p>The reserved name <code class="code">States.ALL</code> that appears in a catcher's
+                <code class="code">ErrorEquals</code> field is a wildcard that matches any error name. It must
+            appear alone in the <code class="code">ErrorEquals</code> array and must appear in the last catcher
+            in the <code class="code">Catch</code> array. The name <code class="code">States.TaskFailed</code> also acts a
+            wildcard and matches any error except for <code class="code">States.Timeout</code>.</p>
+        <p>The following example of a <code class="code">Catch</code> field transitions to the state named
+                <code class="code">RecoveryState</code> when a Lambda function outputs an unhandled Java
+            exception. Otherwise, the field transitions to the <code class="code">EndState</code> state.</p>
+        <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (none)--><code class="nohighlight">"Catch": [ <span>{</span>
+   "ErrorEquals": [ "java.lang.Exception" ],
+   "ResultPath": "$.error-info",
+   "Next": "RecoveryState"
+}, <span>{</span>
+   "ErrorEquals": [ "States.ALL" ],
+   "Next": "EndState"
+} ]</code></pre>
+        <div class="awsdocs-note"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>How many errors can a catcher catch?</h6></div><div class="awsdocs-note-text"><p>Each catcher can specify <b>multiple errors</b> to handle.</p></div></div>
+
+
+
+         
+            <h3 id="error-handling-error-output">Error output</h3>
+
+            <p>When Step Functions transitions to the state specified in a catch name, the object usually
+                contains the field <code class="code">Cause</code>. This field's value is a human-readable
+                description of the error. This object is known as the <em>error
+                    output</em>.</p>
+            <p>In the previous JSONPath example, the first catcher contains a <code class="code">ResultPath</code> field. This
+                works similarly to a <code class="code">ResultPath</code> field in a state's top level, resulting
+                in two possibilities:</p>
+            <div class="itemizedlist">
+                 
+                 
+            <ul class="itemizedlist"><li class="listitem">
+                    <p>Take the results of that state's execution and overwrite
+                        either all of, or a portion of, the state's input.</p>
+                </li><li class="listitem">
+                    <p>Take the results and adds them to the input. In the case of an error
+                        handled by a catcher, the result of the state's execution is the error output.</p>
+                </li></ul></div>
+            <p>Thus, for the first catcher in the example,
+                the catcher
+                adds the error
+                output
+                to the input as a field named <code class="code">error-info</code>
+                if there
+                isn't already a field with this name in the
+                input.
+                Then, the
+                catcher sends the entire
+                input
+                to <code class="code">RecoveryState</code>. For the second catcher, the error output overwrites
+                the input and
+                the catcher
+                only
+                sends the
+                error output
+                to
+                <code class="code">EndState</code>.</p>
+                <p>For JSONPath workflows, if you don't specify the <code class="code">ResultPath</code> field, it defaults to
+                        <code class="code">$</code>, which selects and overwrites the entire input.</p>
+            <p>When a state has both <code class="code">Retry</code> and <code class="code">Catch</code> fields, Step Functions uses
+                any appropriate retriers first.
+                If
+                the retry policy fails to resolve the error, Step Functions applies the
+                matching catcher
+                transition.</p>
+
+         
+         
+            <h3 id="error-handling-integrations-json">Cause payloads and service integrations</h3>
+            <p>A catcher returns a string payload as an output. When working with service
+                integrations such as Amazon Athena or AWS CodeBuild, you may want to convert the
+                    <code class="code">Cause</code> string to JSON. The following example of a
+                    <code class="code">Pass</code>
+                state with intrinsic functions shows how to convert a
+                    <code class="code">Cause</code>
+                string to JSON.</p>
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json ">"Handle escaped JSON with JSONtoString": <span>{</span>
+  "Type": "Pass",
+  "Parameters": <span>{</span>
+    "Cause.$": "States.StringToJson($.Cause)"
+  },
+  "Next": "Pass State with Pass Processing"
+},</code></pre>
+         
+     
+        <h2 id="error-handling-examples">State machine examples using Retry and Catch</h2>
+
+        <p>The state machines defined in the following examples assume the existence of two Lambda
+            functions: one that always fails and one that waits long enough to allow a timeout
+            defined in the state machine to occur.</p>
+        
+        <p>This is a definition of a Node.js Lambda function that always fails, returning the
+            message <code class="code">error</code>. In the state machine examples that follow, this Lambda
+            function is named <code class="code">FailFunction</code>. For information about creating a Lambda
+            function, see <a href="./tutorial-creating-lambda-state-machine.html#create-lambda-function">Step 1: Create a Lambda function</a> section.</p>
+        
+        <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (javascript)--><code class="javascript ">exports.handler = (event, context, callback) =&gt; <span>{</span>
+    callback("error");
+};</code></pre>
+        
+        <p>This is a definition of a Node.js Lambda function that sleeps for 10 seconds. In the state machine examples that follow, this Lambda function is named <code class="code">sleep10</code>.</p>
+        
+        <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (javascript)--><code class="javascript ">exports.handler = (event, context, callback) =&gt; <span>{</span>
+    setTimeout(function()<span>{</span>
+    }, 11000);
+};</code></pre>
+
+        <div class="awsdocs-note"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>Timeout settings for the function</h6></div><div class="awsdocs-note-text"><p>When you create the Lambda function for the examples, remember to set the <code class="code">Timeout</code> value in the advanced settings to 11 seconds.</p></div></div>
+
+
+         
+            <h3 id="error-handling-handling-failure-using-retry">Handling a failure using Retry</h3>
+
+            <p>This state machine uses a <code class="code">Retry</code> field to retry a function that fails
+                and outputs the error name <code class="code">HandledError</code>.
+                It retries
+                this
+                function
+                twice
+                with an exponential backoff between retries.</p>
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json "><span>{</span>
+   "Comment": "A Hello World example invoking Lambda function",
+   "StartAt": "HelloWorld",
+   "States": <span>{</span>
+      "HelloWorld": <span>{</span>
+         "Type": "Task",
+         "Resource": "arn:aws:lambda:<code class="replaceable">region</code>:123456789012:function:FailFunction",
+         "Retry": [ <span>{</span>
+            "ErrorEquals": ["HandledError"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+         } ],
+      "End": true
+      }
+   }
+}</code></pre>
+            <p>This variant uses the predefined error code <code class="code">States.TaskFailed</code>, which
+                matches any error that a Lambda function outputs.</p>
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json "><span>{</span>
+   "Comment": "Hello World example which invokes a AWS Lambda function",
+   "StartAt": "HelloWorld",
+   "States": <span>{</span>
+      "HelloWorld": <span>{</span>
+         "Type": "Task",
+         "Resource": "arn:aws:lambda:<code class="replaceable">region</code>:123456789012:function:FailFunction",
+         "Retry": [ <span>{</span>
+            "ErrorEquals": ["States.TaskFailed"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+         } ],
+         "End": true
+      }
+   }
+}</code></pre>
+            <div class="awsdocs-note"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>Best practices for handling Lambda exceptions</h6></div><div class="awsdocs-note-text"><p>Tasks that reference a Lambda function should handle Lambda
+                    service exceptions. For more information, see <a href="./sfn-best-practices.html#bp-lambda-serviceexception">Handle transient Lambda service exceptions</a> in Best Practices. </p></div></div>
+         
+         
+            <h3 id="error-handling-handling-failure-using-catch">Handling a failure using Catch</h3>
+
+            <p>This example uses a <code class="code">Catch</code> field. When a Lambda function outputs an
+                error, it
+                catches the error
+                and
+                the state machine transitions to the <code class="code">fallback</code> state.</p>
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json "><span>{</span>
+   "Comment": "Hello World example which invokes a AWS Lambda function",
+   "StartAt": "HelloWorld",
+   "States": <span>{</span>
+      "HelloWorld": <span>{</span>
+         "Type": "Task",
+         "Resource": "arn:aws:lambda:<code class="replaceable">region</code>:123456789012:function:FailFunction",
+         "Catch": [ <span>{</span>
+            "ErrorEquals": ["HandledError"],
+            "Next": "fallback"
+         } ],
+         "End": true
+      },
+      "fallback": <span>{</span>
+         "Type": "Pass",
+         "Result": "Hello, AWS Step Functions!",
+         "End": true
+      }
+   }
+}</code></pre>
+            <p>This variant uses the predefined error code <code class="code">States.TaskFailed</code>, which
+                matches any error that a Lambda function outputs.</p>
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json "><span>{</span>
+   "Comment": "Hello World example which invokes a AWS Lambda function",
+   "StartAt": "HelloWorld",
+   "States": <span>{</span>
+      "HelloWorld": <span>{</span>
+         "Type": "Task",
+         "Resource": "arn:aws:lambda:<code class="replaceable">region</code>:123456789012:function:FailFunction",
+         "Catch": [ <span>{</span>
+            "ErrorEquals": ["States.TaskFailed"],
+            "Next": "fallback"
+         } ],
+      "End": true
+      },
+      "fallback": <span>{</span>
+         "Type": "Pass",
+         "Result": "Hello, AWS Step Functions!",
+         "End": true
+      }
+   }
+}</code></pre>
+
+         
+         
+            <h3 id="error-handling-handling-timeout-using-retry">Handling a timeout using Retry</h3>
+
+            <p>This state machine uses a <code class="code">Retry</code> field to retry a <code class="code">Task</code>
+                state that times
+                out,
+                based on the timeout value specified in <code class="code">TimeoutSeconds</code>.
+                Step Functions retries
+                the
+                Lambda function invocation in this <code class="code">Task</code> state
+                twice,
+                with an exponential backoff between retries.</p>
+            
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json "><span>{</span>
+   "Comment": "Hello World example which invokes a AWS Lambda function",
+   "StartAt": "HelloWorld",
+   "States": <span>{</span>
+      "HelloWorld": <span>{</span>
+         "Type": "Task",
+         "Resource": "arn:aws:lambda:<code class="replaceable">region</code>:123456789012:function:sleep10",
+         "TimeoutSeconds": 2,
+         "Retry": [ <span>{</span>
+            "ErrorEquals": ["States.Timeout"],
+            "IntervalSeconds": 1,
+            "MaxAttempts": 2,
+            "BackoffRate": 2.0
+         } ],
+         "End": true
+      }
+   }
+}</code></pre>
+
+         
+         
+            <h3 id="error-handling-handling-timeout-using-catch">Handling a timeout using Catch</h3>
+
+            <p>This example uses a <code class="code">Catch</code> field. When a timeout occurs, the state
+                machine transitions to the <code class="code">fallback</code> state.</p>
+            <pre class="programlisting"><div class="code-btn-container"></div><!--DEBUG: cli (json)--><code class="json "><span>{</span>
+   "Comment": "Hello World example which invokes a AWS Lambda function",
+   "StartAt": "HelloWorld",
+   "States": <span>{</span>
+      "HelloWorld": <span>{</span>
+         "Type": "Task",
+         "Resource": "arn:aws:lambda:<code class="replaceable">region</code>:123456789012:function:sleep10",
+         "TimeoutSeconds": 2,
+         "Catch": [ <span>{</span>
+            "ErrorEquals": ["States.Timeout"],
+            "Next": "fallback"
+         } ],
+         "End": true
+      },
+      "fallback": <span>{</span>
+         "Type": "Pass",
+         "Result": "Hello, AWS Step Functions!",
+         "End": true
+      }
+   }
+}</code></pre>
+            <div class="awsdocs-note"><div class="awsdocs-note-title"><awsui-icon name="status-info" variant="link"></awsui-icon><h6>Preserving state input and error in JSONPath</h6></div><div class="awsdocs-note-text"><p>In JSONPath, you can preserve the state input and the error by using
+                        <code class="code">ResultPath</code>. See <a href="./input-output-resultpath.html#input-output-resultpath-catch">Use ResultPath to include both error and input in a Catch</a>.</p></div></div>
+         
+    <awsdocs-copyright class="copyright-print"></awsdocs-copyright><awsdocs-thumb-feedback right-edge="{{$ctrl.thumbFeedbackRightEdge}}"></awsdocs-thumb-feedback></div><noscript><div><div><div><div id="js_error_message"><p><img src="https://d1ge0kk1l5kms0.cloudfront.net/images/G/01/webservices/console/warning.png" alt="Warning" /> <strong>Javascript is disabled or is unavailable in your browser.</strong></p><p>To use the Amazon Web Services Documentation, Javascript must be enabled. Please refer to your browser's Help pages for instructions.</p></div></div></div></div></noscript><div id="main-col-footer" class="awsui-util-font-size-0"><div id="doc-conventions"><a target="_top" href="/general/latest/gr/docconventions.html">Document Conventions</a></div><div class="prev-next"><div id="previous" class="prev-link" accesskey="p" href="./version-rolling-deployment.html">Gradual deployment of versions</div><div id="next" class="next-link" accesskey="n" href="./troubleshooting.html">Troubleshooting</div></div></div><awsdocs-page-utilities></awsdocs-page-utilities></div><div id="quick-feedback-yes" style="display: none;"><div class="title">Did this page help you? - Yes</div><div class="content"><p>Thanks for letting us know we're doing a good job!</p><p>If you've got a moment, please tell us what we did right so we can do more of it.</p><p><awsui-button id="fblink" rel="noopener noreferrer" target="_blank" text="Feedback" click="linkClick($event)" href="https://docs.aws.amazon.com/forms/aws-doc-feedback?hidden_service_name=Step Functions&amp;topic_url=https://docs.aws.amazon.com/en_us/step-functions/latest/dg/concepts-error-handling.html"></awsui-button></p></div></div><div id="quick-feedback-no" style="display: none;"><div class="title">Did this page help you? - No</div><div class="content"><p>Thanks for letting us know this page needs work. We're sorry we let you down.</p><p>If you've got a moment, please tell us how we can make the documentation better.</p><p><awsui-button id="fblink" rel="noopener noreferrer" target="_blank" text="Feedback" click="linkClick($event)" href="https://docs.aws.amazon.com/forms/aws-doc-feedback?hidden_service_name=Step Functions&amp;topic_url=https://docs.aws.amazon.com/en_us/step-functions/latest/dg/concepts-error-handling.html"></awsui-button></p></div></div></div></body></div></awsdocs-view><div class="page-loading-indicator" id="page-loading-indicator"><awsui-spinner size="large"></awsui-spinner></div></div><div id="tools-panel" dom-region="tools"><awsdocs-tools-panel id="awsdocs-tools-panel"></awsdocs-tools-panel></div></awsui-app-layout><awsdocs-cookie-banner class="doc-cookie-banner"></awsdocs-cookie-banner></div></body></html>

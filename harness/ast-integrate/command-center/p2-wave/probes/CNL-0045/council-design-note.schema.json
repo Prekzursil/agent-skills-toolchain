@@ -1,0 +1,128 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "command-center/p2-wave/probes/CNL-0045/council-design-note.schema.json",
+  "title": "CNL-0045 ENGINEERING-REVIEW runtime design note",
+  "type": "object",
+  "additionalProperties": true,
+  "required": [
+    "unit_id",
+    "state",
+    "sentinel",
+    "title",
+    "question",
+    "answer",
+    "family",
+    "family_count",
+    "records",
+    "oracles",
+    "no_oracle",
+    "tests",
+    "negative_controls",
+    "reviewer",
+    "evidence",
+    "artifacts",
+    "library"
+  ],
+  "properties": {
+    "unit_id": { "type": "string", "const": "CNL-0045" },
+    "state": {
+      "type": "string",
+      "enum": ["SUCCESS", "PARTIAL", "BLOCKED", "FAILED", "TIMEOUT", "SEVERED"]
+    },
+    "sentinel": { "type": "string", "const": "SUCCESS:CNL-0045" },
+    "title": { "type": "string", "minLength": 16 },
+    "question": { "type": "string", "minLength": 40 },
+    "answer": { "type": "string", "minLength": 40 },
+    "family": { "type": "string", "const": "ENGINEERING-REVIEW" },
+    "family_count": { "type": "integer", "minimum": 7, "maximum": 7 },
+    "records": {
+      "type": "array",
+      "minItems": 7,
+      "maxItems": 7,
+      "items": {
+        "type": "object",
+        "required": ["id", "verdict"],
+        "properties": {
+          "id": { "type": "string", "pattern": "^P5[0-1]$|^P4[5-9]$" },
+          "verdict": {
+            "type": "string",
+            "enum": ["HAS-ORACLE", "NO-ORACLE"]
+          }
+        }
+      }
+    },
+    "oracles": { "type": "array", "minItems": 1 },
+    "no_oracle": { "type": "array", "minItems": 1 },
+    "tests": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["id", "command", "result"],
+        "properties": {
+          "id": { "type": "string" },
+          "command": { "type": "string", "minLength": 8 },
+          "result": { "type": "string", "enum": ["PASS", "FAIL", "NOT-RUN"] }
+        }
+      }
+    },
+    "negative_controls": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["id", "rejects", "verbatim"],
+        "properties": {
+          "id": { "type": "string" },
+          "rejects": { "type": "string", "minLength": 8 },
+          "verbatim": { "type": "string", "minLength": 24 }
+        }
+      }
+    },
+    "reviewer": {
+      "type": "object",
+      "required": ["reviewer_id", "verdict", "independent"],
+      "properties": {
+        "reviewer_id": { "type": "string", "minLength": 3 },
+        "verdict": { "type": "string" },
+        "independent": { "type": "boolean" }
+      }
+    },
+    "evidence": {
+      "type": "array",
+      "minItems": 2,
+      "items": {
+        "type": "object",
+        "required": ["claim", "verdict", "anchor"],
+        "properties": {
+          "claim": { "type": "string", "minLength": 8 },
+          "verdict": {
+            "type": "string",
+            "enum": ["CONFIRMED", "REFUTED", "PARTIAL", "NOT-CHECKED", "BLOCKED"]
+          },
+          "anchor": { "type": "string", "minLength": 3 }
+        }
+      }
+    },
+    "artifacts": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["path", "exists", "role"],
+        "properties": {
+          "path": { "type": "string" },
+          "exists": { "type": "boolean", "const": true },
+          "role": { "type": "string" }
+        }
+      }
+    },
+    "library": {
+      "type": "object",
+      "required": ["on_this_tree"],
+      "properties": {
+        "on_this_tree": { "type": "boolean" }
+      }
+    }
+  }
+}

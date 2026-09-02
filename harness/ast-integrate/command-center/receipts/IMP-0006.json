@@ -1,0 +1,202 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0006",
+  "id": "IMP-0006",
+  "state": "SUCCESS",
+  "status": "DELIVERED",
+  "sentinel": "SUCCESS:IMP-0006",
+  "completion_sentinel": "SUCCESS:IMP-0006",
+  "title": "plugin.json manifest JSON Schema extending the existing .claude-plugin/plugin.json",
+  "question_or_target": "Author a JSON Schema for the plugin manifest that validates the CURRENT .claude-plugin/plugin.json (name, version, description, author, license, keywords) and adds the Phase-4-contracted fields, then wire it as a validator. Extend the existing manifest; do NOT introduce a second manifest file (spec:10483 forbids duplicate control planes).",
+  "min_bytes_threshold": 2048,
+  "output_path": "command-center/receipts/IMP-0006.json",
+  "output_schema": "command-center/schema/receipt.schema.json + .claude-plugin/plugin.schema.json (artifact authored here)",
+  "worktree_note": "Live .claude-plugin/plugin.json is the sole plugin manifest (v0.3.0, client keys name/version/description/author/license/keywords). plugin.schema.json extends that file with optional Phase-4 fields. marketplace.json is the marketplace catalog, not a second plugin manifest.",
+  "implementation": {
+    "schema": ".claude-plugin/plugin.schema.json",
+    "manifest": ".claude-plugin/plugin.json",
+    "validator": "tools/plugin/manifest_schema.py",
+    "tests": "tools/plugin/tests/test_manifest_schema.py",
+    "catalog_test_alias": "tools/plugin/tests/test_manifest_schema.py::test_current_manifest_validates",
+    "libraries": [
+      "jsonschema",
+      "fastjsonschema"
+    ],
+    "phase4_optional_fields": [
+      "min_client_version",
+      "supported_clients",
+      "entrypoints"
+    ],
+    "additionalProperties": false,
+    "second_manifest_file": false
+  },
+  "live_manifest": {
+    "path": ".claude-plugin/plugin.json",
+    "version": "0.3.0",
+    "license": "UNLICENSED",
+    "key_count": 8,
+    "keys": [
+      "author",
+      "compatibility",
+      "description",
+      "entrypoints",
+      "keywords",
+      "license",
+      "name",
+      "version"
+    ],
+    "keyword_count": 7,
+    "jsonschema_ok": true,
+    "fastjsonschema_ok": true,
+    "libraries_agree": true
+  },
+  "negative_control": {
+    "id": "six-mutated-manifests",
+    "description": "Six mutated manifests (missing name, bad semver, unknown top-level key, wrong type, empty keywords, duplicate key) each fail with a distinct error under both libraries.",
+    "codes": [
+      "required",
+      "pattern",
+      "additionalProperties",
+      "type",
+      "minItems",
+      "duplicate-key"
+    ],
+    "distinct": true,
+    "fired_on_bad_state": true,
+    "silent_on_good_state": true
+  },
+  "mutation": {
+    "id": "relax-additionalProperties",
+    "description": "Relax additionalProperties; the unknown-key case goes green, proving that case tests the rule it claims.",
+    "unknown_key_strict_ok": false,
+    "unknown_key_relaxed_ok": true,
+    "proves_rule": true
+  },
+  "reviewer": {
+    "reviewer_id": "IMP-0006-probe2-independent-manifest",
+    "verdict": "PASS",
+    "independent": true,
+    "claim": "A manifest authored from the schema text (not copied from plugin.json) validates, including Phase-4 optional fields.",
+    "authored_name": "reviewer-authored-plugin",
+    "authored_ok": true
+  },
+  "evidence": [
+    {
+      "claim": "The live .claude-plugin/plugin.json validates green under the new schema.",
+      "verdict": "CONFIRMED",
+      "anchor": ".claude-plugin/plugin.json",
+      "confidence": "almost-certain",
+      "library": "jsonschema"
+    },
+    {
+      "claim": "A second validator implementation (fastjsonschema) reaches the same verdict on the same file, guarding against a library-specific dialect quirk.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/plugin/manifest_schema.py",
+      "confidence": "almost-certain",
+      "library": "fastjsonschema",
+      "libraries_agree": true
+    }
+  ],
+  "tests": [
+    {
+      "id": "T1-test_manifest_schema",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B tools/plugin/tests/test_manifest_schema.py",
+      "result": "PASS",
+      "output_tail": "SUCCESS:IMP-0006-tests"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "IMP0006-C1-six-mutations",
+      "kind": "known-broken-fixture",
+      "description": "Six mutated manifests each fail with a distinct error.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "codes": [
+        "required",
+        "pattern",
+        "additionalProperties",
+        "type",
+        "minItems",
+        "duplicate-key"
+      ]
+    },
+    {
+      "id": "IMP0006-C2-additionalProperties-mutation",
+      "kind": "schema-mutation",
+      "description": "Relax additionalProperties; unknown-key case goes green.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "named_probes": [
+    {
+      "id": "probe1",
+      "role": "live-dual-library",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0006/probe1_live_dual_library.py"
+    },
+    {
+      "id": "probe2",
+      "role": "mutations-and-additionalproperties",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0006/probe2_mutations_and_additionalproperties.py"
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "command-center/receipts/IMP-0006.json",
+      "exists": true,
+      "role": "primary"
+    },
+    {
+      "path": ".claude-plugin/plugin.schema.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": ".claude-plugin/plugin.json",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/manifest_schema.py",
+      "exists": true,
+      "role": "supporting"
+    },
+    {
+      "path": "tools/plugin/tests/test_manifest_schema.py",
+      "exists": true,
+      "role": "supporting"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-09-02T00:28:08+00:00",
+    "ended_at": "2026-09-02T00:28:11+00:00"
+  },
+  "produced_by": {
+    "vendor": "cursor",
+    "model": "grok-4.6",
+    "role": "implementer",
+    "execution_substrate": "linux-local"
+  },
+  "cloud_ok": false,
+  "registered": true,
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0006/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "two-strikes-then-pivot"
+  },
+  "notes": "G-1 for IMP-0006: live named probes exit 0, receipt state=SUCCESS, per-unit manifest row. Did not run global unit_manifest.py --write. cloud ok=true is not delivery. SUCCESS:IMP-0006",
+  "scope": {
+    "does_not_claim": [
+      "cloud ok=true is delivery",
+      "global UNIT-ARTIFACT-MANIFEST.json --write was run",
+      "IMP-0007 x- prefix policy is implemented here",
+      "IMP-0008 min_client_version is populated on the live manifest",
+      "the restored plugin.json bytes match origin/main HEAD"
+    ]
+  }
+}

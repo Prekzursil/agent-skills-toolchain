@@ -1,0 +1,123 @@
+{
+  "$id": "https://prekzursil.dev/ast-integrate/schema/drift-classification.schema.json",
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "additionalProperties": false,
+  "description": "`bidirectional` is a const and `counts` must enumerate all six classes, so a one-directional classifier (which cannot see DIVERGED) cannot emit a valid document.",
+  "properties": {
+    "artifact": {
+      "const": "drift-classification"
+    },
+    "bidirectional": {
+      "const": true
+    },
+    "counts": {
+      "additionalProperties": false,
+      "properties": {
+        "diverged": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "live_absent": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "live_only": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "unchanged": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "untracked_live": {
+          "minimum": 0,
+          "type": "integer"
+        },
+        "upstream_only": {
+          "minimum": 0,
+          "type": "integer"
+        }
+      },
+      "required": [
+        "unchanged",
+        "upstream_only",
+        "live_only",
+        "diverged",
+        "live_absent",
+        "untracked_live"
+      ],
+      "type": "object"
+    },
+    "entries": {
+      "items": {
+        "additionalProperties": false,
+        "properties": {
+          "classification": {
+            "enum": [
+              "unchanged",
+              "upstream_only",
+              "live_only",
+              "diverged",
+              "live_absent",
+              "untracked_live"
+            ]
+          },
+          "live_path": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "live_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "provenance_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "reason": {
+            "minLength": 1,
+            "type": "string"
+          },
+          "source_path": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "source_sha256": {
+            "pattern": "^[0-9a-f]{64}$",
+            "type": [
+              "string",
+              "null"
+            ]
+          }
+        },
+        "required": [
+          "live_path",
+          "classification",
+          "reason"
+        ],
+        "type": "object"
+      },
+      "type": "array"
+    },
+    "hash_algorithm": {
+      "const": "sha256-over-LF-normalised-bytes"
+    }
+  },
+  "required": [
+    "artifact",
+    "bidirectional",
+    "hash_algorithm",
+    "counts",
+    "entries"
+  ],
+  "title": "Two-directional live-versus-source drift classification",
+  "type": "object"
+}

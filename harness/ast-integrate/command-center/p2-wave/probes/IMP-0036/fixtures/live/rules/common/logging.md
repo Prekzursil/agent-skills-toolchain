@@ -1,0 +1,27 @@
+# rules/common/logging.md
+shared:rules/common/logging.md
+live-unique:rules/common/logging.md
+live-pad:rules/common/logging.md:0
+live-pad:rules/common/logging.md:1
+live-pad:rules/common/logging.md:2
+live-pad:rules/common/logging.md:3
+live-pad:rules/common/logging.md:4
+live-pad:rules/common/logging.md:5
+live-pad:rules/common/logging.md:6
+live-pad:rules/common/logging.md:7
+live-pad:rules/common/logging.md:8
+live-pad:rules/common/logging.md:9
+live-pad:rules/common/logging.md:10
+live-pad:rules/common/logging.md:11
+live-pad:rules/common/logging.md:12
+live-pad:rules/common/logging.md:13
+live-pad:rules/common/logging.md:14
+live-pad:rules/common/logging.md:15
+live-pad:rules/common/logging.md:16
+live-pad:rules/common/logging.md:17
+live-pad:rules/common/logging.md:18
+live-pad:rules/common/logging.md:19
+live-pad:rules/common/logging.md:20
+live-pad:rules/common/logging.md:21
+live-pad:rules/common/logging.md:22
+live-pad:rules/common/logging.md:23

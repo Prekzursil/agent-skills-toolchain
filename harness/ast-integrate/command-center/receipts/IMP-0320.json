@@ -1,0 +1,1309 @@
+{
+ "unit_id": "IMP-0320",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0320",
+ "profile": "council-antifail-module",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json work_units[id=IMP-0320] question_or_target; catalog-cited _USER-PROMPTS.md:11230 (role collapse: every participant behaving the same)",
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0320.json",
+   "bytes": 16916,
+   "sha256": "89b0ec48915c57d4694991b6f352829c495dcfabd55af26308d3b6e5b20a26b3",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "IMP-0320 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0320.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0320.json",
+     "raw_output": "bytes=16916 sha256=89b0ec48915c57d4694991b6f352829c495dcfabd55af26308d3b6e5b20a26b3",
+     "fingerprint": "ac8e4c55311d13a4c11fd7d9790b0505",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0320",
+     "raw_output": "schema-check",
+     "fingerprint": "b4b6406d7807e28447562204211ec9b4",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0320 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0320",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0320",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "e77a93c1e52661ad184ab8daa8f9637b",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0320",
+     "raw_output": "schema-valid",
+     "fingerprint": "3b6975f989ab5f6d892a8a5fe5a2bec0",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0320.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "schema_version": 1,
+ "min_bytes_threshold": 128,
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0320/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0320"
+ },
+ "extensions": {
+  "legacy_root": {
+   "title": "Role-collapse detector",
+   "completion_sentinel": "SUCCESS:IMP-0320",
+   "falsifiable_question": "Does the detector fire on a council where all seats are the same model with different role prompts, and stay silent on a genuinely diverse one?",
+   "answer": "It fires when outputs are similar AND role vocabularies are missing, not when model ids match. The planted collapsed fixture uses one model and four role prompts but near-identical outputs (mean Jaccard 0.853, mean role-vocab 0.000) and FIRE. The diverse fixture is SILENT (mean Jaccard 0.024, mean role-vocab 0.958). The hard same-model / strong-role-prompt fixture is classified SILENT (mean Jaccard 0.024, mean role-vocab 0.958); that is reported, not tuned into a FIRE. A declared-role-label decoy stays SILENT on collapsed (unique roles=['advocate', 'domain_expert', 'skeptic', 'user_proxy']). 11-COUNCIL-SPECIFICATION.md is absent on this worktree.",
+   "output_path": "command-center/receipts/IMP-0320.json",
+   "output_schema": "command-center/schema/receipt.schema.json profile=council-antifail-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+   "artifact_paths": [
+    "tools/council/antifail/role_collapse.py",
+    "command-center/p2-wave/probes/IMP-0320/fixtures.py",
+    "command-center/p2-wave/probes/IMP-0320/probe1_collapsed_vs_diverse.py",
+    "command-center/p2-wave/probes/IMP-0320/probe2_hard_case_vocab.py",
+    "command-center/receipts/IMP-0320.json"
+   ],
+   "module": {
+    "path": "tools/council/antifail/role_collapse.py",
+    "sha256": "4cdf7a83104c04096aaa61b6ae22a103db0a6dee631ed74e008de0bb79dc9e80",
+    "bytes": 7946,
+    "sim_fire": 0.8,
+    "vocab_fire": 0.5,
+    "fire_rule": "FIRE iff mean pairwise token Jaccard of outputs >= SIM_FIRE AND mean per-seat role-vocab score < VOCAB_FIRE. Model id and declared role labels are not inputs to the rule."
+   },
+   "similarity_distributions": {
+    "collapsed_pairwise_jaccard": [
+     0.923077,
+     0.846154,
+     0.923077,
+     0.785714,
+     0.857143,
+     0.785714
+    ],
+    "diverse_pairwise_jaccard": [
+     0.027778,
+     0.030303,
+     0.0,
+     0.026316,
+     0.0625,
+     0.0
+    ],
+    "collapsed_min": 0.785714,
+    "diverse_max": 0.0625,
+    "separated": true,
+    "ascii_plot": "collapsed pairwise Jaccard\nn=6 mean=0.853\n  [0.00,0.20)                  0\n  [0.20,0.40)                  0\n  [0.40,0.60)                  0\n  [0.60,0.80) ########         2\n  [0.80,1.00) ################ 4\n\ndiverse pairwise Jaccard\nn=6 mean=0.024\n  [0.00,0.20) ################ 6\n  [0.20,0.40)                  0\n  [0.40,0.60)                  0\n  [0.60,0.80)                  0\n  [0.80,1.00)                  0"
+   },
+   "role_vocab_per_seat": {
+    "collapsed": [
+     {
+      "role": "advocate",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "adopt",
+       "benefit",
+       "opportunity",
+       "recommend",
+       "ship",
+       "upside"
+      ],
+      "score": 0.0,
+      "present": false
+     },
+     {
+      "role": "skeptic",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "counterexample",
+       "failure",
+       "refute",
+       "risk",
+       "stampede",
+       "untested"
+      ],
+      "score": 0.0,
+      "present": false
+     },
+     {
+      "role": "domain_expert",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "constraint",
+       "invariant",
+       "latency",
+       "measured",
+       "p99",
+       "schema"
+      ],
+      "score": 0.0,
+      "present": false
+     },
+     {
+      "role": "user_proxy",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "oncall",
+       "operator",
+       "pager",
+       "rollback",
+       "runbook",
+       "toggle"
+      ],
+      "score": 0.0,
+      "present": false
+     }
+    ],
+    "diverse": [
+     {
+      "role": "advocate",
+      "markers_total": 6,
+      "found": [
+       "adopt",
+       "benefit",
+       "opportunity",
+       "recommend",
+       "ship"
+      ],
+      "missing": [
+       "upside"
+      ],
+      "score": 0.833333,
+      "present": true
+     },
+     {
+      "role": "skeptic",
+      "markers_total": 6,
+      "found": [
+       "counterexample",
+       "failure",
+       "refute",
+       "risk",
+       "stampede",
+       "untested"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "domain_expert",
+      "markers_total": 6,
+      "found": [
+       "constraint",
+       "invariant",
+       "latency",
+       "measured",
+       "p99",
+       "schema"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "user_proxy",
+      "markers_total": 6,
+      "found": [
+       "oncall",
+       "operator",
+       "pager",
+       "rollback",
+       "runbook",
+       "toggle"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     }
+    ],
+    "hard_same_model_strong_roles": [
+     {
+      "role": "advocate",
+      "markers_total": 6,
+      "found": [
+       "adopt",
+       "benefit",
+       "opportunity",
+       "recommend",
+       "ship"
+      ],
+      "missing": [
+       "upside"
+      ],
+      "score": 0.833333,
+      "present": true
+     },
+     {
+      "role": "skeptic",
+      "markers_total": 6,
+      "found": [
+       "counterexample",
+       "failure",
+       "refute",
+       "risk",
+       "stampede",
+       "untested"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "domain_expert",
+      "markers_total": 6,
+      "found": [
+       "constraint",
+       "invariant",
+       "latency",
+       "measured",
+       "p99",
+       "schema"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "user_proxy",
+      "markers_total": 6,
+      "found": [
+       "oncall",
+       "operator",
+       "pager",
+       "rollback",
+       "runbook",
+       "toggle"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     }
+    ]
+   },
+   "collapsed": {
+    "council_id": "collapsed-same-model-role-prompts",
+    "status": "FIRE",
+    "fired": true,
+    "mean_pairwise_jaccard": 0.85348,
+    "mean_role_vocab_score": 0.0,
+    "pairwise": [
+     {
+      "i": 0,
+      "j": 1,
+      "jaccard": 0.923077
+     },
+     {
+      "i": 0,
+      "j": 2,
+      "jaccard": 0.846154
+     },
+     {
+      "i": 0,
+      "j": 3,
+      "jaccard": 0.923077
+     },
+     {
+      "i": 1,
+      "j": 2,
+      "jaccard": 0.785714
+     },
+     {
+      "i": 1,
+      "j": 3,
+      "jaccard": 0.857143
+     },
+     {
+      "i": 2,
+      "j": 3,
+      "jaccard": 0.785714
+     }
+    ],
+    "role_vocab": [
+     {
+      "role": "advocate",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "adopt",
+       "benefit",
+       "opportunity",
+       "recommend",
+       "ship",
+       "upside"
+      ],
+      "score": 0.0,
+      "present": false
+     },
+     {
+      "role": "skeptic",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "counterexample",
+       "failure",
+       "refute",
+       "risk",
+       "stampede",
+       "untested"
+      ],
+      "score": 0.0,
+      "present": false
+     },
+     {
+      "role": "domain_expert",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "constraint",
+       "invariant",
+       "latency",
+       "measured",
+       "p99",
+       "schema"
+      ],
+      "score": 0.0,
+      "present": false
+     },
+     {
+      "role": "user_proxy",
+      "markers_total": 6,
+      "found": [],
+      "missing": [
+       "oncall",
+       "operator",
+       "pager",
+       "rollback",
+       "runbook",
+       "toggle"
+      ],
+      "score": 0.0,
+      "present": false
+     }
+    ],
+    "unique_models": [
+     "claude-opus-same"
+    ],
+    "reason": "mean pairwise Jaccard 0.85348 >= 0.8 and mean role-vocab 0.0 < 0.5"
+   },
+   "diverse": {
+    "council_id": "diverse-distinct-models-and-roles",
+    "status": "SILENT",
+    "fired": false,
+    "mean_pairwise_jaccard": 0.024483,
+    "mean_role_vocab_score": 0.958333,
+    "pairwise": [
+     {
+      "i": 0,
+      "j": 1,
+      "jaccard": 0.027778
+     },
+     {
+      "i": 0,
+      "j": 2,
+      "jaccard": 0.030303
+     },
+     {
+      "i": 0,
+      "j": 3,
+      "jaccard": 0.0
+     },
+     {
+      "i": 1,
+      "j": 2,
+      "jaccard": 0.026316
+     },
+     {
+      "i": 1,
+      "j": 3,
+      "jaccard": 0.0625
+     },
+     {
+      "i": 2,
+      "j": 3,
+      "jaccard": 0.0
+     }
+    ],
+    "role_vocab": [
+     {
+      "role": "advocate",
+      "markers_total": 6,
+      "found": [
+       "adopt",
+       "benefit",
+       "opportunity",
+       "recommend",
+       "ship"
+      ],
+      "missing": [
+       "upside"
+      ],
+      "score": 0.833333,
+      "present": true
+     },
+     {
+      "role": "skeptic",
+      "markers_total": 6,
+      "found": [
+       "counterexample",
+       "failure",
+       "refute",
+       "risk",
+       "stampede",
+       "untested"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "domain_expert",
+      "markers_total": 6,
+      "found": [
+       "constraint",
+       "invariant",
+       "latency",
+       "measured",
+       "p99",
+       "schema"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "user_proxy",
+      "markers_total": 6,
+      "found": [
+       "oncall",
+       "operator",
+       "pager",
+       "rollback",
+       "runbook",
+       "toggle"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     }
+    ],
+    "unique_models": [
+     "opus-advocate-lab",
+     "sonnet-skeptic-lab",
+     "haiku-expert-lab",
+     "gpt-user-proxy-lab"
+    ],
+    "reason": "outputs not collapsed (jaccard=0.024483, role-vocab=0.958333); model ids unused"
+   },
+   "hard_same_model_strong_roles": {
+    "council_id": "hard-same-model-strong-role-prompts",
+    "status": "SILENT",
+    "fired": false,
+    "mean_pairwise_jaccard": 0.024483,
+    "mean_role_vocab_score": 0.958333,
+    "pairwise": [
+     {
+      "i": 0,
+      "j": 1,
+      "jaccard": 0.027778
+     },
+     {
+      "i": 0,
+      "j": 2,
+      "jaccard": 0.030303
+     },
+     {
+      "i": 0,
+      "j": 3,
+      "jaccard": 0.0
+     },
+     {
+      "i": 1,
+      "j": 2,
+      "jaccard": 0.026316
+     },
+     {
+      "i": 1,
+      "j": 3,
+      "jaccard": 0.0625
+     },
+     {
+      "i": 2,
+      "j": 3,
+      "jaccard": 0.0
+     }
+    ],
+    "role_vocab": [
+     {
+      "role": "advocate",
+      "markers_total": 6,
+      "found": [
+       "adopt",
+       "benefit",
+       "opportunity",
+       "recommend",
+       "ship"
+      ],
+      "missing": [
+       "upside"
+      ],
+      "score": 0.833333,
+      "present": true
+     },
+     {
+      "role": "skeptic",
+      "markers_total": 6,
+      "found": [
+       "counterexample",
+       "failure",
+       "refute",
+       "risk",
+       "stampede",
+       "untested"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "domain_expert",
+      "markers_total": 6,
+      "found": [
+       "constraint",
+       "invariant",
+       "latency",
+       "measured",
+       "p99",
+       "schema"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     },
+     {
+      "role": "user_proxy",
+      "markers_total": 6,
+      "found": [
+       "oncall",
+       "operator",
+       "pager",
+       "rollback",
+       "runbook",
+       "toggle"
+      ],
+      "missing": [],
+      "score": 1.0,
+      "present": true
+     }
+    ],
+    "unique_models": [
+     "claude-opus-same"
+    ],
+    "reason": "outputs not collapsed (jaccard=0.024483, role-vocab=0.958333); model ids unused"
+   },
+   "declared_role_decoy_on_collapsed": {
+    "status": "SILENT",
+    "fired": false,
+    "unique_roles": [
+     "advocate",
+     "domain_expert",
+     "skeptic",
+     "user_proxy"
+    ],
+    "n_seats": 4,
+    "reason": "declared-role-labels-only; outputs are not inspected"
+   },
+   "test_ids": [
+    "T-collapsed-fire-diverse-silent",
+    "T-hard-same-model-strong-roles"
+   ],
+   "negative_control_ids": [
+    "NC-declared-role-decoy-silent-on-collapsed",
+    "NC-same-model-strong-roles-honest-class"
+   ],
+   "reviewer_verdict": "PASS"
+  }
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0320.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0320.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "81b8e7bee2931f6718cd81d87be1d061",
+    "exit_code": 0
+   }
+  }
+ ],
+ "defects": [],
+ "report": {
+  "kind": "council-antifail-module",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 16916,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0320.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ },
+ "title": "Role-collapse detector",
+ "completion_sentinel": "SUCCESS:IMP-0320",
+ "falsifiable_question": "Does the detector fire on a council where all seats are the same model with different role prompts, and stay silent on a genuinely diverse one?",
+ "answer": "It fires when outputs are similar AND role vocabularies are missing, not when model ids match. The planted collapsed fixture uses one model and four role prompts but near-identical outputs (mean Jaccard 0.853, mean role-vocab 0.000) and FIRE. The diverse fixture is SILENT (mean Jaccard 0.024, mean role-vocab 0.958). The hard same-model / strong-role-prompt fixture is classified SILENT (mean Jaccard 0.024, mean role-vocab 0.958); that is reported, not tuned into a FIRE. A declared-role-label decoy stays SILENT on collapsed (unique roles=['advocate', 'domain_expert', 'skeptic', 'user_proxy']). 11-COUNCIL-SPECIFICATION.md is absent on this worktree.",
+ "output_path": "command-center/receipts/IMP-0320.json",
+ "output_schema": "command-center/schema/receipt.schema.json profile=council-antifail-module (required: unit_id, artifact_paths[], spec_anchor, evidence[], test_ids[], negative_control_ids[], reviewer_verdict, residual_unknowns[])",
+ "artifact_paths": [
+  "tools/council/antifail/role_collapse.py",
+  "command-center/p2-wave/probes/IMP-0320/fixtures.py",
+  "command-center/p2-wave/probes/IMP-0320/probe1_collapsed_vs_diverse.py",
+  "command-center/p2-wave/probes/IMP-0320/probe2_hard_case_vocab.py",
+  "command-center/receipts/IMP-0320.json"
+ ],
+ "module": {
+  "path": "tools/council/antifail/role_collapse.py",
+  "sha256": "4cdf7a83104c04096aaa61b6ae22a103db0a6dee631ed74e008de0bb79dc9e80",
+  "bytes": 7946,
+  "sim_fire": 0.8,
+  "vocab_fire": 0.5,
+  "fire_rule": "FIRE iff mean pairwise token Jaccard of outputs >= SIM_FIRE AND mean per-seat role-vocab score < VOCAB_FIRE. Model id and declared role labels are not inputs to the rule."
+ },
+ "similarity_distributions": {
+  "collapsed_pairwise_jaccard": [
+   0.923077,
+   0.846154,
+   0.923077,
+   0.785714,
+   0.857143,
+   0.785714
+  ],
+  "diverse_pairwise_jaccard": [
+   0.027778,
+   0.030303,
+   0.0,
+   0.026316,
+   0.0625,
+   0.0
+  ],
+  "collapsed_min": 0.785714,
+  "diverse_max": 0.0625,
+  "separated": true,
+  "ascii_plot": "collapsed pairwise Jaccard\nn=6 mean=0.853\n  [0.00,0.20)                  0\n  [0.20,0.40)                  0\n  [0.40,0.60)                  0\n  [0.60,0.80) ########         2\n  [0.80,1.00) ################ 4\n\ndiverse pairwise Jaccard\nn=6 mean=0.024\n  [0.00,0.20) ################ 6\n  [0.20,0.40)                  0\n  [0.40,0.60)                  0\n  [0.60,0.80)                  0\n  [0.80,1.00)                  0"
+ },
+ "role_vocab_per_seat": {
+  "collapsed": [
+   {
+    "role": "advocate",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "adopt",
+     "benefit",
+     "opportunity",
+     "recommend",
+     "ship",
+     "upside"
+    ],
+    "score": 0.0,
+    "present": false
+   },
+   {
+    "role": "skeptic",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "counterexample",
+     "failure",
+     "refute",
+     "risk",
+     "stampede",
+     "untested"
+    ],
+    "score": 0.0,
+    "present": false
+   },
+   {
+    "role": "domain_expert",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "constraint",
+     "invariant",
+     "latency",
+     "measured",
+     "p99",
+     "schema"
+    ],
+    "score": 0.0,
+    "present": false
+   },
+   {
+    "role": "user_proxy",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "oncall",
+     "operator",
+     "pager",
+     "rollback",
+     "runbook",
+     "toggle"
+    ],
+    "score": 0.0,
+    "present": false
+   }
+  ],
+  "diverse": [
+   {
+    "role": "advocate",
+    "markers_total": 6,
+    "found": [
+     "adopt",
+     "benefit",
+     "opportunity",
+     "recommend",
+     "ship"
+    ],
+    "missing": [
+     "upside"
+    ],
+    "score": 0.833333,
+    "present": true
+   },
+   {
+    "role": "skeptic",
+    "markers_total": 6,
+    "found": [
+     "counterexample",
+     "failure",
+     "refute",
+     "risk",
+     "stampede",
+     "untested"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "domain_expert",
+    "markers_total": 6,
+    "found": [
+     "constraint",
+     "invariant",
+     "latency",
+     "measured",
+     "p99",
+     "schema"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "user_proxy",
+    "markers_total": 6,
+    "found": [
+     "oncall",
+     "operator",
+     "pager",
+     "rollback",
+     "runbook",
+     "toggle"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   }
+  ],
+  "hard_same_model_strong_roles": [
+   {
+    "role": "advocate",
+    "markers_total": 6,
+    "found": [
+     "adopt",
+     "benefit",
+     "opportunity",
+     "recommend",
+     "ship"
+    ],
+    "missing": [
+     "upside"
+    ],
+    "score": 0.833333,
+    "present": true
+   },
+   {
+    "role": "skeptic",
+    "markers_total": 6,
+    "found": [
+     "counterexample",
+     "failure",
+     "refute",
+     "risk",
+     "stampede",
+     "untested"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "domain_expert",
+    "markers_total": 6,
+    "found": [
+     "constraint",
+     "invariant",
+     "latency",
+     "measured",
+     "p99",
+     "schema"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "user_proxy",
+    "markers_total": 6,
+    "found": [
+     "oncall",
+     "operator",
+     "pager",
+     "rollback",
+     "runbook",
+     "toggle"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   }
+  ]
+ },
+ "collapsed": {
+  "council_id": "collapsed-same-model-role-prompts",
+  "status": "FIRE",
+  "fired": true,
+  "mean_pairwise_jaccard": 0.85348,
+  "mean_role_vocab_score": 0.0,
+  "pairwise": [
+   {
+    "i": 0,
+    "j": 1,
+    "jaccard": 0.923077
+   },
+   {
+    "i": 0,
+    "j": 2,
+    "jaccard": 0.846154
+   },
+   {
+    "i": 0,
+    "j": 3,
+    "jaccard": 0.923077
+   },
+   {
+    "i": 1,
+    "j": 2,
+    "jaccard": 0.785714
+   },
+   {
+    "i": 1,
+    "j": 3,
+    "jaccard": 0.857143
+   },
+   {
+    "i": 2,
+    "j": 3,
+    "jaccard": 0.785714
+   }
+  ],
+  "role_vocab": [
+   {
+    "role": "advocate",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "adopt",
+     "benefit",
+     "opportunity",
+     "recommend",
+     "ship",
+     "upside"
+    ],
+    "score": 0.0,
+    "present": false
+   },
+   {
+    "role": "skeptic",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "counterexample",
+     "failure",
+     "refute",
+     "risk",
+     "stampede",
+     "untested"
+    ],
+    "score": 0.0,
+    "present": false
+   },
+   {
+    "role": "domain_expert",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "constraint",
+     "invariant",
+     "latency",
+     "measured",
+     "p99",
+     "schema"
+    ],
+    "score": 0.0,
+    "present": false
+   },
+   {
+    "role": "user_proxy",
+    "markers_total": 6,
+    "found": [],
+    "missing": [
+     "oncall",
+     "operator",
+     "pager",
+     "rollback",
+     "runbook",
+     "toggle"
+    ],
+    "score": 0.0,
+    "present": false
+   }
+  ],
+  "unique_models": [
+   "claude-opus-same"
+  ],
+  "reason": "mean pairwise Jaccard 0.85348 >= 0.8 and mean role-vocab 0.0 < 0.5"
+ },
+ "diverse": {
+  "council_id": "diverse-distinct-models-and-roles",
+  "status": "SILENT",
+  "fired": false,
+  "mean_pairwise_jaccard": 0.024483,
+  "mean_role_vocab_score": 0.958333,
+  "pairwise": [
+   {
+    "i": 0,
+    "j": 1,
+    "jaccard": 0.027778
+   },
+   {
+    "i": 0,
+    "j": 2,
+    "jaccard": 0.030303
+   },
+   {
+    "i": 0,
+    "j": 3,
+    "jaccard": 0.0
+   },
+   {
+    "i": 1,
+    "j": 2,
+    "jaccard": 0.026316
+   },
+   {
+    "i": 1,
+    "j": 3,
+    "jaccard": 0.0625
+   },
+   {
+    "i": 2,
+    "j": 3,
+    "jaccard": 0.0
+   }
+  ],
+  "role_vocab": [
+   {
+    "role": "advocate",
+    "markers_total": 6,
+    "found": [
+     "adopt",
+     "benefit",
+     "opportunity",
+     "recommend",
+     "ship"
+    ],
+    "missing": [
+     "upside"
+    ],
+    "score": 0.833333,
+    "present": true
+   },
+   {
+    "role": "skeptic",
+    "markers_total": 6,
+    "found": [
+     "counterexample",
+     "failure",
+     "refute",
+     "risk",
+     "stampede",
+     "untested"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "domain_expert",
+    "markers_total": 6,
+    "found": [
+     "constraint",
+     "invariant",
+     "latency",
+     "measured",
+     "p99",
+     "schema"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "user_proxy",
+    "markers_total": 6,
+    "found": [
+     "oncall",
+     "operator",
+     "pager",
+     "rollback",
+     "runbook",
+     "toggle"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   }
+  ],
+  "unique_models": [
+   "opus-advocate-lab",
+   "sonnet-skeptic-lab",
+   "haiku-expert-lab",
+   "gpt-user-proxy-lab"
+  ],
+  "reason": "outputs not collapsed (jaccard=0.024483, role-vocab=0.958333); model ids unused"
+ },
+ "hard_same_model_strong_roles": {
+  "council_id": "hard-same-model-strong-role-prompts",
+  "status": "SILENT",
+  "fired": false,
+  "mean_pairwise_jaccard": 0.024483,
+  "mean_role_vocab_score": 0.958333,
+  "pairwise": [
+   {
+    "i": 0,
+    "j": 1,
+    "jaccard": 0.027778
+   },
+   {
+    "i": 0,
+    "j": 2,
+    "jaccard": 0.030303
+   },
+   {
+    "i": 0,
+    "j": 3,
+    "jaccard": 0.0
+   },
+   {
+    "i": 1,
+    "j": 2,
+    "jaccard": 0.026316
+   },
+   {
+    "i": 1,
+    "j": 3,
+    "jaccard": 0.0625
+   },
+   {
+    "i": 2,
+    "j": 3,
+    "jaccard": 0.0
+   }
+  ],
+  "role_vocab": [
+   {
+    "role": "advocate",
+    "markers_total": 6,
+    "found": [
+     "adopt",
+     "benefit",
+     "opportunity",
+     "recommend",
+     "ship"
+    ],
+    "missing": [
+     "upside"
+    ],
+    "score": 0.833333,
+    "present": true
+   },
+   {
+    "role": "skeptic",
+    "markers_total": 6,
+    "found": [
+     "counterexample",
+     "failure",
+     "refute",
+     "risk",
+     "stampede",
+     "untested"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "domain_expert",
+    "markers_total": 6,
+    "found": [
+     "constraint",
+     "invariant",
+     "latency",
+     "measured",
+     "p99",
+     "schema"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   },
+   {
+    "role": "user_proxy",
+    "markers_total": 6,
+    "found": [
+     "oncall",
+     "operator",
+     "pager",
+     "rollback",
+     "runbook",
+     "toggle"
+    ],
+    "missing": [],
+    "score": 1.0,
+    "present": true
+   }
+  ],
+  "unique_models": [
+   "claude-opus-same"
+  ],
+  "reason": "outputs not collapsed (jaccard=0.024483, role-vocab=0.958333); model ids unused"
+ },
+ "declared_role_decoy_on_collapsed": {
+  "status": "SILENT",
+  "fired": false,
+  "unique_roles": [
+   "advocate",
+   "domain_expert",
+   "skeptic",
+   "user_proxy"
+  ],
+  "n_seats": 4,
+  "reason": "declared-role-labels-only; outputs are not inspected"
+ },
+ "test_ids": [
+  "T-collapsed-fire-diverse-silent",
+  "T-hard-same-model-strong-roles"
+ ],
+ "negative_control_ids": [
+  "NC-declared-role-decoy-silent-on-collapsed",
+  "NC-same-model-strong-roles-honest-class"
+ ],
+ "reviewer_verdict": "PASS"
+}

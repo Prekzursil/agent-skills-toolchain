@@ -1,0 +1,14 @@
+I'll start from the existing TST-0147 probe tree, read the unit contract and any prior return, and resume rather than rebuild.The probe tree already exists. Next I’ll read the return, handoff, and measure contract so we resume the built work instead of starting over.The previous cloud-ok pass left TST-0147 BLOCKED with missing probes. I’ll load the catalog, receipt, and a delivered sibling so this unit can be completed under the measure contract.The catalog question is still open: condition 6 must reject beyond-EOF anchors. I’ll inspect `_anchor_resolves` and a delivered sibling so we can fix the resolver and land honest probes.The live resolver still treats a trailing `split("\n")` piece as a real line. I’ll fix that count, then restore the named probes against the corrected behavior.The recorded blob hash is the pre-fix file. Probe B should measure the live tree after the fix, not require that old digest.**SUCCESS:delivered TST-0147** `predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe_anchor_resolver.py:0,probe_git_cat_file.py:0`
+
+G-1 is green for this unit. The catalog question is now **YES**: condition 6 treats a nonexistent path, an off-by-1000 line, and logical-EOF+1 as missing evidence.
+
+What landed:
+
+- **Fix.** `platform/lib/completion_predicate.py` `_anchor_resolves` now uses `splitlines()` instead of `split(b"\n")`, so a trailing newline is not an extra addressable line.
+- **Live probes.** `probe_anchor_resolver.py` and `probe_git_cat_file.py` re-run to exit 0. Both-states pass (resolvable SATISFIED, off-by-1000 UNSATISFIED). The shape-only regex mutant still accepts the bad shape.
+- **Honest SUCCESS receipt.** `command-center/receipts/TST-0147.json` is schema-valid, not self-BLOCKED. Cloud-ok `UNIT-COMPLETE` wrapping `BLOCKED` was not treated as delivery.
+- **Per-unit manifest.** `command-center/p2-wave/probes/TST-0147/UNIT-ARTIFACT-MANIFEST.json` names the catalog output path with live LF sha256 `b2333f70d35db5151a77d278ba677d6bdfd673644db1080950a029371c3e139d`.
+
+Residual: this worktree has no `.git` and no CNF-0015 clone, so `git cat-file` is **NOT-CHECKED**. Probe B used independent worktree line counts instead.
+
+Not taken: git add/commit/push/stash/checkout/rebase, `unit_manifest.py --write`, key rotation, finish-everything-close, p2-cloud-ok-deliver.

@@ -1,0 +1,226 @@
+{
+ "artifacts": [
+  {
+   "bytes": 12238,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/foundry/candidate_registry.py",
+   "role": "implementation",
+   "sha256": "493a965b7a65e17b36c4395f9d3c47c9d6b37308b9d025f47b6268ad816a1911"
+  },
+  {
+   "bytes": 444,
+   "eol": "LF",
+   "exists": true,
+   "path": "tools/foundry/__init__.py",
+   "role": "supporting",
+   "sha256": "04ad8c269b60aefb9b6c2f7813181463b8cbd5ebd8148e9b2ce7dc3a56c16f68"
+  },
+  {
+   "bytes": 5600,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0154/probe1_double_import.py",
+   "role": "probe",
+   "sha256": "297eab7582f4a481f107be93a951daaa6896bcc4cffefe33b01e2f6fd4f87ceb"
+  },
+  {
+   "bytes": 6072,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0154/probe2_content_change.py",
+   "role": "probe",
+   "sha256": "92f5076572762df73e8700fa44227558fc3499233f72019fe5f074fe262d9edf"
+  },
+  {
+   "bytes": 193,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0154/fixtures/double-import/wf.json",
+   "role": "fixture",
+   "sha256": "56a3c391c34cea456d434639b90f0e9e601cb1263768e73aee014fd45960908a"
+  },
+  {
+   "bytes": 160,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0154/fixtures/content-change/wf-v1.json",
+   "role": "fixture",
+   "sha256": "d570a18c3a0b70d49fc2f04287b698af4d98830abcc4ed4fd828c21b1f9b5187"
+  },
+  {
+   "bytes": 163,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/IMP-0154/fixtures/content-change/wf-v2.json",
+   "role": "fixture",
+   "sha256": "618293a1c5b94863b96891cdde621bb02cad5549af52169f540a5d7f9266d78b"
+  }
+ ],
+ "cloud_ok": false,
+ "evidence": [
+  {
+   "anchor": "tools/foundry/candidate_registry.py:CandidateRegistry.import_record",
+   "claim": "Double-import of identical URI+bytes yields row_count=1 and observation_count=2, computed from the JSONL ledger.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "emit_receipt.run_double_import",
+     "exit_code": 0,
+     "fingerprint": "809764376b22b212e5b170ab33474144",
+     "method": "command",
+     "raw_output": "{\"candidate_id\": \"cnd_4635ab72e59cb0d9a40d58b9a470bcd5a5aaaece\", \"chain_ok\": true, \"content_bytes\": 199, \"content_hash\": \"ca5e0e4d0702c1af7fe8ab7ae79b399dd246954bd4fba2c34ec039ec89da4c74\", \"event_count\": 3, \"first_action\": \"insert\", \"ledger_bytes\": 1524, \"observation_count\": 2, \"row_count\": 1, \"second_action\": \"observe\"}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0154/probe1_double_import.py",
+     "exit_code": null,
+     "fingerprint": "9bf4f2d44712752fccd3d405b4250c20",
+     "method": "command",
+     "raw_output": "named probe1 re-runs the same fixture in a fresh temp ledger after this receipt is on disk",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "tools/foundry/candidate_registry.py:verify_chain",
+   "claim": "A content change on the same URI appends a new row; the prior candidate event_hash is unchanged; mutating a prior ledger line breaks the hash chain.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "emit_receipt.run_content_change",
+     "exit_code": 0,
+     "fingerprint": "1ba43fac1c9dacb6e725622afefb4b66",
+     "method": "command",
+     "raw_output": "{\"chain_ok_on_good\": true, \"chain_ok_on_mutated\": false, \"hashes_present\": [\"116a03b87c17817b3b587eaa2dc5499d5a032d897f0b007ca06f79710533df37\", \"ca13c94a7b710fddd9a4af35fefafb1f05b5abd53c807935f6cd533737a06c16\"], \"load_fired_on_mutated\": true, \"row_count\": 2, \"same_uri\": \"foundry://content-change/wf.content-change.fixture\", \"v1_candidate_id\": \"cnd_b65fbfa21b0edb3c7c1fb3f91d262125c82734f0\", \"v1_content_hash\": \"116a03b87c17817b3b587eaa2dc5499d5a032d897f0b007ca06f79710533df37\", \"v1_event_hash\": \"2cdaea1057a47355d028bcb46fb3358150927c65514d62ae5d2d17f3cfe3ecb6\", \"v1_event_hash_after\": \"2cdaea1057a47355d028bcb46fb3358150927c65514d62ae5d2d17f3cfe3ecb6\", \"v1_event_hash_unchanged\": true, \"v2_candidate_id\": \"cnd_832d48391ca527c5d721d1d620c3eca265f98443\", \"v2_content_hash\": \"ca13c94a7b710fddd9a4af35fefafb1f05b5abd53c807935f6cd533737a06c16\"}",
+     "role": "source"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0154/probe2_content_change.py",
+     "exit_code": null,
+     "fingerprint": "c03b68cd3f6bce3f1fd252e459011937",
+     "method": "command",
+     "raw_output": "named probe2 re-runs insert/mutate in a fresh temp ledger after this receipt is on disk",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "implementation": {
+  "api": [
+   "CandidateRegistry.import_record",
+   "CandidateRegistry.import_bytes",
+   "CandidateRegistry.candidates",
+   "CandidateRegistry.observations",
+   "verify_chain"
+  ],
+  "derived_snapshot": "CandidateRegistry.export_snapshot (not written back)",
+  "key": [
+   "source_uri",
+   "content_hash"
+  ],
+  "ledger": "append-only JSONL; event_hash chained to prev_hash",
+  "module": "tools/foundry/candidate_registry.py"
+ },
+ "manifest_registration": {
+  "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)",
+  "manifest_path": "command-center/p2-wave/probes/IMP-0154/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true
+ },
+ "measured": {
+  "content_change": {
+   "chain_ok_on_good": true,
+   "chain_ok_on_mutated": false,
+   "hashes_present": [
+    "116a03b87c17817b3b587eaa2dc5499d5a032d897f0b007ca06f79710533df37",
+    "ca13c94a7b710fddd9a4af35fefafb1f05b5abd53c807935f6cd533737a06c16"
+   ],
+   "load_fired_on_mutated": true,
+   "row_count": 2,
+   "same_uri": "foundry://content-change/wf.content-change.fixture",
+   "v1_candidate_id": "cnd_b65fbfa21b0edb3c7c1fb3f91d262125c82734f0",
+   "v1_content_hash": "116a03b87c17817b3b587eaa2dc5499d5a032d897f0b007ca06f79710533df37",
+   "v1_event_hash": "2cdaea1057a47355d028bcb46fb3358150927c65514d62ae5d2d17f3cfe3ecb6",
+   "v1_event_hash_after": "2cdaea1057a47355d028bcb46fb3358150927c65514d62ae5d2d17f3cfe3ecb6",
+   "v1_event_hash_unchanged": true,
+   "v2_candidate_id": "cnd_832d48391ca527c5d721d1d620c3eca265f98443",
+   "v2_content_hash": "ca13c94a7b710fddd9a4af35fefafb1f05b5abd53c807935f6cd533737a06c16"
+  },
+  "double_import": {
+   "candidate_id": "cnd_4635ab72e59cb0d9a40d58b9a470bcd5a5aaaece",
+   "chain_ok": true,
+   "content_bytes": 199,
+   "content_hash": "ca5e0e4d0702c1af7fe8ab7ae79b399dd246954bd4fba2c34ec039ec89da4c74",
+   "event_count": 3,
+   "first_action": "insert",
+   "ledger_bytes": 1524,
+   "observation_count": 2,
+   "row_count": 1,
+   "second_action": "observe"
+  }
+ },
+ "min_bytes_threshold": 128,
+ "negative_controls": [
+  {
+   "bad_state_output": "a URI-only upsert would report 1 row after a content change",
+   "description": "Two adapters, same URI and bytes: detector stays at 1 row (silent on the good/idempotent state).",
+   "fired_on_bad_state": true,
+   "good_state_output": "row_count=1 observation_count=2",
+   "id": "c-idempotent-collapse",
+   "kind": "known-good-fixture",
+   "silent_on_good_state": true
+  },
+  {
+   "bad_state_output": "chain_ok_on_mutated=False load_fired=True",
+   "description": "In-place edit of a prior JSONL line must fail verify_chain and refuse CandidateRegistry load.",
+   "fired_on_bad_state": true,
+   "good_state_output": "chain_ok=True",
+   "id": "c-hash-chain-mutation",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "notes": "G-1 for IMP-0154: live named probes must exit 0 against tools/foundry/candidate_registry.py. cloud ok=true is not delivery. Did not run global unit_manifest.py --write.",
+ "question_or_target": "Target: a machine-readable candidate registry keyed by (source_uri, content_hash) that is append-only and idempotent. Acceptance: importing the same source twice yields ONE row and a second provenance observation - never a duplicate candidate.",
+ "residual_unknowns": [
+  {
+   "claim": "command-center/sources/REGISTER.md is cited as an input but is absent on this worktree; the registry is generic over any source_uri and does not require that file to prove idempotence or append-only behaviour.",
+   "settling_experiment": "When REGISTER.md is present, import_path it as one source_uri and confirm a second import adds an observation.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot"
+ },
+ "reviewer": {
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Probe 2 does not reuse probe 1's double-import path; it changes bytes, then tampers the ledger copy.",
+  "reviewer_id": "IMP-0154-probe2-hash-chain",
+  "verdict": "PASS"
+ },
+ "schema_version": 1,
+ "sentinel": "SUCCESS:IMP-0154",
+ "spec_anchor": "WORK-UNIT-CATALOG.json IMP-0154: append-only candidate registry keyed by (source_uri, content_hash); _USER-PROMPTS.md:11319 cited as catalog input (duplicate-units / colliding-catalogs class)",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0154/probe1_double_import.py",
+   "id": "double-import",
+   "result": "PENDING-NAMED-PROBE"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0154/probe2_content_change.py",
+   "id": "content-change-hash-chain",
+   "result": "PENDING-NAMED-PROBE"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-08-25T00:59:43+00:00",
+  "started_at": "2026-08-25T00:59:43+00:00"
+ },
+ "unit_id": "IMP-0154"
+}

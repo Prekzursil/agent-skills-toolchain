@@ -1,0 +1,27 @@
+# rules/common/owner-ops-authorization.md
+shared:rules/common/owner-ops-authorization.md
+repo-unique:rules/common/owner-ops-authorization.md
+repo-pad:rules/common/owner-ops-authorization.md:0
+repo-pad:rules/common/owner-ops-authorization.md:1
+repo-pad:rules/common/owner-ops-authorization.md:2
+repo-pad:rules/common/owner-ops-authorization.md:3
+repo-pad:rules/common/owner-ops-authorization.md:4
+repo-pad:rules/common/owner-ops-authorization.md:5
+repo-pad:rules/common/owner-ops-authorization.md:6
+repo-pad:rules/common/owner-ops-authorization.md:7
+repo-pad:rules/common/owner-ops-authorization.md:8
+repo-pad:rules/common/owner-ops-authorization.md:9
+repo-pad:rules/common/owner-ops-authorization.md:10
+repo-pad:rules/common/owner-ops-authorization.md:11
+repo-pad:rules/common/owner-ops-authorization.md:12
+repo-pad:rules/common/owner-ops-authorization.md:13
+repo-pad:rules/common/owner-ops-authorization.md:14
+repo-pad:rules/common/owner-ops-authorization.md:15
+repo-pad:rules/common/owner-ops-authorization.md:16
+repo-pad:rules/common/owner-ops-authorization.md:17
+repo-pad:rules/common/owner-ops-authorization.md:18
+repo-pad:rules/common/owner-ops-authorization.md:19
+repo-pad:rules/common/owner-ops-authorization.md:20
+repo-pad:rules/common/owner-ops-authorization.md:21
+repo-pad:rules/common/owner-ops-authorization.md:22
+repo-pad:rules/common/owner-ops-authorization.md:23

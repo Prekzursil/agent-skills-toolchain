@@ -1,0 +1,32 @@
+name: autofix-models
+'on':
+  workflow_run: {}
+jobs:
+  draft-fix:
+    runs-on: ubuntu-latest
+    if: "${{ github.event.workflow_run.conclusion == 'failure' &&\n    github.event.workflow_run.event == 'push' &&\n    github.event.workflow_run.head_branch\
+      \ == 'main' }}"
+    steps:
+    - uses: actions/checkout@v7
+      with:
+        ref: main
+        fetch-depth: '0'
+    - name: Collect failing-run log (bounded)
+      run: 'gh run view "$RUN_ID" --repo "$GITHUB_REPOSITORY" --log-failed > failing.log 2>&1 || true # Keep the prompt small
+        + cheap; the tail holds the actual errors. tail -c 12000 failing.log > prompt.txt || true echo "----" >> prompt.txt
+        echo "Output ONLY a unified git diff (git apply compatible) that fixes the failures above. No prose, no code fences."
+        >> prompt.txt'
+    - name: Draft fix with GitHub Models
+      uses: actions/ai-inference@v3
+      with:
+        model: openai/gpt-4o-mini
+        system-prompt: You are a CI repair assistant. You recei
+        prompt-file: prompt.txt
+        max-completion-tokens: '2000'
+    - name: Apply patch and open PR
+      run: 'printf ''%s\n'' "$AI_RESPONSE" > fix.patch if [ ! -s fix.patch ]; then echo "Model returned no patch; nothing
+        to do." exit 0 fi if ! git apply --whitespace=nowarn fix.patch 2>apply.err; then echo "Model patch did not apply cleanly;
+        skipping PR." cat apply.err || true exit 0 fi if git diff --quiet; then echo "Patch applied but produced no changes;
+        skipping." exit 0 fi BR="autofix/models-${RUN_ID}" git config user.name "github-actions[bot]" git config user.email
+        "41898282+github-actions[bot]@users.noreply.github.com" git checkout -b "$BR" git commit -am "autofix(models): draft
+        fix for failed main '

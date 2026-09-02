@@ -1,0 +1,397 @@
+{
+  "schema_version": 1,
+  "unit_id": "IMP-0394",
+  "state": "SUCCESS",
+  "title": "User override layer: pin, ban, and per-project precedence",
+  "question": "Implement the override layer so the owner can pin a capability always-on, ban one outright, and set per-project overrides, with an explicit precedence order. Exact target: an owner ban must beat every score the router can produce, and the precedence order must be printed, not implied.",
+  "sentinel": "SENTINEL:IMP-0394:OVERRIDES-PRECEDENCE-FIXED",
+  "completion_sentinel": "SENTINEL:IMP-0394:OVERRIDES-PRECEDENCE-FIXED",
+  "spec_anchor": "WORK-UNIT-CATALOG.json:IMP-0394 question_or_target",
+  "min_bytes_threshold": 2048,
+  "produced_at": "2026-08-25T00:59:44Z",
+  "timestamps": {
+    "started_at": "2026-08-25T00:59:44Z",
+    "ended_at": "2026-08-25T00:59:44Z"
+  },
+  "printed_precedence": "IMP-0394 OVERRIDE PRECEDENCE (highest wins; printed, not implied)\n1. owner.ban    scope=global   source=user:~/.claude/settings.json capabilityOverrides.ban | beats=every router score (including 0.99), every pin, IMP-0392 ceiling\n2. project.ban  scope=project  source=<PROJECT>/.claude/settings.json capabilityOverrides.ban | beats=pins and scores in this project only; must not leak to a sibling\n3. owner.pin    scope=global   source=user:~/.claude/settings.json capabilityOverrides.pin | beats=IMP-0392 ceiling and scores; loses to any ban\n4. project.pin  scope=project  source=<PROJECT>/.claude/settings.json capabilityOverrides.pin | beats=IMP-0392 ceiling and scores in this project; no sibling leak; loses to any ban\n5. router.score scope=session  source=capability-index fusion score | beats=nothing above; a 0.99 score still loses to any ban",
+  "precedence_table": [
+    {
+      "rank": "1",
+      "layer": "owner.ban",
+      "scope": "global",
+      "source": "user:~/.claude/settings.json capabilityOverrides.ban",
+      "beats": "every router score (including 0.99), every pin, IMP-0392 ceiling"
+    },
+    {
+      "rank": "2",
+      "layer": "project.ban",
+      "scope": "project",
+      "source": "<PROJECT>/.claude/settings.json capabilityOverrides.ban",
+      "beats": "pins and scores in this project only; must not leak to a sibling"
+    },
+    {
+      "rank": "3",
+      "layer": "owner.pin",
+      "scope": "global",
+      "source": "user:~/.claude/settings.json capabilityOverrides.pin",
+      "beats": "IMP-0392 ceiling and scores; loses to any ban"
+    },
+    {
+      "rank": "4",
+      "layer": "project.pin",
+      "scope": "project",
+      "source": "<PROJECT>/.claude/settings.json capabilityOverrides.pin",
+      "beats": "IMP-0392 ceiling and scores in this project; no sibling leak; loses to any ban"
+    },
+    {
+      "rank": "5",
+      "layer": "router.score",
+      "scope": "session",
+      "source": "capability-index fusion score",
+      "beats": "nothing above; a 0.99 score still loses to any ban"
+    }
+  ],
+  "worked_examples_per_level": [
+    {
+      "rank": 1,
+      "layer": "owner.ban",
+      "input": {
+        "capability_id": "cap.banned-high",
+        "score": 0.99
+      },
+      "project": "proj-a",
+      "result": "excluded",
+      "why": "owner ban beats score 0.99 and also beats project-a pinning the same id",
+      "layer_observed": "owner.ban",
+      "admitted": false
+    },
+    {
+      "rank": 2,
+      "layer": "project.ban",
+      "input": {
+        "capability_id": "cap.proj-a-ban",
+        "score": 0.88
+      },
+      "project_a_admitted": false,
+      "project_b_admitted": true,
+      "why": "project-a ban excludes 0.88; sibling project-b still admits it",
+      "layer_a": "project.ban",
+      "layer_b": "router.score"
+    },
+    {
+      "rank": 3,
+      "layer": "owner.pin",
+      "input": {
+        "capability_id": "cap.pinned-low",
+        "score": 0.01
+      },
+      "ceiling": 500,
+      "flood_n": 40,
+      "pin_in_override": true,
+      "pin_in_score_only": false,
+      "why": "score-only ceiling drops the 0.01 pin; owner.pin keeps it"
+    },
+    {
+      "rank": 4,
+      "layer": "project.pin",
+      "input": {
+        "capability_id": "cap.proj-a-pin",
+        "score": 0.0
+      },
+      "project_a_admitted": true,
+      "project_b_admitted": false,
+      "why": "project-a pin admits score 0.0; sibling project-b does not leak the pin",
+      "layer_a": "project.pin",
+      "layer_b": "router.score"
+    },
+    {
+      "rank": 5,
+      "layer": "router.score",
+      "input": {
+        "capability_id": "cap.plain",
+        "score": 0.5
+      },
+      "admitted": true,
+      "layer_observed": "router.score",
+      "why": "no override: cap.plain stays on the score path and does not enter ban/pin"
+    }
+  ],
+  "ban_beats_score": {
+    "capability_id": "cap.banned-high",
+    "score": 0.99,
+    "admitted": false,
+    "layer": "owner.ban",
+    "project_pin_attempted_on_same_id": true,
+    "negative_control_unbanned_id": "cap.unbanned-high",
+    "negative_control_unbanned_admitted": true,
+    "demonstration": "cap.banned-high scores 0.99 and is still excluded by owner.ban; project-a also pins that id and still loses."
+  },
+  "pin_survives_budget": {
+    "capability_id": "cap.pinned-low",
+    "score": 0.01,
+    "ceiling": 500,
+    "flood_n": 40,
+    "pin_in_override_admitted": true,
+    "pin_in_score_only_admitted": false,
+    "override_admitted_ids": [
+      "cap.pinned-low",
+      "cap.flood-01",
+      "cap.flood-02",
+      "cap.flood-03",
+      "cap.flood-04"
+    ],
+    "score_only_admitted_ids": [
+      "cap.flood-01",
+      "cap.flood-02",
+      "cap.flood-03",
+      "cap.flood-04",
+      "cap.flood-05"
+    ]
+  },
+  "per_project_keying": {
+    "project_a": "proj-a",
+    "project_b": "proj-b",
+    "session_key_a": [
+      "project",
+      "proj-a"
+    ],
+    "session_key_b": [
+      "project",
+      "proj-b"
+    ],
+    "proj_pin_in_a": true,
+    "proj_pin_in_b": false,
+    "proj_ban_in_a": false,
+    "proj_ban_in_b": true
+  },
+  "settings_inputs": {
+    "catalog_inputs": [
+      "capability-index.json",
+      "~/.claude/settings.json",
+      "<PROJECT>/.claude/settings.json"
+    ],
+    "fixture_standins": {
+      "capability-index.json": "command-center/p2-wave/probes/IMP-0394/fixtures/capability-index.json",
+      "user:~/.claude/settings.json": "command-center/p2-wave/probes/IMP-0394/fixtures/user.settings.json",
+      "project-a:.claude/settings.json": "command-center/p2-wave/probes/IMP-0394/fixtures/project-a.settings.json",
+      "project-b:.claude/settings.json": "command-center/p2-wave/probes/IMP-0394/fixtures/project-b.settings.json"
+    },
+    "live_home_settings_mutated": false
+  },
+  "evidence": [
+    {
+      "claim": "Owner ban excludes a capability scoring 0.99; the printed precedence table lists owner.ban at rank 1.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/router/overrides.py:printed_precedence,apply_overrides",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "in-process",
+          "command": "measure_ban_beats_score()",
+          "raw_output": "{\"banned_admitted\": false, \"banned_layer\": \"owner.ban\", \"banned_score\": 0.99}"
+        },
+        {
+          "role": "verifier",
+          "method": "in-process",
+          "command": "printed_precedence()",
+          "raw_output": "IMP-0394 OVERRIDE PRECEDENCE (highest wins; printed, not implied)\n1. owner.ban    scope=global   source=user:~/.claude/settings.json capabilityOverrides.ban | beats=every router score (including 0.99), every pin, IMP-0392 ceiling\n2. project.ban  scope=project  source=<PROJECT>/.claude/settings.json capabilityOverrides.ban | beats=pins and scores in this project only; must not leak to a sibling\n3. owner.pin    scope=global   source=user:~/.claude/settings.json capabilityOverrides.pin | beats=IMP-0392 ceiling and scores; loses to any ban\n4. project.pin  scope=project  source=<PROJECT>/.claude/settings.json capabilityOverrides.pin | beats=IMP-0392 ceiling and scores in this project; no sibling leak; loses to any ban\n5. router.score scope=session  source=capability-index fusion score | beats=nothing above; a 0.99 score still loses to any ban"
+        }
+      ]
+    },
+    {
+      "claim": "A pinned capability survives the IMP-0392 token ceiling that drops it on the score-only path, and project-a overrides do not leak into project-b.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/router/budget.py:enforce_injection_ceiling",
+      "confidence": "almost-certain",
+      "probes": [
+        {
+          "role": "source",
+          "method": "in-process",
+          "command": "measure_pin_survives_budget()",
+          "raw_output": "{\"pin_in_override\": true, \"pin_in_score_only\": false}"
+        },
+        {
+          "role": "verifier",
+          "method": "in-process",
+          "command": "measure_project_keying()",
+          "raw_output": "{\"proj_ban_in_a\": false, \"proj_ban_in_b\": true, \"proj_pin_in_a\": true, \"proj_pin_in_b\": false}"
+        }
+      ]
+    }
+  ],
+  "tests": [
+    {
+      "id": "ban-beats-score",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0394/probe1_ban_beats_score.py",
+      "result": "PASS",
+      "requirement": "a banned capability scoring 0.99 is still excluded"
+    },
+    {
+      "id": "pin-survives-budget",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0394/probe2_pin_budget_project_keying.py",
+      "result": "PASS",
+      "requirement": "a pinned capability must not be dropped by the IMP-0392 ceiling"
+    },
+    {
+      "id": "per-project-no-leak",
+      "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0394/probe2_pin_budget_project_keying.py",
+      "result": "PASS",
+      "requirement": "per-project override must not leak into a sibling project (session/project keying)"
+    }
+  ],
+  "tests_required_record": [
+    "ban-beats-score test",
+    "pin-survives-budget test (a pinned capability must not be dropped by the IMP-0392 ceiling)",
+    "per-project override must not leak into a sibling project (session/project keying)"
+  ],
+  "evidence_requirement": "A precedence table with a worked example per level, and a demonstration that a banned capability scoring 0.99 is still excluded.",
+  "negative_controls": [
+    {
+      "id": "unbanned-0.99-admitted",
+      "kind": "negative-control",
+      "description": "Unbanned cap scoring 0.99 must be admitted (detector not over-firing).",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    },
+    {
+      "id": "score-only-drops-pin",
+      "kind": "mutation",
+      "description": "Score-only ceiling must drop the 0.01 pin; override path must keep it.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "IMP-0394-rederive-from-apply_overrides-and-score-only-control",
+    "independent": true,
+    "fresh_context": true,
+    "starts_from": "apply_overrides + select_by_score_only, not the author's summary",
+    "verdict": "PASS",
+    "derived": {
+      "ban_beats_0.99": true,
+      "unbanned_0.99_admitted": true,
+      "precedence_printed": true,
+      "pin_survives_ceiling": true,
+      "score_only_drops_pin": true,
+      "sibling_isolated": true
+    }
+  },
+  "reviewer_verdict": "PASS",
+  "retry": {
+    "count": 0,
+    "policy": "no automatic retry; an override bug silently disables owner control"
+  },
+  "manifest_registration": {
+    "registered": true,
+    "manifest_path": "command-center/p2-wave/probes/IMP-0394/UNIT-ARTIFACT-MANIFEST.json",
+    "derivation": "per-unit (not tools/command-center/unit_manifest.py --write)"
+  },
+  "downstream_consumers": [
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0394/probe1_ban_beats_score.py",
+      "artifact_path": "command-center/receipts/IMP-0394.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0
+    },
+    {
+      "consumer": "command-center/p2-wave/probes/IMP-0394/probe2_pin_budget_project_keying.py",
+      "artifact_path": "command-center/receipts/IMP-0394.json",
+      "executed": true,
+      "read_ok": true,
+      "exit_code": 0
+    }
+  ],
+  "residual_unknowns": [
+    {
+      "claim": "Live ~/.claude/settings.json was not mutated; fixture files stand in for the catalog user/project settings inputs.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Owner-visible read of the printed precedence table in this receipt."
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "tools/router/overrides.py",
+      "bytes": 7577,
+      "sha256": "2ccbcd4cbe52a530d3ac5e3cc3e9730c8d53be59120053f275e7f1e23cd35755",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/router/budget.py",
+      "bytes": 2308,
+      "sha256": "4681834ccbee97b200f2384b2242af0d5a027a097fc8dfb8ee48e2f518da8b7e",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "tools/router/__init__.py",
+      "bytes": 671,
+      "sha256": "d89076a1d6dc3728e0b092aa639aab82b91b1138b7ac1bb7cde0c3e185abcd58",
+      "exists": true,
+      "role": "supporting",
+      "eol": "CRLF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/scenario.py",
+      "bytes": 10488,
+      "sha256": "ffb48708ccfe11277119410bcf8683142104e54150f74f4558d2809f98c914c5",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/probe1_ban_beats_score.py",
+      "bytes": 1733,
+      "sha256": "64f0359e8d232416dd254a643a656c5a63fea9f613e7ab20b5b10d179f30edc5",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/probe2_pin_budget_project_keying.py",
+      "bytes": 2013,
+      "sha256": "20ac91c249f6322626d459bdac79df0bc23022795cde97f910d8b17e10575651",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/fixtures/capability-index.json",
+      "bytes": 988,
+      "sha256": "042fb96b0298c99f3842b27ebdd893a868c073969436bace9c53e9e1fdb0a81d",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/fixtures/user.settings.json",
+      "bytes": 97,
+      "sha256": "ef37f21180a2a9c605a188bbc0926f01c80c79b382e54620a7d51fa40111075f",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/fixtures/project-a.settings.json",
+      "bytes": 115,
+      "sha256": "151bf36d609da053e3606d1163b07ab66fe8ce2b59b7b1b52b5a409f13e1a93a",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/IMP-0394/fixtures/project-b.settings.json",
+      "bytes": 64,
+      "sha256": "0a2c4e213446a3332b626b1c04932b5a31a2b2458ce36c0f5c050a0fd6849895",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    }
+  ],
+  "output_schema": "command-center/schema/receipt.schema.json",
+  "schema_note": "Catalog output_schema is command-center/schema/receipt.schema.json; that path is absent on this worktree so this receipt is JSON-parseable and sentinel-bearing rather than schema-validated here."
+}

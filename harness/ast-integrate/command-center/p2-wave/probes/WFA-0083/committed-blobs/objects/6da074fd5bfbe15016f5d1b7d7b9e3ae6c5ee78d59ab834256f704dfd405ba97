@@ -1,0 +1,306 @@
+{
+ "answer": "The oracle is execution-trace equivalence: run the foreign source and the native translation on the same case, then diff stages_entered, each gate (stage, field, op, value, verdict), and stop. Intact translation of BP-TRANSLATE-001 matches on the pass case (ingest-review-ship, exhausted) and both halt cases. Mutating the review.score gate op from gte to lt makes the oracle fail and names that gate. A one-plane structural census still accepts the mutant, which is why WFA-0141 is not this unit. Catalog 1/108 TRANSLATE blueprints and 0/284 TRANSLATE candidates could not be re-derived here because the Windows harness-restore JSON files are absent on this Linux worktree; the specimen is a reconstructed TRANSLATE-route stand-in. SUCCESS:WFA-0155",
+ "artifacts": [
+  {
+   "exists": true,
+   "path": "command-center/foundry/WFA-0155-translation-fidelity-oracle-for-the-translate-route.json",
+   "role": "primary"
+  },
+  {
+   "exists": true,
+   "path": "command-center/schema/foundry-artifact.schema.json",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/WFA-0155/oracle.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/WFA-0155/exec_trace.py",
+   "role": "supporting"
+  },
+  {
+   "exists": true,
+   "path": "command-center/p2-wave/probes/WFA-0155/fixtures/foreign-workflow.json",
+   "role": "supporting"
+  }
+ ],
+ "both_states": {
+  "cases_intact_all_match": true,
+  "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe1_both_states.py",
+  "intact_pass": true,
+  "intact_rows": [
+   {
+    "case_id": "case-pass",
+    "equivalent": true,
+    "stages_entered": [
+     "ingest",
+     "review",
+     "ship"
+    ],
+    "stop": {
+     "halted_before_stage": null,
+     "reason": "exhausted"
+    }
+   },
+   {
+    "case_id": "case-stop-score",
+    "equivalent": true,
+    "stages_entered": [
+     "ingest"
+    ],
+    "stop": {
+     "halted_before_stage": "review",
+     "reason": "gate_fail"
+    }
+   },
+   {
+    "case_id": "case-stop-approved",
+    "equivalent": true,
+    "stages_entered": [
+     "ingest",
+     "review"
+    ],
+    "stop": {
+     "halted_before_stage": "ship",
+     "reason": "gate_fail"
+    }
+   }
+  ],
+  "mutant_fail": true,
+  "mutant_mismatches": [
+   {
+    "axis": "stage_order",
+    "source": [
+     "ingest",
+     "review",
+     "ship"
+    ],
+    "translation": [
+     "ingest"
+    ]
+   },
+   {
+    "axis": "gate",
+    "index": 0,
+    "named_field": "score",
+    "named_gate": "review",
+    "source": {
+     "field": "score",
+     "observed": 8,
+     "op": "gte",
+     "stage": "review",
+     "value": 7,
+     "verdict": true
+    },
+    "translation": {
+     "field": "score",
+     "observed": 8,
+     "op": "lt",
+     "stage": "review",
+     "value": 7,
+     "verdict": false
+    }
+   },
+   {
+    "axis": "stop",
+    "source": {
+     "halted_before_stage": null,
+     "reason": "exhausted"
+    },
+    "translation": {
+     "halted_before_stage": "review",
+     "reason": "gate_fail"
+    }
+   }
+  ],
+  "mutated_gate": {
+   "field": "score",
+   "new_op": "lt",
+   "oracle_named": {
+    "field": "score",
+    "index": 0,
+    "stage": "review"
+   },
+   "oracle_named_the_gate": true,
+   "stage": "review"
+  }
+ },
+ "corpus_recount": {
+  "blueprints": {
+   "catalog_claimed_route_translate": 1,
+   "catalog_claimed_total": 108,
+   "live_recount": "ABSENT",
+   "path": null,
+   "present": false
+  },
+  "candidates": {
+   "catalog_claimed_classification_translate": 0,
+   "catalog_claimed_total": 284,
+   "live_recount": "ABSENT",
+   "path": null,
+   "present": false
+  }
+ },
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/WFA-0155/oracle.py:3",
+   "claim": "Oracle identity is execute-then-diff of canonical traces, not structural inspection.",
+   "id": "command-center/p2-wave/probes/WFA-0155/oracle.py:3",
+   "kind": "file-line",
+   "line": 3,
+   "path": "command-center/p2-wave/probes/WFA-0155/oracle.py",
+   "snippet": "ORACLE-FINGERPRINT: execution-trace-equivalence-not-structural"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/WFA-0155/exec_trace.py:146",
+   "claim": "Canonical trace fields are stages_entered, gates, and stop.",
+   "id": "command-center/p2-wave/probes/WFA-0155/exec_trace.py:146",
+   "kind": "file-line",
+   "line": 146,
+   "path": "command-center/p2-wave/probes/WFA-0155/exec_trace.py",
+   "snippet": "CANONICAL_TRACE_FIELDS = (\"stages_entered\", \"gates\", \"stop\")"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/WFA-0155/oracle.py:75",
+   "claim": "Both-states mutates exactly one gate in the translation.",
+   "id": "command-center/p2-wave/probes/WFA-0155/oracle.py:75",
+   "kind": "file-line",
+   "line": 75,
+   "path": "command-center/p2-wave/probes/WFA-0155/oracle.py",
+   "snippet": "def mutate_one_gate(native: dict, *, stage: str, field: str, new_op: str) -> dict:"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/WFA-0155/structural.py:30",
+   "claim": "A WFA-0141-style structural census still passes the semantically inverted mutant.",
+   "id": "command-center/p2-wave/probes/WFA-0155/structural.py:30",
+   "kind": "file-line",
+   "line": 30,
+   "path": "command-center/p2-wave/probes/WFA-0155/structural.py",
+   "snippet": "would_pass_wfa0141_style"
+  },
+  {
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe1_both_states.py",
+   "claim": "Re-run intact translation vs one-gate mutant; intact must pass and mutant must fail.",
+   "id": "probe1_both_states.py",
+   "kind": "rerunnable-command"
+  },
+  {
+   "anchor": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe2_structural_blind.py",
+   "claim": "Re-run structural census on the mutant independently of the artifact narrative.",
+   "id": "probe2_structural_blind.py",
+   "kind": "rerunnable-command"
+  }
+ ],
+ "kind": "translation-oracle",
+ "mechanism": "execution-trace equivalence oracle for a cross-format translation",
+ "named_probes": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe1_both_states.py",
+   "id": "probe1",
+   "role": "both-states"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe2_structural_blind.py",
+   "id": "probe2",
+   "role": "structural-blind-vs-oracle"
+  }
+ ],
+ "oracle": {
+  "canonical_trace_fields": [
+   "stages_entered",
+   "gates",
+   "stop"
+  ],
+  "fingerprint": "execution-trace-equivalence-not-structural",
+  "id": "execution-trace-equivalence-not-structural",
+  "module": "command-center/p2-wave/probes/WFA-0155/oracle.py",
+  "not_by": "Structural inspection, plane counting, or stage-id set equality.",
+  "proves_by": "Execute foreign source and native translation on the same case; diff the canonical stage/gate/stop trace.",
+  "source_executor": "command-center/p2-wave/probes/WFA-0155/exec_trace.py:execute_foreign",
+  "translation_executor": "command-center/p2-wave/probes/WFA-0155/exec_trace.py:execute_native"
+ },
+ "produced_by": {
+  "execution_substrate": "worktree-isolated",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "ts": "2026-08-24T18:44:58Z",
+  "vendor": "cursor/xai"
+ },
+ "question": "Exactly one of the 108 blueprints carries route TRANSLATE and zero of the 284 candidates are classified TRANSLATE, so the translation path is effectively untested. Question: for a workflow translated from a foreign orchestration format onto this control plane, does the translation preserve stage order, gate semantics and stopping conditions - and what is the oracle that proves it rather than asserting it?",
+ "residual_unknowns": [
+  {
+   "claim": "Live recount that exactly 1 of 108 blueprints has route TRANSLATE.",
+   "settling_experiment": "Place the harness-restore blueprint library on disk and re-run command-center/p2-wave/probes/WFA-0155/census.py.",
+   "verdict": "NOT-CHECKED",
+   "why": "09-WORKFLOW-BLUEPRINT-LIBRARY.json is absent on this worktree."
+  }
+ ],
+ "reviewer": {
+  "catalog_asked_cross_vendor_codex": true,
+  "codex_invoked": false,
+  "codex_note": "Catalog reviewer_requirement asks for two reviewers including Codex. This G-1 worker has no Codex MCP. Split-verdict rule is read the probes: probe2 re-derives the mutant and the structural miss without trusting the artifact narrative.",
+  "independent": true,
+  "reviewer_id": "WFA-0155-probe2-structural-blind-scope",
+  "scope_not_agreement": true,
+  "verdict": "PASS"
+ },
+ "schema_ref": "command-center/schema/foundry-artifact.schema.json#/$defs/translation-oracle",
+ "sentinel": "SUCCESS:WFA-0155",
+ "specimen": {
+  "adapter": "command-center/p2-wave/probes/WFA-0155/translate.py",
+  "id": "BP-TRANSLATE-001",
+  "note": "Catalog claims exactly one of 108 blueprints carries route TRANSLATE. 09-WORKFLOW-BLUEPRINT-LIBRARY.json is not on this Linux worktree. This specimen is the executable TRANSLATE-route stand-in the oracle runs; it is not a recount of the missing 108.",
+  "reconstruction": true,
+  "route": "TRANSLATE",
+  "source_format": "foreign.linear-dag.v1",
+  "source_path": "command-center/p2-wave/probes/WFA-0155/fixtures/foreign-workflow.json",
+  "target_plane": "ast-integrate.control-plane.v1"
+ },
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe1_both_states.py",
+   "id": "WFA-0155-BOTH-STATES",
+   "name": "intact translation passes; one mutated gate fails and is named",
+   "result": "PASS"
+  },
+  {
+   "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/WFA-0155/probe2_structural_blind.py",
+   "id": "WFA-0155-STRUCTURAL-BLIND",
+   "name": "WFA-0141-style census passes the mutant; oracle does not",
+   "result": "PASS"
+  }
+ ],
+ "title": "Translation fidelity oracle for the TRANSLATE route",
+ "unit_id": "WFA-0155",
+ "wfa0141_distinction": {
+  "oracle_fails_mutant": true,
+  "structural_census_passes_mutant": true,
+  "structural_mutant": {
+   "control_plane_count": 1,
+   "control_planes": [
+    "ast-integrate.control-plane.v1"
+   ],
+   "gate_count_equal": true,
+   "one_native_plane": true,
+   "source_if_count": 2,
+   "source_task_ids": [
+    "ingest",
+    "review",
+    "ship"
+   ],
+   "stage_id_set_equal": true,
+   "translation_gate_count": 2,
+   "translation_stage_ids": [
+    "ingest",
+    "review",
+    "ship"
+   ],
+   "would_pass_wfa0141_style": true
+  },
+  "why_not_duplicate": "WFA-0141 counts orchestration control planes. The mutant still has exactly one native plane, the same stage id set, and the same gate count, so a plane census would pass a semantically wrong translation. This oracle executes both sides and diffs the trace."
+ }
+}

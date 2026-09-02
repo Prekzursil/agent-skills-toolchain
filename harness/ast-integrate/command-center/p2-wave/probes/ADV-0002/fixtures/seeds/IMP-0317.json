@@ -1,0 +1,261 @@
+{
+ "schema_version": 1,
+ "unit_id": "IMP-0317",
+ "state": "SUCCESS",
+ "sentinel": "SUCCESS:IMP-0317",
+ "spec_anchor": "_USER-PROMPTS.md:11298-11347; _USER-PROMPTS.md:11345 (credentials or decrypted secrets must not enter an artifact bundle); 11-COUNCIL-SPECIFICATION artifacts/privacy/persistence; catalog IMP-0317 question_or_target",
+ "min_bytes_threshold": 2048,
+ "evidence": [
+  {
+   "claim": "IMP-0317 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/IMP-0317.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/IMP-0317.json",
+     "raw_output": "bytes=6710 sha256=a4be59eee185f4f65e5fe691f1f4f4c192d91484a85b890e365d1f0170979c43",
+     "fingerprint": "9e76df190a4dc00236f49f98bf48b9d5",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact IMP-0317",
+     "raw_output": "schema-check",
+     "fingerprint": "216908fc2419df762026c33612d32c4c",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "IMP-0317 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/IMP-0317",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py IMP-0317",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "4773963ec55d50820a9dd022624f9b6f",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered IMP-0317",
+     "raw_output": "schema-valid",
+     "fingerprint": "5b9ad1426de68f513115510a97afaa8f",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "extensions": {
+  "legacy_root": {
+   "completion_sentinel": "SUCCESS:IMP-0317",
+   "title": "Privacy, retention and persistence policy engine",
+   "output_schema": "command-center/schema/receipt.schema.json profile=council-privacy-module",
+   "artifact_paths": [
+    "command-center/receipts/IMP-0317.json",
+    "tools/council/artifacts/retention.py",
+    "tools/council/artifacts/__init__.py",
+    "command-center/p2-wave/probes/IMP-0317/probe1_planted_zero_survivors.py",
+    "command-center/p2-wave/probes/IMP-0317/probe2_negative_control.py",
+    "command-center/p2-wave/probes/IMP-0317/gitleaks_style.py"
+   ],
+   "module": {
+    "path": "tools/council/artifacts/retention.py",
+    "sha256": "dec78d9ef914a90dfd08fc4906f744bff5a9e8ecfcb5ef7644f9eb17314d0af2",
+    "bytes": 16804,
+    "hard_rule": "no credential or decrypted secret enters a persisted council artifact",
+    "encodings": [
+     "env",
+     "json",
+     "camelCase",
+     "base64"
+    ],
+    "persist_refuses_survivors": true,
+    "unredacted_requires_explicit_test_flag": true
+   },
+   "falsifiable_question": "does a secret pasted into a participant turn reach the persisted artifact, and does the redactor handle JSON-embedded and camelCase key forms as well as plain assignments?",
+   "answer": "No: persist_transcript redacts before write and refuses if any of the four planted encodings survive. Disable the redactor (test flag only) and the same scanners find all four, so silence on the clean artifact is not a dead scanner. Declared retention deletes the expired file and keeps the in-window file.",
+   "live": {
+    "clean_bytes": 1112,
+    "clean_sha256": "c14654e9ad55bb74744843b0b9aa13c403aac44526bf0f9a3d1231761af9555f",
+    "clean_survivors": [],
+    "clean_survivor_count": 0,
+    "clean_gitleaks_hits": 0,
+    "dirty_survivors": [
+     "env",
+     "json",
+     "camelCase",
+     "base64"
+    ],
+    "dirty_survivor_count": 4,
+    "dirty_gitleaks_hits": 5,
+    "dirty_gitleaks_rules": [
+     "base64-assignment",
+     "camelcase-apikey",
+     "env-assignment",
+     "json-password"
+    ],
+    "production_unredacted_refused": true,
+    "retention_expired_deleted": true,
+    "retention_fresh_kept": true,
+    "retention_deleted_count": 1,
+    "redaction_applied_on_shipped_path": true
+   },
+   "test_ids": [
+    "security-planted-secret-corpus-four-encodings",
+    "negative-control-disable-redactor",
+    "retention-expired-deletes-fresh-kept",
+    "production-unredacted-persist-refused"
+   ],
+   "negative_control_ids": [
+    "disable-redactor-all-four-found",
+    "gitleaks-fires-on-dirty-silent-on-clean",
+    "expired-artifact-deleted"
+   ],
+   "reviewer_verdict": "PASS",
+   "owner_signoff": {
+    "required": true,
+    "block_present": true,
+    "reviewer_granted_owner_half": false,
+    "hard_rule": "no credential or decrypted secret enters a council artifact",
+    "hard_rule_source": "_USER-PROMPTS.md:11345 / catalog IMP-0317",
+    "policy_defaults_disclosed": {
+     "retention_seconds": 2592000,
+     "persistence": "redacted-only",
+     "redact": true
+    },
+    "status": "RECORDED",
+    "note": "Owner half is this structured block. The reviewer must not and did not grant it. Fail-closed defaults implement the spec hard rule; they do not invent an owner-chosen retention window beyond the disclosed 30-day default."
+   },
+   "named_probes": [
+    {
+     "id": "probe1",
+     "role": "planted-zero-survivors",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0317/probe1_planted_zero_survivors.py"
+    },
+    {
+     "id": "probe2",
+     "role": "negative-control-and-retention",
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/IMP-0317/probe2_negative_control.py"
+    }
+   ],
+   "cloud_ok": false,
+   "registered": true,
+   "scope": {
+    "does_not_claim": [
+     "cloud ok=true is delivery",
+     "global unit_manifest.py --write was run",
+     "a live credential was scanned (corpus is synthetic only)",
+     "external gitleaks binary executed"
+    ]
+   }
+  }
+ },
+ "artifacts": [
+  {
+   "path": "command-center/receipts/IMP-0317.json",
+   "bytes": 6710,
+   "sha256": "a4be59eee185f4f65e5fe691f1f4f4c192d91484a85b890e365d1f0170979c43",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/IMP-0317.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/IMP-0317/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "IMP-0317"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/IMP-0317.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/IMP-0317.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "084f154ea5a69f612d38dce3881334d0",
+    "exit_code": 0
+   }
+  }
+ ],
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "defects": [],
+ "report": {
+  "kind": "receipt",
+  "observations": [
+   {
+    "name": "primary_artifact_bytes",
+    "measured": 6710,
+    "method": "filesystem-stat",
+    "anchor": "command-center/receipts/IMP-0317.json"
+   }
+  ],
+  "control_ids": [
+   "NC-ABSENT"
+  ]
+ },
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "cursor-grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

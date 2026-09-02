@@ -1,0 +1,32 @@
+
+===== launch 2026-08-20T07:41:49Z attempt=1 =====
+I'll start from the existing ARC-0036 probe tree and the claim-verify-gate, then implement until the per-unit measure prints SUCCESS:delivered.The probe list is huge; next I’ll inspect ARC-0036 itself, the measure script, and a completed ARC unit as the pattern.ARC-0036 has no probe tree yet, so I’ll read its catalog entry and a delivered ARC unit to copy the contract shape.I’ll load the test-plan schema, A5 artifacts, similar delivered TEST-PLAN units, and the 12-condition predicate next.I’ll pull the receipt schema, A5 roster, the 12 conditions, and a delivered unit that packs a similar JSON artifact.I’ll implement a miniature A5 runtime that drives the shared 12-condition reducer, then add the named probes and pack the receipt.Writing the runtime, three named probes, and the packer next.Condition 4 failed schema validation on the good fixture; I’ll print the receipt errors and fix them.Probes are green. Next I’ll pack TEST-PLAN.json from those live outputs and write the per-unit manifest.**SUCCESS:delivered ARC-0036**
+
+`python command-center/p2-wave/_measure_one_delivered.py ARC-0036` printed:
+
+```
+SUCCESS:delivered ARC-0036 predicate=delivered state=SUCCESS probes=4 raws=5 notes=a5_runtime.py:0,probe_coverage.py:0,probe_vacuity.py:0,refute_uncaught.py:0
+```
+
+The probe tree did not exist, so it was created and implemented. Cloud-ok is not this delivery.
+
+### What landed
+- Receipt: `command-center/phase3/A5/TEST-PLAN.json` (`state=SUCCESS`, 26806 bytes)
+- Per-unit manifest: `command-center/p2-wave/probes/ARC-0036/UNIT-ARTIFACT-MANIFEST.json` (live LF sha256 `b7ed2531af1fffa414ce0943f348a38c221515f852ea1bb8e85cd05b08fc7753` matches)
+- Handoff: `command-center/p2-wave/probes/ARC-0036/SUBAGENT-RETURN.json`
+
+### Suite (live against `evaluate_gate_a`)
+Catalog-named chaos/resume/vacuity cases each name an injection and one of the 12 conditions:
+
+| Case | Target |
+|---|---|
+| Kill monitor mid-run | 1 terminal state |
+| Vacuity: delete artifact after SUCCESS | 2 artifact exists |
+| Kill worker mid-unit | 3 non-empty / min size |
+| Corrupt ledger record | 4 schema parse |
+| Resume partial batch | 5 sentinel |
+| Duplicate dispatch | 11 manifest registration |
+
+Coverage is **6/12**. Uncovered, enumerated: **6, 7, 8, 9, 10, 12**. Vacuity delete flips condition 2 to UNSATISFIED. Independent reviewer named **M-UNCAUGHT-OPEN-P0** (open P0 after SUCCESS; condition 10 is untargeted).
+
+ARC-0031 `DESIGN.json` is still absent; that is recorded as an open P2. The suite binds to the shared reducer plus a miniature ledger/claim fixture, not a production A5 runtime. No git writes, no global `unit_manifest.py --write`, no wave relaunch.

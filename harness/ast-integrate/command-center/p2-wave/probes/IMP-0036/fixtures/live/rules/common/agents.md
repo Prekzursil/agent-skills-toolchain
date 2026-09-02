@@ -1,0 +1,27 @@
+# rules/common/agents.md
+shared:rules/common/agents.md
+live-unique:rules/common/agents.md
+live-pad:rules/common/agents.md:0
+live-pad:rules/common/agents.md:1
+live-pad:rules/common/agents.md:2
+live-pad:rules/common/agents.md:3
+live-pad:rules/common/agents.md:4
+live-pad:rules/common/agents.md:5
+live-pad:rules/common/agents.md:6
+live-pad:rules/common/agents.md:7
+live-pad:rules/common/agents.md:8
+live-pad:rules/common/agents.md:9
+live-pad:rules/common/agents.md:10
+live-pad:rules/common/agents.md:11
+live-pad:rules/common/agents.md:12
+live-pad:rules/common/agents.md:13
+live-pad:rules/common/agents.md:14
+live-pad:rules/common/agents.md:15
+live-pad:rules/common/agents.md:16
+live-pad:rules/common/agents.md:17
+live-pad:rules/common/agents.md:18
+live-pad:rules/common/agents.md:19
+live-pad:rules/common/agents.md:20
+live-pad:rules/common/agents.md:21
+live-pad:rules/common/agents.md:22
+live-pad:rules/common/agents.md:23

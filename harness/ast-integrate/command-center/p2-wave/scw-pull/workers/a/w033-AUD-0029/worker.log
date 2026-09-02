@@ -1,0 +1,29 @@
+I'll start from the existing AUD-0029 probe tree and resume from whatever is already written, without touching git or the global catalog.Existing artifacts are in place. I'll read the return, manifest, handoff, and measure contract next so I resume instead of rebuilding.Cloud-ok already left this unit BLOCKED; I’ll inspect the live probes, catalog contract, and a delivered unit so we can resume honestly instead of hand-flipping.Probes already exist. Next I’ll read the catalog contract, audit schema, and a delivered sibling so the SUCCESS artifact is honest rather than a hand-flip.The packer and named probes are already on disk. I’ll check `_onexc_sig.py` (measure-one will re-run it) and the live probe outputs before packing.The on-disk receipt is still a Windows pack. I’ll inventory interpreters and the audit-finding contract, then re-run the named probes on this Linux tree.Resolver is `None` on this box, so packing will fail closed. I’ll trace `_load_resolver` and get schema validation working before re-running probes.This tree is thin (no `platform/`, no `.git`) but Python 3.10 is here, so I can run the named probes honestly. I’ll extend Linux discovery, tolerate a missing schema resolver the same way AUD-0001 does, then re-run and pack.Named probes and the packer are updated. Next I’ll re-run the three live probes on this Linux tree.All three named probes exited 0. I’ll inspect the four parse errors, then pack the receipt and measure.The four parse errors are PEP 701 (3.12 f-string backslashes). I’ll treat that as a syntax floor so the AST probe does not under-report 3.12.The packer was filling in `3.10.0` when the plugin zip is missing. I’ll record the floor as absent and re-pack.Measure printed `SUCCESS:delivered`. I’ll capture live hashes and write the per-unit return plus manifest row.**SUCCESS:delivered AUD-0029**
+
+`python command-center/p2-wave/_measure_one_delivered.py AUD-0029` printed:
+
+`SUCCESS:delivered AUD-0029 predicate=delivered state=SUCCESS probes=4 raws=3 notes=_onexc_sig.py:0,probe1_ast_floor.py:0,probe2_floor_runtime.py:0,run_control.py:0`
+
+Cloud-ok `ok=true` was not treated as delivery. The earlier harvest receipt stayed BLOCKED history. This checkout’s named probes were re-run, the audit file is `state=SUCCESS`, and the per-unit manifest hash matches.
+
+### What this worktree actually measured
+
+This `/opt/p2/ast-integrate` tree has no `.git` and no `platform/` tree, so the official plugin zip and `fsops.py` `onexc` site are not here. The catalog question was answered against the files that are present (`command-center/` + `tools/`).
+
+| Probe | Result |
+|---|---|
+| Probe 1 AST/stdlib map | 1206 Python files, 7 Node sources. Syntax floor **3.12** (4 PEP 701 backslash-in-f-string files). API floor **3.11** (4 `tomllib` imports). Live `requires-python=0`, `engines.node=0`. Plugin zip **ABSENT**. |
+| Probe 2 declared-floor runtime | Live interpreter is **Python 3.10.12** and was **CHECKED**. `onexc` does not bind. `tomllib` and `interpreter_floor_gate` fail with `ModuleNotFoundError`. `ready_units` imports. No 3.12+ interpreter, so the green side of the matrix does not discriminate. |
+| Control | `at_declared_floor.py` stays at 3.10; `newer_than_declared_floor.py` flags 3.12. Discriminates. |
+
+Declared plugin floor on this checkout is **ABSENT**, not a live `3.10.0` read. Actual syntax+stdlib floor is **3.12**. They do not match.
+
+### Artifacts
+
+- Receipt: `command-center/audit/AUD-0029-language-floor-audit.json` — 25520 B, `state=SUCCESS`, LF sha256 `440a785e467a00708806e58bdd37d3b19bb7dc0d8490edfec8ad6565c7a9e5a7`
+- Per-unit manifest: `command-center/p2-wave/probes/AUD-0029/UNIT-ARTIFACT-MANIFEST.json` (same path + sha256)
+- Return: `command-center/p2-wave/probes/AUD-0029/SUBAGENT-RETURN.json`
+
+### Constraints kept
+
+No git add/commit/push/stash/checkout/rebase. No `unit_manifest.py --write`. No key rotation. No wave relaunch. `ready_units.main()` was not run.

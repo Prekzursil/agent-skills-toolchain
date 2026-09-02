@@ -1,0 +1,19 @@
+I'll start from the existing AUD-0005 probe tree, read any prior return artifact, and only resume what's already built.Existing probes and return artifacts are present; next I’ll read the unit contract, prior return, and the delivery measurer.Cloud-ok left the unit BLOCKED; I'll inspect live probes, the audit schema, and a delivered sibling so we can resume rather than rebuild.Probes and a SUCCESS receipt already exist; I’ll check the toolchain path, re-run the named probes on this box, then pack and measure.The worktree has no `.git` and no `platform/` resolver. I’ll inspect cached schema code and clone a local tag source so the named probes can re-run here.The public repo is about 54 MB. I’ll clone it into the probe work dir and update the probes so they resolve that local checkout.The clone has 20 tags and `rev-list` works. Next I’ll point the probes at that checkout, then re-run, pack, and measure.Probe 1 passed. Probe 2 crashed because `gh` is missing; I’ll catch that and fall back to urllib.Measure printed `SUCCESS:delivered`. I’ll write the per-unit return artifact with the live hashes and probe exits.**SUCCESS:delivered AUD-0005** predicate=delivered state=SUCCESS probes=2 raws=2 notes=probe1_git_rev_list.py:0,probe2_github_release_assets.py:0
+
+AUD-0005 is G-1 contract-green on this Linux worktree. Cloud-ok had left it BLOCKED; the named probe scripts were already on disk, so they were resumed rather than rebuilt.
+
+**What the live probes measured**
+- Probe 1: every tag in a local clone of `Prekzursil/agent-skills-toolchain` resolves with `git rev-list -n 1` (never the caret form). **20/20 tags resolved.** No semver tags. Latest tag is `rescue/c1-land254-settlement`.
+- Probe 2: GitHub releases API (urllib; `gh` is not installed) returns **0 releases / 20 tags**. Planted tag-without-release went red; zero-asset row went red; 23-byte matching asset went green.
+- Honest audit answer: **No.** Tags resolve to commits, but none has a published release, and in-tree versions do not agree with the latest rescue tag.
+
+**Artifacts**
+| Path | Role |
+|---|---|
+| `command-center/audit/AUD-0005-tag-release-parity.json` | catalog receipt, `state=SUCCESS`, 22820 B |
+| `command-center/p2-wave/probes/AUD-0005/UNIT-ARTIFACT-MANIFEST.json` | per-unit row, LF sha256 `3c09eea3d1d8b315d1fb075a97df1b4b04733a56e10066ffa0a159738ceb4acd` |
+| `command-center/p2-wave/probes/AUD-0005/SUBAGENT-RETURN.json` | this delivery |
+
+This checkout has no `.git` and no `~/source/agent-skills-toolchain`, so Probe 1 cloned the public GitHub repo into `probes/AUD-0005/_work/toolchain`. `platform/lib/schema_resolver.py` is absent here; pack warned `resolver-unavailable`. `ready_units.artifact_delivered` is still true because the receipt is not self-BLOCKED.
+
+Constraints kept: no git add/commit/push/stash/checkout/rebase of this worktree, no `unit_manifest.py --write`, no key rotation, no relaunch of finish-everything-close or p2-cloud-ok-deliver.

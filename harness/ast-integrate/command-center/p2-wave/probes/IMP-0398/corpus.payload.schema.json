@@ -1,0 +1,166 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/command-center/p2-wave/probes/IMP-0398/corpus.payload.schema.json",
+  "$comment": "Probe-local payload schema for IMP-0398. The catalog file command-center/schema/router-corpus.schema.json is a generated shim and must not be fattened (ADV rebuild circle). This file owns the labelled-corpus constraints the shim cannot express.",
+  "title": "IMP-0398 labelled router-corpus payload",
+  "type": "object",
+  "required": [
+    "kind",
+    "observations",
+    "control_ids",
+    "queries",
+    "corpus_stats",
+    "popularity",
+    "baseline",
+    "kappa"
+  ],
+  "properties": {
+    "kind": { "const": "router-corpus" },
+    "observations": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["name", "measured", "method", "anchor"],
+        "properties": {
+          "name": { "type": "string", "minLength": 1 },
+          "measured": { "type": ["string", "number", "boolean"] },
+          "method": { "type": "string", "minLength": 1 },
+          "anchor": { "type": "string", "minLength": 1 }
+        }
+      }
+    },
+    "control_ids": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "type": "string", "minLength": 1 }
+    },
+    "queries": {
+      "type": "array",
+      "minItems": 20,
+      "items": {
+        "type": "object",
+        "required": [
+          "id",
+          "query",
+          "expected_capability_ids",
+          "rationale",
+          "polarity"
+        ],
+        "properties": {
+          "id": { "type": "string", "minLength": 1 },
+          "query": { "type": "string", "minLength": 1 },
+          "expected_capability_ids": {
+            "type": "array",
+            "items": { "type": "string", "minLength": 1 }
+          },
+          "rationale": { "type": "string", "minLength": 1 },
+          "polarity": { "enum": ["POSITIVE", "NEGATIVE"] }
+        },
+        "allOf": [
+          {
+            "if": {
+              "properties": { "polarity": { "const": "NEGATIVE" } },
+              "required": ["polarity"]
+            },
+            "then": {
+              "properties": {
+                "expected_capability_ids": { "maxItems": 0 }
+              }
+            }
+          },
+          {
+            "if": {
+              "properties": { "polarity": { "const": "POSITIVE" } },
+              "required": ["polarity"]
+            },
+            "then": {
+              "properties": {
+                "expected_capability_ids": { "minItems": 1 }
+              }
+            }
+          }
+        ]
+      }
+    },
+    "corpus_stats": {
+      "type": "object",
+      "required": ["n", "n_negative", "negative_fraction", "n_positive"],
+      "properties": {
+        "n": { "type": "integer", "minimum": 20 },
+        "n_negative": { "type": "integer", "minimum": 1 },
+        "n_positive": { "type": "integer", "minimum": 1 },
+        "negative_fraction": {
+          "type": "number",
+          "minimum": 0.25,
+          "maximum": 1.0
+        }
+      }
+    },
+    "popularity": {
+      "type": "object",
+      "required": ["top3", "capabilities", "independent_of_gold_labels"],
+      "properties": {
+        "top3": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string", "minLength": 1 }
+        },
+        "independent_of_gold_labels": { "const": true },
+        "capabilities": {
+          "type": "array",
+          "minItems": 3,
+          "items": {
+            "type": "object",
+            "required": ["capability_id", "usage_count"],
+            "properties": {
+              "capability_id": { "type": "string", "minLength": 1 },
+              "usage_count": { "type": "integer", "minimum": 0 }
+            }
+          }
+        }
+      }
+    },
+    "baseline": {
+      "type": "object",
+      "required": [
+        "stub",
+        "score",
+        "declared_floor",
+        "defeated",
+        "top3",
+        "easy_mutant_score"
+      ],
+      "properties": {
+        "stub": { "const": "always-top-3" },
+        "score": { "type": "number", "minimum": 0, "maximum": 1 },
+        "declared_floor": { "type": "number", "minimum": 0.05, "maximum": 0.35 },
+        "defeated": { "const": true },
+        "top3": {
+          "type": "array",
+          "minItems": 3,
+          "maxItems": 3,
+          "items": { "type": "string" }
+        },
+        "easy_mutant_score": { "type": "number", "minimum": 0, "maximum": 1 }
+      }
+    },
+    "kappa": {
+      "type": "object",
+      "required": ["value", "n_relabeled", "threshold", "pass", "seed", "sample_ids"],
+      "properties": {
+        "value": { "type": "number", "minimum": 0.7, "maximum": 1.0 },
+        "n_relabeled": { "type": "integer", "minimum": 4 },
+        "threshold": { "const": 0.7 },
+        "pass": { "const": true },
+        "seed": { "type": "integer" },
+        "sample_ids": {
+          "type": "array",
+          "minItems": 4,
+          "items": { "type": "string", "minLength": 1 }
+        }
+      }
+    }
+  }
+}

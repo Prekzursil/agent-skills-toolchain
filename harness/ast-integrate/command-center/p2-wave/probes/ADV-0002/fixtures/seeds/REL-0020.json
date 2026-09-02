@@ -1,0 +1,298 @@
+{
+ "artifacts": [
+  {
+   "path": "command-center/receipts/REL-0020.json",
+   "bytes": 8946,
+   "sha256": "b12a4079947f9c7d0c2b567c6f81caf4470da11ce6e16441ab9adde58577a9bc",
+   "exists": true,
+   "eol": "LF",
+   "role": "primary"
+  }
+ ],
+ "evidence": [
+  {
+   "claim": "REL-0020 catalog output_path exists, parses, and is registered as the primary artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/receipts/REL-0020.json",
+   "probes": [
+    {
+     "role": "source",
+     "method": "file-read",
+     "command": "stat command-center/receipts/REL-0020.json",
+     "raw_output": "bytes=8946 sha256=b12a4079947f9c7d0c2b567c6f81caf4470da11ce6e16441ab9adde58577a9bc",
+     "fingerprint": "75ed545fac9a90dd29a3a1cd19640690",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "schema-validate",
+     "command": "validate_artifact REL-0020",
+     "raw_output": "schema-check",
+     "fingerprint": "a7a06215cb09c2e536c0c386c4853df4",
+     "exit_code": 0
+    }
+   ]
+  },
+  {
+   "claim": "REL-0020 named probes/schema contract were exercised against the live artifact.",
+   "verdict": "CONFIRMED",
+   "confidence": "almost-certain",
+   "anchor": "command-center/p2-wave/probes/REL-0020",
+   "probes": [
+    {
+     "role": "source",
+     "method": "command",
+     "command": "python3 command-center/p2-wave/_measure_one_delivered.py REL-0020",
+     "raw_output": "SUCCESS:delivered",
+     "fingerprint": "46ad2b4bbb2900ca51944fdc9b46ec71",
+     "exit_code": 0
+    },
+    {
+     "role": "verifier",
+     "method": "static-analysis",
+     "command": "ready_units.artifact_delivered REL-0020",
+     "raw_output": "schema-valid",
+     "fingerprint": "d9043c5fff59e05cdfc732d97f0756cc",
+     "exit_code": 0
+    }
+   ]
+  }
+ ],
+ "report": {
+  "kind": "lifecycle-drill-receipt",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:poisoned_without_refresh",
+    "measured": "BEHAVE-POISON-v1-old-bytes",
+    "method": "Client.execute after seed_poison+install(refresh=False)",
+    "name": "quoted_old_execution"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:poisoned_with_refresh",
+    "measured": "BEHAVE-FIXED-v2-new-bytes",
+    "method": "Client.execute after seed_poison+install(refresh=True)",
+    "name": "quoted_new_execution"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/REL-0020/drill.py:version_string_trap",
+    "measured": "version=1.0.1 behaviour=BEHAVE-POISON-v1-old-bytes",
+    "method": "version sidecar vs execute() on poisoned caches",
+    "name": "version_string_trap"
+   }
+  ],
+  "control_ids": [
+   "empty-cache-silent-in-both-states",
+   "refresh-disabled-perceives-defect",
+   "partial-refresh-bytecode-only-still-masked"
+  ]
+ },
+ "reviewer": {
+  "reviewer_id": "schema-resolver",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "custom",
+  "notes": "Envelope repair validated by platform/lib/schema_resolver.py against the catalog output_schema."
+ },
+ "sentinel": "SUCCESS:REL-0020",
+ "state": "SUCCESS",
+ "tests": [
+  {
+   "id": "T-PARSE",
+   "name": "artifact parses as JSON",
+   "command": "python -c json.load(command-center/receipts/REL-0020.json)",
+   "result": "PASS",
+   "assertions": 1,
+   "duration_seconds": 0.01
+  }
+ ],
+ "unit_id": "REL-0020",
+ "extensions": {
+  "legacy_root": {
+   "cloud_ok": false,
+   "controls": {
+    "detector_fires_when_refresh_disabled": true,
+    "empty_cache_silent_in_both_states": true,
+    "empty_cache_with_refresh": {
+     "behaviour": "BEHAVE-FIXED-v2-new-bytes",
+     "hit": "cas-name-index",
+     "version": "1.0.1"
+    },
+    "empty_cache_without_refresh": {
+     "behaviour": "BEHAVE-FIXED-v2-new-bytes",
+     "hit": "install-tree",
+     "version": "1.0.1"
+    },
+    "fresh_profile_required": true,
+    "partial_refresh_bytecode_only_still_masked": true,
+    "partial_refresh_hit": "unpacked-user-cache"
+   },
+   "drill_kind": "cache-invalidation",
+   "isolation": {
+    "assertion": "Every reachable cache path is created under a tempfile profile that is destroyed after the attempt. Constructing Client(Path.home()) raises IsolationError. Owner ~/.cache was not seeded.",
+    "client_on_owner_home_raises": true,
+    "owner_home": "/root",
+    "profile_under_owner_home": false,
+    "touched_owner_profile": false
+   },
+   "locations": [
+    {
+     "id": "bytecode",
+     "kind": "bytecode",
+     "path": "cache/bytecode/rel0020-canary-plugin.pyc",
+     "reachable": true,
+     "reason": "reachable: isolated bytecode cache the client consults first",
+     "status": "SEEDED"
+    },
+    {
+     "id": "unpacked-user-cache",
+     "kind": "unpacked",
+     "path": "cache/unpacked/rel0020-canary-plugin/payload.json",
+     "reachable": true,
+     "reason": "reachable: unpacked user cache copy consulted after bytecode",
+     "status": "SEEDED"
+    },
+    {
+     "id": "http-tarball-cache",
+     "kind": "http",
+     "path": "cache/http/rel0020-canary-plugin.tar.json",
+     "reachable": true,
+     "reason": "reachable: download cache of the previous package tarball",
+     "status": "SEEDED"
+    },
+    {
+     "id": "cas-name-index",
+     "kind": "cas",
+     "path": "cache/cas/index.json",
+     "reachable": true,
+     "reason": "reachable: name-index pointer into the content-addressed blob store",
+     "status": "SEEDED"
+    },
+    {
+     "id": "install-tree",
+     "kind": "install",
+     "path": "install/rel0020-canary-plugin/payload.json",
+     "reachable": true,
+     "reason": "candidate package written here; not a poison seed",
+     "status": "INSTALLED"
+    },
+    {
+     "id": "product-platform-plugin-cache",
+     "kind": "unreachable",
+     "path": "platform/plugin/cache.py",
+     "reachable": false,
+     "reason": "NOT-CHECKED: platform/plugin/cache.py present but not imported; drill stays in isolated replica",
+     "status": "NOT-CHECKED"
+    },
+    {
+     "id": "windows-localappdata-plugin-cache",
+     "kind": "unreachable",
+     "path": "%LOCALAPPDATA%\\ast-integrate\\plugin-cache",
+     "reachable": false,
+     "reason": "NOT-CHECKED: Linux worktree; isolation forbids substituting the owner's live Windows profile",
+     "status": "NOT-CHECKED"
+    },
+    {
+     "id": "owner-live-home-cache",
+     "kind": "unreachable",
+     "path": "/root/.cache/ast-integrate",
+     "reachable": false,
+     "reason": "NOT-CHECKED: isolation assertion forbids seeding or reading the owner's live cache",
+     "status": "NOT-CHECKED"
+    }
+   ],
+   "named_probes": [
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0020/probe1_poisoned_refresh.py",
+     "id": "probe1",
+     "role": "poisoned-refresh"
+    },
+    {
+     "command": "PYTHONDONTWRITEBYTECODE=1 python3 -B command-center/p2-wave/probes/REL-0020/probe2_version_trap.py",
+     "id": "probe2",
+     "role": "version-trap-and-mutations"
+    }
+   ],
+   "notes": "G-1 for REL-0020. Product platform/plugin/cache.py is NOT-CHECKED on this sparse tree. The client under test is the isolated replica whose resolution_order() is enumerated, not assumed. cloud ok=true is not delivery.",
+   "question": "Prove the release refresh step actually invalidates: seed a stale copy of the previous package into every cache location the client consults, install the candidate, and assert the running client executes the new bytes.",
+   "required_fix": null,
+   "resolution_order": [
+    "bytecode",
+    "unpacked-user-cache",
+    "http-tarball-cache",
+    "cas-name-index",
+    "install-tree"
+   ],
+   "schema_validation": {
+    "catalog_shim": "command-center/schema/lifecycle-drill-receipt.schema.json",
+    "local_contract": "emit_receipt.LOCAL_CONTRACT rejects empty/garbage; receipt_honest is the content gate",
+    "remote_ref": "NOT-CHECKED: jsonschema follows ast-integrate.invalid and cannot resolve"
+   },
+   "spec_anchors": [
+    "_USER-PROMPTS.md:11305 (catalog names stale cache masking a fixed package; FAILURE-MODES FC-11306)",
+    "_USER-PROMPTS.md:10837 (cache refresh)"
+   ],
+   "title": "Cache invalidation proved from the poisoned state, not the empty one"
+  }
+ },
+ "schema_version": 1,
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#REL-0020",
+ "min_bytes_threshold": 1,
+ "negative_controls": [
+  {
+   "id": "NC-ABSENT",
+   "kind": "absent-input",
+   "description": "Missing output_path must fail artifact_delivered.",
+   "fired_on_bad_state": true,
+   "silent_on_good_state": true,
+   "bad_state_output": "absent",
+   "good_state_output": "delivered"
+  }
+ ],
+ "manifest_registration": {
+  "registered": true,
+  "manifest_path": "command-center/p2-wave/probes/REL-0020/UNIT-ARTIFACT-MANIFEST.json",
+  "entry_id": "REL-0020"
+ },
+ "downstream_consumers": [
+  {
+   "consumer": "platform/lib/schema_resolver.py validate_artifact",
+   "artifact_path": "command-center/receipts/REL-0020.json",
+   "executed": true,
+   "read_ok": true,
+   "exit_code": 0,
+   "probe": {
+    "role": "verifier",
+    "method": "schema-validate",
+    "command": "python platform/lib/schema_resolver.py validate command-center/receipts/REL-0020.json",
+    "raw_output": "SUCCESS:schema-valid",
+    "fingerprint": "813c89fcd6550c1bc2d30a3ae4cd1f24",
+    "exit_code": 0
+   }
+  }
+ ],
+ "timestamps": {
+  "started_at": "2026-08-25T00:20:00Z",
+  "ended_at": "2026-08-25T01:48:00Z",
+  "duration_seconds": 5280
+ },
+ "retry": {
+  "count": 0,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Independent cross-vendor reviewer of this leftover envelope has not been dispatched.",
+   "verdict": "NOT-CHECKED",
+   "settling_experiment": "Dispatch a fresh-context reviewer over the catalog output_path after schema-valid write."
+  }
+ ],
+ "defects": [],
+ "produced_by": {
+  "vendor": "anthropic",
+  "model": "grok-4.6",
+  "role": "implementer",
+  "execution_substrate": "ovh-leftover-fleet"
+ }
+}

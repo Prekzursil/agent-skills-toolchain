@@ -1,0 +1,27 @@
+# rules/common/security.md
+shared:rules/common/security.md
+repo-unique:rules/common/security.md
+repo-pad:rules/common/security.md:0
+repo-pad:rules/common/security.md:1
+repo-pad:rules/common/security.md:2
+repo-pad:rules/common/security.md:3
+repo-pad:rules/common/security.md:4
+repo-pad:rules/common/security.md:5
+repo-pad:rules/common/security.md:6
+repo-pad:rules/common/security.md:7
+repo-pad:rules/common/security.md:8
+repo-pad:rules/common/security.md:9
+repo-pad:rules/common/security.md:10
+repo-pad:rules/common/security.md:11
+repo-pad:rules/common/security.md:12
+repo-pad:rules/common/security.md:13
+repo-pad:rules/common/security.md:14
+repo-pad:rules/common/security.md:15
+repo-pad:rules/common/security.md:16
+repo-pad:rules/common/security.md:17
+repo-pad:rules/common/security.md:18
+repo-pad:rules/common/security.md:19
+repo-pad:rules/common/security.md:20
+repo-pad:rules/common/security.md:21
+repo-pad:rules/common/security.md:22
+repo-pad:rules/common/security.md:23

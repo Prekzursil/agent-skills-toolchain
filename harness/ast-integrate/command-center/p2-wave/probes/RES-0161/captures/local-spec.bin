@@ -1,0 +1,281 @@
+"""Frozen AgentSpec workflow types.
+
+Catalog IMP-0147 cites this file at line 116 for ``spec_version``. Every new
+node type MUST bump ``CURRENT_SPEC_VERSION`` (see ``NODE_TYPE_INTRODUCED_IN``)
+and ship an old->new migrator plus a new->old refusal in ``migrate.py``.
+
+IMP-0138: per-node ``on_failure`` is a complete family->action map over the
+closed taxonomy. Lookup uses ``family_of(reason)``, never a substring.
+Migration inspects raw dicts so unknown keys cannot be silently dropped.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, field
+from typing import Any, Mapping
+
+from .taxonomy import FAMILIES, OutOfTaxonomyError, family_of
+
+SPEC_VERSION_PRE_PHASE7: int = 6
+
+NODE_TYPE_INTRODUCED_IN: dict[str, int] = {
+    "WorkUnit": 6,
+    "FanOut": 6,
+    "Barrier": 6,
+    "Pipeline": 6,
+    "Subworkflow": 7,  # IMP-0129
+    "Loop": 8,  # IMP-0130
+    "HumanCheckpoint": 9,  # IMP-0131
+    "DynamicFanOut": 10,  # IMP-0132
+    "RepairLoop": 11,  # IMP-0139
+}
+
+CURRENT_SPEC_VERSION: int = max(NODE_TYPE_INTRODUCED_IN.values())
+KNOWN_NODE_KINDS: frozenset[str] = frozenset(NODE_TYPE_INTRODUCED_IN)
+WORKFLOW_KEYS: frozenset[str] = frozenset(
+    {"id", "spec_version", "entry", "nodes", "params"}
+)
+
+ON_FAILURE_ACTIONS: frozenset[str] = frozenset(
+    {"abort", "continue", "escalate", "quarantine", "repair"}
+)
+DEFAULT_ON_FAILURE: dict[str, str] = {
+    "adapter-exit-n": "abort",
+    "blocked": "escalate",
+    "degraded": "continue",
+    "partial-artifact": "quarantine",
+    "schema-invalid": "abort",
+    "severed-stream": "abort",
+    "timeout": "abort",
+    "win-arg-limit": "repair",
+}
+
+
+@dataclass(frozen=True)
+class OnFailureViolation:
+    id: str
+    path: str
+    detail: str
+
+
+class OnFailureValidationError(ValueError):
+    def __init__(self, violations: list[OnFailureViolation]) -> None:
+        self.violations = violations
+        super().__init__("; ".join(f"{v.id}:{v.detail}" for v in violations))
+
+
+OnFailureValidationError = OnFailureValidationError
+
+
+def validate_on_failure(policy: Mapping[str, Any] | None) -> list[OnFailureViolation]:
+    if not isinstance(policy, Mapping):
+        return [
+            OnFailureViolation(
+                "on-failure-schema-invalid",
+                "$.on_failure",
+                "on_failure must be a family->action object",
+            )
+        ]
+    keys = {k for k in policy.keys() if isinstance(k, str)}
+    out: list[OnFailureViolation] = []
+    for unknown in sorted(keys - FAMILIES):
+        out.append(
+            OnFailureViolation(
+                "on-failure-unknown-reason",
+                f"$.on_failure.{unknown}",
+                f"reason {unknown!r} is not a closed-taxonomy family",
+            )
+        )
+    for missing in sorted(FAMILIES - keys):
+        out.append(
+            OnFailureViolation(
+                "on-failure-family-unmapped",
+                f"$.on_failure.{missing}",
+                f"family {missing!r} has no mapped action",
+            )
+        )
+    for key, action in policy.items():
+        if key in FAMILIES and action not in ON_FAILURE_ACTIONS:
+            out.append(
+                OnFailureViolation(
+                    "on-failure-unknown-action",
+                    f"$.on_failure.{key}",
+                    f"action {action!r} is not in the closed action set",
+                )
+            )
+    return out
+
+
+def resolve_on_failure(policy: Mapping[str, str], reason: str) -> str:
+    family = family_of(reason)
+    try:
+        return policy[family]
+    except KeyError as exc:
+        raise OutOfTaxonomyError(reason) from exc
+
+spec_version = CURRENT_SPEC_VERSION
+@dataclass(frozen=True)
+class Workflow:
+    spec_version: int
+    id: str
+    entry: str
+    nodes: tuple[Mapping[str, Any], ...]
+    params: Mapping[str, Any]
+
+
+def introduced_in(kind: str) -> int | None:
+    return NODE_TYPE_INTRODUCED_IN.get(kind)
+
+
+NODE_KEYS: dict[str, frozenset[str]] = {
+    "WorkUnit": frozenset({"id", "kind", "prompt_ref", "params", "on_failure"}),
+    "FanOut": frozenset({"id", "kind", "units", "on_failure"}),
+    "Barrier": frozenset({"id", "kind", "wait_for", "on_failure"}),
+    "Pipeline": frozenset({"id", "kind", "steps", "on_failure"}),
+    "Subworkflow": frozenset(
+        {"id", "kind", "workflow_ref", "param_bindings", "id_namespace", "on_failure"}
+    ),
+    "Loop": frozenset(
+        {
+            "id",
+            "kind",
+            "body",
+            "convergence_expr",
+            "max_iterations",
+            "on_bound_reached",
+            "on_failure",
+        }
+    ),
+    "HumanCheckpoint": frozenset(
+        {
+            "id",
+            "kind",
+            "prompt_ref",
+            "allowed_responses",
+            "default_if_unanswered",
+            "pause_token",
+            "on_failure",
+        }
+    ),
+    "DynamicFanOut": frozenset(
+        {
+            "id",
+            "kind",
+            "producer_unit",
+            "item_path",
+            "unit_template",
+            "max_cardinality",
+            "on_failure",
+        }
+    ),
+    "RepairLoop": frozenset(
+        {"id", "kind", "body", "max_attempts", "on_impossibility", "on_failure"}
+    ),
+}
+
+
+@dataclass(frozen=True)
+class Node:
+    id: str
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+    def __post_init__(self) -> None:
+        errs = validate_on_failure(self.on_failure)
+        if errs:
+            raise OnFailureValidationError(errs)
+
+    def action_for(self, reason: str) -> str:
+        return resolve_on_failure(self.on_failure, reason)
+
+    action_for = action_for
+
+
+@dataclass(frozen=True)
+class WorkUnit:
+    id: str
+    prompt_ref: str
+    params: Mapping[str, Any]
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+
+@dataclass(frozen=True)
+class FanOut:
+    id: str
+    units: tuple[str, ...]
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+    def __post_init__(self) -> None:
+        errs = validate_on_failure(self.on_failure)
+        if errs:
+            raise OnFailureValidationError(errs)
+
+    def action_for(self, reason: str) -> str:
+        return resolve_on_failure(self.on_failure, reason)
+
+    action_for = action_for
+
+
+@dataclass(frozen=True)
+class Barrier:
+    id: str
+    wait_for: tuple[str, ...]
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+
+@dataclass(frozen=True)
+class Pipeline:
+    id: str
+    steps: tuple[str, ...]
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+
+@dataclass(frozen=True)
+class Subworkflow:
+    """Embed another Workflow by reference (IMP-0129).
+
+    Inner unit ids are qualified with ``id_namespace`` so they cannot
+    collide with the outer graph. Cycles are a closed validation id, not
+    unbounded recursion.
+    """
+
+    id: str
+    workflow_ref: str
+    param_bindings: Mapping[str, Any]
+    id_namespace: str
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+    def __post_init__(self) -> None:
+        errs = validate_on_failure(self.on_failure)
+        if errs:
+            raise OnFailureValidationError(errs)
+
+    def action_for(self, reason: str) -> str:
+        return resolve_on_failure(self.on_failure, reason)
+
+
+@dataclass(frozen=True)
+class DynamicFanOut:
+    """Runtime-width fan-out. Cardinality is read from a producer receipt (IMP-0132)."""
+
+    id: str
+    producer_unit: str
+    item_path: str
+    unit_template: Mapping[str, Any]
+    max_cardinality: int
+    on_failure: Mapping[str, str] = field(default_factory=lambda: dict(DEFAULT_ON_FAILURE))
+
+    def __post_init__(self) -> None:
+        errs = validate_on_failure(self.on_failure)
+        if errs:
+            raise OnFailureValidationError(errs)
+
+    def action_for(self, reason: str) -> str:
+        return resolve_on_failure(self.on_failure, reason)
+
+
+# IMP-0138 probe/test aliases (names used by probes/IMP-0138 and tests/test_on_failure.py)
+DEFAULT_ON_FAILURE = DEFAULT_ON_FAILURE
+ON_FAILURE_ACTIONS = ON_FAILURE_ACTIONS
+validate_on_failure = validate_on_failure
+resolve_on_failure = resolve_on_failure
+OnFailureValidationError = OnFailureValidationError

@@ -1,0 +1,586 @@
+{
+ "$id": "command-center/phase4/contracts/ARC-0079.registry-entry.schema.json",
+ "$schema": "https://json-schema.org/draft/2020-12/schema",
+ "additionalProperties": false,
+ "description": "One package record in the canonical registry index: identity, version list with channels, dependencies, compatibility, permissions, provenance, signature, SBOM, license, vulnerability status, quality score, and lifecycle. A revoked version stays in the index (presence=retained) so an already-installed client that refreshes can observe it. A deleted version is a tombstone without a revocation object. Absence of a row is not a revocation signal. SUCCESS:ARC-0079",
+ "properties": {
+  "name": {
+   "minLength": 1,
+   "pattern": "^[a-z][a-z0-9-]{0,63}$",
+   "type": "string"
+  },
+  "namespace": {
+   "minLength": 2,
+   "pattern": "^[a-z][a-z0-9-]{1,62}$",
+   "type": "string"
+  },
+  "package_id": {
+   "minLength": 5,
+   "pattern": "^[a-z][a-z0-9-]{1,62}/[a-z][a-z0-9-]{0,63}$",
+   "type": "string"
+  },
+  "versions": {
+   "items": {
+    "additionalProperties": false,
+    "allOf": [
+     {
+      "if": {
+       "properties": {
+        "lifecycle": {
+         "const": "published"
+        }
+       },
+       "required": [
+        "lifecycle"
+       ]
+      },
+      "then": {
+       "not": {
+        "anyOf": [
+         {
+          "required": [
+           "deprecation"
+          ]
+         },
+         {
+          "required": [
+           "revocation"
+          ]
+         },
+         {
+          "required": [
+           "tombstone"
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "presence": {
+         "const": "retained"
+        }
+       }
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "lifecycle": {
+         "const": "deprecated"
+        }
+       },
+       "required": [
+        "lifecycle"
+       ]
+      },
+      "then": {
+       "not": {
+        "anyOf": [
+         {
+          "required": [
+           "revocation"
+          ]
+         },
+         {
+          "required": [
+           "tombstone"
+          ]
+         }
+        ]
+       },
+       "properties": {
+        "presence": {
+         "const": "retained"
+        }
+       },
+       "required": [
+        "deprecation"
+       ]
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "lifecycle": {
+         "const": "revoked"
+        }
+       },
+       "required": [
+        "lifecycle"
+       ]
+      },
+      "then": {
+       "not": {
+        "required": [
+         "tombstone"
+        ]
+       },
+       "properties": {
+        "presence": {
+         "const": "retained"
+        }
+       },
+       "required": [
+        "revocation"
+       ]
+      }
+     },
+     {
+      "if": {
+       "properties": {
+        "lifecycle": {
+         "const": "deleted"
+        }
+       },
+       "required": [
+        "lifecycle"
+       ]
+      },
+      "then": {
+       "not": {
+        "required": [
+         "revocation"
+        ]
+       },
+       "properties": {
+        "presence": {
+         "const": "tombstone"
+        }
+       },
+       "required": [
+        "tombstone"
+       ]
+      }
+     }
+    ],
+    "properties": {
+     "channels": {
+      "items": {
+       "minLength": 4,
+       "pattern": "^(stable|beta|nightly|[a-z][a-z0-9-]{0,31})$",
+       "type": "string"
+      },
+      "minItems": 1,
+      "type": "array",
+      "uniqueItems": true
+     },
+     "compatibility": {
+      "additionalProperties": false,
+      "properties": {
+       "client": {
+        "additionalProperties": false,
+        "properties": {
+         "id": {
+          "maxLength": 64,
+          "minLength": 3,
+          "type": "string"
+         },
+         "max_version": {
+          "minLength": 5,
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "type": "string"
+         },
+         "min_version": {
+          "minLength": 5,
+          "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+          "type": "string"
+         }
+        },
+        "required": [
+         "id",
+         "min_version"
+        ],
+        "type": "object"
+       },
+       "platforms": {
+        "items": {
+         "enum": [
+          "linux",
+          "darwin",
+          "win32"
+         ],
+         "type": "string"
+        },
+        "minItems": 1,
+        "type": "array",
+        "uniqueItems": true
+       }
+      },
+      "required": [
+       "platforms",
+       "client"
+      ],
+      "type": "object"
+     },
+     "dependencies": {
+      "items": {
+       "additionalProperties": false,
+       "properties": {
+        "constraint": {
+         "maxLength": 64,
+         "minLength": 1,
+         "type": "string"
+        },
+        "optional": {
+         "type": "boolean"
+        },
+        "package_id": {
+         "minLength": 5,
+         "pattern": "^[a-z][a-z0-9-]{1,62}/[a-z][a-z0-9-]{0,63}$",
+         "type": "string"
+        }
+       },
+       "required": [
+        "package_id",
+        "constraint"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     },
+     "deprecation": {
+      "additionalProperties": false,
+      "properties": {
+       "deprecated_at": {
+        "minLength": 20,
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+        "type": "string"
+       },
+       "message": {
+        "maxLength": 512,
+        "minLength": 8,
+        "type": "string"
+       },
+       "successor": {
+        "minLength": 5,
+        "pattern": "^[a-z][a-z0-9-]{1,62}/[a-z][a-z0-9-]{0,63}$",
+        "type": "string"
+       }
+      },
+      "required": [
+       "message",
+       "deprecated_at"
+      ],
+      "type": "object"
+     },
+     "license": {
+      "additionalProperties": false,
+      "properties": {
+       "spdx_id": {
+        "maxLength": 64,
+        "minLength": 3,
+        "type": "string"
+       },
+       "uri": {
+        "minLength": 8,
+        "pattern": "^[a-z][a-z0-9+.-]*:.+",
+        "type": "string"
+       }
+      },
+      "required": [
+       "spdx_id"
+      ],
+      "type": "object"
+     },
+     "lifecycle": {
+      "enum": [
+       "published",
+       "deprecated",
+       "revoked",
+       "deleted"
+      ],
+      "type": "string"
+     },
+     "permissions": {
+      "items": {
+       "additionalProperties": false,
+       "properties": {
+        "id": {
+         "minLength": 3,
+         "pattern": "^[a-z][a-z0-9_.-]{1,63}$",
+         "type": "string"
+        },
+        "required": {
+         "type": "boolean"
+        },
+        "scope": {
+         "enum": [
+          "workspace",
+          "user",
+          "system"
+         ],
+         "type": "string"
+        }
+       },
+       "required": [
+        "id",
+        "required"
+       ],
+       "type": "object"
+      },
+      "type": "array"
+     },
+     "presence": {
+      "enum": [
+       "retained",
+       "tombstone"
+      ],
+      "type": "string"
+     },
+     "provenance": {
+      "additionalProperties": false,
+      "properties": {
+       "artifact_sha256": {
+        "minLength": 64,
+        "pattern": "^[a-f0-9]{64}$",
+        "type": "string"
+       },
+       "builder_id": {
+        "maxLength": 128,
+        "minLength": 3,
+        "type": "string"
+       },
+       "built_at": {
+        "minLength": 20,
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+        "type": "string"
+       },
+       "git_commit": {
+        "pattern": "^[a-f0-9]{40}$",
+        "type": "string"
+       },
+       "source_uri": {
+        "minLength": 8,
+        "pattern": "^[a-z][a-z0-9+.-]*:.+",
+        "type": "string"
+       },
+       "tree_hash": {
+        "minLength": 64,
+        "pattern": "^[a-f0-9]{64}$",
+        "type": "string"
+       }
+      },
+      "required": [
+       "artifact_sha256",
+       "source_uri",
+       "builder_id",
+       "built_at"
+      ],
+      "type": "object"
+     },
+     "quality": {
+      "additionalProperties": false,
+      "properties": {
+       "evidence_uri": {
+        "minLength": 8,
+        "pattern": "^[a-z][a-z0-9+.-]*:.+",
+        "type": "string"
+       },
+       "method": {
+        "maxLength": 64,
+        "minLength": 3,
+        "type": "string"
+       },
+       "score": {
+        "maximum": 100,
+        "minimum": 0,
+        "type": "number"
+       }
+      },
+      "required": [
+       "score",
+       "method"
+      ],
+      "type": "object"
+     },
+     "revocation": {
+      "additionalProperties": false,
+      "properties": {
+       "client_action": {
+        "const": "refuse-install-and-surface-on-refresh",
+        "type": "string"
+       },
+       "effective_at": {
+        "minLength": 20,
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+        "type": "string"
+       },
+       "issuer": {
+        "enum": [
+         "owner",
+         "registry"
+        ],
+        "type": "string"
+       },
+       "reason": {
+        "enum": [
+         "compromised-signing-key",
+         "malicious-content",
+         "legal-takedown",
+         "owner-withdrawn"
+        ],
+        "type": "string"
+       },
+       "signed_list_ref": {
+        "maxLength": 256,
+        "minLength": 8,
+        "type": "string"
+       }
+      },
+      "required": [
+       "reason",
+       "effective_at",
+       "signed_list_ref",
+       "issuer",
+       "client_action"
+      ],
+      "type": "object"
+     },
+     "sbom": {
+      "additionalProperties": false,
+      "properties": {
+       "digest_sha256": {
+        "minLength": 64,
+        "pattern": "^[a-f0-9]{64}$",
+        "type": "string"
+       },
+       "media_type": {
+        "enum": [
+         "application/spdx+json",
+         "application/vnd.cyclonedx+json"
+        ],
+        "type": "string"
+       },
+       "uri": {
+        "minLength": 8,
+        "pattern": "^[a-z][a-z0-9+.-]*:.+",
+        "type": "string"
+       }
+      },
+      "required": [
+       "media_type",
+       "uri",
+       "digest_sha256"
+      ],
+      "type": "object"
+     },
+     "signature": {
+      "additionalProperties": false,
+      "properties": {
+       "algorithm": {
+        "enum": [
+         "ed25519",
+         "sigstore-bundle"
+        ],
+        "type": "string"
+       },
+       "digest_sha256": {
+        "minLength": 64,
+        "pattern": "^[a-f0-9]{64}$",
+        "type": "string"
+       },
+       "key_id": {
+        "maxLength": 128,
+        "minLength": 8,
+        "type": "string"
+       },
+       "signature_uri": {
+        "minLength": 8,
+        "pattern": "^[a-z][a-z0-9+.-]*:.+",
+        "type": "string"
+       }
+      },
+      "required": [
+       "algorithm",
+       "key_id",
+       "signature_uri",
+       "digest_sha256"
+      ],
+      "type": "object"
+     },
+     "tombstone": {
+      "additionalProperties": false,
+      "properties": {
+       "deleted_at": {
+        "minLength": 20,
+        "pattern": "^[0-9]{4}-[0-9]{2}-[0-9]{2}T[0-9]{2}:[0-9]{2}:[0-9]{2}Z$",
+        "type": "string"
+       },
+       "reason": {
+        "maxLength": 256,
+        "minLength": 8,
+        "type": "string"
+       }
+      },
+      "required": [
+       "deleted_at",
+       "reason"
+      ],
+      "type": "object"
+     },
+     "version": {
+      "minLength": 5,
+      "pattern": "^(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)\\.(0|[1-9][0-9]*)(?:-[0-9A-Za-z.-]+)?(?:\\+[0-9A-Za-z.-]+)?$",
+      "type": "string"
+     },
+     "vulnerability": {
+      "additionalProperties": false,
+      "properties": {
+       "advisory_ids": {
+        "items": {
+         "minLength": 3,
+         "type": "string"
+        },
+        "type": "array"
+       },
+       "status": {
+        "enum": [
+         "none_known",
+         "advisory_open",
+         "patched"
+        ],
+        "type": "string"
+       }
+      },
+      "required": [
+       "status",
+       "advisory_ids"
+      ],
+      "type": "object"
+     }
+    },
+    "required": [
+     "version",
+     "channels",
+     "lifecycle",
+     "presence",
+     "dependencies",
+     "compatibility",
+     "permissions",
+     "provenance",
+     "signature",
+     "sbom",
+     "license",
+     "vulnerability",
+     "quality"
+    ],
+    "type": "object"
+   },
+   "minItems": 1,
+   "type": "array"
+  }
+ },
+ "required": [
+  "package_id",
+  "namespace",
+  "name",
+  "versions"
+ ],
+ "title": "Marketplace registry index entry (ARC-0079)",
+ "type": "object",
+ "x-package-id-rule": "package_id MUST equal namespace + '/' + name (consumer-enforced)",
+ "x-revocation-vs-deletion": {
+  "client_refresh": "Installed clients learn revocation by matching package_id+version on a retained revoked row after index refresh, never by treating a missing row as revoked.",
+  "deleted": "lifecycle=deleted AND presence=tombstone AND tombstone object AND no revocation",
+  "revoked": "lifecycle=revoked AND presence=retained AND revocation object; row remains"
+ }
+}
