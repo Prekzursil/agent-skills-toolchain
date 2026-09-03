@@ -63,6 +63,7 @@ $agentsDir = Join-Path $ProjectRoot '.agents'
 $codexMergeScript = Join-Path $agentsDir 'scripts\merge_generated_codex_mcp.py'
 $claudeMergeScript = Join-Path $agentsDir 'scripts\merge_generated_claude_mcp.py'
 $cursorMergeScript = Join-Path $agentsDir 'scripts\merge_generated_cursor_mcp.py'
+$zcodeMergeScript = Join-Path $agentsDir 'scripts\merge_generated_zcode_mcp.py'
 $localBridgeSyncScript = Join-Path $agentsDir 'scripts\sync_local_bridge_mcp.py'
 $validatorScript = Join-Path $agentsDir 'scripts\validate_mcp_control_plane.py'
 $referenceViewsScript = Join-Path $agentsDir 'scripts\publish_reference_views.py'
@@ -183,6 +184,9 @@ Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $claudeMergeScript 
 
 Write-Host '==> merge agents-managed Cursor MCP into .cursor\mcp.json'
 Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $cursorMergeScript -Arguments @('--live', $liveCursor, '--agents-config', $agentsConfig, '--write')
+
+Write-Host '==> merge agents-managed ZCode MCP into .zcode\cli\config.json'
+Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $zcodeMergeScript -Arguments @('--agents-config', $agentsConfig, '--write')
 
 Write-Host '==> sync local Claude bridge MCP from agents definitions'
 Invoke-CheckedPython -Executable $resolvedPython -ScriptPath $localBridgeSyncScript
