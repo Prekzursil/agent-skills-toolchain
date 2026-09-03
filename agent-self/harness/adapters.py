@@ -8,14 +8,16 @@ except ImportError:  # pragma: no cover - direct-script import
     from models import AgentEnvelope, HookEvent, HookResult, ToolEnvelope
 
 
-# `grok` (xAI Grok CLI) added on the live tree 2026-08-07, ported 2026-09-02. Its
-# hooks were previously registered with `--provider claude`, so every Grok turn was
-# attributed to claude in the ledger. Adding it to the argparse `choices` alone is
-# NOT sufficient: this set is the second gate — normalize_event/render_output raise
-# on a non-member and dispatcher.main() swallows that ValueError
-# (`except Exception: return 0`), so a half-fix makes every Grok hook a SILENT
-# no-op instead of a mislabelled record. Both gates move together.
-SUPPORTED_PROVIDERS = {"claude", "codex", "grok"}
+# Runtime providers accepted by the shared dispatcher. `grok` (xAI Grok CLI) was
+# added on the live tree 2026-08-07 and ported 2026-09-02; `cyberstrike` lands
+# here as a DISPATCH-ONLY provider on 2026-09-02 per the plugin-bridge contract:
+# normalize into the shared HookEvent, but do NOT infer hook registration support
+# from this set. Adding a provider to argparse `choices` alone is NOT sufficient:
+# this set is the second gate — normalize_event/render_output raise on a
+# non-member and dispatcher.main() swallows that ValueError (`except Exception:
+# return 0`), so a half-fix makes every hook a SILENT no-op instead of a
+# mislabelled or translated record. Both gates move together.
+SUPPORTED_PROVIDERS = {"claude", "codex", "grok", "cyberstrike"}
 _CONTEXT_EVENTS = {
     "SessionStart",
     "SubagentStart",
@@ -240,6 +242,10 @@ def render_output(
     provider_name = str(provider).lower()
     if provider_name not in SUPPORTED_PROVIDERS:
         raise ValueError(f"unsupported provider: {provider_name}")
+    if provider_name == "cyberstrike":
+        # The CyberStrike bridge consumes the provider-neutral HookResult
+        # contract directly and performs its own Node-side validation/translation.
+        return result.to_dict()
 
     message = _message(result)
 

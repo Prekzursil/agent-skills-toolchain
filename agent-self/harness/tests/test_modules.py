@@ -36,6 +36,7 @@ from harness.modules import (
     SubagentLifecycleModule,
     _canonical_tree,
     _flush_spool_to_vault,
+    build_default_modules,
     resolve_mode,
     stage,
 )
@@ -43,6 +44,7 @@ from harness.models import HookResult
 
 
 def event(tmp_path: Path, name: str, **overrides):
+    provider = overrides.pop("provider", "codex")
     raw = {
         "session_id": "session-1",
         "turn_id": "turn-1",
@@ -50,7 +52,7 @@ def event(tmp_path: Path, name: str, **overrides):
         "hook_event_name": name,
     }
     raw.update(overrides)
-    return normalize_event(raw, provider="codex", event_name=name)
+    return normalize_event(raw, provider=provider, event_name=name)
 
 
 def test_fixed_module_order_is_security_then_continuity_then_quality():
@@ -1319,6 +1321,80 @@ def test_goal_module_ignores_system_injected_prompts(tmp_path):
         assert result.action == "allow"
 
     assert ledger.goal(str(tmp_path), "session-1") == "Real user objective to keep"
+
+
+def test_goal_module_preserves_owner_prompt_that_quotes_stop_hook_feedback(tmp_path):
+    ledger = EventLedger(tmp_path / "state")
+    module = GoalModule(ledger)
+    ledger.set_goal(
+        str(tmp_path), "Write the Cursor authentication ADR", session_id="session-1"
+    )
+    prompt = (
+        "Document this exact hook output:\n"
+        "\u2022 Stop (completed) says: SENSITIVE ARTIFACT REPORT: classification=UNKNOWN "
+        "kind=transcript id=sha256:0123456789ab; a bounded scan could not establish "
+        "clean because the target was unreadable or changed during inspection. "
+        "Nothing was modified."
+    )
+
+    result = module.run(
+        event(tmp_path, "UserPromptSubmit", session_id="session-1", prompt=prompt)
+    )
+
+    assert result.action == "allow"
+    assert ledger.goal(str(tmp_path), "session-1") == prompt
+
+
+def test_goal_module_ignores_host_rendered_stop_feedback_without_user_text(tmp_path):
+    ledger = EventLedger(tmp_path / "state")
+    module = GoalModule(ledger)
+    ledger.set_goal(
+        str(tmp_path), "Write the Cursor authentication ADR", session_id="session-1"
+    )
+    prompt = (
+        "• Stop (completed) says: SENSITIVE ARTIFACT REPORT: classification=UNKNOWN "
+        "kind=transcript id=sha256:0123456789ab; a bounded scan could not establish "
+        "clean because the target was unreadable or changed during inspection. "
+        "Nothing was modified.\n\n"
+        "    AUTO-CAPTURED: this session mutated files and did not call write_note.\n"
+        "    A session note was spooled by the Stop hook.\n"
+        "    [TRUNCATED]"
+    )
+
+    result = module.run(
+        event(tmp_path, "UserPromptSubmit", session_id="session-1", prompt=prompt)
+    )
+
+    assert result.action == "allow"
+    assert ledger.goal(str(tmp_path), "session-1") == "Write the Cursor authentication ADR"
+
+
+def test_goal_module_strips_host_rendered_stop_feedback_but_keeps_user_tail(tmp_path):
+    ledger = EventLedger(tmp_path / "state")
+    module = GoalModule(ledger)
+    ledger.set_goal(
+        str(tmp_path), "Write the Cursor authentication ADR", session_id="session-1"
+    )
+    prompt = (
+        "• Stop (completed) says: SENSITIVE ARTIFACT REPORT: classification=UNKNOWN "
+        "kind=transcript id=sha256:0123456789ab; a bounded scan could not establish "
+        "clean because the target was unreadable or changed during inspection. "
+        "Nothing was modified.\n\n"
+        "AUTO-CAPTURED: this session mutated files and did not call write_note.\n"
+        "  A session note was spooled by the Stop hook.\n"
+        "  [TRUNCATED]\n\n"
+        "Resume the original task and draft the Cursor auth ADR."
+    )
+
+    result = module.run(
+        event(tmp_path, "UserPromptSubmit", session_id="session-1", prompt=prompt)
+    )
+
+    assert result.action == "allow"
+    assert (
+        ledger.goal(str(tmp_path), "session-1")
+        == "Resume the original task and draft the Cursor auth ADR."
+    )
 
 
 def test_subagent_lifecycle_injects_handoff_and_warns_on_hollow_output(tmp_path):
@@ -2944,7 +3020,7 @@ def test_ledger_stamps_canonical_tree_on_deployed_edit(iso, tmp_path, monkeypatc
     assert any("canonical_tree" not in e for e in muts)
 
 
-def test_basic_memory_nudge_fires_when_canonical_edit_no_bm_write(
+def test_basic_memory_capture_spools_without_stop_feedback_for_canonical_edit(
     iso, tmp_path, monkeypatch
 ):
     monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
@@ -2952,7 +3028,8 @@ def test_basic_memory_nudge_fires_when_canonical_edit_no_bm_write(
     ledger = EventLedger(tmp_path / "state")
     _canon_write(ledger, tmp_path, str(tmp_path / "agents" / "harness" / "x.py"))
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow" and not out.additional_context
+    assert list((iso / "bm-spool").glob("*.json"))
 
 
 def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypatch):
@@ -2974,11 +3051,11 @@ def test_basic_memory_nudge_silent_when_bm_write_present(iso, tmp_path, monkeypa
     assert out.action == "allow"
 
 
-def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
+def test_basic_memory_capture_spools_any_mutation_without_stop_feedback(
     iso, tmp_path, monkeypatch
 ):
-    """Live SOTA WRITE gate (ported 2026-09-02): ANY file mutation with no vault
-    write -> Stop injects AND spools a session note for the hook-owned flush.
+    """ANY file mutation with no vault write makes Stop spool a session note
+    without feeding control-plane status back into the model.
 
     This inverted the previous `silent_without_canonical_edit` expectation on
     purpose: the capture discipline covers every edited file, not only the
@@ -2987,7 +3064,7 @@ def test_basic_memory_nudge_fires_on_any_mutation_and_spools_note(
     ledger = EventLedger(tmp_path / "state")
     _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
     out = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow" and not out.additional_context
     spools = list((iso / "bm-spool").glob("*.json"))
     assert spools, "Stop must spool a session note when a mutation had no vault write"
     payload = json.loads(spools[0].read_text(encoding="utf-8"))
@@ -3139,7 +3216,7 @@ def test_basic_memory_nudge_reentrant_stop_is_silent(iso, tmp_path, monkeypatch)
     assert out.action == "allow" and not out.additional_context
 
 
-def test_basic_memory_nudge_cooldown_once_per_session(iso, tmp_path, monkeypatch):
+def test_basic_memory_capture_is_idempotent_per_session(iso, tmp_path, monkeypatch):
     monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     ledger = EventLedger(tmp_path / "state")
@@ -3147,11 +3224,12 @@ def test_basic_memory_nudge_cooldown_once_per_session(iso, tmp_path, monkeypatch
     module = ClaimWarningModule(ledger)
     first = module.run(event(tmp_path, "Stop"))
     second = module.run(event(tmp_path, "Stop"))
-    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
-    assert second.action == "allow"
+    assert first.action == "allow" and second.action == "allow"
+    assert not first.additional_context and not second.additional_context
+    assert len(list((iso / "bm-spool").glob("*.json"))) == 1
 
 
-def test_basic_memory_nudge_shadow_is_silent_and_does_not_burn_cooldown(
+def test_basic_memory_capture_logs_without_feedback_in_every_mode(
     iso, tmp_path, monkeypatch
 ):
     monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
@@ -3163,10 +3241,24 @@ def test_basic_memory_nudge_shadow_is_silent_and_does_not_burn_cooldown(
     assert shadow_out.action == "allow"
     sink = list((iso / "shadow").glob("shadow-*.jsonl"))
     assert sink and "basic_memory_nudge" in sink[0].read_text(encoding="utf-8")
-    # The one-shot cooldown was NOT consumed in shadow -> a promoted enforce still injects.
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     enforced = module.run(event(tmp_path, "Stop"))
-    assert enforced.action == "inject" and enforced.reason_code == "basic_memory_nudge"
+    assert enforced.action == "allow" and not enforced.additional_context
+
+
+def test_basic_memory_capture_off_keeps_spool_without_shadow_telemetry(
+    iso, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_LIVE_AGENTS_DIR", str(tmp_path / "agents"))
+    monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "off")
+    ledger = EventLedger(tmp_path / "state")
+    _canon_write(ledger, tmp_path, str(tmp_path / "src" / "app.py"))
+
+    result = ClaimWarningModule(ledger).run(event(tmp_path, "Stop"))
+
+    assert result.action == "allow" and not result.additional_context
+    assert list((iso / "bm-spool").glob("*.json"))
+    assert not list((iso / "shadow").glob("shadow-*.jsonl"))
 
 
 def test_basic_memory_nudge_failopen_on_ledger_error(iso, tmp_path, monkeypatch):
@@ -3192,18 +3284,27 @@ def _transcript(tmp_path: Path, body: str) -> Path:
     return target
 
 
-def test_sensitive_artifact_reports_a_credential_bearing_transcript(tmp_path):
+def _sensitive_audits(iso: Path) -> list[dict]:
+    return [
+        json.loads(path.read_text(encoding="utf-8"))
+        for path in sorted((iso / "sensitive-artifact").glob("*.json"))
+    ]
+
+
+def test_sensitive_artifact_reports_a_credential_bearing_transcript(iso, tmp_path):
     target = _transcript(tmp_path, f'{{"role":"user","text":"my key is {FAKE_KEY}"}}\n')
     result = SensitiveArtifactModule().run(
         event(tmp_path, "Stop", transcript_path=str(target))
     )
-    assert result.action == "inject"
-    assert result.reason_code == "sensitive_artifact"
-    joined = " ".join(result.additional_context)
-    assert "POTENTIAL-CREDENTIAL" in joined
-    # The whole point of a report-only sweep: it must not echo what it found.
-    assert FAKE_KEY not in joined
-    assert str(target) not in joined
+    assert result.action == "allow"
+    assert not result.additional_context
+    audits = _sensitive_audits(iso)
+    assert len(audits) == 1
+    assert audits[0]["classification"] == "POTENTIAL-CREDENTIAL"
+    assert audits[0]["kind"] == "transcript"
+    serialized = json.dumps(audits[0])
+    assert FAKE_KEY not in serialized
+    assert str(target) not in serialized
 
 
 def test_sensitive_artifact_is_silent_on_a_clean_transcript(tmp_path):
@@ -3252,7 +3353,7 @@ def test_sensitive_artifact_ignores_a_reentrant_subagent_stop(tmp_path):
     assert not result.additional_context
 
 
-def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
+def test_sensitive_artifact_audits_fresh_subagent_stop_without_feedback(iso, tmp_path):
     # The negative control for the test above: without the re-entrancy flag SubagentStop must
     # STILL report. A guard that silenced the branch outright would pass the re-entrancy test
     # while destroying the detection it exists for -- silent in both states measures nothing.
@@ -3260,19 +3361,29 @@ def test_sensitive_artifact_still_reports_a_fresh_subagent_stop(tmp_path):
     result = SensitiveArtifactModule().run(
         event(tmp_path, "SubagentStop", transcript_path=str(target))
     )
-    assert result.action == "inject"
-    assert "POTENTIAL-CREDENTIAL" in " ".join(result.additional_context)
+    assert result.action == "allow"
+    assert not result.additional_context
+    audits = _sensitive_audits(iso)
+    assert len(audits) == 1
+    assert audits[0]["classification"] == "POTENTIAL-CREDENTIAL"
+    assert audits[0]["kind"] == "transcript"
 
 
-def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):
+def test_sensitive_artifact_notice_never_demands_a_forbidden_action(iso, tmp_path):
     # The other half of the 2026-08-08 deadlock. The injected text used to end "Review the local
     # file and rotate any live credential." AGENTS.md Sec.9 forbids an agent rotating any
     # credential, so the only satisfying action was the one action the reader must refuse --
     # leaving no compliant response and stalling a policy-abiding agent even on a single firing.
     # An advisory must always leave a LEGAL next move.
-    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    target = tmp_path / "creds.env"
+    target.write_text(f"AWS_ACCESS_KEY_ID={FAKE_KEY}\n", encoding="utf-8")
     result = SensitiveArtifactModule().run(
-        event(tmp_path, "Stop", transcript_path=str(target))
+        event(
+            tmp_path,
+            "PostToolUse",
+            tool_name="Write",
+            tool_input={"file_path": str(target)},
+        )
     )
     joined = " ".join(result.additional_context)
     assert "rotate any live credential" not in joined
@@ -3280,14 +3391,17 @@ def test_sensitive_artifact_notice_never_demands_a_forbidden_action(tmp_path):
     assert "no agent action clears this notice" in joined
 
 
-def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(tmp_path):
+def test_sensitive_artifact_reports_unknown_when_the_target_cannot_be_read(
+    iso, tmp_path
+):
     # An unreadable target is UNKNOWN, never "clean" — absence of evidence is not evidence.
     missing = tmp_path / "does-not-exist.jsonl"
     result = SensitiveArtifactModule().run(
         event(tmp_path, "Stop", transcript_path=str(missing))
     )
-    assert result.action == "inject"
-    assert "UNKNOWN" in " ".join(result.additional_context)
+    assert result.action == "allow"
+    assert not result.additional_context
+    assert _sensitive_audits(iso)[0]["classification"] == "UNKNOWN"
 
 
 def test_sensitive_artifact_reports_an_explicit_write_target(tmp_path):
@@ -3311,3 +3425,161 @@ def test_sensitive_artifact_never_raises_on_a_malformed_event(tmp_path):
         event(tmp_path, "Stop", transcript_path="\x00bad")
     )
     assert result.action in {"allow", "inject"}
+
+
+def test_sensitive_artifact_transcript_audit_is_idempotent(iso, tmp_path):
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(tmp_path, "Stop", transcript_path=str(target), provider="grok")
+    )
+    second = module.run(
+        event(tmp_path, "Stop", transcript_path=str(target), provider="grok")
+    )
+    assert first.action == "allow"
+    assert second.action == "allow"
+    assert not first.additional_context and not second.additional_context
+    assert len(_sensitive_audits(iso)) == 1
+
+
+def test_sensitive_artifact_unidentified_session_still_audits_once(iso, tmp_path):
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(
+            tmp_path,
+            "Stop",
+            transcript_path=str(target),
+            session_id="unknown",
+            provider="grok",
+        )
+    )
+    second = module.run(
+        event(
+            tmp_path,
+            "Stop",
+            transcript_path=str(target),
+            session_id="unknown",
+            provider="grok",
+        )
+    )
+    assert first.action == "allow"
+    assert second.action == "allow"
+    assert len(_sensitive_audits(iso)) == 1
+
+
+def test_sensitive_artifact_distinct_transcripts_create_distinct_audits(iso, tmp_path):
+    first_path = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    other = tmp_path / "other.jsonl"
+    other.write_text(f'{{"text":"{FAKE_KEY}"}}\n', encoding="utf-8")
+    module = SensitiveArtifactModule()
+    first = module.run(
+        event(tmp_path, "Stop", transcript_path=str(first_path), provider="grok")
+    )
+    other_hit = module.run(
+        event(tmp_path, "Stop", transcript_path=str(other), provider="grok")
+    )
+    assert first.action == "allow"
+    assert other_hit.action == "allow"
+    assert len(_sensitive_audits(iso)) == 2
+
+
+def test_sensitive_artifact_codex_stop_never_becomes_feedback(iso, tmp_path):
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = SensitiveArtifactModule()
+    first = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    second = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    assert first.action == "allow"
+    assert second.action == "allow"
+    assert not first.additional_context and not second.additional_context
+    assert len(_sensitive_audits(iso)) == 1
+
+
+def test_sensitive_artifact_rescans_unknown_path_and_promotes_audit(iso, tmp_path):
+    target = tmp_path / "late-transcript.jsonl"
+    module = SensitiveArtifactModule()
+
+    first = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+    target.write_text(f'{{"text":"{FAKE_KEY}"}}\n', encoding="utf-8")
+    second = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+
+    assert first.action == "allow" and second.action == "allow"
+    audits = _sensitive_audits(iso)
+    assert len(audits) == 1
+    assert audits[0]["classification"] == "POTENTIAL-CREDENTIAL"
+
+
+@pytest.mark.parametrize("failure_type", [OSError, RuntimeError])
+def test_sensitive_artifact_audit_failure_is_failed_open(
+    iso, tmp_path, monkeypatch, failure_type
+):
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+
+    def fail_write(*_args, **_kwargs):
+        raise failure_type("synthetic disk failure")
+
+    monkeypatch.setattr("harness.modules.atomic_write_json", fail_write)
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+
+    assert result.status == "FAILED:hook-stop"
+    assert result.action == "allow"
+    assert not result.additional_context
+    assert not _sensitive_audits(iso)
+
+
+def test_sensitive_artifact_uses_explicit_dispatch_state_root(
+    tmp_path, monkeypatch
+):
+    environment_root = tmp_path / "environment-state"
+    explicit_root = tmp_path / "explicit-state"
+    monkeypatch.setenv("AGENT_HARNESS_STATE_ROOT", str(environment_root))
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+    module = next(
+        item
+        for item in build_default_modules(explicit_root)
+        if isinstance(item, SensitiveArtifactModule)
+    )
+
+    result = module.run(event(tmp_path, "Stop", transcript_path=str(target)))
+
+    assert result.action == "allow"
+    assert len(list((explicit_root / "sensitive-artifact").glob("*.json"))) == 1
+    assert not list((environment_root / "sensitive-artifact").glob("*.json"))
+
+
+def test_sensitive_artifact_audit_schema_is_minimal_and_redacted(iso, tmp_path):
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+
+    assert result.action == "allow"
+    audits = _sensitive_audits(iso)
+    assert len(audits) == 1
+    assert set(audits[0]) == {"schema_version", "classification", "kind", "id"}
+    assert audits[0]["schema_version"] == 1
+    assert audits[0]["classification"] == "POTENTIAL-CREDENTIAL"
+    assert audits[0]["kind"] == "transcript"
+    assert audits[0]["id"].startswith("sha256:")
+    assert len(audits[0]["id"]) == len("sha256:") + 64
+    serialized = json.dumps(audits[0])
+    assert FAKE_KEY not in serialized
+    assert str(target) not in serialized
+
+
+def test_sensitive_artifact_off_keeps_audit_without_shadow_telemetry(
+    iso, tmp_path, monkeypatch
+):
+    monkeypatch.setenv("HARNESS_GATE_MODE__sensitive_artifact", "off")
+    target = _transcript(tmp_path, f'{{"text":"{FAKE_KEY}"}}\n')
+
+    result = SensitiveArtifactModule().run(
+        event(tmp_path, "Stop", transcript_path=str(target))
+    )
+
+    assert result.action == "allow" and not result.additional_context
+    assert len(_sensitive_audits(iso)) == 1
+    assert not list((iso / "shadow").glob("shadow-*.jsonl"))

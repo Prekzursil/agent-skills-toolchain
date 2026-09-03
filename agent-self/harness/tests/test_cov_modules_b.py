@@ -766,15 +766,17 @@ def test_receipt_gate_noop_on_exception(iso, tmp_path, monkeypatch):
 
 
 def test_basic_memory_nudge_cooldown_write_survives_oserror(iso, tmp_path, monkeypatch):
-    # When the nudge surfaces, its once-per-session cooldown write is best-effort:
-    # an OSError writing the marker is swallowed (lines 2326-2327).
+    # Silent-capture contract: when the spool write raises, the Stop outcome is
+    # unaffected (allow, no crash) AND the swallowed failure is recorded in the
+    # bm-spool sidecar so capture decay stays visible instead of silent.
     monkeypatch.setenv("HARNESS_GATE_MODE__basic_memory_nudge", "enforce")
     ledger = EventLedger(tmp_path / "state")
     ledger.append(str(tmp_path), "mutation", canonical_tree=True, path="harness/x.py")
     module = ClaimWarningModule(ledger)
     monkeypatch.setattr(m, "atomic_write_json", _raise_oserror)
     out = module._basic_memory_nudge(_event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert (iso / "bm-spool" / "flush-errors.log").exists()
 
 
 # --------------------------------------------------------------------------- #

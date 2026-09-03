@@ -1,6 +1,7 @@
 #!/usr/bin/env python
 from __future__ import annotations
 
+import hashlib
 import json
 import os
 import re
@@ -59,6 +60,9 @@ _DUCK_FLOOR = 30
 _INJECT_DEFAULT_PRIORITY = PRIORITY_ADVISORY
 # LUFS-normalize: soft cap on total injected characters per event (env override).
 _INJECT_TOTAL_CAP = 6000
+_HOOK_RESULT_MAX_ITEMS = 16
+_HOOK_RESULT_HEAD_ITEMS = _HOOK_RESULT_MAX_ITEMS - 1
+_HOOK_RESULT_ITEM_MAX_CHARS = 4000
 
 INJECT_PRIORITY: dict[str, int] = {
     # SAFETY = 100 (existing ENFORCE safety branches + future config/injection gates)
@@ -252,6 +256,39 @@ def _apply_total_cap(sequence: list[tuple[int, str, str]], total_cap: int) -> li
     return out
 
 
+def _hook_result_overflow_entry(omitted: list[str]) -> str:
+    digest = hashlib.sha256(
+        "\n".join(omitted).encode("utf-8", errors="replace")
+    ).hexdigest()
+    prefix = (
+        "HOOK RESULT OVERFLOW:"
+        f" kept={_HOOK_RESULT_HEAD_ITEMS}"
+        f" omitted={len(omitted)}"
+        f" max_items={_HOOK_RESULT_MAX_ITEMS}"
+        f" overflow_sha256={digest}"
+        " first_omitted="
+    )
+    room = max(0, _HOOK_RESULT_ITEM_MAX_CHARS - len(prefix))
+    preview = re.sub(r"\s+", " ", omitted[0]).strip()[:room]
+    return prefix + preview
+
+
+def _enforce_hook_result_context_limit(contexts: list[str]) -> list[str]:
+    """Honor hook-result.schema.json maxItems without silent loss.
+
+    The dispatcher mixer already bounds per-item length and total characters, but
+    the shared HookResult contract also caps the LIST cardinality at 16. Keep the
+    first 15 rendered entries verbatim and replace the tail with one bounded
+    summary entry that records how many contexts were omitted plus a stable
+    fingerprint of the omitted tail.
+    """
+    if len(contexts) <= _HOOK_RESULT_MAX_ITEMS:
+        return list(contexts)
+    head = list(contexts[:_HOOK_RESULT_HEAD_ITEMS])
+    omitted = list(contexts[_HOOK_RESULT_HEAD_ITEMS:])
+    return head + [_hook_result_overflow_entry(omitted)]
+
+
 def mix_injections(
     items: list[tuple[int, str, str]],
     *,
@@ -421,6 +458,7 @@ class HarnessDispatcher:
 
         # G3 · assemble the injected contexts through the mixer (SHADOW by default).
         contexts = self._mix_contexts(event, list(collected), action)
+        contexts = _enforce_hook_result_context_limit(contexts)
 
         terminal = (
             f"FAILED:hook-{event_name.lower()}"
@@ -627,13 +665,16 @@ def _parse_args(argv: list[str] | None = None) -> Any:
     import argparse  # lazy (import-diet): only the CLI entrypoint needs argparse.
 
     parser = argparse.ArgumentParser(
-        description="Shared Claude/Codex/Grok lifecycle dispatcher"
+        description="Shared Claude/Codex/Grok/CyberStrike lifecycle dispatcher"
     )
     # Keep in lockstep with adapters.SUPPORTED_PROVIDERS — a value accepted here
     # but missing there is a silent no-op hook (the ValueError is swallowed by
     # main()'s fail-open except), which is strictly worse than a wrong label.
+    # `cyberstrike` is runtime-only in this file: the bridge invokes the
+    # dispatcher directly and consumes HookResult JSON, but registration.py still
+    # refuses to generate host hook documents for it.
     parser.add_argument(
-        "--provider", required=True, choices=("claude", "codex", "grok")
+        "--provider", required=True, choices=("claude", "codex", "grok", "cyberstrike")
     )
     parser.add_argument("--event", required=True)
     parser.add_argument("--state-root")

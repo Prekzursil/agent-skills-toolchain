@@ -96,25 +96,31 @@ def _evict(ledger, tmp_path, count=130):
 def test_sibling_session_bm_write_does_not_mute_this_session(iso, tmp_path):
     # The ledger is PROJECT-keyed and stores no session_id, so a basic-memory
     # write by ANOTHER session sharing this cwd sits in our replay window. It
-    # must not be read as "this session captured the why".
+    # must not be read as "this session captured the why" - the spool still
+    # fires for OUR session (silent contract: action stays allow).
     ledger = EventLedger(tmp_path / "state")
     _bm_write(ledger, tmp_path, use_id="bmS", session="session-SIBLING")
     _canonical_write(ledger, tmp_path, session="session-1")
     out = ClaimWarningModule(ledger).run(
         _event(tmp_path, "Stop", session_id="session-1")
     )
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    assert out.action == "allow"
+    assert list((iso / "bm-spool").glob("*.json"))
 
 
 def test_nudge_survives_ledger_eviction_of_the_canonical_edit(iso, tmp_path):
-    # 85% of real canonical edits already carry >=120 later events in their own
-    # shard by the time Stop fires; the bounded window is minutes, a session is
-    # hours. The sticky per-session flag is what keeps the fact alive.
+    # Same silent-capture contract, carrier dimension: the sticky session flag
+    # (not the bounded ledger window) must decide, so evicting the canonical
+    # edit from the replay window must NOT silence the spool. 85% of real
+    # canonical edits already carry >=120 later events in their own shard by
+    # the time Stop fires; the bounded window is minutes, a session is hours.
     ledger = EventLedger(tmp_path / "state")
+    module = ClaimWarningModule(ledger)
     _canonical_write(ledger, tmp_path)
     _evict(ledger, tmp_path)
-    out = ClaimWarningModule(ledger).run(_event(tmp_path, "Stop"))
-    assert out.action == "inject" and out.reason_code == "basic_memory_nudge"
+    out = module.run(_event(tmp_path, "Stop", session_id="session-1"))
+    assert out.action == "allow"
+    assert list((iso / "bm-spool").glob("*.json"))
 
 
 def test_own_bm_write_mutes_after_ledger_eviction(iso, tmp_path):
@@ -138,28 +144,33 @@ def test_unidentified_session_shares_no_flag_directory(iso, tmp_path):
 
 
 def test_unidentified_session_keeps_a_once_per_session_cooldown(iso, tmp_path):
-    # Rejecting "unknown" must not cost the cooldown: without a fallback the gate
-    # would re-nag at every single Stop of an unidentified session.
+    # Silent auto-capture contract (2026-09 refactor): Stop never injects; the
+    # spool IS the capture and must stay once-per-session, including for
+    # unidentified sessions - otherwise the spool would grow one record per Stop.
     ledger = EventLedger(tmp_path / "state")
     _canonical_write(ledger, tmp_path, session="unknown")
     module = ClaimWarningModule(ledger)
     first = module.run(_event(tmp_path, "Stop", session_id="unknown"))
     second = module.run(_event(tmp_path, "Stop", session_id="unknown"))
-    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
-    assert second.action == "allow"
+    assert first.action == "allow" and second.action == "allow"
+    spool = list((iso / "bm-spool").glob("*.json"))
+    assert len(spool) == 1
+    assert spool[0].name == f"{UNKNOWN_DIGEST}.json"
 
 
 def test_cooldown_survives_a_mid_session_carrier_flip(iso, tmp_path):
-    # A session can START on the FALLBACK carrier (fired from a sibling's canonical
-    # edit in the shared, project-keyed ledger window, cooled down by the marker
-    # file) and only LATER make its own canonical edit, which creates the sticky
-    # flag directory. If the sticky cooldown read ignores the marker, the
-    # once-per-session cap is lost and the gate nags a second time.
+    # A session can START on the FALLBACK carrier (captured from a sibling's
+    # canonical edit in the shared, project-keyed ledger window, spooled under
+    # the session hash) and only LATER make its own canonical edit, which
+    # creates the sticky flag directory. The once-per-session cap must survive
+    # the flip: exactly ONE spool record for this session hash.
     ledger = EventLedger(tmp_path / "state")
     module = ClaimWarningModule(ledger)
     _canonical_write(ledger, tmp_path, use_id="wSIB", session="session-SIBLING")
     first = module.run(_event(tmp_path, "Stop", session_id="session-1"))
     _canonical_write(ledger, tmp_path, use_id="wOWN", session="session-1")
     second = module.run(_event(tmp_path, "Stop", session_id="session-1"))
-    assert first.action == "inject" and first.reason_code == "basic_memory_nudge"
-    assert second.action == "allow"
+    assert first.action == "allow" and second.action == "allow"
+    digest = hashlib.sha256(b"session-1").hexdigest()[:16]
+    spool = list((iso / "bm-spool").glob("*.json"))
+    assert [p.name for p in spool] == [f"{digest}.json"]

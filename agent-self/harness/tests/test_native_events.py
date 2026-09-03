@@ -505,3 +505,110 @@ def test_new_native_events_have_valid_native_wire_output(tmp_path):
             if completed.stdout.strip():  # pragma: no cover
                 rendered = json.loads(completed.stdout)
                 assert isinstance(rendered, dict)
+
+
+def test_transcript_findings_are_audit_only_on_stop_native_wire(tmp_path):
+    script = Path(__file__).resolve().parents[1] / "dispatcher.py"
+    fake_key = "AKIA" + "X" * 16
+
+    for provider in ("claude", "codex", "grok"):
+        for event_name in ("Stop", "SubagentStop"):
+            case = tmp_path / f"{provider}-{event_name}"
+            case.mkdir()
+            transcript = case / "transcript.jsonl"
+            transcript.write_text(
+                json.dumps({"role": "user", "text": f"key={fake_key}"}) + "\n",
+                encoding="utf-8",
+            )
+            state = case / "state"
+            payload = {
+                "session_id": f"{provider}-session",
+                "turn_id": "turn-1",
+                "cwd": str(case),
+                "hook_event_name": event_name,
+                "transcript_path": str(transcript),
+                "last_assistant_message": "SUCCESS:worker verified",
+            }
+            completed = subprocess.run(
+                [
+                    sys.executable,
+                    str(script),
+                    "--provider",
+                    provider,
+                    "--event",
+                    event_name,
+                    "--state-root",
+                    str(state),
+                ],
+                input=json.dumps(payload),
+                text=True,
+                capture_output=True,
+                timeout=10,
+                env={
+                    **os.environ,
+                    "AGENT_HARNESS_STATE_ROOT": str(state),
+                    "BASIC_MEMORY_CHECKPOINT_DIR": str(case / "checkpoints"),
+                    "AGENT_HARNESS_RECALL_INDEX": str(case / "missing-index.json"),
+                },
+            )
+
+            assert completed.returncode == 0, (provider, event_name, completed.stderr)
+            assert json.loads(completed.stdout) == {}
+            audits = list((state / "sensitive-artifact").glob("*.json"))
+            assert len(audits) == 1
+            audit_text = audits[0].read_text(encoding="utf-8")
+            assert fake_key not in audit_text
+            assert str(transcript) not in audit_text
+
+
+def test_transcript_audit_failure_keeps_native_wire_empty_and_marks_health(tmp_path):
+    script = Path(__file__).resolve().parents[1] / "dispatcher.py"
+    transcript = tmp_path / "transcript.jsonl"
+    transcript.write_text(
+        json.dumps({"role": "user", "text": "key=AKIA" + "X" * 16}) + "\n",
+        encoding="utf-8",
+    )
+    state = tmp_path / "state"
+    state.mkdir()
+    (state / "sensitive-artifact").write_text("occupied", encoding="utf-8")
+    payload = {
+        "session_id": "audit-failure-session",
+        "turn_id": "turn-1",
+        "cwd": str(tmp_path),
+        "hook_event_name": "Stop",
+        "transcript_path": str(transcript),
+        "last_assistant_message": "SUCCESS:worker verified",
+    }
+
+    completed = subprocess.run(
+        [
+            sys.executable,
+            str(script),
+            "--provider",
+            "codex",
+            "--event",
+            "Stop",
+            "--state-root",
+            str(state),
+        ],
+        input=json.dumps(payload),
+        text=True,
+        capture_output=True,
+        timeout=10,
+        env={
+            **os.environ,
+            "AGENT_HARNESS_STATE_ROOT": str(state),
+            "BASIC_MEMORY_CHECKPOINT_DIR": str(tmp_path / "checkpoints"),
+            "AGENT_HARNESS_RECALL_INDEX": str(tmp_path / "missing-index.json"),
+        },
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert json.loads(completed.stdout) == {}
+    terminal = [
+        json.loads(line)
+        for line in (state / "terminal.jsonl").read_text(encoding="utf-8").splitlines()
+        if line.strip()
+    ][-1]
+    assert terminal["terminal"] == "FAILED:hook-stop"
+    assert "sensitive_artifact" in terminal["failed_modules"]
