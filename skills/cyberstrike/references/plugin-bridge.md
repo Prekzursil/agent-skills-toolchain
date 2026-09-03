@@ -16,25 +16,27 @@ The private toolchain remains Node 22 + Python 3.11. Do NOT add Bun, `@cyberstri
 ## Topology
 
 ```text
-CyberStrike Bun process
+Agent runtime
+  └─ MCP server: cyberstrike-gateway
+       └─ exactly harness_bridge_status / harness_capabilities / harness_invoke
+                                      │
+CyberStrike Bun process               │ same three-tool policy surface
   └─ external reviewed config/plugin/harness-bridge.ts (AGPL-side, owner-ACL, off-repo)
-       ├─ harness_bridge_status
-       ├─ harness_capabilities
-       ├─ harness_invoke
        ├─ redacted hook/audit envelopes
        └─ scope + approved-skill enforcement
-                     │ HMAC-authenticated loopback HTTP/JSON v1
-                     ▼
+                                      │ HMAC-authenticated loopback HTTP/JSON v1
+                                      ▼
 private agent-skills-toolchain
   └─ tools/mcp/cyberstrike-harness-bridge/ (license-neutral, no CyberStrike import)
-       ├─ strict capability registry
+       ├─ strict revisioned capability registry
        ├─ replay-resistant protocol
        ├─ shared lifecycle-harness provider
        ├─ independent skill/trust-lock verifier
        ├─ narrow Codex orchestrator adapter
        ├─ narrow Databricks fan-out adapter
        ├─ allowlisted CyberStrike REST client
-       └─ append-only redacted audit
+       ├─ owned lazy backend children: cloud-audit / github-security / cve-mcp / osint / metasploit
+       └─ bounded redacted results + append-only redacted audit
 ```
 
 The gateway package under `tools/mcp/cyberstrike-harness-bridge/` is license-neutral (no CyberStrike source/import) and MAY live in the private repo. The SDK-importing plugin (`plugin/harness-bridge.ts`) may NOT live there; it stays in the external CyberStrike-owned config tree, e.g. `%LOCALAPPDATA%\CyberStrike\agent-skills-toolchain-bridge\`.
@@ -43,7 +45,7 @@ The gateway package under `tools/mcp/cyberstrike-harness-bridge/` is license-neu
 
 Bind only `127.0.0.1`. Refuse `0.0.0.0`, non-loopback `Host`, every `Origin`, all `Forwarded`/`X-Forwarded-*`, query strings, non-JSON bodies, chunked input, and oversized input. Emit no CORS headers. Loopback scopes transport but is not authentication; a same-user process is inside the threat boundary.
 
-Generate a random 256-bit per-install HMAC key. Supply it to both processes through an ACL-restricted file or process environment — never argv, JSONC, Markdown, logs, prompts, Git, or the server password. Reject decoded length other than exactly 32 bytes. Every route, including `/health`, requires:
+Generate a random 256-bit HMAC key only for a first installation. Supply it to both processes through an ACL-restricted file or process environment — never argv, JSONC, Markdown, logs, prompts, Git, or the server password. Reject decoded length other than exactly 32 bytes. **NEVER rotate credentials, tokens, or keys; never propose rotation and never touch a credential-rotation manifest.** Restarts reuse the same protected key. If it is missing or suspected exposed, stop and report the blast radius without replacing key material. Every route, including `/health`, requires:
 
 ```text
 X-AST-Timestamp: <Unix seconds>
@@ -52,7 +54,7 @@ X-AST-Body-SHA256: <lowercase hex SHA-256 of exact request bytes; empty-body dig
 X-AST-Signature: <base64url HMAC-SHA256>
 ```
 
-Signed bytes are exactly `UPPERCASE_METHOD + "\n" + pathname + "\n" + timestamp + "\n" + nonce + "\n" + bodySha256`. Verify with constant-time comparisons, permit at most ±30 seconds, retain accepted nonces in a bounded cache for at least 60 seconds, and reject duplicate nonce before routing. Rotate by restarting both processes; never accept old and new keys indefinitely.
+Signed bytes are exactly `UPPERCASE_METHOD + "\n" + pathname + "\n" + timestamp + "\n" + nonce + "\n" + bodySha256`. Verify with constant-time comparisons, permit at most ±30 seconds, retain accepted nonces in a bounded cache for at least 60 seconds, and reject duplicate nonce before routing. A restart reuses the same ACL-protected key; no old/new key overlap or rotation path exists.
 
 Routes:
 
@@ -69,6 +71,8 @@ POST /v1/skills/authorize
 
 Hook responses contain only `protocol`, `requestId`, `decision` (`observe|continue|deny`), and `reasonCode`. There is no general JSON Patch; the gateway never rewrites message history, provider headers/options, environment, tool schemas, or permissions. Scope/compaction fragments come only from `/v1/scope`, generated from the owner-approved engagement, and are data not executable code.
 
+Policy precedence is fixed: permanent estate denies, then signed engagement denies, then expiry/identity/scope/risk checks, and only then a narrowly signed allow. Sliver and every C2-equivalent framework, payload/stager/handler, persistent listener, callback, Meterpreter/reverse-shell creation path, or interactive session command channel always deny. The gateway exposes no schema, flag, manifest field, or administrative override that can turn this deny into an allow; keep affected capabilities visible with a stable `permanent_c2_deny` reason.
+
 Timeouts/circuit: observation hooks 250 ms (max 128 queued/process, 16/session, drop oldest, catch, never break CyberStrike); prompt/pre-tool 1.5–2 s; scope/skill 2 s; high-risk tools, `harness_invoke`, `skill load`, and bridge-owned actions fail closed; ordinary read-only observation may fail open; capability timeouts max 15 minutes locally (long Databricks work returns a run ID polled with `fanout.status`); after three consecutive transport failures pause observation POSTs 30 s while keeping health/status probeable; never cache an allow decision beyond engagement expiry. Hard-cap HTTP body and response at 65,536 bytes; return an opaque private artifact receipt for larger output. Deep-redact before enqueue/persistence. Append one NDJSON audit record per request with UTC, request/correlation IDs, engagement, session/call, capability/hook, decision/result, duration, and hashes/lengths — never raw prompts, tool output, shell command, environment, auth header, token, cookie, provider key, full file content, exception body, or stderr.
 
 ## The three plugin tools
@@ -83,7 +87,7 @@ harness_invoke          exactly one validated invocation after permission+manife
 
 `harness_invoke.execute` must be async and must not contact the gateway until `ctx.ask({permission:"harness_invoke", patterns:[capability], always: riskClass==="read" ? [capability] : [], metadata:{capability, manifestRevision, idempotencyKey}})` resolves successfully. Rejection or cancellation denies. Empty `always` for write/billable prevents session-wide always-allow. Invoke arguments: `capability` (enum), `manifestRevision` (64-hex), `arguments` (record, default `{}`), `idempotencyKey` (uuid), `confirm` (bool, default false). Invoke must supply the exact current manifest revision or fail `capability_manifest_changed`.
 
-The ten capabilities (real per-capability strict schemas with `additionalProperties:false`; never a shared permissive `arguments` schema; disabled+recorded if the live branch has no real contract):
+The manifest exposes 181 invocation capabilities through the one `harness_invoke` tool: 171 backend security IDs in the five closed inventories below plus these ten Codex/fan-out bridge capabilities. Every capability has its own strict gateway policy schema with `additionalProperties:false`; never use a shared permissive `arguments` schema. Keep a capability visible but unavailable when the live branch has no real contract. The ten bridge capabilities are:
 
 ```text
 codex.consult        read              -> codex_consult
@@ -181,19 +185,32 @@ GET  /global/event
 
 Send `x-cyberstrike-directory` on project-scoped calls and Basic auth using username `cyberstrike` (or configured username) plus the separate server password, even though loopback currently bypasses it. Never use the public web tunnel as bridge transport. The checked-in OpenAPI has skill routes but the generated client lacks `.skill`; use direct REST. This allowlist is NOT a generic proxy: accept no caller URL, path template, HTTP verb, headers, credential object, or arbitrary body. For ingest, permit only bounded `text`, an owned session, approved agent, and approved model. Never expose skill install/remove/enable/disable, arbitrary command, PTY, auth/provider, share, shell, or browser routes. Prevent recursion: reverse calls carry `{origin:"harness-reverse",hopCount:1}` and a correlation ID (reject above one); bind every created session to owner/engagement/directory; add `(sessionID,correlationID)` to a bounded suppression set before a reverse prompt; prohibit all three bridge tools in reverse-owned sessions; require idempotency on each reverse mutation; validate session ownership and `x-cyberstrike-directory` against configured real roots on every call.
 
-## Companion MCP servers (out-of-process, MIT, external)
+## Backend-only companion inventories (out-of-process, external)
 
-Four independent MIT stdio servers are declared in `tools/mcp/canonical-mcp-servers.json`. Their SOURCE is never vendored under `tools/`. Exact launch and truth:
+These five backends are implementation details of `cyberstrike-gateway`, not runtime MCP servers. Keep them in the gateway's closed, revisioned `BACKEND_DEFINITIONS`/capability manifest. The gateway owns each stdio child, starts it lazily only after policy passes, enforces bounded lifetime and idle cleanup, and returns only bounded/redacted results plus an append-only receipt. Source is never vendored under `tools/`. Exact backend launch and inventory truth:
 
-| Fleet ID | Exact launch | Truth |
+| Backend ID | Gateway-owned child launch | Closed inventory truth |
 |---|---|---|
-| `cloud-audit` | `bun run <USERPROFILE>/.local/opt/cloud-audit-mcp/src/index.ts` | `badchars/cloud-audit-mcp` @ `e32c53a1b02df50e4a1ba072da17b00dc971bb15`; no npm package/bin/build; Bun source only; requires external user-scoped Bun 1.3.9. 38 tools (AWS 13, Azure 13, GCP 8, meta 4). |
-| `github-security` | `npx -y github-security-mcp@0.1.0` | Published npm bin; 39 tools; meaningful private/org coverage needs `GITHUB_TOKEN` (map `${GITHUB_MCP_PAT}`, prefer fine-grained read-only). |
-| `cve-mcp` | `npx -y cve-mcp@0.2.0` | Published npm bin; 41 tools; update the existing canonical entry in place, do NOT add a second `cve` alias. All five keys startup-optional; the three Shodan CVE tools are zero-auth CVEDB/InternetDB (do NOT add `SHODAN_API_KEY` here); npm 0.2.0 reports internal protocol 0.1.0 (metadata drift). |
-| `osint` | `npx -y osint-mcp-server@0.2.0` | Published npm bin; 37 tools (23 keyless + 14 key-gated). Never run `npx osint-mcp` (unrelated EdamAme-x package). `vt_url` discloses the URL to VirusTotal. |
+| `cloud-audit` | `bun run <USERPROFILE>/.local/opt/cloud-audit-mcp/src/index.ts` | `badchars/cloud-audit-mcp` @ `e32c53a1b02df50e4a1ba072da17b00dc971bb15`; no npm package/bin/build; Bun source only; requires external user-scoped Bun 1.3.9. Exactly 38 tools (AWS 13, Azure 13, GCP 8, meta 4). |
+| `github-security` | `npx -y github-security-mcp@0.1.0` | Published npm bin; exactly 39 tools; meaningful private/org coverage needs `GITHUB_TOKEN` mapped from `${GITHUB_MCP_PAT}` (prefer fine-grained read-only). |
+| `cve-mcp` | `npx -y cve-mcp@0.2.0` | Published npm bin; exactly 41 tools; do not add a second `cve` alias. All five keys are startup-optional; the three Shodan CVE tools are zero-auth CVEDB/InternetDB (do not add `SHODAN_API_KEY` here); npm 0.2.0 reports internal protocol 0.1.0 (metadata drift). |
+| `osint` | `npx -y osint-mcp-server@0.2.0` | Published npm bin; exactly 37 tools (23 keyless + 14 key-gated). Never run `npx osint-mcp` (unrelated EdamAme-x package). `vt_url` discloses the URL to VirusTotal. |
+| `metasploit` | `C:\metasploit-framework\embedded\bin\ruby.exe C:\metasploit-framework\embedded\framework\msfmcpd --config <ACL-restricted-config-path>` | Rapid7 official MCP surface, exactly 16 tools. The raw upstream identifiers use the `msf_*` family; preserve the exact ID/schema mapping inside the manifest. `msf_session_write` and every C2-equivalent path remain permanently unavailable. |
 
-Never run `npx cloud-audit-mcp` (npm 404). Never inline a token/key or a `"optional"` sentinel. The exact tool counts to assert at handshake are `38`, `39`, `41`, `37` respectively. Default-off alone is not authorization: CyberStrike's plugin cannot see a direct Claude Code call to these stdio servers, so the shared Claude `PreToolUse` guard must recognize every actual tool ID from `mcp__cloud-audit__*`, `mcp__github-security__*`, `mcp__cve-mcp__*`, `mcp__osint__*` (record exact normalized IDs at handshake; unknown/renamed denies), load and verify the same signed engagement record, classify tier, validate schema-allowlisted arguments, perform the ambient read-only identity probe for cloud/GitHub calls, deny on missing/expired scope or identity mismatch or `vt_url` confidential submission or guard outage, and attach only a redacted decision receipt. If that guard cannot mechanically cover direct MCP tools, keep all four servers effective-project-disabled.
+Never run `npx cloud-audit-mcp` (npm 404). Never inline a token/key or an `"optional"` sentinel. At each backend handshake, compare the normalized ordered tool-name/schema set and its canonical wire-schema hash against the pinned manifest, not only the count. Keep that upstream wire-schema digest distinct from the separately versioned gateway policy-overlay hash. A missing, extra, renamed, policy-pin-mismatched, or schema-drifted entry fails startup closed with stable reason `capability_inventory_drift`; diagnostics identify the affected backend. Missing credentials or platform prerequisites mark only affected capabilities unavailable. No mismatch, outage, or missing credential may remove a manifest entry, authorize a generic runner, or fall back to a raw server. Until Windows Job Object containment is live-verified, all backend launches remain unavailable as `windows_job_object_containment_unverified` even though all 171 backend security IDs and ten Codex/fan-out capabilities remain visible in the manifest.
 
-## Promotion and default-off (operator, Claude-closed)
+The runtime and external CyberStrike plugin may invoke these backends only through `harness_invoke`, with the exact current `MANIFEST_REVISION`, strict capability-specific schema, signed current engagement, risk/confirmation policy, idempotency key, workspace/identity checks, redaction, and audit. They must never see `mcp__cloud-audit__*`, `mcp__github-security__*`, `mcp__cve-mcp__*`, `mcp__osint__*`, `mcp__metasploit__*`, raw `msf_*`, caller-selected executable/argv, or a generic MCP/RPC/console proxy.
 
-The only allowed one-way chain: `tools/mcp/canonical-mcp-servers.json` → `%USERPROFILE%\.mcp.json` → `hooks/mcp-userscope-sync/promote-mcp-userscope.ps1` → `%USERPROFILE%\.claude.json` top-level `mcpServers`. This cannot be completed while Claude Code runs (live processes rewrite `.claude.json`). Prepare and parse the candidate, then close every Claude window and run the promoter with `-DryRun -PruneExtraUserServers`, review, then `-PruneExtraUserServers -Yes`; never `-Force`. Do NOT add `"disabled":true` to promoted entries, do NOT rely on root `.claude.json.disabledMcpServers` (measured inert), do NOT park in `.mcp.disabled.json`. Merge/sort/dedup the four IDs into `%USERPROFILE%\.claude\.mcp-disabled-defaults.json` `disabledMcpServers`, verify SessionStart wires `python {{USER_HOME}}/.claude/hooks/mcp-defaults/enforce-mcp-defaults.py`, and pre-seed the four IDs into each known project's effective disabled list while Claude is closed. After restart, prove for one existing and one new project that `/mcp` reports all four disabled and no companion child process spawned; then enable one at a time in an authorized test project, MCP `initialize` + `tools/list`, assert the exact count, disable, restart before the next.
+## Sole gateway promotion and default-off backends
+
+Register exactly one runtime-facing MCP server, `cyberstrike-gateway`, through the canonical shared control-plane workflow. Its entire runtime tool surface is exactly:
+
+```text
+harness_bridge_status
+harness_capabilities
+harness_invoke
+```
+
+Update the live shared registry only through `C:\Users\Prekzursil\.agents\agents.json`, then run `C:\Users\Prekzursil\.agents\scripts\sync_shared_state.ps1`; do not hand-edit materialized Claude, Codex, or Cursor configuration. The five backend IDs above must not be promoted from `tools/mcp/canonical-mcp-servers.json`, `%USERPROFILE%\.mcp.json`, or any legacy user-scope fleet into `%USERPROFILE%\.claude.json`, `.codex\config.toml`, `.cursor\mcp.json`, or another runtime registry. Removing a legacy raw registration does not remove capability: the closed manifest keeps every entry visible with its exact `available`, `unavailable`, `unsupported_platform`, or `permanent_c2_deny` state.
+
+Before acceptance, inspect rendered candidates, run shared-state validation plus `agents status`, `agents doctor`, and the runtime MCP test, then start one existing and one fresh runtime session. Both must show only `cyberstrike-gateway` for this integration and exactly the three tools above. No companion child may exist before a permitted `harness_invoke`; an authorized backend smoke must lazy-start only the selected child, assert its exact inventory/hash, return through the gateway, and stop it on the documented idle/expiry path. Any direct backend registration or callable raw tool is a blocking bypass, not a default-off success.

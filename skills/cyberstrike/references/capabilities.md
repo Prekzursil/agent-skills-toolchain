@@ -5,6 +5,26 @@ Every name, limit, and correction below is load-bearing; preserve them verbatim.
 Use only explicitly authorized targets and the external signed engagement guard.
 Passive/public data never authorizes active probing.
 
+## Approved Windows-native topology and pins
+
+This estate uses native Windows 11 x64 for CyberStrike and Metasploit. It does not use a VM or direct WSL execution. The only WSL2-backed component is Bolt through the already installed Docker Desktop backend. Exact immutable inputs:
+
+| Component | Approved pin | Windows status |
+|---|---|---|
+| CyberStrike core | `@cyberstrike-io/cyberstrike@1.1.16`; SRI `sha512-Yf4fb54n6Apw7qZZFNG32Ok6aMBcfIW+OzvUHovsW/ImP/ETRHdX90ZjFT24/UFgmdYqNy+x9T0dF6yI451FQA==` | Supported on native Windows x64 after script-disabled install and a recoverable, same-volume asset-only swap inside the existing effective data root. |
+| HackBrowser | bundled worker plus exact `playwright@1.58.2` | Supported only after versioned staging and an asset-only swap of the worker, Playwright runtime/launchers, and pinned Chromium inside the existing effective data root; unavailable with reason if assets/browser are missing. |
+| `winhook` | CyberStrike 1.1.16 built-in | Visible and platform-capable, but Administrator and the signed high-risk guard are required. `defender_exclude` stays unavailable by estate policy. |
+| `ebpf` / Linux hooks | CyberStrike 1.1.16 built-ins | Visible but unsupported on native Windows; no VM or direct WSL fallback is authorized. |
+| `machook` | CyberStrike 1.1.16 built-in | Visible but unsupported because the host is not macOS. |
+| `awshook`, `azurehook`, `kubehook`, `cipipe` | CyberStrike 1.1.16 built-ins | Visible but unavailable until their exact native-Windows interpreter, dependency, identity, and signed-engagement probes pass. |
+| Metasploit Framework/MCP | Rapid7 archived MSI `metasploit-framework-6.5.3-20260826060514-1rapid7-1-x64.msi` | Supported natively as a gateway-owned backend only; launch official `embedded\framework\msfmcpd` with `embedded\bin\ruby.exe`. No generated `msfmcpd.bat` or raw runtime registration exists. |
+| Bolt | `ghcr.io/cyberstrikeus/bolt:93bcf2c@sha256:90ef2d10a8e255369981e7ce2eb7b89e1ac337ad6a5cf9f21f803c8585eea277`; `linux/amd64` manifest `sha256:b5ddb610ea214656fd97223ed790d3bb50a3d44ae188dc937e64c87a83cc4459` | Docker Desktop WSL2 exception only; unavailable/disconnected until loopback ingress and per-container target-egress enforcement pass. |
+| Sliver and C2-equivalent paths | none | Permanently hard denied and intentionally not installed. An RoE cannot enable them. |
+
+Never hide or delete a capability merely because it is unavailable. Return the stable unsupported/unavailable reason and the probe that would settle any non-permanent status. Permanent C2 and Sliver denies have no enabling probe.
+
+The only runtime-facing MCP registration is `cyberstrike-gateway`, and its complete public surface is `harness_bridge_status`, `harness_capabilities`, and `harness_invoke`. Its closed revisioned manifest retains `cloud-audit` (38 tools), `github-security` (39), `cve-mcp` (41), `osint` (37), and `metasploit` (16) as backend-only inventories. None may appear as a direct runtime MCP server or raw tool family. Missing credentials/platform support or a name/schema/hash mismatch changes only the affected capability status to unavailable; it never prunes the manifest entry or enables a bypass. Current implementation keeps every backend launch unavailable as `windows_job_object_containment_unverified` until a fresh Windows containment probe passes.
+
 ## Invocation and interface map
 
 Use the installed `cyberstrike` executable, never repository scripts.
@@ -190,7 +210,7 @@ Scope caveats are load-bearing:
 - A credential ID forces visible manual login, then autonomous crawling. Roles are sequential. Cancellation may require closing the browser.
 - The visible Shadow-DOM panel mutates the target DOM and can perturb fragile applications; headless mode has no panel.
 - The JSONL worker inherits the parent environment. Use minimal credentials and a disposable host.
-- Provision a pinned reviewed Playwright/Chromium build. Reject the fallback installer, which sets `NODE_TLS_REJECT_UNAUTHORIZED=0`.
+- Provision a pinned reviewed Playwright/Chromium build. Reject the fallback installer, which sets `NODE_TLS_REJECT_UNAUTHORIZED=0`. CyberStrike 1.1.16's npm postinstall also runs the child Playwright npm install with TLS verification disabled and can rewrite the user PATH; install CyberStrike with `--ignore-scripts`. Resolve the existing effective `XDG_DATA_HOME`, stage the versioned assets beneath its existing `cyberstrike` root, and recoverably rename-swap only `web`, `skill`, `bin\hackbrowser-worker.js`, Playwright 1.58.2/Playwright Core 1.58.2 plus launchers, and the matching Chromium cache. Never switch to a new empty data home; leave `auth.json`, the database/WAL/SHM, `storage`, `log`, and all session/config/state files in place, and never duplicate secrets into staging or rollback.
 - The worker’s provider envelope is narrower than the main “150+ providers” claim; use a verified API-key provider, supported Anthropic auth, or supported GitHub Copilot route.
 - `packages/hackbrowser/README.md` saying `bun start` is stale; no `start` script exists. `bun --cwd packages/hackbrowser src/index.ts ...` is development-only, with separate auth and stale/partial flags. The integrated entry points are canonical.
 
@@ -233,6 +253,38 @@ The web report download route chooses the lexicographically latest `report-*.md`
 
 For every TUI/web/API path, set a strong unique server password, bind `127.0.0.1`, keep mDNS off, and never expose `0.0.0.0` bare HTTP. The API includes PTY, file, auth, session, and execution controls and is RCE-equivalent. Password checks are bypassed for bare loopback and static assets bypass auth; CORS intrinsically trusts localhost/127 origins and HTTPS `*.cyberstrike.io`, and merely adding a narrower list does not remove those built-ins. Treat same-user processes and allowed local origins as inside the threat boundary. Enforce a smaller origin/network policy at the authenticated reverse proxy. Remote access is loopback behind authenticated TLS plus private VPN/Access, MFA/rate limiting, and exact proxy origin policy. Use a dedicated browser profile; the app stores server connection/password data in browser storage and embeds credentials in PTY WebSocket URLs. Clear site data after the engagement.
 
+## Native Windows Metasploit MCP
+
+Install only Rapid7's immutable archived Windows x64 artifact:
+
+```text
+https://windows.metasploit.com/metasploit-framework-6.5.3-20260826060514-1rapid7-1-x64.msi
+https://windows.metasploit.com/metasploit-framework-6.5.3-20260826060514-1rapid7-1-x64.msi.asc
+```
+
+Do not follow a mutable `metasploitframework-latest.msi` redirect. Require MSI SHA-256 `2556D431EF76FD85D39D0C914B604ADCF9D7050A61393B770C4319547501D8C7` and SHA-512 `1439EB70212AA5242D21F062C2D978C023134D2FEFCB0B0010C2F24E77117738300DEA66448A86A71DF88B2D7181A428C4932620D18B17E6B6E198977A895F8B`. Validate the detached signature as `Release Engineering <r7_re@rapid7.com>` with full fingerprint `97B32012EA1176F053727A95C048F0B49DEEC457`; pin its source to Rapid7 `metasploit-omnibus` commit `21d459344aa291e9d8c0abdd6cbd9806fdb84791`, file `config/templates/metasploit-framework-wrappers/msfupdate.erb`, source SHA-256 `D12FEA4D1339EBECB09D8CC36920D9F5E5E7E9FFFBE092B1E1CD09255CC16825`. The MSI's Authenticode result is `NotSigned`; record this sub-gate as unavailable and never require or claim a valid Authenticode signer. Validate installed `version-manifest.txt` and the embedded Ruby/framework paths. Microsoft Defender and Windows Firewall remain enabled; a quarantined file makes the related capability unavailable and is not a reason to add a broad exclusion.
+
+The Rapid7 Windows packaging recipe generates wrappers for `msfconsole`, `msfrpcd`, and other established commands but not `msfmcpd`. The supported official MCP path is therefore:
+
+```text
+C:\metasploit-framework\embedded\bin\ruby.exe
+  C:\metasploit-framework\embedded\framework\msfmcpd
+  --config <ACL-restricted-config-path>
+```
+
+Set `BUNDLE_GEMFILE=C:\metasploit-framework\embedded\framework\Gemfile`, prepend `C:\metasploit-framework\embedded\bin` to the child-only `PATH`, set the child CWD to `C:\metasploit-framework\embedded\framework`, and inject RPC/MCP credentials through the owned process environment or ACL-restricted file. Never put a credential in argv. Transport is private stdio owned by `cyberstrike-gateway` after signed policy acceptance; never register raw `msfmcpd`/`metasploit`, enable HTTP transport, expose raw `msfrpcd`, or add a generic RPC/console proxy.
+
+The official surface has exactly 16 visible tools:
+
+```text
+msf_credential_info msf_host_info msf_loot_info msf_module_check
+msf_module_execute msf_module_info msf_module_results msf_note_info
+msf_running_stats msf_search_modules msf_service_info msf_session_list
+msf_session_read msf_session_stop msf_session_write msf_vulnerability_info
+```
+
+Upstream marks exactly four dangerous: `msf_module_check`, `msf_module_execute`, `msf_session_stop`, and `msf_session_write`. The guard still evaluates semantics, not only that bit. `multi/handler`, payload/stager/handler creation, Meterpreter or reverse-shell creation, persistent listeners, callbacks, and interactive session command channels are permanent hard denies. `msf_session_write` is therefore visible but always unavailable; no RoE can enable it. The guard may allow only explicitly signed, non-C2 uses of other active tools and only for owned jobs/sessions. If the official script or probe is absent, report all 16 as `unavailable: official_msfmcpd_not_runnable`; only an independently authored private typed adapter over `msfrpcd.bat`, differentially proven against all 16 schemas/results and the negative matrix, can serve as fallback.
+
 ## Bolt client/server and fan-out
 
 CyberStrike is a Bolt client. The server is separately deployed. Use the strict top-level map and base URLs with no `/mcp` suffix:
@@ -268,11 +320,11 @@ DELETE /bolt/{name}
 GET    /mcp/bolt-tools
 ```
 
-Pairing calls server `POST /pair` with the one-time admin bearer token, generates a local Ed25519 client key, then calls `POST /pair/exchange` with the code/public key. Normal requests use `X-Client-Id`, `X-Timestamp`, `X-Nonce`, and `X-Signature`; clocks must stay within the server’s 30-second window. The client private key is under CyberStrike data `bolt-keys/<entry-name>.json`, requested with mode `0600`; Windows must additionally enforce the user-profile ACL because POSIX mode is insufficient there. The server `/data` volume holds server keys/authorized clients. Ed25519 authenticates but does not encrypt. Use loopback, private VPN, or CA-valid HTTPS.
+Pairing calls server `POST /pair` with the one-time admin bearer token, generates a local Ed25519 client key, then calls `POST /pair/exchange` with the code/public key. Normal requests use `X-Client-Id`, `X-Timestamp`, `X-Nonce`, and `X-Signature`; clocks must stay within the server’s 30-second window. The client private key is under CyberStrike data `bolt-keys/<entry-name>.json`, requested with mode `0600`; Windows must additionally enforce the user-profile ACL because POSIX mode is insufficient there. The server `/data` volume holds server keys/authorized clients. Ed25519 authenticates but does not encrypt. Use loopback or private networking. NEVER rotate an existing Bolt credential, token, or key and never touch a credential-rotation manifest. A URL/key/identity mismatch fails closed and is reported without changing key material.
 
-Removing a CyberStrike entry neither revokes the server client nor deletes the local key. A complete removal separately calls `DELETE /pair/clients/<clientId>` with the admin token, then deletes only the exact resolved credential file after confirming the entry. Never recursively delete a data root. Connect/disconnect is runtime state, not a durable `enabled` edit.
+Removing a CyberStrike entry neither revokes the server client nor removes the local key. An owner-explicit retirement may separately call `DELETE /pair/clients/<clientId>` with the admin token, then move only the exact resolved credential file into a protected recoverable quarantine after confirming the entry; never permanently delete it and never recursively delete a data root. Retirement is not key rotation. Connect/disconnect is runtime state, not a durable `enabled` edit.
 
-Windows single-node deployment must not use the mutable `:latest`/secret-in-argv `docker run` form as production acceptance. Resolve and record an immutable reviewed image digest, prefer a Docker secret or ACL-restricted env-file rather than secret argv, and run the digest-pinned equivalent. If no approved digest/secret mechanism exists, report the Bolt deployment gap instead of claiming reproducibility. Never print/commit the admin token. Use unique node names, ports, volumes, tokens, config names, client keys, and network positions. Confirm each node routes only to the authorized target network; Docker Desktop does not guarantee Windows VPN route parity. Only estate-owned nodes in the engagement record may connect. Require HTTPS/private VPN/firewall, per-node or per-engagement keys, restrictive ACLs, rotation/revocation, audit, kill switch, and node-to-target mapping. Never expose Bolt directly to the Internet or use one fleet-wide key.
+Windows single-node deployment must use `ghcr.io/cyberstrikeus/bolt:93bcf2c@sha256:90ef2d10a8e255369981e7ce2eb7b89e1ac337ad6a5cf9f21f803c8585eea277`, never mutable `:latest`. The selected `linux/amd64` child manifest must be `sha256:b5ddb610ea214656fd97223ed790d3bb50a3d44ae188dc937e64c87a83cc4459`; fail if either digest differs. Prefer a Docker secret or ACL-restricted env-file rather than secret argv. If the digest, secret mechanism, or target-egress control is not proven, keep Bolt visible but disconnected with the exact gap instead of claiming readiness. Never print/commit the admin token. Use unique node names, ports, volumes, tokens, config names, stable client keys, and network positions. Confirm each container routes only to the authorized target network; Docker Desktop does not guarantee Windows VPN route parity. Only estate-owned nodes in the engagement record may connect. Require loopback/private ingress, restrictive ACLs, owner-directed revocation, audit, kill switch, and node-to-target mapping. Never rotate keys, expose Bolt directly to the Internet, or use one fleet-wide key.
 
 A healthy default node has 45 source tools. Native 10:
 
@@ -365,6 +417,8 @@ etw_network clipboard_sniff amsi_bypass etw_blind defender_exclude
 cleanup_win
 ```
 
+Keep all 12 names visible. `defender_exclude` is permanently unavailable in this estate because Defender stays enabled and broad exclusions are forbidden. The other programs are baseline-denied and require their exact signed grant and confirmation; any use that creates or operates a C2 channel remains permanently denied.
+
 `machook`, macOS/usually root, 12:
 
 ```text
@@ -430,7 +484,8 @@ That path must be under the external engagement workspace, never a target/toolch
 
 1. Offline code review, CVE lookup, reporting, and passive defensive analysis may run without a live target.
 2. Active recon, `attack_script`, Bash, browser crawl/interception, exploit validation, and active MCP tools require a current exact-scope grant and bounded rate.
-3. Credential dumping/phishing, keylogging, LSASS/SAM/DPAPI/Keychain/browser-secret access, secret extraction, privilege escalation, container escape, persistence/backdoors, AMSI/ETW/TCC/Gatekeeper bypass, eBPF hiding/sniffing, CloudTrail/log deletion or blinding, CI injection, C2 callbacks, and Bolt fan-out are default `DENY`. Enable only a named technique explicitly permitted by the RoE, inside a disposable engagement VM/lab/node, with a per-run human confirmation and cleanup/evidence plan.
+3. Credential dumping/phishing, keylogging, LSASS/SAM/DPAPI/Keychain/browser-secret access, secret extraction, privilege escalation, container escape, persistence/backdoors, AMSI/ETW/TCC/Gatekeeper bypass, eBPF hiding/sniffing, CloudTrail/log deletion or blinding, CI injection, and Bolt fan-out are default `DENY`. Enable only a named non-C2 technique explicitly permitted by the RoE, inside the approved disposable lab/node boundary, with a per-run human confirmation and cleanup/evidence plan.
+4. Sliver and every C2-equivalent framework, payload, stager, handler, listener, callback, Meterpreter/reverse-shell creation path, persistence channel, or interactive session command channel are permanent hard `DENY`. Evaluate this rule before signed allows. No RoE, model policy, permission choice, confirmation, or administrator role can enable it.
 
 CyberStrike’s primary agent defaults to `"*":"allow"`, and `scope_check` only reports YES/NO plus a warning — it is not enforcement. These nine tools execute without their own `ctx.ask` and MUST be explicitly denied in the baseline:
 
@@ -446,4 +501,4 @@ kubehook
 cipipe
 ```
 
-Platform support truth: native Windows 11 x64 supports the core CLI/TUI/web and `winhook` (Administrator required). Native Windows cannot run Linux/eBPF or macOS hooks. There is no reviewed win32-arm64 build. WSL2 eBPF is unproven until a real probe. Linux/eBPF needs a separately authorized compatible Linux host, kernel at least 4.7, root, Python, BCC/`python3-bpfcc`, and `CAP_SYS_ADMIN`. CyberStrike has 103 tracked `.py` files (including 30 eBPF programs); resolve `python3` explicitly on Windows before advertising those paths.
+Platform support truth: native Windows 11 x64 supports the core CLI/TUI/web and can expose guarded `winhook` tools (Administrator required). Native Windows cannot run Linux/eBPF or macOS hooks; keep them visible as `unsupported_platform`. There is no reviewed win32-arm64 build. Direct WSL/VM execution is outside this topology, so it is not a fallback. The Docker Desktop WSL2 exception applies only to the digest-pinned Bolt catalog, not to CyberStrike's local `ebpf` programs. CyberStrike has 103 tracked `.py` files (including 30 eBPF programs); cloud/Kubernetes/CI hook paths remain `unavailable_dependency_probe` until `python3` and every required dependency/identity probe are explicitly proven on Windows.
