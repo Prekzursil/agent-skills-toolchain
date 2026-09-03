@@ -490,9 +490,9 @@ def test_cursor_attach_all_dry_run_projects_the_full_safe_surface(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "attached=39" in completed.stdout
+    assert "attached=40" in completed.stdout
     assert "core_attached=6" in completed.stdout
-    assert "noncore_projected=33" in completed.stdout
+    assert "noncore_projected=34" in completed.stdout
     assert "approval_proof=dry-run-unverified" in completed.stdout
     assert json.loads(live.read_text(encoding="utf-8"))["mcpServers"] == {}
 
@@ -647,7 +647,9 @@ def test_live_cursor_attach_all_covers_parked_catalog_core_and_owner_adapters() 
 
     assert set(parked) <= set(generated)
     assert CURSOR_CORE_APPROVED <= set(generated)
-    assert len(generated) == len(parked) + len(CURSOR_CORE_APPROVED) + 2
+    # parked(31) + core(6) + 3 non-core generated rows: inference-hub,
+    # linkedin and (PR #320) consult-offsec.
+    assert len(generated) == len(parked) + len(CURSOR_CORE_APPROVED) + 3
     assert "inference-hub" in generated
     assert "inference-hub" not in parked
     assert "glm53-space" not in generated

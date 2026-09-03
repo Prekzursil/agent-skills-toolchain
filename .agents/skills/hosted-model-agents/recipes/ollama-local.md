@@ -14,7 +14,7 @@ stanza, served by the box's Ollama (weights on `D:\ai-models\ollama`, RTX 4050
 | `wrn-coder-7b` | `wrn-coder-7b` | M | 65536/8192 | ~5.4 GB | enabled, unprobed |
 | `qwythos-9b` | `qwythos-9b` | M | 65536/16384 | ~6.6 GB | enabled, unprobed |
 | `huihui-offsec` | `huihui-offsec` | L | 65536/16384 | ~22 GB | **disabled** (RAM-gated) |
-| `gptoss-20b-abliterated` | `gptoss-20b-abliterated` | L | 65536/16384 | ~13.5 GB | **disabled** (RAM-gated |
+| `gptoss-20b-abliterated` | `gptoss-20b-abliterated` | L | 65536/16384 | ~13.5 GB | **disabled** (RAM-gated) |
 
 The two L rows are registered `enabled: false`: their working sets exceed the
 8 GiB `policy.localRamBudgetBytes` warning line; enable only after RAM

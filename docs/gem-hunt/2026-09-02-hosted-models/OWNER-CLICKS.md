@@ -77,7 +77,11 @@ Legend: `[ ]` open, `[x]` done (write the date). Receipts go under
 
 ## 3. Local inference posture (D10, T0-8, T0-13)
 
-- [ ] **D10-1 Ollama user env**: `OLLAMA_KEEP_ALIVE=2m`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`,
+- [x] **D10-1 Ollama user env** (done 2026-09-03; bench receipts 2026-09-03 cited
+  in `.agents/models.json` `x_ollama` and
+  `docs/gem-hunt/2026-09-02-hosted-models/14-zcode-v2-provider-stanzas.md`:
+  64K context held under full desktop load — 21 GB mapped, stable, 8-12 tok/s):
+  `OLLAMA_KEEP_ALIVE=2m`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`,
   `OLLAMA_CONTEXT_LENGTH=65536` (bumped from 8192 on 2026-09-03, grill Q2 of the consult-offsec wave:
   bench receipts show 64K context held under full desktop load — 21 GB mapped, stable, 8-12 tok/s —
   the 8192 pin was stale for the offsec model class; registry `x_ollama.contextLength` follows),
