@@ -45,4 +45,4 @@ GPU rental / cloud-hub multiplex: skill `cloud-infra-toolchain`. Azure model dep
 - Need a model in Codex / Grok / Goose / OpenCode / Aider / Fabric -> **rendered provider block** from the registry.
 - Need the agent to *do* something -> **local tools** + tool loop.
 
-Worked HF Space OpenAI example (not the SSOT): [recipes/hf-space-openai.md](recipes/hf-space-openai.md).
+Worked HF Space OpenAI example (not the SSOT): [recipes/hf-space-openai.md](recipes/hf-space-openai.md). Provider-pinned featherless route for the abliterated/WRN offsec checkpoints (consumed by the consult-offsec MCP): [recipes/hf-router-featherless.md](recipes/hf-router-featherless.md). The four local Ollama offsec models at 64K context (route=local for cred-laden consults): [recipes/ollama-local.md](recipes/ollama-local.md).

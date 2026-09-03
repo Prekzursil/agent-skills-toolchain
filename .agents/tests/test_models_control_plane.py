@@ -455,7 +455,11 @@ def test_codex_selects_nothing_until_responses_is_probed() -> None:
     assert models.select_target_models(SEED, "codex") == {}
     config = probed_hf_router_responses(seed())
     assert list(models.select_target_endpoints(config, "codex")) == ["hf-router"]
-    assert list(models.select_target_models(config, "codex")) == ["glm-5.3"]
+    assert list(models.select_target_models(config, "codex")) == [
+        "glm-5.3",
+        "hermes-3-70b",
+        "qwen3.6-35b-a3b",
+    ]
 
 
 def test_grok_selects_native_and_fallback_endpoints_but_not_disabled_ones() -> None:
@@ -463,6 +467,7 @@ def test_grok_selects_native_and_fallback_endpoints_but_not_disabled_ones() -> N
     assert list(selected) == [
         "cursor-auth2api",
         "hf-router",
+        "hf-router-featherless",
         "lmstudio",
         "ollama",
         "openrouter",
@@ -473,13 +478,21 @@ def test_grok_selects_native_and_fallback_endpoints_but_not_disabled_ones() -> N
         "cursor-grok-4.6",
         "glm-5.2-free",
         "glm-5.3",
+        "hermes-3-70b",
+        "huihui-cyberstrike-35b",
+        "huihui-qwen3.8-27b-abliterated",
         "qwen2.5-7b",
         "qwen3-4b-instruct",
         "qwen3-8b",
+        "qwen3.6-35b-a3b",
+        "qwythos-9b",
+        "wrn-2.5-coder-7b",
+        "wrn-coder-7b",
     ]
     assert list(models.select_target_endpoints(SEED, "goose")) == [
         "cursor-auth2api",
         "hf-router",
+        "hf-router-featherless",
         "lmstudio",
         "ollama",
     ]
@@ -567,6 +580,7 @@ def test_routing_report_marks_included_rows_and_wrapper_states() -> None:
 
 def test_credential_names_are_the_sorted_union_over_enabled_endpoints() -> None:
     assert models.credential_names(SEED) == [
+        "HF_TOKEN",
         "HUGGINGFACE_TOKEN_INFERENCE",
         "OPENROUTER_API_KEY_CLI_GRUNT",
         "OPENROUTER_API_KEY_CODEX_SIDECAR",
@@ -574,7 +588,10 @@ def test_credential_names_are_the_sorted_union_over_enabled_endpoints() -> None:
     ]
     config = seed()
     config["endpoints"]["openrouter"]["enabled"] = False
-    assert models.credential_names(config) == ["HUGGINGFACE_TOKEN_INFERENCE"]
+    assert models.credential_names(config) == [
+        "HF_TOKEN",
+        "HUGGINGFACE_TOKEN_INFERENCE",
+    ]
 
 
 def test_registry_hash_is_stable_short_and_content_sensitive() -> None:
@@ -965,7 +982,7 @@ def test_cli_success_line_and_read_only_behaviour(
     captured = capsys.readouterr()
     assert captured.out.strip() == success_line(captured.out)
     assert captured.out.strip() == (
-        "SUCCESS:models-registry endpoints=6 models=6 warnings=0 "
+        "SUCCESS:models-registry endpoints=7 models=15 warnings=0 "
         f"hash={models.registry_hash(SEED)}"
     )
     assert captured.err == ""
@@ -1080,7 +1097,7 @@ def test_cli_subprocess_success_failed_and_json(tmp_path: pathlib.Path) -> None:
     completed = run_cli("--registry", str(SEED_PATH))
     assert completed.returncode == 0, completed.stdout + completed.stderr
     assert success_line(completed.stdout) == (
-        "SUCCESS:models-registry endpoints=6 models=6 warnings=0 "
+        "SUCCESS:models-registry endpoints=7 models=15 warnings=0 "
         f"hash={models.registry_hash(SEED)}"
     )
 

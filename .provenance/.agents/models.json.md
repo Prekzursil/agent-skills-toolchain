@@ -43,7 +43,9 @@ warning (V10), a health probe spec per endpoint. Six lenses converged on this fi
   4050 Laptop GPU (6 GB VRAM), so the Tier S/M weights fit GPU-full - the earlier "no GPU" premise was
   wrong (V17). Residency discipline is user env, recorded in `x_ollama` for the renderers and the
   owner: `OLLAMA_KEEP_ALIVE=2m`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`,
-  `OLLAMA_CONTEXT_LENGTH=8192`, `OLLAMA_KV_CACHE_TYPE=q8_0`, loopback bind, version >= 0.17.1.
+  `OLLAMA_CONTEXT_LENGTH=65536` (bumped from 8192 on 2026-09-03, grill Q2: bench receipts show 64K
+  held under full desktop load - 21 GB mapped, stable, 8-12 tok/s; see OWNER-CLICKS.md D10-1),
+  `OLLAMA_KV_CACHE_TYPE=q8_0`, loopback bind, version >= 0.17.1.
   `features.tool_choice` is `absent` (Ollama rejects it); `/api/show` capabilities are the discovery
   source. `resource.ramBytes` is the idle server footprint; models carry their own working sets.
 - **`lmstudio`** (`127.0.0.1:1234/v1`): run as the `llmster` daemon, not the GUI server (T0-13), JIT
@@ -52,6 +54,17 @@ warning (V10), a health probe spec per endpoint. Six lenses converged on this fi
 - **`llamacpp`** (`127.0.0.1:8080/v1`, `enabled: false`): llama-server with `--sleep-idle-seconds` and
   router mode - the cleanest primitives but one more resident thing (D10 option C, recorded, not
   chosen). Enable only through the eval gate.
+- **`hf-router-featherless`** (`router.huggingface.co/featherless-ai/v1`, added 2026-09-03): the same
+  HF router account pinned to the featherless-ai provider path that serves the abliterated/WRN offsec
+  checkpoints; a separate row (not models under `hf-router`) because consult-offsec and the ZCode v2
+  provider stanza address the pinned route by URL, and a separate row lets its budget be stated
+  (grill Q3). `budget.dailyUsdCap: 1.0` and the matching cut of `hf-router` to 1.0 make the family sum
+  2.0 USD/day; the cap is SHARED account billing and the registry cannot enforce a cross-endpoint sum —
+  the consult-offsec server's v1.2 dollar meter (`CONSULT_USD_CEILING`, default 2.0) is the enforcement,
+  the registry documents. `auth.altEnv` adds `HF_TOKEN` (the consult-offsec env passthrough) beside the
+  inference-scoped primary. All wire/features `declared` (nothing probed; grill Q4 — rows enter
+  unprobed/declared and probe receipts flip them to live/probed during PR review). Sources:
+  pr-lane-plan.md 3.4(a), grill decision log Q3/Q4 (2026-09-03 wave).
 
 ## Models
 
@@ -70,11 +83,36 @@ warning (V10), a health probe spec per endpoint. Six lenses converged on this fi
   **`qwen3-8b`** (`ollama`, Tier M, ~7 GB, thinking off): D10 picks, `status: eval-gated` - promoted to
   `live` only after T2 `pass@3 >= 0.90` (PU10). `quirks.openai.thinking_off_for_tools` drives the
   hub's `think: false` adapter.
+- **`huihui-cyberstrike-35b` / `wrn-2.5-coder-7b` / `huihui-qwen3.8-27b-abliterated`**
+  (`hf-router-featherless`, added 2026-09-03): the three abliterated/WRN checkpoints from the ZCode v2
+  "HF Featherless" provider stanza, registered at the stanza's 32K caps. `huihui-cyberstrike-35b` is
+  the consult-offsec default cloud model (alias `offsec-cloud`); abliterated rows pair ONLY with the
+  authorized-scope reporter persona (profiles.md). All `status: unprobed`, no probe receipts yet
+  (grill Q4: receipts land as review-time amendments; a DevFleet probe mission is spec'd in the PR).
+- **`qwen3.6-35b-a3b` / `hermes-3-70b`** (`hf-router`, added 2026-09-03): the two models of the ZCode
+  v2 "HuggingFaces" stanza. NO new endpoint: its baseURL `https://router.huggingface.co/v1` is
+  byte-identical to `hf-router`, and a second endpoint with the same URL would duplicate auth/billing
+  rows (pr-lane-plan 3.4(b)). `unprobed` per grill Q4.
+- **`wrn-coder-7b` / `qwythos-9b`** (`ollama`, added 2026-09-03, `enabled: true`) and
+  **`huihui-offsec` / `gptoss-20b-abliterated`** (`ollama`, added 2026-09-03, `enabled: false`): the
+  four ZCode v2 "Ollama Local" models at 64K context. The two large rows are registered disabled: at
+  ~22 GB / ~13.5 GB (Q4 parameter-count ESTIMATES — owner-verify with `ollama show`) they would trip
+  the non-fatal 8 GiB `localRamBudgetBytes` warning, and the seed test
+  `test_seed_validates_with_zero_warnings` requires a warning-clean registry (pr-lane-plan 5.5's
+  "quiet registry" option); flip `enabled` after RAM planning. `wrn-coder-7b` is the consult-offsec
+  default local model (alias `offsec-local`). Estate context: `OLLAMA_CONTEXT_LENGTH` bumped
+  8192 → 65536 (grill Q2 — bench receipts 2026-09-03: 64K held under full desktop load, 21 GB mapped,
+  stable, 8-12 tok/s); recorded in the `ollama` endpoint description, `x_ollama.contextLength`, and
+  OWNER-CLICKS.md. The three pre-existing ollama rows stay at their registered 8192 contexts — their
+  remoteIds were registered under the old pin and per-model re-registration is a separate decision.
 
 ## Aliases and slots
 
 `glm53 -> glm-5.3` keeps the old name resolvable for muscle memory; `fabric-default -> glm-5.3` is the
 one endpoint the Fabric renderer exports as `OPENAI_API_BASE_URL`; `local-default -> qwen2.5-7b`.
+Added 2026-09-03 (consult-offsec wave): `offsec-cloud -> huihui-cyberstrike-35b` and
+`offsec-local -> wrn-coder-7b` name the consult-offsec default routes so drivers can ask for the role
+instead of the checkpoint. `slots{}` untouched — slot assignment stays an owner routing decision.
 Slots (`large`, `small`, `subagent`, `web_search`, `summary`, `embed`) mirror the models.dev /
 OpenCode slot names so a consumer can ask for a role instead of an id; `web_search` and `embed` are
 `null` until a row earns them. An alias to a disabled or missing model is a validator error (V12).

@@ -113,7 +113,7 @@
         "maxInFlight": 4
       },
       "budget": {
-        "dailyUsdCap": 2.0,
+        "dailyUsdCap": 1.0,
         "costBasis": "table_estimate"
       },
       "resource": {
@@ -149,6 +149,84 @@
         "hosted",
         "hosted-inference",
         "openai-compatible"
+      ]
+    },
+    "hf-router-featherless": {
+      "label": "Hugging Face router, featherless-ai pinned route",
+      "description": "router.huggingface.co/featherless-ai/v1: the HF Inference Providers router pinned to the featherless-ai provider path (serves the abliterated/WRN offsec checkpoints). Same account and billing as hf-router; auth by the same inference-scoped token NAME. Consumed by the consult-offsec MCP (cloud route) and reachable through inference-hub chat. Pin responses carry response_format only after a probe (see hf-router note). Budget: shares the hf-router account; the family cap is 1.0 (hf-router) + 1.0 (hf-router-featherless) = 2.0 USD/day, documented here because the registry cannot enforce a shared cap across endpoints - the consult-offsec server's dollar meter (v1.2, grill Q3) is the enforcement.",
+      "kind": "hosted",
+      "enabled": true,
+      "baseUrl": "https://router.huggingface.co/featherless-ai/v1",
+      "api": [
+        "openai-completions"
+      ],
+      "auth": {
+        "env": "HUGGINGFACE_TOKEN_INFERENCE",
+        "altEnv": [
+          "HF_TOKEN"
+        ],
+        "scheme": "Bearer",
+        "header": "Authorization",
+        "issuerHosts": [
+          "router.huggingface.co",
+          "*.huggingface.co"
+        ]
+      },
+      "wire": {
+        "completions": "declared",
+        "responses": "absent",
+        "messages": "absent"
+      },
+      "features": {
+        "streaming": "declared",
+        "usage": "declared",
+        "tools": "declared",
+        "tool_choice": "declared",
+        "structured_output": "declared",
+        "vision": "absent",
+        "reasoning": "declared"
+      },
+      "concurrency": {
+        "maxInFlight": 2
+      },
+      "budget": {
+        "dailyUsdCap": 1.0,
+        "costBasis": "table_estimate"
+      },
+      "resource": {
+        "ramBytes": 0
+      },
+      "targets": {
+        "codex": "native",
+        "grok": "native",
+        "goose": "native",
+        "opencode": "native",
+        "aider": "native",
+        "fabric": "native",
+        "cursor": "excluded",
+        "claude": "excluded",
+        "agy": "excluded",
+        "gemini": "excluded"
+      },
+      "discovery": {
+        "type": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "health": {
+        "kind": "openai-models-list",
+        "timeoutMs": 5000
+      },
+      "denyCallers": [],
+      "locks": [
+        "L6",
+        "L7"
+      ],
+      "tags": [
+        "approved",
+        "hosted",
+        "hosted-inference",
+        "openai-compatible",
+        "provider-pinned"
       ]
     },
     "openrouter": {
@@ -356,7 +434,7 @@
     },
     "ollama": {
       "label": "Ollama (local, RTX 4050 6 GB)",
-      "description": "Local Ollama on 127.0.0.1:11434 (weights on D:\\ai-models\\ollama; GPU = NVIDIA GeForce RTX 4050 Laptop 6 GB, so Tier S/M weights fit GPU-full). Residency discipline lives in user env: OLLAMA_KEEP_ALIVE=2m, OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_CONTEXT_LENGTH=8192, OLLAMA_KV_CACHE_TYPE=q8_0 (OWNER-CLICKS.md). /api/show capabilities[] is the discovery source, never assumed.",
+      "description": "Local Ollama on 127.0.0.1:11434 (weights on D:\\ai-models\\ollama; GPU = NVIDIA GeForce RTX 4050 Laptop 6 GB, so Tier S/M weights fit GPU-full). Residency discipline lives in user env: OLLAMA_KEEP_ALIVE=2m, OLLAMA_MAX_LOADED_MODELS=1, OLLAMA_NUM_PARALLEL=1, OLLAMA_CONTEXT_LENGTH=65536 (bumped from 8192 2026-09-03, grill Q2: bench receipts show 64K context held under full desktop load - 21GB mapped, stable, 8-12 tok/s; see OWNER-CLICKS.md), OLLAMA_KV_CACHE_TYPE=q8_0 (OWNER-CLICKS.md). /api/show capabilities[] is the discovery source, never assumed.",
       "kind": "local",
       "enabled": true,
       "baseUrl": "http://127.0.0.1:11434/v1",
@@ -427,7 +505,7 @@
         "keepAlive": "2m",
         "maxLoadedModels": 1,
         "numParallel": 1,
-        "contextLength": 8192,
+        "contextLength": 65536,
         "kvCacheType": "q8_0",
         "bind": "127.0.0.1",
         "minVersion": "0.17.1"
@@ -605,6 +683,153 @@
         "replaces:glm53-space"
       ]
     },
+    "huihui-cyberstrike-35b": {
+      "label": "Huihui CyberStrike OffSec 35B abliterated (featherless route)",
+      "description": "consult-offsec default cloud model. Abliterated offsec checkpoint served pinned to featherless-ai; pairs ONLY with the authorized-scope reporter persona (profiles.md) - no attack playbooks into hosted models. Verbatim relay enforced by consult-offsec. 32K cap per the ZCode provider stanza; unprobed until the review-time probe pass writes receipts (grill Q4).",
+      "endpoint": "hf-router-featherless",
+      "remoteId": "huihui-ai/Huihui-CyberStrike-OffSec-35B-abliterated",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "hosted",
+      "context": 32768,
+      "maxOutput": 16384,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "table_estimate"
+      },
+      "denyCallers": [],
+      "tags": [
+        "hosted",
+        "abliterated",
+        "offsec"
+      ]
+    },
+    "wrn-2.5-coder-7b": {
+      "label": "WhiteRabbitNeo 2.5 Qwen 2.5 Coder 7B (featherless route)",
+      "description": "WRN coder checkpoint on the pinned route; 32K cap per ZCode stanza; unprobed until the review-time probe pass (grill Q4).",
+      "endpoint": "hf-router-featherless",
+      "remoteId": "WhiteRabbitNeo/WhiteRabbitNeo-2.5-Qwen-2.5-Coder-7B",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "hosted",
+      "context": 32768,
+      "maxOutput": 8192,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "table_estimate"
+      },
+      "denyCallers": [],
+      "tags": [
+        "hosted",
+        "wrn",
+        "offsec"
+      ]
+    },
+    "huihui-qwen3.8-27b-abliterated": {
+      "label": "Huihui Qwen3.8 27B abliterated (featherless route)",
+      "description": "Abliterated Qwen3.8-27B on the pinned route; 32K cap per ZCode stanza; unprobed until the review-time probe pass (grill Q4).",
+      "endpoint": "hf-router-featherless",
+      "remoteId": "huihui-ai/Huihui-Qwen3.8-27B-abliterated",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "hosted",
+      "context": 32768,
+      "maxOutput": 16384,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "table_estimate"
+      },
+      "denyCallers": [],
+      "tags": [
+        "hosted",
+        "abliterated"
+      ]
+    },
+    "qwen3.6-35b-a3b": {
+      "label": "Qwen3.6-35B-A3B via HF router (plain route)",
+      "description": "Router default-provider slug (no :provider pin), registered from the ZCode v2 'HuggingFaces' provider stanza. Chat text; tools/structured output declared until probed. Context/out as registered in the ZCode stanza (32768/32768).",
+      "endpoint": "hf-router",
+      "remoteId": "Qwen/Qwen3.6-35B-A3B",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "hosted",
+      "context": 32768,
+      "maxOutput": 32768,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "table_estimate"
+      },
+      "denyCallers": [],
+      "tags": [
+        "hosted",
+        "qwen"
+      ]
+    },
+    "hermes-3-70b": {
+      "label": "Hermes-3-Llama-3.1-70B via HF router (plain route)",
+      "description": "NousResearch Hermes 3 70B through the router default route; declared until probed. ZCode stanza: 32768/8192.",
+      "endpoint": "hf-router",
+      "remoteId": "NousResearch/Hermes-3-Llama-3.1-70B",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "hosted",
+      "context": 32768,
+      "maxOutput": 8192,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": null,
+        "outputPer1M": null,
+        "basis": "table_estimate"
+      },
+      "denyCallers": [],
+      "tags": [
+        "hosted",
+        "hermes"
+      ]
+    },
     "glm-5.2-free": {
       "label": "GLM-5.2 free slug via OpenRouter",
       "description": "The OpenRouter T0 smoke slug (z-ai/glm-5.2:free). Sidecar only (L1); denyCallers inherited from the endpoint.",
@@ -777,12 +1002,147 @@
         "tier-m",
         "eval-gated"
       ]
+    },
+    "wrn-coder-7b": {
+      "label": "wrn-coder-7b (Ollama local, WhiteRabbitNeo coder)",
+      "description": "consult-offsec default LOCAL_MODEL; alias offsec-local. 64K context per ZCode stanza (estate OLLAMA_CONTEXT_LENGTH now 65536, grill Q2). Unprobed until the review-time probe pass (grill Q4). ramBytes is a Q4-K_M parameter-count estimate - OWNER-VERIFY with ollama show.",
+      "endpoint": "ollama",
+      "remoteId": "wrn-coder-7b",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "M",
+      "context": 65536,
+      "maxOutput": 8192,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 5400000000
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "offsec",
+        "tier-m"
+      ]
+    },
+    "qwythos-9b": {
+      "label": "qwythos-9b (Ollama local)",
+      "description": "Local 9B pick from the ZCode 'Ollama Local' provider stanza; 64K context per stanza (estate OLLAMA_CONTEXT_LENGTH now 65536, grill Q2). Unprobed until the review-time probe pass (grill Q4). ramBytes estimated - OWNER-VERIFY with ollama show.",
+      "endpoint": "ollama",
+      "remoteId": "qwythos-9b",
+      "enabled": true,
+      "status": "unprobed",
+      "tier": "M",
+      "context": 65536,
+      "maxOutput": 16384,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 6600000000
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "tier-m"
+      ]
+    },
+    "huihui-offsec": {
+      "label": "huihui-offsec (Ollama local, Huihui CyberStrike OffSec)",
+      "description": "Local alias of the Huihui CyberStrike OffSec checkpoint for cred-laden contexts: consult-offsec routes here when route=local (G-8). 64K context per ZCode stanza (estate OLLAMA_CONTEXT_LENGTH now 65536, grill Q2). DISABLED: ~22 GB Q4 working-set estimate exceeds the 8 GiB policy.localRamBudgetBytes warning line (pr-lane-plan 5.5) - enable only after RAM is planned; also unprobed until the review-time probe pass (grill Q4). ramBytes estimated - OWNER-VERIFY with ollama show.",
+      "endpoint": "ollama",
+      "remoteId": "huihui-offsec",
+      "enabled": false,
+      "status": "unprobed",
+      "tier": "L",
+      "context": 65536,
+      "maxOutput": 16384,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 22000000000
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "offsec",
+        "tier-l",
+        "ram-gated"
+      ]
+    },
+    "gptoss-20b-abliterated": {
+      "label": "gptoss-20b-abliterated (Ollama local)",
+      "description": "Local 20B abliterated pick from the ZCode stanza; 64K context per stanza. Exceeds the 6 GB GPU working set - CPU-offloaded. DISABLED: ~13.5 GB Q4 working-set estimate exceeds the 8 GiB policy.localRamBudgetBytes warning line (pr-lane-plan 5.5) - enable only after RAM is planned; also unprobed until the review-time probe pass (grill Q4). ramBytes estimated - OWNER-VERIFY with ollama show.",
+      "endpoint": "ollama",
+      "remoteId": "gptoss-20b-abliterated",
+      "enabled": false,
+      "status": "unprobed",
+      "tier": "L",
+      "context": 65536,
+      "maxOutput": 16384,
+      "modalities": {
+        "input": [
+          "text"
+        ],
+        "output": [
+          "text"
+        ]
+      },
+      "cost": {
+        "inputPer1M": 0,
+        "outputPer1M": 0,
+        "basis": "local_zero"
+      },
+      "resource": {
+        "ramBytes": 13500000000
+      },
+      "denyCallers": [],
+      "tags": [
+        "local",
+        "abliterated",
+        "tier-l",
+        "ram-gated"
+      ]
     }
   },
   "aliases": {
     "glm53": "glm-5.3",
     "fabric-default": "glm-5.3",
-    "local-default": "qwen2.5-7b"
+    "local-default": "qwen2.5-7b",
+    "offsec-cloud": "huihui-cyberstrike-35b",
+    "offsec-local": "wrn-coder-7b"
   },
   "slots": {
     "large": "glm-5.3",

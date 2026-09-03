@@ -78,7 +78,10 @@ Legend: `[ ]` open, `[x]` done (write the date). Receipts go under
 ## 3. Local inference posture (D10, T0-8, T0-13)
 
 - [ ] **D10-1 Ollama user env**: `OLLAMA_KEEP_ALIVE=2m`, `OLLAMA_MAX_LOADED_MODELS=1`, `OLLAMA_NUM_PARALLEL=1`,
-  `OLLAMA_CONTEXT_LENGTH=8192`, `OLLAMA_KV_CACHE_TYPE=q8_0` (user scope), then quit and restart the Ollama
+  `OLLAMA_CONTEXT_LENGTH=65536` (bumped from 8192 on 2026-09-03, grill Q2 of the consult-offsec wave:
+  bench receipts show 64K context held under full desktop load — 21 GB mapped, stable, 8-12 tok/s —
+  the 8192 pin was stale for the offsec model class; registry `x_ollama.contextLength` follows),
+  `OLLAMA_KV_CACHE_TYPE=q8_0` (user scope), then quit and restart the Ollama
   tray app. Check `ollama --version` >= 0.17.1 and that `Get-NetTCPConnection -LocalPort 11434` shows
   `127.0.0.1`, not `0.0.0.0`.
 - [ ] **D10-2 Pull the Tier S / M picks** (eval-gated rows in `.agents/models.json`):
