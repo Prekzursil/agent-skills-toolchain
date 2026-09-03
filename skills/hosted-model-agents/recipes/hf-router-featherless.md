@@ -40,8 +40,10 @@ Use it through: `inference-hub` `chat model="offsec-cloud"` (alias), or the
 - **The budget cap is shared with `hf-router`** — 1.0 + 1.0 = 2.0 USD/day on
   the same HF account, registry-documented as shared and
   registry-unenforceable (grill Q3). The enforcement is the consult-offsec
-  server's v1.2 dollar meter (`CONSULT_USD_CEILING`, default 2.0, fail-closed
-  before every cloud call); other consumers must respect the same ceiling.
+  server's v1.2 dollar meter (`CONSULT_USD_CEILING`, default 1.0 — the
+  server's own lane share of the family split; raise to 2.0 only if you
+  accept starving the plain `hf-router` lane; fail-closed before every
+  cloud call); other consumers must respect the same ceiling.
 - Auth NAME: `HUGGINGFACE_TOKEN_INFERENCE` (primary) / `HF_TOKEN` (`altEnv`);
   `issuerHosts` binds both to `*.huggingface.co` (V19).
 

@@ -60,7 +60,8 @@ warning (V10), a health probe spec per endpoint. Six lenses converged on this fi
   provider stanza address the pinned route by URL, and a separate row lets its budget be stated
   (grill Q3). `budget.dailyUsdCap: 1.0` and the matching cut of `hf-router` to 1.0 make the family sum
   2.0 USD/day; the cap is SHARED account billing and the registry cannot enforce a cross-endpoint sum —
-  the consult-offsec server's v1.2 dollar meter (`CONSULT_USD_CEILING`, default 2.0) is the enforcement,
+  the consult-offsec server's v1.2 dollar meter (`CONSULT_USD_CEILING`, default 1.0 — its lane share;
+  raise to 2.0 only if you accept starving the plain `hf-router` lane) is the enforcement,
   the registry documents. `auth.altEnv` adds `HF_TOKEN` (the consult-offsec env passthrough) beside the
   inference-scoped primary. All wire/features `declared` (nothing probed; grill Q4 — rows enter
   unprobed/declared and probe receipts flip them to live/probed during PR review). Sources:

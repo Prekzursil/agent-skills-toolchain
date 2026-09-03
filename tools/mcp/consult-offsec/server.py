@@ -1,5 +1,5 @@
 #!/usr/bin/env python
-"""consult-offsec MCP server v1.2 — mid-task consults to uncensored cyber models.
+"""consult-offsec MCP server v1.2.1 — mid-task consults to uncensored cyber models.
 
 Zero-dependency stdio MCP server (JSON-RPC 2.0, newline-delimited).
 Source of truth: agent-skills-toolchain repo tools/mcp/consult-offsec/server.py
@@ -7,17 +7,35 @@ Source of truth: agent-skills-toolchain repo tools/mcp/consult-offsec/server.py
 fork at D:\\MCP\\consult-offsec\\ — hotfixes on the deployed copy must be
 back-ported to the repo before they rot (grill G-14).
 
+v1.2.1 (PR #320 adversarial review, B-1/M-1..M-5):
+  - M-1 meter fails CLOSED: an unreadable audit log no longer reads as $0 —
+    daily_usd() raises and usd_gate() refuses cloud consults loudly.
+  - M-2 missing/non-dict usage on a cloud consult is UNPRICEABLE, not free:
+    logged with computed_usd: null + usage_missing: true and billed at a
+    conservative per-call estimate (CONSULT_UNPRICED_CALL_USD, default 0.05)
+    so the meter errs over, never under.
+  - M-3 --selftest meter probe is fully offline and deterministic: the gate
+    is probed directly on pinned synthetic state (no DNS, no
+    model-allowlist dependence, no do_consult).
+  - M-4 default ceiling 2.0 -> 1.0: consult-offsec meters only its own lane
+    (the featherless share of the registry family split 2.0 = featherless
+    1.0 + hf-router 1.0); raise CONSULT_USD_CEILING to 2.0 only if you
+    accept starving the plain hf-router lane.
+  - M-5 a failed audit append poisons the gate: usd_gate() refuses cloud
+    consults until a successful audit append lands (local route proceeds).
+
 v1.2 (grill Q3 — dollar metering):
   - Daily USD spend meter: sums today's cloud consult usage tokens from the
     audit log x a per-model price table (conservative defaults 0.5 USD/M in,
     4.0 USD/M out; env-tunable via CONSULT_PRICE_IN_M / CONSULT_PRICE_OUT_M;
     per-model rows may be added to PRICE_TABLE and override the defaults).
   - Checked before EVERY outbound cloud call; when the daily spend is at/over
-    CONSULT_USD_CEILING (default 2.0 USD — the HF-router family shared cap,
-    registry-documented as 1.0 hf-router + 1.0 hf-router-featherless) the
-    cloud leg fails closed with a loud error naming the env var. route=auto
-    still falls back to the free local leg, provenance-tagged; route=cloud
-    errors out.
+    CONSULT_USD_CEILING (default 1.0 USD — consult-offsec's lane share per
+    the registry family split of 2.0 = featherless 1.0 + hf-router 1.0; this
+    meter meters only its own lane, raise the env to 2.0 only if you accept
+    starving the plain-route lane) the cloud leg fails closed with a loud
+    error naming the env var. route=auto still falls back to the free local
+    leg, provenance-tagged; route=cloud errors out.
   - Every consult audit entry now carries computed_usd (the meter's estimate
     for that call; local consults are 0.0).
   - --selftest extended with a meter test (USD math, loud fail-closed gate).
@@ -92,16 +110,22 @@ MIN_INTERVAL_S = float(os.environ.get("CONSULT_MIN_INTERVAL", "10"))
 # USD_STATE is a dict (not module constants) so --selftest can override the
 # ceiling in-process and restore it. Values are read once at boot from env.
 USD_STATE = {
-    # The HF-router family shared daily ceiling: 1.0 (hf-router) + 1.0
-    # (hf-router-featherless) = 2.0 USD/day, registry-documented in
-    # .agents/models.json as shared and registry-unenforceable; this meter
-    # is the enforcement (grill Q3: code enforces, registry documents).
-    "ceiling": float(os.environ.get("CONSULT_USD_CEILING", "2.0")),
+    # M-4: consult-offsec meters ONLY its own lane — the featherless share
+    # of the registry family daily ceiling (family 2.0 = hf-router-featherless
+    # 1.0 + hf-router 1.0, documented in .agents/models.json as shared and
+    # registry-unenforceable). Default 1.0 is this server's lane share; raise
+    # CONSULT_USD_CEILING to 2.0 only if you accept starving the plain
+    # hf-router lane (this meter is the enforcement — grill Q3).
+    "ceiling": float(os.environ.get("CONSULT_USD_CEILING", "1.0")),
     # Conservative table-estimate prices (USD per 1M tokens) applied to every
     # model without an explicit PRICE_TABLE row. Conservative on purpose:
     # better to stop early than to under-count burn.
     "price_in": float(os.environ.get("CONSULT_PRICE_IN_M", "0.5")),
     "price_out": float(os.environ.get("CONSULT_PRICE_OUT_M", "4.0")),
+    # M-2: per-call USD billed for a cloud consult whose usage never arrived
+    # or cannot be priced. Conservative default so the meter errs over,
+    # never under.
+    "unpriced_call_usd": float(os.environ.get("CONSULT_UNPRICED_CALL_USD", "0.05")),
 }
 
 # Per-model price table: model id -> (usd_per_1M_in, usd_per_1M_out).
@@ -120,17 +144,27 @@ def prices_for(model: str):
     return USD_STATE["price_in"], USD_STATE["price_out"]
 
 
+def usage_priced(usage) -> bool:
+    """True when `usage` carries token counts the meter can price (M-2)."""
+    return isinstance(usage, dict) and (
+        "prompt_tokens" in usage or "completion_tokens" in usage)
+
+
 def usd_for_usage(usage, model: str) -> float:
-    """Estimated USD cost of one completion's usage block."""
-    if not isinstance(usage, dict):
-        return 0.0
-    t_in = usage.get("prompt_tokens") or 0
-    t_out = usage.get("completion_tokens") or 0
-    p_in, p_out = prices_for(model)
-    try:
-        return (float(t_in) / 1e6) * p_in + (float(t_out) / 1e6) * p_out
-    except Exception:
-        return 0.0
+    """Estimated USD cost of one completion's usage block.
+
+    Missing/non-dict/unconvertible usage is UNPRICEABLE, not free: it bills
+    at the conservative per-call estimate (CONSULT_UNPRICED_CALL_USD) so the
+    meter errs over, never under (review M-2)."""
+    if usage_priced(usage):
+        t_in = usage.get("prompt_tokens") or 0
+        t_out = usage.get("completion_tokens") or 0
+        p_in, p_out = prices_for(model)
+        try:
+            return (float(t_in) / 1e6) * p_in + (float(t_out) / 1e6) * p_out
+        except Exception:
+            pass
+    return USD_STATE["unpriced_call_usd"]
 
 
 def daily_usd() -> float:
@@ -138,46 +172,59 @@ def daily_usd() -> float:
 
     Recomputed from each entry's usage tokens x the current price table, so
     CONSULT_PRICE_*_M overrides apply to today's history too. Malformed
-    lines are skipped; a missing log means 0.0.
+    lines are skipped; a missing log means 0.0; an UNREADABLE log RAISES so
+    usd_gate() fails closed — unknown spend never passes as $0 (review M-1).
+    Entries with missing/unpriceable usage bill at the conservative
+    per-call estimate (review M-2).
     """
     today = datetime.date.today().isoformat()
     total = 0.0
     try:
-        with open(_LOG_STATE["audit"], "r", encoding="utf-8") as f:
-            for line in f:
-                line = line.strip()
-                if not line:
-                    continue
-                try:
-                    e = json.loads(line)
-                except Exception:
-                    continue
-                if not isinstance(e, dict):
-                    continue
-                if e.get("event") != "consult" or e.get("route") != "cloud":
-                    continue
-                if not str(e.get("ts", "")).startswith(today):
-                    continue
-                usage = e.get("usage")
-                if isinstance(usage, dict) and usage:
-                    total += usd_for_usage(usage, str(e.get("model", "")))
-                elif isinstance(e.get("computed_usd"), (int, float)):
-                    # v1.1-era entries carry no usage; fall back to the
-                    # stored estimate if present.
-                    total += float(e["computed_usd"])
+        f = open(_LOG_STATE["audit"], "r", encoding="utf-8")
     except FileNotFoundError:
+        # No log yet = an empty ledger = $0 today (not unknown spend).
         return 0.0
-    except Exception:
-        # A meter that cannot read its own log fails CLOSED downstream
-        # (usd_gate treats unknown spend as ceiling-exceeded is NOT safe to
-        # assume; instead we report 0 and rely on the call-site gate). Keep
-        # the read side honest: only a clean parse counts.
-        return 0.0
+    with f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                e = json.loads(line)
+            except Exception:
+                continue
+            if not isinstance(e, dict):
+                continue
+            if e.get("event") != "consult" or e.get("route") != "cloud":
+                continue
+            if not str(e.get("ts", "")).startswith(today):
+                continue
+            usage = e.get("usage")
+            if usage_priced(usage):
+                total += usd_for_usage(usage, str(e.get("model", "")))
+            elif isinstance(e.get("computed_usd"), (int, float)):
+                # v1.1-era entries carry no usage; fall back to the
+                # stored estimate if present.
+                total += float(e["computed_usd"])
+            else:
+                # M-2: cloud consult whose usage never arrived (or was
+                # logged computed_usd: null / usage_missing: true) — bill
+                # the conservative per-call estimate, never $0.
+                total += USD_STATE["unpriced_call_usd"]
     return total
 
 
 def usd_gate() -> str:
-    """'' when the daily USD budget has room; else a LOUD error string."""
+    """'' when the daily USD budget has room; else a LOUD error string.
+
+    Fails CLOSED on every unknown (review M-1/M-5): an unreadable audit log
+    or a previously failed audit append both refuse cloud consults."""
+    if _AUDIT_POISONED[0]:
+        return ("audit log write failed and no successful append has landed "
+                "since — refusing cloud consults until the audit trail is "
+                "writable (spend must never go unlogged); fix logs/ "
+                "permissions, then any successful audit append reopens the "
+                "gate (local route is unaffected)")
     try:
         spent = daily_usd()
     except Exception as e:
@@ -198,6 +245,12 @@ SAFE_NAME_RE = re.compile(r"[A-Za-z0-9._-]+")
 # ---------- G-16 confined log paths (constants only, never dynamic joins) ----
 
 _LOG_STATE = {"month": None, "audit": None, "budget": None}
+
+# M-5: set when an audit append fails; cleared by the next successful
+# append. While set, usd_gate() refuses cloud consults — spend-bearing
+# events must never succeed past a broken audit trail. Sticky by design so
+# the gate stays closed until the trail is PROVEN writable again.
+_AUDIT_POISONED = [False]
 
 
 def _refresh_log_paths():
@@ -226,14 +279,24 @@ def _refresh_log_paths():
 _refresh_log_paths()
 
 
-def audit(entry: dict):
+def audit(entry: dict) -> bool:
+    """Append one JSONL audit line; True when the write landed (M-5).
+
+    A failed append poisons the dollar meter (usd_gate refuses cloud
+    consults) until a later append succeeds — spend must never silently go
+    unlogged. The local route is unaffected (it spends nothing)."""
     try:
         _refresh_log_paths()
         os.makedirs(LOG_DIR, exist_ok=True)
         with open(_LOG_STATE["audit"], "a", encoding="utf-8") as f:
             f.write(json.dumps(entry, ensure_ascii=False) + "\n")
     except Exception as e:
-        print("audit-log-failure: %s" % e, file=sys.stderr)
+        print("audit-log-failure: %s (cloud gate poisoned until a "
+              "successful append lands)" % e, file=sys.stderr)
+        _AUDIT_POISONED[0] = True
+        return False
+    _AUDIT_POISONED[0] = False
+    return True
 
 
 def context_digest(context: str) -> dict:
@@ -506,13 +569,22 @@ def do_consult(args: dict) -> dict:
                 ans, finish, usage = call_model(CLOUD_URL, cloud_model, messages,
                                                 token, CLOUD_TIMEOUT_S)
                 bump_daily()
-                audit({"ts": datetime.datetime.now().isoformat(timespec="seconds"),
-                       "event": "consult", "route": "cloud", "model": cloud_model,
-                       "purpose": purpose, "question": question,
-                       "answer": ans, "context": context_digest(context),
-                       "latency_s": round(time.time() - t0, 1),
-                       "finish_reason": finish, "usage": usage,
-                       "computed_usd": round(usd_for_usage(usage, cloud_model), 6)})
+                priced = usage_priced(usage)
+                entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
+                         "event": "consult", "route": "cloud", "model": cloud_model,
+                         "purpose": purpose, "question": question,
+                         "answer": ans, "context": context_digest(context),
+                         "latency_s": round(time.time() - t0, 1),
+                         "finish_reason": finish, "usage": usage}
+                # M-2: missing/non-dict usage is unpriceable, not free —
+                # log computed_usd: null + usage_missing: true; the meter
+                # bills it at CONSULT_UNPRICED_CALL_USD.
+                if priced:
+                    entry["computed_usd"] = round(usd_for_usage(usage, cloud_model), 6)
+                else:
+                    entry["computed_usd"] = None
+                    entry["usage_missing"] = True
+                audit(entry)
                 return ok(tool_result_text(ans, cloud_model, "cloud"))
             except urllib.error.HTTPError as e:
                 errors.append("cloud HTTP %s: %s" % (e.code, e.read()[:200]))
@@ -531,14 +603,24 @@ def do_consult(args: dict) -> dict:
         ans, finish, usage = call_model(LOCAL_URL, local_model, messages, "",
                                         LOCAL_TIMEOUT_S)
         bump_daily()
-        audit({"ts": datetime.datetime.now().isoformat(timespec="seconds"),
-               "event": "consult", "route": "local", "model": local_model,
-               "purpose": purpose, "question": question,
-               "answer": ans, "context": context_digest(context),
-               "latency_s": round(time.time() - t0, 1),
-               "finish_reason": finish, "usage": usage,
-               "computed_usd": 0.0})
-        return ok(tool_result_text(ans, local_model, "local"))
+        entry = {"ts": datetime.datetime.now().isoformat(timespec="seconds"),
+                 "event": "consult", "route": "local", "model": local_model,
+                 "purpose": purpose, "question": question,
+                 "answer": ans, "context": context_digest(context),
+                 "latency_s": round(time.time() - t0, 1),
+                 "finish_reason": finish, "usage": usage,
+                 "computed_usd": 0.0}
+        if errors:
+            # route=auto fell back: keep WHY cloud was skipped (dollar
+            # meter, missing token, cloud failure) in the provenance record
+            # instead of silently dropping it (review minor c).
+            entry["cloud_skipped"] = "; ".join(errors)[:500]
+        audit(entry)
+        frame = tool_result_text(ans, local_model, "local")
+        if errors:
+            frame += ("\nnote: cloud leg not used: %s"
+                      % "; ".join(errors)[:500])
+        return ok(frame)
     except Exception as e:
         errors.append("local failed: %s" % e)
         return err("; ".join(errors) or "no route succeeded", "local", purpose)
@@ -601,41 +683,78 @@ def selftest() -> int:
     logs = os.listdir(LOG_DIR) if os.path.isdir(LOG_DIR) else []
     if not any(f.startswith("consult-") for f in logs):
         failures.append("audit: no log file written")
-    # v1.2 dollar meter (grill Q3)
+    # v1.2 dollar meter (grill Q3) — v1.2.1: the gate is probed DIRECTLY on
+    # pinned synthetic state (review M-3): no do_consult, no DNS, no
+    # model-allowlist dependence, no reliance on today's real spend or the
+    # CONSULT_MODEL env. Fully offline and deterministic.
     want = USD_STATE["price_in"] + USD_STATE["price_out"] * 0.5
     got = usd_for_usage({"prompt_tokens": 1000000, "completion_tokens": 500000},
                         DEF_CLOUD_MODEL)
     if abs(got - want) > 1e-9:
         failures.append("meter: USD math wrong (%.6f != %.6f)" % (got, want))
-    if usd_for_usage({}, DEF_CLOUD_MODEL) != 0.0 or \
-       usd_for_usage(None, DEF_CLOUD_MODEL) != 0.0:
-        failures.append("meter: empty usage must cost 0")
-    try:
-        daily_usd()  # must not raise even with a missing/garbage log
-    except Exception as e:
-        failures.append("meter: daily_usd raised: %s" % e)
+    # M-2: missing/non-dict/unconvertible usage is unpriceable — billed at
+    # the conservative per-call estimate, never free.
+    for empty in ({}, None, "not-a-usage", {"prompt_tokens": "abc"}):
+        if usd_for_usage(empty, DEF_CLOUD_MODEL) != USD_STATE["unpriced_call_usd"]:
+            failures.append("meter: unpriceable usage must bill at "
+                            "CONSULT_UNPRICED_CALL_USD, not 0 (%r)" % (empty,))
+    now_ts = datetime.datetime.now().isoformat(timespec="seconds")
+    synth_path = os.path.realpath(
+        LOG_DIR + os.sep + "consult-selftest-synthetic.jsonl")
+    missing_path = os.path.realpath(
+        LOG_DIR + os.sep + "selftest-no-such-log.jsonl")
     saved_ceiling = USD_STATE["ceiling"]
-    saved_cap, saved_interval = DAILY_CAP, MIN_INTERVAL_S
+    saved_audit = _LOG_STATE["audit"]
+    saved_poison = _AUDIT_POISONED[0]
     try:
-        # ceiling 0.0 => 0.0 spent already >= ceiling => gate must fire loud.
-        # Cap/interval forced aside so a busy box (counter near DAILY_CAP)
-        # still reaches the meter gate deterministically and does not sleep.
-        USD_STATE["ceiling"] = 0.0
-        globals()["DAILY_CAP"] = 10 ** 9
-        globals()["MIN_INTERVAL_S"] = 0.0
+        os.makedirs(LOG_DIR, exist_ok=True)
+        # (1) priced entry above a pinned tiny ceiling -> gate fires loud.
+        with open(synth_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": now_ts, "event": "consult",
+                                "route": "cloud", "model": DEF_CLOUD_MODEL,
+                                "usage": {"prompt_tokens": 1000000,
+                                          "completion_tokens": 0}}) + "\n")
+        _LOG_STATE["audit"] = synth_path
+        USD_STATE["ceiling"] = USD_STATE["price_in"] / 2  # half the entry's cost
         gate = usd_gate()
         if not gate or "CONSULT_USD_CEILING" not in gate:
-            failures.append("meter: ceiling gate did not fail closed loudly")
-        r = do_consult({"question": "meter gate probe", "route": "cloud",
-                        "purpose": "selftest"})
-        txt = (r.get("content") or [{}])[0].get("text", "")
-        if not r.get("isError") or "dollar meter" not in txt:
-            failures.append("meter: over-ceiling cloud consult not refused "
-                            "with a loud dollar-meter error")
+            failures.append("meter: over-ceiling gate did not fail closed "
+                            "loudly")
+        # (2) unpriceable cloud entry (M-2): billed at the estimate.
+        with open(synth_path, "w", encoding="utf-8") as f:
+            f.write(json.dumps({"ts": now_ts, "event": "consult",
+                                "route": "cloud", "model": DEF_CLOUD_MODEL,
+                                "usage": None, "computed_usd": None,
+                                "usage_missing": True}) + "\n")
+        got = daily_usd()
+        if abs(got - USD_STATE["unpriced_call_usd"]) > 1e-12:
+            failures.append("meter: unpriceable entry billed %.6f, want the "
+                            "CONSULT_UNPRICED_CALL_USD estimate %.6f"
+                            % (got, USD_STATE["unpriced_call_usd"]))
+        # (3) missing log = a clean $0.0 ledger, not a read failure.
+        _LOG_STATE["audit"] = missing_path
+        if daily_usd() != 0.0:
+            failures.append("meter: missing audit log must read as 0.0")
+        # (4) unreadable log (M-1): open() on the directory itself raises
+        # -> usd_gate must fail closed LOUDLY, never pass as $0.
+        _LOG_STATE["audit"] = LOG_DIR
+        gate = usd_gate()
+        if not gate or "could not read the audit log" not in gate:
+            failures.append("meter: unreadable audit log did not fail closed")
+        # (5) audit-write poison (M-5): while poisoned the gate must refuse.
+        _AUDIT_POISONED[0] = True
+        gate = usd_gate()
+        if not gate or "audit log write failed" not in gate:
+            failures.append("meter: poisoned audit trail did not fail closed")
+        _AUDIT_POISONED[0] = False
     finally:
         USD_STATE["ceiling"] = saved_ceiling
-        globals()["DAILY_CAP"] = saved_cap
-        globals()["MIN_INTERVAL_S"] = saved_interval
+        _LOG_STATE["audit"] = saved_audit
+        _AUDIT_POISONED[0] = saved_poison
+        try:
+            os.remove(synth_path)
+        except OSError:
+            pass
     if failures:
         print("SELFTEST FAIL:")
         for f in failures:
@@ -643,7 +762,7 @@ def selftest() -> int:
         return 1
     print("SELFTEST PASS: allowlist, caps, model allowlist, fence-escape "
           "regression, sanitize, path confinement, budget, audit log, "
-          "dollar meter.")
+          "dollar meter (fail-closed).")
     return 0
 
 
@@ -681,7 +800,7 @@ def main():
                 "protocolVersion": msg.get("params", {}).get(
                     "protocolVersion", "2024-11-05"),
                 "capabilities": {"tools": {}},
-                "serverInfo": {"name": "consult-offsec", "version": "1.2.0"},
+                "serverInfo": {"name": "consult-offsec", "version": "1.2.1"},
             })
         elif method == "notifications/initialized":
             pass

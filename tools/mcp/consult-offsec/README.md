@@ -26,14 +26,17 @@ python D:\MCP\consult-offsec\server.py --selftest      # deployed copy
 
 Offline; covers allowlist, char caps, model allowlist, the G-6 fence-escape
 regression, sanitize, log-path confinement, budget counter, audit write, and
-(since v1.2) the dollar meter.
+(since v1.2) the dollar meter — probed directly on pinned synthetic state
+(fully deterministic: no DNS, no model-allowlist or `CONSULT_MODEL`
+dependence; v1.2.1 review M-3).
 
 ## Environment contract
 
 | Var | Required | Default | Meaning |
 |---|---|---|---|
 | `HF_TOKEN` | YES | — | Hugging Face inference token for the cloud route. Env passthrough only; never hardcoded, never logged (G-9). |
-| `CONSULT_USD_CEILING` | no | `2.0` | Daily USD ceiling for cloud consults (grill Q3). The HF-router family cap (hf-router 1.0 + hf-router-featherless 1.0 = 2.0) documented in `.agents/models.json` as shared/registry-unenforceable — this meter is the enforcement. |
+| `CONSULT_USD_CEILING` | no | `1.0` | Daily USD ceiling for cloud consults (grill Q3). consult-offsec meters **only its own lane** — its share of the HF-router family cap (family 2.0 = hf-router 1.0 + hf-router-featherless 1.0) documented in `.agents/models.json` as shared/registry-unenforceable. Raise the env to `2.0` only if you accept starving the plain hf-router lane. |
+| `CONSULT_UNPRICED_CALL_USD` | no | `0.05` | Conservative per-call USD billed for a cloud consult whose usage block is missing/non-dict/unconvertible — unpriceable is never free; the meter errs over, not under (v1.2.1 review M-2). |
 | `CONSULT_PRICE_IN_M` | no | `0.5` | Conservative table-estimate price, USD per 1M input tokens. |
 | `CONSULT_PRICE_OUT_M` | no | `4.0` | Conservative table-estimate price, USD per 1M output tokens. |
 | `CONSULT_DAILY_CAP` | no | `50` | Max consults/day (G-15), fail closed. |
@@ -46,7 +49,7 @@ regression, sanitize, log-path confinement, budget counter, audit write, and
 | `CONSULT_LOCAL_TIMEOUT` | no | `210` | Local route timeout seconds (G-13). |
 | `CONSULT_MAX_OUT` | no | `4096` | max_tokens sent to the model. |
 
-## Dollar metering (v1.2, grill Q3)
+## Dollar metering (v1.2, grill Q3; v1.2.1 review hardening)
 
 - `daily_usd()` sums **today's cloud consult entries** from the audit log,
   recomputing each entry's `usage` tokens against the price table
@@ -57,8 +60,16 @@ regression, sanitize, log-path confinement, budget counter, audit write, and
   credential check). At/over the ceiling: `route=cloud` fails closed with a
   loud error naming `CONSULT_USD_CEILING`; `route=auto` skips the cloud leg
   with the reason recorded and falls to the free local leg
-  (provenance-tagged `route: local`, G-12).
+  (provenance-tagged `route: local` plus a `note:` line and a
+  `cloud_skipped` audit field carrying the skip reason, G-12).
 - Every consult audit entry carries `computed_usd` (0.0 for local calls).
+- **Fail-closed everywhere (v1.2.1 review):** an unreadable audit log
+  refuses cloud consults loudly instead of reading as $0 (M-1); a cloud
+  consult with missing/non-dict usage is logged `computed_usd: null` +
+  `usage_missing: true` and billed at `CONSULT_UNPRICED_CALL_USD`
+  (default 0.05) so it is never free (M-2); a failed audit append poisons
+  the gate — cloud consults are refused until a successful audit append
+  lands, while the local route proceeds (M-5).
 
 ## Audit log (G-16)
 

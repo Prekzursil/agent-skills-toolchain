@@ -465,9 +465,13 @@ def test_cursor_attach_all_dry_run_projects_the_full_safe_surface(
     )
 
     assert completed.returncode == 0, completed.stdout + completed.stderr
-    assert "attached=28" in completed.stdout
+    # B-1 (PR #320 restack onto main without the #314 stack): counts pinned to
+    # the measured projection of THIS registry - main is 28/4/24 and the
+    # consult-offsec row is the +1 (verified: managed=29 attached=29
+    # core_attached=4 noncore_projected=25 via merge_generated_cursor_mcp).
+    assert "attached=29" in completed.stdout
     assert "core_attached=4" in completed.stdout
-    assert "noncore_projected=24" in completed.stdout
+    assert "noncore_projected=25" in completed.stdout
     assert "approval_proof=dry-run-unverified" in completed.stdout
     assert json.loads(live.read_text(encoding="utf-8"))["mcpServers"] == {}
 
@@ -631,7 +635,9 @@ def test_live_cursor_attach_all_covers_parked_catalog_core_and_owner_adapters() 
     # playwright + chrome-devtools remain core-approved but are registered-disabled
     # (claude-only) since 2026-09 - a transitional state until re-curation.
     assert CURSOR_CORE_APPROVED - {"playwright", "chrome-devtools"} <= set(generated)
-    assert len(generated) == 28  # cursor-managed projection of the 2026-09 registry
+    # 28 = the 2026-09 registry projection on main; +1 = consult-offsec
+    # (PR #320 restack - claude-targeted but projected as a non-core row).
+    assert len(generated) == 29
     assert (
         "glm53-space" not in generated
     )  # registered but not cursor-projected (archived lane)
