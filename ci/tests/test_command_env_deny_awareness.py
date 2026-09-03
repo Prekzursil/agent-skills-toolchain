@@ -174,7 +174,7 @@ def test_pm2_command_and_its_agent_self_mirror_stay_identical() -> None:
 
     Scoped to pm2.md on purpose: ``commands/`` and
     ``agent-self/config/commands/`` are NOT a strict mirror (71 vs 66 files, and
-    agent-monitor / harness-audit / mcp-gui differ by design), so a blanket
+    agent-monitor / harness-audit differ by design), so a blanket
     parity assertion would be wrong.  These two are byte-identical today and are
     the same document.
     """

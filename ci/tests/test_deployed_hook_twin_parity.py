@@ -245,11 +245,6 @@ KNOWN_DIVERGENT: tuple[tuple[str, str, str], ...] = (
         "DRIFT: 1 root-only run (5 lines) plus 3 replaced blocks",
     ),
     (
-        "commands/mcp-gui.md",
-        "agent-self/config/commands/mcp-gui.md",
-        "DRIFT: 5 replaced blocks, no unique-run content on either side",
-    ),
-    (
         "commands/python-review.md",
         "agent-self/config/commands/python-review.md",
         "DRIFT: 1 replaced block",
