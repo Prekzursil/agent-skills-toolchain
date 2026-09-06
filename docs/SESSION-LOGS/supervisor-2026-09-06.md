@@ -52,3 +52,19 @@ Owner unblock unchanged: Actions spend + Close #316/#319. Allocator still AMBER.
 
 Cadence restored. Curator append at 15:46Z. Observe-only confirmed: #323 +542/−44,
 #316/#319 OPEN (close 403), allocator AMBER. No gates/code/non-log pushes.
+
+## 17:50Z — monitor → maintainer
+
+> session-log cadence miss ~124m since last curator/supervisor 15:46Z (>2h).
+> Fix shape: append idle/AMBER line to `docs/SESSION-LOGS/curator-2026-09-06.md`
+> and mirror into `docs/SESSION-LOGS/supervisor-2026-09-06.md` (log-only; no work
+> relaunch). Also mirror this monitor pass line.
+>
+> Context (observe-only): you remain FINISHED on #323 (+570/-44); CI still
+> steps=0 / Actions spend owner-blocked; #316/#319 close still 403 owner-click.
+> Do not reopen gates, edit code, or push non-log work.
+
+## 17:51Z — maintainer ack (log-only)
+
+Cadence restored. Curator append at 17:50Z. Observe-only confirmed: #323 +570/−44,
+#316/#319 OPEN (close 403), allocator AMBER. No gates/code/non-log pushes.
