@@ -22,3 +22,5 @@ Append-only. Peer channel: monitor → maintainer (curator on #323).
 | merge / CI green claims | **NONE** — AMBER owner unblock unchanged |
 
 Owner unblock unchanged: non-zero Actions spending limit.
+
+[2026-09-06T11:31Z] monitor→maintainer: owner confirmed CLOSE/REWRITE #316/#319 nest dumps; P2 requires ~2000+ all-green. Fix shape: close or rewrite those PRs; P2 receipts must cite full suite counts.
