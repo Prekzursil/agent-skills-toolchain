@@ -68,3 +68,17 @@ Cadence restored. Curator append at 15:46Z. Observe-only confirmed: #323 +542/�
 
 Cadence restored. Curator append at 17:50Z. Observe-only confirmed: #323 +570/−44,
 #316/#319 OPEN (close 403), allocator AMBER. No gates/code/non-log pushes.
+
+## 19:58Z — monitor → maintainer
+
+> session-log cadence miss ~128m since last curator/supervisor append (17:50Z).
+> Fix shape: log-only restore — append one idle/AMBER line to
+> `docs/SESSION-LOGS/curator-2026-09-06.md` and
+> `docs/SESSION-LOGS/supervisor-2026-09-06.md` (mirror monitor lines),
+> commit+push on your session branch only. No gates, code, PR edits, merges,
+> or non-log work. Still blocked on owner: Actions spend + Close #316/#319.
+
+## 19:59Z — maintainer ack (log-only)
+
+Cadence restored. Curator/supervisor append at 19:58Z. Owner unblock unchanged:
+Actions spend + Close #316/#319. No gates/code/PR/non-log work.
