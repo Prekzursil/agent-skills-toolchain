@@ -1,24 +1,29 @@
 {
-  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0064",
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0064-post-remedi",
   "vendor": "anthropic",
   "unit_id": "AUD-0064",
-  "verdict": "FAIL",
+  "verdict": "PASS",
   "independent": true,
   "fresh_context": true,
+  "remeasured_after_remedi": true,
   "did_not_promote": true,
   "receipt_state_expected": "BLOCKED",
   "artifact_path": "command-center/audit/AUD-0064-monitor-surface-reachability.json",
   "artifact_state_observed": "BLOCKED",
-  "review_branch": "cursor/aud-0064-review-0db0",
-  "base_sha": "1a97e0b3d41f5b27b94551b26cc9ae47bce246fa",
-  "reviewed_at": "2026-09-07T22:00:54Z",
-  "headline_under_review": "This Linux worktree: dispatcher tables PRESENT=0 live-home routes=0 export routes=0 mon=False; standalone launchable=r2e-http,p2-status; probe2 launched each once: LIVE=0 NONEMPTY_STATIC=0 EMPTY=2 UNREACHABLE=0.",
-  "method": "Fresh-context Claude falsify review with no prior exposure to the authoring transcript. Did NOT re-read the receipt as authority. Re-derived Probe 1 by fail-closed tomllib parse of the four monitors.toml locations plus entry-script resolution; re-derived Probe 2 by launching each export route twice with clock-stripped digest comparison; ran empty-vs-populated event-cardinality control (mtime stall detection banned). Compared independent measurements to the receipt headline and checked whether claimed supporting probe artifacts actually exist on the tip tree.",
+  "prior_fail_preserved_at": "command-center/p2-wave/probes/AUD-0064/independent-review.FAIL.json",
+  "review_branch": "cursor/aud-0064-rereview-0db0",
+  "base_sha": "d4f283a081023b99b04a63de261c408057abac43",
+  "reviewed_at": "2026-09-07T22:16:45Z",
+  "headline_under_review": "dispatcher tables PRESENT=2 live-home routes=0 export routes=7 mon=False; export=agentmon,cockpit,codexmon,crcp,csmon,p2r2e,wfmon; probe2 LIVE=0 NONEMPTY_STATIC=4 EMPTY=3 UNREACHABLE=0. BLOCKED pending fresh Claude falsify of remedi headline.",
+  "method": "Fresh-context Claude falsify re-review after remedi on tip d4f283a08. Did NOT treat the receipt as authority. Re-ran remedi Probe 1 / Probe 2 / empty-source control scripts from scratch; additionally re-derived Probe 1 via independent tomllib parse of both repo monitors.toml files (top-level tables with dir+entry). Compared independent measurements to the remedi headline counts. Prior FAIL review preserved at independent-review.FAIL.json. Receipt left state=BLOCKED (did not promote).",
   "commands_run": [
-    "python3 tomllib parse of skills/monitor-launcher/monitors.toml and .agents/skills/monitor-launcher/monitors.toml plus live-home/live-claude path presence",
-    "python3 one-shot launch x2 of each of 7 export entry scripts (agentmon, cockpit, codexmon, crcp, csmon, p2r2e, wfmon) with clock-stripped SHA-256 change detection",
-    "empty-source both-states control via agentmon --dir empty vs populated transcript cardinality (mtime unused as OK signal); nonempty-frame mutant on empty-dir stdout goes red",
-    "existence check of receipt-claimed supporting artifacts under command-center/p2-wave/probes/AUD-0064/ and standalone r2e_monitor.py / p2_status.py"
+    "python3 -B command-center/p2-wave/probes/AUD-0064/audit_monitor_surfaces.py probe1",
+    "python3 -B command-center/p2-wave/probes/AUD-0064/audit_monitor_surfaces.py probe2",
+    "python3 -B command-center/p2-wave/probes/AUD-0064/run_empty_source_control.py",
+    "python3 -B command-center/p2-wave/probes/AUD-0064/run_empty_source_control.py --mode correct",
+    "python3 -B command-center/p2-wave/probes/AUD-0064/run_empty_source_control.py --mode mutant",
+    "python3 independent tomllib parse of skills/monitor-launcher/monitors.toml and .agents/skills/monitor-launcher/monitors.toml (dir+entry tables)",
+    "python3 json load of command-center/audit/AUD-0064-monitor-surface-reachability.json state field only (confirm BLOCKED; not used as count authority)"
   ],
   "independent_remeasure": {
     "probe1": {
@@ -40,7 +45,8 @@
       "mon_on_path": false,
       "mon_cmd_in_repo": true,
       "pwsh": "ABSENT",
-      "all_seven_entry_scripts_resolved": true
+      "all_seven_entry_scripts_resolved": true,
+      "mtime_stall_used": false
     },
     "probe2": {
       "routes_attempted": 7,
@@ -65,51 +71,23 @@
       "good_leg": "OK",
       "mutant_nonempty_frame_goes_red": true,
       "control_pass": true,
-      "note": "Receipt's r2e_monitor.snapshot control could not be re-run: r2e_monitor.py and run_empty_source_control.py are ABSENT on this tip. Equivalent cardinality control against agentmon empty vs populated transcript dirs still discriminates EMPTY vs OK and the nonempty-frame mutant goes red."
+      "both_states_control_pass": true
     }
   },
   "confirmed": [
-    "live-home and live-claude monitors.toml are ABSENT on this cloud worktree (honest sparse-env fact; matches that part of the receipt).",
-    "mon is not on PATH; pwsh is ABSENT.",
-    "Empty-source control methodology works when re-derived without mtime-stall: empty transcript dir => EMPTY, populated => OK, nonempty-frame mutant on empty-dir stdout => red.",
-    "Receipt file remains state=BLOCKED; this reviewer did not edit it to SUCCESS."
+    "Independent Probe 1: current_table_count=2 (repo-export PRESENT, repo-agents PRESENT, live-home ABSENT, live-claude ABSENT); route_count_export=7 with names agentmon,cockpit,codexmon,crcp,csmon,p2r2e,wfmon; mon_on_path=false; pwsh ABSENT. Matches remedi headline PRESENT=2 / export routes=7.",
+    "Independent tomllib re-parse (without probe script) of both repo monitors.toml files yields the same 7 sorted route names with dir+entry on each table — probe1 inventory is not a script artifact.",
+    "Independent Probe 2 over all 7 export entry scripts: LIVE=0, NONEMPTY_STATIC=4 (agentmon,cockpit,codexmon,csmon), EMPTY=3 (crcp,p2r2e,wfmon), UNREACHABLE=0. Matches remedi headline.",
+    "Empty-source control discriminates: empty event source => EMPTY, populated => OK; both-states CONTROL_PASS=true; nonempty-frame mutant on empty source goes red (NEGATIVE_CONTROL_CAN_GO_RED). mtime stall unused.",
+    "Remedi probe scripts and supporting raw/json artifacts under command-center/p2-wave/probes/AUD-0064/ are PRESENT on tip d4f283a08 (closes prior FAIL F3).",
+    "Receipt command-center/audit/AUD-0064-monitor-surface-reachability.json remains state=BLOCKED; this reviewer did not edit it to SUCCESS (did_not_promote=true)."
   ],
   "falsified": [
-    {
-      "id": "F1-export-route-count",
-      "claim": "repo_export_route_count=0 / current_table_count=0 / dispatcher tables PRESENT=0",
-      "result": "FALSIFIED",
-      "evidence": "On tip 1a97e0b3d, skills/monitor-launcher/monitors.toml and .agents/skills/monitor-launcher/monitors.toml are both PRESENT with exactly 7 routes (agentmon, cockpit, codexmon, crcp, csmon, p2r2e, wfmon). Independent current_table_count=2, route_count_export=7. Receipt headline export routes=0 is false for this branch tip. Log: /opt/cursor/artifacts/aud0064-independent-falsify-remeasure.log"
-    },
-    {
-      "id": "F2-probe2-empty-static-counts",
-      "claim": "probe2 LIVE=0 NONEMPTY_STATIC=0 EMPTY=2 UNREACHABLE=0 over standalone r2e-http,p2-status",
-      "result": "FALSIFIED",
-      "evidence": "Catalog/export inventory has 7 launchable entry scripts, all present under skills/. Independent Probe 2: LIVE=0 NONEMPTY_STATIC=4 EMPTY=3 UNREACHABLE=0. Receipt's NONEMPTY_STATIC=0 and EMPTY=2 do not describe the tip inventory. Additionally the receipt's launch targets command-center/p2-wave/r2e_monitor.py and p2_status.py are ABSENT on this tip, so the receipt's Probe 2 cohort cannot be reproduced here."
-    },
-    {
-      "id": "F3-supporting-artifacts-absent",
-      "claim": "artifacts[] lists audit_monitor_surfaces.py, run_empty_source_control.py, probe1/2 raw logs, and control raw logs with exists=true",
-      "result": "FALSIFIED",
-      "evidence": "All 7 non-primary artifacts claimed under command-center/p2-wave/probes/AUD-0064/ are ABSENT from the tip tree (directory did not exist before this review created independent-review.json only). Receipt cannot be independently re-executed from committed probe scripts because those scripts were never landed on this branch."
-    },
-    {
-      "id": "F4-primary-artifact-integrity",
-      "claim": "primary artifact bytes=1024 with a real sha256",
-      "result": "FALSIFIED",
-      "evidence": "artifacts[0].sha256 is the all-zero placeholder; claimed bytes=1024 but actual file size is 28853. Self-description of the receipt body is inconsistent."
-    },
-    {
-      "id": "F5-xai-reviewer-does-not-satisfy-catalog",
-      "claim": "embedded reviewer.vendor=xai / grok PASS satisfies reviewer_requirement",
-      "result": "FALSIFIED-AS-REQUIREMENT-GAP",
-      "evidence": "Catalog reviewer_requirement demands one fresh-context Claude reviewer who tries to FALSIFY the headline count. The embedded xai/grok PASS does not meet that gate; this Claude review is the required falsify attempt and it FAILs the headline."
-    }
+    "None of the attempted falsification angles broke the remedi headline. Tip measurements agree with PRESENT=2, export routes=7 (named set above), LIVE=0, NONEMPTY_STATIC=4, EMPTY=3, and a discriminating empty-source control. Prior FAIL (independent-review.FAIL.json) targeted pre-remedi tip 1a97e0b3d with PRESENT=0 / export=0 claims; those defects are corrected on remedi tip d4f283a08."
   ],
-  "notes": "Headline counts do not survive an independent re-derivation on tip of origin/cursor/p2-loop-to-green-0db0. The receipt appears to describe a prior sparse worktree where skills/ was unmounted (its own D7), but the committed tip now has the full 7-route monitors.toml export table and resolvable entry scripts; claiming export routes=0 / tables PRESENT=0 on this tip is false. Probe supporting scripts and raw logs referenced by the receipt are not in git. Primary artifact hash/bytes fields are placeholder-wrong. Empty-source control can still be shown to discriminate without mtime stall, but not via the receipt's missing r2e_monitor harness. Verdict FAIL. Did NOT promote receipt; left state=BLOCKED; did_not_promote=true; receipt_state_expected=BLOCKED.",
+  "notes": "Post-remedi fresh-context Claude falsify review. Re-derived Probe 1/2 and empty-source control on tip d4f283a081023b99b04a63de261c408057abac43 (origin/cursor/p2-loop-to-green-0db0). Cannot falsify remedi counts: tables PRESENT=2, export routes=7, LIVE=0, NONEMPTY_STATIC=4, EMPTY=3, empty-source control discriminates. Verdict PASS with remeasured_after_remedi=true. Prior FAIL preserved at independent-review.FAIL.json. Did NOT promote receipt; left state=BLOCKED; did_not_promote=true; receipt_state_expected=BLOCKED.",
   "residual_unknowns": [
     "Whether a Windows host with live-home ~/.agents/skills/monitor-launcher/monitors.toml deployed would add live-home routes on top of the 7 export routes (not measurable in this cloud worktree; live-home is ABSENT).",
-    "Whether the missing probe scripts exist only on an unpushed /opt/p2/ast-integrate checkout and were never committed — they are not reachable from this branch tip.",
     "Whether any of the 4 NONEMPTY_STATIC boards would become LIVE under a longer poll window or with seeded live streams; clock-stripped double-launch here showed no change, so they are not LIVE under the catalog render rule."
   ]
 }
