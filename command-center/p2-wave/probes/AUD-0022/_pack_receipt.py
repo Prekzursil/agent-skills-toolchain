@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack AUD-0022 transitive dep graph (BLOCKED on independent review)."""
+"""Pack AUD-0022 transitive dep graph (BLOCKED pending re-review after FAIL remedi)."""
 from __future__ import annotations
 
 import json
@@ -26,20 +26,49 @@ def build(primary: dict | None = None) -> dict:
     started = "2026-09-07T18:25:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
+    review: dict = {}
+    rev_path = PROBE / "independent-review.json"
+    if rev_path.is_file():
+        try:
+            review = json.loads(rev_path.read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            review = {}
+    review_verdict = review.get("verdict") or "NOT-REVIEWED"
+
     py_dupes = p2.get("python_duplicate_version_count", 0)
-    node_dupes = p2.get("node_duplicate_version_count", 0)
     lock_dupes = p1.get("duplicate_version_count", 0)
-    headline_dupes = py_dupes  # measured on this host: python env has dual versions
+    headline_dupes = py_dupes
     max_depth = max(
-        p1.get("max_depth", 0),
-        p2.get("installed_max_depth", 0),
-        p2.get("python_graph_max_depth_sampled", 0),
+        int(p1.get("max_depth") or 0),
+        int(p2.get("installed_max_depth") or 0),
+        int(p2.get("python_graph_max_depth_sampled") or 0),
     )
-    nodes = []
+    sample_edges = [
+        e
+        for e in (p2.get("python_sample_edges") or [])
+        if isinstance(e, dict) and e.get("kind") == "installed-use"
+    ]
+    nodes: list[dict] = []
     for name, vs in (p2.get("python_duplicate_versions") or {}).items():
         nodes.append({"id": name, "ecosystem": "python", "versions": vs, "duplicate": True})
     for name, vs in (p1.get("duplicate_versions") or {}).items():
         nodes.append({"id": name, "ecosystem": "node-lock", "versions": vs, "duplicate": True})
+    for e in sample_edges:
+        for key in ("from", "to"):
+            nid = e.get(key)
+            if nid and not any(n.get("id") == nid for n in nodes):
+                nodes.append(
+                    {
+                        "id": nid,
+                        "ecosystem": "python",
+                        "versions": ["(installed)"],
+                        "duplicate": False,
+                    }
+                )
+
+    npm_complete = int(p1.get("npm_ls_exit") or 1) == 0 and int(
+        p2.get("node_packages_seen") or 0
+    ) > 0
 
     arts = [
         primary
@@ -56,14 +85,19 @@ def build(primary: dict | None = None) -> dict:
         L.art("command-center/p2-wave/probes/AUD-0022/control-dual-version.json", "control"),
         L.art("command-center/p2-wave/probes/AUD-0022/probe1-resolver.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0022/probe2-installed.raw.txt", "log"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0022/independent-review.json",
+            "supporting",
+        ),
     ]
     return {
         "schema_version": 1,
         "unit_id": UNIT,
         "state": "BLOCKED",
         "sentinel": (
-            "FAILED:AUD-0022 resolver+installed-metadata probes measured transitive closure; "
-            f"python dual-version packages={headline_dupes}; blocked-on-independent-review"
+            "FAILED:AUD-0022 remedi after review FAIL; "
+            f"python dual-version packages={headline_dupes}; "
+            f"max_depth={max_depth}; reviewer={review_verdict}"
         ),
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0022",
         "min_bytes_threshold": 4096,
@@ -100,6 +134,7 @@ def build(primary: dict | None = None) -> dict:
                             {
                                 "lock_packages": p1["lock_packages"],
                                 "npm_ls_nodes": p1["npm_ls_nodes"],
+                                "npm_ls_exit": p1["npm_ls_exit"],
                                 "duplicate_version_count": lock_dupes,
                                 "ok": p1["ok"],
                             }
@@ -111,11 +146,12 @@ def build(primary: dict | None = None) -> dict:
             ),
             L.evidence(
                 (
-                    f"Probe 2 installed metadata: node_packages_seen={p2['node_packages_seen']} "
-                    f"(node_modules absent) python_distributions={p2['python_distributions']} "
-                    f"python_dupes={py_dupes} versions={p2.get('python_duplicate_versions')} "
+                    f"Probe 2 installed-use graph: node_packages_seen={p2['node_packages_seen']} "
+                    f"python_distributions={p2['python_distributions']} "
+                    f"python_dupes={py_dupes} "
                     f"requires_edges={p2.get('python_requires_edges')} "
-                    f"control_ok={ctrl['ok']}."
+                    f"python_graph_max_depth_sampled={p2.get('python_graph_max_depth_sampled')} "
+                    f"edge_filter={p2.get('edge_filter')} control_ok={ctrl['ok']}."
                 ),
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0022/probe2-installed.raw.txt",
@@ -134,6 +170,10 @@ def build(primary: dict | None = None) -> dict:
                         json.dumps(
                             {
                                 "python_duplicate_version_count": py_dupes,
+                                "python_requires_edges": p2.get("python_requires_edges"),
+                                "python_graph_max_depth_sampled": p2.get(
+                                    "python_graph_max_depth_sampled"
+                                ),
                                 "control_ok": ctrl["ok"],
                                 "ok": p2["ok"],
                             }
@@ -166,31 +206,32 @@ def build(primary: dict | None = None) -> dict:
             )
         ],
         "reviewer": {
-            "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "notes": (
-                "Catalog requires a fresh-context Claude reviewer who has not seen this "
-                "transcript and must try to FALSIFY the headline duplicate-version count. "
-                "Unavailable in-session; BLOCKED instead of fake SUCCESS."
-            ),
+            "reviewer_id": review.get("reviewer_id")
+            or "required-fresh-context-claude-reviewer-unassigned",
+            "verdict": review_verdict,
+            "independent": bool(review.get("independent")),
+            "fresh_context": bool(review.get("fresh_context")),
+            "vendor": review.get("vendor") or "anthropic",
+            "notes": review.get("notes")
+            or "Independent review owed; remedi pending re-review.",
         },
         "defects": [
             {
                 "id": "AUD-0022-D-REVIEW",
                 "severity": "P1",
                 "status": "open",
-                "summary": "Independent fresh-context Claude review unpaid.",
+                "summary": (
+                    f"Independent review verdict={review_verdict}; remedi grounds "
+                    "depth/edges in probe2 with installed-use filter."
+                ),
             },
             {
                 "id": "AUD-0022-D-PY-DUAL-VERSION",
                 "severity": "P2",
                 "status": "open",
                 "summary": (
-                    f"{py_dupes} Python packages appear at two versions in the live "
-                    f"interpreter: {list((p2.get('python_duplicate_versions') or {}).keys())}"
+                    f"{py_dupes} Python packages at two versions: "
+                    f"{list((p2.get('python_duplicate_versions') or {}).keys())}"
                 ),
             },
         ],
@@ -217,34 +258,44 @@ def build(primary: dict | None = None) -> dict:
             }
         ],
         "timestamps": {"started_at": started, "ended_at": ended},
-        "retry": {"count": 1, "policy": "retry only after named upstream SUCCESS"},
+        "retry": {"count": 2, "policy": "retry only after named upstream SUCCESS"},
         "failure": {
-            "classification": ["blocked-on-independent-review", "detector-failure"],
+            "classification": [
+                "blocked-on-independent-review",
+                "detector-failure",
+                "review-fail-remedi-pending-rereview",
+            ],
             "reason": (
                 f"Measured python dual-version packages={headline_dupes}, "
-                f"max_depth={max_depth}, but reviewer_requirement unmet."
+                f"max_depth={max_depth} from named probes; reviewer={review_verdict}."
             ),
             "diagnostic_tail": (
                 f"py_dupes={p2.get('python_duplicate_versions')} "
-                f"npm_ls_exit={p1['npm_ls_exit']} node_modules_absent=True"
+                f"npm_ls_exit={p1['npm_ls_exit']} "
+                f"node_packages_seen={p2.get('node_packages_seen')} "
+                f"python_requires_edges={p2.get('python_requires_edges')} "
+                f"edge_filter={p2.get('edge_filter')}"
             ),
             "blocked_on": (
-                "Dispatch one fresh-context Claude reviewer who has not seen this transcript "
-                "to falsify the headline duplicate-version count before PASS."
+                "Independent re-review after remedi: probe2 emits installed-use "
+                "Requires-Dist edges + BFS depth; npm workspaces linked."
             ),
             "two_signal_proof": [
                 L.probe(
                     "source",
                     "command",
                     "python3 -B command-center/p2-wave/probes/AUD-0022/probe2_installed_metadata.py",
-                    f"python_duplicate_version_count={py_dupes}",
+                    (
+                        f"python_duplicate_version_count={py_dupes} "
+                        f"depth={p2.get('python_graph_max_depth_sampled')}"
+                    ),
                     0,
                 ),
                 L.probe(
                     "verifier",
                     "file-read",
                     "reviewer.verdict",
-                    "NOT-REVIEWED",
+                    str(review_verdict),
                     0,
                 ),
             ],
@@ -252,8 +303,11 @@ def build(primary: dict | None = None) -> dict:
         "residual_unknowns": [
             {
                 "claim": "Full npm transitive closure with node_modules installed matches lock.",
-                "verdict": "NOT-CHECKED",
-                "settling_experiment": "npm ci then re-run probe1/probe2 against populated node_modules.",
+                "verdict": "CHECKED" if npm_complete else "PARTIAL",
+                "settling_experiment": (
+                    "npm install --ignore-scripts linked workspace packages; "
+                    "re-run probe1/probe2. Lock dependency maps may still be workspace stubs."
+                ),
             }
         ],
         "report": {
@@ -263,13 +317,20 @@ def build(primary: dict | None = None) -> dict:
                 "maximum depth, and which packages appear at two or more incompatible versions?"
             ),
             "answer": (
-                f"This host: node lock packages={p1['lock_packages']} (workspaces-only; "
-                f"node_modules absent); python_distributions={p2['python_distributions']}; "
-                f"python dual-version packages={headline_dupes}; max_depth={max_depth}. "
-                "BLOCKED on independent review."
+                f"lock_packages={p1['lock_packages']} "
+                f"node_packages_seen={p2['node_packages_seen']} "
+                f"npm_ls_exit={p1['npm_ls_exit']}; "
+                f"python_distributions={p2['python_distributions']}; "
+                f"python dual-version packages={headline_dupes}; "
+                f"installed-use requires_edges={p2.get('python_requires_edges')}; "
+                f"max_depth={max_depth} "
+                f"(probe2 BFS={p2.get('python_graph_max_depth_sampled')}, "
+                f"nm_depth={p2.get('installed_max_depth')}, "
+                f"lock_depth={p1.get('max_depth')}). "
+                f"BLOCKED; reviewer={review_verdict}."
             ),
-            "nodes": nodes,
-            "edges": (p2.get("python_sample_edges") or [])[:40],
+            "nodes": nodes[:80],
+            "edges": sample_edges[:40],
             "duplicate_version_count": headline_dupes,
             "max_depth": max_depth,
             "observations": [
@@ -294,7 +355,16 @@ def build(primary: dict | None = None) -> dict:
                 {
                     "name": "max_depth",
                     "measured": max_depth,
-                    "method": "lock node_modules depth + Requires-Dist BFS sample",
+                    "method": (
+                        "max(lock_path_depth, node_modules_nesting, "
+                        "installed-use Requires-Dist BFS from probe2_installed_metadata.py)"
+                    ),
+                    "anchor": "command-center/p2-wave/probes/AUD-0022/probe2-installed-meta.json",
+                },
+                {
+                    "name": "python_requires_edges",
+                    "measured": p2.get("python_requires_edges"),
+                    "method": p2.get("edge_filter") or "installed-use Requires-Dist",
                     "anchor": "command-center/p2-wave/probes/AUD-0022/probe2-installed-meta.json",
                 },
             ],
@@ -304,6 +374,8 @@ def build(primary: dict | None = None) -> dict:
             "anti_false_green": "BLOCKED-with-real-probes",
             "wave": "p2-loop",
             "python_duplicate_versions": p2.get("python_duplicate_versions"),
+            "edge_filter": p2.get("edge_filter"),
+            "remedi_after_review_fail": True,
         },
     }
 
