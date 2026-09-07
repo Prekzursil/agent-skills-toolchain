@@ -1,62 +1,64 @@
 {
-  "reviewer_id": "fresh-context-claude-reviewer-AUD-0045-independent-review",
+  "reviewer_id": "fresh-context-claude-reviewer-AUD-0045-remeasure-re-review",
   "vendor": "anthropic",
-  "verdict": "FAIL",
+  "verdict": "PASS",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T11:53:00Z",
-  "notes": "Re-ran both AUD-0045 probes byte-for-byte and got identical output, so the raw measurements are reproducible. But the headline claim ('5 fail-open execution cases') does not survive falsification: I manually re-executed each of the 5 labeled 'fail_open=True' cases and read their source. (1) unitgate.py no-args is NOT a corner-case input -- it is the tool's default production invocation, and its main() explicitly fails closed on a collapsed read (`if report['units_scanned'] < MIN_UNITS: return 1`, `if report['artifacts_seen'] < MIN_ARTIFACTS: return 1`) before ever printing a success line; it printed real measured counts (units=2007, artifacts=326, vacuous-declarations=3) on this run. This is a confirmed false positive: the probe's classifier regex only recognizes the words items/violations/files/gates/checks/paths/errors/findings plus a few key=value idioms, and 'units=' / 'artifacts=' aren't in that list, so a gate that measured and fail-closed correctly was mislabeled fail-open. (2) rail_count_gate.py --self-test, (3) claim_gate.py --self-test, and (4) check_citations.py --self-test are not gate invocations on empty/absent production input at all -- their own docstrings/CLI define --self-test as a 'DETECTOR CONTROL' that runs every check against a KNOWN-BROKEN fixture and requires it to fire (rail_count_gate.py line 67: 'DETECTOR CONTROL. --self-test runs every check against a KNOWN-BROKEN input and requires it to [fire]'; claim_gate.py has a dedicated self_test() function; check_citations.py's own doc says '--self-test mutates each citation's expected value and asserts the checker goes RED'). Each of these printed a real measured count on this run (rail_count_gate: '50 cases, 27 of them expecting a FIRE'; claim_gate: '11 rules fire in the known-broken state'; check_citations: 'mutated 259 citations ... every citation went RED') that the same narrow regex failed to recognize. Conflating a self-test/detector-control invocation with a production gate call, and then further mis-scoring it via a regex with a small vocabulary, produced 3 more false positives. (5) ssot_drift_gate.py default is the one case that holds up: it exits 0 and its own text says 'this run asserted NOTHING about whether the live fleet is executing stale bytes' because the executed checkout path it checks against is a Windows path absent on this Linux runner -- a genuine confirmed fail-open exit. Net result: of the 5 claimed fail-open cases, only 1 (ssot_drift_gate.py) is a real fail-open finding; the other 4 are classifier/methodology artifacts, not defects in the underlying gates. The headline count is overstated by 5x (1 real vs. 5 claimed), so I could not confirm the report's headline as written and am returning FAIL. The AUD-0045-D-FAIL-OPEN defect should be narrowed to ssot_drift_gate.py only, and the probe2 classifier's has_measured_count() regex should be revised (or self-test/--self-test invocations excluded from the fail-open tally entirely) before this unit can be marked reviewed/PASS. I did not edit the receipt, probes, or defect records, and made no commits.",
+  "reviewed_at": "2026-09-07T18:38:11Z",
+  "notes": "Fresh-context re-review of remesured AUD-0045 after prior FAIL (headline was 5; only ssot_drift_gate.py was real). Receipt state=BLOCKED; extensions.fail_open_labels=['ssot_drift_gate.py default'] only. Goal: falsify remesured fail_open_count=1. Could not. Re-ran both probes; restored committed probe artifacts after. Probe1 raw byte-identical (suspect_count=12, finding_counts unchanged); findings JSON has a non-headline lineno drift for validate.require_complete (85 vs 132) from working-tree edit of tools/command-center/validate.py — does not change default-off=True or suspect_count. Probe2 remesure reproduces fail_open_count=1 and fail_open_labels=['ssot_drift_gate.py default'] with detector_control_excluded_count=5; only environmental drift is unitgate no-args exit 1->0 depending on dirty-tree findings, still measured=True fail_open=False. Manual re-execution: (1) ssot_drift_gate.py default exits 0 with explicit NOT-CHECKED / 'asserted NOTHING' — CONFIRMED fail-open; source returns 0 when DEFAULT_EXECUTED Windows path is absent on Linux. (2) unitgate.py no-args prints units=/artifacts= and is NOT fail-open (classifier now recognizes those tokens; floors still fail-closed when counts collapse). (3) All five --self-test cases are detector_control=True and excluded from the tally. (4) validate empty known-bad exits 1; suitefloor no-args exits 1. Attempt to inflate the count by reclassifying self-tests or unitgate fails. Attempt to deflate by denying ssot fail-open fails against its own stdout and source. Residual_unknowns (non-.py workflow shell gates not all executed empty) remains NOT-CHECKED and does not move the measured headline of 1 among the 13 probe2 cases. Did not promote receipt to SUCCESS; leaving promotion to implementer. Only this independent-review.json is intended to be committed.",
   "falsification_attempts": [
     {
-      "target": "unitgate.py no-args labeled fail_open=True",
-      "method": "Read tools/measure-guard/unitgate.py main(); re-ran `python3 tools/measure-guard/unitgate.py` directly",
+      "target": "remesured headline fail_open_count=1 / labels=['ssot_drift_gate.py default']",
+      "method": "Re-run probe2_execute_gates.py; diff .raw.txt vs committed; compare fail_open_count and labels",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Rerun: fail_open_count=1 fail_open_labels=['ssot_drift_gate.py default'] detector_control_excluded_count=5 known_bad_nonzero=True. Only CASE line drift is unitgate exit_code 1 vs 0; fail_open stays False"
+    },
+    {
+      "target": "ssot_drift_gate.py default labeled fail_open=True (deflate to 0)",
+      "method": "Manual `python3 command-center/ssot/ssot_drift_gate.py`; read main() absent-checkout branch",
+      "result": "CONFIRMED-FAIL-OPEN",
+      "evidence": "EXIT=0 stdout: 'SUCCESS:ssot-drift-gate NOT-CHECKED -- the executed checkout is ABSENT (C:/Users/Prekzursil/source/agent-skills-toolchain); ... this run asserted NOTHING...'. Source returns 0 when exe==DEFAULT_EXECUTED and path missing — genuine exit-0-without-measurement"
+    },
+    {
+      "target": "unitgate.py no-args secretly fail-open (inflate count)",
+      "method": "Manual `python3 tools/measure-guard/unitgate.py`; apply remediated has_measured_count classifier; read MIN_UNITS/MIN_ARTIFACTS floors",
+      "result": "REFUTED-AS-FAIL-OPEN",
+      "evidence": "Prints units=2007 artifacts=339 (measured=True). fail_open=False whether exit is 0 (clean) or 1 (dirty-tree finding). Floors return 1 before success if counts collapse. Prior review's false positive is fixed by expanded units=/artifacts= vocabulary"
+    },
+    {
+      "target": "--self-test cases wrongly excluded or should count as fail-open",
+      "method": "Re-run all five --self-test invocations; confirm detector_control exclusion and measured output",
       "result": "REFUTED",
-      "evidence": "main() fails closed on collapsed reads (MIN_UNITS/MIN_ARTIFACTS floor checks return 1 before any success message) and printed 'units=2007 artifacts=326 rev=HEAD vacuous-declarations=3 units-declaring-one=23' -- a real measured, fail-closed-capable production run mislabeled fail-open only because the classifier regex does not recognize 'units='/'artifacts=' as a measured-count token"
+      "evidence": "rail_count/claim/check_citations/mcp-audit --self-test exit 0 with measured counts (cases/FIRES/citations/checks); interpreter_floor --self-test exit 1. All labeled detector_control=True and excluded. Not production empty-input gate calls"
     },
     {
-      "target": "rail_count_gate.py --self-test labeled fail_open=True",
-      "method": "Read command-center/p2-next/rail_count_gate.py CLI/docstring; re-ran command directly",
-      "result": "REFUTED",
-      "evidence": "--self-test is documented as a 'DETECTOR CONTROL' that runs every check against a KNOWN-BROKEN input, not a production gate call on empty input; the run printed 'selftest: PASS (50 cases, 27 of them expecting a FIRE, every check in both states)', a real measured count the classifier regex does not recognize"
+      "target": "probe1 static census reproducibility / validate default-off",
+      "method": "Re-run probe1_static_census.py; diff raw; check validate_require_complete_default_off",
+      "result": "NOT-FALSIFIED",
+      "evidence": "probe1-static.raw.txt byte-identical. suspect_count=12, finding_counts unchanged, validate_require_complete_default_off=True. Findings JSON lineno for require_complete drifted 85->132 due to working-tree validate.py edit — headline metrics unaffected"
     },
     {
-      "target": "claim_gate.py --self-test labeled fail_open=True",
-      "method": "Read .agents/skills/claim-verify-gate/scripts/claim_gate.py self_test(); re-ran command directly",
-      "result": "REFUTED",
-      "evidence": "--self-test invokes a dedicated self_test() detector-control path (not the production --claims path); the run printed 11 explicit FIRES lines plus 'OK: all 11 rules fire in the known-broken state.', a real measured count the classifier regex does not recognize"
-    },
-    {
-      "target": "check_citations.py --self-test labeled fail_open=True",
-      "method": "Read command-center/hook-audit/check_citations.py docstring; re-ran command directly",
-      "result": "REFUTED",
-      "evidence": "the script's own doc says --self-test 'mutates each citation's expected value and asserts the checker goes RED'; the run printed '== SELF-TEST mutated 259 citations / every citation went RED when mutated -- the gate can fail', a real measured count the classifier regex does not recognize"
-    },
-    {
-      "target": "ssot_drift_gate.py default labeled fail_open=True",
-      "method": "Re-ran command directly and read its own stdout",
-      "result": "CONFIRMED",
-      "evidence": "run printed 'SUCCESS:ssot-drift-gate NOT-CHECKED -- the executed checkout is ABSENT ... this run asserted NOTHING about whether the live fleet is executing stale bytes', an explicit self-admission of exiting 0 with no assertion made -- the one label that survives falsification"
-    },
-    {
-      "target": "probe1/probe2 raw reproducibility",
-      "method": "Re-ran both probe1_static_census.py and probe2_execute_gates.py fresh and diffed against the committed .raw.txt files",
-      "result": "CONFIRMED",
-      "evidence": "byte-identical output on both re-runs, so the underlying measurements (not their fail-open interpretation) are reproducible and not fabricated"
+      "target": "Other of the 13 cases fail-open under classifier (undercount)",
+      "method": "Apply probe2 classify() to manual outputs for validate defaults, suitefloor, known-bad, help",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Among non-self-test cases only ssot has exit=0 and measured=False. validate defaults measured=True; suitefloor exit=1; known-bad exit=1; unitgate help force_not_fail_open"
     }
   ],
   "commands_run": [
     "python3 -B command-center/p2-wave/probes/AUD-0045/probe1_static_census.py",
     "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
-    "diff /tmp/probe1_rerun.txt command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt",
-    "diff /tmp/probe2_rerun.txt command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
+    "diff /tmp/aud0045-review/probe1-static.committed.raw.txt /tmp/aud0045-review/probe1_rerun.raw.txt",
+    "diff -u /tmp/aud0045-review/probe2-execution.committed.raw.txt /tmp/aud0045-review/probe2_rerun.raw.txt",
+    "python3 command-center/ssot/ssot_drift_gate.py",
     "python3 tools/measure-guard/unitgate.py",
+    "python3 tools/measure-guard/suitefloor.py",
+    "python3 tools/command-center/validate.py --catalog <empty> --graph <empty>",
     "python3 command-center/p2-next/rail_count_gate.py --self-test",
     "python3 .agents/skills/claim-verify-gate/scripts/claim_gate.py --self-test",
     "python3 command-center/hook-audit/check_citations.py --self-test",
-    "python3 command-center/ssot/ssot_drift_gate.py",
-    "grep -n 'self-test|self_test' command-center/p2-next/rail_count_gate.py",
-    "grep -n 'self-test|self_test' .agents/skills/claim-verify-gate/scripts/claim_gate.py",
-    "grep -n 'self-test|self_test' command-center/hook-audit/check_citations.py",
-    "sed -n '380,483p' tools/measure-guard/unitgate.py"
+    "python3 command-center/ci/interpreter_floor_gate.py --self-test",
+    "python3 command-center/mcp-audit/ci_gate.py --self-test",
+    "python3 tools/command-center/validate.py",
+    "cp restored committed probe1/probe2 raw+json after re-runs"
   ]
 }
