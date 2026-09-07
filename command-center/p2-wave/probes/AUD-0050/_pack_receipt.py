@@ -484,11 +484,6 @@ def build(primary: dict | None = None) -> dict:
 
 
 def main() -> int:
-    for script in ("probe1_selector_map.py", "probe2_collect_union.py"):
-        target = PROBE / script
-        if not (PROBE / script.replace(".py", "").replace("_", "-").split("probe")[0]):
-            pass
-        # probes are expected to have been run already; re-run only if outputs missing
     required = [
         PROBE / "probe1-selector-map.json",
         PROBE / "probe2-collect-union.json",
@@ -500,79 +495,81 @@ def main() -> int:
         print("FAILED:AUD-0050 missing probe outputs:", *missing, sep="\n")
         return 1
 
-    doc = build()
-    rc = L.write_if_valid(doc, OUT, SCHEMA)
-    if rc != 0:
-        return rc
-    for _ in range(2):
-        doc = build(primary=L.art(OUT, "primary"))
-        rc = L.write_if_valid(doc, OUT, SCHEMA)
-        if rc != 0:
-            return rc
+    out_path = L.REPO / OUT
+    out_path.parent.mkdir(parents=True, exist_ok=True)
 
-    # Admit via receipt_validate
+    doc = build()
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    doc = build(primary=L.art(OUT, "primary"))
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    doc["artifacts"][0] = L.art(OUT, "primary")
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+    errs = L.validate(doc, SCHEMA)
+    if errs:
+        print("SCHEMA_ERRORS:", *errs[:20], sep="\n", file=sys.stderr)
+        return 1
+
     rc_adm, adm_out = L.run(
         [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
     )
-    doc = build(primary=L.art(OUT, "primary"))
-    # refresh downstream consumer with admit output
-    doc["downstream_consumers"] = [
-        {
+
+    def admit_consumer(rc: int, out: str) -> dict:
+        return {
             "consumer": "command-center/receipt_validate.py admission",
             "artifact_path": OUT,
             "executed": True,
-            "read_ok": rc_adm == 0 and "ADMIT" in adm_out.upper(),
-            "exit_code": rc_adm,
+            "read_ok": rc == 0 and "ADMIT" in out.upper(),
+            "exit_code": rc,
             "probe": L.probe(
                 "source",
                 "command",
                 f"python3 command-center/receipt_validate.py {OUT}",
-                adm_out[:4000],
-                rc_adm,
+                out[:4000],
+                rc,
             ),
         }
-    ]
-    rc = L.write_if_valid(doc, OUT, SCHEMA)
-    if rc != 0:
-        return rc
-    # final self-hash pass
+
     doc = build(primary=L.art(OUT, "primary"))
-    doc["downstream_consumers"] = [
-        {
-            "consumer": "command-center/receipt_validate.py admission",
-            "artifact_path": OUT,
-            "executed": True,
-            "read_ok": rc_adm == 0 and "ADMIT" in adm_out.upper(),
-            "exit_code": rc_adm,
-            "probe": L.probe(
-                "source",
-                "command",
-                f"python3 command-center/receipt_validate.py {OUT}",
-                adm_out[:4000],
-                rc_adm,
-            ),
-        }
-    ]
-    rc = L.write_if_valid(doc, OUT, SCHEMA)
-    if rc != 0:
-        return rc
+    doc["downstream_consumers"] = [admit_consumer(rc_adm, adm_out)]
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    doc["artifacts"][0] = L.art(OUT, "primary")
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+    rc_adm2, adm_out2 = L.run(
+        [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
+    )
+    doc["downstream_consumers"] = [admit_consumer(rc_adm2, adm_out2)]
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+    doc["artifacts"][0] = L.art(OUT, "primary")
+    out_path.write_text(json.dumps(doc, indent=2) + "\n", encoding="utf-8")
+
+    final = json.loads(out_path.read_text(encoding="utf-8"))
+    errs = L.validate(final, SCHEMA)
+    if errs:
+        print("SCHEMA_ERRORS after admit:", *errs[:20], sep="\n", file=sys.stderr)
+        return 1
+
+    rc_adm3, adm_out3 = L.run(
+        [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
+    )
 
     man = {
         "unit_id": UNIT,
         "primary": OUT,
         "schema": SCHEMA,
-        "state": doc["state"],
+        "state": final["state"],
         "output_path": OUT,
         "sha256": L.art(OUT)["sha256"],
         "bytes": L.art(OUT)["bytes"],
-        "artifacts": doc["artifacts"],
-        "packed_at": doc["timestamps"]["ended_at"],
+        "artifacts": final["artifacts"],
+        "packed_at": final["timestamps"]["ended_at"],
     }
     (L.REPO / MANIFEST).write_text(json.dumps(man, indent=2) + "\n", encoding="utf-8")
-    print(f"PACKED {OUT} state={doc['state']} bytes={L.art(OUT)['bytes']}")
-    print(doc["sentinel"])
-    print(adm_out)
-    return 0 if rc_adm == 0 else 1
+    print(f"PACKED {OUT} state={final['state']} bytes={L.art(OUT)['bytes']}")
+    print(final["sentinel"])
+    print(adm_out3.strip())
+    return 0 if rc_adm3 == 0 else 1
 
 
 if __name__ == "__main__":
