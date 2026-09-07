@@ -1,0 +1,303 @@
+[
+  {
+    "tool": "list_subscriptions",
+    "description": "List active event subscriptions for this Cloud Agent.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {}
+    }
+  },
+  {
+    "tool": "subscribe_github_ci",
+    "description": "Subscribe this Cloud Agent to terminal GitHub CI results on one branch. Waits until every check run and commit-status context on a commit is terminal, then delivers one commit-wide result: success when none failed, or failure with the failed check names. Delivers only when the commit is still the head of the subscribed branch at delivery time; results for commits superseded by a newer push are dropped (the newer head notifies on its own CI). Fork PRs and branchless status events are not covered. Noise filter (on by default): failures always deliver, but a success delivers only as this subscription's first result or when it flips a previously delivered failure \u2014 repeated greens are suppressed. Pass notifyOnSuccess: true to receive every terminal success. After subscribing, state what you are waiting for and end your turn; the event arrives as a follow-up notification in this conversation.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "type": "object",
+          "properties": {
+            "repo": {
+              "type": "string"
+            },
+            "branch": {
+              "type": "string"
+            }
+          },
+          "required": [
+            "repo",
+            "branch"
+          ]
+        },
+        "expiresInSeconds": {
+          "type": "number"
+        },
+        "notifyOnSuccess": {
+          "type": "boolean",
+          "description": "Deliver every terminal success instead of only first-or-flipping ones. Default false."
+        }
+      },
+      "required": [
+        "options"
+      ]
+    }
+  },
+  {
+    "tool": "subscribe_github_pr",
+    "description": "Subscribe this Cloud Agent to future GitHub pull request events. Noise filters (on by default): PR lifecycle events that echo this agent's OWN actions \u2014 Cursor-actored events on this agent's own working branch (its own pushes/synchronize, PR-body edits, closes) \u2014 are suppressed unless includeOwnActions is true, and metadata-only churn (edited titles/bodies, labels, milestones, assignments, merge-queue and auto-merge toggles) is suppressed unless includeMetadataChanges is true. Guaranteed to deliver regardless of filters: all comments, reviews, and review comments \u2014 including Bugbot and Agentic Security Review activity, which shares the cursor[bot] identity \u2014 plus lifecycle events actored by humans or on any other branch. After subscribing, state what you are waiting for and end your turn; the event arrives as a follow-up notification in this conversation.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "pr"
+                },
+                "prUrl": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "scope",
+                "prUrl"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "pr"
+                },
+                "repo": {
+                  "type": "string"
+                },
+                "pullNumber": {
+                  "type": "number"
+                }
+              },
+              "required": [
+                "scope",
+                "repo",
+                "pullNumber"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "repo"
+                },
+                "repo": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "scope",
+                "repo"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "author"
+                },
+                "author": {
+                  "type": "string"
+                },
+                "repo": {
+                  "type": "string"
+                }
+              },
+              "required": [
+                "scope",
+                "author",
+                "repo"
+              ]
+            }
+          ]
+        },
+        "expiresInSeconds": {
+          "type": "number"
+        },
+        "includeOwnActions": {
+          "type": "boolean",
+          "description": "Also deliver PR lifecycle events that echo this agent's own actions on its own branch (own pushes/edits/closes). Default false. Never affects comments or reviews (Bugbot/security review always deliver)."
+        },
+        "includeMetadataChanges": {
+          "type": "boolean",
+          "description": "Also deliver metadata-only events (edited, labels, milestones, assignments, merge-queue/auto-merge toggles). Default false."
+        }
+      },
+      "required": [
+        "options"
+      ]
+    }
+  },
+  {
+    "tool": "subscribe_linear_comment",
+    "description": "Subscribe this Cloud Agent to comments created on Linear issues, scoped to one team or to one individual issue. Delivers one notification per new comment, with that comment's text. It does NOT deliver comment edits, resolutions, or reactions, and it does NOT deliver comments on Linear documents, project updates, or initiative updates (those carry no issue and are dropped). A delivery is one comment, not a thread: earlier replies in the same thread are not included, so read the issue if you need the conversation so far. Project scope is not offered because Linear's comment webhook does not say which project the issue belongs to. Scope ids accept the resource's linear.app URL, its UUID, or its copyable ref \u2014 an issue identifier like CHAR-661, or a team key like CHAR \u2014 and must belong to the Linear organization your account is connected to. After subscribing, state what you are waiting for and end your turn; the event arrives as a follow-up notification in this conversation.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "team"
+                },
+                "teamId": {
+                  "type": "string",
+                  "description": "The team's linear.app URL, UUID, or key (e.g. CHAR)."
+                }
+              },
+              "required": [
+                "scope",
+                "teamId"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "issue"
+                },
+                "issueId": {
+                  "type": "string",
+                  "description": "The issue's linear.app URL, UUID, or identifier (e.g. CHAR-661)."
+                }
+              },
+              "required": [
+                "scope",
+                "issueId"
+              ]
+            }
+          ]
+        },
+        "expiresInSeconds": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "options"
+      ]
+    }
+  },
+  {
+    "tool": "subscribe_linear_issue",
+    "description": "Subscribe this Cloud Agent to Linear issue events on one team, one project, or one individual issue. Delivers exactly two kinds of event: an issue being created, and an issue's workflow state changing. It does NOT deliver any other edit \u2014 title, description, labels, assignee, priority, estimate, cycle, comments, and backlog reordering all produce no notification (Linear fires an update webhook for every one of those, so delivering them would be noise). Comments have their own subscription tool. Each delivery reports one issue's one change; it is not a digest and says nothing about the team's other issues. Project scope only matches issues that already carry that project, so an issue created without a project and filed into one later is not delivered to a project subscription. Scope ids accept the resource's linear.app URL, its UUID, or its copyable ref \u2014 an issue identifier like CHAR-661, a team key like CHAR, or a project slug \u2014 and must belong to the Linear organization your account is connected to. After subscribing, state what you are waiting for and end your turn; the event arrives as a follow-up notification in this conversation.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "options": {
+          "oneOf": [
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "team"
+                },
+                "teamId": {
+                  "type": "string",
+                  "description": "The team's linear.app URL, UUID, or key (e.g. CHAR)."
+                }
+              },
+              "required": [
+                "scope",
+                "teamId"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "project"
+                },
+                "projectId": {
+                  "type": "string",
+                  "description": "The project's linear.app URL, UUID, or slug (e.g. improve-onboarding-a79f0fd1671d)."
+                }
+              },
+              "required": [
+                "scope",
+                "projectId"
+              ]
+            },
+            {
+              "type": "object",
+              "properties": {
+                "scope": {
+                  "const": "issue"
+                },
+                "issueId": {
+                  "type": "string",
+                  "description": "The issue's linear.app URL, UUID, or identifier (e.g. CHAR-661)."
+                }
+              },
+              "required": [
+                "scope",
+                "issueId"
+              ]
+            }
+          ]
+        },
+        "expiresInSeconds": {
+          "type": "number"
+        }
+      },
+      "required": [
+        "options"
+      ]
+    }
+  },
+  {
+    "tool": "subscribe_timer",
+    "description": "Subscribe a timer that enqueues the given prompt as a follow-up that runs when this Cloud Agent is otherwise free. Provide exactly one of `cron` (a cron expression) or `delaySeconds` (a fixed interval, in seconds). By default the timer recurs on each fire while active. Set `once: true` (with `delaySeconds`) for a one-off timer that fires a single time after the delay and then removes itself \u2014 e.g. \"remind me in 1 hour\". Dedupes by name. List and remove timers via list_subscriptions / unsubscribe. After subscribing, state what you are waiting for and end your turn; the event arrives as a follow-up notification in this conversation.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "name": {
+          "type": "string"
+        },
+        "prompt": {
+          "type": "string"
+        },
+        "cron": {
+          "type": "string",
+          "description": "Cron expression for recurrence. Provide this OR delaySeconds, not both."
+        },
+        "delaySeconds": {
+          "type": "number",
+          "description": "Interval, in seconds. For a recurring timer this is the fixed interval between fires; with `once: true` it is the one-off delay before the single fire. Provide this OR cron, not both."
+        },
+        "once": {
+          "type": "boolean",
+          "description": "When true, fire exactly once after `delaySeconds` and then remove the timer. Requires `delaySeconds` (not valid with `cron`). Defaults to false (recurring)."
+        }
+      },
+      "required": [
+        "name",
+        "prompt"
+      ]
+    }
+  },
+  {
+    "tool": "unsubscribe",
+    "description": "Close one active event subscription for this Cloud Agent.",
+    "inputSchema": {
+      "type": "object",
+      "properties": {
+        "subscriptionId": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "subscriptionId"
+      ]
+    }
+  }
+]
