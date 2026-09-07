@@ -438,6 +438,15 @@ jobs:
           python -m pytest command-center/casualty/tests -q
           python command-center/casualty/casualty_guard.py
           python command-center/casualty/integration_redproof.py
+          # IMP-0435: receipt admission gate. Rides inside this step (not a new
+          # charter slug) so .quality/charter.yml stays closed. Validates the
+          # scoped receipts in command-center/receipt_ci_scope.json, REQUIRES the
+          # planted invalid fixtures to REJECT, refuses empty/no-op invocation,
+          # and fails if this line is deleted (P1 wiring). Full-tree walks of
+          # command-center/receipts/ are out of scope: 31 pre-existing schema
+          # rejects would make the gate permanently red on historic debt.
+          python -m pytest command-center/p2-wave/probes/IMP-0435/test_receipt_ci_gate.py -q
+          python command-center/receipt_ci_gate.py
       # tools/measure-guard — two guards against measurements that report green while measuring
       # nothing, both derived from defects measured on this repo. `suitefloor` gives every
       # registered suite a declared minimum test count and fails below it regardless of exit code
