@@ -16,6 +16,15 @@ tools/mcp/**/accounts.json filter=git-crypt diff=git-crypt
 *.sh eol=lf
 *.ps1 eol=crlf
 
+# CC-0005 / IMP-0439 — EXPLICIT EOL POLICY FOR MARKDOWN (recorded decision, not accident).
+# Deliberately NO `*.md eol=lf` here. Forcing Markdown to LF at checkout was considered as
+# the sole Windows-parity fix for REACH-6 / provenance hashing and rejected: a .gitattributes
+# change alone does not make every gate portable (retry_policy: two strikes then move the fix
+# into the hashing routine). Provenance gates MUST hash via `git cat-file -p <rev>:<path>`
+# (never working-tree bytes, never `git archive`). See tools/measure-guard/blobread.py and
+# tools/command-center/validate.py REACH-6. Shell/PS1 keep their eol rules above because
+# interpreters reject the wrong ending; Markdown is content hashed from the blob.
+
 # Phone-extracted browser session cookie stores (chatgpt/databricks/aws) — real
 # session tokens; stored ENCRYPTED, decrypt only after `git-crypt unlock`.
 tools/crcp/cookie-store/*.json filter=git-crypt diff=git-crypt

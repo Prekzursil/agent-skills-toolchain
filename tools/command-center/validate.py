@@ -81,6 +81,7 @@ def _register_provenance_bytes(
 ) -> bytes:
     """Bytes REACH-6 hashes: committed blob when the snapshot is a tracked path.
 
+    CC-0005: prefer ``git cat-file -p <rev>:<path>`` (never worktree, never archive).
     Falls back to LF-normalised working-tree bytes for scratch / test catalogs
     that are not in git. Never hashes raw CRLF worktree bytes as the blob.
     """
@@ -261,7 +262,7 @@ def validate(
             Violation("REACH-6", "-", f"register snapshot missing at {snapshot}")
         )
     else:
-        # IMP-0439: hash the COMMITTED blob, not working-tree bytes.
+        # CC-0005 / IMP-0439: hash the COMMITTED blob via git cat-file, not worktree bytes.
         # LF-normalisation of the worktree was the 2026-08-10 stopgap (worktree digest
         # 1a404a91d819 vs recorded blob 8b3e44cc3813 on Windows autocrlf). Blob hashing
         # is the portable route: Windows and Linux both read the same git object.
