@@ -1,0 +1,175 @@
+{
+  "schema_version": 1,
+  "unit_id": "TST-0328",
+  "state": "BLOCKED",
+  "sentinel": "SUCCESS:TST-0328 pending independent adversarial review",
+  "spec_anchor": "_USER-PROMPTS.md:10658",
+  "min_bytes_threshold": 1024,
+  "produced_by": {
+    "vendor": "anthropic",
+    "model": "composer-cloud",
+    "role": "harness-engineer",
+    "execution_substrate": "linux-cloud-agent"
+  },
+  "artifacts": [
+    {
+      "path": "tools/detector-self-test/detector_self_test.py",
+      "bytes": 10879,
+      "sha256": "a335f3fee01dd808e8951454a405e06ebad48adfe69b4dffc03f512209d66dea",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    },
+    {
+      "path": "tools/detector-self-test/tests/test_detector_self_test.py",
+      "bytes": 15810,
+      "sha256": "d3f468caf97a67eed30caf72ac04161d87016cc2072082f4216516f6203d24fb",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0328/adoption-census.json",
+      "bytes": 332,
+      "sha256": "f50253e2f4101f1cdbce1f9f702b99546623a3ef847f5ed10580d4b9475f92ae",
+      "exists": true,
+      "role": "log",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/TST-0328/pytest.out",
+      "bytes": 99,
+      "sha256": "70f1d517f9c42c95c7f8988ac129c0067d1ba2934ea4feaec427f5438c3a24cd",
+      "exists": true,
+      "role": "log",
+      "eol": "LF"
+    }
+  ],
+  "evidence": [
+    {
+      "claim": "Callable assert_both_states / run_both_states shipped; silent-in-both and firing-in-both self-tests reject; adoption census recorded.",
+      "verdict": "CONFIRMED",
+      "anchor": "tools/detector-self-test/detector_self_test.py:assert_both_states",
+      "probes": [
+        {
+          "role": "source",
+          "method": "test-run",
+          "command": "python3 -m pytest tools/detector-self-test/tests/test_detector_self_test.py -q",
+          "raw_output": "......................................                                   [100%]\n38 passed in 0.05s\n",
+          "fingerprint": "ec5503fcb0e1cf90547f4e7e22b8aad8",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "other",
+          "command": "assert_both_states self-check silent+always+ok",
+          "raw_output": "ok={'name': 'packer-ok', 'fired_on_broken': True, 'fired_on_good': False, 'outcome': 'pass', 'message': 'fires on broken, silent on fixed', 'passed': True} silent_rejected=True always_rejected=True census={\"registry_suites_total\": 4, \"suites_importing_fixture\": [], \"suites_hand_rolled_both_states_mention\": [\"tools/command-center/tests/test_validate.py\", \"agent-self/harness/tests/test_register_gate.py\"], \"fixture_case_count_under_examples\": 2, \"fixture_case_names\": [\"debug_print\", \"todo_marker\"]}",
+          "fingerprint": "3b02a304bcb89bd58e93e79dfda04c5f",
+          "exit_code": 0
+        }
+      ],
+      "confidence": "almost-certain"
+    }
+  ],
+  "timestamps": {
+    "started_at": "2026-09-07T18:35:50+00:00",
+    "ended_at": "2026-09-07T18:35:50+00:00"
+  },
+  "retry": {
+    "count": 0,
+    "policy": "No automatic retry"
+  },
+  "tests": [
+    {
+      "id": "T1-silent-in-both-rejected",
+      "command": "test_assert_both_states_rejects_silent_in_both",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "BothStatesError SILENT_IN_BOTH"
+    },
+    {
+      "id": "T2-firing-in-both-rejected",
+      "command": "test_assert_both_states_rejects_firing_in_both",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "BothStatesError FIRING_IN_BOTH"
+    },
+    {
+      "id": "T3-adoption-census",
+      "command": "adoption_census over TEST-REGISTRY.json",
+      "result": "PASS",
+      "assertions": 1,
+      "output_tail": "{\"fixture_cases\": 2, \"suites_importing\": 0, \"hand_rolled_mentions\": 2}"
+    }
+  ],
+  "negative_controls": [
+    {
+      "id": "TST0328-C1",
+      "kind": "known-broken-fixture",
+      "description": "Fixture rejects a detector silent in both states",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "silent detector -> BothStatesError",
+      "good_state_output": "discriminating detector -> PASS"
+    },
+    {
+      "id": "TST0328-C2",
+      "kind": "known-broken-fixture",
+      "description": "Fixture rejects a detector firing in both states",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "always-on detector -> BothStatesError",
+      "good_state_output": "discriminating detector -> PASS"
+    }
+  ],
+  "reviewer": {
+    "reviewer_id": "UNASSIGNED-pending-independent-review",
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false,
+    "notes": "Catalog requires an independent adversarial reviewer who reproduces the both-states control before SUCCESS."
+  },
+  "failure": {
+    "classification": [
+      "reviewer-pending"
+    ],
+    "reason": "Reusable both-states fixture shipped with green self-tests; SUCCESS withheld pending independent adversarial review.",
+    "blocked_on": "independent adversarial reviewer both-states reproduction"
+  },
+  "defects": [],
+  "manifest_registration": {
+    "registered": false,
+    "manifest_path": "command-center/p2-wave/probes/TST-0328/UNIT-ARTIFACT-MANIFEST.json",
+    "entry_id": "TST-0328"
+  },
+  "downstream_consumers": [],
+  "residual_unknowns": [],
+  "report": {
+    "kind": "generic_report",
+    "observations": [
+      {
+        "id": "adoption",
+        "value": 2
+      }
+    ],
+    "control_ids": [
+      "TST0328-C1",
+      "TST0328-C2"
+    ]
+  },
+  "extensions": {
+    "adoption_census": {
+      "registry_suites_total": 4,
+      "suites_importing_fixture": [],
+      "suites_hand_rolled_both_states_mention": [
+        "tools/command-center/tests/test_validate.py",
+        "agent-self/harness/tests/test_register_gate.py"
+      ],
+      "fixture_case_count_under_examples": 2,
+      "fixture_case_names": [
+        "debug_print",
+        "todo_marker"
+      ]
+    }
+  }
+}
