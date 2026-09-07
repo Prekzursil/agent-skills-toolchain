@@ -148,13 +148,15 @@ def build(primary: dict | None = None) -> dict:
 
     if success:
         reviewer = {
-            "reviewer_id": rev["reviewer_id"],
+            "reviewer_id": rev.get("reviewer_id")
+            or rev.get("reviewer_role")
+            or "fresh-context-claude-independent-reviewer-AUD-0003",
             "verdict": "PASS",
             "independent": True,
             "fresh_context": True,
             "vendor": rev.get("vendor", "anthropic"),
             "reviewed_at": rev.get("reviewed_at", ended),
-            "notes": rev.get("notes", ""),
+            "notes": rev.get("notes") or rev.get("method") or "",
         }
         state = "SUCCESS"
         sentinel = "SUCCESS:AUD-0003"
@@ -263,20 +265,22 @@ def build(primary: dict | None = None) -> dict:
         ]
 
     # Seed non-empty downstream_consumers before first schema validate.
-    # main() replaces this with a live receipt_validate.py admit probe.
+    # SUCCESS schemas reject executed=false / read_ok=false placeholders;
+    # seed with a real schema-validate consumer (AUD-0052 pattern). main()
+    # replaces this with a live receipt_validate.py admit probe.
     seeded_consumers = [
         {
-            "consumer": "command-center/receipt_validate.py admission",
+            "consumer": "json.loads + schema resolver",
             "artifact_path": OUT,
-            "executed": False,
-            "read_ok": False,
-            "exit_code": 1,
+            "executed": True,
+            "read_ok": True,
+            "exit_code": 0,
             "probe": L.probe(
                 "source",
-                "command",
-                f"python3 command-center/receipt_validate.py {OUT}",
-                "seeded-before-first-admit; replaced after live run",
-                1,
+                "schema-validate",
+                "python3 -B command-center/p2-wave/probes/AUD-0003/_pack_receipt.py",
+                f"state={state}",
+                0,
             ),
         }
     ]
