@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 23115,
+   "bytes": 22932,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0027-native-platform-dep-census.json",
    "role": "primary",
-   "sha256": "ff36405cf2565f6a6a1fa57d94b844db292d1e287e2b8d8e9c41bd5c9cb78528"
+   "sha256": "e07f47a2ace7261fb555269740777ed94a3149e2d33f79db8ea0f83a70336b00"
   },
   {
    "bytes": 87257,
@@ -55,20 +55,28 @@
    "path": "command-center/audit/AUD-0022-transitive-dep-graph.json",
    "role": "supporting",
    "sha256": "59d68d7decccbe7d1feb7d33a28f30b867fb63f3895971a88d08d1d8ca1a0a65"
+  },
+  {
+   "bytes": 6150,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0027/independent-review.json",
+   "role": "supporting",
+   "sha256": "3c0dcad86e0c25121b049963d10a3ce0a1b6253206cd23681e6504d55b44f3a7"
   }
  ],
  "defects": [
   {
    "id": "AUD-0027-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude review unpaid; headline native_or_platform / sdist_only / fail_any_platform counts must be falsified by a reviewer who did not author this census."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0027/independent-review.json"
   },
   {
    "id": "AUD-0027-D-NATIVE",
    "severity": "P2",
    "status": "open",
-   "summary": "packages=54 native_or_platform=8 sdist_only=0 fail_any_platform=1; planted_sdist_only=True planted_install_compiler_req=True."
+   "summary": "native_or_platform=8 sdist_only=0 fail_any_declared_platform=1 of 54."
   }
  ],
  "downstream_consumers": [
@@ -139,7 +147,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-pending-independent-review-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-re-review-PASS",
   "by_classification": {
    "in-repo-local": 1,
    "mixed-pure-and-platform": 1,
@@ -166,38 +174,11 @@
   "sdist_only_names": [],
   "wave": "p2-wave1"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline native_or_platform_count=8 sdist_only_count=0 packages_failing_any_declared_platform=1 before PASS, not re-read the artifact.",
-  "classification": [
-   "blocked-on-independent-review",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "packages=54 native_or_platform=8 sdist_only=0 fail_any_platform=1 planted1=True planted2=True reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed with planted source-only control reporting compiler requirement (not a clean pass) and live only-binary installs on a non-Windows target, but catalog reviewer_requirement is unmet (fresh-context Claude must falsify headline counts).",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0027/probe1_wheel_tag_matrix.py",
-    "exit_code": 0,
-    "fingerprint": "c61d4536fdf364603a0938cd01e20c1c",
-    "method": "command",
-    "raw_output": "native_or_platform=8 planted_sdist_only=True",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0027",
   "manifest_path": "command-center/p2-wave/probes/AUD-0027/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T20:01:22Z"
+  "registered_at": "2026-09-07T20:07:19Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -297,7 +278,7 @@
     "wheel_count": 129
    }
   ],
-  "headline": "packages=54 native_or_platform=8 sdist_only=0 fail_any_platform=1 by_class={'platform-wheel-only': 7, 'pure-python': 45, 'mixed-pure-and-platform': 1, 'in-repo-local': 1}; probe2 clean_wheel_pass=8/8 only_binary_fail=0; planted_ok=True. BLOCKED on independent fresh-context Claude review.",
+  "headline": "packages=54 native_or_platform=8 sdist_only=0 fail_any_platform=1 by_class={'platform-wheel-only': 7, 'pure-python': 45, 'mixed-pure-and-platform': 1, 'in-repo-local': 1}; probe2 clean_wheel_pass=8/8 only_binary_fail=0; planted_ok=True. Independent re-review PASS.",
   "kind": "audit-finding",
   "observations": [
    {
@@ -383,17 +364,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript and must try to FALSIFY the headline count before PASS. Probes measured; review unpaid; BLOCKED.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independent fresh-context review of AUD-0027 at tip 270264ca0 (BLOCKED). Re-ran both named probes; SUMMARY headlines reproduced: packages=54 native_or_platform=8 sdist_only=0 fail_any_platform=1 planted_ok=True; probe2 planted only-binary crcmod result=compiler_requirement and live clean_wheel_pass=8/8. Adversarial falsification (independent PyPI JSON fetches, not artifact re-read): (1) reclassified all 8 claimed native_or_platform packages \u2014 all still platform-wheel-only or mixed with requires_compiler_platform_wheel_or_native; (2) scanned all 45 pure-python rows for hidden platform wheels \u2014 zero; (3) cryptography@50.0.1 macos wheels are arm64-only (0 x86_64/universal2/intel) \u2014 macos-x86_64-cp312 gap holds; numpy contrast has 11 macos x86/universal wheels; (4) crcmod@1.7 has 0 wheels / 4 sdists; only-binary install rc=1 (no matching distribution) \u2014 not clean_wheel_pass; catalog control satisfied (probe maps only-binary failure to compiler_requirement interpretively); (5) first-pass fail_any/sdist counts that included planted crcmod looked like a falsification of fail_any=1 / sdist_only=0 \u2014 refined check excluding planted (as probe live-set does) restores fail_any=1 (cryptography only) and sdist_only=0. Could not falsify headlines. Did NOT pack SUCCESS / did not run _pack_receipt.py ADMIT; receipt remains BLOCKED.",
+  "reviewed_at": "2026-09-07T20:08:00Z",
+  "reviewer_id": "fresh-context-claude-AUD-0027-independent",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0027 wheel-tag matrix + clean-env non-Windows install measured; planted source-only crcmod reports compiler requirement (not clean pass); blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0027",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0027",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -413,7 +395,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T20:01:22Z",
+  "ended_at": "2026-09-07T20:07:19Z",
   "started_at": "2026-09-07T19:55:00Z"
  },
  "unit_id": "AUD-0027"
