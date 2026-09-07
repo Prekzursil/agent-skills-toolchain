@@ -68,7 +68,7 @@ def build() -> dict:
     p_live = L.probe(
         "verifier",
         "command",
-        f"python3 -c 'probe_manifest_consumers({DEFAULT_MANIFEST!r})'",
+        f"python3 {IMPL} --manifest {DEFAULT_MANIFEST} probe",
         report.sentinel_line() + "\n" + cite_text[:4000],
         0,
     )
@@ -120,7 +120,16 @@ def build() -> dict:
                 ),
                 "CONFIRMED",
                 f"file:{PROBE_DIR}/consumer-citations.txt",
-                [p_live],
+                [
+                    L.probe(
+                        "source",
+                        "file-read",
+                        f"read {PROBE_DIR}/consumer-citations.txt",
+                        cite_text[:4000],
+                        0,
+                    ),
+                    p_live,
+                ],
                 "almost-certain",
             ),
         ],
@@ -205,12 +214,11 @@ def build() -> dict:
         "downstream_consumers": [
             {
                 "consumer": "artifact_manifest_gate.probe_manifest_consumers",
+                "artifact_path": DEFAULT_MANIFEST,
                 "executed": True,
                 "read_ok": True,
                 "exit_code": 0,
-                "probe": {
-                    "raw_output": report.sentinel_line() + "\n" + cite_text[:2000],
-                },
+                "probe": p_live,
             }
         ],
         "residual_unknowns": [
@@ -282,13 +290,52 @@ def build() -> dict:
 
     errs = L.validate(receipt, SCHEMA)
     if errs:
-        print(f"WARN: schema issues ({len(errs)}): {errs[:12]}", file=sys.stderr)
+        raise SystemExit(f"FAILED:{UNIT} schema-invalid ({len(errs)}): {errs[:12]}")
 
     ar.write_json_atomic(L.REPO / OUT, receipt)
-    # Refresh receipt self-hash in unit manifest after write
     packed = ar.read_json(L.REPO / OUT)
+
+    val_rc, val_out = _run(
+        [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
+    )
+    (L.REPO / PROBE_DIR / "receipt-validate.out").write_text(val_out, encoding="utf-8")
+    packed["downstream_consumers"].append(
+        {
+            "consumer": "receipt_validate.py admission",
+            "artifact_path": OUT,
+            "executed": True,
+            "read_ok": val_rc == 0 and "ACCEPT:" in val_out,
+            "exit_code": val_rc,
+            "probe": L.probe(
+                "verifier",
+                "command",
+                f"python3 command-center/receipt_validate.py {OUT}",
+                val_out,
+                val_rc,
+            ),
+        }
+    )
+    packed["artifacts"] = [
+        a for a in packed["artifacts"] if a.get("path") != OUT
+    ] + [L.art(OUT, "primary"), L.art(MANIFEST, "supporting")]
+    errs2 = L.validate(packed, SCHEMA)
+    if errs2:
+        raise SystemExit(f"FAILED:{UNIT} post-fill schema-invalid: {errs2[:12]}")
+    ar.write_json_atomic(L.REPO / OUT, packed)
+
+    val_rc2, val_out2 = _run(
+        [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
+    )
+    (L.REPO / PROBE_DIR / "receipt-validate.out").write_text(val_out2, encoding="utf-8")
+    if val_rc2 != 0:
+        raise SystemExit(f"receipt_validate REJECTED {UNIT}:\n{val_out2}")
+
+    packed = ar.read_json(L.REPO / OUT)
+    assert packed["state"] == "BLOCKED"
+    assert "blocked-on-independent-review" in packed["failure"]["classification"]
     print(f"BLOCKED:{UNIT} wrote {OUT} bytes={(L.REPO / OUT).stat().st_size}")
     print(f"  gate={GATE_ID} pytest=9 live_ok={report.ok}")
+    print(packed["sentinel"])
     return packed
 
 
