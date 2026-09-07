@@ -2,8 +2,10 @@
 """Pack AUD-0023 vulnerability posture snapshot receipt.
 
 Emits BLOCKED until an independent, fresh-context Claude review PASS that
-TRIED TO FALSIFY the headline count is on disk (catalog `reviewer_requirement`);
-then SUCCESS. Never stubs SUCCESS. Never invents independent-review.json.
+TRIED TO FALSIFY the headline count is on disk (catalog `reviewer_requirement`).
+SUCCESS further requires the real Dependabot alert list (not Advisory-DB
+fallback). After falsify PASS with Dependabot 403, stay BLOCKED (AUD-0060
+pattern). Never stubs SUCCESS. Never invents independent-review.json.
 
 This unit's catalog question explicitly asks for a decay timestamp: "what is
 the exact query timestamp after which this result must be re-queried rather
@@ -172,7 +174,41 @@ def build(primary: dict | None = None) -> dict:
         f"reused, after valid_until={valid_until} ({DECAY_HOURS}h)."
     )
 
-    if success:
+    # audit-finding SUCCESS forbids open P0/P1 defects. Catalog evidence names
+    # the real per-repo Dependabot alert list as probe 2. After falsify PASS
+    # that confirms the 403, keep BLOCKED (AUD-0060/AUD-0056 pattern) rather
+    # than inventing SUCCESS with an Advisory-DB fallback standing in for the
+    # literal alert list. SUCCESS only when review PASS + dependabot_real_ok.
+    dependabot_defect = {
+        "id": "AUD-0023-D-DEPENDABOT-403",
+        "severity": "P1",
+        "status": "open" if residual_dependabot else "resolved",
+        "summary": (
+            f"Real GET repos/.../dependabot/alerts returned HTTP "
+            f"{real_http_status} ('Resource not accessible by integration'); "
+            "second independent source for the real repo closure is unresolved "
+            "-- the Advisory-DB API was used only as a labeled fallback and "
+            f"only for the {cross_check_sample}-package sample and the fixture "
+            "control, never invented as the literal alert list."
+            if residual_dependabot
+            else "Real Dependabot alert list answered."
+        ),
+    }
+    scope_defect = {
+        "id": "AUD-0023-D-SCOPE",
+        "severity": "P3",
+        "status": "open",
+        "summary": (
+            "Python closure has no committed lockfile in this repo "
+            "(no poetry.lock/Pipfile.lock); probe1 substitutes a live "
+            "pip-freeze snapshot of the interpreter that ran AUD-0022's "
+            "probe2. This is the same closure, not a narrower one, but it "
+            "is an environment snapshot rather than a committed artifact -- "
+            "re-running on a different machine could measure a different set."
+        ),
+    }
+
+    if success and not residual_dependabot:
         reviewer = {
             "reviewer_id": rev.get("reviewer_id")
             or "fresh-context-claude-independent-reviewer-AUD-0023",
@@ -201,19 +237,95 @@ def build(primary: dict | None = None) -> dict:
                     "command-center/p2-wave/probes/AUD-0023/independent-review.json"
                 ),
             },
+            dependabot_defect,
+            scope_defect,
+        ]
+    elif success and residual_dependabot:
+        # Review PASSed and confirmed Dependabot 403. Do not invent SUCCESS
+        # (schema + catalog probe-2 gate). Record reviewer PASS; stay BLOCKED.
+        reviewer = {
+            "reviewer_id": rev.get("reviewer_id")
+            or "fresh-context-claude-independent-reviewer-AUD-0023",
+            "verdict": "PASS",
+            "independent": True,
+            "fresh_context": True,
+            "vendor": rev.get("vendor", "anthropic"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": rev.get("notes", ""),
+        }
+        state = "BLOCKED"
+        sentinel = (
+            "FAILED:AUD-0023 vuln-posture snapshot measured "
+            f"distinct_vuln_id_count={distinct_vuln_count} "
+            f"affected_package_count={affected_pkg_count} "
+            f"severity(HIGH={high_count},MODERATE={moderate_count},LOW={low_count}) "
+            f"dependabot_real_ok={dependabot_real_ok} "
+            f"advisory_db_fallback_ok={p2_fallback_ok} control_ok={ctl_ok} "
+            f"query_timestamp={query_timestamp} valid_until={valid_until}; "
+            "blocked-on-dependabot-alerts-403"
+        )
+        failure = {
+            "classification": [
+                "egress-blocked",
+                "detector-failure",
+                "credential-absent",
+            ],
+            "reason": (
+                "Independent fresh-context Claude falsify review PASS confirmed "
+                f"headline counts (distinct_vuln_id_count={distinct_vuln_count}, "
+                f"affected_package_count={affected_pkg_count}, severity "
+                f"HIGH={high_count}/MODERATE={moderate_count}/LOW={low_count}) "
+                f"and Dependabot HTTP {real_http_status}. Catalog evidence "
+                "names the real per-repo Dependabot alert list as probe 2; "
+                "the Advisory-DB fallback is not that list. Receipt stays "
+                "BLOCKED (no stub SUCCESS)."
+            ),
+            "diagnostic_tail": (
+                f"distinct_vuln_id_count={distinct_vuln_count} "
+                f"affected_package_count={affected_pkg_count} "
+                f"dependabot_real_ok={dependabot_real_ok} "
+                f"http_status={real_http_status} "
+                f"advisory_db_fallback_ok={p2_fallback_ok} control_ok={ctl_ok} "
+                f"query_timestamp={query_timestamp} valid_until={valid_until} "
+                "reviewer=PASS"
+            ),
+            "blocked_on": (
+                "Grant the executing token security_events (or Dependabot "
+                "alerts) read scope so probe2 can query the real per-repo "
+                "alert list, then re-pack; do not invent SUCCESS while "
+                f"dependabot_real_ok={dependabot_real_ok}."
+            ),
+            "two_signal_proof": [
+                L.probe(
+                    "source",
+                    "command",
+                    "python3 -B command-center/p2-wave/probes/AUD-0023/probe1_osv_scan.py",
+                    f"distinct_vuln_id_count={distinct_vuln_count} "
+                    f"affected_package_count={affected_pkg_count}",
+                    0 if p1_ok else 1,
+                ),
+                L.probe(
+                    "verifier",
+                    "file-read",
+                    "reviewer.verdict",
+                    "PASS",
+                    0,
+                ),
+            ],
+        }
+        anti = "BLOCKED-after-falsify-PASS-dependabot-403"
+        defects = [
             {
-                "id": "AUD-0023-D-DEPENDABOT-403",
+                "id": "AUD-0023-D-REVIEW",
                 "severity": "P1",
-                "status": "open" if residual_dependabot else "resolved",
+                "status": "resolved",
                 "summary": (
-                    f"Real per-repo Dependabot alert list returned HTTP "
-                    f"{real_http_status}; second source is the Advisory-DB "
-                    "fallback, not the literal Dependabot alert list the "
-                    "catalog names."
-                    if residual_dependabot
-                    else "Real Dependabot alert list answered."
+                    "Independent fresh-context Claude review PASS recorded; "
+                    "receipt left BLOCKED on Dependabot 403"
                 ),
             },
+            dependabot_defect,
+            scope_defect,
         ]
     else:
         reviewer = {
@@ -309,36 +421,8 @@ def build(primary: dict | None = None) -> dict:
                 "status": "open",
                 "summary": "Independent fresh-context Claude falsify-review unpaid.",
             },
-            {
-                "id": "AUD-0023-D-DEPENDABOT-403",
-                "severity": "P1",
-                "status": "open" if residual_dependabot else "resolved",
-                "summary": (
-                    f"Real GET repos/.../dependabot/alerts returned HTTP "
-                    f"{real_http_status} ('Resource not accessible by "
-                    "integration'); second independent source for the real "
-                    "repo closure is unresolved -- the Advisory-DB API was "
-                    "used only as a labeled fallback and only for the "
-                    f"{cross_check_sample}-package sample and the fixture "
-                    "control, never invented as the literal alert list."
-                    if residual_dependabot
-                    else "Real Dependabot alert list answered."
-                ),
-            },
-            {
-                "id": "AUD-0023-D-SCOPE",
-                "severity": "P3",
-                "status": "open",
-                "summary": (
-                    "Python closure has no committed lockfile in this repo "
-                    "(no poetry.lock/Pipfile.lock); probe1 substitutes a live "
-                    "pip-freeze snapshot of the interpreter that ran "
-                    "AUD-0022's probe2. This is the same closure, not a "
-                    "narrower one, but it is an environment snapshot rather "
-                    "than a committed artifact -- re-running on a different "
-                    "machine could measure a different set."
-                ),
-            },
+            dependabot_defect,
+            scope_defect,
         ]
 
     # Seed non-empty downstream_consumers before first schema validate.

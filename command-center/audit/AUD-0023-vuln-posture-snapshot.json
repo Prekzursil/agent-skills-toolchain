@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 39588,
+   "bytes": 40913,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0023-vuln-posture-snapshot.json",
    "role": "primary",
-   "sha256": "1a62d328322d91a185bd973fcebfb14f1d09479ec47ad1c6bc0136c648da595c"
+   "sha256": "bd57d1df0b76dcd9067af3f328213e4ce4f2605251c9fb5b537170a5320792fd"
   },
   {
    "bytes": 10566,
@@ -103,14 +103,22 @@
    "path": "command-center/p2-wave/probes/AUD-0023/fixtures/clean-requirements.txt",
    "role": "fixture",
    "sha256": "0da178fba21a6debdac12539bf4943dc2cac92493381edfeeb9f5bbea8a14b7e"
+  },
+  {
+   "bytes": 16932,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0023/independent-review.json",
+   "role": "supporting",
+   "sha256": "4532818293fa1cd118c59d689e40a5a62f8b513e6d5bac60526af9a5b9cc0ad5"
   }
  ],
  "defects": [
   {
    "id": "AUD-0023-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude falsify-review unpaid."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded; receipt left BLOCKED on Dependabot 403"
   },
   {
    "id": "AUD-0023-D-DEPENDABOT-403",
@@ -217,7 +225,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "BLOCKED-after-falsify-PASS-dependabot-403",
   "artifact_class": "audit-finding",
   "control": {
    "common_ghsa_ids_bad": [
@@ -266,14 +274,14 @@
   "wave": "p2-loop"
  },
  "failure": {
-  "blocked_on": "(1) Dispatch one fresh-context Claude reviewer who has not seen this transcript to try to FALSIFY the headline distinct_vuln_id_count / affected_package_count / severity histogram before PASS. (2) Grant the executing token security_events (or Dependabot alerts) read scope so probe2 can query the real per-repo alert list instead of the Advisory-DB fallback.",
+  "blocked_on": "Grant the executing token security_events (or Dependabot alerts) read scope so probe2 can query the real per-repo alert list, then re-pack; do not invent SUCCESS while dependabot_real_ok=False.",
   "classification": [
-   "blocked-on-independent-review",
+   "egress-blocked",
    "detector-failure",
-   "egress-blocked"
+   "credential-absent"
   ],
-  "diagnostic_tail": "distinct_vuln_id_count=77 affected_package_count=21 dependabot_real_ok=False http_status=403 advisory_db_fallback_ok=True control_ok=True query_timestamp=2026-09-07T22:39:19Z valid_until=2026-09-08T22:39:19Z reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed (probe1 osv-scanner ok=True over 13 real manifests + a 69-package pip-freeze snapshot; probe2 advisory-DB fallback ok=True; detector control ok=True), but catalog reviewer_requirement is unmet. Residual: the real per-repo Dependabot alert list returned HTTP 403 ('Resource not accessible by integration'); this token lacks the security_events scope. The headline's second source is therefore the public GitHub Security Advisories API fallback (same underlying database), not the literal per-repo alert list the catalog names -- not invented as if it were.",
+  "diagnostic_tail": "distinct_vuln_id_count=77 affected_package_count=21 dependabot_real_ok=False http_status=403 advisory_db_fallback_ok=True control_ok=True query_timestamp=2026-09-07T22:39:19Z valid_until=2026-09-08T22:39:19Z reviewer=PASS",
+  "reason": "Independent fresh-context Claude falsify review PASS confirmed headline counts (distinct_vuln_id_count=77, affected_package_count=21, severity HIGH=30/MODERATE=26/LOW=2) and Dependabot HTTP 403. Catalog evidence names the real per-repo Dependabot alert list as probe 2; the Advisory-DB fallback is not that list. Receipt stays BLOCKED (no stub SUCCESS).",
   "two_signal_proof": [
    {
     "command": "python3 -B command-center/p2-wave/probes/AUD-0023/probe1_osv_scan.py",
@@ -288,7 +296,7 @@
     "exit_code": 0,
     "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
     "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
+    "raw_output": "PASS",
     "role": "verifier"
    }
   ]
@@ -297,7 +305,7 @@
   "entry_id": "AUD-0023",
   "manifest_path": "command-center/p2-wave/probes/AUD-0023/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T22:45:15Z"
+  "registered_at": "2026-09-07T22:57:03Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -327,7 +335,7 @@
   "vendor": "anthropic"
  },
  "report": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "BLOCKED-after-falsify-PASS-dependabot-403",
   "control_ids": [
    "AUD0023-C1",
    "AUD0023-C2"
@@ -411,15 +419,16 @@
   "policy": "re-run rather than retry: this result decays after 24h (2026-09-08T22:39:19Z); a stored PASS older than that must be re-queried, not reused. Retrying against a missing input is a detector failure, not a transient."
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Every headline count in the receipt reproduced exactly on a fresh live re-run of all three named probes, and -- more importantly -- on independently-written re-implementations that do not import the implementer's summarizer/comparator code (hand-typed osv-scanner target list + standalone dedup script for probe1; direct `gh api` calls bypassing probe2's helper functions). I specifically tried several distinct falsification angles: shared summarizer bug, fabricated 403, fabricated Advisory-DB counts, sample-cap cherry-picking (checked the one package the 15-cap silently excluded and found it would have corroborated too), inflated affected_package_count from the repo's documented skills/ vs .agents/skills/ duplicate file and cross-project duplicate npm packages, and an apparent severity-sum/vuln-id-count mismatch (58 vs 77, explained by 34 ids lacking a severity field). None of these broke a claimed headline number; the affected_package_count and severity-sum items are documented here as legitimate methodological nuances (occurrence-count vs distinct-identity; partial severity coverage) rather than falsifications, since the receipt's own method fields already describe the counting convention used and never claim the alternate interpretation. I did not promote the receipt; state=BLOCKED and reviewer.verdict=NOT-REVIEWED remain exactly as found on disk, and I reverted the timestamp-only diffs my probe re-runs produced before writing this review artifact so the branch stays clean. This independent-review.json is a separate artifact for a downstream packer step (not run by me) to consult when deciding whether to promote the receipt.",
+  "reviewed_at": "2026-09-07T22:50:00Z",
+  "reviewer_id": "aud-0023-claude-falsify",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0023 vuln-posture snapshot measured distinct_vuln_id_count=77 affected_package_count=21 severity(HIGH=30,MODERATE=26,LOW=2) dependabot_real_ok=False advisory_db_fallback_ok=True control_ok=True query_timestamp=2026-09-07T22:39:19Z valid_until=2026-09-08T22:39:19Z; blocked-on-independent-review",
+ "sentinel": "FAILED:AUD-0023 vuln-posture snapshot measured distinct_vuln_id_count=77 affected_package_count=21 severity(HIGH=30,MODERATE=26,LOW=2) dependabot_real_ok=False advisory_db_fallback_ok=True control_ok=True query_timestamp=2026-09-07T22:39:19Z valid_until=2026-09-08T22:39:19Z; blocked-on-dependabot-alerts-403",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0023",
  "state": "BLOCKED",
  "tests": [
@@ -449,7 +458,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T22:45:15Z",
+  "ended_at": "2026-09-07T22:57:03Z",
   "started_at": "2026-09-07T22:39:19Z"
  },
  "unit_id": "AUD-0023"
