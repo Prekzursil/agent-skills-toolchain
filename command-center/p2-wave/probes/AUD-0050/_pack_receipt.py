@@ -37,7 +37,8 @@ def load_review() -> dict | None:
     vendor = (rev.get("vendor") or "").lower()
     if vendor not in {"openai", "codex"}:
         return None
-    if rev.get("reran_probe") not in {2, "2", "probe2"}:
+    # Accept either explicit reran_probe or boolean probe2_rerun (reviewer convention).
+    if rev.get("reran_probe") not in {2, "2", "probe2"} and not rev.get("probe2_rerun"):
         return None
     return rev
 
