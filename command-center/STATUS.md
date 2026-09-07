@@ -8,12 +8,12 @@ This file is a derived measurement, not a hand-written claim. Every number below
 
 ## Stamps
 
-- generating_commit: `4513bd415d6e61353375aa4ea65a6003c99d0ae8`
+- generating_commit: `2621bdefbaf3aa1c8efea19bbb8dd3b0cd873f91`
 - generation_time: `2026-08-09T10:57:48+00:00` (newest event `ts`/`timestamp`/`t`, or epoch when event_records==0)
 - generator: `command-center/status_derive.py@v1`
 - reducer: `platform/lib/completion_predicate.py@v1`
 - events_sha256: `c0052a2332727a9ea4f8945687aa5bcea14790f5fdd4d61eef5b18b0ef32b096`
-- receipts_inventory_sha256: `da1c2c4165da7e15b870582cf9b254fb793d52abed2b89b240360c0c4d5d3cde`
+- receipts_inventory_sha256: `3780bb167cf8c5087d9443ff3b0f1bdadc7df591e1ad880f2fe8e7dc84618886`
 
 ## Metrics
 
@@ -21,11 +21,11 @@ This file is a derived measurement, not a hand-written claim. Every number below
 |---|---|---|
 | event_records | 2 | `count(JSON objects parsed from non-blank lines in command-center/events/EVENTS.jsonl)` |
 | event_parse_errors | 0 | `count(non-blank EVENTS.jsonl lines that fail json.loads or are non-objects)` |
-| receipt_files | 140 | `count(*.json files under command-center/receipts/)` |
-| declared_state_BLOCKED | 61 | `count(receipts where receipt.state == 'BLOCKED')` |
+| receipt_files | 142 | `count(*.json files under command-center/receipts/)` |
+| declared_state_BLOCKED | 63 | `count(receipts where receipt.state == 'BLOCKED')` |
 | declared_state_SUCCESS | 79 | `count(receipts where receipt.state == 'SUCCESS')` |
 | predicate_COMPLETE | 0 | `count(receipts where completion_predicate.evaluate(...).verdict == 'COMPLETE')` |
-| predicate_INCOMPLETE | 139 | `count(receipts where completion_predicate.evaluate(...).verdict == 'INCOMPLETE')` |
+| predicate_INCOMPLETE | 141 | `count(receipts where completion_predicate.evaluate(...).verdict == 'INCOMPLETE')` |
 | predicate_INDETERMINATE | 1 | `count(receipts where completion_predicate.evaluate(...).verdict == 'INDETERMINATE')` |
 | predicate_EVAL_ERROR | 0 | `count(receipts where completion_predicate.evaluate(...).verdict == 'EVAL_ERROR')` |
 | board_status | MEASURED | `NOT-STARTED if event_records==0 else MEASURED; never GREEN/COMPLETE/SUCCESS when events are empty` |

@@ -161,7 +161,9 @@ def build() -> dict:
         "artifacts": [
             L.art(DERIVER, "primary"),
             L.art(GATE, "supporting"),
-            L.art(STATUS, "primary"),
+            # STATUS.md is derived FROM receipts including this one; embedding its
+            # bytes here creates a hash cycle with receipts_inventory_sha256. The
+            # gate probe below is the measurement that STATUS matches derivation.
             L.art(f"{PROBE_DIR}/derive.out", "log"),
             L.art(f"{PROBE_DIR}/gate.out", "log"),
             L.art(f"{PROBE_DIR}/controls.out", "log"),
@@ -351,7 +353,20 @@ def build() -> dict:
         print(f"WARN: schema issues ({len(errs)}): {errs[:12]}", file=sys.stderr)
 
     ar.write_json_atomic(L.REPO / OUT, receipt)
+
+    # After the receipt is on disk, re-derive STATUS so receipts_inventory_sha256
+    # includes this unit, then re-check the hand-edit gate.
+    d2_rc, d2_out = _run([sys.executable, DERIVER])
+    g2_rc, g2_out = _run([sys.executable, GATE])
+    (L.REPO / PROBE_DIR / "derive.out").write_text(d2_out, encoding="utf-8")
+    (L.REPO / PROBE_DIR / "gate.out").write_text(g2_out, encoding="utf-8")
+    if d2_rc != 0 or g2_rc != 0:
+        raise SystemExit(
+            f"CC-0013 post-write derive/gate failed:\nderive={d2_out}\ngate={g2_out}"
+        )
+
     print(f"BLOCKED:{UNIT} wrote {OUT} bytes={(L.REPO / OUT).stat().st_size}")
+    print(f"  post-write gate: {g2_out.strip()}")
     return ar.read_json(L.REPO / OUT)
 
 
