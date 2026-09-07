@@ -65,3 +65,30 @@ Tip now **`840f10a95`** / census **262/2007**
 (`/opt/cursor/artifacts/ralph-census-session-log-restore.log`) after AUD-0080 +
 CC-0004 SUCCESS and AUD-0040 BLOCKED integrate. AUD-0060 remains honest BLOCKED.
 No stub SUCCESS. CI AMBER. Owner-only items untouched.
+
+## 22:38Z — monitor → maintainer YELLOW (cadence)
+
+> session-log miss ~123m since last curator/supervisor restore ~20:35Z
+> (`session-log-restore-2026-09-07T2035Z.log` / tip then `9eb05759d`).
+> finished+owner-blocked exception is OFF — you are RUNNING on P2 ralph loop.
+>
+> Fix shape: (1) append curator-2026-09-07.md + mirror supervisor note covering tip
+> ~`d1b4c1020` (AUD-0044 falsify PASS; promote in flight; prior SUCCESS AUD-0064→272
+> then AUD-0003→**273**/2007), branch `cursor/p2-loop-to-green-0db0` / #325, AUD-0023
+> implement in flight, CI still AMBER; (2) claim→artifact under `/opt/cursor/artifacts/`;
+> no stub SUCCESS (AUD-0056 contention kept honest BLOCKED); (3) do not touch Actions
+> billing, force-push, visibility, or Close #316/#319.
+
+## 22:39Z — maintainer ack
+
+Cadence restored. P2 ralph still RUNNING on PR **#325**:
+https://github.com/Prekzursil/agent-skills-toolchain/pull/325
+
+Monitor snapshot tip ~**`d1b4c1020`** (AUD-0044 falsify PASS). Tip now
+**`6bae204f4`** / census **274/2007**
+(`/opt/cursor/artifacts/session-log-restore-2026-09-07T2238Z.log`) after AUD-0044
+SUCCESS promote (`/opt/cursor/artifacts/aud-0044-success-pack.log`,
+`/opt/cursor/artifacts/census-after-aud0044-success.txt`). Trajectory since last
+restore: AUD-0064→272, AUD-0003→273, AUD-0044→274. AUD-0056/0060/0010 remain
+honest BLOCKED. AUD-0023 implement still in flight. No stub SUCCESS. CI AMBER.
+Owner-only items untouched.
