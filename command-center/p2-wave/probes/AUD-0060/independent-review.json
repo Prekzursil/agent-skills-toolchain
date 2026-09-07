@@ -1,0 +1,138 @@
+{
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0060",
+  "vendor": "anthropic",
+  "independent": true,
+  "fresh_context": true,
+  "verdict": "PASS",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "reviewed_at": "2026-09-07T20:37:30Z",
+  "base_sha": "840f10a95d6949772af577c5732256677ea40558",
+  "reviewed_tip_sha": "840f10a95d6949772af577c5732256677ea40558",
+  "unit_id": "AUD-0060",
+  "artifact_path": "command-center/audit/AUD-0060-mcp-tool-surface-inventory.json",
+  "artifact_state_observed": "BLOCKED",
+  "headline_under_review": "enabled_declared=16 unreachable=16 session_tools=19 session_schema_bytes=30725 planted_fake_mcp_tools=1 schema_bytes=108 hist_call_verified=16; owner_host_mcp_reachable=False",
+  "notes": "Fresh-context independent Claude-style falsify review of AUD-0060 with no prior exposure to the authoring transcript. Goal: FALSIFY headline counts (enabled_declared=16, unreachable=16, session_tools=19, session_schema_bytes=30725, planted_fake_mcp_tools=1/schema_bytes=108, live_nonzero=4, hist_call_verified=16) and planted both-states controls — by re-running probes and independent remeasure, not by re-reading the receipt narrative. Could not falsify measurable claims. Probe1 EXIT=0 and probe2 EXIT=0 reproduced all headline fields with no semantic drift; restored committed probe1/probe2 json+raw after re-runs. Independent stdio handshake (no probe1 trust): fake-mcp tool_count=1 names=['whoami'] schema_bytes=108; planted-zero tool_count=0 schema_bytes=2; whoami tools/call ok. Independent AUD-0015 ENABLED-DECLARED recount=16 with identical name set; ~/.claude.json and ~/.mcp.json absent so owner_host_mcp_reachable=false — did NOT invent live owner-host tool counts. Live GetDynamicTools census this session: Browser-use/Chrome-devtools/Context-mode still loading (tool_count left null); cursor=1, cursor-cloud=11, cursor-subscriptions=7 → session_tools=19. Fixture dump tool names match census exactly; session_schema_bytes=30725 reproduces under json.dumps(tools, sort_keys=True) default separators (compact separators yield 29987 — method note in observations, not a count lie). Attempt to treat hist capability-matrix total_tools=707 as the headline fails: different scope (historical Windows host). Attempt to invent 0 for UNREACHABLE owner-host servers would violate AUD0060-C3; probe1 keeps tool_count=null for all 16. Packer SUCCESS requires BOTH this PASS and owner_host_mcp_reachable=true; reachability remains false, so receipt must stay BLOCKED. Did not run _pack_receipt.py, did not rewrite the audit JSON, did not promote to SUCCESS. Only this independent-review.json is committed. owner_host_mcp_reachable=false.",
+  "owner_host_mcp_reachable": false,
+  "falsification_attempts": [
+    {
+      "id": 1,
+      "target": "planted fake-mcp tool_count=1 / schema_bytes=108 (tests_required non-zero on connected)",
+      "method": "Independent StdioChild initialize+tools/list against tools/mcp/mcp-http-host/_fake_mcp_server.py (no probe1 imports); also re-run probe1",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Independent: tool_count=1 tool_names=['whoami'] schema_bytes=108 (compact separators as probe1). Probe1 re-run EXIT=0 control.fired_nonzero_on_connected=True. Log: /opt/cursor/artifacts/aud0060-review-independent-remeasure.log"
+    },
+    {
+      "id": 2,
+      "target": "planted zero-tools server tool_count=0 (both-states emptiness)",
+      "method": "Independent StdioChild tools/list against fixtures/planted_zero_tools_server.py",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Independent: tool_count=0 tool_names=[] schema_bytes=2; probe1 silent_zero_on_empty=True. Counter reports exact zero on empty fixture, not null."
+    },
+    {
+      "id": 3,
+      "target": "session_tool_count_sum=19 / per-namespace census cursor=1 cursor-cloud=11 cursor-subscriptions=7",
+      "method": "Live GetDynamicTools catalog + per-namespace lookups this session; set-compare fixture dumps and census JSON",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Live ready namespaces: cursor=[GenerateImage]; cursor-cloud=11 tools (batch-fetch-details…trigger-environment-build); cursor-subscriptions=7 tools. Loading namespaces Browser-use/Chrome-devtools/Context-mode keep null (not invented 0). Sum of ready tool_counts=19. Fixture dump name sets equal census. Log: /opt/cursor/artifacts/aud0060-review-independent-remeasure.log"
+    },
+    {
+      "id": 4,
+      "target": "session_schema_bytes_sum=30725",
+      "method": "Re-serialize fixture tool dumps with compact vs default json.dumps separators; compare to census claims",
+      "result": "NOT-FALSIFIED",
+      "evidence": "default sort_keys dumps: cursor=2254, cursor-cloud=19617, cursor-subscriptions=8854, sum=30725 (exact match). Compact separators sum=29987 — matches probe1 planted method, not the session observation method which documents len(json.dumps(tools, sort_keys=True)). Serialization variant does not move the published claim under its stated method. Log: /opt/cursor/artifacts/aud0060-review-schema-falsify.log"
+    },
+    {
+      "id": 5,
+      "target": "enabled_declared=16 unreachable=16 / no invented owner-host tool_count",
+      "method": "Independent filter of AUD-0015 report.servers effective_state=ENABLED-DECLARED; check ~/.claude.json presence; inspect probe1 servers[].tool_count",
+      "result": "NOT-FALSIFIED",
+      "evidence": "ENABLED-DECLARED names=16 exact set match probe1. HOME_CLAUDE_JSON=False HOME_MCP_JSON=False. probe1 invented numeric owner-host counts=0 (all null/UNREACHABLE). owner_host_mcp_reachable=false confirmed."
+    },
+    {
+      "id": 6,
+      "target": "live_nonzero_server_count=4 / enumerator_reaching",
+      "method": "Recount planted (>0) + session ready namespaces with tool_count>0",
+      "result": "NOT-FALSIFIED",
+      "evidence": "planted fake-mcp (1) + cursor + cursor-cloud + cursor-subscriptions = 4 live nonzero servers; enumerator_reaching=True. Probe1 re-run identical."
+    },
+    {
+      "id": 7,
+      "target": "hist_call_verified=16 / inflate headline via capability-matrix total_tools=707",
+      "method": "Re-count call_verified rows in command-center/mcp-audit/capability-matrix.json; attempt to substitute total_tools as headline",
+      "result": "NOT-FALSIFIED",
+      "evidence": "call_verified_count=16 matches summary. total_tools=707 is historical Windows host exposure, not the linux-cursor-cloud session headline — scope mismatch, not a falsification of session_tools=19 / enabled=16."
+    },
+    {
+      "id": 8,
+      "target": "planted usage tracer whoami tools/call (probe2 control)",
+      "method": "Independent tools/call whoami against fake-mcp; re-run probe2_usage_trace.py",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Independent whoami ok=True; probe2 EXIT=0 control.ok=True planted_invocations=1; owner_session_corpus_mounted=False left null (not invented zero-use)."
+    },
+    {
+      "id": 9,
+      "target": "receipt promotion / SUCCESS on planted-only substrate",
+      "method": "Confirm packed audit state remains BLOCKED; do not run packer; verify success predicate needs owner_host_mcp_reachable",
+      "result": "NOT-FALSIFIED",
+      "evidence": "artifact_state_observed=BLOCKED; reviewer still NOT-REVIEWED in packed receipt; did_not_promote=true; receipt_state_expected=BLOCKED; owner_host_mcp_reachable=false so packer SUCCESS gate remains closed even after this PASS."
+    }
+  ],
+  "confirmed": {
+    "enabled_declared_count": 16,
+    "unreachable_count": 16,
+    "session_tool_count_sum": 19,
+    "session_schema_bytes_sum": 30725,
+    "session_namespaces": {
+      "cursor": 1,
+      "cursor-cloud": 11,
+      "cursor-subscriptions": 7,
+      "Browser-use": null,
+      "Chrome-devtools": null,
+      "Context-mode": null
+    },
+    "planted_fake_mcp_tool_count": 1,
+    "planted_fake_mcp_schema_bytes": 108,
+    "planted_zero_tools_tool_count": 0,
+    "live_nonzero_server_count": 4,
+    "historical_call_verified_count": 16,
+    "owner_host_mcp_reachable": false,
+    "probe1_ok": true,
+    "probe2_ok": true,
+    "receipt_state_BLOCKED": true
+  },
+  "confirmed_counts": {
+    "enabled_declared": 16,
+    "unreachable": 16,
+    "session_tools": 19,
+    "session_schema_bytes": 30725,
+    "planted_fake_mcp_tools": 1,
+    "planted_fake_mcp_schema_bytes": 108,
+    "planted_zero_tools": 0,
+    "live_nonzero_servers": 4,
+    "hist_call_verified": 16
+  },
+  "falsified": [],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud-0060-review-0db0 origin/cursor/p2-loop-to-green-0db0",
+    "git rev-parse HEAD  # 840f10a95d6949772af577c5732256677ea40558",
+    "python3 -B command-center/p2-wave/probes/AUD-0060/probe1_tool_surface.py",
+    "python3 -B command-center/p2-wave/probes/AUD-0060/probe2_usage_trace.py",
+    "independent StdioChild tools/list + tools/call whoami vs _fake_mcp_server.py and planted_zero_tools_server.py",
+    "independent AUD-0015 ENABLED-DECLARED recount + ~/.claude.json / ~/.mcp.json presence",
+    "GetDynamicTools catalog + namespace lookups (cursor, cursor-cloud, cursor-subscriptions)",
+    "fixture dump schema_bytes recompute (default vs compact separators)",
+    "capability-matrix.json call_verified recount",
+    "restore committed probe1/probe2 json+raw after re-runs; leave audit receipt untouched"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0060-review-probe1.log",
+    "/opt/cursor/artifacts/aud0060-review-probe2.log",
+    "/opt/cursor/artifacts/aud0060-review-independent-remeasure.log",
+    "/opt/cursor/artifacts/aud0060-review-schema-bytes.log",
+    "/opt/cursor/artifacts/aud0060-review-schema-falsify.log"
+  ],
+  "promotion_note": "PASS for parent to consume as independent falsify review. Do NOT invent SUCCESS. Receipt remains BLOCKED until owner_host_mcp_reachable=true AND implementer records this review; this reviewer did not promote."
+}
