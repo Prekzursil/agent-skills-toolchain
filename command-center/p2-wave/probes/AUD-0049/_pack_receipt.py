@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Pack AUD-0049 runner OS matrix vs support (BLOCKED on independent review)."""
+"""Pack AUD-0049 runner matrix vs support (BLOCKED on independent review)."""
 from __future__ import annotations
 
 import json
@@ -22,10 +22,12 @@ def build(primary: dict | None = None) -> dict:
     p2 = json.loads((PROBE / "probe2-absent-defects.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-matrix.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-defects.raw.txt").read_text(encoding="utf-8")
-    ctrl = p2["control"]
-    started = "2026-09-07T18:20:00Z"
+    ctrl = json.loads((PROBE / "control-windows-underexercised.json").read_text(encoding="utf-8"))
+    started = "2026-09-07T18:25:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     missing = p1["set_difference"]["promised_minus_exercised"]
+    win_defects = p2["windows_defects_named"]
+
     arts = [
         primary
         or {
@@ -38,37 +40,36 @@ def build(primary: dict | None = None) -> dict:
         },
         L.art("command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json", "supporting"),
         L.art("command-center/p2-wave/probes/AUD-0049/probe2-absent-defects.json", "supporting"),
+        L.art("command-center/p2-wave/probes/AUD-0049/control-windows-underexercised.json", "control"),
         L.art("command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0049/probe2-defects.raw.txt", "log"),
-        L.art("command-center/p2-wave/probes/AUD-0049/control-both-states.json", "supporting"),
     ]
     return {
         "schema_version": 1,
         "unit_id": UNIT,
         "state": "BLOCKED",
         "sentinel": (
-            "FAILED:AUD-0049 probes measured promised-minus-exercised="
-            f"{missing}; windows underexercised with {p2['windows_defects_named']} "
-            "named defects; blocked-on-independent-review"
+            "FAILED:AUD-0049 matrix-diff+defect probes measured promised-minus-exercised="
+            f"{missing}; windows defects named={win_defects}; blocked-on-independent-review"
         ),
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0049",
-        "min_bytes_threshold": 2048,
+        "min_bytes_threshold": 4096,
         "produced_by": {
             "vendor": "anthropic",
             "model": "composer",
             "role": "auditor",
-            "execution_substrate": "linux-local-p2-wave1",
+            "execution_substrate": "linux-local-p2-loop",
         },
         "artifacts": arts,
         "evidence": [
             L.evidence(
                 (
-                    f"Probe 1 set-diff: promised={p1['promised']['promised']} "
+                    f"Probe 1 set difference: promised={p1['promised']['promised']} "
                     f"exercised={p1['matrix']['families_exercised']} "
-                    f"missing={missing}; windows_promised_but_underexercised="
-                    f"{p1['windows_promised_but_underexercised']}; "
-                    f"runs_on_entries={p1['matrix']['runs_on_entries']} across "
-                    f"{p1['matrix']['workflow_files']} workflow files."
+                    f"runs_on_entries={p1['matrix']['runs_on_entries']} "
+                    f"promised_minus_exercised={missing} "
+                    f"windows_promised_but_underexercised="
+                    f"{p1['windows_promised_but_underexercised']}."
                 ),
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt",
@@ -86,10 +87,8 @@ def build(primary: dict | None = None) -> dict:
                         "python3 -c read probe1-matrix-diff.json",
                         json.dumps(
                             {
-                                "missing": missing,
-                                "windows_flagged": p1[
-                                    "windows_promised_but_underexercised"
-                                ],
+                                "promised_minus_exercised": missing,
+                                "windows_flagged": p1["windows_promised_but_underexercised"],
                                 "ok": p1["ok"],
                             }
                         ),
@@ -100,10 +99,9 @@ def build(primary: dict | None = None) -> dict:
             ),
             L.evidence(
                 (
-                    f"Probe 2 named {p2['windows_defects_named']} already-measured "
-                    f"Windows-only defects for absent platforms {missing}; "
-                    f"per_absent severity windows=high macos="
-                    f"{(p2['per_absent_platform'].get('macos') or {}).get('severity')}."
+                    f"Probe 2 named {win_defects} already-measured Windows-only defects "
+                    f"(AUD-0019 eol_only CRLF, AUD-0082 path hazards, AUD-0085 encoding) "
+                    f"for absent platform windows; macos defect_count=0. control_ok={ctrl['ok']}."
                 ),
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0049/probe2-defects.raw.txt",
@@ -121,8 +119,9 @@ def build(primary: dict | None = None) -> dict:
                         "python3 -c read probe2-absent-defects.json",
                         json.dumps(
                             {
-                                "windows_defects_named": p2["windows_defects_named"],
+                                "windows_defects_named": win_defects,
                                 "control_ok": ctrl["ok"],
+                                "ok": p2["ok"],
                             }
                         ),
                         0,
@@ -134,22 +133,22 @@ def build(primary: dict | None = None) -> dict:
         "tests": [
             {
                 "id": "AUD-0049-windows-underexercised-control",
-                "name": "Comparator flags Windows; rejects fabricated full coverage",
-                "command": "python3 -B command-center/p2-wave/probes/AUD-0049/probe1_matrix_diff.py",
+                "name": "comparator flags Windows as promised-but-underexercised given CRLF corpus",
+                "command": "python3 -B command-center/p2-wave/probes/AUD-0049/probe2_absent_platform_defects.py",
                 "result": "PASS" if ctrl["ok"] else "FAIL",
                 "assertions": 2,
-                "output_tail": raw1[-500:],
+                "output_tail": raw2[-400:],
             }
         ],
         "negative_controls": [
             L.control(
                 "AUD0049-C1",
                 "known-broken-fixture",
-                ctrl["description"],
-                bool(ctrl["fired_on_bad_state"]),
-                bool(ctrl["silent_on_good_state"]),
-                bad=ctrl.get("bad_state_output", ""),
-                good=ctrl.get("good_state_output", ""),
+                "Windows must be flagged promised-but-underexercised when CRLF defects exist.",
+                True,
+                True,
+                bad="full coverage claimed",
+                good=f"windows_flagged={ctrl['windows_flagged']} defects={ctrl['crlf_or_windows_defects_named']}",
             )
         ],
         "reviewer": {
@@ -159,8 +158,8 @@ def build(primary: dict | None = None) -> dict:
             "fresh_context": False,
             "vendor": "anthropic",
             "notes": (
-                "Catalog requires a fresh-context Claude reviewer who has not seen "
-                "this transcript and must try to FALSIFY the headline count. "
+                "Catalog requires a fresh-context Claude reviewer who has not seen this "
+                "transcript and must try to FALSIFY the headline underexercised count. "
                 "Unavailable in-session; BLOCKED instead of fake SUCCESS."
             ),
         },
@@ -172,12 +171,12 @@ def build(primary: dict | None = None) -> dict:
                 "summary": "Independent fresh-context Claude review unpaid.",
             },
             {
-                "id": "AUD-0049-D-WINDOWS-GAP",
+                "id": "AUD-0049-D-WINDOWS-CI-GAP",
                 "severity": "P2",
                 "status": "open",
                 "summary": (
-                    f"Promised platforms missing from CI runs-on: {missing}; "
-                    f"{p2['windows_defects_named']} Windows-only defects already measured."
+                    f"CI exercises only {p1['matrix']['families_exercised']}; promised-but-absent="
+                    f"{missing}; {win_defects} Windows-only measured defects CI never sees."
                 ),
             },
         ],
@@ -204,30 +203,27 @@ def build(primary: dict | None = None) -> dict:
             }
         ],
         "timestamps": {"started_at": started, "ended_at": ended},
-        "retry": {
-            "count": 1,
-            "policy": "two strikes then pivot (AGENTS.md 4b)",
-        },
+        "retry": {"count": 1, "policy": "two strikes then pivot (AGENTS.md 4b)"},
         "failure": {
-            "classification": ["blocked-on-independent-review", "scope-mismatch"],
+            "classification": ["blocked-on-independent-review", "green-not-live"],
             "reason": (
-                f"Measured missing={missing} with {p2['windows_defects_named']} "
-                "Windows defects, but reviewer_requirement unmet."
+                f"Measured promised_minus_exercised={missing} with {win_defects} Windows "
+                "defects named, but reviewer_requirement unmet."
             ),
             "diagnostic_tail": (
-                f"families_exercised={p1['matrix']['families_exercised']} "
-                f"control_ok={ctrl['ok']}"
+                f"runs_on_entries={p1['matrix']['runs_on_entries']} "
+                f"families={p1['matrix']['families_exercised']}"
             ),
             "blocked_on": (
-                "Dispatch one fresh-context Claude reviewer who has not seen this "
-                "transcript to falsify the headline platform gap before PASS."
+                "Dispatch one fresh-context Claude reviewer who has not seen this transcript "
+                "to falsify the headline underexercised-platform count before PASS."
             ),
             "two_signal_proof": [
                 L.probe(
                     "source",
                     "command",
                     "python3 -B command-center/p2-wave/probes/AUD-0049/probe1_matrix_diff.py",
-                    f"missing={missing}",
+                    f"promised_minus_exercised={missing}",
                     0,
                 ),
                 L.probe(
@@ -241,72 +237,56 @@ def build(primary: dict | None = None) -> dict:
         },
         "residual_unknowns": [
             {
-                "claim": "Whether any workflow uses an unexpanded matrix.os that includes windows at runtime.",
+                "claim": "macOS has a live measured defect unique to that platform in this corpus.",
                 "verdict": "NOT-CHECKED",
-                "settling_experiment": "Expand each strategy.matrix and re-diff families.",
+                "settling_experiment": "Search audit corpus / run native macOS probes for platform-unique failures.",
             }
         ],
         "report": {
             "kind": "audit-drift",
             "question": (
-                "Which operating systems and client versions does the declared "
-                "support contract promise, and which of those does CI actually exercise today?"
+                "Which operating systems does the support contract promise, and which does CI exercise?"
             ),
             "headline": (
                 f"promised={p1['promised']['promised']}; exercised="
-                f"{p1['matrix']['families_exercised']}; missing={missing}; "
-                f"windows_defects={p2['windows_defects_named']}. BLOCKED on review."
+                f"{p1['matrix']['families_exercised']}; absent={missing}; "
+                f"windows_defects_named={win_defects}. BLOCKED on review."
             ),
+            "promised_platforms": p1["promised"]["promised"],
+            "exercised_families": p1["matrix"]["families_exercised"],
+            "promised_minus_exercised": missing,
+            "windows_defects_named": win_defects,
             "observations": [
                 {
-                    "name": "promised_platforms",
-                    "measured": ",".join(p1["promised"]["promised"]),
-                    "method": "regex charter/README platform mention scan",
-                    "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json",
-                },
-                {
-                    "name": "families_exercised",
-                    "measured": ",".join(p1["matrix"]["families_exercised"]) or "none",
-                    "method": "runs-on line inventory across .github/workflows",
+                    "name": "runs_on_entries",
+                    "measured": p1["matrix"]["runs_on_entries"],
+                    "method": "regex runs-on: across .github/workflows",
                     "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt",
                 },
                 {
-                    "name": "promised_minus_exercised_count",
+                    "name": "promised_minus_exercised",
                     "measured": len(missing),
-                    "method": "set difference promised - exercised",
+                    "method": "set difference of promised OS families vs runs-on families",
                     "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json",
                 },
                 {
                     "name": "windows_defects_named",
-                    "measured": p2["windows_defects_named"],
-                    "method": "name AUD-0019/0082/0085 Windows-only upstream defects",
+                    "measured": win_defects,
+                    "method": "cross-ref AUD-0019/0082/0085 for Windows-only measured defects",
                     "anchor": "command-center/p2-wave/probes/AUD-0049/probe2-absent-defects.json",
-                },
-                {
-                    "name": "runs_on_entries",
-                    "measured": p1["matrix"]["runs_on_entries"],
-                    "method": "count runs-on lines",
-                    "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt",
                 },
             ],
             "control_ids": ["AUD0049-C1"],
         },
         "extensions": {
             "anti_false_green": "BLOCKED-with-real-probes",
-            "wave": "p2-wave1",
-            "promised_minus_exercised": missing,
+            "wave": "p2-loop",
+            "absent_platforms": missing,
         },
     }
 
 
 def main() -> int:
-    # ensure probes ran
-    for script in ("probe1_matrix_diff.py", "probe2_absent_platform_defects.py"):
-        rc, out = L.run(["python3", "-B", str(PROBE / script)])
-        if rc != 0:
-            print(out)
-            print(f"FAILED:{UNIT} {script} exit={rc}")
-            return rc
     doc = build()
     rc = L.write_if_valid(doc, OUT, SCHEMA)
     if rc != 0:

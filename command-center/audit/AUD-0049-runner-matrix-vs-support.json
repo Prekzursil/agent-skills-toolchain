@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 12545,
+   "bytes": 11874,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0049-runner-matrix-vs-support.json",
    "role": "primary",
-   "sha256": "4c82f4edb9596e6abf358da2f4d380e9657a93208e0b479a4a8189b732755bb1"
+   "sha256": "3d958e3378181964274782343209ce84cdfc64f27368967bf3563d88a4689d04"
   },
   {
    "bytes": 4890,
@@ -25,6 +25,14 @@
    "sha256": "9d4a08395254e035d5e2a008fabfca46393fe9c1d2c226cb4963ee2ad560fe7f"
   },
   {
+   "bytes": 980,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0049/control-windows-underexercised.json",
+   "role": "control",
+   "sha256": "5815e644078fc7dcbd08d71d24adad3fab2f9949470441e420c2917cfeb7e15b"
+  },
+  {
    "bytes": 1681,
    "eol": "LF",
    "exists": true,
@@ -39,14 +47,6 @@
    "path": "command-center/p2-wave/probes/AUD-0049/probe2-defects.raw.txt",
    "role": "log",
    "sha256": "99d344845581610d8cbb6ca5108b2f7a7b3ca718eabf5ebb51616b20d20bca67"
-  },
-  {
-   "bytes": 917,
-   "eol": "LF",
-   "exists": true,
-   "path": "command-center/p2-wave/probes/AUD-0049/control-both-states.json",
-   "role": "supporting",
-   "sha256": "54345ec830a32bc08a7a799d394184ac1576587c40babcc10f1c26cfa14bfc60"
   }
  ],
  "defects": [
@@ -57,10 +57,10 @@
    "summary": "Independent fresh-context Claude review unpaid."
   },
   {
-   "id": "AUD-0049-D-WINDOWS-GAP",
+   "id": "AUD-0049-D-WINDOWS-CI-GAP",
    "severity": "P2",
    "status": "open",
-   "summary": "Promised platforms missing from CI runs-on: ['macos', 'windows']; 3 Windows-only defects already measured."
+   "summary": "CI exercises only ['linux']; promised-but-absent=['macos', 'windows']; 3 Windows-only measured defects CI never sees."
   }
  ],
  "downstream_consumers": [
@@ -83,7 +83,7 @@
  "evidence": [
   {
    "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt",
-   "claim": "Probe 1 set-diff: promised=['linux', 'macos', 'windows'] exercised=['linux'] missing=['macos', 'windows']; windows_promised_but_underexercised=True; runs_on_entries=19 across 12 workflow files.",
+   "claim": "Probe 1 set difference: promised=['linux', 'macos', 'windows'] exercised=['linux'] runs_on_entries=19 promised_minus_exercised=['macos', 'windows'] windows_promised_but_underexercised=True.",
    "confidence": "almost-certain",
    "probes": [
     {
@@ -99,7 +99,7 @@
      "exit_code": 0,
      "fingerprint": "2b622548fe81a0d37e78f9b48652707b",
      "method": "file-read",
-     "raw_output": "{\"missing\": [\"macos\", \"windows\"], \"windows_flagged\": true, \"ok\": true}",
+     "raw_output": "{\"promised_minus_exercised\": [\"macos\", \"windows\"], \"windows_flagged\": true, \"ok\": true}",
      "role": "verifier"
     }
    ],
@@ -107,7 +107,7 @@
   },
   {
    "anchor": "command-center/p2-wave/probes/AUD-0049/probe2-defects.raw.txt",
-   "claim": "Probe 2 named 3 already-measured Windows-only defects for absent platforms ['macos', 'windows']; per_absent severity windows=high macos=medium.",
+   "claim": "Probe 2 named 3 already-measured Windows-only defects (AUD-0019 eol_only CRLF, AUD-0082 path hazards, AUD-0085 encoding) for absent platform windows; macos defect_count=0. control_ok=True.",
    "confidence": "almost-certain",
    "probes": [
     {
@@ -123,7 +123,7 @@
      "exit_code": 0,
      "fingerprint": "a79dbb9ae23e5e4cb0b006f64422990a",
      "method": "byte-compare",
-     "raw_output": "{\"windows_defects_named\": 3, \"control_ok\": true}",
+     "raw_output": "{\"windows_defects_named\": 3, \"control_ok\": true, \"ok\": true}",
      "role": "verifier"
     }
    ],
@@ -131,28 +131,28 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
-  "promised_minus_exercised": [
+  "absent_platforms": [
    "macos",
    "windows"
   ],
-  "wave": "p2-wave1"
+  "anti_false_green": "BLOCKED-with-real-probes",
+  "wave": "p2-loop"
  },
  "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to falsify the headline platform gap before PASS.",
+  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to falsify the headline underexercised-platform count before PASS.",
   "classification": [
    "blocked-on-independent-review",
-   "scope-mismatch"
+   "green-not-live"
   ],
-  "diagnostic_tail": "families_exercised=['linux'] control_ok=True",
-  "reason": "Measured missing=['macos', 'windows'] with 3 Windows defects, but reviewer_requirement unmet.",
+  "diagnostic_tail": "runs_on_entries=19 families=['linux']",
+  "reason": "Measured promised_minus_exercised=['macos', 'windows'] with 3 Windows defects named, but reviewer_requirement unmet.",
   "two_signal_proof": [
    {
     "command": "python3 -B command-center/p2-wave/probes/AUD-0049/probe1_matrix_diff.py",
     "exit_code": 0,
     "fingerprint": "b51fcf8a89ad0403099763acfdbe593d",
     "method": "command",
-    "raw_output": "missing=['macos', 'windows']",
+    "raw_output": "promised_minus_exercised=['macos', 'windows']",
     "role": "source"
    },
    {
@@ -169,22 +169,22 @@
   "entry_id": "AUD-0049",
   "manifest_path": "command-center/p2-wave/probes/AUD-0049/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T18:31:38Z"
+  "registered_at": "2026-09-07T18:33:03Z"
  },
- "min_bytes_threshold": 2048,
+ "min_bytes_threshold": 4096,
  "negative_controls": [
   {
-   "bad_state_output": "{\"compare_if_trusted\": {\"claims_full_coverage\": true, \"exercised_minus_promised\": [], \"promised_minus_exercised\": [], \"windows_promised_but_underexercised\": false}, \"full_coverage_claim_rejected\": true, \"lied_families_exercised\": [\"linux\", \"macos\", \"windows\"], \"real_windows_runs_on_count\": 0}",
-   "description": "Comparator flags Windows promised-but-underexercised given three recorded Windows-only CRLF/path/encoding failures; full-coverage claim rejected.",
+   "bad_state_output": "full coverage claimed",
+   "description": "Windows must be flagged promised-but-underexercised when CRLF defects exist.",
    "fired_on_bad_state": true,
-   "good_state_output": "{\"claims_full_coverage\": false, \"exercised_minus_promised\": [], \"promised_minus_exercised\": [\"macos\", \"windows\"], \"windows_promised_but_underexercised\": true}",
+   "good_state_output": "windows_flagged=True defects=3",
    "id": "AUD0049-C1",
    "kind": "known-broken-fixture",
    "silent_on_good_state": true
   }
  ],
  "produced_by": {
-  "execution_substrate": "linux-local-p2-wave1",
+  "execution_substrate": "linux-local-p2-loop",
   "model": "composer",
   "role": "auditor",
   "vendor": "anthropic"
@@ -193,46 +193,47 @@
   "control_ids": [
    "AUD0049-C1"
   ],
-  "headline": "promised=['linux', 'macos', 'windows']; exercised=['linux']; missing=['macos', 'windows']; windows_defects=3. BLOCKED on review.",
+  "exercised_families": [
+   "linux"
+  ],
+  "headline": "promised=['linux', 'macos', 'windows']; exercised=['linux']; absent=['macos', 'windows']; windows_defects_named=3. BLOCKED on review.",
   "kind": "audit-drift",
   "observations": [
    {
-    "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json",
-    "measured": "linux,macos,windows",
-    "method": "regex charter/README platform mention scan",
-    "name": "promised_platforms"
-   },
-   {
     "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt",
-    "measured": "linux",
-    "method": "runs-on line inventory across .github/workflows",
-    "name": "families_exercised"
+    "measured": 19,
+    "method": "regex runs-on: across .github/workflows",
+    "name": "runs_on_entries"
    },
    {
     "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix-diff.json",
     "measured": 2,
-    "method": "set difference promised - exercised",
-    "name": "promised_minus_exercised_count"
+    "method": "set difference of promised OS families vs runs-on families",
+    "name": "promised_minus_exercised"
    },
    {
     "anchor": "command-center/p2-wave/probes/AUD-0049/probe2-absent-defects.json",
     "measured": 3,
-    "method": "name AUD-0019/0082/0085 Windows-only upstream defects",
+    "method": "cross-ref AUD-0019/0082/0085 for Windows-only measured defects",
     "name": "windows_defects_named"
-   },
-   {
-    "anchor": "command-center/p2-wave/probes/AUD-0049/probe1-matrix.raw.txt",
-    "measured": 19,
-    "method": "count runs-on lines",
-    "name": "runs_on_entries"
    }
   ],
-  "question": "Which operating systems and client versions does the declared support contract promise, and which of those does CI actually exercise today?"
+  "promised_minus_exercised": [
+   "macos",
+   "windows"
+  ],
+  "promised_platforms": [
+   "linux",
+   "macos",
+   "windows"
+  ],
+  "question": "Which operating systems does the support contract promise, and which does CI exercise?",
+  "windows_defects_named": 3
  },
  "residual_unknowns": [
   {
-   "claim": "Whether any workflow uses an unexpanded matrix.os that includes windows at runtime.",
-   "settling_experiment": "Expand each strategy.matrix and re-diff families.",
+   "claim": "macOS has a live measured defect unique to that platform in this corpus.",
+   "settling_experiment": "Search audit corpus / run native macOS probes for platform-unique failures.",
    "verdict": "NOT-CHECKED"
   }
  ],
@@ -243,28 +244,28 @@
  "reviewer": {
   "fresh_context": false,
   "independent": false,
-  "notes": "Catalog requires a fresh-context Claude reviewer who has not seen this transcript and must try to FALSIFY the headline count. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
+  "notes": "Catalog requires a fresh-context Claude reviewer who has not seen this transcript and must try to FALSIFY the headline underexercised count. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
   "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
   "vendor": "anthropic",
   "verdict": "NOT-REVIEWED"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0049 probes measured promised-minus-exercised=['macos', 'windows']; windows underexercised with 3 named defects; blocked-on-independent-review",
+ "sentinel": "FAILED:AUD-0049 matrix-diff+defect probes measured promised-minus-exercised=['macos', 'windows']; windows defects named=3; blocked-on-independent-review",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0049",
  "state": "BLOCKED",
  "tests": [
   {
    "assertions": 2,
-   "command": "python3 -B command-center/p2-wave/probes/AUD-0049/probe1_matrix_diff.py",
+   "command": "python3 -B command-center/p2-wave/probes/AUD-0049/probe2_absent_platform_defects.py",
    "id": "AUD-0049-windows-underexercised-control",
-   "name": "Comparator flags Windows; rejects fabricated full coverage",
-   "output_tail": "buntu-latest\tlinux\nRUNS_ON\t.github/workflows/quality.yml:1604\tubuntu-latest\tlinux\nRUNS_ON\t.github/workflows/quality.yml:1635\tubuntu-latest\tlinux\nRUNS_ON\t.github/workflows/quality.yml:1681\tubuntu-latest\tlinux\nRUNS_ON\t.github/workflows/quality.yml:1757\tubuntu-latest\tlinux\nRUNS_ON\t.github/workflows/routing-benchmark.yml:26\tubuntu-latest\tlinux\nRUNS_ON\t.github/workflows/rule-audit.yml:89\tubuntu-latest\tlinux\nRUNS_ON\t.github/workflows/skill-dual-write.yml:48\tubuntu-latest\tlinux\nSUCCESS:AUD-0049-probe1\n",
+   "name": "comparator flags Windows as promised-but-underexercised given CRLF corpus",
+   "output_tail": "rom ADV-0117 fixtures) is stale. This Windows worktree has a live Git index with 0 index \nDEFECT\tAUD-0085-encoding-bom\tMEASURED\tSUCCESS\tLive census: decode-attempted=32032 invalid_utf8=281 invalid_text=2 bom=11 read_errors=0 parse-first mojibake=8 all path-specific strict consumers; plugin_manif\nCONTROL windows_flagged=True defects=3 fired_bad=True silent_good=True ok=True\nSUCCESS:AUD-0049-probe2\n",
    "result": "PASS"
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T18:31:38Z",
-  "started_at": "2026-09-07T18:20:00Z"
+  "ended_at": "2026-09-07T18:33:03Z",
+  "started_at": "2026-09-07T18:25:00Z"
  },
  "unit_id": "AUD-0049"
 }

@@ -531,9 +531,23 @@ def main() -> int:
     control_ok = planted_ast_dead and planted_live
 
     # Sanity: agentrail tests executed by CI must not all be dead
-    agentrail_tests = [m for m in all_mods if "agentrail" in m and ".tests." in m]
+    agentrail_tests = [
+        m for m in all_mods if m.startswith("tools.agentrail.tests.test_")
+    ]
     agentrail_tests_live = [m for m in agentrail_tests if m in live]
     false_dead_risk = len(agentrail_tests) > 0 and len(agentrail_tests_live) == 0
+    agentrail_internal = [
+        "tools.agentrail.agentrail.deploy",
+        "tools.agentrail.agentrail.plan",
+        "tools.agentrail.agentrail.ports",
+        "tools.agentrail.agentrail.rails",
+        "tools.agentrail.agentrail.report",
+        "tools.agentrail.agentrail.resolve",
+        "tools.agentrail.agentrail.runner",
+    ]
+    agentrail_internal_live = sum(1 for m in agentrail_internal if m in live)
+    auth_jwt = "tools.crcp.scripts.auth_jwt_audit"
+    auth_jwt_live = auth_jwt in live
 
     result = {
         "unit": "AUD-0032",
@@ -554,6 +568,13 @@ def main() -> int:
         "agentrail_tests_total": len(agentrail_tests),
         "agentrail_tests_live": len(agentrail_tests_live),
         "false_dead_risk_agentrail_tests": false_dead_risk,
+        "remediation_checks": {
+            "agentrail_cli_live": "tools.agentrail.agentrail.cli" in live,
+            "agentrail_internal_live": agentrail_internal_live,
+            "agentrail_internal_expected": len(agentrail_internal),
+            "agentrail_test_modules_live": len(agentrail_tests_live),
+            "auth_jwt_audit_live": auth_jwt_live,
+        },
         "planted_module": planted,
         "planted_ast_dead": planted_ast_dead,
         "planted_dynamic_live": planted_live,
@@ -562,12 +583,19 @@ def main() -> int:
             "pyproject_entrypoints",
             "mains_and___main__",
             "ci_python_and_pytest_paths",
-            "readme_runbook_commands",
+            "ci_working_directory_bare_pytest",
+            "readme_runbook_and_report_commands",
             "string_registry_import_module",
             "ast_import_bfs_with_hyphen_aliases",
             "bounded_runtime_import_trace",
         ],
-        "ok": control_ok and len(all_mods) > 10 and not false_dead_risk,
+        "ok": (
+            control_ok
+            and len(all_mods) > 10
+            and not false_dead_risk
+            and agentrail_internal_live == len(agentrail_internal)
+            and auth_jwt_live
+        ),
     }
     (OUT_DIR / "probe2-dynamic-reachability.json").write_text(
         json.dumps(result, indent=2, sort_keys=True) + "\n", encoding="utf-8"
@@ -582,6 +610,8 @@ def main() -> int:
         f"live_count={result['live_count']}",
         f"dead_count={result['dead_count']}",
         f"agentrail_tests_live={result['agentrail_tests_live']}/{result['agentrail_tests_total']}",
+        f"agentrail_internal_live={agentrail_internal_live}/{len(agentrail_internal)}",
+        f"auth_jwt_audit_live={auth_jwt_live}",
         f"false_dead_risk_agentrail_tests={false_dead_risk}",
         f"planted_module={planted}",
         f"planted_ast_dead={planted_ast_dead}",
