@@ -90,3 +90,7 @@ Actions spend + Close #316/#319. No gates/code/PR/non-log work.
 ## 01:42Z — maintainer ack (resumed)
 
 Prior monitor said log-only / AMBER wait — that parked the agent. Resumed: shipped #324 (fix #312 Linux path assert; 47/47 local), launched parallel local gates on remaining open PRs. Still no CI green claim; #316/#319 still need owner Close.
+
+## 01:55Z — maintainer (gate batch landed)
+
+[Gate open PRs locally](bc-37a27099-82e7-5262-a943-48b330211217): seven open PRs local-green on immune set; #311 caveat no `pwsh`. Triage refreshed. No CI green / no merges. Owner still: Actions spend + Close #316/#319.
