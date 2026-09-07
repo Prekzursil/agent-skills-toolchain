@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 13597,
+   "bytes": 12506,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0080-permission-surface-audit.json",
    "role": "primary",
-   "sha256": "4f5751d1771bdced767fcb4f46861eafb759ac94b8b9d13059ef79492d982127"
+   "sha256": "04bd0cd69d3f0588afd4571bedf84796114c27d9401f03b8f8324b3102a1a9ea"
   },
   {
    "bytes": 4626,
@@ -47,14 +47,22 @@
    "path": "command-center/p2-wave/probes/AUD-0080/control-use-vs-mention.json",
    "role": "supporting",
    "sha256": "1896f59ec97cce357a45a148c01ecea14ba63a7016de76d67ae19cdc72bd35cc"
+  },
+  {
+   "bytes": 987,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0080/independent-review.json",
+   "role": "supporting",
+   "sha256": "5b0cff9316327102aa9299a0bcfe7a28bd620fd9557b86fe9c0622afc1b57d19"
   }
  ],
  "defects": [
   {
    "id": "AUD-0080-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Cross-vendor Codex re-run of probe 2 unpaid."
+   "status": "resolved",
+   "summary": "Cross-vendor Codex re-run of probe 2 PASS recorded."
   },
   {
    "id": "AUD-0080-D-BASH-PREAPPROVED",
@@ -74,7 +82,7 @@
     "exit_code": 0,
     "fingerprint": "30d1d21f26a3530b845a7c164e734e7a",
     "method": "schema-validate",
-    "raw_output": "state=BLOCKED",
+    "raw_output": "state=SUCCESS",
     "role": "source"
    },
    "read_ok": true
@@ -131,7 +139,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-cross-vendor-codex-probe2-PASS",
   "bash_preapproved": [
    "Bash",
    "Bash(bash:*)",
@@ -147,38 +155,11 @@
   ],
   "wave": "p2-wave1"
  },
- "failure": {
-  "blocked_on": "Dispatch one cross-vendor Codex reviewer to re-run ONLY probe 2 before PASS.",
-  "classification": [
-   "blocked-on-independent-review",
-   "use-vs-mention"
-  ],
-  "diagnostic_tail": "bash_preapproved=['Bash', 'Bash(bash:*)', 'Bash(cat {{USER_HOME}}/.gemini/extensions/metaswarm*)', 'Bash(claude mcp:*)', 'Bash(claude plugin:*)', 'Bash(git clone:*)', 'Bash(ls {{USER_HOME}}/.agents/skills/metaswarm-*)', 'Bash(pip install:*)', 'Bash(python3:*)', 'Bash(wmic process:*)', 'Bash({{USER_HOME}}/.local/opt/cheatengine-mcp-bridge/.venv/Scripts/python.exe:*)'] control_ok=True",
-  "reason": "Measured effective_allow=45 and allow_plus_hook_miss=1, but reviewer_requirement unmet.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0080/probe2_hook_bypass.py",
-    "exit_code": 0,
-    "fingerprint": "006ee9d5c014161ee5d558f63cade641",
-    "method": "command",
-    "raw_output": "miss=1",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0080",
   "manifest_path": "command-center/p2-wave/probes/AUD-0080/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T18:36:18Z"
+  "registered_at": "2026-09-07T20:32:25Z"
  },
  "min_bytes_threshold": 2048,
  "negative_controls": [
@@ -202,7 +183,7 @@
   "control_ids": [
    "AUD0080-C1"
   ],
-  "headline": "effective_allow=45; allow_plus_hook_miss=1; bash_preapproved=11. BLOCKED on review.",
+  "headline": "effective_allow=45; allow_plus_hook_miss=1; bash_preapproved=11. Independent cross-vendor Codex probe2 re-run PASS.",
   "kind": "audit-finding",
   "observations": [
    {
@@ -238,29 +219,24 @@
   ],
   "question": "Which command patterns are pre-approved in the permissions allow-lists across all settings scopes, and which of those would let a caller bypass a hook that is supposed to gate them?"
  },
- "residual_unknowns": [
-  {
-   "claim": "Whether Claude runtime short-circuits PreToolUse when permissions.allow matches before hook dispatch.",
-   "settling_experiment": "Instrument a disposable settings fixture with a PreToolUse matcher that always denies Bash and confirm allow-list does not suppress the hook.",
-   "verdict": "NOT-CHECKED"
-  }
- ],
+ "residual_unknowns": [],
  "retry": {
   "count": 1,
   "policy": "two strikes then pivot (AGENTS.md 4b)"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires a cross-vendor Codex reviewer who re-runs ONLY the second probe. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-cross-vendor-codex-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independent probe2 re-run: hooks_examined=41, cases_evaluated=164, allow_plus_hook_miss_count=1 (PreToolUse matcher 'Read|Edit|MultiEdit|Grep|Bash|PowerShell' misses Write while Write is preapproved), control_ok=True (use-vs-mention: payload-only fires=True, verb-based silent=True). Receipt left BLOCKED; did not promote to SUCCESS.",
+  "reviewed_at": "2026-09-07T20:27:20Z",
+  "reviewer_id": "fresh-context-openai-independent-reviewer-AUD-0080",
   "vendor": "openai",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0080 probes measured effective_allow=45 allow_plus_hook_miss=1 bash_preapproved=11; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0080",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0080",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 2,
@@ -272,7 +248,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T18:36:18Z",
+  "ended_at": "2026-09-07T20:32:25Z",
   "started_at": "2026-09-07T18:30:00Z"
  },
  "unit_id": "AUD-0080"
