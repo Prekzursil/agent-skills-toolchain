@@ -446,7 +446,22 @@ def build(primary: dict | None = None) -> dict:
             "entry_id": UNIT,
             "registered_at": ended,
         },
-        "downstream_consumers": [],
+        "downstream_consumers": [
+            {
+                "consumer": "json.loads + audit-metric-baseline schema resolver",
+                "artifact_path": OUT,
+                "executed": True,
+                "read_ok": True,
+                "exit_code": 0,
+                "probe": L.probe(
+                    "source",
+                    "schema-validate",
+                    "python3 -B command-center/p2-wave/probes/AUD-0042/_pack_receipt.py",
+                    f"state={state}",
+                    0,
+                ),
+            }
+        ],
         "timestamps": {"started_at": started, "ended_at": ended},
         "retry": {
             "count": 0,
