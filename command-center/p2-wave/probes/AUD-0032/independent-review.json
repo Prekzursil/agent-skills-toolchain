@@ -1,39 +1,39 @@
 {
-  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview5-post-package-ancestor",
+  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview6-post-mcp-shared-bare-import",
   "vendor": "openai",
-  "verdict": "FAIL",
+  "verdict": "PASS",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T19:25:00Z",
+  "reviewed_at": "2026-09-07T19:29:14Z",
   "unit_id": "AUD-0032",
-  "head_sha": "8eef8d40571463af15f6fc01e032a31c5c13843c",
-  "remediation_commit": "8eef8d40571463af15f6fc01e032a31c5c13843c",
-  "prior_fail_commit": "1d99d2ca0f9b465e406c04c1cd9b4c70a8fd698c",
-  "review_branch": "cursor/aud-0032-rereview5-0db0",
-  "notes": "Cross-vendor re-review AFTER package-ancestor __init__ remedi (8eef8d405; tip==remedi). Re-ran probe2: SUCCESS live=683 dead=55 planted_ast_dead=True planted_dynamic_live=True control_independent=True; methods include package_ancestor_init_closure. CLAIMED REMEDI CLASS CLOSED: all 10 prior false-deads LIVE (agentspec.evals, fbmcp.backends, omniaudit + core/mcp/models/modules/auditlens/releasebutler/security). Ablation disabling package_ancestors/with_package_ancestors raises dead 55->66 (+11) and re-deads all 10 priors (+ vendor e2e package); proves remedi bites. Planted string-registry control still holds. However dead_count=55 is FALSIFIED on a NEW under-count class: sys.path-injected bare imports of tools/mcp/_shared. LIVE hubs social-hub.hub / search-hub.hub / cloud-hub.hub / compute-mcp.accounts_bridge insert tools/mcp/_shared onto sys.path then `import accounts` / `import hardening`; resolve_import_name returns empty so AST BFS never marks tools.mcp._shared.accounts or tools.mcp._shared.hardening, yet runtime of those LIVE mains necessarily executes them. Material new false-deads excl vendor=2. Prior package-ancestor class closed (0 dead-with-LIVE-descendants; 0 live->dead AST edges). Do not promote; keep BLOCKED.",
+  "head_sha": "b79892f745072779b834f7325d15194572b4d744",
+  "remediation_commit": "8490a90664f0c4be0c919babbb1fbeb29437b2c7",
+  "prior_fail_commit": "8eef8d40571463af15f6fc01e032a31c5c13843c",
+  "review_branch": "cursor/aud-0032-rereview6-0db0",
+  "notes": "Cross-vendor re-review AFTER mcp _shared bare-import remedi (8490a9066; ancestor of tip b79892f74). Re-ran probe2: SUCCESS live=685 dead=53 planted_ast_dead=True planted_dynamic_live=True control_independent=True; methods include mcp_shared_syspath_bare_imports. CLAIMED REMEDI CLASS CLOSED: tools.mcp._shared.accounts and tools.mcp._shared.hardening are LIVE; resolve_import_name from LIVE hubs social/search/cloud-hub.hub and compute-mcp.accounts_bridge maps bare accounts/hardening to tools.mcp._shared.*. Ablation disabling the _shared bare-import branch in resolve_import_name raises dead 53->55 (+2) and re-deads both targets only; proves remedi bites. Planted string-registry control still holds. Residual dead_count=53 NOT falsified as a new material under-count: classB dead-with-LIVE-descendants=0; live AST-resolve->dead edges=0; other sys.path+bare->dead=0; import_module const->dead=0; remaining other-dead are planted registry control, crcp.rails install tree, schrodinger _smoke, mutation-gate sample fixtures (no LIVE importer evidence). Do not promote SUCCESS; keep BLOCKED pending packing policy — this review is PASS only.",
   "falsification_attempts": [
     {
-      "attempt": "Confirm remedi 8eef8d405 is ancestor of tip (tip==remedi)",
+      "attempt": "Confirm remedi 8490a9066 is ancestor of tip b79892f74",
       "result": "NOT-FALSIFIED",
-      "detail": "git merge-base --is-ancestor 8eef8d405 HEAD => yes; HEAD=8eef8d40571463af15f6fc01e032a31c5c13843c"
+      "detail": "git merge-base --is-ancestor 8490a9066 HEAD => yes; tip includes Promote AUD-0048 after remedi"
     },
     {
-      "attempt": "Exact rerun of probe2_dynamic_reach.py at remedi tip",
+      "attempt": "Exact rerun of probe2_dynamic_reach.py at tip with remedi ancestor",
       "result": "NOT-FALSIFIED (reproducibility)",
-      "detail": "Probe2 SUCCESS seed_count=593 ast_live=683 runtime_live=32 live=683 dead=55 agentrail 13/13 + 7/7 auth_jwt_live=True control_independent=True; methods include package_ancestor_init_closure.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-probe2.log"
+      "detail": "Probe2 SUCCESS seed_count=593 ast_live=685 runtime_live=32 live=685 dead=53 agentrail 13/13 + 7/7 auth_jwt_live=True control_independent=True; methods include mcp_shared_syspath_bare_imports.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-probe2.log"
     },
     {
-      "attempt": "Prior re-review4 false-deads now LIVE",
-      "result": "NOT-FALSIFIED (prior package-ancestor FAIL remediated)",
-      "detail": "ALL 10 LIVE: tools.agentspec.agentspec.evals; tools.omniaudit-mcp.packages.omniaudit{,.core,.mcp,.models,.modules,.modules.auditlens,.modules.releasebutler,.security}; tools.mcp.fb-messenger-mcp.fbmcp.backends.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-verify-live-ablation-falsify.log"
+      "attempt": "Prior re-review5 false-deads accounts+hardening now LIVE",
+      "result": "NOT-FALSIFIED (prior mcp_shared_syspath_bare_imports FAIL remediated)",
+      "detail": "BOTH LIVE: tools.mcp._shared.accounts, tools.mcp._shared.hardening. Hubs still sys.path-insert _shared then bare-import.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-verify-live-ablation.log"
     },
     {
-      "attempt": "Ablation disable package_ancestor_init_closure / with_package_ancestors",
+      "attempt": "Ablation disable mcp_shared_syspath_bare_imports branch in resolve_import_name",
       "result": "NOT-FALSIFIED (remedi bites)",
-      "detail": "dead_count 55->66 (+11); all 10 prior false-deads RE-DEAD; newly_dead all ancestors of baseline-live modules (incl. vendor tools.editor.ralph-orchestrator.vendor.tools.e2e).",
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-verify-live-ablation-falsify.log"
+      "detail": "dead_count 53->55 (+2); newly_dead exactly accounts+hardening; both RE-DEAD; planted control still holds.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-verify-live-ablation.log"
     },
     {
       "attempt": "Planted string-registry control still holds",
@@ -41,77 +41,57 @@
       "detail": "planted_ast_dead=True planted_dynamic_live=True control_independent=True; registry control module remains in dead set; planted module not in dead."
     },
     {
-      "attempt": "Residual class1: dead package with LIVE descendants",
-      "result": "NOT-FALSIFIED (prior class closed)",
-      "detail": "class1_dead_with_LIVE_descendants=0; dead_init_pkg_with_LIVE_children=0; live_imports_dead_edge_count=0 across 683 live modules."
-    },
-    {
-      "attempt": "Falsify residual dead_count=55 as true unreachable set",
-      "result": "FALSIFIED (sys.path-injected bare-import shared modules)",
-      "detail": "tools.mcp._shared.accounts and tools.mcp._shared.hardening are DEAD while LIVE mains tools.mcp.{social,search,cloud}-hub.hub and tools.mcp.cloud-hub.compute-mcp.accounts_bridge sys.path-insert tools/mcp/_shared then bare-import accounts/hardening. resolve_import_name(*, 'accounts'|'hardening') -> empty. Distinct from package-ancestor class.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-shared-and-ci.log"
+      "attempt": "Falsify residual dead_count=53 as new material under-count",
+      "result": "NOT-FALSIFIED (no new material false-dead class found)",
+      "detail": "classB=0; live->dead AST resolve edges=0; other sys.path bare->dead=0; import_module const->dead=0; other-dead spotcheck shows no LIVE importer evidence for crcp.rails / schrodinger _smoke / mutation-gate sample beyond docs/fixtures.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-residual-falsify.log"
     }
   ],
   "commands_run": [
     {
-      "command": "git fetch/checkout origin/cursor/p2-loop-to-green-0db0; merge-base --is-ancestor 8eef8d405 HEAD",
+      "command": "git fetch/checkout origin/cursor/p2-loop-to-green-0db0; merge-base --is-ancestor 8490a9066 HEAD",
       "exit_code": 0
     },
     {
       "command": "python3 command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
       "exit_code": 0,
-      "output_summary": "SUCCESS live=683 dead=55 methods include package_ancestor_init_closure",
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-probe2.log"
+      "output_summary": "SUCCESS live=685 dead=53 methods include mcp_shared_syspath_bare_imports",
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-probe2.log"
     },
     {
-      "command": "python3 verify prior-LIVE + ablation + residual class1/edges",
+      "command": "python3 verify accounts+hardening LIVE + ablation disable _shared bare-import branch",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-verify-live-ablation-falsify.log"
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-verify-live-ablation.log"
     },
     {
-      "command": "python3 residual CI/doc/_shared falsify",
+      "command": "python3 residual dead_count=53 falsify (classB/C/D/E + other spotcheck)",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-residual-falsify.log"
-    },
-    {
-      "command": "python3 _shared sys.path materiality",
-      "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0032-rereview5-shared-and-ci.log"
+      "log": "/opt/cursor/artifacts/aud0032-rereview6-residual-falsify.log"
     }
   ],
   "confirmed": [
-    "remedi_8eef8d405_is_tip_and_ancestor",
-    "methods_include_package_ancestor_init_closure",
-    "dead_count_55_reproduced",
-    "prior_package_ancestor_false_deads_all_LIVE",
-    "ablation_raises_dead_count_55_to_66",
-    "ablation_redeads_all_10_priors",
+    "remedi_8490a9066_is_ancestor_of_tip",
+    "methods_include_mcp_shared_syspath_bare_imports",
+    "dead_count_53_reproduced",
+    "prior_accounts_and_hardening_both_LIVE",
+    "ablation_raises_dead_count_53_to_55",
+    "ablation_redeads_only_accounts_and_hardening",
     "planted_control_independent",
     "agentrail_13_13_and_7_7_still_hold",
-    "zero_dead_with_live_descendants"
+    "zero_dead_with_live_descendants",
+    "no_new_material_false_dead_class_in_residual_53"
   ],
-  "falsified": [
-    "dynamic_dead_count_55_as_true_unreachable_set",
-    "sys.path_injected_bare_imports_resolved_to_shared_modules"
-  ],
+  "falsified": [],
   "closed_claims": {
-    "package_ancestor_init_of_live_descendants_excl_vendor": 0
+    "syspath_injected_bare_import_shared_excl_vendor": 0
   },
   "remaining_false_dead_count": {
-    "package_ancestor_init_of_live_descendants_excl_vendor": 0,
-    "syspath_injected_bare_import_shared_excl_vendor": 2,
-    "total_demonstrable": 2
+    "syspath_injected_bare_import_shared_excl_vendor": 0,
+    "new_material_under_count_excl_vendor": 0,
+    "total_demonstrable": 0
   },
-  "material_false_deads": [
-    {
-      "module": "tools.mcp._shared.accounts",
-      "reach": "LIVE tools.mcp.social-hub.hub / search-hub.hub / cloud-hub.hub / cloud-hub.compute-mcp.accounts_bridge insert tools/mcp/_shared on sys.path then `import accounts`"
-    },
-    {
-      "module": "tools.mcp._shared.hardening",
-      "reach": "LIVE tools.mcp.social-hub.hub / cloud-hub.hub insert tools/mcp/_shared on sys.path then `import hardening`"
-    }
-  ],
+  "material_false_deads": [],
   "did_not_promote": true,
-  "receipt_state_expected": "BLOCKED"
+  "receipt_state_expected": "BLOCKED",
+  "verdict_means": "PASS independent review only — do not pack SUCCESS:AUD-0032"
 }
