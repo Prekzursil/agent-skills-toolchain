@@ -82,3 +82,11 @@ Cadence restored. Curator append at 17:50Z. Observe-only confirmed: #323 +570/�
 
 Cadence restored. Curator/supervisor append at 19:58Z. Owner unblock unchanged:
 Actions spend + Close #316/#319. No gates/code/PR/non-log work.
+
+## 01:41Z — owner → maintainer
+
+> why are you sitting without doing anything
+
+## 01:42Z — maintainer ack (resumed)
+
+Prior monitor said log-only / AMBER wait — that parked the agent. Resumed: shipped #324 (fix #312 Linux path assert; 47/47 local), launched parallel local gates on remaining open PRs. Still no CI green claim; #316/#319 still need owner Close.
