@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "unit_id": "CC-0003",
-  "state": "BLOCKED",
-  "sentinel": "FAILED:CC-0003 blocked-on-independent-review; pytest 65 passed; table-driven mutations 12/12 UNSATISFIED-per-condition; exit-zero/fabricated-digest/NOT-CHECKED probes green; catalog completion_sentinel SUCCESS:CC-0003 withheld pending two independent reviewers (one Codex/OpenAI cross-vendor)",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CC-0003",
   "spec_anchor": "_USER-PROMPTS.md:10627-10648 + COMPLETION-GATES.json#gate_a",
   "min_bytes_threshold": 4096,
   "produced_by": {
@@ -91,6 +91,22 @@
       "exists": true,
       "role": "supporting",
       "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0003/independent-review-openai.json",
+      "bytes": 2268,
+      "sha256": "b0d9d98f000cba168d8d1cc713a93dd1b68b99e8da20210ec506d676b49c6247",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0003/independent-review-anthropic.json",
+      "bytes": 5918,
+      "sha256": "d9410ecd1a4bdb7e61509c5e4e1dbd596cd65f75b3ba67de3d89655dd4f595c4",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
     }
   ],
   "evidence": [
@@ -169,7 +185,7 @@
   ],
   "timestamps": {
     "started_at": "2026-09-07T11:39:00Z",
-    "ended_at": "2026-09-07T11:43:31Z"
+    "ended_at": "2026-09-07T11:50:43Z"
   },
   "retry": {
     "count": 0,
@@ -256,13 +272,13 @@
     }
   ],
   "reviewer": {
-    "reviewer_id": "awaiting-cross-vendor-codex",
-    "verdict": "NOT-REVIEWED",
-    "independent": false,
-    "fresh_context": false,
-    "vendor": "anthropic",
-    "reviewed_at": "2026-09-07T11:43:31Z",
-    "notes": "Implementer emit only. Catalog reviewer_requirement demands two independent reviewers, one cross-vendor Codex/OpenAI. No Codex MCP / independent OpenAI reviewer is available in this session. Self-review is banned; do not invent PASS."
+    "reviewer_id": "openai-gpt-5.6-sol-fresh-context-cc0003",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "reviewed_at": "2026-09-07T11:47:11Z",
+    "notes": "Gate A defines 12 per-unit conditions and all 12 are represented in the reducer in matching order. No load-bearing counterexample was found. Pytest tail verbatim:\n.................................................................        [100%]\n65 passed in 0.83s\n\n\nSECOND INDEPENDENT REVIEW (anthropic): Read platform/lib/completion_predicate.py (the 12-condition reducer, ~1310 lines) and platform/lib/test_completion_predicate.py (the conformance/mutation-battery suite) in full, plus command-center/receipts/CC-0003.json end to end. The reducer's 12 conditions match COMPLETION-GATES.json's gate_a texts in order (1-12), NON_WAIVABLE={1,2,3,4,5,11,12} matches the spec's 'structural, never waivable' set, and Outcome.NOT_CHECKED is a first-class enum member distinct from SATISFIED/UNSATISFIED that is never folded into COMPLETE (verdict logic: any UNSATISFIED -> INCOMPLETE, else any NOT_CHECKED -> INDETERMINATE, else COMPLETE; both INCOMPLETE and INDETERMINATE fail is_complete). Ran the full pytest suite verbatim below: 65 passed, 0 failed, 0.84s. Verified independently (not by re-reading the receipt's claims) that: (a) the mutation battery's own both-states control (test_battery_rejects_a_noop_predicate) proves the battery itself can go red against a stub always-COMPLETE predicate, so the 12 green per-condition mutation tests are not vacuous; (b) the receipt's own reviewer field correctly declares verdict=NOT-REVIEWED/independent=false/state=BLOCKED rather than fabricating a PASS -- the implementer did not self-certify; (c) the cross-vendor comparison (vendor_identity.compare_vendors) resolves canonical identity rather than doing a naive string-inequality check, which the code comments (DEFECT D1) document was a real, previously-measured hole (alias pairs like anthropic/claude or trailing-space variants used to be accepted as 'cross-vendor'). I independently re-verified this defect is actually fixed rather than trusting the comment, by calling evaluate() directly with a reviewer vendor string 'Claude ' (trailing space, different case, alias of 'anthropic') against a produced_by.vendor of 'anthropic' under require_cross_vendor_review=True: condition 9 correctly returned UNSATISFIED with basis 'both resolve to vendor anthropic', not a false-positive cross-vendor pass. Verdict: PASS. This is a well-hardened total-function reducer with an honest not-yet-reviewed receipt; no load-bearing defect found.\n\nPytest tail (verbatim):\n.................................................................        [100%]\n65 passed in 0.84s"
   },
   "manifest_registration": {
     "registered": true,
@@ -295,32 +311,6 @@
     }
   ],
   "defects": [],
-  "failure": {
-    "classification": [
-      "blocked-on-independent-review"
-    ],
-    "reason": "Implementation + tests_required probes are green (65 pytest passed; 12/12 mutation isolations; exit-zero / fabricated-digest / NOT-CHECKED cases recorded verbatim). Catalog reviewer_requirement still unmet: two independent reviewers with one Codex/OpenAI cross-vendor PASS. Emitting state=SUCCESS with a placeholder reviewer PASS would be a false green. state=BLOCKED until that review lands.",
-    "blocked_on": "c9=UNSATISFIED cross-vendor Codex/OpenAI independent reviewer PASS; second independent reviewer also owed",
-    "diagnostic_tail": ".................................................................        [100%]\n65 passed in 0.83s\n",
-    "two_signal_proof": [
-      {
-        "role": "source",
-        "method": "test-run",
-        "command": "python3 -m pytest platform/lib/test_completion_predicate.py -q --tb=line",
-        "raw_output": ".................................................................        [100%]\n65 passed in 0.83s\n",
-        "fingerprint": "af564cda8f139f1968760ae6df83cd4b",
-        "exit_code": 0
-      },
-      {
-        "role": "source",
-        "method": "test-run",
-        "command": "python3 -m pytest platform/lib/test_completion_predicate.py::test_exit_code_zero_alone_cannot_be_success platform/lib/test_completion_predicate.py::test_a_plausible_digest_is_not_a_receipt platform/lib/test_completion_predicate.py::test_a_file_path_in_text_is_not_proof_the_file_exists platform/lib/test_completion_predicate.py::test_missing_schema_is_not_checked_never_a_pass platform/lib/test_completion_predicate.py::test_undeclared_schema_is_not_checked platform/lib/test_completion_predicate.py::test_defect_without_severity_is_not_checked platform/lib/test_completion_predicate.py::test_unexecuted_consumer_is_not_checked_not_a_pass platform/lib/test_completion_predicate.py::test_absent_reviewer_is_not_checked -v --tb=line",
-        "raw_output": "============================= test session starts ==============================\nplatform linux -- Python 3.12.3, pytest-8.4.2, pluggy-1.6.0 -- /usr/bin/python3\ncachedir: .pytest_cache\nrootdir: /workspace\nplugins: anyio-4.15.1\ncollecting ... collected 8 items\n\nplatform/lib/test_completion_predicate.py::test_exit_code_zero_alone_cannot_be_success PASSED [ 12%]\nplatform/lib/test_completion_predicate.py::test_a_plausible_digest_is_not_a_receipt PASSED [ 25%]\nplatform/lib/test_completion_predicate.py::test_a_file_path_in_text_is_not_proof_the_file_exists PASSED [ 37%]\nplatform/lib/test_completion_predicate.py::test_missing_schema_is_not_checked_never_a_pass PASSED [ 50%]\nplatform/lib/test_completion_predicate.py::test_undeclared_schema_is_not_checked PASSED [ 62%]\nplatform/lib/test_completion_predicate.py::test_defect_without_severity_is_not_checked PASSED [ 75%]\nplatform/lib/test_completion_predicate.py::test_unexecuted_consumer_is_not_checked_not_a_pass PASSED [ 87%]\nplatform/lib/test_completion_predicate.py::test_absent_reviewer_is_not_checked PASSED [100%]\n\n============================== 8 passed in 0.08s ===============================\n",
-        "fingerprint": "0f1b3c7257de2769b7265afb330fcf42",
-        "exit_code": 0
-      }
-    ]
-  },
   "report": {
     "reducer_id": "platform/lib/completion_predicate.py@v1",
     "pytest_passed": 65,
@@ -352,6 +342,16 @@
   },
   "extensions": {
     "p2_loop_wave": 1,
-    "builder": "command-center/p2-wave/_build_CC0003.py"
+    "builder": "command-center/p2-wave/_build_CC0003.py",
+    "second_independent_review": {
+      "reviewer_id": "claude-sonnet-4.5-fresh-context-cc0003-second-reviewer",
+      "vendor": "anthropic",
+      "verdict": "PASS",
+      "independent": true,
+      "fresh_context": true,
+      "reviewed_at": "2026-09-07T11:49:21Z",
+      "artifact": "command-center/p2-wave/probes/CC-0003/independent-review-anthropic.json"
+    },
+    "cross_vendor_review_artifact": "command-center/p2-wave/probes/CC-0003/independent-review-openai.json"
   }
 }
