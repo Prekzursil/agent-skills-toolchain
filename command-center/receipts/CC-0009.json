@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "unit_id": "CC-0009",
-  "state": "BLOCKED",
-  "sentinel": "FAILED:CC-0009 blocked-on-independent-review; pytest 9 passed; live ARTIFACT-MANIFEST 14/14 consumers read_ok; GATE_ID=platform/lib/artifact_manifest_gate.py@v1; catalog SUCCESS:CC-0009 withheld pending independent reviewer who adds a phantom manifest entry and confirms rejection",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CC-0009",
   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CC-0009",
   "min_bytes_threshold": 2048,
   "produced_by": {
@@ -62,24 +62,40 @@
     },
     {
       "path": "command-center/p2-wave/_build_CC0009.py",
-      "bytes": 11976,
-      "sha256": "04e2f584997ca3ab7317784270857d3813a44f0cb99ac6bf658f73aad658e8c0",
+      "bytes": 13193,
+      "sha256": "ef3b04a6e3119c06ee78000da3271d892b89c1c98d26d321f2221c2a6c8b4365",
       "exists": true,
       "role": "control",
       "eol": "LF"
     },
     {
+      "path": "command-center/p2-wave/probes/CC-0009/_pack_receipt.py",
+      "bytes": 16841,
+      "sha256": "9cd36d994eb2cf43484cba2392313b3f27fe6c267ad91e8b37a8a3b0cd8e6bfc",
+      "exists": true,
+      "role": "control",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0009/independent-review.json",
+      "bytes": 5901,
+      "sha256": "1e12f3d2e6c5401764eb950a5b5e5fa8ba13d8e8d6215253920596f8409e1683",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
       "path": "command-center/p2-wave/probes/CC-0009/UNIT-ARTIFACT-MANIFEST.json",
-      "bytes": 2416,
-      "sha256": "1d175f58f359b2079aec6342bc0f5b9b8160d65c12fa00c5bb6ca2210e4ff850",
+      "bytes": 2684,
+      "sha256": "52ae15000070fa99ab5ff6d338c740b74b3d96a54ef3bfd3e2435e0c5aae2dea",
       "exists": true,
       "role": "supporting",
       "eol": "LF"
     },
     {
       "path": "command-center/receipts/CC-0009.json",
-      "bytes": 19161,
-      "sha256": "ff1ad00f4acbd6af59303ccb097193d83ddf186b58aede441e537f31bfe81641",
+      "bytes": 17939,
+      "sha256": "9da72ed5f2ba8944e2eb29d3da892da52d499e22cc5dd432ed8c4d4e23766fc3",
       "exists": true,
       "role": "primary",
       "eol": "LF"
@@ -137,7 +153,7 @@
   ],
   "timestamps": {
     "started_at": "2026-09-07T18:30:00Z",
-    "ended_at": "2026-09-07T18:36:33Z"
+    "ended_at": "2026-09-07T18:56:48Z"
   },
   "retry": {
     "count": 0,
@@ -198,19 +214,19 @@
     }
   ],
   "reviewer": {
-    "reviewer_id": "awaiting-independent-phantom-review",
-    "verdict": "NOT-REVIEWED",
-    "independent": false,
-    "fresh_context": false,
-    "vendor": "anthropic",
-    "reviewed_at": "2026-09-07T18:36:33Z",
-    "notes": "Implementer emit only. Catalog reviewer_requirement: one independent reviewer who adds a phantom manifest entry and confirms it is rejected. Self-review is banned; do not invent PASS."
+    "reviewer_id": "openai-composer-cross-vendor-cc0009",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "reviewed_at": "2026-09-07T18:55:00Z",
+    "notes": "Cross-vendor fresh-context review of CC-0009. Re-ran pytest (9/9) and live probe (14/14 consumers read_ok). Catalog reviewer_requirement met by planting a phantom entry on a scratch copy of command-center/ARTIFACT-MANIFEST.json; probe_manifest_consumers failed with registered-but-absent (failing=1/15). Also confirmed: empty artifacts array fails, register_on_write refuses absent paths, unparseable declared consumer fails, unregistered artifact fails condition 11, present=false fails, unknown consumer rejected, empty jsonl/utf8 fail. Live ARTIFACT-MANIFEST currently carries stale sha256/bytes for STATUS.md and TEST-REGISTRY.json while verified_on_disk=true; that is render.py digest drift, outside this unit's readability gate contract (condition 12 / probe_manifest_consumers deliberately does not verify digests). Does not falsify register-on-write + consumer-read claims. PASS."
   },
   "manifest_registration": {
     "registered": true,
     "manifest_path": "command-center/p2-wave/probes/CC-0009/UNIT-ARTIFACT-MANIFEST.json",
     "entry_id": "CC-0009",
-    "registered_at": "2026-09-07T18:36:33Z"
+    "registered_at": "2026-09-07T18:56:48Z"
   },
   "downstream_consumers": [
     {
@@ -246,38 +262,12 @@
   ],
   "residual_unknowns": [
     {
-      "claim": "Independent reviewer has not yet re-planted a phantom ARTIFACT-MANIFEST entry and confirmed rejection outside this implementer session.",
+      "claim": "Live ARTIFACT-MANIFEST.json digest drift for STATUS.md and TEST-REGISTRY.json (verified_on_disk=true with stale sha/bytes). Outside CC-0009 readability gate; settle via tools/command-center/render.py.",
       "verdict": "NOT-CHECKED",
-      "settling_experiment": "Fresh-context reviewer adds phantom path to a scratch copy of command-center/ARTIFACT-MANIFEST.json, runs probe_manifest_consumers, confirms FAIL, returns PASS with independent=true."
+      "settling_experiment": "python3 tools/command-center/render.py --check then re-render ARTIFACT-MANIFEST.json"
     }
   ],
   "defects": [],
-  "failure": {
-    "classification": [
-      "blocked-on-independent-review"
-    ],
-    "reason": "Implementation + tests_required probes are green (9 pytest passed; live manifest 14 consumers read_ok). Catalog reviewer_requirement still unmet. Emitting SUCCESS with a placeholder reviewer PASS would be a false green.",
-    "blocked_on": "independent reviewer phantom-entry confirmation (NOT-REVIEWED)",
-    "diagnostic_tail": ".........                                                                [100%]\n9 passed in 0.09s\n",
-    "two_signal_proof": [
-      {
-        "role": "source",
-        "method": "test-run",
-        "command": "python3 -m pytest platform/lib/test_artifact_manifest_gate.py -q --tb=line",
-        "raw_output": ".........                                                                [100%]\n9 passed in 0.09s\n",
-        "fingerprint": "436aa71aea923c320b63c04a1628deb6",
-        "exit_code": 0
-      },
-      {
-        "role": "verifier",
-        "method": "command",
-        "command": "python3 platform/lib/artifact_manifest_gate.py --manifest command-center/ARTIFACT-MANIFEST.json probe",
-        "raw_output": "SUCCESS:artifact-manifest-gate entries=14 all_consumers_read_ok\ncommand-center/PROGRAM-CHARTER.md via utf8-text: utf8-text ok; bytes=4316; first_line='# PROGRAM-CHARTER'\ncommand-center/OWNER-DECISIONS.md via utf8-text: utf8-text ok; bytes=14097; first_line='<!-- GENERATED by tools/command-center/render.py from WORK-UNIT-CATALOG.json. Do'\ncommand-center/WORK-UNIT-CATALOG.json via json.loads: json.loads ok; first_key='contract'; key_count=10\ncommand-center/DEPENDENCY-GRAPH.json via json.loads: json.loads ok; first_key='acyclic'; key_count=11\ncommand-center/ARTIFACT-MANIFEST.json via self-manifest: self-manifest json.loads ok; first_key='artifacts'; key_count=7\ncommand-center/CLAIM-REGISTRY.json via json.loads: json.loads ok; first_key='schema_version'; key_count=5\ncommand-center/TEST-REGISTRY.json via json.loads: json.loads ok; first_key='schema_version'; key_count=8\ncommand-center/RISK-REGISTER.md via utf8-text: utf8-text ok; bytes=5897; first_line='# RISK-REGISTER'\ncommand-center/UNKNOWNS-REGISTER.md via utf8-text: utf8-text ok; bytes=5287; first_line='# UNKNOWNS-REGISTER'\ncommand-center/RELEASE-CHECKLIST.md via utf8-text: utf8-text ok; bytes=3676; first_line='# RELEASE-CHECKLIST'\ncommand-center/ROLLBACK-MANIFEST.md via utf8-text: utf8-text ok; bytes=3057; first_line='# ROLLBACK-MANIFEST'\ncommand-center/RUNBOOK.md via utf8-text: utf8-text ok; bytes=3781; first_line='# RUNBOOK'\ncommand-center/STATUS.md via utf8-text: utf8-text ok; bytes=2207; first_line='<!-- GENERATED by command-center/status_derive.py from EVENTS.jsonl + receipts/ '\ncommand-center/events/EVENTS.jsonl via jsonl: jsonl ok; record_count=2; first_key='id'\n",
-        "fingerprint": "d3616ecaabd34de9ecfb2708ca0d0797",
-        "exit_code": 0
-      }
-    ]
-  },
   "report": {
     "gate_id": "platform/lib/artifact_manifest_gate.py@v1",
     "pytest_passed": 9,
@@ -287,6 +277,7 @@
   },
   "extensions": {
     "p2_loop_wave": 1,
-    "builder": "command-center/p2-wave/_build_CC0009.py"
+    "builder": "command-center/p2-wave/probes/CC-0009/_pack_receipt.py",
+    "anti_false_green": "SUCCESS-after-independent-phantom-review-PASS"
   }
 }
