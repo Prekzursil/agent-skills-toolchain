@@ -1,153 +1,115 @@
 {
-  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview4-post-src-layout",
+  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview5-post-package-ancestor",
   "vendor": "openai",
   "verdict": "FAIL",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T19:15:00Z",
+  "reviewed_at": "2026-09-07T19:25:00Z",
   "unit_id": "AUD-0032",
-  "head_sha": "1d99d2ca0f9b465e406c04c1cd9b4c70a8fd698c",
-  "remediation_commit": "f09bafd8d47686a281346f1b82381145955fdac3",
-  "prior_fail_commit": "5ee2159c2a271d70916dbe1cd99a8fe21312bfef",
-  "notes": "Cross-vendor re-review AFTER src-layout + package-init remedi (f09bafd8d; HEAD 1d99d2ca0 includes it). Re-ran probe2: SUCCESS live=672 dead=66 planted_ast_dead=True planted_dynamic_live=True control_independent=True; methods include src_layout_editable_aliases + package_init_relative_import_fix. CLAIMED REMEDI CLASSES CLOSED: (1) compute-mcp providers._http/lightning/ovh/runpod all LIVE; providers/__init__ relative from . import resolves to providers.* not compute-mcp.*; (2) omniaudit/mcp_server/worker leaf modules imported by CI tests are LIVE (storage.engine, mcp_server.main, worker.worker, core.settings, mcp.runtime, etc.); ablation without src_layout aliases raises ast dead 66->106 (+40) and kills the three sample leaves; ablation reverting package-init relative raises 66->75 (+9) and re-deads ovh/runpod + fbmcp children. However dead_count=66 is FALSIFIED on a NEW under-count class: package-ancestor __init__ modules stay DEAD when leaves are marked LIVE via short-name/alias resolution that jumps directly to the leaf. resolve_seed('omniaudit.core.settings') returns only tools.omniaudit-mcp.packages.omniaudit.core.settings and does not include packages.omniaudit or packages.omniaudit.core; Python import of the leaf necessarily executes those package __init__ files. Material false-deads excl vendor=10 (8 omniaudit docstring package inits + CI-gated tools.agentspec.agentspec.evals with LIVE evals.registry/rows/... + fbmcp.backends with LIVE backends children). Do not promote; keep BLOCKED.",
+  "head_sha": "8eef8d40571463af15f6fc01e032a31c5c13843c",
+  "remediation_commit": "8eef8d40571463af15f6fc01e032a31c5c13843c",
+  "prior_fail_commit": "1d99d2ca0f9b465e406c04c1cd9b4c70a8fd698c",
+  "review_branch": "cursor/aud-0032-rereview5-0db0",
+  "notes": "Cross-vendor re-review AFTER package-ancestor __init__ remedi (8eef8d405; tip==remedi). Re-ran probe2: SUCCESS live=683 dead=55 planted_ast_dead=True planted_dynamic_live=True control_independent=True; methods include package_ancestor_init_closure. CLAIMED REMEDI CLASS CLOSED: all 10 prior false-deads LIVE (agentspec.evals, fbmcp.backends, omniaudit + core/mcp/models/modules/auditlens/releasebutler/security). Ablation disabling package_ancestors/with_package_ancestors raises dead 55->66 (+11) and re-deads all 10 priors (+ vendor e2e package); proves remedi bites. Planted string-registry control still holds. However dead_count=55 is FALSIFIED on a NEW under-count class: sys.path-injected bare imports of tools/mcp/_shared. LIVE hubs social-hub.hub / search-hub.hub / cloud-hub.hub / compute-mcp.accounts_bridge insert tools/mcp/_shared onto sys.path then `import accounts` / `import hardening`; resolve_import_name returns empty so AST BFS never marks tools.mcp._shared.accounts or tools.mcp._shared.hardening, yet runtime of those LIVE mains necessarily executes them. Material new false-deads excl vendor=2. Prior package-ancestor class closed (0 dead-with-LIVE-descendants; 0 live->dead AST edges). Do not promote; keep BLOCKED.",
   "falsification_attempts": [
     {
-      "attempt": "Exact rerun of probe2_dynamic_reach.py at HEAD containing f09bafd8d",
-      "result": "NOT-FALSIFIED (reproducibility)",
-      "detail": "Probe2 SUCCESS seed_count=592 ast_live=672 runtime_live=32 live=672 dead=66 agentrail 13/13 + 7/7 auth_jwt_live=True control_independent=True; methods include src_layout_editable_aliases and package_init_relative_import_fix.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-probe2.log"
-    },
-    {
-      "attempt": "Confirm remedi ancestor f09bafd8d of tip",
+      "attempt": "Confirm remedi 8eef8d405 is ancestor of tip (tip==remedi)",
       "result": "NOT-FALSIFIED",
-      "detail": "git merge-base --is-ancestor f09bafd8d HEAD => yes; tip=1d99d2ca0"
+      "detail": "git merge-base --is-ancestor 8eef8d405 HEAD => yes; HEAD=8eef8d40571463af15f6fc01e032a31c5c13843c"
     },
     {
-      "attempt": "Class A compute-mcp provider adapters now LIVE",
-      "result": "NOT-FALSIFIED (prior package-init FAIL remediated)",
-      "detail": "providers + _http + lightning + ovh + runpod all LIVE. ImportFrom level=1 from providers/__init__ absmod=tools.mcp.cloud-hub.compute-mcp.providers."
+      "attempt": "Exact rerun of probe2_dynamic_reach.py at remedi tip",
+      "result": "NOT-FALSIFIED (reproducibility)",
+      "detail": "Probe2 SUCCESS seed_count=593 ast_live=683 runtime_live=32 live=683 dead=55 agentrail 13/13 + 7/7 auth_jwt_live=True control_independent=True; methods include package_ancestor_init_closure.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-probe2.log"
     },
     {
-      "attempt": "Class B omniaudit/mcp_server/worker src-layout leaves now LIVE",
-      "result": "NOT-FALSIFIED (prior src-layout leaf FAIL remediated)",
-      "detail": "27 omniaudit tests LIVE; short-import mapped leaf pairs LIVE=54 DEAD=0; storage.engine, mcp_server.main, worker.worker LIVE."
+      "attempt": "Prior re-review4 false-deads now LIVE",
+      "result": "NOT-FALSIFIED (prior package-ancestor FAIL remediated)",
+      "detail": "ALL 10 LIVE: tools.agentspec.agentspec.evals; tools.omniaudit-mcp.packages.omniaudit{,.core,.mcp,.models,.modules,.modules.auditlens,.modules.releasebutler,.security}; tools.mcp.fb-messenger-mcp.fbmcp.backends.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-verify-live-ablation-falsify.log"
     },
     {
-      "attempt": "Ablation disable src_layout_editable_aliases",
+      "attempt": "Ablation disable package_ancestor_init_closure / with_package_ancestors",
       "result": "NOT-FALSIFIED (remedi bites)",
-      "detail": "ast dead 66->106 (+40); omnia_leaf_dead=31; sample short leaves re-dead.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-ablation.log"
-    },
-    {
-      "attempt": "Ablation revert package_init_relative_import_fix",
-      "result": "NOT-FALSIFIED (remedi bites)",
-      "detail": "ast dead 66->75 (+9); class_a newly dead includes ovh+runpod; fbmcp children re-dead.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-ablation.log"
+      "detail": "dead_count 55->66 (+11); all 10 prior false-deads RE-DEAD; newly_dead all ancestors of baseline-live modules (incl. vendor tools.editor.ralph-orchestrator.vendor.tools.e2e).",
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-verify-live-ablation-falsify.log"
     },
     {
       "attempt": "Planted string-registry control still holds",
       "result": "NOT-FALSIFIED",
-      "detail": "planted_ast_dead=True planted_dynamic_live=True control_independent=True; registry control module remains in dead_sample."
+      "detail": "planted_ast_dead=True planted_dynamic_live=True control_independent=True; registry control module remains in dead set; planted module not in dead."
     },
     {
-      "attempt": "Falsify residual dead_count=66 as true unreachable set",
-      "result": "FALSIFIED (package-ancestor under-count)",
-      "detail": "10 non-vendor DEAD __init__ modules have LIVE descendants. Example: tools.agentspec.agentspec.evals DEAD while CI conftest imports agentspec.evals.pytest_live and evals.registry is LIVE; tools.omniaudit-mcp.packages.omniaudit.core DEAD while core.settings is LIVE and imported from LIVE mcp_server.main / tests. Root cause: alias/short-name resolve jumps to leaf without marking package ancestors that Python must execute.",
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-ancestor-class.log"
+      "attempt": "Residual class1: dead package with LIVE descendants",
+      "result": "NOT-FALSIFIED (prior class closed)",
+      "detail": "class1_dead_with_LIVE_descendants=0; dead_init_pkg_with_LIVE_children=0; live_imports_dead_edge_count=0 across 683 live modules."
+    },
+    {
+      "attempt": "Falsify residual dead_count=55 as true unreachable set",
+      "result": "FALSIFIED (sys.path-injected bare-import shared modules)",
+      "detail": "tools.mcp._shared.accounts and tools.mcp._shared.hardening are DEAD while LIVE mains tools.mcp.{social,search,cloud}-hub.hub and tools.mcp.cloud-hub.compute-mcp.accounts_bridge sys.path-insert tools/mcp/_shared then bare-import accounts/hardening. resolve_import_name(*, 'accounts'|'hardening') -> empty. Distinct from package-ancestor class.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-shared-and-ci.log"
     }
   ],
   "commands_run": [
     {
-      "command": "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout + reset --hard; merge-base --is-ancestor f09bafd8d HEAD",
+      "command": "git fetch/checkout origin/cursor/p2-loop-to-green-0db0; merge-base --is-ancestor 8eef8d405 HEAD",
       "exit_code": 0
     },
     {
       "command": "python3 command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
       "exit_code": 0,
-      "output_summary": "SUCCESS live=672 dead=66 methods include src_layout_editable_aliases + package_init_relative_import_fix",
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-probe2.log"
+      "output_summary": "SUCCESS live=683 dead=55 methods include package_ancestor_init_closure",
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-probe2.log"
     },
     {
-      "command": "python3 falsify Class A/B + residual dead scan",
+      "command": "python3 verify prior-LIVE + ablation + residual class1/edges",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-falsify.log"
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-verify-live-ablation-falsify.log"
     },
     {
-      "command": "python3 ablation src_layout / package_init",
+      "command": "python3 residual CI/doc/_shared falsify",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-ablation.log"
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-residual-falsify.log"
     },
     {
-      "command": "python3 package-ancestor materiality + reach evidence",
+      "command": "python3 _shared sys.path materiality",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0032-rereview4-ancestor-class.log"
+      "log": "/opt/cursor/artifacts/aud0032-rereview5-shared-and-ci.log"
     }
   ],
   "confirmed": [
-    "remedi_f09bafd8d_is_ancestor_of_tip",
-    "methods_include_src_layout_editable_aliases",
-    "methods_include_package_init_relative_import_fix",
-    "compute_mcp_provider_adapters_LIVE",
-    "omniaudit_mcp_server_worker_leaves_LIVE",
-    "ablation_src_layout_raises_dead_count",
-    "ablation_package_init_raises_dead_count",
+    "remedi_8eef8d405_is_tip_and_ancestor",
+    "methods_include_package_ancestor_init_closure",
+    "dead_count_55_reproduced",
+    "prior_package_ancestor_false_deads_all_LIVE",
+    "ablation_raises_dead_count_55_to_66",
+    "ablation_redeads_all_10_priors",
     "planted_control_independent",
-    "agentrail_13_13_and_7_7_still_hold"
+    "agentrail_13_13_and_7_7_still_hold",
+    "zero_dead_with_live_descendants"
   ],
   "falsified": [
-    "dynamic_dead_count_66_as_true_unreachable_set",
-    "alias_leaf_resolution_marks_package_ancestors_live"
+    "dynamic_dead_count_55_as_true_unreachable_set",
+    "sys.path_injected_bare_imports_resolved_to_shared_modules"
   ],
   "closed_claims": {
-    "src_layout_leaf_false_deads": 0,
-    "package_init_relative_provider_false_deads": 0
+    "package_ancestor_init_of_live_descendants_excl_vendor": 0
   },
   "remaining_false_dead_count": {
-    "src_layout_leaf_imports": 0,
-    "package_init_relative_imports": 0,
-    "package_ancestor_init_of_live_descendants_excl_vendor": 10,
-    "total_demonstrable": 10
+    "package_ancestor_init_of_live_descendants_excl_vendor": 0,
+    "syspath_injected_bare_import_shared_excl_vendor": 2,
+    "total_demonstrable": 2
   },
   "material_false_deads": [
     {
-      "module": "tools.agentspec.agentspec.evals",
-      "reach": "CI agentspec tests/conftest import agentspec.evals.*; evals.registry LIVE"
+      "module": "tools.mcp._shared.accounts",
+      "reach": "LIVE tools.mcp.social-hub.hub / search-hub.hub / cloud-hub.hub / cloud-hub.compute-mcp.accounts_bridge insert tools/mcp/_shared on sys.path then `import accounts`"
     },
     {
-      "module": "tools.mcp.fb-messenger-mcp.fbmcp.backends",
-      "reach": "backends._cookies and backends.fbchat_v2_backend LIVE"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit",
-      "reach": "35 LIVE descendants; CI imports omniaudit.*"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.core",
-      "reach": "core.settings LIVE via CI/tests and mcp_server.main"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.mcp",
-      "reach": "mcp.registry/runtime LIVE"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.models",
-      "reach": "models.db LIVE"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.modules",
-      "reach": "10 LIVE descendants under modules.*"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.modules.auditlens",
-      "reach": "auditlens.service/parser LIVE"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.modules.releasebutler",
-      "reach": "releasebutler.service LIVE"
-    },
-    {
-      "module": "tools.omniaudit-mcp.packages.omniaudit.security",
-      "reach": "security.confirmation/envelope/risk LIVE"
+      "module": "tools.mcp._shared.hardening",
+      "reach": "LIVE tools.mcp.social-hub.hub / cloud-hub.hub insert tools/mcp/_shared on sys.path then `import hardening`"
     }
   ],
   "did_not_promote": true,
