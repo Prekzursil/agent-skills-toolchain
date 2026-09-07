@@ -452,6 +452,10 @@ def resolve_import_name(importer: str, raw: str, known: set[str]) -> set[str]:
     Remediation after cross-vendor re-review FAIL: flat sibling imports
     (`import catalog` from tools/command-center/validate.py) must map to
     `tools.command-center.catalog`, not be left as bare `catalog`.
+
+    Remediation after re-review5 FAIL: tools/mcp/* hubs sys.path-insert
+    `tools/mcp/_shared` then `import accounts` / `import hardening` — map those
+    bare names to `tools.mcp._shared.<name>`.
     """
     hits = set(resolve_seed(raw, known))
     if raw in known:
@@ -470,6 +474,18 @@ def resolve_import_name(importer: str, raw: str, known: set[str]) -> set[str]:
             cand2 = f"tools.{parts[1]}.{raw}"
             if cand2 in known:
                 hits.add(cand2)
+    # Bare import after tools/mcp/_shared was added to sys.path
+    if (
+        len(parts) >= 2
+        and parts[0] == "tools"
+        and parts[1] == "mcp"
+        and "." not in raw
+        and raw.isidentifier()
+    ):
+        shared = f"tools.mcp._shared.{raw}"
+        if shared in known:
+            hits.add(shared)
+            hits |= resolve_seed(shared, known)
     return hits
 
 
@@ -757,6 +773,7 @@ def main() -> int:
             "src_layout_editable_aliases",
             "package_init_relative_import_fix",
             "package_ancestor_init_closure",
+            "mcp_shared_syspath_bare_imports",
             "bounded_runtime_import_trace",
         ],
         "ok": (
