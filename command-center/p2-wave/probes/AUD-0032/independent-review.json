@@ -1,31 +1,47 @@
 {
-  "reviewer_id": "openai-gpt-5.6-sol-cross-vendor-aud0032",
+  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview",
   "vendor": "openai",
   "verdict": "FAIL",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T11:55:09Z",
-  "notes": "Both named probes reran successfully and reproduced the recorded module_count=730, seed_count=219, live_count=231, dead_count=499, planted_ast_dead=true, planted_dynamic_live=true, and control_independent=true. However, probe 2 is not the catalog-required dynamic reachability trace: it extracts seeds with filename/regex heuristics and computes an AST import BFS. It does not parse pyproject.toml declarations, execute declared entry points, interpret pytest discovery from CI steps, or scan RUNBOOK and README files beyond three root documents. An independent recomputation found concrete false-dead results: 13 tools.agentrail.tests.test_* modules that quality.yml executes through pytest, all seven internal modules statically imported by the live agentrail.cli entry point (deploy, plan, ports, rails, report, resolve, runner), and one existing tools/crcp/scripts/auth_jwt_audit.py command cited in a non-root report. The path-derived module namespace uses tools.agentrail.agentrail.* while source imports use agentrail.*, preventing closure. Although the receipt discloses a related hyphenated-package under-count defect, its dynamic dead_modules=499 headline remains an unqualified dead-module count and does not satisfy the work-unit requirement to trace every declared entry point and CI step. The receipt and AUD-0032 probe output hashes were unchanged by rerun.",
+  "reviewed_at": "2026-09-07T18:37:44Z",
+  "unit_id": "AUD-0032",
+  "notes": "Cross-vendor re-review after probe2 remediation. Re-ran probe1 and probe2; both SUCCESS. Prior FAIL items are remediations that hold: tomllib parses tools/**/pyproject.toml [project.scripts] (agentrail.cli present), quality.yml working-directory bare pytest marks tools.agentrail.tests.test_*=13/13 live, agentrail.cli AST import closure reaches all 7 internals via hyphen/flat aliases, README/RUNBOOK/report markdown scan covers auth_jwt_audit, and bounded_runtime_import_trace is real subprocess code (runtime_live_count=21). Planted control still independent (AST-DEAD / dynamic-LIVE). However dynamic reachability remains falsified on a different under-count class than the disclosed hyphen defect: flat sibling imports (`import catalog`, `import ledger`, `import dispatch`, ...) are not resolved to path-derived tools.<pkg>.<mod> names. Independent enumeration found 19 unique modules classified dynamic-DEAD that are statically imported by LIVE modules, including CI-critical tools.command-center.catalog and tools.command-center.register_parse (imported by live render/validate/seed/close; package dir on sys.path loads them at runtime). Explicit pytest path tokens in quality.yml had no remaining dead hits, and prior agentrail false-deads are NONE, but dead_count=167 is still an overstated dead set (~19/167 demonstrable false-deads). Runtime trace adds 0 modules beyond AST BFS and does not place package working directories on sys.path the way CI does, so it does not close this gap. Do not promote; probe2 needs sibling/flat-import resolution (or cwd-aware runtime imports) before PASS.",
   "falsification_attempts": [
     {
-      "attempt": "Exact rerun of both named probes",
-      "result": "Reproduced the recorded counts and the planted AST-dead/dynamic-live control; this attempt did not falsify reproducibility."
+      "attempt": "Exact rerun of probe1_ast_refs.py and probe2_dynamic_reach.py",
+      "result": "NOT-FALSIFIED (reproducibility)",
+      "detail": "Probe1 SUCCESS with planted_ast_dead=True (HEAD baseline module_count=731 dead=655; fresh tree drifted to 735/659 from concurrent untracked tools/ files then restored). Probe2 SUCCESS with live=566 dead=167 agentrail_tests_live=13/13 agentrail_internal_live=7/7 auth_jwt_audit_live=True control_independent=True ok=True."
     },
     {
-      "attempt": "Independent recomputation of probe-2 seed extraction and AST closure",
-      "result": "Reproduced modules=730, seeds=219, live=231, dead=499, confirming deterministic implementation behavior."
+      "attempt": "Confirm pyproject entrypoints are actually parsed (not just listed in methods[])",
+      "result": "NOT-FALSIFIED (method present)",
+      "detail": "Independent tomllib sweep of tools/**/pyproject.toml found 4 script modules including agentrail.cli; matches probe seed_pyproject_entrypoints. Source contains parse_pyproject_entrypoints + tomllib."
     },
     {
-      "attempt": "Cross-check the computed dead set against declared entry points, CI pytest execution, and documented commands",
-      "result": "Falsified semantic correctness: 13 agentrail tests executed by CI and seven modules imported by agentrail.cli are classified dead; a non-root documented Python command is also ignored and classified dead."
+      "attempt": "Confirm CI working-directory bare pytest marks tools/agentrail/tests live",
+      "result": "NOT-FALSIFIED (prior FAIL fixed)",
+      "detail": "quality.yml has working-directory: tools/agentrail + pytest -m \"not live\". Independent call to ci_python_and_pytest_targets put all 13 tools.agentrail.tests.test_* into ci seeds and live set. Across 24 quality.yml working-dir+pytest blocks, zero packages had ALL tests still dead."
     },
     {
-      "attempt": "Inspect whether probe 2 implements the catalog-required dynamic trace and declared-source coverage",
-      "result": "Falsified method conformance: no runtime trace is performed, pyproject.toml is not parsed, and all RUNBOOK/README documents are not scanned; the implementation is regex seed extraction plus AST BFS."
+      "attempt": "Confirm agentrail.cli import closure and auth_jwt_audit doc reachability",
+      "result": "NOT-FALSIFIED (prior FAIL fixed)",
+      "detail": "cli.py imports agentrail.{deploy,plan,ports,rails,report,resolve,runner}; all seven tools.agentrail.agentrail.* path names are live. auth_jwt_audit cited in tools/crcp/reports/auth_json_deep_investigation_2026-07-20.md and marked live via report markdown scan."
     },
     {
-      "attempt": "Pre/post integrity check",
-      "result": "AUD-0032 receipt and four generated probe output files retained identical SHA-256 hashes."
+      "attempt": "Confirm README/RUNBOOK scan and runtime import trace exist beyond regex seeds",
+      "result": "NOT-FALSIFIED (presence) / WEAK (effect)",
+      "detail": "doc_command_modules rglobs tools/**/README.md + RUNBOOK*.md + report/investigation/inventory md (82+7 docs). runtime_import_trace spawns fresh interpreters and records sys.modules deltas (21 live). But runtime extras beyond AST BFS = 0, so runtime does not currently repair AST alias gaps."
+    },
+    {
+      "attempt": "Cross-check dynamic-DEAD set for modules imported by LIVE modules via flat sibling imports",
+      "result": "FALSIFIED (semantic dead_count)",
+      "detail": "Found 38 live->dead edges and 19 unique false-dead modules, e.g. tools.command-center.catalog (imported as `import catalog` by live render/validate/seed/close/measure_rate/reconcile_delivery), tools.command-center.register_parse, tools.event-ledger.ledger, tools.mcp.*.dispatch/_modal_common/fleet_core/etc. Runtime `sys.path.insert(tools/command-center); import catalog` succeeds. These are real references from CI-seeded entry points invisible to current resolve_seed/alias_names. Prior FAIL agentrail items remain remediated (NONE still dead), but the census dynamic dead_modules=167 headline is still an unqualified overcount."
+    },
+    {
+      "attempt": "Pre/post integrity: restore probe outputs after rerun so review commits review-only",
+      "result": "CONFIRMED",
+      "detail": "Restored probe1/probe2 json+raw to HEAD (731/655 and 566/167). Only independent-review.json is intended for commit."
     }
   ],
   "commands_run": [
@@ -36,26 +52,39 @@
     {
       "command": "sha256sum command-center/audit/AUD-0032-dead-code-census.json command-center/p2-wave/probes/AUD-0032/probe1-ast-refs.json command-center/p2-wave/probes/AUD-0032/probe2-dynamic-reachability.json command-center/p2-wave/probes/AUD-0032/probe1-ast.raw.txt command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
       "exit_code": 0,
-      "phase": "before-and-after"
+      "phase": "before"
     },
     {
-      "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe1_ast_refs.py && python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe1_ast_refs.py",
       "exit_code": 0
     },
     {
-      "command": "python3 - <<'PY' [independent importlib/tomllib cross-check of computed dead set against project scripts, quality.yml pytest coverage, agentrail CLI imports, and documented Python commands] PY",
-      "exit_code": 0,
-      "output_summary": "modules=730 seeds=219 live=231 dead=499; CI_PYTEST_FALSE_DEAD count=13; CLI_IMPORT_CLOSURE_FALSE_DEAD count=7; DOCUMENTED_COMMANDS_IGNORED_AND_DEAD count=1"
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+      "exit_code": 0
     },
     {
-      "command": "python3 - <<'PY' [AST/method conformance inspection of probe2_dynamic_reach.py] PY",
+      "command": "python3 - <<'PY' [independent method+CI+cli+docs+runtime+flat-import falsification] PY",
       "exit_code": 0,
-      "output_summary": "has_runtime_trace_api=False; parses_pyproject=False; scans_all_readmes=False; actual_methods=regex_seed_extraction+AST_BFS"
+      "output_summary": "prior FAIL remediations hold (agentrail 13/13 + 7/7 + auth_jwt live); flat-sibling false-dead unique=19 including tools.command-center.catalog; runtime_extras_beyond_ast=0"
     },
     {
-      "command": "git status --short --branch",
+      "command": "git checkout -- command-center/p2-wave/probes/AUD-0032/probe1-ast-refs.json command-center/p2-wave/probes/AUD-0032/probe1-ast.raw.txt command-center/p2-wave/probes/AUD-0032/probe2-dynamic-reachability.json command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
       "exit_code": 0,
-      "output_summary": "No AUD-0032 receipt or probe path changed; an unrelated concurrent AUD-0045 probe output was present and was not touched."
+      "phase": "restore-probe-outputs"
     }
+  ],
+  "confirmed": [
+    "pyproject_entrypoints_parsed",
+    "ci_working_directory_bare_pytest_agentrail_live",
+    "agentrail_cli_import_closure_live",
+    "readme_runbook_report_scan_present",
+    "bounded_runtime_import_trace_present",
+    "planted_control_independent",
+    "prior_agentrail_auth_jwt_false_deads_remediated"
+  ],
+  "falsified": [
+    "dynamic_dead_count_167_as_true_unreachable_set",
+    "ast_alias_closure_complete_for_flat_sibling_imports",
+    "runtime_trace_repairs_ast_alias_gaps"
   ]
 }
