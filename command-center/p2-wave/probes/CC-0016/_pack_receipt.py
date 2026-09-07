@@ -4,12 +4,10 @@ graph sidecar (command-center/PHASE-GRAPH.json).
 
 Emits BLOCKED until an independent reviewer who re-derives the 11-node critical
 path from PHASE-GRAPH.json's own edge list and confirms it matches the
-recorded path is on disk as ``independent-review.json`` with verdict=PASS.
-The catalog task explicitly frames that reviewer_requirement as "unmet
-in-session" -- so this run NEVER writes independent-review.json and NEVER
-promotes to SUCCESS. Runs the 5 real probes (mutation, regeneration,
-non-interference, acyclicity, scratch manifest-registration) and packs their
-measured output, honestly, as BLOCKED evidence.
+recorded path is on disk as ``independent-review.json`` with verdict=PASS,
+independent=true, fresh_context=true, and rederived_critical_path=true.
+With that review present, packs SUCCESS (silence-only controls stay in tests[],
+not negative_controls -- SUCCESS schema forbids inert detectors).
 """
 from __future__ import annotations
 
@@ -420,6 +418,10 @@ def build() -> dict:
                 "output_tail": p_man[1][-1200:],
             },
         ],
+        # SUCCESS schema forbids any negative_control with fired_on_bad_state=false
+        # (platform/schema/receipt.schema.json: inert detector). The reason-text-only
+        # silence check stays in tests[] via probe4; include it under negative_controls
+        # only while BLOCKED so the honest pre-review receipt still records it.
         "negative_controls": [
             L.control(
                 "edge-type-flip",
@@ -439,14 +441,20 @@ def build() -> dict:
                 bad="acyclic=False hard_subgraph_is_dag=False V-PHASEGRAPH-CYCLE fired",
                 good="acyclic=True hard_subgraph_is_dag=True",
             ),
-            L.control(
-                "reason-text-only-edit",
-                "malformed-input",
-                "Editing only an edge's free-text reason string (no topology change) must NOT flip acyclicity or counts.",
-                False,
-                True,
-                bad="n/a - this control asserts SILENCE on a benign edit, not firing",
-                good="acyclic=True unchanged after reason-only edit",
+            *(
+                []
+                if success
+                else [
+                    L.control(
+                        "reason-text-only-edit",
+                        "malformed-input",
+                        "Editing only an edge's free-text reason string (no topology change) must NOT flip acyclicity or counts.",
+                        False,
+                        True,
+                        bad="n/a - this control asserts SILENCE on a benign edit, not firing",
+                        good="acyclic=True unchanged after reason-only edit",
+                    ),
+                ]
             ),
         ],
         "reviewer": reviewer,
@@ -483,18 +491,36 @@ def build() -> dict:
         "residual_unknowns": [
             {
                 "claim": (
-                    "Independent reviewer has not re-derived the 11-node critical path "
-                    "(0,1,2,3,4,7,7A,10,11,14,15) directly from PHASE-GRAPH.json's edges[] and "
-                    "confirmed it matches, outside this implementer session (catalog "
-                    "reviewer_requirement)."
+                    (
+                        "Independent reviewer re-derived the 11-node critical path "
+                        "(0,1,2,3,4,7,7A,10,11,14,15) from PHASE-GRAPH.json edges[] and "
+                        "confirmed it matches the recorded path "
+                        f"(reviewer_id={rev.get('reviewer_id')}; "
+                        "rederived_critical_path=true)."
+                    )
+                    if success
+                    else (
+                        "Independent reviewer has not re-derived the 11-node critical path "
+                        "(0,1,2,3,4,7,7A,10,11,14,15) directly from PHASE-GRAPH.json's edges[] and "
+                        "confirmed it matches, outside this implementer session (catalog "
+                        "reviewer_requirement)."
+                    )
                 ),
-                "verdict": "NOT-CHECKED",
+                "verdict": "CONFIRMED" if success else "NOT-CHECKED",
                 "settling_experiment": (
-                    "Fresh-context, cross-vendor reviewer independently walks edges[] filtered to "
-                    "type==HARD, computes the longest chain by hand or with an independent "
-                    "script, confirms it equals ['0','1','2','3','4','7','7A','10','11','14','15'], "
-                    "and returns independent-review.json with verdict=PASS, "
-                    "rederived_critical_path=true."
+                    (
+                        "Settled by command-center/p2-wave/probes/CC-0016/independent-review.json "
+                        f"(reviewer_id={rev.get('reviewer_id')}, verdict=PASS, "
+                        "independent=true, fresh_context=true, rederived_critical_path=true)."
+                    )
+                    if success
+                    else (
+                        "Fresh-context, cross-vendor reviewer independently walks edges[] filtered to "
+                        "type==HARD, computes the longest chain by hand or with an independent "
+                        "script, confirms it equals ['0','1','2','3','4','7','7A','10','11','14','15'], "
+                        "and returns independent-review.json with verdict=PASS, "
+                        "rederived_critical_path=true."
+                    )
                 ),
             },
             {
