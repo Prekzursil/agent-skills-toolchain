@@ -76,6 +76,30 @@ def alias_names(name: str, known: set[str]) -> set[str]:
     return {n for n in out if n in known} or ({name} if name in known else set())
 
 
+def package_ancestors(name: str, known: set[str]) -> set[str]:
+    """Mark every known package prefix of a live module.
+
+    Remediation after re-review4 FAIL: importing `omniaudit.core.settings`
+    executes `omniaudit`, `omniaudit.core`, … package `__init__` modules.
+    Alias/short-name resolution that jumps straight to the leaf left those
+    ancestors DEAD despite LIVE children.
+    """
+    out: set[str] = set()
+    parts = name.split(".")
+    for i in range(1, len(parts)):
+        prefix = ".".join(parts[:i])
+        if prefix in known:
+            out.add(prefix)
+    return out
+
+
+def with_package_ancestors(names: set[str], known: set[str]) -> set[str]:
+    out = set(names)
+    for name in list(names):
+        out |= package_ancestors(name, known)
+    return out
+
+
 def resolve_seed(name: str, known: set[str]) -> set[str]:
     hits = set()
     if name in known:
@@ -84,7 +108,7 @@ def resolve_seed(name: str, known: set[str]) -> set[str]:
     # path-like seeds already converted; also try stripping leading tools.
     if name.startswith("tools.") and name[6:] in known:
         hits.add(name[6:])
-    return hits
+    return with_package_ancestors(hits, known)
 
 
 def path_to_mod_candidates(rel: str, known: set[str]) -> set[str]:
@@ -521,6 +545,9 @@ def bfs_ast_closure(seeds: set[str], all_mods: dict[str, Path]) -> set[str]:
         if cur not in known:
             continue
         reach.add(cur)
+        for anc in package_ancestors(cur, known):
+            if anc not in reach:
+                stack.append(anc)
         for nxt in edges.get(cur, ()):
             if nxt not in reach:
                 stack.append(nxt)
@@ -655,13 +682,14 @@ def main() -> int:
         all_mods,
     )
 
-    live = set(reached_ast) | set(runtime_live)
+    live = with_package_ancestors(set(reached_ast) | set(runtime_live), known)
     planted_live = planted in string_hits_raw or planted in live
     if planted in string_hits_raw:
         live.add(planted)
         planted_live = True
     if planted_live:
         live.add(planted)
+    live = with_package_ancestors(live, known)
 
     dead = sorted(m for m in all_mods if m not in live)
     planted_ast_dead = bool(p1.get("planted_ast_dead"))
@@ -728,6 +756,7 @@ def main() -> int:
             "flat_sibling_import_resolution",
             "src_layout_editable_aliases",
             "package_init_relative_import_fix",
+            "package_ancestor_init_closure",
             "bounded_runtime_import_trace",
         ],
         "ok": (

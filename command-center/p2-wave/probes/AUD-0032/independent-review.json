@@ -1,108 +1,155 @@
 {
-  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview3-post-shell-loop",
+  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview4-post-src-layout",
   "vendor": "openai",
   "verdict": "FAIL",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T19:05:00Z",
+  "reviewed_at": "2026-09-07T19:15:00Z",
   "unit_id": "AUD-0032",
-  "head_sha": "5ee2159c2a271d70916dbe1cd99a8fe21312bfef",
-  "remediation_commit": "7af9e5c822554afc5d71b9106f2273453e4061ca",
-  "prior_fail_commit": "de1c7c064",
-  "notes": "Cross-vendor re-review AFTER CI shell-loop + conftest remediation (7af9e5c82; HEAD 5ee2159c2 includes it). Re-ran probe1+probe2: probe1 SUCCESS module_count=738 dead=662 planted_ast_dead=True; probe2 SUCCESS live=621 dead=117 (committed artifacts still report live=620/dead=117; dead stable) agentrail 13/13 + 7/7 auth_jwt live control_independent=True; methods include ci_shell_loop_cd_pytest. PRIOR FAIL CLASS CLOSED: independent enumeration of search-hub/social-hub/mcp-host-supervisor/mcp-http-host/proxy-mcp/reverse-engineering-mcp-bundle test+conftest modules shows 0 DEAD (24 shell seeds; ablation without _shell_loop_cd_pytest_targets drops ci by 24 and misses all 24 shell-required modules). tools.command-center.tests.conftest and tools.d001-dual-write.tests.conftest are LIVE; path_to_mod_candidates now rglobs conftest.py (ablation: test_*.py-only misses both). However dynamic dead_count=117 is FALSIFIED on two NEW under-count classes: (1) src-layout / editable-install import aliases \u2014 CI-gated omniaudit-mcp tests import omniaudit.*, mcp_server.*, worker.* which map to tools.omniaudit-mcp.packages.omniaudit.* / apps.mcp_server.* / services.worker.*; resolve_import_name returns empty so 36 production modules stay DEAD despite CI execution; (2) package-__init__ relative import off-by-one \u2014 bfs treats __init__ modules like leaf modules (split('.')[:-1]), so `from . import _http, lightning, ovh, runpod` in live tools.mcp.cloud-hub.compute-mcp.providers resolves to compute-mcp._http instead of providers._http, leaving 4 CI-critical provider adapters DEAD (plus 4 fb-messenger fbmcp children under the same bug). Prior shell-loop/conftest remaining false-deads=0; new demonstrable false-deads\u224844. Do not promote; keep BLOCKED.",
+  "head_sha": "1d99d2ca0f9b465e406c04c1cd9b4c70a8fd698c",
+  "remediation_commit": "f09bafd8d47686a281346f1b82381145955fdac3",
+  "prior_fail_commit": "5ee2159c2a271d70916dbe1cd99a8fe21312bfef",
+  "notes": "Cross-vendor re-review AFTER src-layout + package-init remedi (f09bafd8d; HEAD 1d99d2ca0 includes it). Re-ran probe2: SUCCESS live=672 dead=66 planted_ast_dead=True planted_dynamic_live=True control_independent=True; methods include src_layout_editable_aliases + package_init_relative_import_fix. CLAIMED REMEDI CLASSES CLOSED: (1) compute-mcp providers._http/lightning/ovh/runpod all LIVE; providers/__init__ relative from . import resolves to providers.* not compute-mcp.*; (2) omniaudit/mcp_server/worker leaf modules imported by CI tests are LIVE (storage.engine, mcp_server.main, worker.worker, core.settings, mcp.runtime, etc.); ablation without src_layout aliases raises ast dead 66->106 (+40) and kills the three sample leaves; ablation reverting package-init relative raises 66->75 (+9) and re-deads ovh/runpod + fbmcp children. However dead_count=66 is FALSIFIED on a NEW under-count class: package-ancestor __init__ modules stay DEAD when leaves are marked LIVE via short-name/alias resolution that jumps directly to the leaf. resolve_seed('omniaudit.core.settings') returns only tools.omniaudit-mcp.packages.omniaudit.core.settings and does not include packages.omniaudit or packages.omniaudit.core; Python import of the leaf necessarily executes those package __init__ files. Material false-deads excl vendor=10 (8 omniaudit docstring package inits + CI-gated tools.agentspec.agentspec.evals with LIVE evals.registry/rows/... + fbmcp.backends with LIVE backends children). Do not promote; keep BLOCKED.",
   "falsification_attempts": [
     {
-      "attempt": "Exact rerun of probe1_ast_refs.py and probe2_dynamic_reach.py at HEAD containing 7af9e5c82",
+      "attempt": "Exact rerun of probe2_dynamic_reach.py at HEAD containing f09bafd8d",
       "result": "NOT-FALSIFIED (reproducibility)",
-      "detail": "Probe1 SUCCESS dead_count=662 planted_ast_dead=True module_count=738. Probe2 SUCCESS seed_count=592 ast_live=621 runtime_live=32 live=621 dead=117 agentrail_tests_live=13/13 agentrail_internal_live=7/7 auth_jwt_audit_live=True control_independent=True ok=True; methods include ci_shell_loop_cd_pytest + flat_sibling_import_resolution + bounded_runtime_import_trace. Committed probe2 json still shows live=620/dead=117 (dead unchanged)."
+      "detail": "Probe2 SUCCESS seed_count=592 ast_live=672 runtime_live=32 live=672 dead=66 agentrail 13/13 + 7/7 auth_jwt_live=True control_independent=True; methods include src_layout_editable_aliases and package_init_relative_import_fix.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-probe2.log"
     },
     {
-      "attempt": "Confirm prior shell-loop false-deads are now LIVE",
-      "result": "NOT-FALSIFIED (prior shell-loop FAIL remediated)",
-      "detail": "Independent _shell_loop_cd_pytest_targets parse of quality.yml multiline `for p in search-hub ...; do ( cd tools/mcp/$p && python -m pytest -q ); done` yields 24 seeds. All collectible test_/conftest modules under the six packages are LIVE (0 false-deads). Ablation zeroing the shell seeder: ci 498\u2192474; all 24 shell-required modules missing from ci_noshell."
-    },
-    {
-      "attempt": "Confirm prior conftest path_to_mod gap closed",
-      "result": "NOT-FALSIFIED (prior conftest FAIL remediated)",
-      "detail": "tools.command-center.tests.conftest LIVE and in ci seeds; tools.d001-dual-write.tests.conftest LIVE and in ci seeds. test_*.py-only rglob would miss both; full path_to_mod_candidates includes them."
-    },
-    {
-      "attempt": "CI-executed package-root sweep for remaining dead test/conftest",
-      "result": "NOT-FALSIFIED (no further CI test-suite under-count of that shape)",
-      "detail": "Across concrete CI roots (working-directory pytest + shell-loop pkgs + explicit tools/ pytest paths), dead test_/conftest count under those roots (excluding vendor/) = 0. Ungated suites (codex-fleet-github, linkedin-mcp, patent-search-mcp, qdx-rush-mcp, detector-self-test, mutation-gate tests, etc.) remain DEAD and are not CI-executed."
-    },
-    {
-      "attempt": "Cross-check LIVE omniaudit tests against DEAD production modules they import",
-      "result": "FALSIFIED (semantic dead_count / src-layout alias under-count)",
-      "detail": "quality.yml gates omniaudit-mcp via working-directory bare pytest (27 test/conftest seeds LIVE). Those tests statically import omniaudit.storage.engine, mcp_server.main, worker.worker, etc. resolve_import_name from tools.omniaudit-mcp.tests.* returns set() for those names; independent alias map packages/omniaudit|apps/mcp_server|services/worker finds 36 known modules still DEAD. Same shape as prior FAILs: cited remedi holds, headline dead_count still overcounts."
-    },
-    {
-      "attempt": "Re-resolve package-__init__ relative imports for LIVE packages",
-      "result": "FALSIFIED (relative-import off-by-one under-count)",
-      "detail": "tools.mcp.cloud-hub.compute-mcp.providers is LIVE (via dispatch `from providers import ...`) and contains `from . import _http, lightning, ovh, runpod`. Probe absmod for level=1 from providers/__init__ becomes tools.mcp.cloud-hub.compute-mcp (strips package name), so children resolve to compute-mcp._http (missing) instead of providers._http. All four provider adapters remain DEAD despite CI cloud-hub suite. Same bug surfaces 4 fb-messenger fbmcp children under live fbmcp/__init__. Total class-A false-deads=8."
-    },
-    {
-      "attempt": "Flat-sibling / control integrity regression check",
+      "attempt": "Confirm remedi ancestor f09bafd8d of tip",
       "result": "NOT-FALSIFIED",
-      "detail": "Remaining live\u2192dead flat sibling edges=0. Planted registry-only module LIVE; registry string-control DEAD; control_independent holds. Agentrail 13/13 and 7/7 hold."
+      "detail": "git merge-base --is-ancestor f09bafd8d HEAD => yes; tip=1d99d2ca0"
     },
     {
-      "attempt": "Pre/post integrity: leave committed probe outputs + BLOCKED audit; review-only commit",
-      "result": "CONFIRMED",
-      "detail": "Restored probe1/probe2 json+raw to HEAD after rerun. UNIT-ARTIFACT-MANIFEST remains BLOCKED. Did not promote AUD-0032 SUCCESS; did not repack census."
+      "attempt": "Class A compute-mcp provider adapters now LIVE",
+      "result": "NOT-FALSIFIED (prior package-init FAIL remediated)",
+      "detail": "providers + _http + lightning + ovh + runpod all LIVE. ImportFrom level=1 from providers/__init__ absmod=tools.mcp.cloud-hub.compute-mcp.providers."
+    },
+    {
+      "attempt": "Class B omniaudit/mcp_server/worker src-layout leaves now LIVE",
+      "result": "NOT-FALSIFIED (prior src-layout leaf FAIL remediated)",
+      "detail": "27 omniaudit tests LIVE; short-import mapped leaf pairs LIVE=54 DEAD=0; storage.engine, mcp_server.main, worker.worker LIVE."
+    },
+    {
+      "attempt": "Ablation disable src_layout_editable_aliases",
+      "result": "NOT-FALSIFIED (remedi bites)",
+      "detail": "ast dead 66->106 (+40); omnia_leaf_dead=31; sample short leaves re-dead.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-ablation.log"
+    },
+    {
+      "attempt": "Ablation revert package_init_relative_import_fix",
+      "result": "NOT-FALSIFIED (remedi bites)",
+      "detail": "ast dead 66->75 (+9); class_a newly dead includes ovh+runpod; fbmcp children re-dead.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-ablation.log"
+    },
+    {
+      "attempt": "Planted string-registry control still holds",
+      "result": "NOT-FALSIFIED",
+      "detail": "planted_ast_dead=True planted_dynamic_live=True control_independent=True; registry control module remains in dead_sample."
+    },
+    {
+      "attempt": "Falsify residual dead_count=66 as true unreachable set",
+      "result": "FALSIFIED (package-ancestor under-count)",
+      "detail": "10 non-vendor DEAD __init__ modules have LIVE descendants. Example: tools.agentspec.agentspec.evals DEAD while CI conftest imports agentspec.evals.pytest_live and evals.registry is LIVE; tools.omniaudit-mcp.packages.omniaudit.core DEAD while core.settings is LIVE and imported from LIVE mcp_server.main / tests. Root cause: alias/short-name resolve jumps to leaf without marking package ancestors that Python must execute.",
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-ancestor-class.log"
     }
   ],
   "commands_run": [
     {
-      "command": "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout cursor/p2-loop-to-green-0db0 && git pull --ff-only && git merge-base --is-ancestor 7af9e5c82 HEAD",
+      "command": "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout + reset --hard; merge-base --is-ancestor f09bafd8d HEAD",
       "exit_code": 0
     },
     {
-      "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe1_ast_refs.py",
+      "command": "python3 command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
       "exit_code": 0,
-      "output_summary": "SUCCESS dead_count=662 planted_ast_dead=True module_count=738",
-      "log": "/opt/cursor/artifacts/aud0032-rereview3-probe1.log"
+      "output_summary": "SUCCESS live=672 dead=66 methods include src_layout_editable_aliases + package_init_relative_import_fix",
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-probe2.log"
     },
     {
-      "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+      "command": "python3 falsify Class A/B + residual dead scan",
       "exit_code": 0,
-      "output_summary": "SUCCESS live=621 dead=117 methods include ci_shell_loop_cd_pytest; agentrail 13/13",
-      "log": "/opt/cursor/artifacts/aud0032-rereview3-probe2.log"
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-falsify.log"
     },
     {
-      "command": "python3 - <<'PY' [shell-loop + conftest LIVE verification + ablations] PY",
+      "command": "python3 ablation src_layout / package_init",
       "exit_code": 0,
-      "output_summary": "shell false-deads=0; conftest LIVE; shell ablation delta=24"
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-ablation.log"
     },
     {
-      "command": "python3 - <<'PY' [omniaudit alias + package-init relative falsification] PY",
+      "command": "python3 package-ancestor materiality + reach evidence",
       "exit_code": 0,
-      "output_summary": "src-layout alias false-deads=36; package-init relative false-deads=8; union=44"
+      "log": "/opt/cursor/artifacts/aud0032-rereview4-ancestor-class.log"
     }
   ],
   "confirmed": [
-    "ci_shell_loop_cd_pytest_present",
-    "path_to_mod_candidates_includes_conftest",
-    "shell_loop_six_packages_test_conftest_all_LIVE",
-    "tools.command-center.tests.conftest_LIVE",
-    "tools.d001-dual-write.tests.conftest_LIVE",
-    "prior_shell_loop_false_dead_class_closed",
-    "prior_conftest_false_dead_class_closed",
-    "agentrail_13_13_and_7_7_still_hold",
+    "remedi_f09bafd8d_is_ancestor_of_tip",
+    "methods_include_src_layout_editable_aliases",
+    "methods_include_package_init_relative_import_fix",
+    "compute_mcp_provider_adapters_LIVE",
+    "omniaudit_mcp_server_worker_leaves_LIVE",
+    "ablation_src_layout_raises_dead_count",
+    "ablation_package_init_raises_dead_count",
     "planted_control_independent",
-    "remaining_flat_sibling_false_dead_count_0"
+    "agentrail_13_13_and_7_7_still_hold"
   ],
   "falsified": [
-    "dynamic_dead_count_117_as_true_unreachable_set",
-    "resolve_import_name_covers_src_layout_editable_aliases",
-    "bfs_relative_import_correct_for_package_init_modules"
+    "dynamic_dead_count_66_as_true_unreachable_set",
+    "alias_leaf_resolution_marks_package_ancestors_live"
   ],
+  "closed_claims": {
+    "src_layout_leaf_false_deads": 0,
+    "package_init_relative_provider_false_deads": 0
+  },
   "remaining_false_dead_count": {
-    "ci_shell_loop_pytest": 0,
-    "conftest_autoload_gap": 0,
-    "flat_sibling_imports": 0,
-    "src_layout_import_aliases": 36,
-    "package_init_relative_imports": 8,
-    "total_demonstrable": 44
-  }
+    "src_layout_leaf_imports": 0,
+    "package_init_relative_imports": 0,
+    "package_ancestor_init_of_live_descendants_excl_vendor": 10,
+    "total_demonstrable": 10
+  },
+  "material_false_deads": [
+    {
+      "module": "tools.agentspec.agentspec.evals",
+      "reach": "CI agentspec tests/conftest import agentspec.evals.*; evals.registry LIVE"
+    },
+    {
+      "module": "tools.mcp.fb-messenger-mcp.fbmcp.backends",
+      "reach": "backends._cookies and backends.fbchat_v2_backend LIVE"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit",
+      "reach": "35 LIVE descendants; CI imports omniaudit.*"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.core",
+      "reach": "core.settings LIVE via CI/tests and mcp_server.main"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.mcp",
+      "reach": "mcp.registry/runtime LIVE"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.models",
+      "reach": "models.db LIVE"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.modules",
+      "reach": "10 LIVE descendants under modules.*"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.modules.auditlens",
+      "reach": "auditlens.service/parser LIVE"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.modules.releasebutler",
+      "reach": "releasebutler.service LIVE"
+    },
+    {
+      "module": "tools.omniaudit-mcp.packages.omniaudit.security",
+      "reach": "security.confirmation/envelope/risk LIVE"
+    }
+  ],
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED"
 }

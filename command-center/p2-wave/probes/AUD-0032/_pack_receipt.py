@@ -22,6 +22,21 @@ OUT = "command-center/audit/AUD-0032-dead-code-census.json"
 SCHEMA = "command-center/schema/audit-inventory.schema.json"
 PROBE = Path(__file__).resolve().parent
 MANIFEST = "command-center/p2-wave/probes/AUD-0032/UNIT-ARTIFACT-MANIFEST.json"
+REVIEW = PROBE / "independent-review.json"
+
+
+def load_review() -> dict | None:
+    if not REVIEW.is_file():
+        return None
+    try:
+        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if rev.get("verdict") not in {"PASS", "FAIL"}:
+        return None
+    if not rev.get("independent"):
+        return None
+    return rev
 
 
 def build(primary: dict | None = None) -> dict:
@@ -29,6 +44,7 @@ def build(primary: dict | None = None) -> dict:
     p2 = json.loads((PROBE / "probe2-dynamic-reachability.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-ast.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-dynamic.raw.txt").read_text(encoding="utf-8")
+    rev = load_review()
     started = "2026-09-07T18:24:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     checks = p2.get("remediation_checks") or {}
@@ -58,6 +74,49 @@ def build(primary: dict | None = None) -> dict:
             "fixture",
         ),
     ]
+    if rev is not None:
+        arts.append(L.art("command-center/p2-wave/probes/AUD-0032/independent-review.json", "supporting"))
+
+    if rev and rev.get("verdict") == "PASS":
+        reviewer = {
+            "reviewer_id": rev.get("reviewer_id", "cross-vendor-codex"),
+            "verdict": "PASS",
+            "independent": True,
+            "fresh_context": bool(rev.get("fresh_context", True)),
+            "vendor": rev.get("vendor", "openai"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": rev.get("notes", "")[:2000],
+        }
+        # SUCCESS path is intentionally not emitted here until parent promotion;
+        # packer stays BLOCKED unless a dedicated promote path is used.
+    elif rev and rev.get("verdict") == "FAIL":
+        reviewer = {
+            "reviewer_id": rev.get("reviewer_id", "cross-vendor-codex"),
+            "verdict": "FAIL",
+            "independent": True,
+            "fresh_context": bool(rev.get("fresh_context", True)),
+            "vendor": rev.get("vendor", "openai"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": (
+                "Latest independent re-review FAIL recorded; remedi applied for "
+                "cited under-count class; fresh probe2 re-run still owed. "
+                + str(rev.get("notes", ""))[:1500]
+            ),
+        }
+    else:
+        reviewer = {
+            "reviewer_id": "required-cross-vendor-codex-reviewer-unassigned",
+            "verdict": "NOT-REVIEWED",
+            "independent": False,
+            "fresh_context": False,
+            "vendor": "openai",
+            "notes": (
+                "Prior cross-vendor review FAIL classes remedi'd (shell-loop, "
+                "src-layout, package-init, package-ancestor). Cross-vendor Codex "
+                "re-run of probe 2 still owed; BLOCKED."
+            ),
+        }
+
     return {
         "schema_version": 1,
         "unit_id": UNIT,
@@ -191,26 +250,15 @@ def build(primary: dict | None = None) -> dict:
                 ),
             )
         ],
-        "reviewer": {
-            "reviewer_id": "required-cross-vendor-codex-reviewer-unassigned",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "openai",
-            "notes": (
-                "Prior cross-vendor review FAIL (probe2 was AST/regex only; false-dead "
-                "on CI pytest + CLI imports). Probe2 upgraded and remesured. "
-                "Cross-vendor Codex re-run of probe 2 still owed; BLOCKED."
-            ),
-        },
+        "reviewer": reviewer,
         "defects": [
             {
                 "id": "AUD-0032-D-REVIEW",
                 "severity": "P1",
                 "status": "open",
                 "summary": (
-                    "Cross-vendor Codex probe-2 re-run unpaid after reachability "
-                    "upgrade (prior review FAIL)."
+                    "Cross-vendor Codex probe-2 re-run unpaid after package-ancestor "
+                    f"closure remedi (latest recorded verdict={reviewer.get('verdict')})."
                 ),
             },
             {
@@ -248,24 +296,25 @@ def build(primary: dict | None = None) -> dict:
         ],
         "timestamps": {"started_at": started, "ended_at": ended},
         "retry": {
-            "count": 2,
+            "count": 3,
             "policy": "two strikes then pivot (AGENTS.md 4b)",
         },
         "failure": {
             "classification": ["blocked-on-independent-review", "use-vs-mention"],
             "reason": (
                 f"Probes OK with independent planted control; AST dead_count={p1['dead_count']} "
-                f"dynamic dead_count={p2['dead_count']} after CI/pytest+CLI remediation; "
-                "cross-vendor Codex re-review unmet."
+                f"dynamic dead_count={p2['dead_count']} after package-ancestor init closure; "
+                "cross-vendor Codex re-review unmet (prior FAIL classes remedi'd)."
             ),
             "diagnostic_tail": (
                 f"control_independent={p2['control_independent']} "
                 f"agentrail_tests_live={p2.get('agentrail_tests_live')} "
-                f"reviewer=NOT-REVIEWED"
+                f"reviewer={reviewer.get('verdict')}"
             ),
             "blocked_on": (
                 "Dispatch one cross-vendor Codex reviewer who re-runs ONLY the second "
-                "probe (upgraded dynamic reachability)."
+                "probe after package_ancestor_init_closure remedi "
+                f"(dead_count={p2['dead_count']})."
             ),
             "two_signal_proof": [
                 L.probe(
@@ -279,7 +328,7 @@ def build(primary: dict | None = None) -> dict:
                     "verifier",
                     "file-read",
                     "reviewer.verdict",
-                    "NOT-REVIEWED",
+                    str(reviewer.get("verdict")),
                     0,
                 ),
             ],
