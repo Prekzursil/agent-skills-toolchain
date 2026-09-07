@@ -1,0 +1,151 @@
+{
+  "unit_id": "AUD-0096",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "fresh-context-claude-reviewer-aud-0096-01",
+  "reviewed_at": "2026-09-07T23:43:29Z",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0096-fresh-profile-harness-baseline.json",
+  "receipt_state_observed": "BLOCKED",
+  "receipt_reviewer_field_observed": {
+    "verdict": "NOT-REVIEWED",
+    "independent": false,
+    "fresh_context": false
+  },
+  "base_tip_sha": "ae823a513ca1aa21daa2a6cbc879bcc05ec13ec2",
+  "base_branch": "origin/cursor/p2-loop-to-green-0db0",
+  "method": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud-0096-review-0db0 origin/cursor/p2-loop-to-green-0db0 (tip ae823a513).",
+    "Read command-center/audit/AUD-0096-fresh-profile-harness-baseline.json in full, plus _profile_check.py, probe1_clean_profile_load.py, probe2_current_profile_diff.py, control_profile_clean.py, treating the packed headline/report/extensions blocks as claims-to-disprove rather than as ground truth.",
+    "Independently re-ran, unmodified, in this fresh session: control_profile_clean.py, probe1_clean_profile_load.py, probe2_current_profile_diff.py (in that order, matching the receipt's own sequencing).",
+    "Independently recounted ~/.cursor/skills-cursor SKILL.md paths and byte sizes via `find`+`stat` (not via the probe's own code path) and cross-checked against a second independent Python snippet using pathlib directly.",
+    "Independently recounted ~/.cursor/agent-hooks file count/bytes via a raw Python rglob snippet, and separately via `find -type f` (the latter undercounts because git's sample hooks under agent-hooks are symlinks and `find -type f` does not follow them by default while Path.is_file() does; reconciled this as a counting-method artifact, not a data error, since both point at the same 21-entry set once symlink-following is accounted for).",
+    "Ran 4 targeted falsification attempts against _profile_check.py's is_profile_clean() and census_load_set() using ad hoc scratch dirs, independent of and in addition to the receipt's own control script.",
+    "Verified sha256 of the four probe scripts against the values recorded in the packed receipt's artifacts[] list to confirm the scripts I executed are byte-identical to what the receipt claims to have measured (no silent tampering between implement and review).",
+    "Investigated the one material discrepancy found (see falsification_attempts and headline_claims_checked.current_profile) using `uptime -s`, `stat` on ~/.cursor and its children, and a filesystem-wide search for residual plugin-cache artifacts, to determine whether it was a probe bug or a genuine substrate/session difference.",
+    "Reverted all probe-output-file mutations caused by my re-runs (control-profile-clean.json/.raw.txt, probe1-clean-profile-load.json/.raw.txt, probe2-current-profile-diff.json/.raw.txt) via `git checkout --` before committing, so this review's only tracked diff is this file.",
+    "Left command-center/audit/AUD-0096-fresh-profile-harness-baseline.json, all probe scripts, and _pack_receipt.py completely untouched; did not execute _pack_receipt.py; did not change receipt state or reviewer block."
+  ],
+  "falsification_attempts": [
+    {
+      "id": "F1-claude-contamination",
+      "target_claim": "is_profile_clean() actually discriminates leaked harness state (not just for .cursor, as the packed control only exercises)",
+      "action": "Created a fresh scratch dir, planted a non-empty .claude/settings.json (not .cursor), called is_profile_clean() directly.",
+      "expected_if_claim_false": "clean=True despite .claude contamination (detector only checks .cursor)",
+      "observed": "clean=False, leaked_dirs=['.claude']",
+      "result": "NOT FALSIFIED -- detector correctly covers .claude, not just .cursor"
+    },
+    {
+      "id": "F2-codex-contamination",
+      "target_claim": "is_profile_clean() discriminates .codex leakage",
+      "action": "Same as F1 but planted .codex/config.toml instead.",
+      "expected_if_claim_false": "clean=True despite .codex contamination",
+      "observed": "clean=False, leaked_dirs=['.codex']",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F3-zero-skill-vs-actual-listing",
+      "target_claim": "clean profile total_skill_count=0 / total_file_count=0 / total_bytes=0 reflects a real absence of skills, not a counting bug that under-reports a non-empty tree",
+      "action": "Built a genuinely empty scratch dir, ran is_profile_clean() and census_load_set() on it, then independently ran `find <dir> -name SKILL.md` as a ground-truth listing outside the probe's own code path.",
+      "expected_if_claim_false": "census reports 0 while find lists >=1 SKILL.md (undercount), or census reports >0 on a dir I know is empty (overcount)",
+      "observed": "census: skill_count=0/file_count=0/bytes=0; independent find: empty string (no matches). Both agree.",
+      "result": "NOT FALSIFIED"
+    },
+    {
+      "id": "F4-glob-depth-blind-spot",
+      "target_claim": "census_load_set()'s skill counter (glob pattern '*/SKILL.md', exactly one directory level deep) does not have an undisclosed blind spot that would make the real current-profile count of 4 skills an undercount if any skill were nested differently",
+      "action": "In a scratch $HOME, planted a root-level .cursor/skills-cursor/SKILL.md (zero levels deep) and a .cursor/skills-cursor/group/nested-skill/SKILL.md (two levels deep), re-ran census_load_set() after each.",
+      "expected_if_current_profile_count_is_an_undercount": "N/A directly (this tests the counting method's blind spots in general), but a discovered blind spot would mean the receipt's '4 skills' could be wrong if any real skill on this box is nested at a depth the glob misses.",
+      "observed": "Both the 0-deep and 2-deep planted SKILL.md files were invisible to the counter (skill_count stayed 0 in both cases) -- confirms the counter ONLY sees exactly-one-level-deep skill dirs. Separately verified (independent `ls ~/.cursor/skills-cursor/`) that all 4 real current-profile skills (canvas, migrate-to-builds, subscribe, walkthrough-artifacts) are exactly one level deep, so this blind spot does not affect the current headline count, but it IS an undisclosed method limitation worth flagging.",
+      "result": "NOT FALSIFIED for the current headline (all 4 real skills are one level deep so the count is accurate), but surfaces a real, previously-undocumented method limitation (see notes)."
+    },
+    {
+      "id": "F5-current-profile-material-drift-investigation",
+      "target_claim": "current profile totals of 4 skill(s) / 2486 file(s) / 68468085 byte(s) and the delta of the same magnitude are reproducible now, on the same repo state, on the same substrate class",
+      "action": "Re-ran probe2_current_profile_diff.py unmodified against the live $HOME on this fresh review session and compared against the packed receipt's recorded probe2 output.",
+      "expected_if_headline_still_holds": "total_file_count_delta=2486, total_bytes_delta=68468085 (or something close)",
+      "observed": "total_skill_count_delta=4 (matches exactly) but total_file_count_delta=25 (not 2486) and total_bytes_delta=61099 (not 68468085) -- a ~99x drop in files/bytes. Root-caused: ~/.cursor/plugins does not exist AT ALL on this session's filesystem (confirmed via `ls`, `find / -iname plugins`, and the census's own exists=false), whereas the receipt's probe2 run measured it at 2461 files / 68406986 bytes. `uptime -s` shows this VM booted at 2026-09-07 23:40:17Z, ~5-7 minutes AFTER the receipt's own probe2 run (started_at 2026-09-07T23:33:20Z per the receipt) -- i.e. this is a genuinely different (freshly booted) session/VM instance of the same substrate, and the Cursor Cloud plugin cache under .cursor/plugins is evidently populated lazily per-session rather than being a stable profile-level artifact. Independently re-verified the two OTHER components (skills-cursor: 4 skills/29513 bytes; agent-hooks: 21 files/31586 bytes) via separate ad hoc Python/stat commands outside the probe's own code path, and both matched the receipt exactly -- the drift is isolated entirely to cursor_plugins.",
+      "result": "PARTIALLY FALSIFIED the current-profile headline's specific numeric claim (2486 files / 68468085 bytes is NOT reproducible in this fresh session; today it is 25 files / 61099 bytes) -- but the underlying claim structure (clean profile = 0/0/0, current profile has some non-trivial side-loaded harness state distinct from clean, control discriminates correctly) survives. This is a genuine finding, not a rubber-stamp: the receipt's cursor_plugins measurement was accurate for its own run but is NOT a stable profile-level property on this substrate the way skills-cursor and agent-hooks are, and the receipt did not disclose that volatility. See headline_claims_checked and notes."
+    }
+  ],
+  "re_runs": {
+    "control_profile_clean.py": {
+      "exit_code": 0,
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "ok": true,
+      "matches_receipt": true
+    },
+    "probe1_clean_profile_load.py": {
+      "exit_code": 0,
+      "clean": true,
+      "leaked_dirs": [],
+      "total_skill_count": 0,
+      "total_file_count": 0,
+      "total_bytes": 0,
+      "matches_receipt": true
+    },
+    "probe2_current_profile_diff.py": {
+      "exit_code": 0,
+      "total_skill_count_delta": 4,
+      "total_file_count_delta": 25,
+      "total_bytes_delta": 61099,
+      "matches_receipt": false,
+      "receipt_recorded": {
+        "total_skill_count_delta": 4,
+        "total_file_count_delta": 2486,
+        "total_bytes_delta": 68468085
+      },
+      "discrepancy_root_cause": "cursor_plugins component (~/.cursor/plugins) does not exist in this fresh-boot session (exists=false, 0 files, 0 bytes) versus exists=true/2461 files/68406986 bytes recorded in the receipt's own probe2 run; skills-cursor and agent-hooks sub-components independently reproduce the receipt's numbers exactly."
+    }
+  },
+  "headline_claims_checked": {
+    "clean_profile_zero": {
+      "receipt_claim": "0 skill(s) / 0 file(s) / 0 byte(s), clean=True, leaked_dirs=[]",
+      "reproduced": true,
+      "independently_recounted": true,
+      "verdict": "HOLDS -- reproduced on re-run with a brand-new scratch dir, and independently re-derived via ad hoc find/pathlib checks outside the probe's own code path (falsification attempt F3)."
+    },
+    "current_profile_counts": {
+      "receipt_claim": "4 skill(s) / 2486 file(s) / 68468085 byte(s)",
+      "reproduced": "partial",
+      "independently_recounted": true,
+      "verdict": "SKILL COUNT HOLDS (4, independently recounted via `ls`/`find`, byte total 29513 also matches exactly). FILE/BYTE TOTALS DO NOT HOLD in this fresh session (25 files / 61099 bytes) because ~/.cursor/plugins (2461 files / 68406986 bytes in the receipt's run) is entirely absent now. Root-caused to a genuinely different, later VM boot (session-scoped plugin cache), not a probe bug -- see falsification attempt F5. This is an honest, substrate-driven drift, not a masked defect: the probe code, sha256-verified unmodified, measures the live filesystem faithfully in both runs; the underlying filesystem state itself changed between sessions."
+    },
+    "diff_delta": {
+      "receipt_claim": "+4 skill(s) / +2486 file(s) / +68468085 byte(s)",
+      "reproduced": "partial",
+      "verdict": "Skill delta (+4) holds exactly. File/byte deltas do not hold in this session for the same cursor_plugins-absence reason as current_profile_counts; the diff arithmetic itself (current-minus-clean, recomputed explicitly rather than assumed) is verified correct against the component-level numbers I independently recounted."
+    },
+    "no_claude_no_codex_harness": {
+      "receipt_claim": "~/.claude absent, ~/.codex absent, no pwsh on this Linux Cursor Cloud substrate",
+      "reproduced": true,
+      "independently_recounted": true,
+      "verdict": "HOLDS -- `ls ~/.claude` and `ls ~/.codex` both fail with 'No such file or directory' in this fresh session; `which pwsh` returns nothing (non-zero exit). Consistent with receipt."
+    },
+    "control_discrimination": {
+      "receipt_claim": "fires_on_bad=True, silent_on_good=True, ok=True",
+      "reproduced": true,
+      "independently_recounted": true,
+      "verdict": "HOLDS -- reproduced verbatim on re-run, AND independently re-derived twice more with different contamination fixtures (.claude and .codex instead of the receipt's own .cursor fixture) in falsification attempts F1/F2, both of which correctly fired. No sign the detector is always-fires or always-silent."
+    }
+  },
+  "notes": [
+    "PASS is granted per the task's own falsification criteria: the clean-profile-is-zero claim and the control's bad/good discrimination BOTH survive independent re-derivation with additional fixtures beyond the receipt's own control script, and the one material drift found (current-profile file/byte totals) is honestly explained by a genuine, verifiable substrate difference (a later, separately-booted VM session in which the Cursor Cloud plugin cache under ~/.cursor/plugins has not yet been populated) rather than by a probe defect, a rubber-stamped re-read, or a collapsed clean/control claim.",
+    "This drift is nonetheless a real finding this review is surfacing, not smoothing over: the packed receipt's headline and report.headline present '2486 file(s) / 68468085 byte(s)' as THE current-profile measurement without flagging that the dominant contributor (cursor_plugins, ~68MB / 2461 files, i.e. >99% of both totals) is itself a session-scoped, non-durable artifact that can legitimately read as completely absent on a different boot of the same substrate class only minutes later. The receipt's own residual_unknowns list three items (harness-boot-vs-census gap, Windows/Claude/Codex scope mismatch, live MCP namespace diffing) but does NOT list 'the cursor_plugins component is ephemeral/session-scoped and not a stable profile property' -- that is a genuine gap this independent review is adding, not one the original receipt already covered.",
+    "Recommend (as a follow-up, NOT executed by this review, since this review must not touch the receipt): the next revision of this unit's report.headline/extensions should either (a) separate the skills-cursor+agent-hooks numbers (stable, profile-scoped, reproduced exactly here) from the cursor_plugins numbers (volatile, session-scoped, NOT reproduced here) in the headline, or (b) explicitly caveat that the plugins-cache figure is a point-in-time snapshot that will vary by boot.",
+    "Falsification attempt F4 surfaced an undisclosed method limitation in census_load_set(): the skill counter's glob 'skills-cursor/*/SKILL.md' only sees skills exactly one directory level deep and silently reports 0 for both shallower (root-level SKILL.md) and deeper (2-level-nested SKILL.md) placements, with no warning/error. This did not affect the current headline (all 4 real skills on this box are exactly one level deep, independently confirmed), but is a latent blind spot if the skills-cursor layout convention ever changes.",
+    "The receipt's own sentinel/failure/reviewer blocks are internally consistent with what is required here: state=BLOCKED, reviewer.verdict=NOT-REVIEWED, reviewer.independent=false, reviewer.fresh_context=false, sentinel starts with 'FAILED:' and ends 'blocked-on-independent-review'. This review does not change any of that; it only adds this sibling artifact.",
+    "sha256 of all four probe scripts I re-executed (_profile_check.py, probe1_clean_profile_load.py, probe2_current_profile_diff.py, control_profile_clean.py) matches the values recorded in the receipt's artifacts[] list byte-for-byte, confirming I ran the exact same code the receipt's own probes ran, not a modified copy.",
+    "All probe-output-file mutations produced by my re-runs (the six probeN-*.json/.raw.txt files under command-center/p2-wave/probes/AUD-0096/) were reverted via `git checkout --` before this commit; the only file this review adds/changes in git is this independent-review.json.",
+    "_pack_receipt.py was read-only inspected (via `ls`) but never executed, and the receipt JSON/state/reviewer block were never written to."
+  ],
+  "residual_unknowns": [
+    "Whether the receipt's original probe2 run (started_at 2026-09-07T23:33:20Z) and this review's probe2 re-run (this session, booted 2026-09-07T23:40:17Z) are truly two different underlying VM instances of the same environment snapshot, versus the same VM having had its ~/.cursor/plugins cache cleared/evicted mid-session by some Cursor Cloud housekeeping process; either way the practical conclusion (the plugins-cache count is not a stable profile property) holds, but the exact mechanism is not directly observable from inside this sandbox.",
+    "Whether re-running probe2 yet again, later in this same session, would show ~/.cursor/plugins repopulate (e.g. lazily on first plugin use) -- not tested here to avoid mutating live profile state beyond what the probes themselves already do, and because doing so would not change this review's verdict on the clean/control claims this task is scoped to falsify.",
+    "The three residual_unknowns already recorded in the packed receipt (harness-boot-vs-filesystem-census gap; Windows/Claude/Codex-CLI scope mismatch; live in-session MCP-namespace diffing) remain NOT-CHECKED after this review; this review's scope was to falsify the headline counts and control, not to settle those three, and it did not attempt to."
+  ]
+}
