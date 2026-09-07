@@ -1,9 +1,8 @@
 #!/usr/bin/env python3
-"""Pack AUD-0045 fail-open gate census (BLOCKED on independent re-review).
+"""Pack AUD-0045 fail-open gate census.
 
-Remediation after independent review FAIL: probe2 classifier expanded + --self-test
-excluded from fail-open tally. Headline now reports the single confirmed fail-open
-(ssot_drift_gate.py). Reviewer still owed — emit BLOCKED, not SUCCESS.
+Promotes to SUCCESS only when independent-review.json has verdict=PASS.
+Otherwise emits BLOCKED (anti-false-green).
 """
 from __future__ import annotations
 
@@ -20,6 +19,21 @@ OUT = "command-center/audit/AUD-0045-fail-open-gate-census.json"
 SCHEMA = "command-center/schema/audit-finding.schema.json"
 PROBE = Path(__file__).resolve().parent
 MANIFEST = "command-center/p2-wave/probes/AUD-0045/UNIT-ARTIFACT-MANIFEST.json"
+REVIEW = PROBE / "independent-review.json"
+
+
+def load_review() -> dict | None:
+    if not REVIEW.is_file():
+        return None
+    try:
+        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if rev.get("verdict") != "PASS":
+        return None
+    if not rev.get("independent") or not rev.get("fresh_context"):
+        return None
+    return rev
 
 
 def build(primary: dict | None = None) -> dict:
@@ -27,6 +41,8 @@ def build(primary: dict | None = None) -> dict:
     p2 = json.loads((PROBE / "probe2-execution-results.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-static.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-execution.raw.txt").read_text(encoding="utf-8")
+    rev = load_review()
+    success = rev is not None
     started = "2026-09-07T18:24:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     arts = [
@@ -44,24 +60,146 @@ def build(primary: dict | None = None) -> dict:
         L.art("command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt", "log"),
     ]
+    if success:
+        arts.append(
+            L.art("command-center/p2-wave/probes/AUD-0045/independent-review.json", "supporting")
+        )
     fo = p2["fail_open_count"]
     excluded = p2.get("detector_control_excluded_count", 0)
-    return {
+
+    if success:
+        reviewer = {
+            "reviewer_id": rev["reviewer_id"],
+            "verdict": "PASS",
+            "independent": True,
+            "fresh_context": True,
+            "vendor": rev.get("vendor", "anthropic"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": rev.get("notes", ""),
+        }
+        defects = [
+            {
+                "id": "AUD-0045-D-REVIEW",
+                "severity": "P1",
+                "status": "resolved",
+                "summary": (
+                    "Independent fresh-context Claude re-review PASS recorded at "
+                    "command-center/p2-wave/probes/AUD-0045/independent-review.json"
+                ),
+            },
+            {
+                "id": "AUD-0045-D-FAIL-OPEN",
+                "severity": "P2",
+                "status": "open",
+                "summary": (
+                    f"{fo} production fail-open confirmed under review: "
+                    f"{p2['fail_open_labels']}"
+                ),
+            },
+        ]
+        state = "SUCCESS"
+        sentinel = "SUCCESS:AUD-0045"
+        headline = (
+            f"{fo} fail-open execution case ({', '.join(p2['fail_open_labels'])}); "
+            f"{excluded} --self-test detector-controls excluded; "
+            f"{p1['suspect_count']} static-suspect gates; "
+            f"validate.require_complete default-off="
+            f"{p1['validate_require_complete_default_off']}. "
+            "Independent re-review PASS."
+        )
+        failure = None
+        anti = "SUCCESS-after-independent-re-review-PASS"
+    else:
+        reviewer = {
+            "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+            "verdict": "NOT-REVIEWED",
+            "independent": False,
+            "fresh_context": False,
+            "vendor": "anthropic",
+            "notes": (
+                "Prior independent review FAIL (headline overstated 5 vs 1 real). "
+                "Classifier/--self-test remediation applied and remesured. "
+                "Fresh-context Claude re-review still owed before PASS; BLOCKED."
+            ),
+        }
+        defects = [
+            {
+                "id": "AUD-0045-D-REVIEW",
+                "severity": "P1",
+                "status": "open",
+                "summary": (
+                    "Independent fresh-context Claude re-review unpaid after "
+                    "classifier remediation (prior review FAIL)."
+                ),
+            },
+            {
+                "id": "AUD-0045-D-FAIL-OPEN",
+                "severity": "P2",
+                "status": "open",
+                "summary": (
+                    f"{fo} production fail-open after remesure (narrowed from prior "
+                    f"false-positive set of 5): {p2['fail_open_labels']}"
+                ),
+            },
+        ]
+        state = "BLOCKED"
+        sentinel = (
+            "FAILED:AUD-0045 static+execution probes measured fail-open candidates; "
+            "known-bad empty catalog exits non-zero; blocked-on-independent-review"
+        )
+        headline = (
+            f"{fo} fail-open execution case ({', '.join(p2['fail_open_labels'])}); "
+            f"{excluded} --self-test detector-controls excluded; "
+            f"{p1['suspect_count']} static-suspect gates; "
+            f"validate.require_complete default-off="
+            f"{p1['validate_require_complete_default_off']}. BLOCKED on re-review."
+        )
+        failure = {
+            "classification": ["blocked-on-independent-review", "green-not-live"],
+            "reason": (
+                f"Remesured fail_open_count={fo} across {p2['case_count']} executions "
+                f"(excluded {excluded} --self-test detector-controls); static suspects="
+                f"{p1['suspect_count']}; reviewer_requirement unmet after prior FAIL."
+            ),
+            "diagnostic_tail": (
+                f"fail_open_labels={p2['fail_open_labels']} "
+                f"require_complete_default_off={p1['validate_require_complete_default_off']}"
+            ),
+            "blocked_on": (
+                "Dispatch one fresh-context Claude reviewer who has not seen this transcript "
+                "to falsify the remesured headline fail-open count (=1) before PASS."
+            ),
+            "two_signal_proof": [
+                L.probe(
+                    "source",
+                    "command",
+                    "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
+                    f"fail_open_count={fo}",
+                    0,
+                ),
+                L.probe(
+                    "verifier",
+                    "file-read",
+                    "reviewer.verdict",
+                    "NOT-REVIEWED",
+                    0,
+                ),
+            ],
+        }
+        anti = "BLOCKED-with-real-probes-after-review-FAIL-remediation"
+
+    doc = {
         "schema_version": 1,
         "unit_id": UNIT,
-        "state": "BLOCKED",
-        "sentinel": (
-            "FAILED:AUD-0045 remesured fail-open=1 (ssot_drift_gate.py only) after "
-            "classifier/--self-test remediation; known-bad empty catalog exits non-zero; "
-            "blocked-on-independent-re-review"
-        ),
+        "state": state,
+        "sentinel": sentinel,
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0045",
         "min_bytes_threshold": 4096,
         "produced_by": {
             "vendor": "anthropic",
             "model": "composer",
             "role": "adversarial-refuter",
-            "execution_substrate": "linux-local-p2-wave1-remeasure",
+            "execution_substrate": "linux-local-p2-wave1",
         },
         "artifacts": arts,
         "evidence": [
@@ -103,14 +241,11 @@ def build(primary: dict | None = None) -> dict:
             ),
             L.evidence(
                 (
-                    f"Probe 2 remesure after review-FAIL remediation: executed "
-                    f"{p2['case_count']} invocations; fail_open_count={fo} "
-                    f"labels={p2['fail_open_labels']}; "
-                    f"detector_control_excluded={excluded}; "
+                    f"Probe 2 executed {p2['case_count']} gate invocations; "
+                    f"fail_open_count={fo} labels={p2['fail_open_labels']}; "
+                    f"excluded_self_test={excluded}; "
                     f"known_bad_nonzero={p2['known_bad_nonzero']} "
-                    f"measures_nothing_validate={p2['measures_nothing_validate']}. "
-                    "Classifier recognizes units=/artifacts=/cases/citations/FIRES; "
-                    "--self-test excluded from fail-open tally."
+                    f"measures_nothing_validate={p2['measures_nothing_validate']}."
                 ),
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
@@ -130,7 +265,6 @@ def build(primary: dict | None = None) -> dict:
                             {
                                 "fail_open_count": fo,
                                 "known_bad_nonzero": p2["known_bad_nonzero"],
-                                "detector_control_excluded_count": excluded,
                                 "ok": p2["ok"],
                             }
                         ),
@@ -181,38 +315,8 @@ def build(primary: dict | None = None) -> dict:
                 good=f"known_bad_nonzero={p2['known_bad_nonzero']}",
             )
         ],
-        "reviewer": {
-            "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "notes": (
-                "Prior independent review FAIL (headline overstated 5 vs 1 real). "
-                "Classifier/--self-test remediation applied and remesured. "
-                "Fresh-context Claude re-review still owed before PASS; BLOCKED."
-            ),
-        },
-        "defects": [
-            {
-                "id": "AUD-0045-D-REVIEW",
-                "severity": "P1",
-                "status": "open",
-                "summary": (
-                    "Independent fresh-context Claude re-review unpaid after "
-                    "classifier remediation (prior review FAIL)."
-                ),
-            },
-            {
-                "id": "AUD-0045-D-FAIL-OPEN",
-                "severity": "P2",
-                "status": "open",
-                "summary": (
-                    f"{fo} production fail-open after remesure (narrowed from prior "
-                    f"false-positive set of 5): {p2['fail_open_labels']}"
-                ),
-            },
-        ],
+        "reviewer": reviewer,
+        "defects": defects,
         "manifest_registration": {
             "registered": True,
             "manifest_path": MANIFEST,
@@ -230,7 +334,7 @@ def build(primary: dict | None = None) -> dict:
                     "source",
                     "schema-validate",
                     "python3 -B command-center/p2-wave/probes/AUD-0045/_pack_receipt.py",
-                    "state=BLOCKED",
+                    f"state={state}",
                     0,
                 ),
             }
@@ -239,38 +343,6 @@ def build(primary: dict | None = None) -> dict:
         "retry": {
             "count": 2,
             "policy": "two strikes then pivot (AGENTS.md 4b)",
-        },
-        "failure": {
-            "classification": ["blocked-on-independent-review", "green-not-live"],
-            "reason": (
-                f"Remesured fail_open_count={fo} across {p2['case_count']} executions "
-                f"(excluded {excluded} --self-test detector-controls); static suspects="
-                f"{p1['suspect_count']}; reviewer_requirement unmet after prior FAIL."
-            ),
-            "diagnostic_tail": (
-                f"fail_open_labels={p2['fail_open_labels']} "
-                f"require_complete_default_off={p1['validate_require_complete_default_off']}"
-            ),
-            "blocked_on": (
-                "Dispatch one fresh-context Claude reviewer who has not seen this transcript "
-                "to falsify the remesured headline fail-open count (=1) before PASS."
-            ),
-            "two_signal_proof": [
-                L.probe(
-                    "source",
-                    "command",
-                    "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
-                    f"fail_open_count={fo}",
-                    0,
-                ),
-                L.probe(
-                    "verifier",
-                    "file-read",
-                    "reviewer.verdict",
-                    "NOT-REVIEWED",
-                    0,
-                ),
-            ],
         },
         "residual_unknowns": [
             {
@@ -285,13 +357,7 @@ def build(primary: dict | None = None) -> dict:
                 "For every CI gate and local validator, is there an input under which it exits 0 "
                 "without having examined anything?"
             ),
-            "headline": (
-                f"{fo} fail-open execution case ({', '.join(p2['fail_open_labels'])}); "
-                f"{excluded} --self-test detector-controls excluded; "
-                f"{p1['suspect_count']} static-suspect gates; "
-                f"validate.require_complete default-off="
-                f"{p1['validate_require_complete_default_off']}. BLOCKED on re-review."
-            ),
+            "headline": headline,
             "observations": [
                 {
                     "name": "gates_present",
@@ -330,7 +396,7 @@ def build(primary: dict | None = None) -> dict:
             "control_ids": ["AUD0045-C1"],
         },
         "extensions": {
-            "anti_false_green": "BLOCKED-with-real-probes-after-review-FAIL-remediation",
+            "anti_false_green": anti,
             "wave": "p2-wave1",
             "fail_open_labels": p2["fail_open_labels"],
             "prior_review_fail": (
@@ -340,15 +406,20 @@ def build(primary: dict | None = None) -> dict:
             "detector_control_excluded_count": excluded,
         },
     }
+    if failure is not None:
+        doc["failure"] = failure
+    return doc
 
 
 def main() -> int:
     doc = build()
+    state = doc["state"]
     rc = L.write_if_valid(doc, OUT, SCHEMA)
     if rc != 0:
         return rc
     for _ in range(2):
         doc = build(primary=L.art(OUT, "primary"))
+        state = doc["state"]
         rc = L.write_if_valid(doc, OUT, SCHEMA)
         if rc != 0:
             return rc
@@ -357,10 +428,10 @@ def main() -> int:
         "output_path": OUT,
         "sha256": L.art(OUT)["sha256"],
         "bytes": L.art(OUT)["bytes"],
-        "state": "BLOCKED",
+        "state": state,
     }
     (L.REPO / MANIFEST).write_text(json.dumps(man, indent=2) + "\n", encoding="utf-8")
-    print(f"PACKED {OUT} state=BLOCKED bytes={L.art(OUT)['bytes']}")
+    print(f"PACKED {OUT} state={state} bytes={L.art(OUT)['bytes']}")
     return 0
 
 
