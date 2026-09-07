@@ -1,0 +1,115 @@
+{
+  "reviewer_id": "fresh-context-openai-composer-AUD-0026-probe2-only",
+  "vendor": "openai",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:48:40Z",
+  "unit_id": "AUD-0026",
+  "head_sha": "d1b2d5e5e4cb1f4b570962ea18d92d3bc97bda71",
+  "artifact_state_observed": "BLOCKED",
+  "catalog_reviewer_requirement": "one cross-vendor Codex reviewer who re-runs ONLY the second probe; a same-vendor reviewer shares this unit's blind spots and does not satisfy the requirement",
+  "probe2_rerun": true,
+  "probe2_rerun_detail": {
+    "command": "python3 -B command-center/p2-wave/probes/AUD-0026/probe2_shipped_import_graph.py",
+    "exit_code": 0,
+    "success_line": "SUCCESS:AUD-0026-probe2",
+    "raw_byte_identical_to_committed": true,
+    "json_byte_identical_to_committed": true,
+    "committed_raw_sha256": "4847c27c8888596b73f52f1500133bb4e85db73e85cc481426ea3b917d21f616",
+    "rerun_raw_sha256": "4847c27c8888596b73f52f1500133bb4e85db73e85cc481426ea3b917d21f616",
+    "committed_json_sha256": "0cdf5fce9fe608501ec1ae7791daecc4cdd3b373fee6b82000b3ff877ab653ae",
+    "rerun_json_sha256": "0cdf5fce9fe608501ec1ae7791daecc4cdd3b373fee6b82000b3ff877ab653ae",
+    "headline": {
+      "packages_scanned": 40,
+      "live_defect_count": 0,
+      "dead_dev_only_count": 44,
+      "planted_shipped_caught": true,
+      "py_shipped_caught": true,
+      "node_shipped_caught": true,
+      "test_only_not_flagged": true,
+      "ok": true
+    },
+    "log": "/opt/cursor/artifacts/aud0026-review-probe2.log"
+  },
+  "notes": "Cross-vendor (openai) independent fresh-context review of AUD-0026. Catalog requires re-run of ONLY probe2. Re-ran probe2_shipped_import_graph.py at HEAD d1b2d5e5e; raw+JSON byte-identical to committed; headline live_defect_count=0, dead_dev_only_count=44, planted_shipped_caught=True, test_only_not_flagged=True. Goal: FALSIFY those headlines and the planted control polarity. Could not. Independent remeasure via split_lib over 40 live + 2 planted manifests reproduces 0 live defects and 44 dead declared-dev-only names. Broader falsification that ignores shippable-root restriction (all non-test sources under each package root) still finds 0 shipped imports of declared-dev-only deps. Spot-check regex for `import pytest` / `from \"typescript\"` outside test paths on packages that declare those as dev-only: 0 suspects. Control held by direct fixture read + library: shipped.py imports pytest and is flagged; tests/test_planted.py imports pytest and is NOT flagged; src/shipped.mjs imports typescript and is flagged; test/shipped.test.mjs imports typescript and is NOT flagged. UNIT-ARTIFACT-MANIFEST state remains BLOCKED. Did not pack SUCCESS / did not run _pack_receipt.py ADMIT; leaving promotion to parent. Only this independent-review.json is committed.",
+  "headline_reproduced": {
+    "live_defect_count": 0,
+    "dead_dev_only_count": 44,
+    "packages_scanned": 40,
+    "planted_shipped_caught": true,
+    "py_shipped_caught": true,
+    "node_shipped_caught": true,
+    "test_only_not_flagged": true,
+    "ok": true
+  },
+  "falsification_attempts": [
+    {
+      "target": "live_defect_count=0 / dead_dev_only_count=44 (probe2 headline)",
+      "method": "Re-run ONLY probe2_shipped_import_graph.py; sha256+diff raw/json vs committed; independent remasure via discover_manifests+find_defects+dead recount",
+      "result": "NOT-FALSIFIED",
+      "evidence": "exit 0; SUCCESS:AUD-0026-probe2; raw+json byte-identical; remasure live_defect_count=0 dead_dev_only_count=44 packages_scanned=40",
+      "log": "/opt/cursor/artifacts/aud0026-review-probe2.log"
+    },
+    {
+      "target": "Probe under-counts live defects by restricting to shippable roots",
+      "method": "Broader scan of ALL non-test .py/.js/.mjs/.cjs/.ts/.tsx under each live package root for imports mapping to declared-dev-only",
+      "result": "NOT-FALSIFIED",
+      "evidence": "all_nontest_hits=0; broader_minus_probe=[]",
+      "log": "/opt/cursor/artifacts/aud0026-review-falsify.log"
+    },
+    {
+      "target": "dead_dev_only_count=44 overstates (some claimed-dead names imported by shipped modules)",
+      "method": "Invert: for each live declared-dev-only name, check shipped import set for map_import_to_declared hit",
+      "result": "NOT-FALSIFIED",
+      "evidence": "recomputed_dead=44; zero NOT_DEAD inversions",
+      "log": "/opt/cursor/artifacts/aud0026-review-falsify2.log"
+    },
+    {
+      "target": "Planted control polarity (shipped MUST flag; test-only MUST NOT)",
+      "method": "Direct fixture source inspection + find_defects/find_test_imports_of_dev on both planted manifests",
+      "result": "NOT-FALSIFIED",
+      "evidence": "py+node shipped caught; test imports present but wrongly_flagged=False; test_paths_in_planted_defects=0",
+      "log": "/opt/cursor/artifacts/aud0026-review-falsify2.log"
+    },
+    {
+      "target": "Hidden nontest `import pytest` / typescript import in live packages declaring them as dev-only",
+      "method": "Regex spot-check of non-test sources under pytest-as-dev and typescript-as-dev live packages",
+      "result": "NOT-FALSIFIED",
+      "evidence": "pytest_nontest_import_suspects=0; typescript_nontest_import_suspects=0",
+      "log": "/opt/cursor/artifacts/aud0026-review-falsify2.log"
+    }
+  ],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud-0026-review-0db0 origin/cursor/p2-loop-to-green-0db0",
+    "python3 -B command-center/p2-wave/probes/AUD-0026/probe2_shipped_import_graph.py",
+    "sha256sum + diff committed vs rerun probe2 raw/json (identical); restored committed probe2 artifacts",
+    "python3 independent remasure + broader nontest scan + dead invert + control polarity + pytest/typescript spot-check"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0026-review-probe2.log",
+    "/opt/cursor/artifacts/aud0026-review-compare.log",
+    "/opt/cursor/artifacts/aud0026-review-committed-hashes.log",
+    "/opt/cursor/artifacts/aud0026-review-rerun-hashes.log",
+    "/opt/cursor/artifacts/aud0026-review-headline.log",
+    "/opt/cursor/artifacts/aud0026-review-falsify.log",
+    "/opt/cursor/artifacts/aud0026-review-falsify2.log"
+  ],
+  "confirmed": [
+    "probe2_rerun_success",
+    "raw_byte_identical_to_committed",
+    "json_byte_identical_to_committed",
+    "live_defect_count_0",
+    "dead_dev_only_count_44",
+    "planted_shipped_caught_py_and_node",
+    "test_only_not_flagged",
+    "manifest_state_BLOCKED"
+  ],
+  "falsified": [],
+  "promotion": {
+    "packed_success": false,
+    "reason": "PASS record only; parent should promote via packer+ADMIT when ready. Artifact remains BLOCKED until review field is applied by implementer."
+  },
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED"
+}
