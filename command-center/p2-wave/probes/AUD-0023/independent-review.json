@@ -1,0 +1,126 @@
+{
+  "unit_id": "AUD-0023",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "aud-0023-claude-falsify",
+  "reviewer_role": "falsify-reviewer",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0023-vuln-posture-snapshot.json",
+  "receipt_state_observed": "BLOCKED",
+  "base_tip_sha": "a8795d62e5d65552f46ad0f4fb1f7716360f4d8b",
+  "reviewed_at": "2026-09-07T22:50:00Z",
+  "method": "Checked out cursor/aud-0023-review-0db0 at tip a8795d62e (git reset --hard origin/...) with no prior exposure to the implementer's transcript. Read all three probe scripts (probe1_osv_scan.py, probe2_dependabot_alerts.py, detector_control.py) end-to-end before running anything, to understand exactly what each does (target discovery, osv-scanner invocation, GHSA dedup, gh api calls) rather than trusting the receipt's summary. Confirmed osv-scanner v1.9.2 and an authenticated gh CLI were available (installed to ~/go/bin, already on PATH). Re-ran all three named probes live from scratch. Then, independently of the receipt's own scripts, invoked osv-scanner myself with a hand-typed -L argument list (not calling probe1's find_targets()) and re-implemented the vuln-id/severity/package summarizer in a standalone Python snippet (not importing probe1_osv_scan.summarize) to rule out a shared bug producing the same wrong number twice. Independently called `gh api repos/Prekzursil/agent-skills-toolchain/dependabot/alerts --paginate` myself to confirm the 403 is real and not fabricated. Independently re-queried 5 of the 15 sampled Advisory-DB packages by hand and cross-checked the excluded 16th package (mcp, dropped only by the probe's SAMPLE_LIMIT=15 truncation) to check for sample cherry-picking. Investigated whether affected_package_count=21 is inflated by duplicate manifest paths (e.g. the documented skills/ vs .agents/skills/ compat-copy) by recomputing distinct (name,version) and distinct-name cardinalities from the raw affected_packages list. After running, git-diffed all touched probe output JSON files to confirm only started_at timestamps changed (byte-identical measured data), then `git checkout --` reverted those timestamp-only diffs to leave the review branch clean before writing this review artifact. Confirmed receipt state=BLOCKED and reviewer.verdict=NOT-REVIEWED remained untouched on disk throughout; did not modify the receipt.",
+  "re_runs": {
+    "probe1_osv_scan.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0023/probe1_osv_scan.py",
+      "exit_code": 1,
+      "stdout_tail": "unit=AUD-0023 scan_exit_code=1 distinct_vuln_id_count=77 ok=True",
+      "distinct_vuln_id_count": 77,
+      "affected_package_count": 21,
+      "severity_histogram": {"HIGH": 30, "MODERATE": 26, "LOW": 2},
+      "matches_receipt": true
+    },
+    "probe2_dependabot_alerts.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0023/probe2_dependabot_alerts.py",
+      "exit_code": 0,
+      "stdout_tail": "unit=AUD-0023 real_dependabot_ok=False http_status=403 advisory_db_cross_check_ok=True corroborated=15/15",
+      "matches_receipt": true
+    },
+    "detector_control.py": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0023/detector_control.py",
+      "exit_code": 0,
+      "stdout_tail": "source_a_osv_scanner bad_count=24 good_count=0; source_b_advisory_db bad_count=19 good_count=0; common_ghsa_ids_bad has 12 entries; a_fires_on_bad=True a_silent_on_good=True b_fires_on_bad=True b_silent_on_good=True cross_source_corroborated=True SUCCESS:AUD-0023-control",
+      "matches_receipt": true
+    },
+    "byte_diff_of_regenerated_outputs_vs_committed": {
+      "method": "git diff after re-running all three probes",
+      "observed": "Only started_at timestamp fields changed in probe1-osv-scan.json, probe2-dependabot-alerts.json, control-detector.json. All arrays/counts/ids/severity content byte-identical to the committed version.",
+      "action_taken": "git checkout -- <those 3 files> to leave the review branch clean (no residual re-run churn committed)."
+    }
+  },
+  "falsification_attempts": [
+    {
+      "attempt": "Re-run probe1 live from scratch and diff against committed probe1-osv-scan.json to check distinct_vuln_id_count=77 / affected_package_count=21 / severity histogram were not a cherry-picked or lucky one-off run.",
+      "result": "could_not_falsify",
+      "observed": "Rerun reproduced distinct_vuln_id_count=77, affected_package_count=21, severity_histogram={'MODERATE': 26, 'HIGH': 30, 'LOW': 2} exactly; only the started_at timestamp differed byte-for-byte from the committed JSON."
+    },
+    {
+      "attempt": "Invoke osv-scanner myself with a hand-typed -L target list (13 explicit paths, not calling probe1's find_targets()) and re-implement the vuln-id/severity/package dedup logic in a standalone script that does not import probe1_osv_scan.summarize(), to rule out a shared bug in the implementer's summarizer producing an inflated or deflated number twice.",
+      "result": "could_not_falsify",
+      "observed": "Independent osv-scanner invocation + independently-written summarizer produced distinct_vuln_id_count=77, affected_package_count=21, severity_histogram={'MODERATE': 26, 'HIGH': 30, 'LOW': 2} -- identical to the receipt despite different code and a manually-typed target list."
+    },
+    {
+      "attempt": "Call `gh api repos/Prekzursil/agent-skills-toolchain/dependabot/alerts --paginate` directly (not via probe2_dependabot_alerts.py) to confirm the claimed real-endpoint HTTP 403 is genuine and not an invented/stale failure.",
+      "result": "could_not_falsify",
+      "observed": "Independent call returned the identical body {\"message\":\"Resource not accessible by integration\",...,\"status\":\"403\"} and `gh: Resource not accessible by integration (HTTP 403)` on stderr -- a real fine-grained-token permission limitation (no security_events/Dependabot scope), matching the receipt's honest dependabot_real_ok=False."
+    },
+    {
+      "attempt": "Independently re-query 5 of the 15 sampled Advisory-DB packages by hand (requests, qs, idna, pytest, esbuild) via separate `gh api /advisories?...` calls to confirm advisory_count values were not fabricated in probe2's output.",
+      "result": "could_not_falsify",
+      "observed": "Independent lookups returned advisory_count=8 (requests), 10 (qs), 2 (idna), 1 (pytest), 3 (esbuild) -- identical to the values recorded in probe2-dependabot-alerts.json for all 5 spot-checked packages."
+    },
+    {
+      "attempt": "Check whether the 15-package Advisory-DB sample cap (SAMPLE_LIMIT=15) cherry-picked a favorable subset by excluding a package that would NOT have corroborated, since the receipt's affected_packages list actually contains 16 distinct (ecosystem,name) pairs (one -- 'mcp', PyPI -- is silently dropped by the truncation).",
+      "result": "could_not_falsify",
+      "observed": "Independently queried `gh api /advisories?ecosystem=pip&affects=mcp` for the excluded 16th package: advisory_count=6 (> 0). Including it would still yield 16/16 corroboration, not a weaker result. The sample cap did not mask a non-corroborating package."
+    },
+    {
+      "attempt": "Challenge whether affected_package_count=21 overclaims uniqueness, since the underlying list is built by appending one entry per (scanned-file, package) tuple without deduping across files -- and this repo has a documented compat-copy duplicate (skills/consensus-tooluniverse-research/requirements.txt is byte-identical to .agents/skills/consensus-tooluniverse-research/requirements.txt per AGENTS.md's migration-layer note), plus fast-uri==3.1.5 and qs==6.15.3 each appear in two separate npm projects (chrome-bridge-mcp and hacktricks-mcp-server package-lock.json files).",
+      "result": "not_a_falsification",
+      "observed": "Recomputing from the raw affected_packages list: distinct (name,version) pairs = 18, distinct package names = 16, but the receipt's own method field says 'osv-scanner packages with >=1 vulnerability' -- i.e. a raw count of osv-scanner's own per-source-file package-result entries, matching osv-scanner's native JSON grouping (results[].packages[], one row per scanned manifest). requests==2.31 is double-counted only because the compat-copy duplicate file genuinely exists twice on disk at two different repo paths (both would independently expose the pin if imported from either location); fast-uri and qs are double-counted because they are genuinely two separate npm projects each independently vulnerable, not the same exposure. The headline number is honestly reproducible and consistent with its documented counting method (occurrences, not distinct dependency identities); it is not fabricated, but a reader could reasonably want a 'distinct_affected_package_count=18' companion metric -- flagged below as a residual observation, not a broken headline claim."
+    },
+    {
+      "attempt": "Recompute the severity histogram sum (30+26+2=58) against distinct_vuln_id_count=77 to see if the two headline numbers are internally inconsistent (i.e. does the receipt imply severities sum to 77 when they demonstrably do not?).",
+      "result": "not_a_falsification",
+      "observed": "34 of the 77 distinct vuln ids (mostly PYSEC-* PyPI advisories) carry no database_specific.severity field in osv-scanner's output at all, and the histogram counts per-package occurrences of a vuln id (not distinct ids), so sum(58) < distinct_vuln_id_count(77) is expected, not an error. The receipt's headline lists both numbers side-by-side but never asserts they sum to each other; re-verified this gap exists identically on my independent osv-scanner run, so it is a property of the underlying advisory data, not a probe artifact."
+    },
+    {
+      "attempt": "Re-run detector_control.py from scratch and challenge the claimed 12 common GHSA ids / bad_count=24 (osv-scanner) / bad_count=19 (Advisory DB) / control ok=True for urllib3==1.24.1 vs six==1.16.0.",
+      "result": "could_not_falsify",
+      "observed": "Rerun reproduced source_a_osv_scanner bad_count=24 good_count=0, source_b_advisory_db bad_count=19 good_count=0, exactly the same 12 common_ghsa_ids_bad list, a_fires_on_bad=True a_silent_on_good=True b_fires_on_bad=True b_silent_on_good=True cross_source_corroborated=True, control ok=True -- byte-identical to the committed control-detector.json aside from the started_at timestamp."
+    },
+    {
+      "attempt": "Independently verify the query_timestamp=2026-09-07T22:39:19Z / valid_until=2026-09-08T22:39:19Z decay window is a real captured timestamp (not a rounded/invented value) and that the 24h arithmetic is correct.",
+      "result": "could_not_falsify",
+      "observed": "The committed probe1-osv-scan.json's own started_at field reads 2026-09-07T22:39:19Z, matching the receipt's query_timestamp exactly (this is the actual probe run time, not a separately fabricated value). valid_until - query_timestamp = exactly 24:00:00, matching decay_hours=24."
+    },
+    {
+      "attempt": "Confirm the receipt on disk was NOT silently promoted to SUCCESS before I started, and that reviewer.verdict genuinely still reads NOT-REVIEWED / state=BLOCKED, and that my own probe re-runs (which regenerate files under the same paths the receipt's sha256 hashes point to) did not leave a residual diff that would silently change the packed artifact hashes.",
+      "result": "could_not_falsify_blocker",
+      "observed": "python3 read of command-center/audit/AUD-0023-vuln-posture-snapshot.json confirms state='BLOCKED' and reviewer.verdict='NOT-REVIEWED' both before and after my re-runs. `git status --short` after `git checkout --` on the three regenerated probe output files shows a clean tree with zero uncommitted changes before I wrote this review artifact. I did not edit the receipt."
+    }
+  ],
+  "headline_claims_checked": {
+    "distinct_vuln_id_count": {"claimed": 77, "independently_measured": 77, "falsified": false},
+    "affected_package_count": {"claimed": 21, "independently_measured": 21, "falsified": false, "caveat": "raw per-(scanned-file,package) occurrence count per documented method, not deduped to distinct (name,version)=18 or distinct-name=16; internally consistent with method description, not a broken claim"},
+    "severity_high_count": {"claimed": 30, "independently_measured": 30, "falsified": false},
+    "severity_moderate_count": {"claimed": 26, "independently_measured": 26, "falsified": false},
+    "severity_low_count": {"claimed": 2, "independently_measured": 2, "falsified": false},
+    "dependabot_real_endpoint_http_403": {"claimed": true, "independently_verified": true, "falsified": false},
+    "advisory_db_fallback_corroborated_15_of_15": {"claimed": "15/15", "independently_verified": "15/15 (plus the excluded 16th package 'mcp' also independently corroborates with advisory_count=6, so no cherry-picking occurred)", "falsified": false},
+    "detector_control_common_ghsa_count": {"claimed": 12, "independently_measured": 12, "falsified": false},
+    "detector_control_ok": {"claimed": true, "independently_verified": true, "falsified": false},
+    "query_timestamp_and_valid_until": {"claimed": "2026-09-07T22:39:19Z / 2026-09-08T22:39:19Z (24h decay)", "independently_verified": "matches probe1's own started_at field exactly; arithmetic correct", "falsified": false}
+  },
+  "notes": "Every headline count in the receipt reproduced exactly on a fresh live re-run of all three named probes, and -- more importantly -- on independently-written re-implementations that do not import the implementer's summarizer/comparator code (hand-typed osv-scanner target list + standalone dedup script for probe1; direct `gh api` calls bypassing probe2's helper functions). I specifically tried several distinct falsification angles: shared summarizer bug, fabricated 403, fabricated Advisory-DB counts, sample-cap cherry-picking (checked the one package the 15-cap silently excluded and found it would have corroborated too), inflated affected_package_count from the repo's documented skills/ vs .agents/skills/ duplicate file and cross-project duplicate npm packages, and an apparent severity-sum/vuln-id-count mismatch (58 vs 77, explained by 34 ids lacking a severity field). None of these broke a claimed headline number; the affected_package_count and severity-sum items are documented here as legitimate methodological nuances (occurrence-count vs distinct-identity; partial severity coverage) rather than falsifications, since the receipt's own method fields already describe the counting convention used and never claim the alternate interpretation. I did not promote the receipt; state=BLOCKED and reviewer.verdict=NOT-REVIEWED remain exactly as found on disk, and I reverted the timestamp-only diffs my probe re-runs produced before writing this review artifact so the branch stays clean. This independent-review.json is a separate artifact for a downstream packer step (not run by me) to consult when deciding whether to promote the receipt.",
+  "residual_unknowns": [
+    {
+      "claim": "Whether the real per-repo Dependabot alert list would report a materially different vulnerability set than the 77 osv-scanner findings once the executing token is granted Dependabot/security_events scope.",
+      "why_still_open": "Both my token and the implementer's token hit the identical 403 on GET repos/.../dependabot/alerts; I have no path to a higher-privilege token in this sandboxed review to settle it.",
+      "verdict": "NOT-CHECKED"
+    },
+    {
+      "claim": "Whether reporting affected_package_count as the distinct (name,version) cardinality (18) or distinct package-name cardinality (16) instead of the raw per-manifest-occurrence count (21) would change how the headline reads, given 3 of the 21 entries are duplicates of another entry's exact (name,version) purely due to a compat-copy file and two independently-vulnerable npm projects.",
+      "why_still_open": "This is a methodological presentation choice, not a data error -- the receipt's method field already documents the counting convention used and the raw number is honestly reproducible. Flagging it so a future consumer of this receipt does not mistake affected_package_count=21 for '21 distinct vulnerable dependency identities'.",
+      "verdict": "NOT-CHECKED (documented ambiguity, not a defect)"
+    },
+    {
+      "claim": "Whether the pip-freeze snapshot of this interpreter matches the exact closure any other execution substrate would install for the same repo (no committed Python lockfile exists to pin it).",
+      "why_still_open": "Same residual already logged by the implementer in the receipt's residual_unknowns (AUD-0023-D-SCOPE); I did not find a way to settle it independently in this sandboxed review either.",
+      "verdict": "NOT-CHECKED"
+    }
+  ]
+}
