@@ -55,6 +55,53 @@ import register_parse as rp
 
 _ID_RE = re.compile(r"^(?:R|D|S|T)-[A-Z]?\d+$")
 
+_BLOBREAD = None
+
+
+def _blobread():
+    """Lazy-load tools/measure-guard/blobread.py (IMP-0439)."""
+    global _BLOBREAD
+    if _BLOBREAD is None:
+        blob_path = Path(__file__).resolve().parents[1] / "measure-guard" / "blobread.py"
+        import importlib.util
+
+        spec = importlib.util.spec_from_file_location(
+            "cc_validate_blobread", blob_path
+        )
+        if spec is None or spec.loader is None:
+            raise ImportError(f"cannot load {blob_path}")
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        _BLOBREAD = mod
+    return _BLOBREAD
+
+
+def _register_provenance_bytes(
+    snapshot: Path, catalog: dict[str, Any] | None = None
+) -> bytes:
+    """Bytes REACH-6 hashes: committed blob when the snapshot is a tracked path.
+
+    Falls back to LF-normalised working-tree bytes for scratch / test catalogs
+    that are not in git. Never hashes raw CRLF worktree bytes as the blob.
+    """
+    wt_lf = snapshot.read_bytes().replace(b"\r\n", b"\n")
+    # Prefer an explicit repo-relative path from provenance.register when present.
+    rel = None
+    if isinstance(catalog, dict):
+        prov = catalog.get("provenance")
+        if isinstance(prov, dict) and prov.get("register"):
+            rel = str(prov["register"]).replace("\\", "/")
+    if rel is None:
+        try:
+            rel = snapshot.resolve().relative_to(cat.repo_root().resolve()).as_posix()
+        except (ValueError, OSError):
+            return wt_lf
+    try:
+        blob = _blobread().read_blob(rel, "HEAD", repo=cat.repo_root())
+    except Exception:
+        return wt_lf
+    return blob if wt_lf == blob else wt_lf
+
 
 class Violation(dict):
     """A single finding. `dict` so the JSON report needs no encoder."""
@@ -214,18 +261,13 @@ def validate(
             Violation("REACH-6", "-", f"register snapshot missing at {snapshot}")
         )
     else:
-        # LF-NORMALISE BEFORE HASHING — the register snapshot is text, git stores it
-        # with LF, and a Windows checkout under core.autocrlf=true materialises CRLF.
-        # Hashing raw working-tree bytes made REACH-6 unsatisfiable on ANY Windows
-        # checkout while passing on Linux CI (measured 2026-08-10: worktree digest
-        # 1a404a91d819 vs the recorded 8b3e44cc3813, which is exactly the committed
-        # blob). That is not a data defect, it is a portability defect in this gate.
-        #
-        # It was not cosmetic: render_status() embeds validate()'s violations, so the
-        # phantom Windows violation was baked into the COMMITTED STATUS.md and then
-        # showed up on CI as `cc-render drift=1` — a local-only measurement artifact
-        # leaking into a tracked artifact. Same root cause as render_manifest.
-        raw = snapshot.read_bytes().replace(b"\r\n", b"\n")
+        # IMP-0439: hash the COMMITTED blob, not working-tree bytes.
+        # LF-normalisation of the worktree was the 2026-08-10 stopgap (worktree digest
+        # 1a404a91d819 vs recorded blob 8b3e44cc3813 on Windows autocrlf). Blob hashing
+        # is the portable route: Windows and Linux both read the same git object.
+        # Fall back to LF-normalised worktree only when the path is not in HEAD
+        # (tests / scratch catalogs).
+        raw = _register_provenance_bytes(snapshot, catalog)
         digest = hashlib.sha256(raw).hexdigest()
         recorded = str(provenance.get("register_sha256", ""))
         if not recorded:
