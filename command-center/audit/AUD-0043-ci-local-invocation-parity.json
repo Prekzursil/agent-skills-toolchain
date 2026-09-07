@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 22348,
+   "bytes": 25030,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0043-ci-local-invocation-parity.json",
    "role": "primary",
-   "sha256": "eb0215b8a048385bf4de8046cb9b949c9df32724216f05730c142ae07d4b4eae"
+   "sha256": "ffbcc69f3d68c1a99368329a966545c31e5144f5a83433a64b6f40d524600be9"
   },
   {
    "bytes": 19797,
@@ -22,7 +22,7 @@
    "exists": true,
    "path": "command-center/p2-wave/probes/AUD-0043/probe2-scratch-both-states.json",
    "role": "supporting",
-   "sha256": "24397593327b7cbab8432a9b59de5e1b24952c6a23fe66cceda91f8d5ae2cfd2"
+   "sha256": "a2514fc86962d16d2de52300bbec67dd68ed292fd301ed68c9b7775bc27fa94c"
   },
   {
    "bytes": 7157,
@@ -38,7 +38,7 @@
    "exists": true,
    "path": "command-center/p2-wave/probes/AUD-0043/probe2-scratch-both-states.raw.txt",
    "role": "log",
-   "sha256": "bac98b25d468ba6c01641ab37ff4842704858a25dc006e78fbe645ab660051b8"
+   "sha256": "3f2c5306015fef4f70aba2974891ec02b440e7bc16deacdf41b0ce3d174d4602"
   },
   {
    "bytes": 7821,
@@ -79,20 +79,28 @@
    "path": ".github/workflows/quality.yml",
    "role": "supporting",
    "sha256": "68ba4284d32c69193125c7c74806752c5c4a54bbb6477cf02f7d7ecf9bae6ed5"
+  },
+  {
+   "bytes": 11523,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0043/independent-review.json",
+   "role": "supporting",
+   "sha256": "76e28f890c3f42e0f0ce416231f61875a5ae75b57a17b2f083265f3a0e0bef4f"
   }
  ],
  "defects": [
   {
    "id": "AUD-0043-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude falsify-review unpaid."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0043/independent-review.json"
   },
   {
    "id": "AUD-0043-D-BASELINE-BLIND-SPOT",
    "severity": "P2",
    "status": "open",
-   "summary": "30/62 test-python steps invoke tests via `python -m pytest` (the baseline style); the scratch both-states control shows that style stays GREEN even when the packaged console-script run turns RED for the same one-module-removed mutation."
+   "summary": "30/62 test-python steps invoke tests via `python -m pytest`, the exact invocation style quality.yml's own inline comments document as blind to a dropped package/module -- the scratch both-states control reproduces that blind spot on a controlled fixture."
   }
  ],
  "downstream_consumers": [
@@ -147,7 +155,7 @@
      "exit_code": 0,
      "fingerprint": "df47af53e4be88fe67008ccb0d62a878",
      "method": "command",
-     "raw_output": "AUD-0043 NAMED PROBE 2: scratch-build both-states packaging control\nunit=AUD-0043\nfixture_root=command-center/p2-wave/probes/AUD-0043/fixtures\nGOOD state: source_tree_pass=True installed_pass=True (exit=0)\nBAD  state: source_tree_pass=True installed_pass=False (exit=1)\nboth_states=True\nCONTROL fixture_files_match=True manifest_mutation_ok=True ok=True\n--- installed_run BAD state tail ---\nTraceback (most recent call last):\n  File \"/tmp/aud0043-ofbrvbh9/venv_bad/bin/scratch-cli\", line 3, in <module>\n    from scratch_pkg.main import main\n  File \"/tmp/aud0043-ofbrvbh9/venv_bad/lib/python3.12/site-packages/scratch_pkg/main.py\", line 10, in <module>\n    from helper_mod.helper import compute\nModuleNotFoundError: No module named 'helper_mod'\nSUCCESS:AUD-0043-probe2\n",
+     "raw_output": "AUD-0043 NAMED PROBE 2: scratch-build both-states packaging control\nunit=AUD-0043\nfixture_root=command-center/p2-wave/probes/AUD-0043/fixtures\nGOOD state: source_tree_pass=True installed_pass=True (exit=0)\nBAD  state: source_tree_pass=True installed_pass=False (exit=1)\nboth_states=True\nCONTROL fixture_files_match=True manifest_mutation_ok=True ok=True\n--- installed_run BAD state tail ---\nTraceback (most recent call last):\n  File \"/tmp/aud0043-rvuovtor/venv_bad/bin/scratch-cli\", line 3, in <module>\n    from scratch_pkg.main import main\n  File \"/tmp/aud0043-rvuovtor/venv_bad/lib/python3.12/site-packages/scratch_pkg/main.py\", line 10, in <module>\n    from helper_mod.helper import compute\nModuleNotFoundError: No module named 'helper_mod'\nSUCCESS:AUD-0043-probe2\n",
      "role": "source"
     },
     {
@@ -163,7 +171,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "artifact_class": "audit-detector-control",
   "output_path_confirmed": "command-center/audit/AUD-0043-ci-local-invocation-parity.json",
   "output_schema_confirmed": "command-center/schema/audit-detector-control.schema.json",
@@ -182,38 +190,11 @@
   },
   "wave": "p2-loop"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to try to FALSIFY the headline CI-invocation-census and both-states counts before PASS.",
-  "classification": [
-   "blocked-on-independent-review",
-   "green-not-live"
-  ],
-  "diagnostic_tail": "p1_ok=True p2_ok=True both_states=True good_installed_pass=True bad_installed_pass=False bad_source_tree_pass=True",
-  "reason": "Measured gate_tests_coverage_step_count=62 with bare_pytest_post_install_count=17 and python_dash_m_pytest_count=30, and confirmed the both-states packaging control (both_states=True), but reviewer_requirement is unmet.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0043/probe2_scratch_build_both_states.py",
-    "exit_code": 0,
-    "fingerprint": "df47af53e4be88fe67008ccb0d62a878",
-    "method": "command",
-    "raw_output": "both_states=True bad_installed_pass=False",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0043",
   "manifest_path": "command-center/p2-wave/probes/AUD-0043/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T21:12:18Z"
+  "registered_at": "2026-09-07T21:20:49Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -243,7 +224,7 @@
   "vendor": "anthropic"
  },
  "report": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "control_ids": [
    "AUD0043-C1",
    "AUD0043-C2"
@@ -290,29 +271,30 @@
   "policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript and must try to FALSIFY the headline count before PASS, not re-read the artifact. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh-context independent review of AUD-0043 CI-vs-local invocation parity / packaging import-path exposure. Goal: FALSIFY the headline gate_tests_coverage_step_count=62 (bare_pytest_post_install_count=17 / python_dash_m_pytest_count=30 / bare_pytest_no_install_seen_count=3 / other_count=12) and the probe2 both-states packaging control (both_states=True: installed console-script RED on helper_mod drop, source-tree `python -m pytest` GREEN on the identical tree) before allowing PASS. Did NOT promote command-center/audit/AUD-0043-ci-local-invocation-parity.json; left it BLOCKED. Re-ran both named probes fresh: probe1 exit 0, stdout byte-identical to committed probe1-ci-invocation-census.raw.txt; probe2 initially failed in this fresh env with 'No module named virtualenv' (missing dependency, not a probe defect) -- installed virtualenv (pip install --break-system-packages virtualenv==21.7.8) and re-ran; probe2 then reproduced both_states=True identically (only tmpdir name and 0.00s-vs-0.01s timing differ in output_tail, which are expected non-determinism, not substantive). Refreshed probe2-scratch-both-states.json/.raw.txt to this run's byte-for-byte-except-tmpdir/timing output; probe1 outputs required no change. Falsification method 1 (second classifier, same YAML step list): wrote an independent classify2() with different regex structure (scans per-line for pytest invocations rather than whole-block regex) against the same yaml.safe_load(jobs['test-python']['steps']) -- reproduced the EXACT counts 17/30/3/12 (total 62). Falsification method 2 (raw-text, no YAML library): grep -c 'name: gate-tests-coverage' over the whole file returned 71 and a naive job-boundary awk returned 63 -- both APPEAR to contradict 62, but investigation showed the extra hit in both cases is the JOB's own `test-python.name: gate-tests-coverage (python packages)` display-name field (line 284, 4-space indent, no leading `- `), which is not a step and is correctly excluded by iterating `job['steps']`; grep restricted to the step-name pattern `^      - name: gate-tests-coverage` returns exactly 62, matching the probe. Falsification method 3 (pure-text block-splitting on step-name-line boundaries, still no YAML lib): got a DIFFERENT sub-split (12/37/2/11, same total 62) -- investigated all 7 per-step mismatches individually (mcpctl, agentspec, agentrail, stdin-server, wfmon adapter contract, rules/common rule-vs-code contracts, bounded hook launcher) by reading each step's actual `run:` block directly from the file: in every case the step's real `run:` contains bare `pytest ...` (or, for 'bounded hook launcher', a standalone `python hooks/_shared/test_hookrun.py` script invocation with no pytest at all -- correctly 'other'), and the naive line-range method had spilled over into TRAILING YAML COMMENT lines between that step and the next step (extensive inline prose in this file explains packaging rationale and incidentally uses the words 'python -m pytest' or similar), which are not part of the parsed `run:` string and are correctly excluded by the probe's YAML-based approach. This is the textbook comment-contamination failure mode of any line-range-based re-derivation of this file and it resolves in favor of the original probe, not against it -- three independent recomputations (original YAML+regex, independent-classifier YAML+regex, and root-cause-verified raw-text) now agree exactly on 17/30/3/12/62. Also confirmed probe2's control block (fixture_files_match=True, manifest_mutation_ok=True) by re-reading both fixtures/scratch_pkg_good and fixtures/scratch_pkg_bad/pyproject.toml directly: they differ only in the one 'packages = [...]' line dropping helper_mod, and both trees still ship helper_mod/ source on disk, matching the claimed mutation shape. Could not falsify either headline. No PR opened; branch pushed for parent to review/promote.",
+  "reviewed_at": "2026-09-07T21:18:29Z",
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0043",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0043 CI-invocation-census+scratch-both-states probes measured gate_steps=62 bare_pytest_post_install=17 python_dash_m_pytest=30 both_states=True; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0043",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0043",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 4,
    "command": "python3 -B command-center/p2-wave/probes/AUD-0043/probe2_scratch_build_both_states.py",
    "id": "AUD-0043-both-states-scratch-build",
    "name": "both-states control: remove one module from the package include list in a scratch build and confirm the installed-run turns RED while the source-tree run stays GREEN",
-   "output_tail": "AUD-0043 NAMED PROBE 2: scratch-build both-states packaging control\nunit=AUD-0043\nfixture_root=command-center/p2-wave/probes/AUD-0043/fixtures\nGOOD state: source_tree_pass=True installed_pass=True (exit=0)\nBAD  state: source_tree_pass=True installed_pass=False (exit=1)\nboth_states=True\nCONTROL fixture_files_match=True manifest_mutation_ok=True ok=True\n--- installed_run BAD state tail ---\nTraceback (most recent call last):\n  File \"/tmp/aud0043-ofbrvbh9/venv_bad/bin/scratch-cli\", line 3, in <module>\n    from scratch_pkg.main import main\n  File \"/tmp/aud0043-ofbrvbh9/venv_bad/lib/python3.12/site-packages/scratch_pkg/main.py\", line 10, in <module>\n    from helper_mod.helper import compute\nModuleNotFoundError: No module named 'helper_mod'\nSUCCESS:AUD-0043-probe2\n",
+   "output_tail": "AUD-0043 NAMED PROBE 2: scratch-build both-states packaging control\nunit=AUD-0043\nfixture_root=command-center/p2-wave/probes/AUD-0043/fixtures\nGOOD state: source_tree_pass=True installed_pass=True (exit=0)\nBAD  state: source_tree_pass=True installed_pass=False (exit=1)\nboth_states=True\nCONTROL fixture_files_match=True manifest_mutation_ok=True ok=True\n--- installed_run BAD state tail ---\nTraceback (most recent call last):\n  File \"/tmp/aud0043-rvuovtor/venv_bad/bin/scratch-cli\", line 3, in <module>\n    from scratch_pkg.main import main\n  File \"/tmp/aud0043-rvuovtor/venv_bad/lib/python3.12/site-packages/scratch_pkg/main.py\", line 10, in <module>\n    from helper_mod.helper import compute\nModuleNotFoundError: No module named 'helper_mod'\nSUCCESS:AUD-0043-probe2\n",
    "result": "PASS"
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T21:12:18Z",
+  "ended_at": "2026-09-07T21:20:49Z",
   "started_at": "2026-09-07T20:55:00Z"
  },
  "unit_id": "AUD-0043"
