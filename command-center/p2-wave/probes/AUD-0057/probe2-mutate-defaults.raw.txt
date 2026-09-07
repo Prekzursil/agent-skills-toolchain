@@ -1,0 +1,61 @@
+SUCCESS:AUD-0057-probe2
+unit=AUD-0057 probe=2 mutate-defaults-in-scratch-worktree
+worktree_add rc=0 ok=True
+synced_fixtures_into_scratch=/tmp/aud0057-wt-i5gdsse0/tree/command-center/p2-wave/probes/AUD-0057/fixtures
+--- control-planted-exercised-must-RED mutate PLANTED_EXERCISED_DEFAULT->1 expect=RED ---
+changed=True rc=1 matched=True summary={'passed': 1, 'failed': 1, 'skipped': 0, 'error': 0, 'raw_summary': '1 failed, 1 passed in 0.03s', 'executed': 2}
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+E   assert True is False
+     +  where True = planted_exercised(63)
+/tmp/aud0057-wt-i5gdsse0/tree/command-center/p2-wave/probes/AUD-0057/fixtures/test_planted_strong.py:19: assert True is False
+=========================== short test summary info ============================
+FAILED command-center/p2-wave/probes/AUD-0057/fixtures/test_planted_strong.py::test_planted_exercised_uses_default
+1 failed, 1 passed in 0.03s
+
+--- control-planted-unexercised-must-GREEN mutate PLANTED_UNEXERCISED_DEFAULT->512 expect=GREEN ---
+changed=True rc=0 matched=True summary={'passed': 1, 'failed': 0, 'skipped': 0, 'error': 0, 'raw_summary': '1 passed in 0.03s', 'executed': 1}
+.                                                                        [100%]
+1 passed in 0.03s
+
+--- mutation-gate-weak-DEFAULT_MIN_BYTES-stays-GREEN mutate DEFAULT_MIN_BYTES->512 expect=GREEN ---
+changed=True rc=0 matched=True summary={'passed': 1, 'failed': 0, 'skipped': 0, 'error': 0, 'raw_summary': '1 passed in 0.00s', 'executed': 1}
+.                                                                        [100%]
+1 passed in 0.00s
+
+--- mutation-gate-strong-DEFAULT_MIN_BYTES-turns-RED mutate DEFAULT_MIN_BYTES->512 expect=RED ---
+changed=True rc=1 matched=True summary={'passed': 1, 'failed': 1, 'skipped': 0, 'error': 0, 'raw_summary': '1 failed, 1 passed in 0.01s', 'executed': 2}
+F.                                                                       [100%]
+=================================== FAILURES ===================================
+E   assert True is False
+     +  where True = is_large_enough(1023)
+/tmp/aud0057-wt-i5gdsse0/tree/tools/mutation-gate/sample/test_threshold_strong.py:14: assert True is False
+=========================== short test summary info ============================
+FAILED test_threshold_strong.py::test_default_threshold_is_1024_exactly - ass...
+1 failed, 1 passed in 0.01s
+
+--- hooks-completion-DEFAULT_MIN_BYTES-turns-RED mutate DEFAULT_MIN_BYTES->512 expect=RED ---
+changed=True rc=1 matched=True summary={'passed': 17, 'failed': 1, 'skipped': 0, 'error': 0, 'raw_summary': 'RESULT: 1 FAIL  (18 cases)', 'executed': 18}
+  OK  clean success: exit0 + gated artifact: got=DONE want=DONE
+  OK  severed-stream: exit0 but NO artifact: got=FAILED want=FAILED
+  OK  nonzero exit but artifact is valid: got=DONE want=DONE
+  OK  partial in the 512-1024B window is NOT done: got=FAILED want=FAILED
+  XX  partial is NOT done under the DEFAULT gate (no min_bytes passed): got=DONE want=FAILED
+  OK  artifact present but sentinel missing: got=FAILED want=FAILED
+  OK  detector itself failed -> UNKNOWN, never FAILED: got=UNKNOWN want=UNKNOWN
+  OK  detector failed even with a good artifact -> UNKNOWN: got=UNKNOWN want=UNKNOWN
+  OK  alive and burning cpu -> RUNNING: got=RUNNING want=RUNNING
+  OK  high CUMULATIVE cpu but zero DELTA is not running: got=FAILED want=FAILED
+  OK  husk: alive but cpu-flat past staleness -> terminal: got=FAILED want=FAILED
+  OK  fresh and cpu-flat but INSIDE the window -> still RUNNING: got=RUNNING want=RUNNING
+  OK  process gone with no artifact -> FAILED: got=FAILED want=FAILED
+  OK  process gone but artifact valid -> DONE: got=DONE want=DONE
+  OK  no signals at all -> UNKNOWN: got=UNKNOWN want=UNKNOWN
+  OK  no sentinel required: size alone gates: got=DONE want=DONE
+  OK  sentinel + 8 trailing blank lines is still DONE (600 BYTES, not 6 lines): got=DONE want=DONE
+  OK  sentinel buried >600B back is NOT done (it must TERMINATE the artifact): got=FAILED want=FAILED
+
+RESULT: 1 FAIL  (18 cases)
+
+--- probe1-high-risk[0] planted_unexercised(threshold=PLANTED_UNEXERCISED_DEFAULT) ---
+control_ok=True holes_confirmed=2 sample_weak_green=True sample_strong_red=True completion_red=True mode=git-worktree
