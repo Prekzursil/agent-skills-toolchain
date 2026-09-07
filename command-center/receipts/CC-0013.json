@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
   "unit_id": "CC-0013",
-  "state": "BLOCKED",
-  "sentinel": "FAILED:CC-0013 blocked-on-independent-review; STATUS.md derived + gate silent; empty=NOT-STARTED hand-edit=red determinism=ok; catalog SUCCESS:CC-0013 withheld pending independent reviewer who hand-edits a different field",
+  "state": "SUCCESS",
+  "sentinel": "SUCCESS:CC-0013 STATUS.md derived by status_derive.py; status_gate.py names hand-edit drift; four catalog controls PASS; independent openai reviewer mutated declared_state_SUCCESS (not Board status), gate named line 26, restore silent; bypasses blocked",
   "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CC-0013",
   "min_bytes_threshold": 2048,
   "produced_by": {
@@ -67,6 +67,46 @@
       "exists": true,
       "role": "supporting",
       "eol": "LF"
+    },
+    {
+      "path": "command-center/receipts/CC-0013.json",
+      "bytes": 13037,
+      "sha256": "d8d96478e081c5be28902ee55425e8049a009fb6362e1ea28005eb688b290a32",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/STATUS.md",
+      "bytes": 2207,
+      "sha256": "03bc4408f7d2577848141bb1cbd5eb1b1f190cc940730be6b31c67f1c40654be",
+      "exists": true,
+      "role": "supporting",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0013/independent-review.json",
+      "bytes": 4790,
+      "sha256": "61d2542f7cc132cebe90a999b44399c6679130c4925dd5601aee53a7e12263f0",
+      "exists": true,
+      "role": "primary",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0013/run_controls.py",
+      "bytes": 8720,
+      "sha256": "68fe9b62f2063501ff729c6e73894a13b7e7a44ae5e65a33e2b7d3f194e7aa95",
+      "exists": true,
+      "role": "control",
+      "eol": "LF"
+    },
+    {
+      "path": "command-center/p2-wave/probes/CC-0013/controls-summary.raw.txt",
+      "bytes": 174,
+      "sha256": "c6de0be8cf372a434f1a7928c3a718564a1b2de545f21c59504a72e528b40294",
+      "exists": true,
+      "role": "log",
+      "eol": "LF"
     }
   ],
   "evidence": [
@@ -117,11 +157,35 @@
         }
       ],
       "confidence": "almost-certain"
+    },
+    {
+      "claim": "Independent reviewer hand-edited declared_state_SUCCESS (not builder Board status); status_gate.py failed naming the drifted line; restore silent; four controls re-PASS.",
+      "verdict": "CONFIRMED",
+      "anchor": "file:command-center/p2-wave/probes/CC-0013/independent-review.json",
+      "probes": [
+        {
+          "role": "source",
+          "method": "command",
+          "command": "python3 command-center/p2-wave/probes/CC-0013/run_controls.py",
+          "raw_output": "CONTROL hand-edit-names-line: PASS\nCONTROL regenerate-silent: PASS\nCONTROL determinism-byte-identical: PASS\nCONTROL empty-events-not-started: PASS\nCC-0013 CONTROL SUMMARY\nhand-edit-names-line=PASS\nregenerate-silent=PASS\ndeterminism-byte-identical=PASS\nempty-events-not-started=PASS\nALL_PASS=True\nSUCCESS:CC-0013-controls\n",
+          "fingerprint": "830a4b87ee5edc0848441c16780b55cf",
+          "exit_code": 0
+        },
+        {
+          "role": "verifier",
+          "method": "test-run",
+          "command": "hand-edit declared_state_SUCCESS line 26 + status_gate.py",
+          "raw_output": "FAILED:status-gate STATUS.md drifted from derived measurement\n  drifted: STATUS.md line 26: expected=\"| declared_state_SUCCESS | 79 | `count(receipts where receipt.state == 'SUCCESS')` |\" actual=\"| declared_state_SUCCESS | 86 | `count(receipts where receipt.state == 'SUCCESS')` |\"\nFAILED:status-gate drift_lines=1\n",
+          "fingerprint": "8f00c25a324f34663fe5753b926218c7",
+          "exit_code": 1
+        }
+      ],
+      "confidence": "almost-certain"
     }
   ],
   "timestamps": {
     "started_at": "2026-09-07T18:30:00Z",
-    "ended_at": "2026-09-07T18:41:10Z"
+    "ended_at": "2026-09-07T18:55:05Z"
   },
   "retry": {
     "count": 0,
@@ -179,16 +243,25 @@
       "silent_on_good_state": true,
       "bad_state_output": "program_status=GREEN with empty EVENTS.jsonl",
       "good_state_output": "EMPTY_CONTROL=NOT-STARTED"
+    },
+    {
+      "id": "independent-hand-edit-declared-state-success",
+      "kind": "mutation",
+      "description": "Independent reviewer mutated declared_state_SUCCESS (not Board status); gate must name the line.",
+      "fired_on_bad_state": true,
+      "silent_on_good_state": true,
+      "bad_state_output": "FAILED:status-gate STATUS.md drifted from derived measurement\n  drifted: STATUS.md line 26: expected=\"| declared_state_SUCCESS | 79 | `count(receipts where receipt.state == 'SUCCESS')` |\" actual=\"| declared_state_SUCCESS | 86 | `count(receipts where receipt.state == 'SUCCESS')` |\"\nFAILED:status-gate drift_lines=1",
+      "good_state_output": "SUCCESS:status-gate no drift / --quiet-ok silent"
     }
   ],
   "reviewer": {
-    "reviewer_id": "awaiting-independent-hand-edit-other-field",
-    "verdict": "NOT-REVIEWED",
-    "independent": false,
-    "fresh_context": false,
-    "vendor": "anthropic",
-    "reviewed_at": "2026-09-07T18:41:10Z",
-    "notes": "Implementer emit only. Catalog reviewer_requirement: one independent reviewer who hand-edits a different field than the author tested and confirms the gate fires. Self-review banned."
+    "reviewer_id": "fresh-context-openai-reviewer-CC-0013",
+    "verdict": "PASS",
+    "independent": true,
+    "fresh_context": true,
+    "vendor": "openai",
+    "reviewed_at": "2026-09-07T18:55:05Z",
+    "notes": "Independent fresh-context review of CC-0013. Builder (_build_CC0013.py) hand-edited Board status MEASURED->MEASURED-HACKED. This reviewer instead mutated declared_state_SUCCESS 79->86 (line 26); status_gate.py exited 1 and named that drifted line; restore was silent with --quiet-ok. Re-ran all four catalog controls via run_controls.py (ALL_PASS=True). Confirmed determinism byte-identical, empty events => NOT-STARTED (no green tokens), regenerate silent. Bypass attempts (SUCCESS claim without gate, prose-only ALL-GREEN STATUS, strip query column, force GREEN on empty-events output) all blocked by the gate. No stub SUCCESS; no gate weakening. Did not touch AUD-0032 or other units."
   },
   "manifest_registration": {
     "registered": true,
@@ -215,38 +288,12 @@
   ],
   "residual_unknowns": [
     {
-      "claim": "Independent reviewer has not hand-edited a different STATUS.md field and confirmed the gate in a fresh context.",
-      "verdict": "NOT-CHECKED",
-      "settling_experiment": "Fresh-context reviewer changes a metric value (not Board status), runs `python3 command-center/status_gate.py`, confirms named drift, regenerates, confirms silent, returns PASS with independent=true."
+      "claim": "Independent reviewer hand-edited declared_state_SUCCESS (different from builder Board status field) and confirmed status_gate.py named the drifted line; restore silent.",
+      "verdict": "CONFIRMED",
+      "settling_experiment": "Mutated declared_state_SUCCESS 79->86; gate rc=1 named line 26; restore + --quiet-ok silent. See independent-review.json."
     }
   ],
   "defects": [],
-  "failure": {
-    "classification": [
-      "blocked-on-independent-review"
-    ],
-    "reason": "Derive+gate green; empty/hand-edit/determinism/regenerate controls passed. Catalog reviewer_requirement unmet — do not emit SUCCESS.",
-    "blocked_on": "independent hand-edit of a different field (NOT-REVIEWED)",
-    "diagnostic_tail": "EMPTY_CONTROL=NOT-STARTED\nDETERMINISM=byte-identical\nREGEN_SILENT=ok\nHAND_EDIT_FIRED=STATUS.md line 5: expected='**Board status: MEASURED.**' actual='**Board status: MEASURED-HACKED.**'\nREGEN_AFTER_EDIT=silent\n\nSUCCESS:status-gate no drift\n",
-    "two_signal_proof": [
-      {
-        "role": "source",
-        "method": "command",
-        "command": "python3 command-center/status_derive.py",
-        "raw_output": "SUCCESS:status-derive wrote=/workspace/command-center/STATUS.md bytes=2207\n",
-        "fingerprint": "cf9762bcd0af6f405227688bca0a193f",
-        "exit_code": 0
-      },
-      {
-        "role": "source",
-        "method": "test-run",
-        "command": "scratch empty/hand-edit/determinism/regenerate controls",
-        "raw_output": "EMPTY_CONTROL=NOT-STARTED\nDETERMINISM=byte-identical\nREGEN_SILENT=ok\nHAND_EDIT_FIRED=STATUS.md line 5: expected='**Board status: MEASURED.**' actual='**Board status: MEASURED-HACKED.**'\nREGEN_AFTER_EDIT=silent\n",
-        "fingerprint": "542c21d44c4e5a7f52cba128408d979b",
-        "exit_code": 0
-      }
-    ]
-  },
   "report": {
     "generator_id": "command-center/status_derive.py@v1",
     "status_bytes": 2207,
@@ -255,6 +302,8 @@
   },
   "extensions": {
     "p2_loop_wave": 1,
-    "builder": "command-center/p2-wave/_build_CC0013.py"
+    "builder": "command-center/p2-wave/_build_CC0013.py",
+    "independent_review": "command-center/p2-wave/probes/CC-0013/independent-review.json",
+    "promoted_by": "independent-reviewer-openai-CC-0013"
   }
 }
