@@ -168,6 +168,11 @@ def build(primary: dict | None = None) -> dict:
     )
 
     if success:
+        raw_notes = rev.get("notes", "")
+        if isinstance(raw_notes, list):
+            notes = "\n".join(str(n) for n in raw_notes)
+        else:
+            notes = str(raw_notes or "")
         reviewer = {
             "reviewer_id": rev["reviewer_id"],
             "verdict": "PASS",
@@ -175,7 +180,7 @@ def build(primary: dict | None = None) -> dict:
             "fresh_context": True,
             "vendor": rev.get("vendor", "anthropic"),
             "reviewed_at": rev.get("reviewed_at", ended),
-            "notes": rev.get("notes", ""),
+            "notes": notes[:8000],
         }
         state = "SUCCESS"
         sentinel = (
