@@ -87,6 +87,14 @@ def path_to_mod_candidates(rel: str, known: set[str]) -> set[str]:
                 hits |= resolve_seed(module_name_for(child), known)
             except ValueError:
                 pass
+        # pytest auto-loads conftest.py alongside test_* modules
+        for child in p.rglob("conftest.py"):
+            if "__pycache__" in child.parts:
+                continue
+            try:
+                hits |= resolve_seed(module_name_for(child), known)
+            except ValueError:
+                pass
     return hits
 
 
@@ -211,6 +219,45 @@ def _yaml_working_directory_blocks(text: str) -> list[tuple[str, str]]:
     return blocks
 
 
+def _shell_loop_cd_pytest_targets(text: str, known: set[str]) -> set[str]:
+    """Seed packages from `for p in a b c; do ( cd tools/mcp/$p && pytest ); done`.
+
+    quality.yml gate-tests-coverage mcp servers uses a shell for-loop with
+    per-package cd + bare/module pytest. Plain path-token and working-directory
+    parsers miss that pattern and leave CI-executed suites classified DEAD.
+    """
+    mods: set[str] = set()
+    for m in re.finditer(
+        r"for\s+(\w+)\s+in\s+([^;]+);\s*do\b(.*?)\bdone\b",
+        text,
+        flags=re.DOTALL,
+    ):
+        var, pkgs_blob, body = m.group(1), m.group(2), m.group(3)
+        if not re.search(r"(?:^|[\s;|&(`])(?:python(?:3)?\s+-m\s+)?pytest\b", body):
+            continue
+        # Match: cd "tools/mcp/$p" / cd 'tools/mcp/$p' / cd tools/mcp/$p
+        # and braced forms ${p}
+        cd_m = re.search(
+            rf"""cd\s+["']?([\w./-]+)/\$(?:\{{{var}\}}|{var})["']?""",
+            body,
+        )
+        if not cd_m:
+            continue
+        prefix = cd_m.group(1).strip()
+        pkgs = [
+            tok.strip().strip("\"'")
+            for tok in re.split(r"[\s\\]+", pkgs_blob)
+            if tok.strip() and not tok.strip().startswith("#")
+        ]
+        for pkg in pkgs:
+            if not re.match(r"^[\w.-]+$", pkg):
+                continue
+            rel = f"{prefix.rstrip('/')}/{pkg}"
+            mods |= path_to_mod_candidates(rel, known)
+            mods |= path_to_mod_candidates(f"{rel}/tests", known)
+    return mods
+
+
 def ci_python_and_pytest_targets(known: set[str]) -> set[str]:
     mods: set[str] = set()
     wf = REPO / ".github" / "workflows"
@@ -233,6 +280,8 @@ def ci_python_and_pytest_targets(known: set[str]) -> set[str]:
                 tok = tok.strip("\"'")
                 if "/" in tok or tok.endswith(".py") or tok.startswith("tools"):
                     mods |= path_to_mod_candidates(tok, known)
+        # shell-loop: for p in pkgs; do ( cd prefix/$p && pytest ); done
+        mods |= _shell_loop_cd_pytest_targets(text, known)
         # bare `pytest` under working-directory: tools/<pkg> => mark that package's tests live
         for wd, run_body in _yaml_working_directory_blocks(text):
             if not re.search(r"(?:^|[\s;|&])pytest\b", run_body):
@@ -632,6 +681,7 @@ def main() -> int:
             "mains_and___main__",
             "ci_python_and_pytest_paths",
             "ci_working_directory_bare_pytest",
+            "ci_shell_loop_cd_pytest",
             "readme_runbook_and_report_commands",
             "string_registry_import_module",
             "ast_import_bfs_with_hyphen_aliases",

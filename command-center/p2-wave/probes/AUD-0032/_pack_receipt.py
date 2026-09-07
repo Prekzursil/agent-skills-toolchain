@@ -1,10 +1,11 @@
 #!/usr/bin/env python3
 """Pack AUD-0032 dead-code census (BLOCKED on cross-vendor Codex re-review).
 
-Remediation after independent review FAIL: probe2 now seeds pyproject.scripts,
-CI working-directory bare pytest suites, report/README doc commands, hyphen
-package aliases, and a bounded runtime import trace. False-dead agentrail
-tests/CLI internals and auth_jwt_audit.py corrected. Reviewer still owed.
+Remediation after independent review FAIL: probe2 seeds pyproject.scripts,
+CI working-directory bare pytest, shell-loop `cd tools/mcp/$p && pytest`,
+conftest.py alongside test_*.py, report/README doc commands, hyphen package
+aliases, flat sibling imports, and a bounded runtime import trace. Reviewer
+still owed after each remedi class closes.
 """
 from __future__ import annotations
 
