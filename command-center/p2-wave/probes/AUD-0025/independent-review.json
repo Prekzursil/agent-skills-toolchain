@@ -1,0 +1,64 @@
+{
+  "reviewer_id": "openai-composer-aud0025-fresh-context-independent",
+  "vendor": "openai",
+  "model": "composer-cloud-independent-reviewer",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "reviewed_at": "2026-09-07T19:06:18Z",
+  "unit_id": "AUD-0025",
+  "head_sha": "75da713d3bc3eacb388a49b52ab6af78917509dc",
+  "notes": "Fresh-context independent review of AUD-0025 (unpinned/floating version census). Goal: FALSIFY headline floating_count=251 (and production_scope_floating=251); planted fixture must be caught. Could not falsify the scoped headline. Re-ran probe1_constraint_census.py and probe2_dual_resolution.py at HEAD 75da713; both SUCCESS and byte-identical to committed probe raw outputs. Independent row arithmetic: declaration_count=314, floating=251, exact=63, by_class caret=84+compatible=158+tilde=1+wildcard=5+none=3=251, floating-flag consistent with classification set, zero duplicate false-classifications. All 17 planted floating declarations from fixtures/planted-unpinned (npm/pip/docker/gha) present and classified floating; exact-pin-control fixture yields 0 floating false positives and dual-seed exact_diverged=0 / control_exact_identical_across_seeds=True / resolution_probe_contaminated=False. Heuristic re-scan found 0 exact-that-look-floating and 0 floating-that-look-exact. Occurrence-vs-unique (251 rows / 226 unique path+eco+name+constraint keys; +25 repeated GHA uses: steps) does not falsify a per-declaration census. Ecosystem coverage gaps exist outside the receipt's disclosed method (walk package.json+requirements+pyproject+Actions uses in .github/workflows+Dockerfile FROM): ~57 Cargo.toml floating-ish deps under ralph-orchestrator/vendor, 24 uses: in metaswarm template yml outside .github/workflows, 1 conda environment.yml — treated as CAVEAT / residual scope, not a falsification of the measured four-ecosystem headline (by_ecosystem docker/github-actions/npm/pip only). Promote to SUCCESS after pack + receipt_validate ADMIT.",
+  "falsification_attempts": [
+    {
+      "attempt": "Re-run probe1_constraint_census.py and diff raw vs committed; check floating_count=251",
+      "result": "NOT-FALSIFIED",
+      "detail": "files_scanned=81 declaration_count=314 floating_count=251 exact_count=63 by_classification identical; planted_floating_caught=17 planted_ok=True; raw byte-identical to committed; logs at /opt/cursor/artifacts/aud0025-review-probe1.log and aud0025-review-probe1-reconfirm.log"
+    },
+    {
+      "attempt": "Re-run probe2_dual_resolution.py; falsify exact-pin stability or claim contamination",
+      "result": "NOT-FALSIFIED",
+      "detail": "exact_total=6 exact_diverged=0 floating_total=50 floating_diverged=29 planted_float_diverged=4 control_exact_identical_across_seeds=True resolution_probe_contaminated=False; raw byte-identical"
+    },
+    {
+      "attempt": "Independent arithmetic overhaul from probe1 rows (over/undercount)",
+      "result": "NOT-FALSIFIED",
+      "detail": "len(floating_rows)=251; sum(floating classes)=251; floating+exact=314; floating-flag inconsistencies=0; rebuild via importing classifiers reproduced 314/251"
+    },
+    {
+      "attempt": "Planted negative-control miss (deflate catch / undercount planted)",
+      "result": "NOT-FALSIFIED",
+      "detail": "Expected 17 planted keys from package.json+requirements+Dockerfile+action-uses.yml; missing=∅; non-floating planted=∅; all PLANTED lines present in probe1 raw"
+    },
+    {
+      "attempt": "Exact-pin control false positives as floating",
+      "result": "NOT-FALSIFIED",
+      "detail": "6 exact-pin-control rows (ms/left-pad/typescript npm; requests/urllib3/pytest pip==) all classification=exact floating=False"
+    },
+    {
+      "attempt": "Classification inversion: exact-looking floating or floating-looking exact",
+      "result": "NOT-FALSIFIED",
+      "detail": "0 npm/pip/gha/docker rows where constraint syntax contradicts assigned class (exact pins with ^/~/*/latest/main; floating with == or 40-char SHA or sha256:)"
+    },
+    {
+      "attempt": "Occurrence inflation: unique (path,eco,name,constraint) vs row count",
+      "result": "CAVEAT-FOUND-NOT-A-HEADLINE-FALSIFICATION",
+      "detail": "Unique floating keys=226 vs rows=251 (+25 repeated uses: in quality.yml / ralph vendor workflows). Census claims per-declaration occurrences (each uses: step), which matches catalog Probe 1 wording; unique-package metric would be 226 but does not refute floating_count=251 under the declared method"
+    },
+    {
+      "attempt": "Ecosystem coverage gap undercount vs catalog inputs 'all dependency manifests'",
+      "result": "CAVEAT-FOUND-NOT-A-HEADLINE-FALSIFICATION",
+      "detail": "Unscanned: 10 Cargo.toml (~57 floating-ish cargo deps, mostly ralph vendor), 24 uses: in metaswarm/skills-claude-only CI templates outside .github/workflows, 1 tools/mcp/openmm-md-mcp/environment.yml. Receipt report.observations method explicitly scopes to package.json+requirements+pyproject+Actions uses+Dockerfile FROM and by_ecosystem lists only docker/github-actions/npm/pip — so 251 is correct inside disclosed scope. Gap belongs in residual_unknowns follow-up, not a false headline"
+    }
+  ],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git pull origin cursor/p2-loop-to-green-0db0",
+    "python3 -B command-center/p2-wave/probes/AUD-0025/probe1_constraint_census.py  # -> /opt/cursor/artifacts/aud0025-review-probe1.log",
+    "python3 -B command-center/p2-wave/probes/AUD-0025/probe2_dual_resolution.py  # -> /opt/cursor/artifacts/aud0025-review-probe2.log",
+    "python3 -B <<'PY' independent falsify arithmetic/planted/exact/coverage PY  # -> /opt/cursor/artifacts/aud0025-review-falsify.log",
+    "python3 -B <<'PY' cargo+unscanned-yml coverage gap measure PY  # -> /opt/cursor/artifacts/aud0025-review-coverage-gaps.log",
+    "git checkout -- command-center/p2-wave/probes/AUD-0025/probe1-constraint-census.json command-center/p2-wave/probes/AUD-0025/probe1-constraint-census.raw.txt command-center/p2-wave/probes/AUD-0025/probe2-dual-resolution.json command-center/p2-wave/probes/AUD-0025/probe2-dual-resolution.raw.txt",
+    "python3 -B command-center/p2-wave/probes/AUD-0025/_pack_receipt.py",
+    "python3 command-center/receipt_validate.py command-center/audit/AUD-0025-unpinned-version-census.json"
+  ]
+}
