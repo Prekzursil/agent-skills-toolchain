@@ -718,7 +718,9 @@ def test_cursor_basic_memory_uses_session_proxy_not_raw_url() -> None:
     assert entry["args"][: len(bridge["args"])] == bridge["args"]
     assert entry["args"][len(bridge["args"]) :] == ["--url", declared["url"]]
     assert "--stdio" in entry["args"]
-    assert pathlib.Path(bridge["args"][0]).is_file()
+    # Registry may carry a host-absolute Windows path; assert the tracked
+    # repo copy by basename (same portable contract as the live suite).
+    assert (SCRIPTS_ROOT / pathlib.PureWindowsPath(bridge["args"][0]).name).is_file()
 
 
 def test_cursor_default_dry_run_projects_core_plus_owner_adapters(
