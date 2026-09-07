@@ -175,12 +175,35 @@ def build(primary: dict | None = None) -> dict:
         ),
     }
 
-    # Catalog tests_required: an unstable top-10 ranking means the measurement
-    # is contention-dominated and cannot be used as a baseline. That is an
-    # honest settled finding after independent falsify PASS -- not a reason to
-    # stay BLOCKED forever. SUCCESS requires review PASS + ground_truth_ok;
-    # ranking_stable is reported, not a SUCCESS gate.
-    if success and ground_truth_ok:
+    # audit-metric-baseline SUCCESS forbids open P0/P1 defects and FAIL tests.
+    # Catalog tests_required: unstable top-10 => contention-dominated baseline
+    # cannot be used. After falsify PASS that confirms contention, keep BLOCKED
+    # (AUD-0060 pattern: review PASS integrated, receipt stays BLOCKED on the
+    # environmental gate) rather than inventing SUCCESS. SUCCESS only when
+    # review PASS + ranking_stable + ground_truth_ok.
+    scope_defect = {
+        "id": "AUD-0056-D-SCOPE",
+        "severity": "P2",
+        "status": "open",
+        "summary": (
+            f"This pass profiled {module_count} modules collectible cleanly "
+            "under command-center/ only; tools/, platform/, skills/, and "
+            "excluded trees are residuals, not silently dropped."
+        ),
+    }
+    contention_defect = {
+        "id": "AUD-0056-D-CONTENTION",
+        "severity": "P1",
+        "status": "open",
+        "summary": (
+            "Top-10 module ranking unstable across two profile recordings "
+            f"(probe1 ranking_stable={p1_stable}, probe2 ranking_stable="
+            f"{p2_stable}). Measurement is contention-dominated and cannot "
+            "be used as a baseline."
+        ),
+    }
+
+    if success and ranking_stable and ground_truth_ok and not contention:
         reviewer = {
             "reviewer_id": rev["reviewer_id"],
             "verdict": "PASS",
@@ -188,9 +211,7 @@ def build(primary: dict | None = None) -> dict:
             "fresh_context": True,
             "vendor": rev.get("vendor", "anthropic"),
             "reviewed_at": rev.get("reviewed_at", ended),
-            "notes": rev.get("notes")
-            or rev.get("method")
-            or "",
+            "notes": rev.get("notes") or rev.get("method") or "",
         }
         state = "SUCCESS"
         sentinel = "SUCCESS:AUD-0056"
@@ -206,33 +227,84 @@ def build(primary: dict | None = None) -> dict:
                     "command-center/p2-wave/probes/AUD-0056/independent-review.json"
                 ),
             },
+            scope_defect,
+        ]
+    elif success and ground_truth_ok:
+        # Review PASSed and confirmed contention / unstable ranking. Do not
+        # invent SUCCESS (schema + catalog baseline gate). Record reviewer PASS.
+        reviewer = {
+            "reviewer_id": rev["reviewer_id"],
+            "verdict": "PASS",
+            "independent": True,
+            "fresh_context": True,
+            "vendor": rev.get("vendor", "anthropic"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": rev.get("notes") or rev.get("method") or "",
+        }
+        state = "BLOCKED"
+        sentinel = (
+            "FAILED:AUD-0056 test-runtime-profile probes measured "
+            f"modules={module_count} call_rows={call_rows} "
+            f"p1_ranking_stable={p1_stable} p2_ranking_stable={p2_stable} "
+            f"contention_dominated={contention} ground_truth_ok={ground_truth_ok}; "
+            "blocked-on-contention-dominated-baseline"
+        )
+        failure = {
+            "classification": [
+                "concurrency-contention",
+                "baseline-unusable",
+                "detector-failure",
+            ],
+            "reason": (
+                "Independent fresh-context Claude falsify review PASS confirmed "
+                f"probe1 ranking_stable={p1_stable} and probe2 ranking_stable="
+                f"{p2_stable}. Catalog tests_required: unstable top-10 ranking "
+                "means the measurement is contention-dominated and cannot be "
+                "used as a baseline. Receipt stays BLOCKED (no stub SUCCESS)."
+            ),
+            "diagnostic_tail": (
+                f"p1_ok={p1_ok} p2_ok={p2_ok} ranking_stable={ranking_stable} "
+                f"contention_dominated={contention} "
+                f"ground_truth_ok={ground_truth_ok} reviewer=PASS"
+            ),
+            "blocked_on": (
+                "Re-run on a quieter substrate until both probe1 and probe2 "
+                "top-10 rankings are stable across two recordings, then "
+                "re-pack; do not invent SUCCESS while contention_dominated=True."
+            ),
+            "two_signal_proof": [
+                L.probe(
+                    "source",
+                    "command",
+                    "python3 -B command-center/p2-wave/probes/AUD-0056/"
+                    "probe1_runner_durations.py",
+                    f"ranking_stable={p1_stable} ground_truth={p1_gt}",
+                    0 if p1_gt else 1,
+                ),
+                L.probe(
+                    "verifier",
+                    "file-read",
+                    "command-center/p2-wave/probes/AUD-0056/independent-review.json",
+                    "verdict=PASS; receipt left BLOCKED on contention",
+                    0,
+                ),
+            ],
+        }
+        anti = "BLOCKED-after-falsify-PASS-contention-dominated"
+        defects = [
             {
-                "id": "AUD-0056-D-SCOPE",
-                "severity": "P2",
-                "status": "open",
+                "id": "AUD-0056-D-REVIEW",
+                "severity": "P1",
+                "status": "resolved",
                 "summary": (
-                    f"This pass profiled {module_count} modules collectible cleanly "
-                    "under command-center/ only; tools/, platform/, skills/, and "
-                    "excluded trees are residuals, not silently dropped."
+                    "Independent fresh-context Claude review PASS recorded at "
+                    "command-center/p2-wave/probes/AUD-0056/independent-review.json; "
+                    "receipt stays BLOCKED on contention-dominated baseline."
                 ),
             },
+            scope_defect,
+            contention_defect,
         ]
-        if contention:
-            defects.append(
-                {
-                    "id": "AUD-0056-D-CONTENTION",
-                    "severity": "P1",
-                    "status": "open",
-                    "summary": (
-                        "Top-10 module ranking unstable across two profile "
-                        "recordings (probe1 ranking_stable="
-                        f"{p1_stable}, probe2 ranking_stable={p2_stable}). "
-                        "Measurement is contention-dominated and cannot be used "
-                        "as a baseline; independent review confirmed the "
-                        "instability rather than a packing error."
-                    ),
-                }
-            )
     else:
         reviewer = {
             "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
@@ -310,32 +382,10 @@ def build(primary: dict | None = None) -> dict:
                 "status": "open",
                 "summary": "Independent fresh-context Claude falsify-review unpaid.",
             },
-            {
-                "id": "AUD-0056-D-SCOPE",
-                "severity": "P2",
-                "status": "open",
-                "summary": (
-                    f"This pass profiled {module_count} modules collectible cleanly "
-                    "under command-center/ only; tools/, platform/, skills/, and "
-                    "excluded trees are residuals, not silently dropped."
-                ),
-            },
+            scope_defect,
         ]
         if contention:
-            defects.append(
-                {
-                    "id": "AUD-0056-D-CONTENTION",
-                    "severity": "P1",
-                    "status": "open",
-                    "summary": (
-                        "Top-10 module ranking unstable across two profile "
-                        "recordings (probe1 ranking_stable="
-                        f"{p1_stable}, probe2 ranking_stable={p2_stable}). "
-                        "Measurement is contention-dominated and cannot be used "
-                        "as a baseline."
-                    ),
-                }
-            )
+            defects.append(contention_defect)
 
     doc: dict = {
         "schema_version": 1,
