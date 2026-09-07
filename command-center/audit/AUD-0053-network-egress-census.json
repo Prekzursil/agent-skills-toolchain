@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 34200,
+   "bytes": 32881,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0053-network-egress-census.json",
    "role": "primary",
-   "sha256": "9ffd1d4bdd6f24300614ef40e1feaf1f3e588a59cb69b0a3e65f8ab173f49c4d"
+   "sha256": "b7a049a22f89762e874ee9ae41ebd9c138951f2af0a412baa4a8bf67d822124f"
   },
   {
    "bytes": 1434,
@@ -95,14 +95,22 @@
    "path": "command-center/p2-wave/probes/AUD-0053/fixtures/network_dependent/test_network_ground_truth_silent.py",
    "role": "control",
    "sha256": "c87b78e45bd542f56394cef34b3e76022d34d0a6a3329ebdd6f57e7f0b4fe5f4"
+  },
+  {
+   "bytes": 3640,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0053/independent-review.json",
+   "role": "supporting",
+   "sha256": "88186c3cf28b48fde7a2acff737148429a8862342780dc97ab9af82ca87c9394"
   }
  ],
  "defects": [
   {
    "id": "AUD-0053-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Cross-vendor Codex re-run of probe 2 unpaid."
+   "status": "resolved",
+   "summary": "Cross-vendor Codex re-run of probe 2 PASS recorded."
   },
   {
    "id": "AUD-0053-D-SCOPE",
@@ -203,7 +211,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-cross-vendor-codex-probe2-PASS",
   "artifact_class": "audit-finding",
   "output_path_confirmed": "command-center/audit/AUD-0053-network-egress-census.json",
   "output_schema_confirmed": "command-center/schema/audit-finding.schema.json",
@@ -234,40 +242,11 @@
   },
   "wave": "p2-loop"
  },
- "failure": {
-  "blocked_on": "Dispatch one cross-vendor Codex reviewer to re-run ONLY command-center/p2-wave/probes/AUD-0053/probe2_socket_trace_destinations.py and independently confirm the traced destination-host set and the ground-truth/cross-reference controls before PASS.",
-  "classification": [
-   "blocked-on-independent-review",
-   "egress-blocked",
-   "green-not-live",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "both_states_control_ok=True p1_ok=True network_dependent=1 p1_ground_truth_ok=True p2_ok=True network_touching=2 p2_ground_truth_ok=True cross_reference_ok=True touch_only=1 reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed: the tests_required both-states control proved the socket-level block actually blocks a deliberate fetch and does not block an unblocked one; probe1 recorded every test whose PASS/FAIL outcome changed when egress was blocked (1 found); probe2 recorded, via an unblocked run with every non-loopback connect() traced, every test that touched the network at all (2 found, naming destination hosts) -- but catalog reviewer_requirement is unmet (cross-vendor Codex must re-run ONLY probe 2).",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0053/probe2_socket_trace_destinations.py",
-    "exit_code": 0,
-    "fingerprint": "db90062b643c02705a72e03dbe9801ed",
-    "method": "command",
-    "raw_output": "network_touching=2 distinct_hosts=['104.20.23.154', '172.66.147.243']",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0053",
   "manifest_path": "command-center/p2-wave/probes/AUD-0053/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T21:59:00Z"
+  "registered_at": "2026-09-07T22:05:00Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -306,7 +285,7 @@
   "vendor": "anthropic"
  },
  "report": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-cross-vendor-codex-probe2-PASS",
   "control_ids": [
    "AUD0053-C1",
    "AUD0053-C2",
@@ -382,17 +361,18 @@
   "policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one cross-vendor Codex reviewer who re-runs ONLY the second probe (probe2_socket_trace_destinations.py, the socket-level destination-host trace on an unblocked run). Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-cross-vendor-codex-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh probe2 matched the committed probe2 on the 139-result scope, touching-test count (2), exact destination-host set, both ground-truth controls, and the probe1-dependent subset check. The traced pytest run returned 1 because unrelated suite tests fail by design or environment; this rerun additionally hit AUD-0052's planted flaky test, changing only the pytest tail (5 failed versus the committed 4), not any probe2 census field. Generated probe2 JSON/raw changes were therefore not retained as a material update.",
+  "reviewed_at": "2026-09-07T22:02:31Z",
+  "reviewer_id": "fresh-context-openai-independent-reviewer-AUD-0053",
   "vendor": "openai",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0053 egress-blocked-outcome-diff + socket-trace probes measured; baseline_collected=139 network_dependent=1 network_touching=2 distinct_hosts=2 touch_only=1 both_states_control_ok=True; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0053",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0053",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 2,
@@ -420,7 +400,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T21:59:00Z",
+  "ended_at": "2026-09-07T22:05:00Z",
   "started_at": "2026-09-07T21:49:00Z"
  },
  "unit_id": "AUD-0053"
