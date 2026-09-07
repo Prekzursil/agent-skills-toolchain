@@ -28,6 +28,9 @@ RUNTIME_SEED_BUDGET = 40
 RUNTIME_TIMEOUT = 12
 
 
+SRC_LAYOUT_MARKERS = frozenset({"packages", "apps", "services", "src"})
+
+
 def module_name_for(path: Path) -> str:
     rel = path.relative_to(REPO).with_suffix("")
     parts = list(rel.parts)
@@ -36,8 +39,20 @@ def module_name_for(path: Path) -> str:
     return ".".join(parts)
 
 
+def src_layout_short_name(name: str) -> str | None:
+    """tools.<proj>.(packages|apps|services|src).<top>.* -> <top>.*"""
+    parts = name.split(".")
+    if (
+        len(parts) >= 4
+        and parts[0] == "tools"
+        and parts[2] in SRC_LAYOUT_MARKERS
+    ):
+        return ".".join(parts[3:])
+    return None
+
+
 def alias_names(name: str, known: set[str]) -> set[str]:
-    """Map tools.<pkg>.<pkg>.* <-> <pkg>.* for hyphen/flat layouts."""
+    """Map tools.<pkg>.<pkg>.* <-> <pkg>.* and src-layout editable aliases."""
     out = {name}
     parts = name.split(".")
     if len(parts) >= 3 and parts[0] == "tools" and parts[1] == parts[2]:
@@ -45,11 +60,19 @@ def alias_names(name: str, known: set[str]) -> set[str]:
         flat = ".".join(parts[2:])
         out.add(flat)
         out.add("tools." + flat)
+    short = src_layout_short_name(name)
+    if short:
+        out.add(short)
+        out.add("tools." + short)
     if parts and parts[0] != "tools":
         # agentrail.cli -> tools.agentrail.agentrail.cli / tools.agentrail.cli
         out.add("tools." + name)
         pkg = parts[0]
         out.add("tools." + pkg + "." + name)
+        # reverse src-layout: omniaudit.core -> tools.omniaudit-mcp.packages.omniaudit.core
+        for k in known:
+            if src_layout_short_name(k) == name:
+                out.add(k)
     return {n for n in out if n in known} or ({name} if name in known else set())
 
 
@@ -441,18 +464,35 @@ def bfs_ast_closure(seeds: set[str], all_mods: dict[str, Path]) -> set[str]:
                     imported.append(alias.name)
             elif isinstance(node, ast.ImportFrom):
                 mod = node.module or ""
+                parts = name.split(".")
+                # Package __init__.py modules already have __init__ stripped from
+                # `name`, so the containing package IS `name`. Regular modules use
+                # the parent package (PEP 328 relative import base).
+                if path.name == "__init__.py":
+                    containing = parts
+                else:
+                    containing = parts[:-1]
                 if node.level:
-                    cur = name.split(".")[:-1]
-                    base = (
-                        cur[: len(cur) - (node.level - 1)]
-                        if node.level <= len(cur)
-                        else []
-                    )
-                    absmod = ".".join(base + ([mod] if mod else []))
+                    up = node.level - 1
+                    if up > len(containing):
+                        base_parts: list[str] = []
+                    elif up == 0:
+                        base_parts = list(containing)
+                    else:
+                        base_parts = list(containing[: len(containing) - up])
+                    absmod = ".".join(base_parts + ([mod] if mod else []))
                 else:
                     absmod = mod
                 if absmod:
                     imported.append(absmod)
+                # from pkg import a,b  /  from . import a,b  — mark leaf modules live
+                for alias in node.names:
+                    if alias.name == "*":
+                        continue
+                    if absmod:
+                        imported.append(f"{absmod}.{alias.name}")
+                    elif node.level and containing:
+                        imported.append(".".join(list(containing) + [alias.name]))
                 # from catalog import X  (level 0 flat) still needs sibling resolve
                 if not node.level and mod and "." not in mod:
                     imported.append(mod)
@@ -686,6 +726,8 @@ def main() -> int:
             "string_registry_import_module",
             "ast_import_bfs_with_hyphen_aliases",
             "flat_sibling_import_resolution",
+            "src_layout_editable_aliases",
+            "package_init_relative_import_fix",
             "bounded_runtime_import_trace",
         ],
         "ok": (
