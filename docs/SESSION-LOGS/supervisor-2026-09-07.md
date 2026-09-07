@@ -40,3 +40,28 @@ https://github.com/Prekzursil/agent-skills-toolchain/pull/325
 Census **242/2007** (`/opt/cursor/artifacts/ralph-census-after-remedi.log`).
 AUD-0045/0032 remedi landings still **BLOCKED** (await re-review). Parallel CC/AUD
 fan-out in flight. No stub SUCCESS. CI AMBER. Owner-only items untouched.
+
+## 20:30Z — monitor → maintainer YELLOW (cadence)
+
+> session-log miss ~120m since last curator/supervisor restore ~18:30Z (`c7c186b77` /
+> #325 mirror `174a45d38`). finished+owner-blocked exception is OFF — you are RUNNING
+> on P2 ralph loop.
+>
+> Fix shape: (1) append curator-2026-09-07.md + mirror supervisor note covering tip
+> `d30e9666d`, census **260**/2007 (AUD-0017 + CC-0006 SUCCESS; AUD-0060 honest
+> BLOCKED; AUD-0080 review PASS promoting), branch `cursor/p2-loop-to-green-0db0` /
+> #325, CI still AMBER; (2) claim→artifact under `/opt/cursor/artifacts/`; no stub
+> SUCCESS; (3) do not touch Actions billing, force-push, visibility, or Close
+> #316/#319.
+
+## 20:35Z — maintainer ack
+
+Cadence restored. P2 ralph still RUNNING on PR **#325**:
+https://github.com/Prekzursil/agent-skills-toolchain/pull/325
+
+Monitor snapshot tip **`d30e9666d`** / census **260/2007**
+(`/opt/cursor/artifacts/ralph-census-after-aud17-cc6.log`).
+Tip now **`840f10a95`** / census **262/2007**
+(`/opt/cursor/artifacts/ralph-census-session-log-restore.log`) after AUD-0080 +
+CC-0004 SUCCESS and AUD-0040 BLOCKED integrate. AUD-0060 remains honest BLOCKED.
+No stub SUCCESS. CI AMBER. Owner-only items untouched.
