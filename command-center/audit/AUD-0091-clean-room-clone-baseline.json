@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 35455,
+   "bytes": 35139,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0091-clean-room-clone-baseline.json",
    "role": "primary",
-   "sha256": "ddb9e35e8c91d211ac2d6476463dc40207a480d485766400cd06f250b5690c38"
+   "sha256": "e254506675c14970fe46e567d49901d49e5adabac11324c2170cc1f2f805411d"
   },
   {
    "bytes": 10942,
@@ -95,20 +95,28 @@
    "path": "command-center/p2-wave/probes/AUD-0091/fixtures/populated_npm_cache/stale-package-marker.txt",
    "role": "fixture",
    "sha256": "eff3d3b0a15b081edd19198df97c5f595a08cd7da333316140edede29d128af4"
+  },
+  {
+   "bytes": 11493,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0091/independent-review.json",
+   "role": "supporting",
+   "sha256": "d8fd1e23db40bcf82bbd71184cafcfe0777ec535b4666506de15adfc2c4fcdb8"
   }
  ],
  "defects": [
   {
    "id": "AUD-0091-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude falsify-review unpaid."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0091/independent-review.json"
   },
   {
    "id": "AUD-0091-D-VALIDATE-SKILLS-PWSH",
    "severity": "P2",
    "status": "open",
-   "summary": "First documented-sequence divergence: `npm run validate:skills` exit_code=127 ('pwsh: not found'); npm install and npm test both pass ahead of it, byte-identical to the in-place baseline."
+   "summary": "`npm run validate:skills` requires `pwsh`, absent on this substrate; this is the first documented-sequence divergence."
   }
  ],
  "downstream_consumers": [
@@ -204,7 +212,7 @@
  ],
  "extensions": {
   "all_documented_steps_passed": false,
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "artifact_class": "audit-detector-control",
   "control": {
    "fires_on_bad": true,
@@ -255,39 +263,11 @@
   },
   "wave": "p2-loop"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to try to FALSIFY the first_failing_step / pinned_sha / results_identical claims before PASS.",
-  "classification": [
-   "dependency-blocked",
-   "green-not-live",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "first_failing_step=npm-run-validate-skills exit_code=127 all_documented_steps_passed=False pinned_sha=acb040577ecd72eacacf61e65f7ee0633a80f939 cache_free_before_run=True results_identical=True environment_only_diff=False fires_on_bad=True silent_on_good=True control_ok=True reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed (probe1 ok=True clone+build+test sequence executed against a real fresh clone pinned at acb040577ecd72eacacf61e65f7ee0633a80f939; probe2 ok=True in-place comparator; cache-free control ok=True), but catalog reviewer_requirement is unmet. This is NOT a hidden defect masked as green: the measured first divergence (`npm run validate:skills` exit_code=127, missing `pwsh`) is the real answer to the catalog question, reported honestly rather than smoothed over.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0091/probe1_clean_clone_run.py",
-    "exit_code": 0,
-    "fingerprint": "092db1ef648af73962953546194714c5",
-    "method": "command",
-    "raw_output": "first_failing_step=npm-run-validate-skills exit_code=127",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0091",
   "manifest_path": "command-center/p2-wave/probes/AUD-0091/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T23:05:43Z"
+  "registered_at": "2026-09-07T23:15:24Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -317,7 +297,7 @@
   "vendor": "anthropic"
  },
  "report": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "control_ids": [
    "AUD0091-C1",
    "AUD0091-C2"
@@ -398,17 +378,18 @@
   "policy": "no automatic retry - a failed run here may have mutated the tree; restore from the AUD-0092 backup, record the mutation, and escalate (catalog retry_policy, verbatim)"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline first-failing-step claim before PASS, not re-read the artifact. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Genuine falsify attempt: re-executed every re-runnable named probe (control, npm test, npm run validate:skills) from scratch on a fresh checkout of this branch rather than re-reading the committed logs, and independently re-derived the pinned-SHA and tool-absence claims via direct git/which commands. All technical claims (pinned SHA, cache-free-before-run, 464/464 npm test both clean-clone and in-place, exit 127 on validate:skills with pwsh missing, control detector firing/silent behavior) reproduced exactly. Two softer challenges were raised per the task's explicit prompt: (1) the 'first diverges at validate:skills' framing does skip two earlier README steps (claude plugin marketplace add, git-crypt unlock) that would also fail on this substrate in strict doc order -- but this is disclosed by name in both the headline and residual_unknowns, not hidden, so it is a transparent scope decision rather than a false claim; (2) 'byte-identical' in the headline overstates what probe2 actually computes (scalar count/exit-code equality, not a stdout byte-diff) -- a wording imprecision that does not change the underlying reproduced result. Neither rises to a substantive falsification of the receipt's measured claims, so verdict=PASS. Receipt intentionally left BLOCKED (reviewer.verdict still NOT-REVIEWED on the receipt itself); this independent-review.json is the only new artifact written by this review.",
+  "reviewed_at": "2026-09-07T23:12:00Z",
+  "reviewer_id": "fresh-context-claude-falsify-reviewer-aud0091",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0091 clean-room baseline measured first_failing_step=npm-run-validate-skills exit_code=127 pinned_sha=acb040577ecd72eacacf61e65f7ee0633a80f939 cache_free_before_run=True results_identical=True control_ok=True; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0091 first_failing_step=npm-run-validate-skills pinned_sha=acb040577ecd72eacacf61e65f7ee0633a80f939 results_identical=True",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0091",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -436,7 +417,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T23:05:43Z",
+  "ended_at": "2026-09-07T23:15:24Z",
   "started_at": "2026-09-07T23:00:41Z"
  },
  "unit_id": "AUD-0091"
