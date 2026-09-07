@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 36591,
+   "bytes": 36876,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0055-skip-xfail-reason-audit.json",
    "role": "primary",
-   "sha256": "04e1a2e8b1017b2e9512a6b524ca4fcfb84673fa37f3c85565f2fd24b0a83339"
+   "sha256": "6adc1121471de7e4128e4c18107af89a0db810b4a7580b310ad20f49282124e8"
   },
   {
    "bytes": 30296,
@@ -63,20 +63,28 @@
    "path": "command-center/p2-wave/probes/AUD-0055/fixtures/mention_only_noise.py",
    "role": "fixture",
    "sha256": "680e7df08b6e124ca91c0025f92f688a59e5b9e467e56418545ed70d05fcfbdb"
+  },
+  {
+   "bytes": 8336,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0055/independent-review.json",
+   "role": "supporting",
+   "sha256": "2f9c07fd8a39ef970af43e02515b7a287c1a937b05b0abdaca5e7ddce0b3d8fc"
   }
  ],
  "defects": [
   {
    "id": "AUD-0055-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude review unpaid; headline skip/xfail counts must be falsified by a reviewer who did not author this census."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0055/independent-review.json"
   },
   {
    "id": "AUD-0055-D-STALE",
    "severity": "P2",
    "status": "open",
-   "summary": "markers=38 skip=36 xfail=2; prod skip=35 xfail=1; unmark stale=2 holds=2; control_ok=True."
+   "summary": "unmark sample stale=2 holds=2; markers skip=36 xfail=2 (prod skip=35 xfail=1)."
   }
  ],
  "downstream_consumers": [
@@ -90,7 +98,7 @@
     "exit_code": 0,
     "fingerprint": "ee8dc403f7c55ffcf0a199c884bea385",
     "method": "schema-validate",
-    "raw_output": "state=BLOCKED",
+    "raw_output": "state=SUCCESS",
     "role": "source"
    },
    "read_ok": true
@@ -147,7 +155,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-pending-independent-review-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-re-review-PASS",
   "by_kind": {
    "skip": 4,
    "skipUnless": 2,
@@ -162,38 +170,11 @@
   "probe2_worktree_mode": "git-worktree",
   "wave": "p2-wave1"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline skip_count=36 xfail_count=2 (production_skip=35 production_xfail=1) before PASS, not re-read the artifact.",
-  "classification": [
-   "blocked-on-independent-review",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "skip=36 xfail=2 prod_skip=35 prod_xfail=1 marked_xpass=True unmark_pass=True sample_exec=4 reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed with required XPASS control (fixed-bug xfail shows XPASS marked and PASS unmarked; skip whose reason holds FAILs when unmarked) and stratified unmark sample executed, but catalog reviewer_requirement is unmet (fresh-context Claude must falsify headline counts).",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0055/probe1_marker_census.py",
-    "exit_code": 0,
-    "fingerprint": "3fb80f55c8323e22feb193159667b5ba",
-    "method": "command",
-    "raw_output": "skip_count=36 xfail_count=2 control_ok=True",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0055",
   "manifest_path": "command-center/p2-wave/probes/AUD-0055/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T19:46:40Z"
+  "registered_at": "2026-09-07T19:53:47Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -581,7 +562,7 @@
     "reason_class": "reason-present"
    }
   ],
-  "headline": "skip=36 xfail=2 markers=38 (prod skip=35 xfail=1); no_reason=0; control_xpass=True unmark_pass=True skip_unmark_fails=True; sample_executed=4. BLOCKED on independent fresh-context Claude review.",
+  "headline": "skip=36 xfail=2 markers=38 (prod skip=35 xfail=1); no_reason=0; control_xpass=True unmark_pass=True; sample_executed=4. Independent re-review PASS.",
   "kind": "audit-finding",
   "observations": [
    {
@@ -687,17 +668,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript and must try to FALSIFY the headline count before PASS. Probes measured; review unpaid; BLOCKED.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh-context independent Claude review of AUD-0055 with no prior exposure to the authoring transcript. Goal: FALSIFY the headline skip/xfail census (38/36/2; prod 35/1) and the planted-control claims (xfail-fixed \u2192 XPASS marked / PASS unmarked; skip control still FAILs when unmarked) by re-running probes and measuring independently \u2014 not by re-reading the receipt narrative. Could not falsify. Probe1 re-run EXIT=0 reproduced marker_count=38 skip_count=36 xfail_count=2 production_skip=35 production_xfail=1 no_reason=0 control_ok=True mention_hits=0; probe1 raw was byte-identical to the committed receipt. Probe2 re-run EXIT=0 reproduced marked_xpass=True unmarked_xfail_passes=True unmarked_skip_fails=True sample_executed=4/4 with the same four verdicts (STALE/HOLDS/STALE/HOLDS); only worktree_path and sub-second pytest timings drifted. Independent AST census (no probe1 imports) over 2873 .py files matched the probe1 marker id set exactly and left mention_only_noise.py at 0 hits despite string mentions of pytest.mark.skip. Manual pytest on the two control fixtures outside probe2 confirmed XPASS\u2192PASS and SKIP\u2192FAIL after local unmark. Naive grep line-count (64) exceeds the AST census; that is use-vs-mention noise, not a higher true Call-site count. Collapsing .agents/skills\u2194skills migration twins would drop markers 38\u219233, but both trees are live Call sites on disk \u2014 changing scope would redefine the claim, not falsify the published Call-site census. Restored committed probe1/probe2 raw+json after re-runs. Did not invent SUCCESS or rewrite the BLOCKED receipt; only this independent-review.json is committed. Open defects AUD-0055-D-REVIEW and AUD-0055-D-STALE remain for the implementer.",
+  "reviewed_at": "2026-09-07T19:51:53Z",
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0055",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0055 skip/xfail census + scratch-worktree unmark sample measured; control XPASS\u2192PASS and skip-unmark FAIL observed; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0055",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0055",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 2,
@@ -725,7 +707,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T19:46:40Z",
+  "ended_at": "2026-09-07T19:53:47Z",
   "started_at": "2026-09-07T19:40:00Z"
  },
  "unit_id": "AUD-0055"
