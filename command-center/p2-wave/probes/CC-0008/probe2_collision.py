@@ -10,7 +10,7 @@ import tempfile
 from datetime import datetime, timezone
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[3]
+REPO = Path(__file__).resolve().parents[4]
 PROBE = Path(__file__).resolve().parent
 sys.path.insert(0, str(REPO / "tools" / "command-center"))
 import catalog_slice_merge as m  # noqa: E402
