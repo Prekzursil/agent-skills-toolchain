@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 12240,
+   "bytes": 16987,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0062-always-on-context-budget.json",
    "role": "primary",
-   "sha256": "817591b82025905b9f0dd62244edffeeaab182839762f2d634e902128d3e96c4"
+   "sha256": "813489068872e6bcbf064c802f6716297720b578e127e0caa36b7bfd5e74b8d7"
   },
   {
    "bytes": 2798,
@@ -47,14 +47,22 @@
    "path": "command-center/p2-wave/probes/AUD-0062/control-tolerance.json",
    "role": "supporting",
    "sha256": "b829ceb6c00e6d444724e981510549e4ae27e872415c3e89429cb85cf016e26c"
+  },
+  {
+   "bytes": 12780,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0062/independent-review.json",
+   "role": "supporting",
+   "sha256": "21cacfa3e158f147a873fd1dfa0fbcd1b049b101b3811236ac2c23d13fa0250c"
   }
  ],
  "defects": [
   {
    "id": "AUD-0062-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude review unpaid."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0062/independent-review.json"
   },
   {
    "id": "AUD-0062-D-DOMINANT",
@@ -66,15 +74,15 @@
  "downstream_consumers": [
   {
    "artifact_path": "command-center/audit/AUD-0062-always-on-context-budget.json",
-   "consumer": "json.loads + audit-metric-baseline schema resolver",
+   "consumer": "command-center/receipt_validate.py admission",
    "executed": true,
    "exit_code": 0,
    "probe": {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0062/_pack_receipt.py",
+    "command": "python3 command-center/receipt_validate.py command-center/audit/AUD-0062-always-on-context-budget.json",
     "exit_code": 0,
-    "fingerprint": "9ec7b1c9ef6783f7cd9dafd4ab5483e4",
-    "method": "schema-validate",
-    "raw_output": "state=BLOCKED",
+    "fingerprint": "7ec0352b5750b5f665c9112bebdb0886",
+    "method": "command",
+    "raw_output": "ACCEPT:AUD-0062 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds\nSUCCESS:receipt-validate 1 receipt(s) ADMITTED (admission only -- completion is receipt_schema_gate.py layer 2)\n",
     "role": "source"
    },
    "read_ok": true
@@ -131,43 +139,16 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "dominant_path": ".agents/skills/code-security/AGENTS.md",
   "tokenizer": "tiktoken-cl100k_base",
   "wave": "p2-wave1"
- },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to falsify the headline token budget before PASS.",
-  "classification": [
-   "blocked-on-independent-review",
-   "partial-artifact"
-  ],
-  "diagnostic_tail": "tokenizer=tiktoken-cl100k_base gap_c4=0.0006 control_ok=True",
-  "reason": "Measured full_model=54643 vs occupancy=57782, but reviewer_requirement unmet.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0062/probe1_tokenize_injection.py",
-    "exit_code": 0,
-    "fingerprint": "6d555b9a48599e954c88fa8fbe706ceb",
-    "method": "command",
-    "raw_output": "full_model=54643",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
  },
  "manifest_registration": {
   "entry_id": "AUD-0062",
   "manifest_path": "command-center/p2-wave/probes/AUD-0062/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T18:36:18Z"
+  "registered_at": "2026-09-07T20:55:26Z"
  },
  "min_bytes_threshold": 2048,
  "negative_controls": [
@@ -191,7 +172,7 @@
   "control_ids": [
    "AUD0062-C1"
   ],
-  "headline": "full_model_tokens=54643; occupancy_char4=57782; dominant=.agents/skills/code-security/AGENTS.md (27525 tok). BLOCKED on review.",
+  "headline": "full_model_tokens=54643; occupancy_char4=57782; dominant=.agents/skills/code-security/AGENTS.md (27525 tok). Independent falsify review PASS.",
   "kind": "audit-metric-baseline",
   "observations": [
    {
@@ -239,17 +220,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b)"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires a fresh-context Claude reviewer who has not seen this transcript and must try to FALSIFY the headline token count. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Independently re-ran both named probes from a clean checkout of origin/cursor/p2-loop-to-green-0db0 (base_sha 787db20e85ffa9d6e6ab05b5029c84e7eea77d80). FIRST FALSIFICATION ATTEMPT SUCCEEDED THEN WAS RESOLVED: this sandbox does not ship tiktoken by default; running probe1 cold produced tokenizer=fallback-whitespace with full_file_tokens_model=24044 -- a 56% deviation from the artifact's claimed 54643 -- because the probe's get_encoder() silently swallows the ImportError and falls back to a whitespace counter without failing loudly or changing its exit code, so a tiktoken-less environment would silently pack a materially different headline number under the same tokenizer label mismatch would at least be visible (tokenizer field does correctly change to 'fallback-whitespace', so the artifact is not mislabeling, but nothing forces a hard failure if that field goes unchecked). This is a real fragility in the probe (recorded as a new observation below) but does NOT falsify the existing committed artifact: after `pip install tiktoken` the probe reproduced the committed probe1-tokenize-sum.json, probe1-tokenize.raw.txt, probe2-occupancy-compare.json, control-tolerance.json, and probe2-occupancy.raw.txt byte-for-byte (git diff --stat showed zero changes), proving tiktoken WAS the tokenizer actually used to produce the committed receipt evidence, exactly as claimed. SECOND, STRONGER FALSIFICATION ATTEMPT: re-tokenized all 5 full-file injectees with a completely independent library and vocabulary (transformers.GPT2TokenizerFast, not tiktoken) to check whether the cl100k_base numbers are plausible rather than an artifact of one code path. Per-file bytes matched exactly (CLAUDE.md=6714, AGENTS.md=7812, llm-security/AGENTS.md=102687, humanizer/AGENTS.md=1639, code-security/AGENTS.md=112277; total=231129, matching both probes and independent `wc -c`). cl100k_base recompute (own script, own tiktoken.get_encoding call) reproduced 54643 total / 27525 dominant exactly. GPT2-BPE recompute gave 85745 total / 40420 dominant -- higher in absolute terms (GPT-2's older, smaller-vocab BPE is well known to under-merge English prose relative to cl100k_base, so a ~1.57x ratio is the expected direction and rough magnitude, not a red flag) but preserves the SAME dominant-file ranking (code-security/AGENTS.md > llm-security/AGENTS.md > AGENTS.md > CLAUDE.md > humanizer/AGENTS.md) under every one of the four independent measures tried (bytes, cl100k tokens, GPT2-BPE tokens, whitespace words). THIRD FALSIFICATION ATTEMPT: manually recomputed char4_tokens (len(text)//4 per file, bypassing the probe's helper) and occupancy (sum(bytes)//4, bypassing session_occupancy_proxy()) by hand in a fresh script: sum of per-file char4 = 57748 (matches full_file_tokens_char4 exactly) and floor(231129/4) = 57782 (matches occupancy_tokens_char4 exactly); gap = |57748-57782|/57782 = 0.000588, matching the claimed 0.0006 to displayed precision. Confirmed the small non-zero gap is legitimately explained by multi-byte UTF-8 characters (chars < bytes for all 5 files, e.g. code-security/AGENTS.md has 112277 bytes but only 112221 decoded chars) rather than measurement error. FOURTH FALSIFICATION ATTEMPT (both-states control): manually recomputed the bad-state gap by omitting the dominant file's char4 count (28055) from the full char4 sum (57748-28055=29693), giving gap=|29693-57782|/57782=0.4861 > tolerance 0.35 -- control correctly fires on the incomplete-set fixture and stays silent on the complete set, exactly as recorded. FIFTH, SESSION-SPECIFIC FALSIFICATION ATTEMPT: as the actual fresh-context reviewer for this task, I inspected my OWN system prompt's <always_applied_workspace_rules> block (the real turn-0 injection for this session, captured before I opened the audit artifact or the probe source) and it contains exactly five full-file entries -- /workspace/CLAUDE.md, /workspace/AGENTS.md, /workspace/.agents/skills/llm-security/AGENTS.md, /workspace/.agents/skills/humanizer/AGENTS.md, /workspace/.agents/skills/code-security/AGENTS.md -- an exact match, in identity and count, to probe1's hardcoded 'full-file' candidate list. This is direct first-hand confirmation (not merely re-deriving from the same files the probe reads) that the enumerated always-on injection set is neither missing an item nor padded with an extra one, for this checkout/session type. CONCLUSION: could not falsify any headline number (full_model=54643, occupancy_c4=57782, dominant=.agents/skills/code-security/AGENTS.md@27525 tok, gap_c4_vs_occ=0.0006, bad_omit_gap=0.4861) using either a from-scratch reimplementation, a second independent tokenizer library, raw coreutils byte counts, or direct inspection of my own injected context. Found and recorded one real (but non-blocking-for-this-headline) methodology fragility: probe1's tokenizer fallback is silent rather than fail-fast, so a future tiktoken-less run would silently pack a ~56%-different number under a correctly-relabeled but easy-to-miss tokenizer field; recommend the packer assert tokenizer=='tiktoken-cl100k_base' or hard-fail before writing the receipt. Verified command-center/audit/AUD-0062-always-on-context-budget.json state is still 'BLOCKED' and reviewer.verdict is still 'NOT-REVIEWED' -- I did NOT edit or promote that receipt, per instructions; this review only adds independent-review.json alongside the existing (git-clean) probe outputs.",
+  "reviewed_at": "2026-09-07T20:59:00Z",
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0062",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0062 probes measured always-on token budget full_model=54643 occupancy_c4=57782 dominant=.agents/skills/code-security/AGENTS.md; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0062",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0062",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 2,
@@ -261,7 +243,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T18:36:18Z",
+  "ended_at": "2026-09-07T20:55:26Z",
   "started_at": "2026-09-07T18:25:00Z"
  },
  "unit_id": "AUD-0062"

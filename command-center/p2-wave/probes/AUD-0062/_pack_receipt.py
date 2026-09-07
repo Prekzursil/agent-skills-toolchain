@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Pack AUD-0062 always-on context budget (BLOCKED on independent review)."""
+"""Pack AUD-0062 always-on context budget.
+
+Emits BLOCKED until an independent fresh-context Claude review PASS is on disk;
+then SUCCESS. Never stubs SUCCESS. Uses committed probe JSON (does not re-tokenize
+here — tiktoken absence would silently skew totals).
+"""
 from __future__ import annotations
 
 import json
@@ -15,6 +20,24 @@ OUT = "command-center/audit/AUD-0062-always-on-context-budget.json"
 SCHEMA = "command-center/schema/audit-metric-baseline.schema.json"
 PROBE = Path(__file__).resolve().parent
 MANIFEST = "command-center/p2-wave/probes/AUD-0062/UNIT-ARTIFACT-MANIFEST.json"
+REVIEW = PROBE / "independent-review.json"
+
+
+def load_review() -> dict | None:
+    if not REVIEW.is_file():
+        return None
+    try:
+        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if rev.get("verdict") != "PASS":
+        return None
+    if not rev.get("independent") or not rev.get("fresh_context"):
+        return None
+    vendor = (rev.get("vendor") or "").lower()
+    if vendor not in {"anthropic", "claude"}:
+        return None
+    return rev
 
 
 def build(primary: dict | None = None) -> dict:
@@ -24,6 +47,8 @@ def build(primary: dict | None = None) -> dict:
     raw2 = (PROBE / "probe2-occupancy.raw.txt").read_text(encoding="utf-8")
     ctrl = p2["control"]
     dominant = p1.get("dominant_item") or {}
+    rev = load_review()
+    success = rev is not None
     started = "2026-09-07T18:25:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     arts = [
@@ -42,16 +67,137 @@ def build(primary: dict | None = None) -> dict:
         L.art("command-center/p2-wave/probes/AUD-0062/probe2-occupancy.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0062/control-tolerance.json", "supporting"),
     ]
-    return {
+    if success:
+        arts.append(
+            L.art(
+                "command-center/p2-wave/probes/AUD-0062/independent-review.json",
+                "supporting",
+            )
+        )
+
+    full_model = p2["probe1_full_file_tokens_model"]
+    occ = p2["occupancy"]["occupancy_tokens_char4"]
+
+    if success:
+        reviewer = {
+            "reviewer_id": rev["reviewer_id"],
+            "verdict": "PASS",
+            "independent": True,
+            "fresh_context": True,
+            "vendor": rev.get("vendor", "anthropic"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": rev.get("notes", ""),
+        }
+        defects = [
+            {
+                "id": "AUD-0062-D-REVIEW",
+                "severity": "P1",
+                "status": "resolved",
+                "summary": (
+                    "Independent fresh-context Claude review PASS recorded at "
+                    "command-center/p2-wave/probes/AUD-0062/independent-review.json"
+                ),
+            },
+            {
+                "id": "AUD-0062-D-DOMINANT",
+                "severity": "P2",
+                "status": "open",
+                "summary": (
+                    f"Dominant always-on injectee {dominant.get('path')} costs "
+                    f"{dominant.get('tokens_model')} model tokens "
+                    f"({dominant.get('bytes')} bytes)."
+                ),
+            },
+        ]
+        state = "SUCCESS"
+        sentinel = "SUCCESS:AUD-0062"
+        headline = (
+            f"full_model_tokens={full_model}; occupancy_char4={occ}; "
+            f"dominant={dominant.get('path')} ({dominant.get('tokens_model')} tok). "
+            "Independent falsify review PASS."
+        )
+        failure = None
+        anti = "SUCCESS-after-independent-falsify-PASS"
+    else:
+        reviewer = {
+            "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+            "verdict": "NOT-REVIEWED",
+            "independent": False,
+            "fresh_context": False,
+            "vendor": "anthropic",
+            "notes": (
+                "Catalog requires a fresh-context Claude reviewer who has not seen "
+                "this transcript and must try to FALSIFY the headline token count. "
+                "Unavailable in-session; BLOCKED instead of fake SUCCESS."
+            ),
+        }
+        defects = [
+            {
+                "id": "AUD-0062-D-REVIEW",
+                "severity": "P1",
+                "status": "open",
+                "summary": "Independent fresh-context Claude review unpaid.",
+            },
+            {
+                "id": "AUD-0062-D-DOMINANT",
+                "severity": "P2",
+                "status": "open",
+                "summary": (
+                    f"Dominant always-on injectee {dominant.get('path')} costs "
+                    f"{dominant.get('tokens_model')} model tokens "
+                    f"({dominant.get('bytes')} bytes)."
+                ),
+            },
+        ]
+        state = "BLOCKED"
+        sentinel = (
+            "FAILED:AUD-0062 probes measured always-on token budget "
+            f"full_model={full_model} occupancy_c4={occ} "
+            f"dominant={dominant.get('path')}; blocked-on-independent-review"
+        )
+        headline = (
+            f"full_model_tokens={full_model}; occupancy_char4={occ}; "
+            f"dominant={dominant.get('path')} ({dominant.get('tokens_model')} tok). "
+            "BLOCKED on review."
+        )
+        failure = {
+            "classification": ["blocked-on-independent-review", "partial-artifact"],
+            "reason": (
+                f"Measured full_model={full_model} vs occupancy={occ}, but "
+                "reviewer_requirement unmet."
+            ),
+            "diagnostic_tail": (
+                f"tokenizer={p1.get('tokenizer')} gap_c4="
+                f"{ctrl.get('relative_gap_c4_vs_occ')} control_ok={ctrl['ok']}"
+            ),
+            "blocked_on": (
+                "Dispatch one fresh-context Claude reviewer who has not seen this "
+                "transcript to falsify the headline token budget before PASS."
+            ),
+            "two_signal_proof": [
+                L.probe(
+                    "source",
+                    "command",
+                    "python3 -B command-center/p2-wave/probes/AUD-0062/probe1_tokenize_injection.py",
+                    f"full_model={full_model}",
+                    0,
+                ),
+                L.probe(
+                    "verifier",
+                    "file-read",
+                    "reviewer.verdict",
+                    "NOT-REVIEWED",
+                    0,
+                ),
+            ],
+        }
+        anti = "BLOCKED-with-real-probes"
+
+    doc = {
         "schema_version": 1,
         "unit_id": UNIT,
-        "state": "BLOCKED",
-        "sentinel": (
-            "FAILED:AUD-0062 probes measured always-on token budget "
-            f"full_model={p2['probe1_full_file_tokens_model']} "
-            f"occupancy_c4={p2['occupancy']['occupancy_tokens_char4']} "
-            f"dominant={dominant.get('path')}; blocked-on-independent-review"
-        ),
+        "state": state,
+        "sentinel": sentinel,
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0062",
         "min_bytes_threshold": 2048,
         "produced_by": {
@@ -99,7 +245,7 @@ def build(primary: dict | None = None) -> dict:
             L.evidence(
                 (
                     f"Probe 2 occupancy instrument={p2['occupancy']['method']} "
-                    f"tokens={p2['occupancy']['occupancy_tokens_char4']}; "
+                    f"tokens={occ}; "
                     f"gap_c4_vs_occ={ctrl.get('relative_gap_c4_vs_occ')}; "
                     f"control_ok={ctrl['ok']} (omit-dominant gap="
                     f"{(ctrl.get('bad_state') or {}).get('gap')})."
@@ -152,36 +298,8 @@ def build(primary: dict | None = None) -> dict:
                 good=json.dumps(ctrl.get("good_state"), sort_keys=True),
             )
         ],
-        "reviewer": {
-            "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "notes": (
-                "Catalog requires a fresh-context Claude reviewer who has not seen "
-                "this transcript and must try to FALSIFY the headline token count. "
-                "Unavailable in-session; BLOCKED instead of fake SUCCESS."
-            ),
-        },
-        "defects": [
-            {
-                "id": "AUD-0062-D-REVIEW",
-                "severity": "P1",
-                "status": "open",
-                "summary": "Independent fresh-context Claude review unpaid.",
-            },
-            {
-                "id": "AUD-0062-D-DOMINANT",
-                "severity": "P2",
-                "status": "open",
-                "summary": (
-                    f"Dominant always-on injectee {dominant.get('path')} costs "
-                    f"{dominant.get('tokens_model')} model tokens "
-                    f"({dominant.get('bytes')} bytes)."
-                ),
-            },
-        ],
+        "reviewer": reviewer,
+        "defects": defects,
         "manifest_registration": {
             "registered": True,
             "manifest_path": MANIFEST,
@@ -199,7 +317,7 @@ def build(primary: dict | None = None) -> dict:
                     "source",
                     "schema-validate",
                     "python3 -B command-center/p2-wave/probes/AUD-0062/_pack_receipt.py",
-                    "state=BLOCKED",
+                    f"state={state}",
                     0,
                 ),
             }
@@ -208,38 +326,6 @@ def build(primary: dict | None = None) -> dict:
         "retry": {
             "count": 1,
             "policy": "two strikes then pivot (AGENTS.md 4b)",
-        },
-        "failure": {
-            "classification": ["blocked-on-independent-review", "partial-artifact"],
-            "reason": (
-                f"Measured full_model={p2['probe1_full_file_tokens_model']} vs "
-                f"occupancy={p2['occupancy']['occupancy_tokens_char4']}, but "
-                "reviewer_requirement unmet."
-            ),
-            "diagnostic_tail": (
-                f"tokenizer={p1.get('tokenizer')} gap_c4="
-                f"{ctrl.get('relative_gap_c4_vs_occ')} control_ok={ctrl['ok']}"
-            ),
-            "blocked_on": (
-                "Dispatch one fresh-context Claude reviewer who has not seen this "
-                "transcript to falsify the headline token budget before PASS."
-            ),
-            "two_signal_proof": [
-                L.probe(
-                    "source",
-                    "command",
-                    "python3 -B command-center/p2-wave/probes/AUD-0062/probe1_tokenize_injection.py",
-                    f"full_model={p2['probe1_full_file_tokens_model']}",
-                    0,
-                ),
-                L.probe(
-                    "verifier",
-                    "file-read",
-                    "reviewer.verdict",
-                    "NOT-REVIEWED",
-                    0,
-                ),
-            ],
         },
         "residual_unknowns": [
             {
@@ -257,22 +343,17 @@ def build(primary: dict | None = None) -> dict:
                 "What is the exact token cost of everything injected into turn 0, "
                 "and which single item dominates it?"
             ),
-            "headline": (
-                f"full_model_tokens={p2['probe1_full_file_tokens_model']}; "
-                f"occupancy_char4={p2['occupancy']['occupancy_tokens_char4']}; "
-                f"dominant={dominant.get('path')} "
-                f"({dominant.get('tokens_model')} tok). BLOCKED on review."
-            ),
+            "headline": headline,
             "observations": [
                 {
                     "name": "full_file_tokens_model",
-                    "measured": p2["probe1_full_file_tokens_model"],
+                    "measured": full_model,
                     "method": f"tokenizer={p1.get('tokenizer')} per-file sum",
                     "anchor": "command-center/p2-wave/probes/AUD-0062/probe1-tokenize-sum.json",
                 },
                 {
                     "name": "occupancy_tokens_char4",
-                    "measured": p2["occupancy"]["occupancy_tokens_char4"],
+                    "measured": occ,
                     "method": "sum(stat.st_size)/4 turn-0 full-file set",
                     "anchor": "command-center/p2-wave/probes/AUD-0062/probe2-occupancy-compare.json",
                 },
@@ -298,21 +379,36 @@ def build(primary: dict | None = None) -> dict:
             "control_ids": ["AUD0062-C1"],
         },
         "extensions": {
-            "anti_false_green": "BLOCKED-with-real-probes",
+            "anti_false_green": anti,
             "wave": "p2-wave1",
             "dominant_path": dominant.get("path"),
             "tokenizer": p1.get("tokenizer"),
         },
     }
+    if failure is not None:
+        doc["failure"] = failure
+    return doc
 
 
 def main() -> int:
-    for script in ("probe1_tokenize_injection.py", "probe2_occupancy_compare.py"):
-        rc, out = L.run(["python3", "-B", str(PROBE / script)])
-        if rc != 0:
-            print(out)
-            print(f"FAILED:{UNIT} {script} exit={rc}")
-            return rc
+    out_path = L.REPO / OUT
+
+    def admit_consumer(rc: int, out: str) -> dict:
+        return {
+            "consumer": "command-center/receipt_validate.py admission",
+            "artifact_path": OUT,
+            "executed": True,
+            "read_ok": rc == 0 and "ADMIT" in out.upper(),
+            "exit_code": rc,
+            "probe": L.probe(
+                "source",
+                "command",
+                f"python3 command-center/receipt_validate.py {OUT}",
+                out[:4000],
+                rc,
+            ),
+        }
+
     doc = build()
     rc = L.write_if_valid(doc, OUT, SCHEMA)
     if rc != 0:
@@ -322,16 +418,39 @@ def main() -> int:
         rc = L.write_if_valid(doc, OUT, SCHEMA)
         if rc != 0:
             return rc
+
+    rc_adm, adm_out = L.run(
+        [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
+    )
+    doc = build(primary=L.art(OUT, "primary"))
+    doc["downstream_consumers"] = [admit_consumer(rc_adm, adm_out)]
+    rc = L.write_if_valid(doc, OUT, SCHEMA)
+    if rc != 0:
+        return rc
+
+    rc_adm2, adm_out2 = L.run(
+        [sys.executable, str(L.REPO / "command-center/receipt_validate.py"), OUT]
+    )
+    doc = build(primary=L.art(OUT, "primary"))
+    doc["downstream_consumers"] = [admit_consumer(rc_adm2, adm_out2)]
+    rc = L.write_if_valid(doc, OUT, SCHEMA)
+    if rc != 0:
+        return rc
+
+    final = json.loads(out_path.read_text(encoding="utf-8"))
     man = {
         "unit_id": UNIT,
         "output_path": OUT,
         "sha256": L.art(OUT)["sha256"],
         "bytes": L.art(OUT)["bytes"],
-        "state": "BLOCKED",
+        "state": final["state"],
     }
     (L.REPO / MANIFEST).write_text(json.dumps(man, indent=2) + "\n", encoding="utf-8")
-    print(f"PACKED {OUT} state=BLOCKED bytes={L.art(OUT)['bytes']}")
-    return 0
+    print(f"PACKED {OUT} state={final['state']} bytes={L.art(OUT)['bytes']}")
+    print(final["sentinel"])
+    print(final["report"]["headline"])
+    print(adm_out2.strip())
+    return 0 if rc_adm2 == 0 else 1
 
 
 if __name__ == "__main__":
