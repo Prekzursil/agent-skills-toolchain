@@ -11,22 +11,24 @@ from pathlib import Path
 from typing import Any, Iterable, Optional, cast
 
 try:
-    from .ledger import EventLedger, default_state_root, project_key
+    from .ledger import EventLedger, _FileLock, default_state_root, project_key
     from .models import HookEvent, HookResult
     from .redaction import contains_secret, redact_text
     from .storage import (
         READ_DAMAGED,
+        READ_OK,
         atomic_write_json,
         atomic_write_text,
         read_json,
         read_json_status,
     )
 except ImportError:  # pragma: no cover
-    from ledger import EventLedger, default_state_root, project_key
+    from ledger import EventLedger, _FileLock, default_state_root, project_key
     from models import HookEvent, HookResult
     from redaction import contains_secret, redact_text
     from storage import (
         READ_DAMAGED,
+        READ_OK,
         atomic_write_json,
         atomic_write_text,
         read_json,
@@ -180,7 +182,10 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
         "metric": "artifact_secret_true_positive",
         "owner": "prekzursil",
         "deadline": "2026-09-01",
-        "fire_rate": "fires only on a credential-classified transcript/write target or an incomplete bounded scan",
+        "fire_rate": (
+            "Stop/SubagentStop transcript findings are audit-only and idempotent per "
+            "path_id; explicit credential-bearing write targets still inject a notice"
+        ),
     },
     "injection_quarantine": {
         "metric": "injection_precision",
@@ -330,7 +335,10 @@ GATE_CONTRACTS: dict[str, dict[str, str]] = {
         "metric": "capture_discipline",
         "owner": "prekzursil",
         "deadline": "2026-09-01",
-        "fire_rate": "fires at most once per session when any file mutation occurred and no basic-memory write did; Stop also spools a session note",
+        "fire_rate": (
+            "when any file mutation occurred and no basic-memory write did, Stop spools "
+            "one session note without injecting feedback into the model"
+        ),
     },
     "cleanup_after_work": {
         "metric": "cleanup_backlog_surfaced",
@@ -496,6 +504,7 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
 
         resolved = shutil.which(exe) if exe == "basic-memory" else exe
         if not resolved:
+            _spool_flush_error("CLI not found on PATH", payload)
             return False
         proc = subprocess.run(
             [
@@ -504,6 +513,8 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
                 "write-note",
                 "--title",
                 title[:200],
+                "--folder",
+                os.environ.get("HARNESS_BM_SPOOL_FOLDER", "sessions"),
                 "--content",
                 body[:4000],
             ],
@@ -512,9 +523,42 @@ def _flush_spool_to_vault(payload: dict[str, Any]) -> bool:
             timeout=20,
             check=False,
         )
-        return proc.returncode == 0
-    except Exception:
+        if proc.returncode != 0:
+            combined = (proc.stderr or "") + (proc.stdout or "")
+            if "ALREADY_EXISTS" in combined:
+                # Same-title note already in the vault (e.g. two sessions same
+                # day/workspace): the capture IS delivered - treat as success.
+                return True
+            detail = combined.strip().splitlines()
+            _spool_flush_error(
+                f"CLI exit {proc.returncode}: {detail[-1][:200] if detail else 'no output'}",
+                payload,
+            )
+            return False
+        return True
+    except Exception as exc:  # noqa: BLE001 - flush must never raise into the hook
+        _spool_flush_error(f"exception: {type(exc).__name__}", payload)
         return False
+
+
+def _spool_flush_error(reason: str, payload: dict[str, Any]) -> None:
+    """Append flush failures to a capped sidecar so silent decay is visible.
+
+    Without this, a CLI contract change (e.g. a newly required --folder) fails
+    with returncode!=0 forever and 'flushed' never flips - the capture pipeline
+    rots invisibly (measured 2026-09-03: 6 records stuck flushed=false).
+    """
+    try:
+        log = default_state_root() / "bm-spool" / "flush-errors.log"
+        if log.exists() and log.stat().st_size > 200_000:
+            log.unlink()
+        log.parent.mkdir(parents=True, exist_ok=True)
+        stamp = datetime.now(timezone.utc).isoformat(timespec="seconds")
+        title = str(payload.get("title", ""))[:80]
+        with log.open("a", encoding="utf-8") as handle:
+            handle.write(f"{stamp} {reason} | {title}\n")
+    except Exception:
+        pass
 
 
 def _write_session_spool(event: HookEvent) -> Optional[Path]:
@@ -542,7 +586,11 @@ def _write_session_spool(event: HookEvent) -> Optional[Path]:
     try:
         path.parent.mkdir(parents=True, exist_ok=True)
         atomic_write_json(path, payload)
-    except OSError:
+    except OSError as exc:
+        _spool_flush_error(
+            f"spool-write OSError: {type(exc).__name__}",
+            {"title": payload["title"]},
+        )
         return None
     try:
         if _flush_spool_to_vault(payload):
@@ -1241,9 +1289,18 @@ class SensitiveArtifactModule:
     This is deliberately a bounded, report-only sweep. It never rewrites, moves,
     deletes, or echoes target bytes; an unreadable, unstable, linked, or truncated
     target is UNKNOWN rather than clean.
+
+    Transcript findings on Stop/SubagentStop are recorded out of band and never
+    returned as model context. Explicit credential-bearing write targets still
+    surface an advisory while work is active.
     """
 
     name = "sensitive_artifact"
+    _AUDIT_SCHEMA_VERSION = 1
+    _CLASSIFICATION_RANK = {"UNKNOWN": 0, "POTENTIAL-CREDENTIAL": 1}
+
+    def __init__(self, state_root: Path | str | None = None):
+        self.state_root = Path(state_root or default_state_root())
     _MAX_SCAN_BYTES = 2 * 1024 * 1024
     _WRITE_TOOLS = frozenset({"Edit", "Write", "MultiEdit", "NotebookEdit"})
     _REENTRANT_STOP = frozenset({"stop_hook_active", "true", "1"})
@@ -1256,18 +1313,19 @@ class SensitiveArtifactModule:
                 return HookResult.success()
             raw_path, kind, tail = candidate
             path = self._resolve_path(raw_path, event.cwd)
-            classification = self._classify(path, tail=tail)
-            if classification == "clear":
-                return HookResult.success()
             path_id = hashlib.sha256(
                 os.path.normcase(os.path.abspath(str(path))).encode(
                     "utf-8", "surrogatepass"
                 )
-            ).hexdigest()[:12]
+            ).hexdigest()
+            classification = self._classify(path, tail=tail)
+            if classification == "clear":
+                return HookResult.success()
             if classification == "sensitive":
+                report_classification = "POTENTIAL-CREDENTIAL"
                 message = (
                     "SENSITIVE ARTIFACT REPORT: classification=POTENTIAL-CREDENTIAL "
-                    f"kind={kind} id=sha256:{path_id}; the report-only sweep changed "
+                    f"kind={kind} id=sha256:{path_id[:12]}; the report-only sweep changed "
                     "nothing and emitted no matched value. NOTICE, NOT A TASK: do not "
                     "rotate, revoke, regenerate or edit any credential -- AGENTS.md "
                     "Sec.9 reserves credential lifecycle to the owner. Surface the id "
@@ -1275,9 +1333,10 @@ class SensitiveArtifactModule:
                     "notice, so do not retry or block on it."
                 )
             else:
+                report_classification = "UNKNOWN"
                 message = (
                     "SENSITIVE ARTIFACT REPORT: classification=UNKNOWN "
-                    f"kind={kind} id=sha256:{path_id}; a bounded scan could not establish "
+                    f"kind={kind} id=sha256:{path_id[:12]}; a bounded scan could not establish "
                     "clean because the target was unreadable, linked, oversized, or changed "
                     "during inspection. Nothing was modified."
                 )
@@ -1286,9 +1345,70 @@ class SensitiveArtifactModule:
                 reason_code="sensitive_artifact",
                 additional_context=[message],
             )
+            if kind == "transcript":
+                if not self._record_report(
+                    path_id,
+                    classification=report_classification,
+                    kind=kind,
+                ):
+                    return HookResult.failed_open(event.event)
+                try:
+                    mode = resolve_mode("sensitive_artifact", tier=TIER_ADVISORY)
+                except Exception:
+                    mode = MODE_SHADOW
+                if mode != MODE_OFF:
+                    shadow_log("sensitive_artifact", TIER_ADVISORY, event, raw)
+                return HookResult.success()
             return stage("sensitive_artifact", TIER_ADVISORY, event, raw)
         except Exception:
             return HookResult.success()
+
+    def _marker_path(self, path_id: str) -> Path:
+        return self.state_root / "sensitive-artifact" / f"{path_id}.json"
+
+    def _record_report(
+        self,
+        path_id: str,
+        *,
+        classification: str,
+        kind: str,
+    ) -> bool:
+        try:
+            marker = self._marker_path(path_id)
+            marker.parent.mkdir(parents=True, exist_ok=True)
+            with _FileLock(marker.with_suffix(".lock"), timeout=0.5):
+                prior, status = read_json_status(marker, {})
+                if status in READ_DAMAGED:
+                    return False
+                prior_classification = ""
+                if status == READ_OK:
+                    if not isinstance(prior, dict):
+                        return False
+                    prior_classification = str(prior.get("classification") or "")
+                    if (
+                        prior.get("schema_version") != self._AUDIT_SCHEMA_VERSION
+                        or prior.get("kind") != kind
+                        or prior.get("id") != f"sha256:{path_id}"
+                        or prior_classification not in self._CLASSIFICATION_RANK
+                    ):
+                        return False
+                effective = classification
+                if self._CLASSIFICATION_RANK.get(prior_classification, -1) > (
+                    self._CLASSIFICATION_RANK.get(classification, -1)
+                ):
+                    effective = prior_classification
+                payload = {
+                    "schema_version": self._AUDIT_SCHEMA_VERSION,
+                    "classification": effective,
+                    "kind": kind,
+                    "id": f"sha256:{path_id}",
+                }
+                if prior != payload:
+                    atomic_write_json(marker, payload)
+                written, written_status = read_json_status(marker, {})
+                return written_status == READ_OK and written == payload
+        except Exception:
+            return False
 
     @classmethod
     def _candidate(cls, event: HookEvent) -> tuple[str, str, bool] | None:
@@ -1771,6 +1891,12 @@ class GoalModule:
         "<system-reminder",
         "<local-command",
     )
+    _STOP_FEEDBACK_PREFIX = re.compile(
+        r"^\s*(?:[-*•]\s*)?(?:Stop|SubagentStop)\s*\(completed\)\s+says:\s*",
+        re.IGNORECASE,
+    )
+    _AUTO_CAPTURED_PREFIX = re.compile(r"^\s*AUTO-CAPTURED:\s*", re.IGNORECASE)
+    _TRUNCATED_LINE = re.compile(r"^\s*\[TRUNCATED\]\s*$", re.IGNORECASE)
 
     def __init__(self, ledger: EventLedger, interval: int | None = None):
         self.ledger = ledger
@@ -1799,7 +1925,9 @@ class GoalModule:
         return self._maybe_reinject(event)
 
     def _on_prompt(self, event: HookEvent) -> HookResult:
-        stripped = event.prompt.lstrip()
+        stripped = self._strip_host_feedback(event.prompt).lstrip()
+        if not stripped:
+            return HookResult.success()
         if stripped.startswith(self._SYSTEM_PREFIXES):
             return HookResult.success()
         force = stripped.startswith("*")
@@ -1824,6 +1952,42 @@ class GoalModule:
             return self._budget_pacing(event)
         except Exception:
             return HookResult.success()
+
+    @classmethod
+    def _strip_host_feedback(cls, prompt: str) -> str:
+        lines = prompt.splitlines()
+        index = 0
+        while index < len(lines):
+            while index < len(lines) and not lines[index].strip():
+                index += 1
+            if index >= len(lines):
+                break
+            line = lines[index]
+            if cls._STOP_FEEDBACK_PREFIX.match(line):
+                index = cls._consume_prefixed_block(lines, index + 1)
+                continue
+            if cls._AUTO_CAPTURED_PREFIX.match(line):
+                index = cls._consume_prefixed_block(lines, index + 1)
+                continue
+            break
+        return "\n".join(lines[index:]).strip()
+
+    @classmethod
+    def _consume_prefixed_block(cls, lines: list[str], index: int) -> int:
+        while index < len(lines):
+            line = lines[index]
+            stripped = line.strip()
+            if not stripped:
+                index += 1
+                break
+            if line[:1] in {" ", "\t"} or cls._TRUNCATED_LINE.match(line):
+                index += 1
+                continue
+            if cls._AUTO_CAPTURED_PREFIX.match(line):
+                index += 1
+                continue
+            break
+        return index
 
     def _maybe_reinject(self, event: HookEvent) -> HookResult:
         counter_path = self._counter_path(event.session_id)
@@ -2987,8 +3151,8 @@ class ClaimWarningModule:
     _BM_WRITE_TOOLS = _BM_WRITE_TOOL_NAMES
 
     def _basic_memory_nudge(self, event: HookEvent) -> HookResult:
-        # Fires once per session when a canonical config file was edited but no
-        # basic-memory write happened. PRIMARY carrier is the sticky per-session
+        # Spools once per session when any file was edited but no basic-memory write
+        # happened. PRIMARY carrier is the sticky per-session
         # _session_flag stamped at PostToolUse; the bounded ledger replay window is
         # a FALLBACK used only when that carrier is unavailable.
         #
@@ -3032,27 +3196,10 @@ class ClaimWarningModule:
             return HookResult.success()
         try:
             _write_session_spool(event)
-        except Exception:
-            pass
-        # Once-per-session cooldown (gentle): nag at most once, on the SAME carrier
-        # the two facts above came from. The marker file is retained for the
-        # fallback path because an unidentified session cannot hold a flag and would
-        # otherwise lose its cooldown and nag at every Stop.
-        marker = (
-            default_state_root() / "basic-memory-nudge" / f"{_session_hash(event)}.json"
-        )
-        already = isinstance(read_json(marker, {}), dict) and read_json(marker, {}).get(
-            "nudged"
-        )
-        if sticky:
-            # F1: a session that fired on the FALLBACK carrier and only LATER made
-            # its own canonical edit flips to the sticky carrier mid-life. Reading
-            # only the flag would lose the cooldown and nag a second time, so the
-            # sticky read ORs in the marker. The two facts above still come from ONE
-            # carrier; only the once-per-session cap spans both.
-            already = _session_flag(event, "nudged") or already
-        if already:
-            return HookResult.success()
+        except Exception as exc:  # noqa: BLE001 - capture must never crash Stop
+            _spool_flush_error(
+                f"spool-write exception: {type(exc).__name__}", {"title": "(session spool)"}
+            )
         raw = HookResult.success(
             action="inject",
             reason_code="basic_memory_nudge",
@@ -3063,21 +3210,13 @@ class ClaimWarningModule:
                 "(AGENTS.md section 8)."
             ],
         )
-        staged = stage("basic_memory_nudge", TIER_HEURISTIC, event, raw)
-        # Only record the cooldown when the gate actually surfaced (advise/enforce);
-        # in shadow it returns allow, so we don't burn the one-shot before it's promoted.
-        if staged.action != "allow":
-            if sticky:
-                _session_flag(event, "nudged", set_it=True)
-            else:
-                try:
-                    (default_state_root() / "basic-memory-nudge").mkdir(
-                        parents=True, exist_ok=True
-                    )
-                    atomic_write_json(marker, {"nudged": True})
-                except OSError:
-                    pass
-        return staged
+        try:
+            mode = resolve_mode("basic_memory_nudge", tier=TIER_HEURISTIC)
+        except Exception:
+            mode = MODE_SHADOW
+        if mode != MODE_OFF:
+            shadow_log("basic_memory_nudge", TIER_HEURISTIC, event, raw)
+        return HookResult.success()
 
 
 class SubagentLifecycleModule:
@@ -4079,7 +4218,7 @@ def build_default_modules(state_root: Path | str | None = None) -> list[Any]:
     ledger = EventLedger(root)
     return [
         SecretGuardModule(),
-        SensitiveArtifactModule(),
+        SensitiveArtifactModule(state_root=root),
         LedgerModule(ledger),
         GoalModule(ledger),
         SanitizedCheckpointModule(ledger),

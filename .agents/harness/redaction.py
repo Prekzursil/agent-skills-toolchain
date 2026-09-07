@@ -13,6 +13,9 @@ _SECRET_PATTERNS = (
     # A missing footer is still sensitive: redact from the header to end-of-input.
     re.compile(_PRIVATE_KEY_HEADER + r".*\Z", re.I | re.S),
     re.compile(r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b"),
+    # Databricks personal access tokens (Plane B harvest). Same floor as
+    # workflow-monitor monitorcore/dbx_events.py _DAPI_RE.
+    re.compile(r"\bdapi[A-Za-z0-9]{8,}\b"),
     re.compile(r"\b(?:ghp|gho|ghu|ghs|ghr|github_pat)_[A-Za-z0-9_]{20,}\b"),
     re.compile(r"\bhtk_[A-Za-z0-9]{20,}\b", re.I),
     re.compile(r"\bhf_[A-Za-z0-9]{20,}\b"),

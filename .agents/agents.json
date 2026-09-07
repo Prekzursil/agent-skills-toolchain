@@ -39,7 +39,8 @@
         "description": "Imported from .codex/config.toml (apify)",
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode"
         ],
         "enabled": true,
         "transport": "http",
@@ -58,7 +59,10 @@
           "http",
           "remote",
           "shared"
-        ]
+        ],
+        "x_zcode": {
+          "enabled": false
+        }
       },
       "binary-ninja-mcp": {
         "label": "binary-ninja-mcp",
@@ -275,7 +279,8 @@
         "label": "context7",
         "description": "Official Context7 remote HTTP MCP (avoids per-session npx process trees)",
         "targets": [
-          "claude"
+          "claude",
+          "hermes"
         ],
         "enabled": true,
         "transport": "http",
@@ -418,7 +423,8 @@
         "label": "firecrawl",
         "description": "Official Firecrawl hosted HTTP MCP (avoids per-session npx process trees)",
         "targets": [
-          "claude"
+          "claude",
+          "hermes"
         ],
         "enabled": true,
         "transport": "http",
@@ -486,7 +492,8 @@
         "description": "Imported from .codex/config.toml (github)",
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode"
         ],
         "enabled": true,
         "transport": "http",
@@ -505,7 +512,10 @@
           "http",
           "remote",
           "shared"
-        ]
+        ],
+        "x_zcode": {
+          "enabled": false
+        }
       },
       "github_cli": {
         "label": "github_cli",
@@ -592,11 +602,11 @@
       },
       "glm53-space": {
         "label": "glm53-space",
-        "description": "On-demand GLM 5.3 adapter using Hugging Face's official OpenAI-compatible inference router. Exposes one text-only chat tool with separate user_prompt and blank-default editable system_prompt fields. Never send secrets or raw private transcripts.",
+        "description": "DEPRECATED (owner, 2026-09-02): to be replaced by a registry-driven model integration layer (models SSOT + per-runtime materializers + one generic inference MCP tool + eval gate); build wave pending owner steering of D1-D13. On-demand GLM 5.3 adapter using Hugging Face's official OpenAI-compatible inference router. Exposes one text-only chat tool with separate user_prompt and blank-default editable system_prompt fields. Never send secrets or raw private transcripts.",
         "targets": [
           "claude"
         ],
-        "enabled": true,
+        "enabled": false,
         "transport": "stdio",
         "command": "C:\\Users\\Prekzursil\\.local\\bin\\uv.exe",
         "args": [
@@ -752,11 +762,13 @@
         "description": "Shared semantic memory over the local Basic Memory HTTP MCP server",
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode",
+          "hermes"
         ],
         "enabled": true,
         "transport": "http",
-        "url": "http://127.0.0.1:8765/mcp",
+        "url": "http://127.0.0.1:18765/mcp",
         "singletonKey": "basic-memory/http",
         "processMatch": [
           "basic_memory",
@@ -767,6 +779,14 @@
         "x_codex": {
           "startup_timeout_sec": 10
         },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "resource-exception",
+          "shared"
+        ],
         "x_cursor": {
           "stdio_bridge": {
             "command": "C:\\Python314\\python.exe",
@@ -775,15 +795,7 @@
               "--stdio"
             ]
           }
-        },
-        "credentialNames": [],
-        "tags": [
-          "approved",
-          "http",
-          "local",
-          "resource-exception",
-          "shared"
-        ]
+        }
       },
       "notion": {
         "label": "notion",
@@ -1180,10 +1192,12 @@
         "enabled": true,
         "targets": [
           "codex",
-          "claude"
+          "claude",
+          "zcode",
+          "hermes"
         ],
         "description": "Shared local MCP Agent Mail coordination bus for Claude and Codex sessions",
-        "url": "http://127.0.0.1:8812/mcp/",
+        "url": "http://127.0.0.1:18812/mcp/",
         "singletonKey": "agent-mail/http",
         "processMatch": [
           "mcp_agent_mail",
@@ -1198,6 +1212,620 @@
           "http",
           "local",
           "shared"
+        ]
+      },
+      "nuclei": {
+        "label": "nuclei",
+        "description": "ProjectDiscovery Nuclei vulnerability scanner MCP (FastMCP wrapper) - scan, template listing, status. Engine v3.11.1, 13514 templates at ~/nuclei-templates. TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31417 instead of this stdio entry. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31417 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31417/mcp"
+      },
+      "osint": {
+        "label": "osint",
+        "description": "OSINT MCP - DNS, WHOIS, Shodan, Censys, VirusTotal, crt.sh, BGP (37 tools). TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31412. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31412 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31412/mcp"
+      },
+      "github-security": {
+        "label": "github-security",
+        "description": "GitHub security audit MCP - org/repo settings, branch protection, secret scanning, workflows, PAT audit (39 tools). TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31410. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31410 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31410/mcp"
+      },
+      "cloud-audit": {
+        "label": "cloud-audit",
+        "description": "Cloud posture audit MCP - AWS S3/IAM/EC2/Lambda, Azure, GCP checks (38 tools). TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31418. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31418 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31418/mcp"
+      },
+      "cve-mcp": {
+        "label": "cve-mcp",
+        "description": "CVE enrichment MCP - NVD, EPSS, KEV, GHSA, Vulners, exploit-db (41 tools). Formalizes the pre-existing unmanaged .claude.json entry. TUI sessions use the cyberstrike-mcp HTTP hub on 127.0.0.1:31411. [2026-09-03: converted stdio->HTTP hub 127.0.0.1:31411 (mcp-proxy supervisor D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) to stop per-session orphan spawns]",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ],
+        "url": "http://127.0.0.1:31411/mcp"
+      },
+      "mitmproxy": {
+        "label": "mitmproxy",
+        "description": "mitmproxy MCP - HTTP/HTTPS traffic interception and flow inspection. TUI sessions use the D:\\opt\\cyberstrike-mcp hub pattern; this stdio entry serves Claude Code sessions.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\opt\\mitmproxy-mcp\\.venv\\Scripts\\mitmproxy-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ]
+      },
+      "dbx-ai": {
+        "label": "dbx-ai",
+        "description": "Databricks AI model bridge (SQL-plane ai_query) - census-proven endpoints (databricks-gpt-5, claude-sonnet-4, claude-haiku-4-5, llama-3-3/3-1-70b) exposed as dbx_ai_query + dbx_ai_models catalog tools. REST AI planes scope-gated 403 for both estate PATs; SQL is the only reachable surface. Lane dbx-ai-wire (E1, 2026-09-07).",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "D:\\opt\\cyberstrike-mcp\\dbx-ai-mcp-server.py"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "databricks",
+          "ai",
+          "bridge",
+          "security-fleet"
+        ]
+      },
+      "angr": {
+        "label": "angr",
+        "description": "angr binary analysis MCP - symbolic execution, CFG recovery. Formalizes the pre-existing unmanaged .claude.json entry.",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\opt\\angr\\.venv\\Scripts\\angr-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "claude-only",
+          "local",
+          "stdio",
+          "security-fleet"
+        ]
+      },
+      "exa": {
+        "label": "exa",
+        "description": "Exa web search / fetch MCP (hosted).",
+        "targets": [
+          "zcode",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://mcp.exa.ai/mcp",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "deepwiki": {
+        "label": "deepwiki",
+        "description": "DeepWiki repository Q&A and docs MCP (hosted).",
+        "targets": [
+          "zcode",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://mcp.deepwiki.com/mcp",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "openaiDeveloperDocs": {
+        "label": "openaiDeveloperDocs",
+        "description": "OpenAI developer docs search/fetch MCP (hosted).",
+        "targets": [
+          "zcode",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "url": "https://developers.openai.com/mcp",
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "scholarly-access": {
+        "label": "scholarly-access",
+        "description": "Legal scholarly metadata + OA PDF retrieval MCP (local exe).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\scholarly-access-mcp\\.venv\\Scripts\\scholarly-access-mcp.exe",
+        "args": [],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "biomni-hub": {
+        "label": "biomni-hub",
+        "description": "Biomni task hub MCP client (local server.py talking to the online backend via broker).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\.venv\\Scripts\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\server.py"
+        ],
+        "env": {
+          "BIOMNI_API_BASE": "http://127.0.0.1:18787",
+          "BIOMNI_BACKEND": "online"
+        },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "shared"
+        ]
+      },
+      "kaggle": {
+        "label": "kaggle",
+        "description": "Kaggle MCP via stdio wrapper (owner-disabled in ZCode).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": false,
+        "transport": "stdio",
+        "command": "C:\\Users\\Prekzursil\\Downloads\\bionlp\\.venv\\Scripts\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\.codex\\mcp-wrappers\\kaggle_mcp_stdio.py",
+          "--transport",
+          "stdio"
+        ],
+        "env": {
+          "PYTHONUNBUFFERED": "1",
+          "PYTHONUTF8": "1"
+        },
+        "requiredEnv": [
+          "KAGGLE_API_TOKEN"
+        ],
+        "credentialNames": [
+          "KAGGLE_API_TOKEN"
+        ],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "disabled"
+        ]
+      },
+      "burp": {
+        "label": "burp",
+        "description": "Burp Suite MCP proxy via SSE bridge (owner-disabled in ZCode).",
+        "targets": [
+          "zcode"
+        ],
+        "enabled": false,
+        "transport": "stdio",
+        "command": "C:\\Program Files\\Microsoft\\jdk-21.0.10.7-hotspot\\bin\\java.exe",
+        "args": [
+          "-jar",
+          "C:\\Users\\Prekzursil\\AppData\\Roaming\\BurpSuite\\mcp-proxy\\mcp-proxy-all.jar",
+          "--sse-url",
+          "http://127.0.0.1:9876"
+        ],
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zcode-only",
+          "disabled"
+        ]
+      },
+      "web-search-prime": {
+        "label": "web-search-prime",
+        "targets": [
+          "zcode",
+          "claude",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zai-devpack",
+          "shared"
+        ],
+        "description": "Z.AI Web Search MCP (GLM Coding Plan): webSearchPrime - titles, URLs, summaries, real-time info.",
+        "url": "https://api.z.ai/api/mcp/web_search_prime/mcp",
+        "headers": {
+          "Authorization": "Bearer ${ZAI_API_KEY}"
+        }
+      },
+      "web-reader": {
+        "label": "web-reader",
+        "targets": [
+          "zcode",
+          "claude",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zai-devpack",
+          "shared"
+        ],
+        "description": "Z.AI Web Reader MCP (GLM Coding Plan): webReader - full-page extraction, structured metadata, link lists.",
+        "url": "https://api.z.ai/api/mcp/web_reader/mcp",
+        "headers": {
+          "Authorization": "Bearer ${ZAI_API_KEY}"
+        }
+      },
+      "zread": {
+        "label": "zread",
+        "targets": [
+          "zcode",
+          "claude",
+          "hermes"
+        ],
+        "enabled": true,
+        "transport": "http",
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "http",
+          "remote",
+          "zai-devpack",
+          "shared"
+        ],
+        "description": "Z.AI Zread MCP (GLM Coding Plan, powered by zread.ai): search_doc / get_repo_structure / read_file over GitHub repos.",
+        "url": "https://api.z.ai/api/mcp/zread/mcp",
+        "headers": {
+          "Authorization": "Bearer ${ZAI_API_KEY}"
+        }
+      },
+      "zai-vision": {
+        "label": "zai-vision",
+        "description": "Z.AI Vision MCP (GLM Coding Plan, LOCAL stdio via npx z_ai/mcp-server@latest >=0.1.2, GLM-5.3-Flash): image analysis, OCR, UI-to-artifact, diagram/chart reading, video understanding.",
+        "targets": [
+          "zcode",
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "cmd",
+        "args": [
+          "/c",
+          "npx",
+          "-y",
+          "z_ai/mcp-server@latest"
+        ],
+        "env": {
+          "ZAI_API_KEY": "${ZAI_API_KEY}"
+        },
+        "requiredEnv": [
+          "ZAI_API_KEY"
+        ],
+        "credentialNames": [
+          "ZAI_API_KEY"
+        ],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "zai-devpack",
+          "vision",
+          "shared"
+        ]
+      },
+      "bedrock-claude": {
+        "label": "bedrock-claude",
+        "description": "Amazon Bedrock Claude as MCP chat tools (claude_chat/claude_haiku/bedrock_models) via the operator's AWS SSO chain; per-token billed. Zero-cost alternative: claude -p on Claude Max.",
+        "targets": [
+          "zcode",
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\mcp\\bedrock-claude-mcp\\server.py"
+        ],
+        "env": {
+          "AWS_PROFILE": "bolt-datascience",
+          "AWS_REGION": "eu-central-1"
+        },
+        "credentialNames": [],
+        "tags": [
+          "approved",
+          "stdio",
+          "local",
+          "bedrock",
+          "claude",
+          "shared"
+        ]
+      },
+      "github-security-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31410/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for github-security (mcp-proxy on 127.0.0.1:31410, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "github-security-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "github-security-hub/http"
+      },
+      "cve-mcp-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31411/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for cve-mcp (mcp-proxy on 127.0.0.1:31411, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "cve-mcp-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "cve-mcp-hub/http"
+      },
+      "osint-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31412/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for osint (mcp-proxy on 127.0.0.1:31412, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "osint-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "osint-hub/http"
+      },
+      "hexstrike-ai-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31413/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for hexstrike-ai (mcp-proxy on 127.0.0.1:31413, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "hexstrike-ai-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "hexstrike-ai-hub/http"
+      },
+      "nuclei-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31417/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for nuclei (mcp-proxy on 127.0.0.1:31417, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "nuclei-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "nuclei-hub/http"
+      },
+      "cloud-audit-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31418/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for cloud-audit (mcp-proxy on 127.0.0.1:31418, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "cloud-audit-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "cloud-audit-hub/http"
+      },
+      "semgrep-hub": {
+        "transport": "http",
+        "url": "http://127.0.0.1:31419/mcp",
+        "targets": [
+          "hermes"
+        ],
+        "description": "CyberStrike MCP HTTP hub entry for semgrep (mcp-proxy on 127.0.0.1:31419, started by D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1). HTTP-hub-only Hermes transport per G-1 2026-09-03.",
+        "credentialNames": [],
+        "requiredEnv": [],
+        "label": "semgrep-hub",
+        "tags": [
+          "approved",
+          "http",
+          "local",
+          "cyberstrike",
+          "hub"
+        ],
+        "enabled": true,
+        "singletonKey": "semgrep-hub/http"
+      },
+      "cursor-bridge": {
+        "label": "cursor-bridge",
+        "description": "Claude/Codex/Cursor direct bridge to cursor-agent: dispatch (G-36/67/68 enforced), sessions incl. cloud-cache, worktrees, models, queue+drain",
+        "targets": [
+          "claude"
+        ],
+        "enabled": true,
+        "transport": "stdio",
+        "command": "C:\\Python314\\python.exe",
+        "args": [
+          "D:\\opt\\cursor-bridge\\cursor_bridge_mcp.py"
+        ],
+        "credentialNames": [],
+        "requiredEnv": [],
+        "tags": [
+          "bridge",
+          "cursor",
+          "orchestration"
         ]
       }
     }
