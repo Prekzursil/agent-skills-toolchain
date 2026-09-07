@@ -350,6 +350,33 @@ def string_registry_targets(known: set[str]) -> set[str]:
     return mods
 
 
+def resolve_import_name(importer: str, raw: str, known: set[str]) -> set[str]:
+    """Resolve an import name relative to the importing module's package layout.
+
+    Remediation after cross-vendor re-review FAIL: flat sibling imports
+    (`import catalog` from tools/command-center/validate.py) must map to
+    `tools.command-center.catalog`, not be left as bare `catalog`.
+    """
+    hits = set(resolve_seed(raw, known))
+    if raw in known:
+        hits.add(raw)
+    # Walk importer package prefixes: tools.command-center.validate ->
+    # tools.command-center.catalog, tools.catalog, ...
+    parts = importer.split(".")
+    for i in range(len(parts) - 1, 0, -1):
+        prefix = ".".join(parts[:i])
+        cand = f"{prefix}.{raw}"
+        if cand in known:
+            hits.add(cand)
+        hits |= resolve_seed(cand, known)
+        # Also tools.<pkg>.<raw> when importer is tools.<pkg>.<pkg>.*
+        if i >= 2 and parts[0] == "tools":
+            cand2 = f"tools.{parts[1]}.{raw}"
+            if cand2 in known:
+                hits.add(cand2)
+    return hits
+
+
 def bfs_ast_closure(seeds: set[str], all_mods: dict[str, Path]) -> set[str]:
     known = set(all_mods)
     edges: dict[str, set[str]] = {m: set() for m in known}
@@ -377,13 +404,20 @@ def bfs_ast_closure(seeds: set[str], all_mods: dict[str, Path]) -> set[str]:
                     absmod = mod
                 if absmod:
                     imported.append(absmod)
+                # from catalog import X  (level 0 flat) still needs sibling resolve
+                if not node.level and mod and "." not in mod:
+                    imported.append(mod)
             for raw in imported:
+                resolved = resolve_import_name(name, raw, known)
+                if resolved:
+                    edges[name] |= resolved
+                    continue
                 parts = raw.split(".")
                 for i in range(len(parts), 0, -1):
                     cand = ".".join(parts[:i])
-                    resolved = resolve_seed(cand, known)
-                    if resolved:
-                        edges[name] |= resolved
+                    got = resolve_seed(cand, known)
+                    if got:
+                        edges[name] |= got
                         break
     reach: set[str] = set()
     stack = []
@@ -405,30 +439,45 @@ def bfs_ast_closure(seeds: set[str], all_mods: dict[str, Path]) -> set[str]:
 
 
 def runtime_import_trace(seeds: list[str], all_mods: dict[str, Path]) -> set[str]:
-    """Import each seed in a fresh interpreter; collect tools.* modules loaded."""
+    """Import each seed in a fresh interpreter; collect tools.* modules loaded.
+
+    Puts the seed's package directory on sys.path (CI-style cwd) so flat sibling
+    imports resolve the way they do under `working-directory: tools/<pkg>`.
+    """
     live: set[str] = set()
     known = set(all_mods)
-    # Prefer seeds that look importable as packages
     picked = []
     for s in seeds:
-        if s in known or any(s.startswith(k + ".") is False and False for k in ()):
-            pass
-        # Prefer short entry-point-like modules
         if s.count(".") <= 4:
             picked.append(s)
     picked = picked[:RUNTIME_SEED_BUDGET]
     for seed in picked:
-        # Choose an importable name: prefer non-tools. path alias when needed
+        seed_path = all_mods.get(seed)
+        pkg_dirs: list[str] = [str(REPO), str(REPO / "tools")]
+        if seed_path is not None:
+            # Parent dir of the module file (package or tools/<pkg>)
+            pkg_dirs.insert(0, str(seed_path.parent))
+            # tools/<pkg> root when nested tools/<pkg>/<pkg>/cli.py
+            if seed_path.parent.parent.name and (REPO / "tools") in seed_path.parents:
+                try:
+                    rel = seed_path.relative_to(REPO / "tools")
+                    if rel.parts:
+                        pkg_dirs.insert(0, str(REPO / "tools" / rel.parts[0]))
+                except ValueError:
+                    pass
         candidates = [seed]
         if seed.startswith("tools."):
             parts = seed.split(".")
             if len(parts) >= 3 and parts[1] == parts[2]:
                 candidates.append(".".join(parts[2:]))
             candidates.append(".".join(parts[1:]))
+            # Flat name as executed from package cwd
+            candidates.append(parts[-1])
         script = f"""
 import sys
-sys.path.insert(0, {str(REPO / 'tools')!r})
-sys.path.insert(0, {str(REPO)!r})
+for p in {pkg_dirs!r}:
+    if p not in sys.path:
+        sys.path.insert(0, p)
 before = set(sys.modules)
 ok = False
 err = ''
@@ -448,7 +497,7 @@ for m in after:
         try:
             r = subprocess.run(
                 [sys.executable, "-c", script],
-                cwd=str(REPO),
+                cwd=str(pkg_dirs[0]) if pkg_dirs else str(REPO),
                 capture_output=True,
                 text=True,
                 timeout=RUNTIME_TIMEOUT,
@@ -461,17 +510,16 @@ for m in after:
         for line in out.splitlines():
             if line.startswith("MOD="):
                 mod = line[4:]
-                # Map loaded module to known path-derived names
                 live |= resolve_seed(mod, known)
                 if mod in known:
                     live.add(mod)
-                # tools/<pkg> on sys.path may load as agentrail.*
                 live |= resolve_seed("tools." + mod, known)
+                # Flat name loaded from package cwd -> tools.<pkg>.<mod>
+                if seed_path is not None and "." not in mod:
+                    live |= resolve_import_name(seed, mod, known)
                 parts = mod.split(".")
                 if parts:
-                    live |= resolve_seed(
-                        "tools." + parts[0] + "." + mod, known
-                    )
+                    live |= resolve_seed("tools." + parts[0] + "." + mod, known)
     return live
 
 
@@ -587,6 +635,7 @@ def main() -> int:
             "readme_runbook_and_report_commands",
             "string_registry_import_module",
             "ast_import_bfs_with_hyphen_aliases",
+            "flat_sibling_import_resolution",
             "bounded_runtime_import_trace",
         ],
         "ok": (
