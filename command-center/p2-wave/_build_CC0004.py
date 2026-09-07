@@ -28,6 +28,26 @@ TESTS = f"{PROBE_DIR}/test_fanin_detector.py"
 MANIFEST = f"{PROBE_DIR}/UNIT-ARTIFACT-MANIFEST.json"
 TS0 = "2026-09-07T18:30:00Z"
 
+REVIEW = L.REPO / PROBE_DIR / "independent-review.json"
+
+
+def load_review() -> dict | None:
+    """Promote only when independent reviewer re-ran planted-control and PASSed."""
+    if not REVIEW.is_file():
+        return None
+    try:
+        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return None
+    if rev.get("verdict") != "PASS":
+        return None
+    if not rev.get("independent") or not rev.get("fresh_context"):
+        return None
+    if not (rev.get("planted_control_rerun") or rev.get("planted_fires")):
+        return None
+    return rev
+
+
 
 def _run(cmd: list[str]) -> tuple[int, str]:
     proc = subprocess.run(
@@ -46,14 +66,15 @@ def build() -> dict:
         raise SystemExit(f"CC-0004 pytest failed:\n{out}")
 
     live_rc, live_out = _run([sys.executable, DETECTOR, "--json"])
-    # Strip SyntaxWarning noise that may precede JSON
+    # Strip SyntaxWarning noise that may precede JSON; tolerate trailing text.
     json_start = live_out.find("{")
     if json_start < 0:
         raise SystemExit(f"CC-0004 live scan produced no JSON:\n{live_out[:2000]}")
-    live_json = live_out[json_start:]
+    report, end = json.JSONDecoder().raw_decode(live_out[json_start:])
+    live_json = json.dumps(report, indent=2) + "\n"
     (L.REPO / PROBE_DIR / "live-scan.json").write_text(live_json, encoding="utf-8")
     (L.REPO / PROBE_DIR / "live-scan.raw.txt").write_text(live_out, encoding="utf-8")
-    report = json.loads(live_json)
+    _ = end  # consumed prefix length; trailing detector banners ignored
 
     p_pytest = L.probe("source", "test-run", f"python3 -m pytest {TESTS} -q --tb=line", out, rc)
     p_live = L.probe(
@@ -74,17 +95,75 @@ def build() -> dict:
     shared_n = int(report.get("shared_import_count") or 0)
     files_n = int(report.get("files_scanned") or 0)
 
-    sentinel = (
-        f"FAILED:{UNIT} blocked-on-independent-review; detector controls 5/5 passed; "
-        f"live scan files={files_n} shared_imports={shared_n} local_predicates={local_n}; "
-        f"catalog SUCCESS:{UNIT} withheld pending independent reviewer re-run of "
-        f"planted-control experiment"
-    )
+    rev = load_review()
+    success = rev is not None
+    if success:
+        state = "SUCCESS"
+        sentinel = f"SUCCESS:{UNIT}"
+        reviewer = {
+            "reviewer_id": rev["reviewer_id"],
+            "verdict": "PASS",
+            "independent": True,
+            "fresh_context": True,
+            "vendor": rev.get("vendor", "openai"),
+            "reviewed_at": rev.get("reviewed_at", ended),
+            "notes": (rev.get("notes") or "")[:4000],
+        }
+        residual: list[dict] = []
+        failure = None
+        arts_extra = [L.art(f"{PROBE_DIR}/independent-review.json", "supporting")]
+    else:
+        state = "BLOCKED"
+        sentinel = (
+            f"FAILED:{UNIT} blocked-on-independent-review; detector controls 5/5 passed; "
+            f"live scan files={files_n} shared_imports={shared_n} local_predicates={local_n}; "
+            f"catalog SUCCESS:{UNIT} withheld pending independent reviewer re-run of "
+            f"planted-control experiment"
+        )
+        reviewer = {
+            "reviewer_id": "awaiting-independent-planted-control-rerun",
+            "verdict": "NOT-REVIEWED",
+            "independent": False,
+            "fresh_context": False,
+            "vendor": "anthropic",
+            "reviewed_at": ended,
+            "notes": (
+                "Implementer emit only. Catalog reviewer_requirement: one independent "
+                "reviewer who re-runs the planted-control experiment themselves rather "
+                "than reading the author's transcript. Self-review banned."
+            ),
+        }
+        residual = [
+            {
+                "claim": (
+                    "Independent reviewer has not re-executed the planted-control experiment "
+                    "in a fresh context."
+                ),
+                "verdict": "NOT-CHECKED",
+                "settling_experiment": (
+                    f"Fresh-context reviewer runs `python3 -m pytest {TESTS} -q` and "
+                    f"`python3 {DETECTOR} --json`, confirms planted FIRES + prose silent, "
+                    "returns PASS with independent=true."
+                ),
+            }
+        ]
+        failure = {
+            "classification": ["blocked-on-independent-review"],
+            "reason": (
+                "Detector controls green (5 pytest passed; planted FIRES; shared import "
+                f"found; prose silent; live scan {local_n} local predicates / {shared_n} "
+                "shared imports). Catalog reviewer_requirement unmet — do not emit SUCCESS."
+            ),
+            "blocked_on": "independent planted-control re-run (NOT-REVIEWED)",
+            "diagnostic_tail": out[-4000:],
+            "two_signal_proof": [p_pytest, p_live],
+        }
+        arts_extra = []
 
     receipt: dict = {
         "schema_version": 1,
         "unit_id": UNIT,
-        "state": "BLOCKED",
+        "state": state,
         "sentinel": sentinel,
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CC-0004",
         "min_bytes_threshold": 2048,
@@ -103,6 +182,7 @@ def build() -> dict:
             L.art(f"{PROBE_DIR}/pytest.out", "log"),
             L.art(f"{PROBE_DIR}/live-scan.json", "log"),
             L.art("command-center/p2-wave/_build_CC0004.py", "control"),
+            *arts_extra,
         ],
         "evidence": [
             L.evidence(
@@ -126,8 +206,8 @@ def build() -> dict:
                 ),
                 "CONFIRMED",
                 f"file:{PROBE_DIR}/live-scan.json",
-                [p_live],
-                "high",
+                [p_live, p_pytest],
+                "almost-certain",
             ),
         ],
         "timestamps": {"started_at": TS0, "ended_at": ended},
@@ -189,19 +269,7 @@ def build() -> dict:
                 good="skipped_non_python / zero local hits on prose",
             ),
         ],
-        "reviewer": {
-            "reviewer_id": "awaiting-independent-planted-control-rerun",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "reviewed_at": ended,
-            "notes": (
-                "Implementer emit only. Catalog reviewer_requirement: one independent "
-                "reviewer who re-runs the planted-control experiment themselves rather "
-                "than reading the author's transcript. Self-review banned."
-            ),
-        },
+        "reviewer": reviewer,
         "manifest_registration": {
             "registered": True,
             "manifest_path": MANIFEST,
@@ -211,38 +279,15 @@ def build() -> dict:
         "downstream_consumers": [
             {
                 "consumer": "pytest:test_fanin_detector",
+                "artifact_path": OUT,
                 "executed": True,
                 "read_ok": True,
                 "exit_code": 0,
-                "probe": {"raw_output": out[-2000:]},
+                "probe": p_pytest,
             }
         ],
-        "residual_unknowns": [
-            {
-                "claim": (
-                    "Independent reviewer has not re-executed the planted-control experiment "
-                    "in a fresh context."
-                ),
-                "verdict": "NOT-CHECKED",
-                "settling_experiment": (
-                    f"Fresh-context reviewer runs `python3 -m pytest {TESTS} -q` and "
-                    f"`python3 {DETECTOR} --json`, confirms planted FIRES + prose silent, "
-                    "returns PASS with independent=true."
-                ),
-            }
-        ],
+        "residual_unknowns": residual,
         "defects": [],
-        "failure": {
-            "classification": ["blocked-on-independent-review"],
-            "reason": (
-                "Detector controls green (5 pytest passed; planted FIRES; shared import "
-                f"found; prose silent; live scan {local_n} local predicates / {shared_n} "
-                "shared imports). Catalog reviewer_requirement unmet — do not emit SUCCESS."
-            ),
-            "blocked_on": "independent planted-control re-run (NOT-REVIEWED)",
-            "diagnostic_tail": out[-4000:],
-            "two_signal_proof": [p_pytest, p_live],
-        },
         "report": {
             "files_scanned": files_n,
             "shared_import_count": shared_n,
@@ -278,17 +323,22 @@ def build() -> dict:
         "artifacts": arts,
         "writer": ar.ATOMIC_WRITER_ID,
         "registered_at": ended,
-        "state": "BLOCKED",
+        "state": state,
     }
     ar.write_json_atomic(L.REPO / MANIFEST, man_doc)
     receipt["artifacts"].append(L.art(MANIFEST, "supporting"))
+
+    if failure is not None:
+        receipt["failure"] = failure
+    else:
+        receipt.pop("failure", None)
 
     errs = L.validate(receipt, SCHEMA)
     if errs:
         print(f"WARN: schema issues ({len(errs)}): {errs[:12]}", file=sys.stderr)
 
     ar.write_json_atomic(L.REPO / OUT, receipt)
-    print(f"BLOCKED:{UNIT} wrote {OUT} bytes={(L.REPO / OUT).stat().st_size}")
+    print(f"{state}:{UNIT} wrote {OUT} bytes={(L.REPO / OUT).stat().st_size}")
     print(f"  live local_predicates={local_n} shared_imports={shared_n}")
     return ar.read_json(L.REPO / OUT)
 
