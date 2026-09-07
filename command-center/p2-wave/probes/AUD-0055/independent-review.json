@@ -1,0 +1,99 @@
+{
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0055",
+  "vendor": "anthropic",
+  "independent": true,
+  "fresh_context": true,
+  "verdict": "PASS",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "reviewed_at": "2026-09-07T19:51:53Z",
+  "reviewed_tip_sha": "710e727e35c409081cb513f2d534ee232253a98d",
+  "unit_id": "AUD-0055",
+  "artifact_path": "command-center/audit/AUD-0055-skip-xfail-reason-audit.json",
+  "artifact_state_observed": "BLOCKED",
+  "headline_under_review": "markers=38 skip=36 xfail=2; prod skip=35 xfail=1; no_reason=0; control_ok=True; probe2 marked_xpass / unmarked_xfail_pass / unmarked_skip_fails",
+  "notes": "Fresh-context independent Claude review of AUD-0055 with no prior exposure to the authoring transcript. Goal: FALSIFY the headline skip/xfail census (38/36/2; prod 35/1) and the planted-control claims (xfail-fixed → XPASS marked / PASS unmarked; skip control still FAILs when unmarked) by re-running probes and measuring independently — not by re-reading the receipt narrative. Could not falsify. Probe1 re-run EXIT=0 reproduced marker_count=38 skip_count=36 xfail_count=2 production_skip=35 production_xfail=1 no_reason=0 control_ok=True mention_hits=0; probe1 raw was byte-identical to the committed receipt. Probe2 re-run EXIT=0 reproduced marked_xpass=True unmarked_xfail_passes=True unmarked_skip_fails=True sample_executed=4/4 with the same four verdicts (STALE/HOLDS/STALE/HOLDS); only worktree_path and sub-second pytest timings drifted. Independent AST census (no probe1 imports) over 2873 .py files matched the probe1 marker id set exactly and left mention_only_noise.py at 0 hits despite string mentions of pytest.mark.skip. Manual pytest on the two control fixtures outside probe2 confirmed XPASS→PASS and SKIP→FAIL after local unmark. Naive grep line-count (64) exceeds the AST census; that is use-vs-mention noise, not a higher true Call-site count. Collapsing .agents/skills↔skills migration twins would drop markers 38→33, but both trees are live Call sites on disk — changing scope would redefine the claim, not falsify the published Call-site census. Restored committed probe1/probe2 raw+json after re-runs. Did not invent SUCCESS or rewrite the BLOCKED receipt; only this independent-review.json is committed. Open defects AUD-0055-D-REVIEW and AUD-0055-D-STALE remain for the implementer.",
+  "falsification_attempts": [
+    {
+      "id": 1,
+      "target": "headline marker_count=38 skip=36 xfail=2 / prod skip=35 xfail=1 / control_ok",
+      "method": "Re-run python3 -B command-center/p2-wave/probes/AUD-0055/probe1_marker_census.py; compare raw+json to committed tip 710e727e3",
+      "result": "NOT-FALSIFIED",
+      "evidence": "EXIT=0; files_scanned=2873; marker_count=38 skip_count=36 xfail_count=2; production_skip=35 production_xfail=1; no_reason_count=0; by_kind={'skipif':30,'skip':4,'xfail':2,'skipUnless':2}; control_ok=True mention_hits=0 xfail_ctrl=1 skip_ctrl=1. probe1-marker-census.raw.txt byte-identical to committed. Log: /opt/cursor/artifacts/aud0055-review-probe1.log"
+    },
+    {
+      "id": 2,
+      "target": "control xfail-fixed XPASS when marked / PASS when unmarked; skip control FAILs when unmarked; sample executed",
+      "method": "Re-run python3 -B command-center/p2-wave/probes/AUD-0055/probe2_unmark_sample.py",
+      "result": "NOT-FALSIFIED",
+      "evidence": "EXIT=0; marked summary '1 xpassed'; unmarked control-xfail-fixed verdict=STALE-reason-bug-appears-fixed (1 passed); unmarked control-skip-still-fails verdict=HOLDS-unmarked-fails (1 failed); sample_executed=4/4; control_ok=True. Same four result verdicts as committed. Log: /opt/cursor/artifacts/aud0055-review-probe2.log"
+    },
+    {
+      "id": 3,
+      "target": "inflate or deflate headline by independent AST recount (no probe1 imports)",
+      "method": "Fresh Python AST walk of in-scope *.py for pytest.mark skip/skipif/xfail and unittest skip/skipIf/skipUnless/expectedFailure Call forms; set-compare to probe1 marker ids",
+      "result": "NOT-FALSIFIED",
+      "evidence": "Independent census files_scanned=2873 marker_count=38 skip=36 xfail=2 production_skip=35 production_xfail=1 by_kind identical; set_equal=True vs probe1 (path,lineno,kind). mention_only_noise_counted=0 while file contains pytest.mark.skip string. Log: /opt/cursor/artifacts/aud0055-review-independent-census.log"
+    },
+    {
+      "id": 4,
+      "target": "planted controls without trusting probe2 worktree path",
+      "method": "Manual python3 -m pytest on fixtures as marked; then strip markers in a temp copy and re-run",
+      "result": "CONFIRMED-CONTROLS",
+      "evidence": "Marked xfail → '1 xpassed' rc=0; marked skip → '1 skipped' rc=0; unmarked xfail → '1 passed' rc=0; unmarked skip → AssertionError / '1 failed' rc=1. Control claims hold under direct execution. Log: /opt/cursor/artifacts/aud0055-review-controls.log"
+    },
+    {
+      "id": 5,
+      "target": "inflate count via naive line grep above AST census",
+      "method": "grep -RInE pytest.mark.(skip|skipif|xfail)|unittest.(skip|skipIf|skipUnless|expectedFailure) across *.py with salvage/node_modules excluded",
+      "result": "REFUTED-AS-HEADLINE-FALSIFICATION",
+      "evidence": "Naive scoped grep reported 64 lines vs AST 38 Call sites. Extras are comments/strings/docstrings/non-Call mentions (use-vs-mention); catalog Probe 1 is AST Call/decorator Attribute only. Does not move the published Call-site headline. Also no bare @pytest.mark.xfail / unittest.expectedFailure / unittest.skipIf Call sites found outside the census. Log: aud0055-review-controls.log + aud0055-review-falsify-edge.log"
+    },
+    {
+      "id": 6,
+      "target": "deflate by collapsing .agents/skills ↔ skills/ migration twins",
+      "method": "Group markers by path with skill-root normalized; recount unique (norm_path,lineno,kind)",
+      "result": "REFUTED-AS-HEADLINE-FALSIFICATION",
+      "evidence": "5 twin groups (codex-databricks-fanout derive/engine_tokens/engine_verify/research + mol-filters). Collapsing would yield markers=33 / prod=31. Both .agents/skills/ and skills/ trees are live on-disk Call sites; the published census correctly counts each Call. Redefining uniqueness across migration copies would change the claim, not falsify the measured 38. Log: /opt/cursor/artifacts/aud0055-review-falsify-edge.log"
+    }
+  ],
+  "confirmed": [
+    "marker_count_38",
+    "skip_count_36",
+    "xfail_count_2",
+    "production_skip_35",
+    "production_xfail_1",
+    "no_reason_count_0",
+    "probe1_control_ok",
+    "mention_only_hits_0",
+    "xfail_fixed_marked_xpass",
+    "xfail_fixed_unmarked_pass",
+    "skip_control_unmarked_fails",
+    "probe2_sample_executed_4_of_4",
+    "receipt_state_BLOCKED",
+    "independent_ast_set_equals_probe1"
+  ],
+  "falsified": [],
+  "commands_run": [
+    "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout -B cursor/aud-0055-review-0db0 origin/cursor/p2-loop-to-green-0db0",
+    "git rev-parse HEAD  # 710e727e35c409081cb513f2d534ee232253a98d",
+    "python3 -B command-center/p2-wave/probes/AUD-0055/probe1_marker_census.py",
+    "python3 -B command-center/p2-wave/probes/AUD-0055/probe2_unmark_sample.py",
+    "diff/normalize committed vs rerun probe1/probe2 raw+json; restore committed receipts",
+    "independent AST census (no probe1 imports) over in-scope *.py",
+    "python3 -m pytest fixtures/test_control_xfail_fixed.py (marked + unmarked temp copy)",
+    "python3 -m pytest fixtures/test_control_skip_still_fails.py (marked + unmarked temp copy)",
+    "grep -RInE pytest.mark.(skip|skipif|xfail)|unittest.(skip|...) naive inflation",
+    "skill-tree twin collapse recount (.agents/skills ↔ skills/)"
+  ],
+  "logs": [
+    "/opt/cursor/artifacts/aud0055-review-committed-sha256.log",
+    "/opt/cursor/artifacts/aud0055-review-probe1.log",
+    "/opt/cursor/artifacts/aud0055-review-probe2.log",
+    "/opt/cursor/artifacts/aud0055-review-diff.log",
+    "/opt/cursor/artifacts/aud0055-review-independent-census.log",
+    "/opt/cursor/artifacts/aud0055-review-controls.log",
+    "/opt/cursor/artifacts/aud0055-review-falsify-edge.log"
+  ],
+  "promotion_note": "PASS for parent to consume; do not invent SUCCESS. Receipt remains BLOCKED until implementer records this review and clears AUD-0055-D-REVIEW."
+}
