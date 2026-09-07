@@ -397,3 +397,42 @@ def test_pytest_hook_parametrizes_discovered_cases(
     assert ids == ["only"]
     assert len(argvalues) == 1
     assert isinstance(argvalues[0], DetectorCase)
+
+
+# --------------------------------------------------------------------------- #
+# TST-0328 callable both-states fixture (assert_both_states / run_both_states)
+# --------------------------------------------------------------------------- #
+def test_assert_both_states_accepts_discriminating_detector() -> None:
+    def detect(state: str) -> bool:
+        return state == "broken"
+
+    obs = dst.assert_both_states(detect, broken="broken", good="good", name="ok")
+    assert obs.passed is True
+    assert obs.fired_on_broken is True
+    assert obs.fired_on_good is False
+    assert obs.as_dict()["outcome"] == "pass"
+
+
+def test_assert_both_states_rejects_silent_in_both() -> None:
+    def silent(_state: str) -> bool:
+        return False
+
+    with pytest.raises(dst.BothStatesError) as excinfo:
+        dst.assert_both_states(silent, broken="a", good="b", name="silent")
+    assert excinfo.value.observation.outcome is Outcome.SILENT_IN_BOTH
+
+
+def test_assert_both_states_rejects_firing_in_both() -> None:
+    def always(_state: str) -> bool:
+        return True
+
+    with pytest.raises(dst.BothStatesError) as excinfo:
+        dst.assert_both_states(always, broken="a", good="b", name="always")
+    assert excinfo.value.observation.outcome is Outcome.FIRING_IN_BOTH
+
+
+def test_run_both_states_records_without_raising() -> None:
+    obs = dst.run_both_states(lambda s: False, broken="x", good="y", name="quiet")
+    assert obs.passed is False
+    assert obs.outcome is Outcome.SILENT_IN_BOTH
+

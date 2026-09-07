@@ -179,6 +179,96 @@ def evaluate(case: DetectorCase) -> Result:
     return _classify(case.name, fired_on_broken, fired_on_fixed)
 
 
+@dataclass(frozen=True)
+class BothStatesObservation:
+    """Recorded observations from :func:`assert_both_states` / :func:`run_both_states`.
+
+    TST-0328: a reusable callable fixture — takes a detector plus known-broken and
+    known-good states, records SILENT/FIRES on each, and rejects instruments that
+    are silent-in-both or firing-in-both.
+    """
+
+    name: str
+    fired_on_broken: bool
+    fired_on_good: bool
+    outcome: Outcome
+    message: str
+
+    @property
+    def passed(self) -> bool:
+        return self.outcome is Outcome.PASS
+
+    def as_dict(self) -> dict[str, object]:
+        return {
+            "name": self.name,
+            "fired_on_broken": self.fired_on_broken,
+            "fired_on_good": self.fired_on_good,
+            "outcome": self.outcome.value,
+            "message": self.message,
+            "passed": self.passed,
+        }
+
+
+class BothStatesError(AssertionError):
+    """Raised by :func:`assert_both_states` when the detector fails the contract."""
+
+    def __init__(self, observation: BothStatesObservation):
+        super().__init__(
+            f"{observation.name}: {observation.outcome.value} — {observation.message}"
+        )
+        self.observation = observation
+
+
+def run_both_states(
+    detector: Callable[[Any], object],
+    *,
+    broken: Any,
+    good: Any,
+    name: str = "detector",
+) -> BothStatesObservation:
+    """Run ``detector`` on ``broken`` then ``good`` and classify the pair.
+
+    Does not raise: callers that need a hard gate use :func:`assert_both_states`.
+    """
+    try:
+        fired_broken = bool(detector(broken))
+        fired_good = bool(detector(good))
+    except Exception as exc:  # noqa: BLE001 — untrusted detector
+        return BothStatesObservation(
+            name=name,
+            fired_on_broken=False,
+            fired_on_good=False,
+            outcome=Outcome.BROKEN_DETECTOR,
+            message=f"detector raised {type(exc).__name__}: {exc}",
+        )
+    result = _classify(name, fired_broken, fired_good)
+    return BothStatesObservation(
+        name=name,
+        fired_on_broken=fired_broken,
+        fired_on_good=fired_good,
+        outcome=result.outcome,
+        message=result.message,
+    )
+
+
+def assert_both_states(
+    detector: Callable[[Any], object],
+    *,
+    broken: Any,
+    good: Any,
+    name: str = "detector",
+) -> BothStatesObservation:
+    """Assert SILENT on good and FIRES on broken; record both observations.
+
+    A detector silent in both states, or firing in both, is rejected — the fixture
+    itself must be able to fail (TST-0328 evidence_requirement).
+    """
+    obs = run_both_states(detector, broken=broken, good=good, name=name)
+    if not obs.passed:
+        raise BothStatesError(obs)
+    return obs
+
+
 def run(root: Path) -> list[Result]:
     """Evaluate every detector case discovered under ``root``."""
     return [evaluate(case) for case in discover(root)]

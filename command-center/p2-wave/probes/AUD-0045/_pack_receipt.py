@@ -1,5 +1,10 @@
 #!/usr/bin/env python3
-"""Pack AUD-0045 fail-open gate census (BLOCKED on independent review)."""
+"""Pack AUD-0045 fail-open gate census (BLOCKED on independent re-review).
+
+Remediation after independent review FAIL: probe2 classifier expanded + --self-test
+excluded from fail-open tally. Headline now reports the single confirmed fail-open
+(ssot_drift_gate.py). Reviewer still owed — emit BLOCKED, not SUCCESS.
+"""
 from __future__ import annotations
 
 import json
@@ -22,7 +27,7 @@ def build(primary: dict | None = None) -> dict:
     p2 = json.loads((PROBE / "probe2-execution-results.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-static.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-execution.raw.txt").read_text(encoding="utf-8")
-    started = "2026-09-07T11:45:00Z"
+    started = "2026-09-07T18:24:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
     arts = [
         primary
@@ -39,13 +44,16 @@ def build(primary: dict | None = None) -> dict:
         L.art("command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt", "log"),
         L.art("command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt", "log"),
     ]
+    fo = p2["fail_open_count"]
+    excluded = p2.get("detector_control_excluded_count", 0)
     return {
         "schema_version": 1,
         "unit_id": UNIT,
         "state": "BLOCKED",
         "sentinel": (
-            "FAILED:AUD-0045 static+execution probes measured fail-open candidates; "
-            "known-bad empty catalog exits non-zero; blocked-on-independent-review"
+            "FAILED:AUD-0045 remesured fail-open=1 (ssot_drift_gate.py only) after "
+            "classifier/--self-test remediation; known-bad empty catalog exits non-zero; "
+            "blocked-on-independent-re-review"
         ),
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0045",
         "min_bytes_threshold": 4096,
@@ -53,7 +61,7 @@ def build(primary: dict | None = None) -> dict:
             "vendor": "anthropic",
             "model": "composer",
             "role": "adversarial-refuter",
-            "execution_substrate": "linux-local-p2-wave1",
+            "execution_substrate": "linux-local-p2-wave1-remeasure",
         },
         "artifacts": arts,
         "evidence": [
@@ -95,10 +103,14 @@ def build(primary: dict | None = None) -> dict:
             ),
             L.evidence(
                 (
-                    f"Probe 2 executed {p2['case_count']} gate invocations; "
-                    f"fail_open_count={p2['fail_open_count']} labels={p2['fail_open_labels']}; "
+                    f"Probe 2 remesure after review-FAIL remediation: executed "
+                    f"{p2['case_count']} invocations; fail_open_count={fo} "
+                    f"labels={p2['fail_open_labels']}; "
+                    f"detector_control_excluded={excluded}; "
                     f"known_bad_nonzero={p2['known_bad_nonzero']} "
-                    f"measures_nothing_validate={p2['measures_nothing_validate']}."
+                    f"measures_nothing_validate={p2['measures_nothing_validate']}. "
+                    "Classifier recognizes units=/artifacts=/cases/citations/FIRES; "
+                    "--self-test excluded from fail-open tally."
                 ),
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
@@ -116,8 +128,9 @@ def build(primary: dict | None = None) -> dict:
                         "python3 -c read probe2-execution-results.json",
                         json.dumps(
                             {
-                                "fail_open_count": p2["fail_open_count"],
+                                "fail_open_count": fo,
                                 "known_bad_nonzero": p2["known_bad_nonzero"],
+                                "detector_control_excluded_count": excluded,
                                 "ok": p2["ok"],
                             }
                         ),
@@ -144,6 +157,18 @@ def build(primary: dict | None = None) -> dict:
                 "assertions": 1,
                 "output_tail": raw1[-400:],
             },
+            {
+                "id": "AUD-0045-fail-open-narrowed",
+                "name": "fail_open_count is 1 and label is ssot_drift_gate only",
+                "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
+                "result": (
+                    "PASS"
+                    if fo == 1 and p2["fail_open_labels"] == ["ssot_drift_gate.py default"]
+                    else "FAIL"
+                ),
+                "assertions": 2,
+                "output_tail": f"fail_open_count={fo} labels={p2['fail_open_labels']}",
+            },
         ],
         "negative_controls": [
             L.control(
@@ -163,9 +188,9 @@ def build(primary: dict | None = None) -> dict:
             "fresh_context": False,
             "vendor": "anthropic",
             "notes": (
-                "Catalog requires a fresh-context Claude reviewer who has not seen this "
-                "transcript and must try to FALSIFY the headline fail-open count. "
-                "Unavailable in-session; BLOCKED instead of fake SUCCESS."
+                "Prior independent review FAIL (headline overstated 5 vs 1 real). "
+                "Classifier/--self-test remediation applied and remesured. "
+                "Fresh-context Claude re-review still owed before PASS; BLOCKED."
             ),
         },
         "defects": [
@@ -173,15 +198,18 @@ def build(primary: dict | None = None) -> dict:
                 "id": "AUD-0045-D-REVIEW",
                 "severity": "P1",
                 "status": "open",
-                "summary": "Independent fresh-context Claude review unpaid.",
+                "summary": (
+                    "Independent fresh-context Claude re-review unpaid after "
+                    "classifier remediation (prior review FAIL)."
+                ),
             },
             {
                 "id": "AUD-0045-D-FAIL-OPEN",
                 "severity": "P2",
                 "status": "open",
                 "summary": (
-                    f"{p2['fail_open_count']} gate invocations exited 0 without a measured "
-                    f"count: {p2['fail_open_labels']}"
+                    f"{fo} production fail-open after remesure (narrowed from prior "
+                    f"false-positive set of 5): {p2['fail_open_labels']}"
                 ),
             },
         ],
@@ -209,15 +237,15 @@ def build(primary: dict | None = None) -> dict:
         ],
         "timestamps": {"started_at": started, "ended_at": ended},
         "retry": {
-            "count": 1,
+            "count": 2,
             "policy": "two strikes then pivot (AGENTS.md 4b)",
         },
         "failure": {
             "classification": ["blocked-on-independent-review", "green-not-live"],
             "reason": (
-                f"Measured fail_open_count={p2['fail_open_count']} across {p2['case_count']} "
-                "executions and static suspects="
-                f"{p1['suspect_count']}, but reviewer_requirement unmet."
+                f"Remesured fail_open_count={fo} across {p2['case_count']} executions "
+                f"(excluded {excluded} --self-test detector-controls); static suspects="
+                f"{p1['suspect_count']}; reviewer_requirement unmet after prior FAIL."
             ),
             "diagnostic_tail": (
                 f"fail_open_labels={p2['fail_open_labels']} "
@@ -225,14 +253,14 @@ def build(primary: dict | None = None) -> dict:
             ),
             "blocked_on": (
                 "Dispatch one fresh-context Claude reviewer who has not seen this transcript "
-                "to falsify the headline fail-open count before PASS."
+                "to falsify the remesured headline fail-open count (=1) before PASS."
             ),
             "two_signal_proof": [
                 L.probe(
                     "source",
                     "command",
                     "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
-                    f"fail_open_count={p2['fail_open_count']}",
+                    f"fail_open_count={fo}",
                     0,
                 ),
                 L.probe(
@@ -258,10 +286,11 @@ def build(primary: dict | None = None) -> dict:
                 "without having examined anything?"
             ),
             "headline": (
-                f"{p2['fail_open_count']} fail-open execution cases; "
+                f"{fo} fail-open execution case ({', '.join(p2['fail_open_labels'])}); "
+                f"{excluded} --self-test detector-controls excluded; "
                 f"{p1['suspect_count']} static-suspect gates; "
                 f"validate.require_complete default-off="
-                f"{p1['validate_require_complete_default_off']}. BLOCKED on review."
+                f"{p1['validate_require_complete_default_off']}. BLOCKED on re-review."
             ),
             "observations": [
                 {
@@ -278,8 +307,11 @@ def build(primary: dict | None = None) -> dict:
                 },
                 {
                     "name": "fail_open_execution_cases",
-                    "measured": p2["fail_open_count"],
-                    "method": "execute empty/absent/default; exit0 && !measured_count",
+                    "measured": fo,
+                    "method": (
+                        "execute empty/absent/default; exit0 && !measured_count; "
+                        "exclude --self-test detector-control"
+                    ),
                     "anchor": "command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
                 },
                 {
@@ -298,9 +330,14 @@ def build(primary: dict | None = None) -> dict:
             "control_ids": ["AUD0045-C1"],
         },
         "extensions": {
-            "anti_false_green": "BLOCKED-with-real-probes",
+            "anti_false_green": "BLOCKED-with-real-probes-after-review-FAIL-remediation",
             "wave": "p2-wave1",
             "fail_open_labels": p2["fail_open_labels"],
+            "prior_review_fail": (
+                "headline claimed 5 fail-open; only ssot_drift_gate.py confirmed; "
+                "unitgate + 3 --self-test were classifier false positives"
+            ),
+            "detector_control_excluded_count": excluded,
         },
     }
 

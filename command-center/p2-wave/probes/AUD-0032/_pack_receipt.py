@@ -1,5 +1,11 @@
 #!/usr/bin/env python3
-"""Pack AUD-0032 dead-code census (BLOCKED on cross-vendor Codex review)."""
+"""Pack AUD-0032 dead-code census (BLOCKED on cross-vendor Codex re-review).
+
+Remediation after independent review FAIL: probe2 now seeds pyproject.scripts,
+CI working-directory bare pytest suites, report/README doc commands, hyphen
+package aliases, and a bounded runtime import trace. False-dead agentrail
+tests/CLI internals and auth_jwt_audit.py corrected. Reviewer still owed.
+"""
 from __future__ import annotations
 
 import json
@@ -22,8 +28,9 @@ def build(primary: dict | None = None) -> dict:
     p2 = json.loads((PROBE / "probe2-dynamic-reachability.json").read_text(encoding="utf-8"))
     raw1 = (PROBE / "probe1-ast.raw.txt").read_text(encoding="utf-8")
     raw2 = (PROBE / "probe2-dynamic.raw.txt").read_text(encoding="utf-8")
-    started = "2026-09-07T11:50:00Z"
+    started = "2026-09-07T18:24:00Z"
     ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    checks = p2.get("remediation_checks") or {}
     arts = [
         primary
         or {
@@ -55,8 +62,10 @@ def build(primary: dict | None = None) -> dict:
         "unit_id": UNIT,
         "state": "BLOCKED",
         "sentinel": (
-            "FAILED:AUD-0032 AST+dynamic probes recorded; planted string-registry control "
-            "is AST-DEAD and dynamically LIVE; blocked on cross-vendor Codex reviewer"
+            "FAILED:AUD-0032 remesured after probe2 upgrade "
+            f"(dynamic dead={p2['dead_count']}; agentrail tests live="
+            f"{p2.get('agentrail_tests_live')}/{p2.get('agentrail_tests_total')}; "
+            f"planted control independent); blocked on cross-vendor Codex re-review"
         ),
         "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0032",
         "min_bytes_threshold": 4096,
@@ -64,7 +73,7 @@ def build(primary: dict | None = None) -> dict:
             "vendor": "anthropic",
             "model": "composer",
             "role": "tool-author",
-            "execution_substrate": "linux-local-p2-wave1",
+            "execution_substrate": "linux-local-p2-wave1-remeasure",
         },
         "artifacts": arts,
         "evidence": [
@@ -102,9 +111,14 @@ def build(primary: dict | None = None) -> dict:
             ),
             L.evidence(
                 (
-                    f"Probe 2 dynamic reachability: seeds={p2['seed_count']} live={p2['live_count']} "
-                    f"dead={p2['dead_count']}; planted_dynamic_live={p2['planted_dynamic_live']}; "
-                    f"control_independent={p2['control_independent']}."
+                    f"Probe 2 remesure after review-FAIL remediation: seeds={p2['seed_count']} "
+                    f"live={p2['live_count']} dead={p2['dead_count']}; "
+                    f"agentrail_tests_live={p2.get('agentrail_tests_live')}/"
+                    f"{p2.get('agentrail_tests_total')}; "
+                    f"remediation_checks={json.dumps(checks)}; "
+                    f"planted_dynamic_live={p2['planted_dynamic_live']}; "
+                    f"control_independent={p2['control_independent']}; "
+                    f"methods={p2.get('methods')}."
                 ),
                 "CONFIRMED",
                 "command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
@@ -124,6 +138,8 @@ def build(primary: dict | None = None) -> dict:
                             {
                                 "planted_dynamic_live": p2["planted_dynamic_live"],
                                 "control_independent": p2["control_independent"],
+                                "agentrail_tests_live": p2.get("agentrail_tests_live"),
+                                "dead_count": p2["dead_count"],
                                 "ok": p2["ok"],
                             }
                         ),
@@ -141,7 +157,24 @@ def build(primary: dict | None = None) -> dict:
                 "result": "PASS" if p2["control_independent"] else "FAIL",
                 "assertions": 2,
                 "output_tail": raw2[-400:],
-            }
+            },
+            {
+                "id": "AUD-0032-agentrail-false-dead-fixed",
+                "name": "CI agentrail tests + CLI internals + auth_jwt_audit are live",
+                "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+                "result": (
+                    "PASS"
+                    if (
+                        p2.get("agentrail_tests_live", 0) >= 13
+                        and checks.get("agentrail_internal_live")
+                        == checks.get("agentrail_internal_expected")
+                        and checks.get("auth_jwt_audit_live")
+                    )
+                    else "FAIL"
+                ),
+                "assertions": 3,
+                "output_tail": json.dumps(checks),
+            },
         ],
         "negative_controls": [
             L.control(
@@ -164,8 +197,9 @@ def build(primary: dict | None = None) -> dict:
             "fresh_context": False,
             "vendor": "openai",
             "notes": (
-                "Catalog requires one cross-vendor Codex reviewer who re-runs ONLY probe 2. "
-                "Unavailable in-session; emitting BLOCKED rather than fake-review SUCCESS."
+                "Prior cross-vendor review FAIL (probe2 was AST/regex only; false-dead "
+                "on CI pytest + CLI imports). Probe2 upgraded and remesured. "
+                "Cross-vendor Codex re-run of probe 2 still owed; BLOCKED."
             ),
         },
         "defects": [
@@ -173,16 +207,19 @@ def build(primary: dict | None = None) -> dict:
                 "id": "AUD-0032-D-REVIEW",
                 "severity": "P1",
                 "status": "open",
-                "summary": "Cross-vendor Codex probe-2 re-run unpaid.",
+                "summary": (
+                    "Cross-vendor Codex probe-2 re-run unpaid after reachability "
+                    "upgrade (prior review FAIL)."
+                ),
             },
             {
                 "id": "AUD-0032-D-HYPHEN-MODULES",
                 "severity": "P2",
                 "status": "open",
                 "summary": (
-                    "Path-derived dotted names under tools/ under-count AST edges for "
-                    "hyphenated package directories; dead_count is an upper bound, not a "
-                    "precise unreferenced-function census."
+                    "Path-derived dotted names under tools/ still under-count some AST "
+                    "edges for hyphenated package directories; dead_count is an upper "
+                    "bound even after alias+runtime remediation."
                 ),
             },
         ],
@@ -210,28 +247,31 @@ def build(primary: dict | None = None) -> dict:
         ],
         "timestamps": {"started_at": started, "ended_at": ended},
         "retry": {
-            "count": 1,
+            "count": 2,
             "policy": "two strikes then pivot (AGENTS.md 4b)",
         },
         "failure": {
             "classification": ["blocked-on-independent-review", "use-vs-mention"],
             "reason": (
                 f"Probes OK with independent planted control; AST dead_count={p1['dead_count']} "
-                f"dynamic dead_count={p2['dead_count']}; cross-vendor Codex reviewer unmet."
+                f"dynamic dead_count={p2['dead_count']} after CI/pytest+CLI remediation; "
+                "cross-vendor Codex re-review unmet."
             ),
             "diagnostic_tail": (
-                f"control_independent={p2['control_independent']} reviewer=NOT-REVIEWED"
+                f"control_independent={p2['control_independent']} "
+                f"agentrail_tests_live={p2.get('agentrail_tests_live')} "
+                f"reviewer=NOT-REVIEWED"
             ),
             "blocked_on": (
-                "Dispatch one cross-vendor Codex reviewer who re-runs ONLY the second probe "
-                "(dynamic reachability)."
+                "Dispatch one cross-vendor Codex reviewer who re-runs ONLY the second "
+                "probe (upgraded dynamic reachability)."
             ),
             "two_signal_proof": [
                 L.probe(
                     "source",
                     "command",
                     "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
-                    f"control_independent={p2['control_independent']}",
+                    f"control_independent={p2['control_independent']} dead={p2['dead_count']}",
                     0,
                 ),
                 L.probe(
@@ -263,8 +303,12 @@ def build(primary: dict | None = None) -> dict:
             ),
             "headline": (
                 f"AST dead_modules={p1['dead_count']} / {p1['module_count']}; "
-                f"dynamic dead_modules={p2['dead_count']}; planted control independent="
-                f"{p2['control_independent']}. BLOCKED on Codex review."
+                f"dynamic dead_modules={p2['dead_count']} "
+                f"(was 499; CI pytest+CLI+docs remediation); "
+                f"agentrail_tests_live={p2.get('agentrail_tests_live')}/"
+                f"{p2.get('agentrail_tests_total')}; "
+                f"planted control independent={p2['control_independent']}. "
+                "BLOCKED on Codex re-review."
             ),
             "observations": [
                 {
@@ -282,7 +326,10 @@ def build(primary: dict | None = None) -> dict:
                 {
                     "name": "dynamic_live_modules",
                     "measured": p2["live_count"],
-                    "method": "BFS from entrypoints+CI+docs+string registries",
+                    "method": (
+                        "BFS from pyproject.scripts+CI working-directory pytest+docs+"
+                        "string registries+runtime import trace"
+                    ),
                     "anchor": "command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
                 },
                 {
@@ -301,9 +348,14 @@ def build(primary: dict | None = None) -> dict:
             "control_ids": ["AUD0032-C1"],
         },
         "extensions": {
-            "anti_false_green": "BLOCKED-with-real-probes",
+            "anti_false_green": "BLOCKED-with-real-probes-after-review-FAIL-remediation",
             "wave": "p2-wave1",
             "planted_module": p1["planted_module"],
+            "prior_review_fail": (
+                "probe2 was AST/regex seed extraction; false-dead on 13 agentrail "
+                "CI tests, 7 CLI imports, and auth_jwt_audit.py"
+            ),
+            "remediation_checks": checks,
         },
     }
 
