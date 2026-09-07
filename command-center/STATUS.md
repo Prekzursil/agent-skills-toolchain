@@ -8,12 +8,12 @@ This file is a derived measurement, not a hand-written claim. Every number below
 
 ## Stamps
 
-- generating_commit: `ae93f965c10eaa181625c14dbecf7c561003a981`
+- generating_commit: `75da713d3bc3eacb388a49b52ab6af78917509dc`
 - generation_time: `2026-08-09T10:57:48+00:00` (newest event `ts`/`timestamp`/`t`, or epoch when event_records==0)
 - generator: `command-center/status_derive.py@v1`
 - reducer: `platform/lib/completion_predicate.py@v1`
 - events_sha256: `c0052a2332727a9ea4f8945687aa5bcea14790f5fdd4d61eef5b18b0ef32b096`
-- receipts_inventory_sha256: `124284e1f89a6b6776516c6b3a0d74faee1ea680194826e05448e1333f36448f`
+- receipts_inventory_sha256: `ee03e22632d061cdcf149d167512c441e255db08674efccaaae5a4b22bf8219e`
 
 ## Metrics
 
@@ -22,8 +22,8 @@ This file is a derived measurement, not a hand-written claim. Every number below
 | event_records | 2 | `count(JSON objects parsed from non-blank lines in command-center/events/EVENTS.jsonl)` |
 | event_parse_errors | 0 | `count(non-blank EVENTS.jsonl lines that fail json.loads or are non-objects)` |
 | receipt_files | 144 | `count(*.json files under command-center/receipts/)` |
-| declared_state_BLOCKED | 63 | `count(receipts where receipt.state == 'BLOCKED')` |
-| declared_state_SUCCESS | 81 | `count(receipts where receipt.state == 'SUCCESS')` |
+| declared_state_BLOCKED | 62 | `count(receipts where receipt.state == 'BLOCKED')` |
+| declared_state_SUCCESS | 82 | `count(receipts where receipt.state == 'SUCCESS')` |
 | predicate_COMPLETE | 0 | `count(receipts where completion_predicate.evaluate(...).verdict == 'COMPLETE')` |
 | predicate_INCOMPLETE | 143 | `count(receipts where completion_predicate.evaluate(...).verdict == 'INCOMPLETE')` |
 | predicate_INDETERMINATE | 1 | `count(receipts where completion_predicate.evaluate(...).verdict == 'INDETERMINATE')` |

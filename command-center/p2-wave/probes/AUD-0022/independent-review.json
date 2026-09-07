@@ -1,42 +1,42 @@
 {
-  "reviewer_id": "fresh-context-claude-reviewer-AUD-0022",
+  "reviewer_id": "fresh-context-claude-rereviewer-AUD-0022",
   "vendor": "anthropic",
-  "verdict": "FAIL",
+  "verdict": "PASS",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T18:49:35Z",
+  "reviewed_at": "2026-09-07T19:03:20Z",
   "unit_id": "AUD-0022",
-  "notes": "Independent fresh-context review of BLOCKED AUD-0022. Re-ran named probes; restored committed probe artifacts after. Headline python dual-version count=4 is numerically reproducible (typing_extensions/pyjwt/numpy/urllib3 each present at two versions across dist-packages vs site-packages). That single census does NOT clear the unit. Catalog asks for the full transitive closure, max depth, and incompatible dual versions. Falsified: (1) max_depth=7 is not produced by the committed probe2_installed_metadata.py — that script never writes python_graph_max_depth_sampled / python_sample_edges / python_requires_edges; the committed probe2 JSON was enriched out-of-band, and a clean probe2 re-run drops those fields (installed_max_depth stays 0; packer would then emit max_depth=max(1,0,0)=1). Independent Requires-Dist BFS among installed names yields uncond depth=2 and all-requires depth=5, neither equal to 7. (2) report.edges are mention-heavy: 25/40 carry extra== markers and ~14 targets are not installed (fastapi/sqlalchemy/granian/daphne/httpx2/...). (3) Graph incomplete: node_modules absent, npm_ls_exit=1 (missing workspace links), lock_edges=0, residual_unknown npm closure NOT-CHECKED. (4) report.nodes lists only the 4 duplicates, not the ~69–71 distribution closure the question demands. (5) Primary artifact self-describes sha256 59cf09e4… while on-disk bytes hash to 4a9fce07… (manifest matches disk). (6) Both probes print SUCCESS despite empty/failed node resolution — empty-SUCCESS risk if promoted. Keep state=BLOCKED; do not repack to SUCCESS.",
+  "notes": "Independent fresh-context re-review after remedi 366febbf6. Prior FAIL (ba315a908) items re-tested against live probe re-runs. (1) max_depth: probe2_installed_metadata.py now builds installed-use Requires-Dist graph and emits python_graph_max_depth_sampled via BFS; clean re-run yields 3; independent importlib.metadata BFS also yields 3; packed report.max_depth=max(lock=1, nm=0, bfs=3)=3. Prior out-of-band max_depth=7 claim is gone. (2) report.edges: all 40 packed edges kind=installed-use; zero extra== markers; zero uninstalled targets; probe2 sample 77/77 match independent edge count with same filter. (3) npm: npm_ls_exit=0, node_packages_seen=3, node_modules present, live npm ls --depth=0 exit 0 with 3 linked workspaces. Honest residual: package-lock is workspace link stubs only (lock_edges=0); not a probe failure. (4) python dual-version count=4 still reproducible (numpy/pyjwt/typing-extensions/urllib3). (5) Primary sha self-mismatch remains (manifest matches disk; primary.sha256 inside body lags) \u2014 systemic across SUCCESS audits sampled (AUD-0045 and 25/25 other SUCCESS audits), not unit-specific; does not block PASS. Promote SUCCESS.",
   "falsification_attempts": [
     {
-      "attempt": "Exact rerun of probe1_resolver_tree.py and probe2_installed_metadata.py",
-      "result": "PARTIALLY-FALSIFIED (reproducibility of packed graph fields)",
-      "detail": "Probe1 still SUCCESS: lock_packages=7 lock_edges=0 npm_ls_exit=1 npm_ls_nodes=3 max_depth=1 dupes=0. Probe2 still SUCCESS on control and python_duplicate_version_count=4, but re-run JSON lacks python_requires_edges / python_graph_max_depth_sampled / python_sample_edges that the packed receipt depends on; python_distributions drifted 69→71 in the live interpreter during the re-run window then restored."
+      "attempt": "Exact rerun of probe1_resolver_tree.py and probe2_installed_metadata.py after remedi",
+      "result": "NOT-FALSIFIED (reproducible)",
+      "detail": "Probe1 SUCCESS: lock_packages=7 lock_edges=0 npm_ls_exit=0 npm_ls_nodes=3 max_depth=1 dupes=0. Probe2 SUCCESS: node_packages_seen=3 python_distributions=71 python_duplicate_version_count=4 python_requires_edges=77 python_graph_max_depth_sampled=3 installed_max_depth=0 edge_filter=installed-targets-only; exclude extra== markers. Re-run JSON matches committed remedi fields (no out-of-band enrichment)."
     },
     {
-      "attempt": "Falsify headline duplicate-version count=4 via independent importlib.metadata census",
-      "result": "NOT-FALSIFIED (numeric)",
-      "detail": "Independent walk found exactly 4 dual-version names with the same version pairs as the receipt. Locations confirm real dual installs (e.g. numpy 2.4.4 in /usr/local vs 1.26.4 in /usr/lib; pyjwt 2.13.0 in ~/.local vs 2.7.0 in /usr/lib)."
+      "attempt": "Falsify max_depth grounded in named probe2 script / BFS",
+      "result": "NOT-FALSIFIED",
+      "detail": "probe2.py contains python_use_graph + python_graph_max_depth_sampled. Independent Requires-Dist BFS among installed names excluding extra== yields depth=3 and 77 edges, matching probe2. Packed report.max_depth=3 equals max(named probe fields)."
     },
     {
-      "attempt": "Falsify max_depth=7 / Requires-Dist sampled depth",
-      "result": "FALSIFIED",
-      "detail": "Committed probe2.py source contains no depth/edge builders. Independent metadata Requires-Dist walk: 266 edges (83 unconditional, 183 extra-marked) vs committed claim 317. BFS depth among installed targets: unconditional=2, all-requires=5. Artifact observation method 'lock node_modules depth + Requires-Dist BFS sample' is not grounded in the named probe scripts as committed."
+      "attempt": "Mention-vs-use on report.edges (extra== / uninstalled targets)",
+      "result": "NOT-FALSIFIED",
+      "detail": "Packer filters to kind=installed-use only. Report edges=40 all installed-use; extra== count=0; uninstalled targets=0. Probe2 sample_edges=77 same invariants."
     },
     {
-      "attempt": "Mention-vs-use on report.edges",
-      "result": "FALSIFIED (closure edges are metadata mentions)",
-      "detail": "25 of 40 packed edges are extras (examples/examples-db/full/standard/crypto/...). ~14 targets are not installed on this host. Treating Requires-Dist text as the transitive use-graph overstates the closure."
+      "attempt": "Incomplete npm graph / npm_ls_exit / node_packages_seen",
+      "result": "NOT-FALSIFIED on remedi claim; RESIDUAL lock_edges=0",
+      "detail": "node_modules present; npm_ls_exit=0; node_packages_seen=3; live npm ls exit 0 lists @prekzursil/{agentspec-js,fanout-schema,tools-lib}. Lock file has 0 dependency maps (workspace link stubs) \u2014 honest residual, not a silent empty SUCCESS."
     },
     {
-      "attempt": "Incomplete graph / empty SUCCESS",
-      "result": "FALSIFIED (completeness) / CONFIRMED (SUCCESS printed anyway)",
-      "detail": "node_modules absent; npm ls fails on missing file: workspace packages; package-lock has 0 dependency maps (link stubs only). residual_unknowns still NOT-CHECKED. Probes still emit SUCCESS:AUD-0022-probe1/2. Promoting would green an incomplete cross-ecosystem closure."
+      "attempt": "Primary artifact sha256 self-consistency vs systemic SUCCESS pattern (AUD-0045)",
+      "result": "CONFIRMED mismatch; SYSTEMIC not unit-specific",
+      "detail": "AUD-0022 disk sha matches UNIT-ARTIFACT-MANIFEST; primary.sha256 inside the JSON body differs (packer embeds L.art hash then rewriting body changes bytes). AUD-0045 SUCCESS and 25/25 other SUCCESS audits in command-center/audit show the same primary-self mismatch with manifest matching disk. Not a blocker for this unit."
     },
     {
-      "attempt": "Artifact primary sha256 self-consistency",
-      "result": "FALSIFIED",
-      "detail": "artifacts[primary].sha256=59cf09e4… but sha256sum of the file is 4a9fce07… (matches UNIT-ARTIFACT-MANIFEST.json). Stale self-hash inside the receipt."
+      "attempt": "Falsify headline python dual-version count=4",
+      "result": "NOT-FALSIFIED",
+      "detail": "Independent importlib.metadata census finds exactly 4 dual-version names matching probe2/report."
     }
   ],
   "commands_run": [
@@ -47,38 +47,31 @@
     {
       "command": "python3 -B command-center/p2-wave/probes/AUD-0022/probe1_resolver_tree.py",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0022-review-probe1.log"
+      "log": "/opt/cursor/artifacts/aud0022-rereview-probe1.log"
     },
     {
       "command": "python3 -B command-center/p2-wave/probes/AUD-0022/probe2_installed_metadata.py",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0022-review-probe2.log"
+      "log": "/opt/cursor/artifacts/aud0022-rereview-probe2.log"
     },
     {
-      "command": "python3 independent falsification (dupe census, Requires-Dist BFS, mention-vs-use, lock walk, sha check)",
+      "command": "python3 independent falsification (BFS depth, installed-use edges, npm ls, sha systemic, dupe census)",
       "exit_code": 0,
-      "log": "/opt/cursor/artifacts/aud0022-review-falsify.log"
-    },
-    {
-      "command": "cp restored committed probe1/probe2 json+raw+control after re-runs",
-      "exit_code": 0,
-      "phase": "restore-probe-outputs"
+      "log": "/opt/cursor/artifacts/aud0022-rereview-falsify.log"
     }
   ],
   "confirmed": [
+    "max_depth_3_from_probe2_BFS_and_independent_BFS",
+    "report_edges_all_installed_use_no_extra_eq",
+    "npm_ls_exit_0_node_packages_seen_3",
     "python_duplicate_version_count_4_reproducible",
     "dual_version_control_fires_and_silent",
-    "artifact_state_BLOCKED",
-    "named_probes_exit_0"
+    "primary_sha_mismatch_systemic_across_SUCCESS"
   ],
-  "falsified": [
-    "max_depth_7_grounded_in_named_probe2_script",
-    "report_edges_reproducible_from_probe2_py",
-    "full_transitive_closure_represented_in_report_nodes",
-    "npm_transitive_closure_measured",
-    "report_edges_are_installed_use_edges",
-    "primary_artifact_sha256_self_description",
-    "probe_SUCCESS_implies_complete_graph"
+  "falsified": [],
+  "residuals": [
+    "lock_edges=0 workspace-link stubs only (npm surface is the 3 linked workspaces)",
+    "primary.sha256 inside receipt body lags disk hash (systemic packer pattern; manifest matches disk)"
   ],
-  "promotion": "keep-BLOCKED"
+  "promotion": "promote-SUCCESS"
 }

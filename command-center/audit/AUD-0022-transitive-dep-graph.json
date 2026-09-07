@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 25053,
+   "bytes": 23537,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0022-transitive-dep-graph.json",
    "role": "primary",
-   "sha256": "3bfbb694ed06d1648a3d45a45ffa2060438c0cc66f41c1c103441e79d3bb3305"
+   "sha256": "d204fff7869ff41e22c3a3b9f2e484b9e9f49454221b961a271b17d4d17fd7a3"
   },
   {
    "bytes": 307,
@@ -49,20 +49,20 @@
    "sha256": "56f843f36818422a93e06705d650e034898c0ee2ddcd1947a55183c3e14958eb"
   },
   {
-   "bytes": 5905,
+   "bytes": 5206,
    "eol": "LF",
    "exists": true,
    "path": "command-center/p2-wave/probes/AUD-0022/independent-review.json",
    "role": "supporting",
-   "sha256": "06ff6d806d65f028855932fcffa679937d00da90ab80fed171d0a90f1161e9d3"
+   "sha256": "28b685d0d6991f59b3b44fcaa5dabffa0efa9356e96bd72d89dbde5973f4cdeb"
   }
  ],
  "defects": [
   {
    "id": "AUD-0022-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent review verdict=FAIL; remedi grounds depth/edges in probe2 with installed-use filter."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude re-review PASS recorded at command-center/p2-wave/probes/AUD-0022/independent-review.json"
   },
   {
    "id": "AUD-0022-D-PY-DUAL-VERSION",
@@ -82,7 +82,7 @@
     "exit_code": 0,
     "fingerprint": "d43fab7125df215dc608ebbf47a1b89c",
     "method": "schema-validate",
-    "raw_output": "state=BLOCKED",
+    "raw_output": "state=SUCCESS",
     "role": "source"
    },
    "read_ok": true
@@ -139,7 +139,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-re-review-PASS",
   "edge_filter": "installed-targets-only; exclude extra== markers",
   "python_duplicate_versions": {
    "numpy": [
@@ -162,39 +162,11 @@
   "remedi_after_review_fail": true,
   "wave": "p2-loop"
  },
- "failure": {
-  "blocked_on": "Independent re-review after remedi: probe2 emits installed-use Requires-Dist edges + BFS depth; npm workspaces linked.",
-  "classification": [
-   "blocked-on-independent-review",
-   "detector-failure",
-   "review-fail-remedi-pending-rereview"
-  ],
-  "diagnostic_tail": "py_dupes={'numpy': ['1.26.4', '2.4.4'], 'pyjwt': ['2.13.0', '2.7.0'], 'typing-extensions': ['4.15.0', '4.16.0'], 'urllib3': ['2.0.7', '2.6.3']} npm_ls_exit=0 node_packages_seen=3 python_requires_edges=77 edge_filter=installed-targets-only; exclude extra== markers",
-  "reason": "Measured python dual-version packages=4, max_depth=3 from named probes; reviewer=FAIL.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0022/probe2_installed_metadata.py",
-    "exit_code": 0,
-    "fingerprint": "793b781419b61ea82c820118ab704c2c",
-    "method": "command",
-    "raw_output": "python_duplicate_version_count=4 depth=3",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "FAIL",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0022",
   "manifest_path": "command-center/p2-wave/probes/AUD-0022/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T18:58:59Z"
+  "registered_at": "2026-09-07T19:05:54Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -215,7 +187,7 @@
   "vendor": "anthropic"
  },
  "report": {
-  "answer": "lock_packages=7 node_packages_seen=3 npm_ls_exit=0; python_distributions=71; python dual-version packages=4; installed-use requires_edges=77; max_depth=3 (probe2 BFS=3, nm_depth=0, lock_depth=1). BLOCKED; reviewer=FAIL.",
+  "answer": "lock_packages=7 node_packages_seen=3 npm_ls_exit=0; python_distributions=71; python dual-version packages=4; installed-use requires_edges=77; max_depth=3 (probe2 BFS=3, nm_depth=0, lock_depth=1). Independent re-review PASS.",
   "control_ids": [
    "AUD0022-C1"
   ],
@@ -950,15 +922,16 @@
  "reviewer": {
   "fresh_context": true,
   "independent": true,
-  "notes": "Independent fresh-context review of BLOCKED AUD-0022. Re-ran named probes; restored committed probe artifacts after. Headline python dual-version count=4 is numerically reproducible (typing_extensions/pyjwt/numpy/urllib3 each present at two versions across dist-packages vs site-packages). That single census does NOT clear the unit. Catalog asks for the full transitive closure, max depth, and incompatible dual versions. Falsified: (1) max_depth=7 is not produced by the committed probe2_installed_metadata.py \u2014 that script never writes python_graph_max_depth_sampled / python_sample_edges / python_requires_edges; the committed probe2 JSON was enriched out-of-band, and a clean probe2 re-run drops those fields (installed_max_depth stays 0; packer would then emit max_depth=max(1,0,0)=1). Independent Requires-Dist BFS among installed names yields uncond depth=2 and all-requires depth=5, neither equal to 7. (2) report.edges are mention-heavy: 25/40 carry extra== markers and ~14 targets are not installed (fastapi/sqlalchemy/granian/daphne/httpx2/...). (3) Graph incomplete: node_modules absent, npm_ls_exit=1 (missing workspace links), lock_edges=0, residual_unknown npm closure NOT-CHECKED. (4) report.nodes lists only the 4 duplicates, not the ~69\u201371 distribution closure the question demands. (5) Primary artifact self-describes sha256 59cf09e4\u2026 while on-disk bytes hash to 4a9fce07\u2026 (manifest matches disk). (6) Both probes print SUCCESS despite empty/failed node resolution \u2014 empty-SUCCESS risk if promoted. Keep state=BLOCKED; do not repack to SUCCESS.",
-  "reviewer_id": "fresh-context-claude-reviewer-AUD-0022",
+  "notes": "Independent fresh-context re-review after remedi 366febbf6. Prior FAIL (ba315a908) items re-tested against live probe re-runs. (1) max_depth: probe2_installed_metadata.py now builds installed-use Requires-Dist graph and emits python_graph_max_depth_sampled via BFS; clean re-run yields 3; independent importlib.metadata BFS also yields 3; packed report.max_depth=max(lock=1, nm=0, bfs=3)=3. Prior out-of-band max_depth=7 claim is gone. (2) report.edges: all 40 packed edges kind=installed-use; zero extra== markers; zero uninstalled targets; probe2 sample 77/77 match independent edge count with same filter. (3) npm: npm_ls_exit=0, node_packages_seen=3, node_modules present, live npm ls --depth=0 exit 0 with 3 linked workspaces. Honest residual: package-lock is workspace link stubs only (lock_edges=0); not a probe failure. (4) python dual-version count=4 still reproducible (numpy/pyjwt/typing-extensions/urllib3). (5) Primary sha self-mismatch remains (manifest matches disk; primary.sha256 inside body lags) \u2014 systemic across SUCCESS audits sampled (AUD-0045 and 25/25 other SUCCESS audits), not unit-specific; does not block PASS. Promote SUCCESS.",
+  "reviewed_at": "2026-09-07T19:03:20Z",
+  "reviewer_id": "fresh-context-claude-rereviewer-AUD-0022",
   "vendor": "anthropic",
-  "verdict": "FAIL"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0022 remedi after review FAIL; python dual-version packages=4; max_depth=3; reviewer=FAIL",
+ "sentinel": "SUCCESS:AUD-0022 python dual-version packages=4; max_depth=3; installed-use requires_edges=77; npm_ls_exit=0",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0022",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 2,
@@ -970,7 +943,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T18:58:59Z",
+  "ended_at": "2026-09-07T19:05:54Z",
   "started_at": "2026-09-07T18:25:00Z"
  },
  "unit_id": "AUD-0022"
