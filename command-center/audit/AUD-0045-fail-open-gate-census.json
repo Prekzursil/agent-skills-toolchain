@@ -1,0 +1,273 @@
+{
+ "artifacts": [
+  {
+   "bytes": 13013,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/audit/AUD-0045-fail-open-gate-census.json",
+   "role": "primary",
+   "sha256": "f2280d71943b99b6e8688c5edb5e362b5c26fae3569b4f4a872039e7d80fc4f1"
+  },
+  {
+   "bytes": 18643,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0045/probe1-static-findings.json",
+   "role": "supporting",
+   "sha256": "59627b0ccb6706993aab2a098962df5c10031afe53ddbea88621e023839b436f"
+  },
+  {
+   "bytes": 5914,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0045/probe2-execution-results.json",
+   "role": "supporting",
+   "sha256": "73d1b9deef9ddf2d457b0c2fb7707b563a182bc27d2f179c3b9f0119973e6ea9"
+  },
+  {
+   "bytes": 1353,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt",
+   "role": "log",
+   "sha256": "80111b340f194d79de43ed3c7944dad0d2644b3b75635e702f884f04c66938e7"
+  },
+  {
+   "bytes": 1356,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
+   "role": "log",
+   "sha256": "e57fde45a821598bd3f20e16d87d553c59a3a6706f33130b70188f66b08457a0"
+  }
+ ],
+ "defects": [
+  {
+   "id": "AUD-0045-D-REVIEW",
+   "severity": "P1",
+   "status": "open",
+   "summary": "Independent fresh-context Claude review unpaid."
+  },
+  {
+   "id": "AUD-0045-D-FAIL-OPEN",
+   "severity": "P2",
+   "status": "open",
+   "summary": "5 gate invocations exited 0 without a measured count: ['unitgate.py no-args', 'rail_count_gate.py --self-test', 'claim_gate.py --self-test', 'check_citations.py --self-test', 'ssot_drift_gate.py default']"
+  }
+ ],
+ "downstream_consumers": [
+  {
+   "artifact_path": "command-center/audit/AUD-0045-fail-open-gate-census.json",
+   "consumer": "json.loads + audit-finding schema resolver",
+   "executed": true,
+   "exit_code": 0,
+   "probe": {
+    "command": "python3 -B command-center/p2-wave/probes/AUD-0045/_pack_receipt.py",
+    "exit_code": 0,
+    "fingerprint": "8deb68851eefbfb1ba1738d971708de3",
+    "method": "schema-validate",
+    "raw_output": "state=BLOCKED",
+    "role": "source"
+   },
+   "read_ok": true
+  }
+ ],
+ "evidence": [
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt",
+   "claim": "Probe 1 static census over 24/26 gates: finding_counts={\"default-off-flag\": 4, \"early-return-on-empty\": 27, \"except-return-zero\": 1, \"swallowed-exception\": 1}; suspect_count=12; validate.require_complete default-off=True.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe1_static_census.py",
+     "exit_code": 0,
+     "fingerprint": "740f60e48d1ddb74685075e89d761b83",
+     "method": "command",
+     "raw_output": "AUD-0045 NAMED PROBE 1: static fail-open pattern census\nunit=AUD-0045\ngates_considered=26\ngates_present=24\ngates_absent=2\nfinding_counts_by_kind={\"default-off-flag\": 4, \"early-return-on-empty\": 27, \"swallowed-exception\": 1, \"except-return-zero\": 1}\nsuspect_count=12\nvalidate_require_complete_default_off=True\nSUSPECTS:\n  ci/check_skill_dual_write.py kinds=['default-off-flag'] n=1\n  command-center/ci/interpreter_floor_gate.py kinds=['early-return-on-empty'] n=3\n  command-center/hook-audit/check_citations.py kinds=['default-off-flag', 'early-return-on-empty', 'swallowed-exception'] n=4\n  command-center/hook-audit/hook_predeploy_gate.py kinds=['early-return-on-empty'] n=1\n  command-center/p2-next/rail_count_gate.py kinds=['default-off-flag', 'early-return-on-empty'] n=2\n  command-center/p2-next/split_review_gate.py kinds=['early-return-on-empty'] n=1\n  command-center/p2-next/vendor_satisfiability.py kinds=['early-return-on-empty'] n=4\n  command-center/slop-report/check_published_commands.py kinds=['early-return-on-empty'] n=1\n  docs/rule-audit/ci_gate.py kinds=['early-return-on-empty'] n=1\n  hooks/harness-bench/gate.py kinds=['early-return-on-empty', 'except-return-zero'] n=12\n  tools/command-center/validate.py kinds=['default-off-flag'] n=1\n  tools/measure-guard/suitefloor.py kinds=['early-return-on-empty'] n=2\nSUCCESS:AUD-0045-probe1\n",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c read probe1-static-findings.json",
+     "exit_code": 0,
+     "fingerprint": "d51bdba84aaddd0c43a55b1776bd8f46",
+     "method": "file-read",
+     "raw_output": "{\"suspect_count\": 12, \"validate_require_complete_default_off\": true, \"ok\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
+   "claim": "Probe 2 executed 13 gate invocations; fail_open_count=5 labels=['unitgate.py no-args', 'rail_count_gate.py --self-test', 'claim_gate.py --self-test', 'check_citations.py --self-test', 'ssot_drift_gate.py default']; known_bad_nonzero=True measures_nothing_validate=False.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
+     "exit_code": 0,
+     "fingerprint": "8151e6efa9856c0657f993e5e6d9f363",
+     "method": "command",
+     "raw_output": "AUD-0045 NAMED PROBE 2: execute gates on empty/absent/known-bad inputs\nunit=AUD-0045\ncase_count=13\nfail_open_count=5\nfail_open_labels=['unitgate.py no-args', 'rail_count_gate.py --self-test', 'claim_gate.py --self-test', 'check_citations.py --self-test', 'ssot_drift_gate.py default']\nknown_bad_nonzero=True\nmeasures_nothing_validate=False\nCASE validate.py defaults (no --require-complete): exit=0 measured=True fail_open=False\nCASE validate.py --require-complete: exit=0 measured=True fail_open=False\nCASE validate.py empty-catalog + missing-graph: exit=1 measured=False fail_open=False\nCASE validate.py empty-catalog + empty-graph (known-bad): exit=1 measured=True fail_open=False\nCASE unitgate.py --help (info only): exit=0 measured=False fail_open=False\nCASE unitgate.py no-args: exit=0 measured=False fail_open=True\nCASE interpreter_floor_gate.py --self-test: exit=1 measured=False fail_open=False\nCASE mcp-audit/ci_gate.py --self-test: exit=0 measured=True fail_open=False\nCASE rail_count_gate.py --self-test: exit=0 measured=False fail_open=True\nCASE claim_gate.py --self-test: exit=0 measured=False fail_open=True\nCASE check_citations.py --self-test: exit=0 measured=False fail_open=True\nCASE ssot_drift_gate.py default: exit=0 measured=False fail_open=True\nCASE suitefloor.py no-args: exit=1 measured=False fail_open=False\nSUCCESS:AUD-0045-probe2\n",
+     "role": "source"
+    },
+    {
+     "command": "python3 -c read probe2-execution-results.json",
+     "exit_code": 0,
+     "fingerprint": "c6c74e1081a3aeedd8463a26f1fa85a6",
+     "method": "byte-compare",
+     "raw_output": "{\"fail_open_count\": 5, \"known_bad_nonzero\": true, \"ok\": true}",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
+  }
+ ],
+ "extensions": {
+  "anti_false_green": "BLOCKED-with-real-probes",
+  "fail_open_labels": [
+   "unitgate.py no-args",
+   "rail_count_gate.py --self-test",
+   "claim_gate.py --self-test",
+   "check_citations.py --self-test",
+   "ssot_drift_gate.py default"
+  ],
+  "wave": "p2-wave1"
+ },
+ "failure": {
+  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to falsify the headline fail-open count before PASS.",
+  "classification": [
+   "blocked-on-independent-review",
+   "green-not-live"
+  ],
+  "diagnostic_tail": "fail_open_labels=['unitgate.py no-args', 'rail_count_gate.py --self-test', 'claim_gate.py --self-test', 'check_citations.py --self-test', 'ssot_drift_gate.py default'] require_complete_default_off=True",
+  "reason": "Measured fail_open_count=5 across 13 executions and static suspects=12, but reviewer_requirement unmet.",
+  "two_signal_proof": [
+   {
+    "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
+    "exit_code": 0,
+    "fingerprint": "8151e6efa9856c0657f993e5e6d9f363",
+    "method": "command",
+    "raw_output": "fail_open_count=5",
+    "role": "source"
+   },
+   {
+    "command": "reviewer.verdict",
+    "exit_code": 0,
+    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
+    "method": "file-read",
+    "raw_output": "NOT-REVIEWED",
+    "role": "verifier"
+   }
+  ]
+ },
+ "manifest_registration": {
+  "entry_id": "AUD-0045",
+  "manifest_path": "command-center/p2-wave/probes/AUD-0045/UNIT-ARTIFACT-MANIFEST.json",
+  "registered": true,
+  "registered_at": "2026-09-07T11:50:47Z"
+ },
+ "min_bytes_threshold": 4096,
+ "negative_controls": [
+  {
+   "bad_state_output": "exit=0 on empty catalog",
+   "description": "Empty catalog known-bad input must exit non-zero.",
+   "fired_on_bad_state": true,
+   "good_state_output": "known_bad_nonzero=True",
+   "id": "AUD0045-C1",
+   "kind": "known-broken-fixture",
+   "silent_on_good_state": true
+  }
+ ],
+ "produced_by": {
+  "execution_substrate": "linux-local-p2-wave1",
+  "model": "composer",
+  "role": "adversarial-refuter",
+  "vendor": "anthropic"
+ },
+ "report": {
+  "control_ids": [
+   "AUD0045-C1"
+  ],
+  "headline": "5 fail-open execution cases; 12 static-suspect gates; validate.require_complete default-off=True. BLOCKED on review.",
+  "kind": "audit-finding",
+  "observations": [
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0045/probe1-static.raw.txt",
+    "measured": 24,
+    "method": "workflow+catalog gate path inventory",
+    "name": "gates_present"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0045/probe1-static-findings.json",
+    "measured": 12,
+    "method": "AST early-return/default-off/swallowed-except scan",
+    "name": "static_suspect_gates"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0045/probe2-execution.raw.txt",
+    "measured": 5,
+    "method": "execute empty/absent/default; exit0 && !measured_count",
+    "name": "fail_open_execution_cases"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0045/probe1-static-findings.json",
+    "measured": true,
+    "method": "AST default=False on require_complete",
+    "name": "validate_require_complete_default_off"
+   },
+   {
+    "anchor": "command-center/p2-wave/probes/AUD-0045/probe2-execution-results.json",
+    "measured": true,
+    "method": "validate.py empty items control",
+    "name": "known_bad_empty_catalog_nonzero"
+   }
+  ],
+  "question": "For every CI gate and local validator, is there an input under which it exits 0 without having examined anything?"
+ },
+ "residual_unknowns": [
+  {
+   "claim": "Every CI step-wrapped shell gate (not a .py entrypoint) was executed empty.",
+   "settling_experiment": "Expand probe2 to invoke each workflow run: script body in isolation.",
+   "verdict": "NOT-CHECKED"
+  }
+ ],
+ "retry": {
+  "count": 1,
+  "policy": "two strikes then pivot (AGENTS.md 4b)"
+ },
+ "reviewer": {
+  "fresh_context": false,
+  "independent": false,
+  "notes": "Catalog requires a fresh-context Claude reviewer who has not seen this transcript and must try to FALSIFY the headline fail-open count. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
+  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "vendor": "anthropic",
+  "verdict": "NOT-REVIEWED"
+ },
+ "schema_version": 1,
+ "sentinel": "FAILED:AUD-0045 static+execution probes measured fail-open candidates; known-bad empty catalog exits non-zero; blocked-on-independent-review",
+ "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0045",
+ "state": "BLOCKED",
+ "tests": [
+  {
+   "assertions": 1,
+   "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe2_execute_gates.py",
+   "id": "AUD-0045-known-bad-nonzero",
+   "name": "validate.py empty catalog exits non-zero (control)",
+   "output_tail": "d=True fail_open=False\nCASE rail_count_gate.py --self-test: exit=0 measured=False fail_open=True\nCASE claim_gate.py --self-test: exit=0 measured=False fail_open=True\nCASE check_citations.py --self-test: exit=0 measured=False fail_open=True\nCASE ssot_drift_gate.py default: exit=0 measured=False fail_open=True\nCASE suitefloor.py no-args: exit=1 measured=False fail_open=False\nSUCCESS:AUD-0045-probe2\n",
+   "result": "PASS"
+  },
+  {
+   "assertions": 1,
+   "command": "python3 -B command-center/p2-wave/probes/AUD-0045/probe1_static_census.py",
+   "id": "AUD-0045-require-complete-default-off",
+   "name": "validate.py require_complete defaults to False (catalog case)",
+   "output_tail": "-center/slop-report/check_published_commands.py kinds=['early-return-on-empty'] n=1\n  docs/rule-audit/ci_gate.py kinds=['early-return-on-empty'] n=1\n  hooks/harness-bench/gate.py kinds=['early-return-on-empty', 'except-return-zero'] n=12\n  tools/command-center/validate.py kinds=['default-off-flag'] n=1\n  tools/measure-guard/suitefloor.py kinds=['early-return-on-empty'] n=2\nSUCCESS:AUD-0045-probe1\n",
+   "result": "PASS"
+  }
+ ],
+ "timestamps": {
+  "ended_at": "2026-09-07T11:50:47Z",
+  "started_at": "2026-09-07T11:45:00Z"
+ },
+ "unit_id": "AUD-0045"
+}

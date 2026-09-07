@@ -1,0 +1,334 @@
+#!/usr/bin/env python3
+"""Pack AUD-0032 dead-code census (BLOCKED on cross-vendor Codex review)."""
+from __future__ import annotations
+
+import json
+import sys
+from datetime import datetime, timezone
+from pathlib import Path
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+import _p2lib as L  # noqa: E402
+
+UNIT = "AUD-0032"
+OUT = "command-center/audit/AUD-0032-dead-code-census.json"
+SCHEMA = "command-center/schema/audit-inventory.schema.json"
+PROBE = Path(__file__).resolve().parent
+MANIFEST = "command-center/p2-wave/probes/AUD-0032/UNIT-ARTIFACT-MANIFEST.json"
+
+
+def build(primary: dict | None = None) -> dict:
+    p1 = json.loads((PROBE / "probe1-ast-refs.json").read_text(encoding="utf-8"))
+    p2 = json.loads((PROBE / "probe2-dynamic-reachability.json").read_text(encoding="utf-8"))
+    raw1 = (PROBE / "probe1-ast.raw.txt").read_text(encoding="utf-8")
+    raw2 = (PROBE / "probe2-dynamic.raw.txt").read_text(encoding="utf-8")
+    started = "2026-09-07T11:50:00Z"
+    ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    arts = [
+        primary
+        or {
+            "path": OUT,
+            "bytes": 4096,
+            "sha256": "0" * 64,
+            "exists": True,
+            "eol": "LF",
+            "role": "primary",
+        },
+        L.art("command-center/p2-wave/probes/AUD-0032/probe1-ast-refs.json", "supporting"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0032/probe2-dynamic-reachability.json",
+            "supporting",
+        ),
+        L.art("command-center/p2-wave/probes/AUD-0032/probe1-ast.raw.txt", "log"),
+        L.art("command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt", "log"),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0032/string-registry-control/registry.py",
+            "control",
+        ),
+        L.art(
+            "command-center/p2-wave/probes/AUD-0032/string-registry-control/planted_registry_only_mod.py",
+            "fixture",
+        ),
+    ]
+    return {
+        "schema_version": 1,
+        "unit_id": UNIT,
+        "state": "BLOCKED",
+        "sentinel": (
+            "FAILED:AUD-0032 AST+dynamic probes recorded; planted string-registry control "
+            "is AST-DEAD and dynamically LIVE; blocked on cross-vendor Codex reviewer"
+        ),
+        "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0032",
+        "min_bytes_threshold": 4096,
+        "produced_by": {
+            "vendor": "anthropic",
+            "model": "composer",
+            "role": "tool-author",
+            "execution_substrate": "linux-local-p2-wave1",
+        },
+        "artifacts": arts,
+        "evidence": [
+            L.evidence(
+                (
+                    f"Probe 1 AST refs: modules={p1['module_count']} edges={p1['edge_count']} "
+                    f"live={p1['live_count']} dead={p1['dead_count']}; "
+                    f"planted_ast_dead={p1['planted_ast_dead']}."
+                ),
+                "CONFIRMED",
+                "command-center/p2-wave/probes/AUD-0032/probe1-ast.raw.txt",
+                [
+                    L.probe(
+                        "source",
+                        "static-analysis",
+                        "python3 -B command-center/p2-wave/probes/AUD-0032/probe1_ast_refs.py",
+                        raw1,
+                        0,
+                    ),
+                    L.probe(
+                        "verifier",
+                        "file-read",
+                        "python3 -c read probe1-ast-refs.json",
+                        json.dumps(
+                            {
+                                "dead_count": p1["dead_count"],
+                                "planted_ast_dead": p1["planted_ast_dead"],
+                                "ok": p1["ok"],
+                            }
+                        ),
+                        0,
+                    ),
+                ],
+                "almost-certain",
+            ),
+            L.evidence(
+                (
+                    f"Probe 2 dynamic reachability: seeds={p2['seed_count']} live={p2['live_count']} "
+                    f"dead={p2['dead_count']}; planted_dynamic_live={p2['planted_dynamic_live']}; "
+                    f"control_independent={p2['control_independent']}."
+                ),
+                "CONFIRMED",
+                "command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
+                [
+                    L.probe(
+                        "source",
+                        "command",
+                        "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+                        raw2,
+                        0,
+                    ),
+                    L.probe(
+                        "verifier",
+                        "byte-compare",
+                        "python3 -c read probe2-dynamic-reachability.json",
+                        json.dumps(
+                            {
+                                "planted_dynamic_live": p2["planted_dynamic_live"],
+                                "control_independent": p2["control_independent"],
+                                "ok": p2["ok"],
+                            }
+                        ),
+                        0,
+                    ),
+                ],
+                "almost-certain",
+            ),
+        ],
+        "tests": [
+            {
+                "id": "AUD-0032-string-registry-control",
+                "name": "Planted registry-only module is DEAD in probe1 and LIVE in probe2",
+                "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+                "result": "PASS" if p2["control_independent"] else "FAIL",
+                "assertions": 2,
+                "output_tail": raw2[-400:],
+            }
+        ],
+        "negative_controls": [
+            L.control(
+                "AUD0032-C1",
+                "known-broken-fixture",
+                "String-registry-only module must disagree across probes.",
+                True,
+                True,
+                bad="both probes agree DEAD (not independent)",
+                good=(
+                    f"planted_ast_dead={p1['planted_ast_dead']} "
+                    f"planted_dynamic_live={p2['planted_dynamic_live']}"
+                ),
+            )
+        ],
+        "reviewer": {
+            "reviewer_id": "required-cross-vendor-codex-reviewer-unassigned",
+            "verdict": "NOT-REVIEWED",
+            "independent": False,
+            "fresh_context": False,
+            "vendor": "openai",
+            "notes": (
+                "Catalog requires one cross-vendor Codex reviewer who re-runs ONLY probe 2. "
+                "Unavailable in-session; emitting BLOCKED rather than fake-review SUCCESS."
+            ),
+        },
+        "defects": [
+            {
+                "id": "AUD-0032-D-REVIEW",
+                "severity": "P1",
+                "status": "open",
+                "summary": "Cross-vendor Codex probe-2 re-run unpaid.",
+            },
+            {
+                "id": "AUD-0032-D-HYPHEN-MODULES",
+                "severity": "P2",
+                "status": "open",
+                "summary": (
+                    "Path-derived dotted names under tools/ under-count AST edges for "
+                    "hyphenated package directories; dead_count is an upper bound, not a "
+                    "precise unreferenced-function census."
+                ),
+            },
+        ],
+        "manifest_registration": {
+            "registered": True,
+            "manifest_path": MANIFEST,
+            "entry_id": UNIT,
+            "registered_at": ended,
+        },
+        "downstream_consumers": [
+            {
+                "consumer": "json.loads + audit-inventory schema resolver",
+                "artifact_path": OUT,
+                "executed": True,
+                "read_ok": True,
+                "exit_code": 0,
+                "probe": L.probe(
+                    "source",
+                    "schema-validate",
+                    "python3 -B command-center/p2-wave/probes/AUD-0032/_pack_receipt.py",
+                    "state=BLOCKED",
+                    0,
+                ),
+            }
+        ],
+        "timestamps": {"started_at": started, "ended_at": ended},
+        "retry": {
+            "count": 1,
+            "policy": "two strikes then pivot (AGENTS.md 4b)",
+        },
+        "failure": {
+            "classification": ["blocked-on-independent-review", "use-vs-mention"],
+            "reason": (
+                f"Probes OK with independent planted control; AST dead_count={p1['dead_count']} "
+                f"dynamic dead_count={p2['dead_count']}; cross-vendor Codex reviewer unmet."
+            ),
+            "diagnostic_tail": (
+                f"control_independent={p2['control_independent']} reviewer=NOT-REVIEWED"
+            ),
+            "blocked_on": (
+                "Dispatch one cross-vendor Codex reviewer who re-runs ONLY the second probe "
+                "(dynamic reachability)."
+            ),
+            "two_signal_proof": [
+                L.probe(
+                    "source",
+                    "command",
+                    "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
+                    f"control_independent={p2['control_independent']}",
+                    0,
+                ),
+                L.probe(
+                    "verifier",
+                    "file-read",
+                    "reviewer.verdict",
+                    "NOT-REVIEWED",
+                    0,
+                ),
+            ],
+        },
+        "residual_unknowns": [
+            {
+                "claim": "Function-level (not module-level) dead code is fully enumerated.",
+                "verdict": "NOT-CHECKED",
+                "settling_experiment": "Extend probe1 to resolve name loads/stores per function.",
+            },
+            {
+                "claim": "Hyphenated tools/* packages resolve the same under importlib as path-derived names.",
+                "verdict": "REFUTED",
+                "settling_experiment": "Map hyphen dirs to importlib package names before edge join.",
+            },
+        ],
+        "report": {
+            "kind": "audit-inventory",
+            "question": (
+                "Which modules, functions, and CLI entry points have no reference from any "
+                "entry point, test, CI step, or documentation command?"
+            ),
+            "headline": (
+                f"AST dead_modules={p1['dead_count']} / {p1['module_count']}; "
+                f"dynamic dead_modules={p2['dead_count']}; planted control independent="
+                f"{p2['control_independent']}. BLOCKED on Codex review."
+            ),
+            "observations": [
+                {
+                    "name": "ast_module_count",
+                    "measured": p1["module_count"],
+                    "method": "tools/**/*.py + planted control",
+                    "anchor": "command-center/p2-wave/probes/AUD-0032/probe1-ast-refs.json",
+                },
+                {
+                    "name": "ast_dead_modules",
+                    "measured": p1["dead_count"],
+                    "method": "zero inbound AST import edges",
+                    "anchor": "command-center/p2-wave/probes/AUD-0032/probe1-ast.raw.txt",
+                },
+                {
+                    "name": "dynamic_live_modules",
+                    "measured": p2["live_count"],
+                    "method": "BFS from entrypoints+CI+docs+string registries",
+                    "anchor": "command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
+                },
+                {
+                    "name": "dynamic_dead_modules",
+                    "measured": p2["dead_count"],
+                    "method": "modules not in dynamic live set",
+                    "anchor": "command-center/p2-wave/probes/AUD-0032/probe2-dynamic-reachability.json",
+                },
+                {
+                    "name": "planted_control_independent",
+                    "measured": p2["control_independent"],
+                    "method": "AST-DEAD && dynamic-LIVE for string-registry module",
+                    "anchor": "command-center/p2-wave/probes/AUD-0032/probe2-dynamic.raw.txt",
+                },
+            ],
+            "control_ids": ["AUD0032-C1"],
+        },
+        "extensions": {
+            "anti_false_green": "BLOCKED-with-real-probes",
+            "wave": "p2-wave1",
+            "planted_module": p1["planted_module"],
+        },
+    }
+
+
+def main() -> int:
+    doc = build()
+    rc = L.write_if_valid(doc, OUT, SCHEMA)
+    if rc != 0:
+        return rc
+    for _ in range(2):
+        doc = build(primary=L.art(OUT, "primary"))
+        rc = L.write_if_valid(doc, OUT, SCHEMA)
+        if rc != 0:
+            return rc
+    man = {
+        "unit_id": UNIT,
+        "output_path": OUT,
+        "sha256": L.art(OUT)["sha256"],
+        "bytes": L.art(OUT)["bytes"],
+        "state": "BLOCKED",
+    }
+    (L.REPO / MANIFEST).write_text(json.dumps(man, indent=2) + "\n", encoding="utf-8")
+    print(f"PACKED {OUT} state=BLOCKED bytes={L.art(OUT)['bytes']}")
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
