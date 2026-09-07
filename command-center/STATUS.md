@@ -8,7 +8,7 @@ This file is a derived measurement, not a hand-written claim. Every number below
 
 ## Stamps
 
-- generating_commit: `366febbf6ac354b84b17384f7cab14469bd47d16`
+- generating_commit: `ae93f965c10eaa181625c14dbecf7c561003a981`
 - generation_time: `2026-08-09T10:57:48+00:00` (newest event `ts`/`timestamp`/`t`, or epoch when event_records==0)
 - generator: `command-center/status_derive.py@v1`
 - reducer: `platform/lib/completion_predicate.py@v1`
