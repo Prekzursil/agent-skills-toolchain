@@ -1,92 +1,108 @@
 {
-  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview-post-flat-sibling",
+  "reviewer_id": "openai-composer-cross-vendor-aud0032-rereview3-post-shell-loop",
   "vendor": "openai",
   "verdict": "FAIL",
   "independent": true,
   "fresh_context": true,
-  "reviewed_at": "2026-09-07T18:48:00Z",
+  "reviewed_at": "2026-09-07T19:05:00Z",
   "unit_id": "AUD-0032",
-  "head_sha": "7175d5fbc1e47afbe184cea270aad3da1dced6c3",
-  "remediation_commit": "549f3e73f06a8f10797f0e4103abd4d9d1bd3d26",
-  "prior_fail_commit": "f56770e814448ca16e3862fe922fe33b014a8fe9",
-  "notes": "Cross-vendor re-review AFTER flat-sibling-import remediation (549f3e73f). Re-ran probe1 and probe2 at HEAD: probe1 SUCCESS dead=661; probe2 SUCCESS live=595 dead=142 agentrail 13/13 + 7/7 auth_jwt live control_independent=True; methods include flat_sibling_import_resolution + cwd-aware bounded_runtime_import_trace. Prior FAIL class is CLOSED: independent old-vs-new BFS (seed-only resolve_seed, no resolve_import_name) shows 25 modules newly LIVE, including tools.command-center.catalog, tools.command-center.register_parse, tools.event-ledger.ledger, and mcp dispatch/_modal_common/fleet_core/etc.; remaining live->dead flat-sibling edges=0 and relative-import false-deads=0; runtime cwd import of catalog+register_parse succeeds. However dynamic dead_count=142 is still falsified on a different CI under-count class: quality.yml gate-tests-coverage mcp servers uses `for p in search-hub social-hub ...; do ( cd tools/mcp/$p && python -m pytest -q ); done`, which ci_python_and_pytest_targets does not parse (only explicit pytest path tokens + working-directory bare pytest). Independent enumeration found 25 test/conftest modules under those loop packages classified DEAD despite CI executing them. Separately path_to_mod_candidates only rglobs test_*.py so tools.command-center.tests.conftest (and d001 conftest) stay DEAD even when pytest path tools/command-center/tests is seeded. Flat-sibling remaining false-dead count=0; remaining CI-shell-loop false-dead count=25 (+2 conftest auto-load). Do not promote; probe2 needs shell-loop cd+pytest seeding (and conftest inclusion) before PASS.",
+  "head_sha": "5ee2159c2a271d70916dbe1cd99a8fe21312bfef",
+  "remediation_commit": "7af9e5c822554afc5d71b9106f2273453e4061ca",
+  "prior_fail_commit": "de1c7c064",
+  "notes": "Cross-vendor re-review AFTER CI shell-loop + conftest remediation (7af9e5c82; HEAD 5ee2159c2 includes it). Re-ran probe1+probe2: probe1 SUCCESS module_count=738 dead=662 planted_ast_dead=True; probe2 SUCCESS live=621 dead=117 (committed artifacts still report live=620/dead=117; dead stable) agentrail 13/13 + 7/7 auth_jwt live control_independent=True; methods include ci_shell_loop_cd_pytest. PRIOR FAIL CLASS CLOSED: independent enumeration of search-hub/social-hub/mcp-host-supervisor/mcp-http-host/proxy-mcp/reverse-engineering-mcp-bundle test+conftest modules shows 0 DEAD (24 shell seeds; ablation without _shell_loop_cd_pytest_targets drops ci by 24 and misses all 24 shell-required modules). tools.command-center.tests.conftest and tools.d001-dual-write.tests.conftest are LIVE; path_to_mod_candidates now rglobs conftest.py (ablation: test_*.py-only misses both). However dynamic dead_count=117 is FALSIFIED on two NEW under-count classes: (1) src-layout / editable-install import aliases \u2014 CI-gated omniaudit-mcp tests import omniaudit.*, mcp_server.*, worker.* which map to tools.omniaudit-mcp.packages.omniaudit.* / apps.mcp_server.* / services.worker.*; resolve_import_name returns empty so 36 production modules stay DEAD despite CI execution; (2) package-__init__ relative import off-by-one \u2014 bfs treats __init__ modules like leaf modules (split('.')[:-1]), so `from . import _http, lightning, ovh, runpod` in live tools.mcp.cloud-hub.compute-mcp.providers resolves to compute-mcp._http instead of providers._http, leaving 4 CI-critical provider adapters DEAD (plus 4 fb-messenger fbmcp children under the same bug). Prior shell-loop/conftest remaining false-deads=0; new demonstrable false-deads\u224844. Do not promote; keep BLOCKED.",
   "falsification_attempts": [
     {
-      "attempt": "Exact rerun of probe1_ast_refs.py and probe2_dynamic_reach.py at remediation HEAD",
+      "attempt": "Exact rerun of probe1_ast_refs.py and probe2_dynamic_reach.py at HEAD containing 7af9e5c82",
       "result": "NOT-FALSIFIED (reproducibility)",
-      "detail": "Probe1 SUCCESS module_count=737 live=75 dead=661 planted_ast_dead=True. Probe2 SUCCESS seed_count=565 ast_live=595 runtime_live=32 live=595 dead=142 agentrail_tests_live=13/13 agentrail_internal_live=7/7 auth_jwt_audit_live=True control_independent=True ok=True; methods include flat_sibling_import_resolution and bounded_runtime_import_trace."
+      "detail": "Probe1 SUCCESS dead_count=662 planted_ast_dead=True module_count=738. Probe2 SUCCESS seed_count=592 ast_live=621 runtime_live=32 live=621 dead=117 agentrail_tests_live=13/13 agentrail_internal_live=7/7 auth_jwt_audit_live=True control_independent=True ok=True; methods include ci_shell_loop_cd_pytest + flat_sibling_import_resolution + bounded_runtime_import_trace. Committed probe2 json still shows live=620/dead=117 (dead unchanged)."
     },
     {
-      "attempt": "Confirm previously cited false-deads (esp. catalog / register_parse) are now LIVE",
-      "result": "NOT-FALSIFIED (prior flat-sibling FAIL remediated)",
-      "detail": "tools.command-center.catalog=LIVE, tools.command-center.register_parse=LIVE, tools.event-ledger.ledger=LIVE. Old-BFS-without-resolve_import_name yields dead≈167; new bfs with flat sibling resolve yields dead=142; 25 modules flipped DEAD→LIVE including the cited CI-critical command-center modules. Runtime `sys.path.insert(tools/command-center); import catalog, register_parse` exits 0."
+      "attempt": "Confirm prior shell-loop false-deads are now LIVE",
+      "result": "NOT-FALSIFIED (prior shell-loop FAIL remediated)",
+      "detail": "Independent _shell_loop_cd_pytest_targets parse of quality.yml multiline `for p in search-hub ...; do ( cd tools/mcp/$p && python -m pytest -q ); done` yields 24 seeds. All collectible test_/conftest modules under the six packages are LIVE (0 false-deads). Ablation zeroing the shell seeder: ci 498\u2192474; all 24 shell-required modules missing from ci_noshell."
     },
     {
-      "attempt": "Independent AST walk of LIVE modules for remaining flat sibling / relative import false-deads",
-      "result": "NOT-FALSIFIED (flat class closed)",
-      "detail": "Bare `import X` / `from X import ...` resolved against importer package prefixes: live→dead flat edges=0 unique false-deads=0. Relative ImportFrom live→dead edges=0. Dynamic import_module/__import__ string LIVE→DEAD edges=0. Hyphen-alias gaps beyond resolve_seed=0. CI-seeded modules still dead=0; entrypoint-resolved dead=0."
+      "attempt": "Confirm prior conftest path_to_mod gap closed",
+      "result": "NOT-FALSIFIED (prior conftest FAIL remediated)",
+      "detail": "tools.command-center.tests.conftest LIVE and in ci seeds; tools.d001-dual-write.tests.conftest LIVE and in ci seeds. test_*.py-only rglob would miss both; full path_to_mod_candidates includes them."
     },
     {
-      "attempt": "Cross-check dynamic-DEAD set against quality.yml shell-loop per-package pytest",
-      "result": "FALSIFIED (semantic dead_count)",
-      "detail": "quality.yml lines ~1465-1469 run `( cd tools/mcp/$p && python -m pytest -q )` for search-hub, social-hub, mcp-host-supervisor, mcp-http-host, proxy-mcp, reverse-engineering-mcp-bundle. Probe CI seeder misses this pattern (0 CI seeds under tools.mcp.search-hub / social-hub). 25 of 28 collectible test/conftest modules under those packages remain DEAD, e.g. tools.mcp.search-hub.tests.test_hub, tools.mcp.social-hub.tests.test_registry, tools.mcp.mcp-http-host.tests.test_mcp_http_host. Same shape as prior FAIL: cited remediation holds, but dead_count headline remains an unqualified overcount on a new under-count class."
+      "attempt": "CI-executed package-root sweep for remaining dead test/conftest",
+      "result": "NOT-FALSIFIED (no further CI test-suite under-count of that shape)",
+      "detail": "Across concrete CI roots (working-directory pytest + shell-loop pkgs + explicit tools/ pytest paths), dead test_/conftest count under those roots (excluding vendor/) = 0. Ungated suites (codex-fleet-github, linkedin-mcp, patent-search-mcp, qdx-rush-mcp, detector-self-test, mutation-gate tests, etc.) remain DEAD and are not CI-executed."
     },
     {
-      "attempt": "Check path_to_mod_candidates conftest coverage for explicit pytest test dirs",
-      "result": "FALSIFIED (minor additive)",
-      "detail": "path_to_mod_candidates only rglobs test_*.py; tools.command-center.tests.conftest and tools.d001-dual-write.tests.conftest stay DEAD while sibling test_* modules are CI-seeded LIVE. Pytest auto-loads conftest when those suites run."
+      "attempt": "Cross-check LIVE omniaudit tests against DEAD production modules they import",
+      "result": "FALSIFIED (semantic dead_count / src-layout alias under-count)",
+      "detail": "quality.yml gates omniaudit-mcp via working-directory bare pytest (27 test/conftest seeds LIVE). Those tests statically import omniaudit.storage.engine, mcp_server.main, worker.worker, etc. resolve_import_name from tools.omniaudit-mcp.tests.* returns set() for those names; independent alias map packages/omniaudit|apps/mcp_server|services/worker finds 36 known modules still DEAD. Same shape as prior FAILs: cited remedi holds, headline dead_count still overcounts."
     },
     {
-      "attempt": "Pre/post integrity: leave committed probe outputs untouched; review-only commit",
+      "attempt": "Re-resolve package-__init__ relative imports for LIVE packages",
+      "result": "FALSIFIED (relative-import off-by-one under-count)",
+      "detail": "tools.mcp.cloud-hub.compute-mcp.providers is LIVE (via dispatch `from providers import ...`) and contains `from . import _http, lightning, ovh, runpod`. Probe absmod for level=1 from providers/__init__ becomes tools.mcp.cloud-hub.compute-mcp (strips package name), so children resolve to compute-mcp._http (missing) instead of providers._http. All four provider adapters remain DEAD despite CI cloud-hub suite. Same bug surfaces 4 fb-messenger fbmcp children under live fbmcp/__init__. Total class-A false-deads=8."
+    },
+    {
+      "attempt": "Flat-sibling / control integrity regression check",
+      "result": "NOT-FALSIFIED",
+      "detail": "Remaining live\u2192dead flat sibling edges=0. Planted registry-only module LIVE; registry string-control DEAD; control_independent holds. Agentrail 13/13 and 7/7 hold."
+    },
+    {
+      "attempt": "Pre/post integrity: leave committed probe outputs + BLOCKED audit; review-only commit",
       "result": "CONFIRMED",
-      "detail": "Probe1/probe2 json+raw match HEAD after rerun (no restore needed). Only independent-review.json is intended for commit. Did not promote AUD-0032 SUCCESS."
+      "detail": "Restored probe1/probe2 json+raw to HEAD after rerun. UNIT-ARTIFACT-MANIFEST remains BLOCKED. Did not promote AUD-0032 SUCCESS; did not repack census."
     }
   ],
   "commands_run": [
     {
-      "command": "git fetch origin cursor/p2-loop-to-green-0db0 && git log -1 --oneline && git show 549f3e73f --stat",
+      "command": "git fetch origin cursor/p2-loop-to-green-0db0 && git checkout cursor/p2-loop-to-green-0db0 && git pull --ff-only && git merge-base --is-ancestor 7af9e5c82 HEAD",
       "exit_code": 0
     },
     {
       "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe1_ast_refs.py",
       "exit_code": 0,
-      "output_summary": "SUCCESS dead_count=661 planted_ast_dead=True module_count=737"
+      "output_summary": "SUCCESS dead_count=662 planted_ast_dead=True module_count=738",
+      "log": "/opt/cursor/artifacts/aud0032-rereview3-probe1.log"
     },
     {
       "command": "python3 -B command-center/p2-wave/probes/AUD-0032/probe2_dynamic_reach.py",
       "exit_code": 0,
-      "output_summary": "SUCCESS live=595 dead=142 agentrail 13/13 flat_sibling_import_resolution present"
+      "output_summary": "SUCCESS live=621 dead=117 methods include ci_shell_loop_cd_pytest; agentrail 13/13",
+      "log": "/opt/cursor/artifacts/aud0032-rereview3-probe2.log"
     },
     {
-      "command": "python3 - <<'PY' [independent flat-sibling + old-BFS delta + catalog runtime] PY",
+      "command": "python3 - <<'PY' [shell-loop + conftest LIVE verification + ablations] PY",
       "exit_code": 0,
-      "output_summary": "prior critical LIVE; flat remaining false-dead unique=0; newly-live-via-remediation=25; old_dead≈167"
+      "output_summary": "shell false-deads=0; conftest LIVE; shell ablation delta=24"
     },
     {
-      "command": "python3 - <<'PY' [CI shell-loop + conftest falsification] PY",
+      "command": "python3 - <<'PY' [omniaudit alias + package-init relative falsification] PY",
       "exit_code": 0,
-      "output_summary": "shell-loop false-deads=25; conftest false-deads=2; flat remaining=0"
+      "output_summary": "src-layout alias false-deads=36; package-init relative false-deads=8; union=44"
     }
   ],
   "confirmed": [
-    "flat_sibling_import_resolution_present",
-    "cwd_aware_runtime_import_trace_present",
-    "tools.command-center.catalog_LIVE",
-    "tools.command-center.register_parse_LIVE",
-    "prior_flat_sibling_false_dead_class_closed",
-    "remaining_flat_sibling_false_dead_count_0",
+    "ci_shell_loop_cd_pytest_present",
+    "path_to_mod_candidates_includes_conftest",
+    "shell_loop_six_packages_test_conftest_all_LIVE",
+    "tools.command-center.tests.conftest_LIVE",
+    "tools.d001-dual-write.tests.conftest_LIVE",
+    "prior_shell_loop_false_dead_class_closed",
+    "prior_conftest_false_dead_class_closed",
     "agentrail_13_13_and_7_7_still_hold",
-    "planted_control_independent"
+    "planted_control_independent",
+    "remaining_flat_sibling_false_dead_count_0"
   ],
   "falsified": [
-    "dynamic_dead_count_142_as_true_unreachable_set",
-    "ci_python_and_pytest_targets_complete_for_shell_loop_cd_pytest",
-    "path_to_mod_candidates_includes_conftest"
+    "dynamic_dead_count_117_as_true_unreachable_set",
+    "resolve_import_name_covers_src_layout_editable_aliases",
+    "bfs_relative_import_correct_for_package_init_modules"
   ],
   "remaining_false_dead_count": {
+    "ci_shell_loop_pytest": 0,
+    "conftest_autoload_gap": 0,
     "flat_sibling_imports": 0,
-    "ci_shell_loop_pytest": 25,
-    "conftest_autoload_gap": 2,
-    "total_demonstrable": 27
+    "src_layout_import_aliases": 36,
+    "package_init_relative_imports": 8,
+    "total_demonstrable": 44
   }
 }
