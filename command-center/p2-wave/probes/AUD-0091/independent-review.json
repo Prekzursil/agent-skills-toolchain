@@ -1,0 +1,113 @@
+{
+  "unit_id": "AUD-0091",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "fresh-context-claude-falsify-reviewer-aud0091",
+  "reviewer_role": "falsify-reviewer",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_path": "command-center/audit/AUD-0091-clean-room-clone-baseline.json",
+  "receipt_state_observed": "BLOCKED",
+  "base_tip_sha": "276f9919d9f59515f4c30a1aac0ad64c5be490ba",
+  "reviewed_at": "2026-09-07T23:12:00Z",
+  "method": "Fresh checkout of cursor/aud-0091-review-0db0 at the given tip. Read the receipt and all 3 named-probe scripts/JSON/raw logs without treating the headline as authoritative. Re-ran control_cache_free.py from scratch and diffed its output against the committed JSON (restored the committed files afterward so the receipt's recorded sha256 artifacts stay untouched). Independently re-ran `npm test` in-place and re-summed the per-workspace TAP '# pass'/'# fail' lines by hand. Independently re-ran `npm run validate:skills` in-place and captured its real exit code. Verified `pwsh`/`claude`/`git-crypt` absence directly via `which`/`command -v` rather than trusting probe1's shutil.which report. Verified the pinned SHA against `git log`/`git merge-base --is-ancestor` against `origin/main`. Read README.md's actual Quick Start + Validation section ordering to check whether the claude-plugin/git-crypt steps precede npm install/test in doc order, and whether the receipt's 'first diverges at validate:skills' claim silently hides an earlier divergence. Confirmed receipt state/reviewer fields and re-ran the admission gate.",
+  "re_runs": {
+    "control_cache_free": {
+      "command": "python3 -B command-center/p2-wave/probes/AUD-0091/control_cache_free.py",
+      "exit_code": 0,
+      "fired_on_bad": true,
+      "silent_on_good": true,
+      "note": "Output diffed against committed control-cache-free.json: only started_at/ended_at timestamps and the /tmp scratch dirname (a fresh mkdtemp suffix) differ; fired_on_bad/silent_on_good/ok are identical. Committed artifact files were restored via `git checkout --` after the re-run so the receipt's recorded sha256 values remain valid."
+    },
+    "npm_test_inplace": {
+      "command": "npm test",
+      "exit_code": 0,
+      "per_workspace_pass": [38, 354, 72],
+      "sum_pass": 464,
+      "sum_fail": 0
+    },
+    "npm_run_validate_skills_inplace": {
+      "command": "npm run validate:skills",
+      "exit_code": 127,
+      "stderr": "sh: 1: pwsh: not found"
+    },
+    "tool_presence_direct": {
+      "pwsh": "absent (which exit 1)",
+      "claude": "absent (which exit 1)",
+      "git_crypt": "absent (which exit 1)"
+    },
+    "pinned_sha_check": {
+      "command": "git log -1 --format=%H acb040577ecd72eacacf61e65f7ee0633a80f939 && git rev-parse origin/main && git merge-base --is-ancestor acb040577ecd72eacacf61e65f7ee0633a80f939 origin/main",
+      "result": "acb040577ecd72eacacf61e65f7ee0633a80f939 IS origin/main HEAD at review time; is-ancestor exits 0"
+    },
+    "admission_gate": {
+      "command": "python3 command-center/receipt_validate.py command-center/audit/AUD-0091-clean-room-clone-baseline.json",
+      "output": "ACCEPT:AUD-0091 C1 parses; C2 schema-valid; C3 unit is in the catalog; C4 sentinel binds",
+      "exit_code": 0
+    }
+  },
+  "falsification_attempts": [
+    {
+      "attempt": "Re-run control_cache_free.py from a fresh process and challenge fired_on_bad=True / silent_on_good=True as possibly stale or hand-edited in the committed JSON.",
+      "result": "could_not_falsify",
+      "observed": "Re-run reproduced fired_on_bad=True, silent_on_good=True, ok=True byte-for-byte except timestamps and a fresh /tmp dirname; committed files restored unchanged."
+    },
+    {
+      "attempt": "Independently re-sum the per-workspace TAP output of `npm test` in-place and challenge the claimed 464/464 (possible miscounted duplicate 'workspace 3 == suite 6' TAP summary lines, or silent skip of a workspace).",
+      "result": "could_not_falsify",
+      "observed": "3 workspace runs reported '# pass 38 # fail 0', '# pass 354 # fail 0', '# pass 72 # fail 0'; hand sum = 464 pass / 0 fail, exit_code 0, matching the receipt and probe1/probe2 JSON exactly."
+    },
+    {
+      "attempt": "Independently re-run `npm run validate:skills` and challenge whether exit_code=127 / 'pwsh: not found' is real or fabricated, and whether pwsh might actually be present under a different PATH entry (e.g. a repo-vendored binary or npm-installed shim).",
+      "result": "could_not_falsify",
+      "observed": "exit_code=127, stderr='sh: 1: pwsh: not found'; `which pwsh` also exits 1; `find . -iname '*pwsh*'` under the repo finds nothing."
+    },
+    {
+      "attempt": "Challenge the pinned_sha claim: is acb040577ecd72eacacf61e65f7ee0633a80f939 actually a real point on main, or an invented/rewritten SHA that doesn't exist on origin?",
+      "result": "could_not_falsify",
+      "observed": "git rev-parse origin/main == acb040577ecd72eacacf61e65f7ee0633a80f939 exactly (it is the current tip of main); merge-base --is-ancestor confirms."
+    },
+    {
+      "attempt": "Challenge whether 'documented sequence FIRST DIVERGES at npm run validate:skills' is a false claim, since README.md's own Quick Start orders `claude plugin marketplace add` (line 13) and `git-crypt unlock` (line 18) BEFORE `npm install` (line 21)/`npm test` (line 24) -- both of those earlier steps would also fail on this substrate (claude and git-crypt are both absent, confirmed directly), meaning a strict-doc-order run diverges earlier than validate:skills, not at it.",
+      "result": "not_a_falsification",
+      "observed": "This ordering issue is real (confirmed by reading README.md directly: lines 13/18 precede 21/24), but the receipt's own headline text already discloses it verbatim -- '4 README step(s) requiring the claude/git-crypt CLIs were out of scope (agent-tooling mount steps, not build/test) and are listed, not silently skipped' -- and probe1's own OUT_OF_SCOPE list names all 4 steps with reasons, checked via shutil.which rather than assumed. The receipt's residual_unknowns section separately carries this exact gap as NOT-CHECKED with a named settling experiment. 'First diverges' is scoped throughout the receipt to the build/test-relevant documented steps (npm install, npm test, npm run validate:skills, python3 scripts/test-live-skill-helpers.py), and that narrower claim is not falsified. This is a disclosed scope decision, not a hidden or false claim; treating a transparently-flagged scope boundary as a falsification would penalize honesty over silence."
+    },
+    {
+      "attempt": "Challenge the headline's informal phrase 'byte-identical to the in-place baseline' against what probe2_inplace_baseline_compare.py actually computes (results_identical = only exit_code/pass/fail scalar equality, not a byte-for-byte stdout diff).",
+      "result": "not_a_falsification",
+      "observed": "Confirmed by reading probe2_inplace_baseline_compare.py: the comparator only equates (exit_code, pass, fail) tuples, not raw stdout bytes -- so 'byte-identical' is loose headline phrasing, not the literal computed metric. However the headline immediately qualifies it with the precise field 'results_identical=True', the receipt's evidence/observations sections use only 'results_identical' (never claiming a byte-diff), and the underlying substantive claim (464 pass / 0 fail / exit_code 0 on BOTH clean-clone and in-place runs) was independently reproduced by this review's own fresh `npm test` run. The imprecise adjective does not misrepresent what was actually measured or falsify the substance of the claim; noted below as a wording nit."
+    },
+    {
+      "attempt": "Confirm receipt was not promoted to SUCCESS and reviewer.verdict was not flipped by this review process.",
+      "result": "could_not_falsify_blocker",
+      "observed": "command-center/audit/AUD-0091-clean-room-clone-baseline.json state=BLOCKED; reviewer.verdict=NOT-REVIEWED, reviewer_id=required-fresh-context-claude-reviewer-unassigned, unchanged on disk (git status clean on that path); this file is the independent review artifact, not a promotion of the receipt."
+    }
+  ],
+  "headline_claims_checked": {
+    "pinned_sha": "acb040577ecd72eacacf61e65f7ee0633a80f939",
+    "pinned_sha_is_origin_main_head": true,
+    "cache_free_before_run": true,
+    "npm_install_and_test_pass_clean_clone": true,
+    "npm_test_pass_fail": [464, 0],
+    "npm_test_pass_fail_reproduced_inplace": [464, 0],
+    "results_identical_clean_vs_inplace": true,
+    "first_failing_step_build_test_scope": "npm-run-validate-skills",
+    "first_failing_step_exit_code": 127,
+    "first_failing_step_exit_code_reproduced": 127,
+    "pwsh_absent": true,
+    "claude_absent": true,
+    "git_crypt_absent": true,
+    "control_fired_on_bad": true,
+    "control_silent_on_good": true,
+    "control_reproduced": true,
+    "receipt_state_unchanged": "BLOCKED"
+  },
+  "notes": "Genuine falsify attempt: re-executed every re-runnable named probe (control, npm test, npm run validate:skills) from scratch on a fresh checkout of this branch rather than re-reading the committed logs, and independently re-derived the pinned-SHA and tool-absence claims via direct git/which commands. All technical claims (pinned SHA, cache-free-before-run, 464/464 npm test both clean-clone and in-place, exit 127 on validate:skills with pwsh missing, control detector firing/silent behavior) reproduced exactly. Two softer challenges were raised per the task's explicit prompt: (1) the 'first diverges at validate:skills' framing does skip two earlier README steps (claude plugin marketplace add, git-crypt unlock) that would also fail on this substrate in strict doc order -- but this is disclosed by name in both the headline and residual_unknowns, not hidden, so it is a transparent scope decision rather than a false claim; (2) 'byte-identical' in the headline overstates what probe2 actually computes (scalar count/exit-code equality, not a stdout byte-diff) -- a wording imprecision that does not change the underlying reproduced result. Neither rises to a substantive falsification of the receipt's measured claims, so verdict=PASS. Receipt intentionally left BLOCKED (reviewer.verdict still NOT-REVIEWED on the receipt itself); this independent-review.json is the only new artifact written by this review.",
+  "residual_unknowns": [
+    "Whether a strict README-doc-order run (claude plugin marketplace add -> claude plugin install -> git-crypt unlock -> npm install -> npm test -> claude mcp add) would fail even earlier than npm run validate:skills on a substrate that HAS claude/git-crypt but lacks pwsh -- not tested by either probe or this review; both substrates used lack all three tools, so relative ordering of those specific failures is unverified.",
+    "Whether installing pwsh here would let npm run validate:skills itself pass, or whether it would then hit the second-layer external skill-creator validator AGENTS.md says is also required under CODEX_HOME (carried forward from the receipt's own residual_unknowns, not independently re-derived by this review).",
+    "The 'byte-identical' headline phrase is looser than the actual results_identical computation (scalar tuple equality, not a raw stdout diff); this review flags the wording gap but did not attempt a true byte-level diff of the two npm test stdout captures itself."
+  ]
+}
