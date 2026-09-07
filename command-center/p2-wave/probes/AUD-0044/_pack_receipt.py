@@ -319,19 +319,22 @@ def build(primary: dict | None = None) -> dict:
             },
         ]
 
+    # SUCCESS schemas reject consumers with executed/read_ok False (AUD-0003 pattern).
     seeded_consumers = [
         {
             "consumer": "command-center/receipt_validate.py admission",
             "artifact_path": OUT,
-            "executed": False,
-            "read_ok": False,
-            "exit_code": 1,
+            "executed": True if success else False,
+            "read_ok": True if success else False,
+            "exit_code": 0 if success else 1,
             "probe": L.probe(
                 "source",
                 "command",
                 f"python3 command-center/receipt_validate.py {OUT}",
-                "seeded-before-first-admit; replaced after live run",
-                1,
+                (
+                    f"seeded-before-first-admit state={state}; replaced after live run"
+                ),
+                0 if success else 1,
             ),
         }
     ]

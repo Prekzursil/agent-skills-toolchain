@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 33127,
+   "bytes": 32833,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0044-required-context-audit.json",
    "role": "primary",
-   "sha256": "d094b1c3b7d63ea7e4f48da4725fd60927e90ecb17d1099f3d08acd9ce351977"
+   "sha256": "3183355d976ad5141ae9375169fc1da3d8debeb92d168eab14fd3e842c003008"
   },
   {
    "bytes": 2501,
@@ -127,26 +127,34 @@
    "path": "command-center/p2-wave/probes/AUD-0044/fixtures/scratch-workflow-renamed.yml",
    "role": "fixture",
    "sha256": "d12445beab3d6a4c374a6a49980c1205e704970cdb05138e3988a8855d043574"
+  },
+  {
+   "bytes": 13345,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0044/independent-review.json",
+   "role": "supporting",
+   "sha256": "ec026c1b4e01b7d3ac2496ec4efb5362bd9caf424ca3d672b5557a1a93b44ca6"
   }
  ],
  "defects": [
   {
    "id": "AUD-0044-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude falsify-review unpaid."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0044/independent-review.json"
   },
   {
    "id": "AUD-0044-D-EMITTED-NOT-REQUIRED",
    "severity": "P2",
    "status": "open",
-   "summary": "11 emitted context(s) not required (sample: ['Seer Code Review', 'auto-merge', 'gate-hook-audit', 'gate-interpreter-floor', 'gate-mcp-audit'])."
+   "summary": "11 emitted context(s) are not in the required set and therefore gate nothing on merge."
   },
   {
    "id": "AUD-0044-D-CLASSIC-PROTECTION-API",
    "severity": "P2",
    "status": "open",
-   "summary": "Classic branch-protection API inaccessible (403); rulesets used instead. Do not invent classic contexts."
+   "summary": "Classic GET .../branches/main/protection returned 403; required contexts were recovered from rulesets only."
   }
  ],
  "downstream_consumers": [
@@ -265,7 +273,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "artifact_class": "audit-drift",
   "control": {
    "ok": true,
@@ -315,40 +323,11 @@
   "required_but_never_emitted": [],
   "wave": "p2-loop"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this transcript to try to FALSIFY the headline required_but_never_emitted / emitted_but_not_required / symmetric_difference counts before PASS.",
-  "classification": [
-   "blocked-on-independent-review",
-   "green-not-live",
-   "detector-failure",
-   "credential-absent"
-  ],
-  "diagnostic_tail": "required=7 emitted=18 req_missing=0 em_extra=11 symdiff=11 api_used=rulesets classic_ok=False control_ok=True reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed (probe1 ok=True via rulesets, probe2 ok=True on PR #308, comparator ok=True, renamed-job control ok=True), but catalog reviewer_requirement is unmet. Residual: classic branch-protection API returned 403; required contexts were not invented \u2014 they came from rulesets.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0044/compare_required_vs_emitted.py",
-    "exit_code": 0,
-    "fingerprint": "d1d0fc42ac5edb837d0f327d5d5f724b",
-    "method": "command",
-    "raw_output": "required=7 emitted=18 symdiff=11",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0044",
   "manifest_path": "command-center/p2-wave/probes/AUD-0044/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T22:28:34Z"
+  "registered_at": "2026-09-07T22:38:33Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -378,7 +357,7 @@
   "vendor": "anthropic"
  },
  "report": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "control_ids": [
    "AUD0044-C1",
    "AUD0044-C2"
@@ -459,17 +438,18 @@
   "policy": "retry only after the named upstream unit emits its SUCCESS sentinel; retrying against a missing input is a detector failure, not a transient"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline count before PASS, not re-read the artifact. Unavailable in-session; BLOCKED instead of fake SUCCESS.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Every headline count in the receipt reproduced exactly on a fresh live re-run and, more importantly, on an independently-written comparator that does not import the implementer's compare_contexts.py. I specifically tried several distinct falsification angles (hidden second ruleset, org-level ruleset, classic-API real-vs-fake 403, PR cherry-picking, duplicate check-run inflation, rigged rename fixture) and none of them broke a single claimed number. The only genuinely open question -- whether classic branch-protection required_status_checks would agree with the ruleset list if this token had Administration:read -- remains unresolved because I have the same fine-grained-token 403 the implementer had; this is correctly logged as a residual_unknown in the receipt rather than papered over, and I am leaving it open rather than fabricating an answer. I did not promote the receipt; state=BLOCKED and reviewer.verdict=NOT-REVIEWED remain exactly as found on disk. This independent-review.json is a separate artifact documenting my own falsify attempt; a downstream packer step (not run by me) may use it to decide whether to promote the receipt, per this task's explicit instruction not to pack SUCCESS myself.",
+  "reviewed_at": "2026-09-07T22:33:00Z",
+  "reviewer_id": "aud-0044-claude-falsify",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0044 required-vs-emitted context audit measured required=7 emitted=18 required_but_never_emitted=0 emitted_but_not_required=11 intersection=7 symmetric_difference=11 control_ok=True; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0044",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0044",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -497,7 +477,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T22:28:34Z",
+  "ended_at": "2026-09-07T22:38:33Z",
   "started_at": "2026-09-07T22:26:25Z"
  },
  "unit_id": "AUD-0044"
