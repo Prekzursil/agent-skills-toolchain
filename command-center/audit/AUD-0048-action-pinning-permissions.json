@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 35618,
+   "bytes": 35679,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0048-action-pinning-permissions.json",
    "role": "primary",
-   "sha256": "0b3cba9549c03da947d7d868191a436684214678a0f37e0a535bb4dcecedc5ad"
+   "sha256": "505a9f339858c21d07a5273b8a43fb7c9247d94eeeae18f24b5957991332028f"
   },
   {
    "bytes": 32961,
@@ -63,20 +63,28 @@
    "path": "command-center/p2-wave/probes/AUD-0048/fixtures/tag-pinned.yml",
    "role": "fixture",
    "sha256": "dce6c9ae31a3f53a0bac1eb62543fe810da49ba6a5bed28b77a4c0eec43e0252"
+  },
+  {
+   "bytes": 8369,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0048/independent-review.json",
+   "role": "supporting",
+   "sha256": "1fbbc3980e9fac9e260a0877f4706ad96c0f57bf16c6f6e9bbd42e901a3c2842"
   }
  ],
  "defects": [
   {
    "id": "AUD-0048-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude review unpaid; headline counts must be falsified by a reviewer who did not author this census."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0048/independent-review.json"
   },
   {
    "id": "AUD-0048-D-UNPINNED",
    "severity": "P2",
    "status": "open",
-   "summary": "production third-party unpinned uses=3 (tag=3 branch=0); production workflows inheriting default token=0; control_ok=True; resolutions=7/7."
+   "summary": "production third-party unpinned uses=3 (tag=3 branch=0); production workflows inheriting default token=0."
   }
  ],
  "downstream_consumers": [
@@ -90,7 +98,7 @@
     "exit_code": 0,
     "fingerprint": "c97c4f99ef64b29478948505fd82dfaf",
     "method": "schema-validate",
-    "raw_output": "state=BLOCKED",
+    "raw_output": "state=SUCCESS",
     "role": "source"
    },
    "read_ok": true
@@ -147,7 +155,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-pending-independent-review-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-re-review-PASS",
   "output_path": "command-center/audit/AUD-0048-action-pinning-permissions.json",
   "probe2_method": "git ls-remote https://github.com/<owner>/<repo>.git refs/tags/<ref> refs/heads/<ref>",
   "production_by_pin_class": {
@@ -156,38 +164,11 @@
   },
   "wave": "p2-wave1"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline third_party_unpinned_count=3 (tag=3 branch=0) and production_workflows_inheriting_default_token_count=0 before PASS, not re-read the artifact.",
-  "classification": [
-   "blocked-on-independent-review",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "unpinned=3 tag=3 branch=0 inherit_prod=0 control_ok=True resolutions=7/7 reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed with the required both-states control (branch-pinned flagged critical; sha-pinned not flagged) and live tag\u2192SHA resolutions recorded, but catalog reviewer_requirement is unmet (fresh-context Claude must falsify headline counts).",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0048/probe1_syntactic_classify.py",
-    "exit_code": 0,
-    "fingerprint": "e3eaacdafbd3ac45cdc6c8e198c21e1c",
-    "method": "command",
-    "raw_output": "third_party_unpinned_count=3 control_ok=True inherit_prod=0",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0048",
   "manifest_path": "command-center/p2-wave/probes/AUD-0048/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T19:15:10Z"
+  "registered_at": "2026-09-07T19:24:39Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -244,7 +225,7 @@
     "uses": "dependabot/fetch-metadata@v3"
    }
   ],
-  "headline": "prod sha=38 tag=3 branch=0 unpinned=3; prod_inherit_default_token=0; control_ok=True; tag_resolutions=7/7. BLOCKED on independent fresh-context Claude review.",
+  "headline": "prod sha=38 tag=3 branch=0 unpinned=3; prod_inherit_default_token=0; control_ok=True; tag_resolutions=7/7. Independent re-review PASS.",
   "inherit_default_paths": [
    "command-center/p2-wave/probes/AUD-0048/fixtures/branch-pinned.yml"
   ],
@@ -324,17 +305,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript and must try to FALSIFY the headline count before PASS. Probes measured; review unpaid; BLOCKED.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh-context independent review of AUD-0048 with no prior exposure to the authoring transcript. Goal: FALSIFY headline third_party_unpinned_count=3 (prod tag=3 branch=0), production_workflows_inheriting_default_token_count=0, control_ok=True, and tag_resolutions=7/7. Could not. Re-ran probe1 and probe2; probe1 raw was byte-identical to committed; probe2 differed only in measured_at timestamp (resolutions identical). Restored committed probe1/probe2 raw+json after re-runs so this review leaves no receipt-adjacent drift. Independent re-census of root .github/workflows (12 files, 41 uses:) reproduced sha-pinned=38 tag-pinned=3 branch-pinned=0 unpinned=3 with the exact three claimed refs; all 12 production workflows declare a non-empty workflow-level permissions: block so inherit_prod=0. Planted fixtures confirmed: branch-pinned.yml @main/@master severity=critical flagged; sha-pinned.yml 40-hex refs severity=none unflagged; tag-pinned.yml @v4 resolves via git ls-remote. Attempt to inflate unpinned by scanning repo-wide YAML found tag/branch pins under other-audit fixtures, metaswarm templates, and nested tools/editor/metaswarm/.github/workflows/ci.yml \u2014 those are not this repository's production root .github/workflows CI (GitHub only executes the root workflows tree), so they do not move the stated prod headline. Did not invent SUCCESS or promote the receipt; artifact remains BLOCKED for the implementer to consume this PASS review. Only this independent-review.json is intended to be committed.",
+  "reviewed_at": "2026-09-07T19:21:27Z",
+  "reviewer_id": "fresh-context-claude-independent-reviewer-AUD-0048",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0048 syntactic pin census + tag SHA resolution measured; branch-pinned fixture flagged critical; sha-pinned fixture clean; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0048",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0048",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -362,7 +344,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T19:15:10Z",
+  "ended_at": "2026-09-07T19:24:39Z",
   "started_at": "2026-09-07T19:10:00Z"
  },
  "unit_id": "AUD-0048"
