@@ -17,7 +17,7 @@ sys.path.insert(0, str(PLUGIN))
 import pack as pack_mod  # noqa: E402
 import secret_gate as S  # noqa: E402
 
-REPO = Path(__file__).resolve().parents[2]
+REPO = Path(__file__).resolve().parents[3]
 
 
 def _synthetic() -> str:
@@ -126,3 +126,45 @@ def test_variable_name_and_byte_offset_reported() -> None:
     named = blocking[0].named_line()
     assert "var=MY_API_TOKEN" in named
     assert S.secret_body(token) not in named
+
+
+def test_base64_encoded_token_blocks_emit() -> None:
+    """Regression for IMP-0004 FAIL review: base64-wrapped ghp_ must block."""
+    import base64
+
+    token = _synthetic()
+    b64 = base64.b64encode(token.encode("ascii")).decode("ascii")
+    members = [
+        ("readme.md", b"# clean\n"),
+        ("encoded_secret.cfg", f"API_TOKEN_B64={b64}\n".encode("utf-8")),
+    ]
+    report = S.scan_members(members)
+    assert report.blocking >= 1
+    assert any(f.rule.startswith("base64_wrapped_") for f in report.findings)
+    body = S.secret_body(token)
+    text = report.render_named_report()
+    assert body not in text
+    assert token not in text
+    with pytest.raises(S.SecretGateError, match="base64_wrapped_|credential-exposure"):
+        S.assert_members_clean(members)
+
+
+def test_reviewer_evasion_fixture_now_blocks() -> None:
+    """The FAIL-review fixture under reviews/IMP-0004 must no longer bypass."""
+    fixture = (
+        REPO
+        / "command-center"
+        / "p2-wave"
+        / "reviews"
+        / "IMP-0004"
+        / "evasion-fixture"
+        / "encoded_secret.cfg"
+    )
+    if not fixture.is_file():
+        pytest.skip("evasion fixture not on tip yet")
+    data = fixture.read_bytes()
+    findings = S.scan_bytes(data, relpath="encoded_secret.cfg")
+    blocking = [f for f in findings if f.severity == "blocking"]
+    assert blocking, f"expected blocking on base64 evasion; got {findings!r}"
+    with pytest.raises(S.SecretGateError):
+        S.assert_members_clean([("encoded_secret.cfg", data)])

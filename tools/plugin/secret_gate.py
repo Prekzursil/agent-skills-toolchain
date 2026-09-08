@@ -19,6 +19,7 @@ zip emission. Standalone CLI mirrors the forbidden-content scanner contract.
 from __future__ import annotations
 
 import argparse
+import base64
 import json
 import math
 import os
@@ -80,6 +81,37 @@ _ASSIGN_VAR_RE = re.compile(
 _HASH_CONTEXT_RE = re.compile(
     r"(?i)\b(sha256|sha1|md5|digest|hash|checksum|revision)\b"
 )
+#: Candidate base64 blobs long enough to hide a ghp_/sk- style token after decode.
+_B64_CANDIDATE_RE = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
+_B64_MIN_DECODED_LEN = 16
+
+
+# Safe base64 decode (no binascii import required):
+def _b64_decode_safe(token: str) -> bytes | None:
+    if not re.fullmatch(r"[A-Za-z0-9+/]+=*", token):
+        return None
+    pad = (-len(token)) % 4
+    padded = token + ("=" * pad)
+    try:
+        raw = base64.b64decode(padded, validate=False)
+    except Exception:
+        return None
+    if len(raw) < _B64_MIN_DECODED_LEN:
+        return None
+    # Require mostly printable / utf-8-ish so random high-entropy isn't all blocking.
+    try:
+        text = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        # Still pattern-scan latin-1 view for ASCII credential prefixes.
+        text = raw.decode("latin-1", errors="ignore")
+    if not any(ch.isprintable() or ch in "\n\r\t" for ch in text[:64]):
+        return None
+    return raw
+
+
+def looks_like_hash_literal(line: str) -> bool:
+    return bool(_HASH_CONTEXT_RE.search(line))
+
 
 #: Detector-control plant: synthetic github-shaped token assembled at runtime.
 PLANTED_CONTROL_REL = "planted_secret_control.txt"
@@ -184,6 +216,49 @@ def shannon_bits(s: str) -> float:
     return -sum((c / n) * math.log2(c / n) for c in counts.values())
 
 
+def findings_from_decoded_b64(
+    token: str,
+    *,
+    relpath: str,
+    lineno: int,
+    line_start: int,
+    raw_line: str,
+    token_pos: int,
+) -> list[Finding]:
+    """If ``token`` base64-decodes to a credential-shaped plaintext, emit blocking."""
+    raw = _b64_decode_safe(token)
+    if raw is None:
+        return []
+    try:
+        decoded = raw.decode("utf-8")
+    except UnicodeDecodeError:
+        decoded = raw.decode("latin-1", errors="ignore")
+    out: list[Finding] = []
+    for name, rx in _SECRET_RES:
+        m = rx.search(decoded)
+        if not m:
+            continue
+        matched = m.group(0)
+        out.append(
+            Finding(
+                path=relpath,
+                rule=f"base64_wrapped_{name}",
+                line=lineno,
+                severity="blocking",
+                excerpt_shape=(
+                    f"b64_len={len(token)} decoded_len={len(matched)} "
+                    f"entropy={shannon_bits(matched):.2f}bits"
+                ),
+                variable_name=extract_variable_name(raw_line),
+                byte_offset=line_start + max(token_pos, 0),
+                prefix=safe_prefix_of(matched),
+            )
+        )
+    return out
+
+
+
+
 def safe_prefix_of(matched: str) -> str:
     """Return the longest known zero-entropy prefix of ``matched``, else empty."""
     for pref in sorted(SAFE_PREFIXES, key=len, reverse=True):
@@ -195,10 +270,6 @@ def safe_prefix_of(matched: str) -> str:
 def extract_variable_name(line: str) -> str:
     m = _ASSIGN_VAR_RE.search(line)
     return m.group(1) if m else ""
-
-
-def looks_like_hash_literal(line: str) -> bool:
-    return bool(_HASH_CONTEXT_RE.search(line))
 
 
 def synthesize_github_pat(*, seed: int = 20260908, body_len: int = 36) -> str:
@@ -263,6 +334,18 @@ def scan_text(
                     prefix=safe_prefix_of(matched),
                 )
             )
+        # Base64-wrapped credentials (adversarial evasion: encode plaintext token).
+        for m in _B64_CANDIDATE_RE.finditer(line):
+            out.extend(
+                findings_from_decoded_b64(
+                    m.group(0),
+                    relpath=relpath,
+                    lineno=lineno,
+                    line_start=line_start,
+                    raw_line=raw_line,
+                    token_pos=m.start(),
+                )
+            )
         # Independent entropy instrument (not a second copy of SECRET_RULES).
         for token in re.findall(
             r"[A-Za-z0-9+/=_-]{%d,}" % HIGH_ENTROPY_MIN_LEN, line
@@ -272,6 +355,13 @@ def scan_text(
             if looks_like_hash_literal(raw_line):
                 continue
             if shannon_bits(token) < HIGH_ENTROPY_BITS:
+                continue
+            # Skip advisory entropy if base64 decode already produced a blocking hit
+            # on the same candidate (avoid double-noise).
+            if any(
+                f.rule.startswith("base64_wrapped_") and f.line == lineno
+                for f in out
+            ):
                 continue
             out.append(
                 Finding(
