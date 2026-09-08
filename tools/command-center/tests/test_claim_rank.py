@@ -240,3 +240,80 @@ def test_score_cluster_source_does_not_multiply_by_repetition_count() -> None:
         for i in range(20)
     ]
     assert cr.score_cluster(one)["score"] == cr.score_cluster(many)["score"]
+
+
+def test_opaque_url_trailing_slash_collapses() -> None:
+    """shared://one-doc and shared://one-doc/ are one document (adversarial FAIL)."""
+    assert cr.normalize_source_document("shared://one-doc") == cr.normalize_source_document(
+        "shared://one-doc/"
+    )
+    a = _claim("A", "slash-collapse", anchors=[("shared://one-doc", "read")], settling="s")
+    b = _claim("B", "slash-collapse", anchors=[("shared://one-doc/", "read2")], settling="s2")
+    assert cr.independent_signals([a, b])["independent_source_count"] == 1
+    assert cr.score_cluster([a])["score"] == cr.score_cluster([a, b])["score"]
+
+
+def test_file_uri_twins_collapse_to_path() -> None:
+    """docs/x.md ≡ file:///docs/x.md ≡ file://localhost/docs/x.md."""
+    paths = ["docs/x.md", "file:///docs/x.md", "file://localhost/docs/x.md"]
+    norms = {cr.normalize_source_document(p) for p in paths}
+    assert len(norms) == 1
+    recs = [
+        _claim(f"F{i}", "file-twin", anchors=[(p, f"p{i}")], settling="settle")
+        for i, p in enumerate(paths)
+    ]
+    assert cr.independent_signals(recs)["independent_source_count"] == 1
+    assert cr.score_cluster(recs)["score"] == cr.score_cluster([recs[0]])["score"]
+
+
+def test_equal_score_peer_method_proliferation_does_not_raise_rank() -> None:
+    """Echo method labels must not climb rank via tiebreak against equal-score peer.
+
+    Reproduction of CC-0018 adversarial FAIL: volume_tiebreak_via_method_proliferation.
+    """
+    peer = _claim(
+        "PEER",
+        "equal-score-peer",
+        anchors=[("peer://doc", "read")],
+        confidence="likely",
+        verification="UNVERIFIED",
+        impact="medium",
+        settling="peer-settle",
+    )
+    base = _claim(
+        "GAME",
+        "gaming-target",
+        anchors=[("game://doc", "agent-1-read")],
+        confidence="likely",
+        verification="UNVERIFIED",
+        impact="medium",
+        settling="game-settle-1",
+    )
+    # Sanity: single-agent game and peer have equal scores.
+    assert cr.score_cluster([base])["score"] == cr.score_cluster([peer])["score"]
+
+    ranked_before = cr.rank_claims([base, peer])
+    row_before = cr.find_rank(ranked_before, "GAME")
+    assert row_before is not None
+
+    echoes = [
+        _claim(
+            f"GAME-{i}",
+            "gaming-target",
+            anchors=[("game://doc", f"agent-{i}-read")],
+            confidence="likely",
+            verification="UNVERIFIED",
+            impact="medium",
+            settling=f"game-settle-{i}",
+        )
+        for i in range(1, 6)
+    ]
+    ranked_after = cr.rank_claims([*echoes, peer])
+    row_after = cr.find_rank(ranked_after, cluster="gaming-target")
+    assert row_after is not None
+    assert row_after["score"] == row_before["score"]
+    # Rank must not improve solely from echo method/settling proliferation.
+    assert row_after["rank"] >= row_before["rank"]
+    assert row_after["independent_source_count"] == 1
+    # Method count must not scale with N echoes on one source.
+    assert row_after["independent_method_count"] == row_before["independent_method_count"]

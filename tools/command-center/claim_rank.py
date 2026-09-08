@@ -52,35 +52,13 @@ _IMPACT_PATTERNS: list[tuple[re.Pattern[str], float]] = [
 ]
 
 
-def normalize_source_document(anchor: str) -> str:
-    """Collapse lineage anchors that name the same source document.
-
-    Path aliases (./, ../, duplicate slashes), trailing slashes, URL fragments,
-    and query strings do not create new independent signals.
-    """
-    raw = (anchor or "").strip()
-    if not raw:
-        return ""
-
-    lower = raw.lower()
-    if "://" in lower or lower.startswith("file:"):
-        parts = urlsplit(raw)
-        path = re.sub(r"/+", "/", parts.path or "")
-        if path.endswith("/") and len(path) > 1:
-            path = path[:-1]
-        # Drop fragment + query: same document, different view.
-        return urlunsplit(
-            (parts.scheme.lower(), parts.netloc.lower(), path, "", "")
-        )
-
-    # Filesystem / repo-relative anchors.
-    path = raw.replace("\\", "/")
-    # Drop URL-style fragment/query even on path-shaped anchors.
+def _collapse_path(path: str) -> str:
+    """Normalize path separators, ./ ../, and trailing slashes."""
+    path = path.replace("\\", "/")
     path = path.split("#", 1)[0].split("?", 1)[0]
     path = re.sub(r"/+", "/", path)
     while path.startswith("./"):
         path = path[2:]
-    # Collapse trivial parent refs that stay inside the path.
     bits: list[str] = []
     for part in path.split("/"):
         if part in ("", "."):
@@ -90,9 +68,45 @@ def normalize_source_document(anchor: str) -> str:
             continue
         bits.append(part)
     path = "/".join(bits)
-    if path.endswith("/") and len(path) > 1:
+    if path.endswith("/"):
         path = path[:-1]
     return path
+
+
+def normalize_source_document(anchor: str) -> str:
+    """Collapse lineage anchors that name the same source document.
+
+    Path aliases (./, ../, duplicate slashes), trailing slashes, URL fragments,
+    query strings, opaque-URL trailing slashes (shared://doc vs shared://doc/),
+    and file:// / file://localhost twins of a path-shaped anchor do not create
+    new independent signals.
+    """
+    raw = (anchor or "").strip()
+    if not raw:
+        return ""
+
+    lower = raw.lower()
+    if "://" in lower or lower.startswith("file:"):
+        parts = urlsplit(raw)
+        scheme = parts.scheme.lower()
+        netloc = parts.netloc.lower()
+        path = re.sub(r"/+", "/", parts.path or "")
+        # urlsplit("shared://one-doc/") keeps netloc=one-doc and path="/".
+        # Treat bare "/" as empty so trailing-slash opaque URLs collapse.
+        if path == "/":
+            path = ""
+        elif path.endswith("/"):
+            path = path[:-1]
+
+        # file:///docs/x.md and file://localhost/docs/x.md ≡ docs/x.md
+        if scheme == "file" and netloc in ("", "localhost", "localhost."):
+            return _collapse_path(path.lstrip("/") or path)
+
+        # Drop fragment + query: same document, different view.
+        return urlunsplit((scheme, netloc, path, "", ""))
+
+    # Filesystem / repo-relative anchors.
+    return _collapse_path(raw)
 
 
 def normalize_method(method: str | None) -> str:
@@ -130,10 +144,22 @@ def independent_signals(records: list[dict[str, Any]]) -> dict[str, Any]:
     """Return collapsed independent source + method sets for a claim cluster.
 
     Lineage rows that normalize to the same source document count once.
-    Repetition count is reported but is never an input to the score.
+    Methods are collected per collapsed source (not per echo record), so
+    renaming probes / settling strings across N agents on one source cannot
+    inflate method diversity. Repetition count is reported but is never an
+    input to the score or rank tiebreak.
     """
-    sources: set[str] = set()
-    methods: set[str] = set()
+    # source -> set of probe methods observed on that source
+    methods_by_source: dict[str, set[str]] = {}
+    settling_methods: set[str] = set()
+
+    def _add(doc: str, method: str) -> None:
+        if not doc:
+            return
+        bucket = methods_by_source.setdefault(doc, set())
+        if method:
+            bucket.add(method)
+
     for rec in records:
         lineage = rec.get("source_lineage") or []
         if isinstance(lineage, list):
@@ -141,17 +167,18 @@ def independent_signals(records: list[dict[str, Any]]) -> dict[str, Any]:
                 if not isinstance(entry, dict):
                     continue
                 anchor = entry.get("anchor")
-                if isinstance(anchor, str):
-                    doc = normalize_source_document(anchor)
-                    if doc:
-                        sources.add(doc)
+                doc = (
+                    normalize_source_document(anchor)
+                    if isinstance(anchor, str)
+                    else ""
+                )
                 method = normalize_method(entry.get("probe"))
-                if method:
-                    methods.add(method)
+                if doc:
+                    _add(doc, method)
         settling = normalize_method(rec.get("settling_probe"))
         if settling:
-            methods.add(settling)
-        # Optional corroborating probes carried in legacy_fields (closed schema).
+            # Settling probe is cluster-level intent, not per-echo diversity.
+            settling_methods.add(settling)
         legacy = rec.get("legacy_fields") or {}
         if isinstance(legacy, dict):
             extra = legacy.get("independent_probes") or []
@@ -160,15 +187,30 @@ def independent_signals(records: list[dict[str, Any]]) -> dict[str, Any]:
                     if not isinstance(probe, dict):
                         continue
                     anchor = probe.get("anchor")
-                    if isinstance(anchor, str):
-                        doc = normalize_source_document(anchor)
-                        if doc:
-                            sources.add(doc)
+                    doc = (
+                        normalize_source_document(anchor)
+                        if isinstance(anchor, str)
+                        else ""
+                    )
                     method = normalize_method(probe.get("method") or probe.get("probe"))
-                    if method:
-                        methods.add(method)
+                    if doc:
+                        _add(doc, method)
+
+    sources = sorted(methods_by_source)
+    # Method diversity is cross-source, not per-echo. Echo agents that rename
+    # probes on the SAME collapsed source contribute at most one method token
+    # for that source (sorted first label). Settling contributes at most one
+    # cluster-level token.
+    methods: set[str] = set()
+    for doc in sources:
+        src_methods = methods_by_source[doc]
+        if src_methods:
+            methods.add(sorted(src_methods)[0])
+    if settling_methods:
+        methods.add(sorted(settling_methods)[0])
+
     return {
-        "independent_sources": sorted(sources),
+        "independent_sources": sources,
         "independent_source_count": len(sources),
         "independent_methods": sorted(methods),
         "independent_method_count": len(methods),
@@ -274,11 +316,13 @@ def rank_claims(records: list[dict[str, Any]]) -> list[dict[str, Any]]:
             }
         )
 
+    # Tiebreak MUST NOT use independent_method_count: echo agents that invent
+    # distinct probe labels on one shared source previously climbed rank via
+    # method inflation while score stayed flat (CC-0018 adversarial FAIL).
     ranked.sort(
         key=lambda row: (
             -float(row["score"]),
             -int(row["independent_source_count"]),
-            -int(row["independent_method_count"]),
             str(row["cluster_key"]),
         )
     )

@@ -27,11 +27,18 @@ MANIFEST = f"{PROBE_DIR}/UNIT-ARTIFACT-MANIFEST.json"
 REVIEW = L.REPO / PROBE_DIR / "independent-review.json"
 TS0 = "2026-09-08T03:20:00Z"
 
-BLOCKED_ON = (
+BLOCKED_ON_PENDING = (
     "independent adversarial reviewer owed whose explicit brief is to construct "
     "an input that games the ranking upward through repetition; "
     "independent-review.json absent; SUCCESS:CC-0018 withheld "
     "(success_invented=false)"
+)
+BLOCKED_ON_AFTER_FAIL = (
+    "independent adversarial review FAIL: method-count tiebreak + opaque-URL "
+    "trailing-slash / file:// lineage aliases raised rank or score under "
+    "repetition (independent-review.json + adversarial-gaming-attempt.json). "
+    "Ranking holes patched; fresh-context adversarial re-review owed before "
+    "SUCCESS:CC-0018 (success_invented=false; prior FAIL did_not_promote)"
 )
 
 
@@ -47,13 +54,19 @@ def _run(cmd: list[str]) -> tuple[int, str]:
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
-def load_review() -> dict | None:
-    """Promote only when an independent adversarial reviewer PASSes."""
+def load_any_review() -> dict | None:
     if not REVIEW.is_file():
         return None
     try:
-        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+        return json.loads(REVIEW.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        return None
+
+
+def load_pass_review() -> dict | None:
+    """Promote only when an independent adversarial reviewer PASSes."""
+    rev = load_any_review()
+    if rev is None:
         return None
     if rev.get("verdict") != "PASS":
         return None
@@ -93,8 +106,14 @@ def build() -> dict:
     if not adv.get("ok") or adv.get("score_rose"):
         raise SystemExit(f"CC-0018 adversarial property failed: {adv}")
 
-    rev = load_review()
+    rev = load_pass_review()
+    any_rev = load_any_review()
     success = rev is not None
+    prior_fail = (
+        any_rev is not None
+        and any_rev.get("verdict") == "FAIL"
+        and any_rev.get("independent") is True
+    )
 
     before = adv["before_ranks"]
     after = adv["after_ranks"]
@@ -131,60 +150,100 @@ def build() -> dict:
         anti = "SUCCESS-after-independent-adversarial-review-PASS"
     else:
         state = "BLOCKED"
+        blocked_on = BLOCKED_ON_AFTER_FAIL if prior_fail else BLOCKED_ON_PENDING
         sentinel = (
             f"FAILED:{UNIT} blocked-on-independent-adversarial-reviewer; "
+            f"prior_review={'FAIL' if prior_fail else 'absent'}; "
             f"anti-repetition executed before_rank={before['rank']} "
             f"after_rank={after['rank']} score_flat={before['score']==after['score']}; "
             f"CC-0017 SUCCESS verified; SUCCESS:{UNIT} withheld "
             f"(success_invented=false)"
         )
-        reviewer = {
-            "reviewer_id": "awaiting-independent-adversarial-reviewer",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "reviewed_at": ended,
-            "notes": (
-                "Implementer lane only. Catalog reviewer_requirement: one independent "
-                "adversarial reviewer whose explicit brief is to construct an input that "
-                "games the ranking upward through repetition. Self-review banned; "
-                "independent-review.json not invented. Planted controls + executed "
-                f"adversarial before/after ranks are green "
-                f"(before rank={before['rank']} score={before['score']}; "
-                f"after n={after['n_agents']} rank={after['rank']} "
-                f"score={after['score']})."
-            ),
-        }
-        residual = [
-            {
-                "claim": (
-                    "Whether the ranking function remains ungameable under an "
-                    "adversarial reviewer's constructed repetition input is unchecked "
-                    "in this lane."
+        if prior_fail:
+            fail_notes = any_rev.get("notes", "")
+            if not isinstance(fail_notes, str):
+                fail_notes = json.dumps(fail_notes)
+            reviewer = {
+                "reviewer_id": any_rev.get(
+                    "reviewer_id", "independent-adversarial-reviewer-FAIL"
                 ),
-                "verdict": "NOT-CHECKED",
-                "settling_experiment": (
-                    "Fresh-context independent reviewer authors a gaming corpus that "
-                    "attempts to raise rank via repetition/echoes, runs "
-                    f"`python3 -B {GATE} rank <gaming.json>` and the planted pytest "
-                    "suite, and returns PASS with independent=true, fresh_context=true, "
-                    "gaming_input=<path>, rank_rose_under_repetition=false."
+                "verdict": "FAIL",
+                "independent": True,
+                "fresh_context": True,
+                "vendor": any_rev.get("vendor", "anthropic"),
+                "reviewed_at": any_rev.get("reviewed_at", ended),
+                "notes": (
+                    "Prior independent adversarial review FAIL integrated; ranking "
+                    "holes patched (lineage slash/file:// collapse; no method-count "
+                    "tiebreak; per-source methods). Fresh re-review owed. "
+                    f"Prior notes: {fail_notes[:2500]}"
+                )[:4000],
+            }
+            residual = [
+                {
+                    "claim": (
+                        "Whether the patched ranker remains ungameable under a "
+                        "fresh adversarial repetition attack is unchecked after the "
+                        "FAIL→fix cycle."
+                    ),
+                    "verdict": "NOT-CHECKED",
+                    "settling_experiment": (
+                        "Fresh-context independent reviewer (new branch) re-attempts "
+                        "gaming including prior FAIL vectors (method-count tiebreak, "
+                        "opaque trailing slash, file:// twins) and returns PASS only "
+                        "if rank/score do not rise under repetition."
+                    ),
+                }
+            ]
+            anti = "BLOCKED-after-adversarial-FAIL-fix-awaiting-rereview"
+        else:
+            reviewer = {
+                "reviewer_id": "awaiting-independent-adversarial-reviewer",
+                "verdict": "NOT-REVIEWED",
+                "independent": False,
+                "fresh_context": False,
+                "vendor": "anthropic",
+                "reviewed_at": ended,
+                "notes": (
+                    "Implementer lane only. Catalog reviewer_requirement: one independent "
+                    "adversarial reviewer whose explicit brief is to construct an input that "
+                    "games the ranking upward through repetition. Self-review banned; "
+                    "independent-review.json not invented. Planted controls + executed "
+                    f"adversarial before/after ranks are green "
+                    f"(before rank={before['rank']} score={before['score']}; "
+                    f"after n={after['n_agents']} rank={after['rank']} "
+                    f"score={after['score']})."
                 ),
             }
-        ]
+            residual = [
+                {
+                    "claim": (
+                        "Whether the ranking function remains ungameable under an "
+                        "adversarial reviewer's constructed repetition input is unchecked "
+                        "in this lane."
+                    ),
+                    "verdict": "NOT-CHECKED",
+                    "settling_experiment": (
+                        "Fresh-context independent reviewer authors a gaming corpus that "
+                        "attempts to raise rank via repetition/echoes, runs "
+                        f"`python3 -B {GATE} rank <gaming.json>` and the planted pytest "
+                        "suite, and returns PASS with independent=true, fresh_context=true, "
+                        "gaming_input=<path>, rank_rose_under_repetition=false."
+                    ),
+                }
+            ]
+            anti = "BLOCKED-pending-independent-adversarial-reviewer"
         failure = {
             "classification": ["blocked-on-independent-review"],
             "reason": (
                 "claim_rank anti-repetition controls + executed adversarial "
                 "before/after ranks are green, but catalog reviewer_requirement "
-                "is unmet. SUCCESS not invented."
+                "is unmet (or prior FAIL requires fresh re-review). SUCCESS not invented."
             ),
-            "blocked_on": BLOCKED_ON,
+            "blocked_on": blocked_on,
             "diagnostic_tail": (out + "\n" + raw1)[-4000:],
             "two_signal_proof": [p_pytest, p_adv],
         }
-        anti = "BLOCKED-pending-independent-adversarial-reviewer"
 
     downstream = [
         {
@@ -218,6 +277,11 @@ def build() -> dict:
     ]
     if success:
         arts.append(L.art(f"{PROBE_DIR}/independent-review.json", "supporting"))
+    elif prior_fail:
+        arts.append(L.art(f"{PROBE_DIR}/independent-review.json", "supporting"))
+        gaming = L.REPO / PROBE_DIR / "adversarial-gaming-attempt.json"
+        if gaming.is_file():
+            arts.append(L.art(f"{PROBE_DIR}/adversarial-gaming-attempt.json", "control"))
 
     receipt: dict = {
         "schema_version": 1,
@@ -437,7 +501,7 @@ def main() -> int:
     rc2 = L.write_if_valid(receipt, OUT, SCHEMA)
     print(
         f"state={state} success_invented=false "
-        f"review={'present' if load_review() else 'absent'} rc={rc2}"
+        f"review={'PASS' if load_pass_review() else ('FAIL' if load_any_review() else 'absent')} rc={rc2}"
     )
     return rc2
 
