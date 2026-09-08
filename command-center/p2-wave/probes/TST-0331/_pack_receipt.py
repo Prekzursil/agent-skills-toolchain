@@ -318,7 +318,7 @@ def build() -> dict:
                 f"line, command never run — {planted_labels}.",
                 "CONFIRMED",
                 f"file:{SUMMARY}",
-                [p_meas, p_pytest],
+                [p_pytest, p_meas],
                 "almost-certain",
             ),
             L.evidence(
@@ -332,7 +332,13 @@ def build() -> dict:
                 "CONFIRMED",
                 f"file:{SUMMARY}",
                 [
-                    p_meas,
+                    L.probe(
+                        "source",
+                        "command",
+                        f"python3 -B {MEASURE}",
+                        m_out[-4000:],
+                        m_rc,
+                    ),
                     L.probe(
                         "verifier",
                         "file-read",
@@ -405,10 +411,10 @@ def build() -> dict:
                 "output_tail": out_py[-600:],
             },
         ],
-        "controls": [
+        "negative_controls": [
             L.control(
                 "TST-0331-C1-planted-nonexistent",
-                "negative",
+                "absent-input",
                 "Nonexistent file at cited revision must be UNRESOLVED",
                 fired_bad=True,
                 silent_good=True,
@@ -417,7 +423,7 @@ def build() -> dict:
             ),
             L.control(
                 "TST-0331-C2-out-of-range",
-                "negative",
+                "malformed-input",
                 "Out-of-range line at cited revision must be UNRESOLVED",
                 fired_bad=True,
                 silent_good=True,
@@ -426,7 +432,7 @@ def build() -> dict:
             ),
             L.control(
                 "TST-0331-C3-command-never-run",
-                "negative",
+                "known-broken-fixture",
                 "Quoted command absent from transcript must be UNRESOLVED",
                 fired_bad=True,
                 silent_good=True,

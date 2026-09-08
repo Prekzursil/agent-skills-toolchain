@@ -14,7 +14,8 @@ import sys
 import tempfile
 from pathlib import Path
 
-REPO = Path(__file__).resolve().parents[3]
+# measure_battery.py lives at command-center/p2-wave/probes/TST-0331/ → repo root is parents[4]
+REPO = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(REPO / "platform" / "lib"))
 
 from evidence_anchor_resolver import (  # noqa: E402
