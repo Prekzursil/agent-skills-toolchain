@@ -24,6 +24,8 @@ REVIEW = PROBE / "independent-review.json"
 
 
 def load_review() -> dict | None:
+    """Never invent independent-review.json. SUCCESS only when a real PASS review
+    already exists on disk from a fresh-context Claude reviewer."""
     if not REVIEW.is_file():
         return None
     try:
@@ -33,6 +35,9 @@ def load_review() -> dict | None:
     if rev.get("verdict") != "PASS":
         return None
     if not rev.get("independent") or not rev.get("fresh_context"):
+        return None
+    notes = rev.get("notes", "")
+    if not isinstance(notes, str):
         return None
     return rev
 
@@ -44,8 +49,8 @@ def build(primary: dict | None = None) -> dict:
     raw2 = (PROBE / "probe2-dual-resolution.raw.txt").read_text(encoding="utf-8")
     rev = load_review()
     success = rev is not None
-    started = "2026-09-07T18:45:00Z"
-    ended = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    started = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
+    ended = started
 
     arts = [
         primary
@@ -397,6 +402,20 @@ def build(primary: dict | None = None) -> dict:
             ),
         },
         "residual_unknowns": [
+            {
+                "claim": (
+                    "This census covers the single Linux Cursor Cloud checkout only "
+                    "(npm + pip + Dockerfile FROM + .github/workflows uses:). It does "
+                    "not invent Windows-only findings and does not claim multi-host "
+                    "or live-registry completeness."
+                ),
+                "verdict": "CONFIRMED",
+                "settling_experiment": (
+                    "Scope is disclosed in produced_by.execution_substrate="
+                    "linux-cursor-cloud and Probe 1 method; expand only with an "
+                    "explicit second-host walk, never by fabricating OS-specific rows."
+                ),
+            },
             {
                 "claim": (
                     "Live npm/pypi registry resolution under today's published "
