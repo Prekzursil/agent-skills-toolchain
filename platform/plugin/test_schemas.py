@@ -134,15 +134,15 @@ def test_the_shipped_manifest_validates_against_the_manifest_schema(
 def test_the_repo_root_manifest_also_validates_where_it_overlaps(
     repo_root: Path,
 ) -> None:
-    """The pre-existing root manifest must not be contradicted by this profile.
+    """The live root manifest must validate green under the IMP-0006 profile.
 
-    It carries only the client-understood fields, so it is valid once the additive
-    ``compatibility`` block (which this profile requires and the client does not) is supplied.
+    Phase-4 fields (compatibility/…) are contracted optional properties; the
+    current client surface (name/version/description/author/license/keywords)
+    alone must pass without injecting additive blocks.
     """
     doc = json.loads(
         (repo_root / ".claude-plugin" / "plugin.json").read_text(encoding="utf-8")
     )
-    doc["compatibility"] = {"min_client": "1.0.0"}
     VALIDATOR(schemas.PLUGIN_MANIFEST_SCHEMA).validate(doc)
 
 
