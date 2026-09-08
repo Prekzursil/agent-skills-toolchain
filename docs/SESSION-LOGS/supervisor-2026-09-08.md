@@ -87,3 +87,7 @@ monitor→maintainer YELLOW (cadence): session-log miss ~122m since last curator
 | Anti-false-green | Claim→artifact `/opt/cursor/artifacts/session-log-restore-2026-09-08T0658Z.log`. No stub SUCCESS. |
 
 Next: promote IMP-0009 only after independent duplicate-preserve review PASS; continue Linux-feasible MISSING wave.
+
+## 2026-09-08T07:10Z — IMP-0009 promote (post-0658 restore)
+
+Independent duplicate-preserve review PASS (`bc-a453fce5…`) integrated; parent cleared `force_blocked_impl_wave` and packed **SUCCESS:IMP-0009**. Census **green_SUCCESS=306 / 2007** at tip **`eed7c198f`** on `cursor/p2-loop-to-green-0db0` / PR #325. Review evidence PR #331 (draft). `success_invented=false`. Next: IMP-0010 BLOCKED implement in flight; IMP-0008 skip (B06); IMP-0011/0012 parked (cross-OS / pwsh); CI AMBER; #316/#319 owner-only.
