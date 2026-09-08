@@ -41,7 +41,7 @@ TS0 = "2026-09-08T07:15:00Z"
 SENTINEL_OK = "SUCCESS:IMP-0062"
 
 # PARENT: flip to False only when packing SUCCESS after PASS review.
-FORCE_BLOCKED_IMPL_WAVE = True
+FORCE_BLOCKED_IMPL_WAVE = False
 
 
 def _run(cmd: list[str]) -> tuple[int, str]:
