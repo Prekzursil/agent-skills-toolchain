@@ -701,7 +701,11 @@ PLUGIN_MANIFEST_SCHEMA: dict[str, Any] = {
             "additionalProperties": False,
         },
         "license": {"type": "string", "minLength": 1},
-        "keywords": {"type": "array", "items": {"type": "string"}},
+        "keywords": {
+            "type": "array",
+            "items": {"type": "string", "minLength": 1},
+            "minItems": 1,
+        },
         "homepage": {"type": "string"},
         "compatibility": {
             "type": "object",
@@ -790,13 +794,17 @@ PLUGIN_MANIFEST_SCHEMA: dict[str, Any] = {
             "additionalProperties": False,
         },
     },
+    # IMP-0006: required set is the CURRENT Claude Code client surface so the live
+    # `.claude-plugin/plugin.json` validates green. Phase-4 fields
+    # (compatibility/interpreters/entrypoints/payload/deploy/homepage) remain
+    # contracted properties above — optional until a package build supplies them.
     "required": [
         "name",
         "version",
         "description",
         "author",
         "license",
-        "compatibility",
+        "keywords",
     ],
     "additionalProperties": False,
     "patternProperties": {"^x-": {}},
