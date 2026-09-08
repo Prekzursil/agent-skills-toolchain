@@ -32,7 +32,10 @@ SUMMARY = f"{PROBE_DIR}/battery-summary.json"
 MANIFEST = f"{PROBE_DIR}/UNIT-ARTIFACT-MANIFEST.json"
 CC0002 = "command-center/receipts/CC-0002.json"
 CC0009 = "command-center/receipts/CC-0009.json"
-REVIEW = L.REPO / PROBE_DIR / "independent-review.json"
+REVIEW_CANDIDATES = (
+    L.REPO / "command-center/p2-wave/reviews/TST-0331/independent-review.json",
+    L.REPO / PROBE_DIR / "independent-review.json",
+)
 TS0 = "2026-09-08T05:20:00Z"
 SENTINEL_OK = "SUCCESS:TST-0331"
 
@@ -58,15 +61,21 @@ def _run(cmd: list[str]) -> tuple[int, str]:
 
 
 def load_any_review() -> dict | None:
-    if not REVIEW.is_file():
+    path = None
+    for candidate in REVIEW_CANDIDATES:
+        if candidate.is_file():
+            path = candidate
+            break
+    if path is None:
         return None
     try:
-        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+        rev = json.loads(path.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
     vendor = str(rev.get("vendor") or "")
     if vendor.lower().startswith("cursor"):
         rev["vendor"] = "openai"
+    rev["_review_path"] = str(path.relative_to(L.REPO))
     return rev
 
 
