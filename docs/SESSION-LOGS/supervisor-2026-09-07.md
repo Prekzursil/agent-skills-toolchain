@@ -92,3 +92,7 @@ SUCCESS promote (`/opt/cursor/artifacts/aud-0044-success-pack.log`,
 restore: AUD-0064→272, AUD-0003→273, AUD-0044→274. AUD-0056/0060/0010 remain
 honest BLOCKED. AUD-0023 implement still in flight. No stub SUCCESS. CI AMBER.
 Owner-only items untouched.
+
+## 00:42Z — day rolled
+
+Cadence continues in `docs/SESSION-LOGS/supervisor-2026-09-08.md`.
