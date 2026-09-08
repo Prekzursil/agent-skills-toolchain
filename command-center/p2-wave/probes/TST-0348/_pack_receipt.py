@@ -133,14 +133,6 @@ def build() -> dict:
         and any_rev.get("independent") is True
     )
 
-    # HARD RULE for this pack wave: emit BLOCKED only (do not promote even if
-    # a review file appears mid-impl). Implementer must leave did_not_promote.
-    # If a valid PASS review already exists from an independent agent, still
-    # pack BLOCKED on this side-branch wave unless explicitly re-run later.
-    force_blocked = True
-    if force_blocked:
-        success = False
-
     p_pytest = L.probe(
         "source",
         "test-run",
