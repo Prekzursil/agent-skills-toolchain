@@ -129,6 +129,11 @@ def build() -> dict:
     rev = load_adversarial_review()
     honest_fail = bool(rev and rev.get("_honest_fail"))
     success = bool(rev) and not honest_fail and rev.get("verdict") == "PASS"
+    novel = (
+        (rev.get("novel_mutation") or rev.get("seventeenth_mutation") or {})
+        if rev
+        else {}
+    )
 
     closed = summary["surviving_mutation_closed"]
     armed_n = summary["armed_caught"]
@@ -149,6 +154,19 @@ def build() -> dict:
         "source", "command", f"python3 {VALIDATE}", v_out, v_rc
     )
 
+    # Re-run the adversarial mutant when present so SUCCESS evidence has a
+    # distinct SOURCE probe (CONFIRMED requires source+verifier, minItems=2).
+    ADV_SCRIPT = f"{PROBE_DIR}/adversarial_mutant.py"
+    p_adv = None
+    if REVIEW.is_file() and (L.REPO / ADV_SCRIPT).is_file():
+        a_rc, a_out = _run([sys.executable, "-B", str(L.REPO / ADV_SCRIPT)])
+        (L.REPO / PROBE_DIR / "adversarial-mutant.out").write_text(
+            a_out, encoding="utf-8"
+        )
+        p_adv = L.probe(
+            "source", "command", f"python3 -B {ADV_SCRIPT}", a_out, a_rc
+        )
+
     if success:
         state = "SUCCESS"
         sentinel = SENTINEL_OK
@@ -167,7 +185,6 @@ def build() -> dict:
         residual: list[dict] = []
         failure = None
         anti = "SUCCESS-after-adversarial-novel-17th-caught"
-        novel = rev.get("novel_mutation") or rev.get("seventeenth_mutation") or {}
         downstream = [
             {
                 "consumer": "validate.mutation-battery",
@@ -183,7 +200,7 @@ def build() -> dict:
                 "executed": True,
                 "read_ok": True,
                 "exit_code": 0 if novel.get("caught") else 1,
-                "probe": p_meas,
+                "probe": p_adv or p_meas,
             },
         ]
     else:
@@ -197,7 +214,6 @@ def build() -> dict:
             f"the battery has never seen; {SENTINEL_OK} withheld"
         )
         if honest_fail:
-            novel = rev.get("novel_mutation") or {}
             reviewer_notes = (
                 "Adversarial review present with honest FAIL: novel mutation "
                 f"{novel.get('id')!r} SURVIVED the battery. Catalog retry_policy: "
@@ -382,14 +398,30 @@ def build() -> dict:
             ),
             L.evidence(
                 (
-                    "Adversarial 17th-mutation review gate is open: known M17 "
-                    "expansion control is caught but does not satisfy "
-                    "reviewer_requirement; SUCCESS withheld."
+                    (
+                        f"Adversarial novel mutation {novel.get('id')} "
+                        f"caught={novel.get('caught')}; known M17 expansion "
+                        "control is not a substitute for the gate."
+                    )
+                    if success
+                    else (
+                        "Adversarial 17th-mutation review gate is open: known M17 "
+                        "expansion control is caught but does not satisfy "
+                        "reviewer_requirement; SUCCESS withheld."
+                    )
                 ),
-                "NOT-CHECKED" if not success else "CONFIRMED",
-                f"file:{PROBE_DIR}/_pack_receipt.py",
-                [p_meas],
-                "likely",
+                "CONFIRMED" if success else "NOT-CHECKED",
+                (
+                    f"file:{PROBE_DIR}/adversarial-review.json"
+                    if success
+                    else f"file:{PROBE_DIR}/_pack_receipt.py"
+                ),
+                (
+                    [p_adv, p_meas]
+                    if success and p_adv is not None
+                    else ([p_meas, p_pytest] if success else [p_meas])
+                ),
+                "almost-certain" if success else "likely",
             ),
         ],
         "timestamps": {"started_at": TS0, "ended_at": ended},
@@ -504,11 +536,24 @@ def build() -> dict:
                 {
                     "name": "adversarial_17th_gate",
                     "measured": (
-                        f"status={summary['adversarial_17th_slot']['status']} "
-                        f"reserved_for={summary['adversarial_17th_slot']['reserved_for']}"
+                        f"status=CAUGHT id={novel.get('id')} "
+                        f"exit={novel.get('exit_code')} caught={novel.get('caught')}"
+                        if success
+                        else (
+                            f"status={summary['adversarial_17th_slot']['status']} "
+                            f"reserved_for={summary['adversarial_17th_slot']['reserved_for']}"
+                        )
                     ),
-                    "method": "review gate; adversarial-review.json not invented",
-                    "anchor": f"{PROBE_DIR}/_pack_receipt.py",
+                    "method": (
+                        f"python3 -B {ADV_SCRIPT}"
+                        if success and p_adv is not None
+                        else "review gate; adversarial-review.json not invented"
+                    ),
+                    "anchor": (
+                        f"{PROBE_DIR}/adversarial-review.json"
+                        if success
+                        else f"{PROBE_DIR}/_pack_receipt.py"
+                    ),
                 },
             ],
             "control_ids": [
