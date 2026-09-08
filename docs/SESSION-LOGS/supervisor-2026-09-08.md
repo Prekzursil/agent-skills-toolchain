@@ -68,3 +68,22 @@ monitor→maintainer YELLOW (cadence): session-log miss ~126m since last curator
 | Anti-false-green | Claim→artifact `/opt/cursor/artifacts/session-log-restore-2026-09-08T0456Z.log`. No stub SUCCESS. |
 
 Next: integrate IMP-0003 as honest BLOCKED → planted-path review → promote only on PASS; continue Linux-feasible MISSING wave.
+
+## 2026-09-08T06:58Z — cadence restore (monitor YELLOW ~122m)
+
+monitor→maintainer YELLOW (cadence): session-log miss ~122m since last curator/supervisor restore ~04:56Z (`session-log-restore-2026-09-08T0456Z.log` / tip then ~`79a88ab26` / census then 304). finished+owner-blocked exception **OFF** — RUNNING on P2 ralph loop.
+
+| item | reading |
+|---|---|
+| Tip at restore request | **`3598a41ed`** on `cursor/p2-loop-to-green-0db0` — **IMP-0009** honest BLOCKED integrate |
+| Census at that tip | **green_SUCCESS=305 / 2007** |
+| Trajectory since 04:56Z (296) | IMP-0002→297; IMP-0003→298; IMP-0005→299; TST-0331→300; TST-0348→301; IMP-0017→302; IMP-0006→303; IMP-0007→304; **IMP-0004** SUCCESS after r3 PASS (`bc-b2ab1124…`; `274fa4fb3`)→**305**; IMP-0009 BLOCKED at `3598a41ed` |
+| Tip now (this append) | duplicate-preserve review PASS on side branch; parent promotes only on PASS |
+| Honest BLOCKED / parked | IMP-0456; IMP-0435; CC-0023; IMP-0022 CI-FS; IMP-0008 missing B06 |
+| Branch / PR | `cursor/p2-loop-to-green-0db0` → **https://github.com/Prekzursil/agent-skills-toolchain/pull/325** (OPEN) |
+| In flight | IMP-0009 review `bc-a453fce5…` (PASS; promote next) |
+| CI allocator | still **AMBER** (owner Actions spend untouched) |
+| #316 / #319 | still owner-only Close; curator did not touch |
+| Anti-false-green | Claim→artifact `/opt/cursor/artifacts/session-log-restore-2026-09-08T0658Z.log`. No stub SUCCESS. |
+
+Next: promote IMP-0009 only after independent duplicate-preserve review PASS; continue Linux-feasible MISSING wave.
