@@ -1,6 +1,6 @@
 {
   "unit_id": "TST-0341",
-  "verdict": "FAIL",
+  "verdict": "PASS",
   "independent": true,
   "fresh_context": true,
   "did_not_author_harness": true,
@@ -10,19 +10,21 @@
   "receipt_path": "command-center/receipts/TST-0341.json",
   "vendor": "openai",
   "role": "adversarial-reviewer",
-  "reviewer_id": "openai-composer-fresh-context-tst0341-both-states-bc-e2d28097",
-  "reviewed_at": "2026-09-08T04:05:00Z",
-  "base_tip_sha": "9a1b8f38046e986d84bd1a9fa160c6455be981a0",
+  "reviewer_id": "openai-composer-fresh-context-tst0341-rereview-bc-299d2e19",
+  "reviewed_at": "2026-09-08T04:21:00Z",
+  "base_tip_sha": "e33037763265563e77adee6bf2464324c439bdf2",
+  "prior_fail_tip_sha": "9a1b8f38046e986d84bd1a9fa160c6455be981a0",
+  "fix_commit_sha": "e33037763265563e77adee6bf2464324c439bdf2",
   "catalog_reviewer_requirement": "One independent adversarial reviewer in a fresh context who did not author the harness under test and who must reproduce the both-states control before signing off.",
   "both_states": {
     "role_fp": 0,
     "role_tp_missed": 0,
     "raw_fp": 17,
-    "self_ref_silent": false,
+    "live_receipt_flags": 0,
     "role_fp_zero": true,
     "role_tp_complete": true,
     "raw_fp_still_noisy": true,
-    "self_reference_silent": false,
+    "self_reference_silent": true,
     "per_scanner": {
       "command": {"role_fp": 0, "role_tp": "2/2", "raw_fp": 2},
       "marker": {"role_fp": 0, "role_tp": "1/1", "raw_fp": 5},
@@ -32,26 +34,44 @@
       "stub": {"role_fp": 0, "role_tp": "1/1", "raw_fp": 3}
     },
     "self_reference": {
-      "target": "command-center/receipts/TST-0341.json",
-      "flags": 2,
-      "silent": false,
-      "hits": [
-        {"kind": "result", "snippet": "timedout", "rule": "result:reported-value", "note": "inside user_cancelled_or_timedout example prose in residual claim"},
-        {"kind": "result", "snippet": "FAILED", "rule": "result:reported-value", "note": "inside sentinel FAILED:TST-0341 ..."}
-      ],
-      "probe_sample_doc_silent": true,
-      "control_gap": "packer/probe1 self_ref uses a softer receipt-like sample; catalog requires the unit's own receipt"
+      "sample_doc": {
+        "silent": true,
+        "flags": 0,
+        "note": "probe1 soft sample with unquoted snake + FAILED:TST-0341 sentinel vocabulary"
+      },
+      "live_receipt": {
+        "target": "command-center/receipts/TST-0341.json",
+        "flags": 0,
+        "silent": true,
+        "contains_prior_fail_needles": {
+          "user_cancelled_or_timedout": true,
+          "FAILED:TST-0341": true
+        },
+        "note": "Prior FAIL hits (timedout inside snake id; FAILED inside unit sentinel) now silent under self_reference_silent"
+      }
+    },
+    "over_silence_spot_check": {
+      "ETIMEDOUT_json_value_fires": true,
+      "TIMEDOUT_result_state_fires": true,
+      "TIMEDOUT_bare_value_fires": true,
+      "failed_value_fires": true
     }
   },
   "pytest": {
     "command": "python3 -m pytest tools/fixture-role-scanner/tests hooks/_shared/test_use_vs_mention.py -q --tb=line",
-    "result": "69 passed",
+    "result": "76 passed",
     "exit_code": 0
   },
   "remeasure_commands": [
+    "python3 -m pytest tools/fixture-role-scanner/tests hooks/_shared/test_use_vs_mention.py -q --tb=line",
     "python3 -B command-center/p2-wave/probes/TST-0341/probe1_measure.py",
     "python3 tools/fixture-role-scanner/measure_corpora.py",
-    "python3 -c \"from role_scanner import self_reference_silent; from pathlib import Path; print(self_reference_silent(Path('command-center/receipts/TST-0341.json').read_text()))\""
+    "python3 -c \"import sys; from pathlib import Path; sys.path.insert(0,'tools/fixture-role-scanner'); from role_scanner import self_reference_silent; r=self_reference_silent(Path('command-center/receipts/TST-0341.json').read_text()); print(r)\""
   ],
-  "notes": "Fresh-context independent adversarial review on tip 9a1b8f380 (did not author harness). Reproduced corpora both-states: role_fp=0, role_tp_missed=0, raw_fp=17 (rebuild load-bearing). Pytest 69 passed. FAIL on catalog self-reference: scanning command-center/receipts/TST-0341.json via self_reference_silent yields flags=2 (silent=false) — result:reported-value hits on 'timedout' (user_cancelled_or_timedout example) and 'FAILED' (sentinel). Probe1/packer self_ref_silent=True is measured only on a softer sample document, not the actual receipt the catalog names. Did not promote; receipt left BLOCKED; SUCCESS not invented."
+  "remeasure_outputs": {
+    "pytest": "76 passed",
+    "probe1_totals": "role_fp=0 role_tp_missed=0 raw_fp=17 self_ref_silent=True live_receipt_silent=True",
+    "live_receipt_self_reference_silent": {"silent": true, "flags": 0}
+  },
+  "notes": "Fresh-context independent adversarial re-review after FAIL→FIX tip e33037763 (did not author harness; did not promote). Prior FAIL: live receipt self_reference_silent false (timedout inside user_cancelled_or_timedout; FAILED inside FAILED:TST-0341). Independently remeasured: role_fp=0, role_tp_missed=0, raw_fp=17, sample self_ref silent, live receipt flags=0 silent=true, pytest 76 passed. Spot-check: ETIMEDOUT and real TIMEDOUT JSON values still FIRE. Receipt left BLOCKED; SUCCESS not invented (parent packs)."
 }
