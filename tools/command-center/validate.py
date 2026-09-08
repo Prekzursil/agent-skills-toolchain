@@ -31,6 +31,10 @@ Checks, each independently falsifiable:
                                    build_graph(catalog) byte for byte.
   V-FIELDS work-unit completeness- all 19 Prompt Two fields resolve per item,
                                    from the item or from the declared defaults.
+                                   Armed by default on the CLI (IMP-0437); pass
+                                   --no-require-complete only for deliberate
+                                   incomplete drafts. CI invokes with
+                                   --require-complete.
 
 FAIL CLOSED. An empty item list, an unreadable catalog, or a missing register
 snapshot is a FAILURE, never "nothing found -> pass" (`rules/common/ci-hygiene.md`
@@ -141,9 +145,13 @@ def validate(
     *,
     register_path: Path | None = None,
     graph: dict[str, Any] | None = None,
-    require_complete: bool = False,
+    require_complete: bool = True,
 ) -> tuple[list[Violation], dict[str, Any]]:
-    """Run every check. Returns (violations, stats). Never raises on bad data."""
+    """Run every check. Returns (violations, stats). Never raises on bad data.
+
+    ``require_complete`` defaults to True (IMP-0437). Library callers that need
+    the historical soft mode must pass ``require_complete=False`` explicitly.
+    """
     violations: list[Violation] = []
     items = cat.items(catalog)
     defaults = (
@@ -349,7 +357,9 @@ def validate(
             )
         )
 
-    # V-FIELDS
+    # V-FIELDS — armed by default (IMP-0437). Pre-0437 this block was gated on
+    # an opt-in flag while CI invoked the tool bare, so incompleteness (and,
+    # before IMP-0436 V-DEFAULTS, a deleted defaults block) could exit 0.
     unresolved: list[str] = []
     default_only = 0
     override_count = 0
@@ -407,7 +417,17 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--catalog", default=str(cat.catalog_path()))
     parser.add_argument("--graph", default=str(cat.graph_path()))
     parser.add_argument("--register", default=None)
-    parser.add_argument("--require-complete", action="store_true")
+    # IMP-0437: field-completeness is ON by default. CI also passes the flag
+    # explicitly. Use --no-require-complete only for deliberate soft drafts.
+    parser.add_argument(
+        "--require-complete",
+        action=argparse.BooleanOptionalAction,
+        default=True,
+        help=(
+            "fail when any Prompt Two work-unit field is unresolved "
+            "(default: true; IMP-0437)"
+        ),
+    )
     parser.add_argument(
         "--json", action="store_true", help="emit the machine-readable report"
     )
