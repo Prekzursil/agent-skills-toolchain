@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 33100,
+   "bytes": 32502,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0081-untrusted-autoload-config-audit.json",
    "role": "primary",
-   "sha256": "1fec204d50dbde2a3a751fe26b9e6647429c26f091aaf63f4aa19b31e4b4d0d2"
+   "sha256": "1990426054fa7b45c3ef3c00d0bb4d2c1b055dcf8d4445b15b2e95e012959cf7"
   },
   {
    "bytes": 13464,
@@ -87,14 +87,30 @@
    "path": "command-center/p2-wave/probes/AUD-0081/control-prose-vs-hook-fixture.raw.txt",
    "role": "log",
    "sha256": "cb7a7afd8ccf866e015d6dc046fa617ef69918a8d46b162e27cb6ecccbb1f6ca"
+  },
+  {
+   "bytes": 7519,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0081/claude-review.json",
+   "role": "supporting",
+   "sha256": "16c5026cde26adf1aa49a38a4929bbc2713a0e2f3d8a9fe580c1b80300937e3c"
+  },
+  {
+   "bytes": 10140,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0081/codex-review.json",
+   "role": "supporting",
+   "sha256": "f1c39cecd371faa6e29ca3e7f9ff223f64f3af2687dd179a6c8fdd33efe6357a"
   }
  ],
  "defects": [
   {
    "id": "AUD-0081-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Dual reviewer (one fresh-context Claude, one Codex, each reviewing both probes) unpaid; active_count/hits_count/classification counts must be independently confirmed by both before PASS, and a disagreement escalated to the owner rather than resolved by vote."
+   "status": "resolved",
+   "summary": "Both required independent reviewers (one fresh-context Claude, one Codex) recorded PASS on disk at claude-review.json / codex-review.json"
   }
  ],
  "downstream_consumers": [
@@ -213,43 +229,16 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-pending-dependency-and-dual-claude-codex-review-with-real-probes",
+  "anti_false_green": "SUCCESS-after-dual-independent-review-PASS-agreement",
   "reviewer_scope_note": "Catalog reviewer_requirement calls for TWO reviewers -- one fresh-context Claude, one Codex -- who each independently review both probes, with disagreement escalated to the owner rather than resolved by vote. This differs from AUD-0061/AUD-0083's single-cross-vendor-Codex-reviewer shape; load_dual_review() enforces both vendor families and distinguishes not-reviewed / both-pass / escalate-to-owner as three DIFFERENT statuses so a disagreement is never silently folded into either 'pending' or 'passed'.",
   "scope_note": "This is a single Linux Cursor Cloud checkout, not the estate's full ~178-checkout population CLAUDE.md describes (that population was measured on a different, Windows-hosted developer box this pod cannot see or enumerate). Every root and hit reported here is real and reproducible on THIS checkout; no claim is made about any other checkout.",
   "wave": "p2-loop"
- },
- "failure": {
-  "blocked_on": "dispatch one fresh-context Claude reviewer AND one Codex reviewer, each independently reviewing probe 1 and probe 2 against active_count=1 / hits_count=15, before PASS; on disagreement escalate to the owner with both probes attached",
-  "classification": [
-   "detector-failure",
-   "owner-blocked"
-  ],
-  "diagnostic_tail": "vendored_tree_root_count=4 vendored_tree_roots=['node_modules', 'tools/crcp/vendor_src', 'tools/editor/ralph-orchestrator/vendor', 'tools/mcp/hacktricks-mcp-server/node_modules'] hits_count=15 by_matched_name={'hooks': 10, 'agents.md': 2, '.claude': 1, 'AGENTS.md': 1, 'CLAUDE.md': 1} by_vendored_root={'tools/editor/ralph-orchestrator/vendor': 9, 'tools/mcp/hacktricks-mcp-server/node_modules': 6} classified_count=15 active_count=1 mention_only_count=2 inert_count=12 active_hits=['tools/editor/ralph-orchestrator/vendor/examples/hooks'] control_fired_on_bad=True control_silent_on_good=True dependency_aud_0009_state=SUCCESS dependency_aud_0009_satisfied=True review_status=not-reviewed reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed with the required control passing (the classifier correctly rates a prose-only AGENTS.md as inert and the SAME fixture rewritten with a PreToolUse hook registration as active), and a real active-hook-registration-syntax hit was found in a vendored tree (tools/editor/ralph-orchestrator/vendor/examples/hooks/minimal/ralph.hooks.yml), but catalog reviewer_requirement is unmet: one fresh-context Claude reviewer AND one Codex reviewer must both independently review probe 1 and probe 2 before PASS -- and a disagreement between them is escalated to the owner, never resolved by vote.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0081/probe2_content_classify.py",
-    "exit_code": 0,
-    "fingerprint": "4b603248ff8291ad722b0c158e60a8d7",
-    "method": "command",
-    "raw_output": "active_count=1 hits_count=15",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
  },
  "manifest_registration": {
   "entry_id": "AUD-0081",
   "manifest_path": "command-center/p2-wave/probes/AUD-0081/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-08T00:46:12Z"
+  "registered_at": "2026-09-08T00:51:56Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -371,7 +360,7 @@
    }
   ],
   "question": "Do any cloned, vendored, or agent-scratch trees under the estate carry a .claude, .codex, .mcp.json, hooks directory, AGENTS.md or CLAUDE.md that would auto-load the moment an agent runs inside them?",
-  "review_status": "not-reviewed",
+  "review_status": "both-pass",
   "vendored_tree_roots": [
    "node_modules",
    "tools/crcp/vendor_src",
@@ -401,17 +390,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog reviewer_requirement: two reviewers, one fresh-context Claude and one Codex, must each independently review this audit (probe 1 and probe 2 both attached); on disagreement escalate to the owner with both probes attached and NEVER resolve by vote. No claude-review.json or codex-review.json is invented here; probes are measured and state is BLOCKED instead.",
-  "reviewer_id": "required-dual-reviewer-claude-and-codex-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "claude: Headline counts and classifications reproduce under independent re-run and filesystem spot-checks. ACTIVE remains a content-syntax finding for examples/hooks (real YAML hooks+command) with explicit opt-in disclosed in-file, not proof of default auto-load. Zero-hit vendored roots node_modules and tools/crcp/vendor_src are correctly still counted in vendored_tree_root_count=4. Residual classifier quirk: empty JSON '\"hooks\": {}' text classifies active via regex; that does not falsify the catalog control (prose inert vs PreToolUse active) or any committed hit classification. Frontend .ts React hooks dirs are inert via the non-exec script-shaped path rather than the source-only path; still correctly not active. Receipt correctly stays BLOCKED pending dual independent review payment. || codex: PASS means the scoped probe1 filename census, probe2 three-way classification counts, ACTIVE-path YAML hook-registration syntax finding (with explicit -c opt-in disclosure preserved), mention-only/inert spot-checks, and the prose-vs-hook control all survived this fresh-context OpenAI/Codex falsification review. PASS does not prove the ACTIVE YAML is auto-loaded by default, does not enumerate the Windows-hosted 178-checkout estate outside this pod, and does not promote AUD-0081. Receipt intentionally left BLOCKED; claude-review.json is still absent so the packer's dual-review SUCCESS gate remains unpaid. Minor residual: classify_config_dir reason text for vendor/.claude reports parent-name set rather than immediate child directory names; does not change the mention-only classification.",
+  "reviewed_at": "2026-09-08T00:51:56Z",
+  "reviewer_id": "claude=fresh-context-claude-falsify-reviewer-aud-0081-bc15abe3ab-01;codex=fresh-context-openai-codex-reviewer-aud-0081-01",
   "vendor": "anthropic+openai",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0081 untrusted auto-loaded configuration audit measured hits_count=15 active_count=1 control_ok=True; blocked-on-dual-reviewer-claude-and-codex-review-unpaid",
+ "sentinel": "SUCCESS:AUD-0081 active_count=1 hits_count=15 control_ok=True dependency_aud_0009_satisfied=True",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0081",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -439,7 +429,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-08T00:46:12Z",
+  "ended_at": "2026-09-08T00:51:56Z",
   "started_at": "2026-09-08T00:00:00Z"
  },
  "unit_id": "AUD-0081"
