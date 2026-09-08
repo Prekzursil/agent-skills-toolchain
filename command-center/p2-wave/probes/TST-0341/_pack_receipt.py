@@ -444,6 +444,9 @@ def build() -> dict:
                 "output_tail": f"raw_fp_total={measure['raw_fp_total']}",
             },
         ],
+        # SUCCESS schema forbids any negative_control with fired_on_bad_state=false
+        # (inert detector). Self-ref silence stays in tests[] / evidence; include the
+        # silence control under negative_controls only while BLOCKED.
         "negative_controls": [
             L.control(
                 "TST0341-C1",
@@ -463,14 +466,23 @@ def build() -> dict:
                 bad="tp_missed_would_be_nonzero_if_loosened",
                 good=f"role_tp_missed={measure['role_tp_missed']}",
             ),
-            L.control(
-                "TST0341-C3",
-                "other",
-                "Documentary receipt quoting forbidden patterns stays silent",
-                fired_bad=False,
-                silent_good=True,
-                bad="n/a",
-                good=f"self_ref_silent={measure['self_reference']['silent']}",
+            *(
+                []
+                if success
+                else [
+                    L.control(
+                        "TST0341-C3",
+                        "other",
+                        "Documentary receipt quoting forbidden patterns stays silent",
+                        fired_bad=False,
+                        silent_good=True,
+                        bad="n/a",
+                        good=(
+                            f"self_ref_silent={measure['self_reference']['silent']}; "
+                            f"live_receipt_silent={live_silent}"
+                        ),
+                    ),
+                ]
             ),
         ],
         "downstream_consumers": [
