@@ -1,0 +1,70 @@
+{
+  "unit_id": "CC-0020",
+  "verdict": "PASS",
+  "independent": true,
+  "fresh_context": true,
+  "vendor": "anthropic",
+  "reviewer_id": "anthropic-fresh-context-cc0020-fifth-mutant",
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "receipt_state_observed": "BLOCKED",
+  "receipt_path": "command-center/receipts/CC-0020.json",
+  "base_tip_sha": "50c57a15f6babf085051709d3c5a1a55c8a31828",
+  "fifth_mutant_class": "clause_order_permutation",
+  "fifth_mutant_caught": true,
+  "detector_confirmed": true,
+  "fifth_mutant_pair": {
+    "base": {
+      "id": "SEED-MERGE",
+      "title": "Merge catalog slices into a unified work-unit catalog with collision detection",
+      "question_or_target": "Build a deterministic merger that reads command-center/catalog-slices/*.json, allocates ids under the 2048-unit floor, refuses overlapping identifiers with a collision gate, and proves order-independence plus idempotence on repeated merges. The mechanism is slice consolidation with an explicit collision detector.",
+      "tests_required": [
+        "collision gate names both paths",
+        "order-independence holds",
+        "idempotence on second merge"
+      ]
+    },
+    "mutant": {
+      "id": "SEED-MERGE-CLAUSE-PERM",
+      "title": "Merge catalog slices into a unified work-unit catalog with collision detection",
+      "question_or_target": "Build a deterministic merger that proves order-independence plus idempotence on repeated merges, refuses overlapping identifiers with a collision gate, allocates ids under the 2048-unit floor, and reads command-center/catalog-slices/*.json. The mechanism is slice consolidation with an explicit collision detector.",
+      "tests_required": [
+        "idempotence on second merge",
+        "collision gate names both paths",
+        "order-independence holds"
+      ]
+    },
+    "lexical": 1.0,
+    "embedding": 0.99935,
+    "lexical_fire": true,
+    "embedding_fire": true,
+    "verdict": "MERGE",
+    "caught": true,
+    "thresholds": {
+      "lexical": 0.85,
+      "embedding": 0.72
+    },
+    "fixture_path": "command-center/p2-wave/probes/CC-0020/fixtures/fifth-mutant-clause-order-permutation.json"
+  },
+  "method": "Independent fresh-context review of CC-0020. Read mechanism_dedup_gate.py and planted-mutants.json without trusting receipt headlines. Designed fifth mutant class clause_order_permutation (reorder conjunctive clauses + tests_required order; preserve tokens and mechanism). Constructed concrete base+mutant pair from the planted seed. Scored via mechanism_dedup_gate.compare and CLI --pair. Regression: --fixtures planted-mutants.json ok=true; pytest 6 passed. Did not modify CC-0020.json, did not retune thresholds, did not run _pack_receipt.py.",
+  "notes": "PASS: fifth mutant class clause_order_permutation is caught (verdict=MERGE, lexical=1.0, embedding=0.99935). This class was not among the four calibration mutants (exact_rename, paraphrase, one_parameter_fork, full_rewrite). Order-only clause permutation stresses the set-Jaccard + hashed-key embedding AND gate without synonym dressing or parameter forks. Receipt left BLOCKED; did_not_promote=true.",
+  "falsification_attempts": [
+    {
+      "attempt": "Reuse one of the four planted classes as the fifth",
+      "result": "REJECTED",
+      "detail": "Chose clause_order_permutation instead \u2014 mechanically distinct (order-only)."
+    },
+    {
+      "attempt": "Expect DISTINCT on order-only duplicate (should-be-caught miss)",
+      "result": "NOT-MISSED",
+      "detail": "Gate returned MERGE with both detectors firing."
+    },
+    {
+      "attempt": "Regression of planted four + distinct set + pytest",
+      "result": "NOT-FALSIFIED",
+      "detail": "fixtures ok=true all_four_caught; pytest 6 passed; receipt still BLOCKED."
+    }
+  ],
+  "residual_unknowns": "Neural sentence-embedding sensitivity remains out of scope (hashed surrogate only). Whether other untested mutation axes (e.g. Unicode NFKC, cross-script titles with body rewrite) would stay caught is not claimed by this single fifth class.",
+  "reviewed_at": "2026-09-08T01:30:25Z"
+}
