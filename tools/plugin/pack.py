@@ -24,12 +24,12 @@ import re
 import subprocess
 import sys
 import time
-import unicodedata
 import zipfile
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+import casefold_paths as casefold_mod
 import forbidden as forbidden_mod
 
 #: Zip format minimum timestamp. Fixed so identical content → identical bytes.
@@ -46,8 +46,8 @@ class PackError(RuntimeError):
 
 
 def nfc(path: str) -> str:
-    return unicodedata.normalize("NFC", path.replace("\\", "/"))
-
+    """NFC path unify — delegates to IMP-0022 helper (separator + NFC only)."""
+    return casefold_mod.nfc_path(path)
 
 def glob_to_re(pattern: str) -> re.Pattern[str]:
     """Map allowlist globs to regex. ``*`` is slash-segment (``[^/]*``); ``**`` refused."""
@@ -241,6 +241,12 @@ def pack(
     members = expand_members(candidates, rules)
     if not members:
         raise PackError("no allowlisted members at this revision")
+
+    # IMP-0022: refuse NFC+casefold collisions before any archive bytes exist.
+    try:
+        casefold_mod.assert_no_casefold_collisions(members)
+    except casefold_mod.CasefoldCollisionError as exc:
+        raise PackError(str(exc)) from exc
 
     ceiling = (
         DEFAULT_MAX_FILE_BYTES if max_file_bytes is None else int(max_file_bytes)
