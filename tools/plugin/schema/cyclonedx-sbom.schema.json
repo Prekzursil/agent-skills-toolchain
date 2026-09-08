@@ -1,0 +1,109 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://ast-integrate.invalid/tools/plugin/schema/cyclonedx-sbom.schema.json",
+  "title": "Plugin dependency-closure SBOM (CycloneDX 1.5 subset)",
+  "description": "CycloneDX 1.5-shaped SBOM for the plugin's Node/Python lockfile closure plus vendored trees (IMP-0062). Subset: only fields the generator emits and the two-signal probes verify.",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["bomFormat", "specVersion", "serialNumber", "metadata", "components"],
+  "properties": {
+    "bomFormat": { "const": "CycloneDX" },
+    "specVersion": { "const": "1.5" },
+    "serialNumber": {
+      "type": "string",
+      "pattern": "^urn:uuid:[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$"
+    },
+    "version": { "type": "integer", "minimum": 1 },
+    "metadata": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["timestamp", "component", "tools"],
+      "properties": {
+        "timestamp": { "type": "string", "minLength": 10 },
+        "component": {
+          "type": "object",
+          "additionalProperties": false,
+          "required": ["type", "name", "version"],
+          "properties": {
+            "type": { "const": "application" },
+            "name": { "type": "string", "minLength": 1 },
+            "version": { "type": "string", "minLength": 1 }
+          }
+        },
+        "tools": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": ["name", "version"],
+            "properties": {
+              "name": { "type": "string", "minLength": 1 },
+              "version": { "type": "string", "minLength": 1 }
+            }
+          }
+        }
+      }
+    },
+    "components": {
+      "type": "array",
+      "minItems": 1,
+      "maxItems": 20000,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["type", "name", "licenses"],
+        "properties": {
+          "type": { "enum": ["library", "application", "file"] },
+          "name": { "type": "string", "minLength": 1, "maxLength": 400 },
+          "version": { "type": "string", "maxLength": 120 },
+          "purl": { "type": "string", "maxLength": 500 },
+          "bom-ref": { "type": "string", "maxLength": 500 },
+          "hashes": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["alg", "content"],
+              "properties": {
+                "alg": { "enum": ["SHA-256", "SHA-512", "SHA-1"] },
+                "content": { "type": "string", "minLength": 8, "maxLength": 128 }
+              }
+            }
+          },
+          "licenses": {
+            "type": "array",
+            "minItems": 1,
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["license"],
+              "properties": {
+                "license": {
+                  "type": "object",
+                  "additionalProperties": false,
+                  "required": ["id"],
+                  "properties": {
+                    "id": { "type": "string", "minLength": 1, "maxLength": 120 }
+                  }
+                }
+              }
+            }
+          },
+          "properties": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "additionalProperties": false,
+              "required": ["name", "value"],
+              "properties": {
+                "name": { "type": "string", "minLength": 1 },
+                "value": { "type": "string" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}
