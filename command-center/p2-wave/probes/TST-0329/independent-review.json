@@ -1,0 +1,121 @@
+{
+  "unit_id": "TST-0329",
+  "verdict": "FAIL",
+  "independent": true,
+  "fresh_context": true,
+  "did_not_author_harness": true,
+  "did_not_promote": true,
+  "receipt_state_expected": "BLOCKED",
+  "success_invented": false,
+  "reviewer_id": "independent-adversarial-fresh-context-bc-d52d7068",
+  "vendor": "cursor-composer",
+  "reviewed_at": "2026-09-08T04:32:48Z",
+  "tip_sha": "0edfdcd953aa603bd0ab8b7d4c04f96c59bcb118",
+  "base_branch": "cursor/p2-loop-to-green-0db0",
+  "review_branch": "cursor/tst-0329-adversarial-review-0db0",
+  "dep_cc0003_state": "SUCCESS",
+  "both_states": {
+    "healthy_true": false,
+    "mutations_all_false": true,
+    "all_twelve_false": true,
+    "independence_ok": false,
+    "case_10646_covered": true,
+    "exit_zero_missing_artifact_is_one_of_twelve": true,
+    "twelve_row_table_present": true
+  },
+  "both_states_reproduction": {
+    "healthy_true": false,
+    "mutations_all_false": true,
+    "all_twelve_false": true,
+    "independence_ok": false,
+    "case_10646_covered": true,
+    "exit_zero_missing_artifact_is_one_of_twelve": true,
+    "twelve_row_table_present": true
+  },
+  "measured": {
+    "pytest": {
+      "command": "python3 -m pytest platform/lib/test_completion_predicate.py command-center/p2-wave/probes/TST-0329/test_conformance.py -q --tb=line",
+      "exit_code": 1,
+      "summary": "26 failed, 40 passed, 5 skipped",
+      "green": false
+    },
+    "measure_table": {
+      "command": "python3 -B command-center/p2-wave/probes/TST-0329/measure_table.py",
+      "exit_code": 1,
+      "ok": false,
+      "healthy_true": false,
+      "all_twelve_false": true,
+      "all_independent": false,
+      "case_10646_covered": true,
+      "row_count": 12
+    },
+    "jsonschema_installed": false,
+    "conditions_match_completion_gates": true,
+    "conditions_count": 12,
+    "healthy_per_condition": {
+      "verdict": "INDETERMINATE",
+      "satisfied_count": 11,
+      "unsatisfied": [],
+      "not_checked": [4],
+      "c4_basis": "jsonschema is not installed; cannot validate"
+    },
+    "twelve_row_table_path": "command-center/p2-wave/probes/TST-0329/twelve-row-table.json",
+    "battery_summary_path": "command-center/p2-wave/probes/TST-0329/battery-summary.json",
+    "spot_checks": [
+      {
+        "mutant": 2,
+        "label": ":10646 exit_code=0 + missing artifact",
+        "reducer_verdict": "FALSE",
+        "unsatisfied": [2],
+        "not_checked": [3, 4, 5],
+        "independent": true,
+        "exit_code_zero_present": true,
+        "matches_expected_cascade": true
+      },
+      {
+        "mutant": 4,
+        "label": "schema field dropped",
+        "reducer_verdict": "FALSE",
+        "unsatisfied": [],
+        "not_checked": [4],
+        "independent": false,
+        "note": "C4 mutation is unenforced when jsonschema is absent — same signature as missing validator (NOT-CHECKED[4], empty unsatisfied); cannot prove single-condition UNSATISFIED"
+      },
+      {
+        "mutant": 9,
+        "label": "same-vendor reviewer",
+        "reducer_verdict": "FALSE",
+        "unsatisfied": [9],
+        "not_checked": [4],
+        "independent": false,
+        "note": "Target C9 is UNSATISFIED but C4 NOT-CHECKED pollutes independence (expected cascade [])"
+      }
+    ],
+    "dual_mutation_extra": {
+      "mutation": "C5 sentinel break + C9 same-vendor (two conditions)",
+      "unsatisfied": [5, 9],
+      "not_checked": [4],
+      "would_pass_single_condition_independence": false,
+      "independence_machinery_would_catch": true,
+      "caveat": "Catch still observed under missing-jsonschema pollution; published single-condition mutants are NOT currently accepted as independent for the same reason"
+    },
+    "healthy_not_trivial_true": {
+      "checks_are_no_ops": false,
+      "note": "Healthy path is not trivially TRUE; eleven conditions SATISFIED with real bases, but C4 blocks COMPLETE via NOT-CHECKED rather than any no-op fold-to-pass"
+    },
+    "implementer_packed_artifacts_diverge": {
+      "prior_pytest_out_claimed": "71 passed",
+      "prior_measure_out_claimed_ok": true,
+      "independent_reproduction": "pytest 26 failed; measure ok=false healthy_true=false all_independent=false",
+      "likely_cause": "implementer environment had jsonschema; this cloud substrate does not (pip show jsonschema -> not found)"
+    }
+  },
+  "fail_drivers": [
+    "healthy input -> INDETERMINATE (not TRUE): condition 4 NOT-CHECKED because jsonschema is not installed — both-states healthy_true=false",
+    "independence fails for 11/12 mutants: every non-C2 row carries not_checked=[4] so unsatisfied==[n] && not_checked==EXPECTED_CASCADE fails; only C2 (:10646) remains independent via documented cascade [3,4,5]",
+    "C4 single-condition mutation is unenforced without jsonschema (unsatisfied=[], not_checked=[4]) — cannot name C4 as UNSATISFIED",
+    "pytest red: 26 failed including test_baseline_case_is_complete, all twelve mutation isolation tests, and TST-0329 conformance (healthy_true / independence / battery ok / measure_table)",
+    "packed implementer measure.out/pytest.out claim green; independent re-run falsifies those headlines on tip 0edfdcd95"
+  ],
+  "notes": "Independent adversarial FAIL on tip 0edfdcd953aa603bd0ab8b7d4c04f96c59bcb118. Re-ran pytest + measure_table; do not trust packed 71-passed / ok=true headlines. Root driver: jsonschema absent on this substrate → C4 always NOT-CHECKED → healthy never COMPLETE → independence matrix collapses (only :10646/C2 stays independent). Twelve CONDITIONS match COMPLETION-GATES gate_a verbatim (12/12). Dual C5+C9 yields unsat=[5,9] so independence machinery would reject multi-condition mutants when C4 is measurable. Healthy checks are not no-ops (11 real SATISFIED bases). Receipt left BLOCKED; did_not_promote; SUCCESS not invented; _pack_receipt.py not run to promote."
+}
