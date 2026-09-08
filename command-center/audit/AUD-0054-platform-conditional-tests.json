@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 51250,
+   "bytes": 51147,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0054-platform-conditional-tests.json",
    "role": "primary",
-   "sha256": "e7a4546365717622b88ba93c5609438d838949e7209d2bb1ee03e40a311be111"
+   "sha256": "3403dd2b656a38374f86340521079d520e1bc2e1e0f69a7baa144559eed4e388"
   },
   {
    "bytes": 14880,
@@ -95,20 +95,28 @@
    "path": "command-center/p2-wave/probes/AUD-0054/fixtures/test_control_runtime_only_skip.py",
    "role": "fixture",
    "sha256": "5a94c2e0e32118d17f1579b383a49f6ca0ae04800e964a7fede6280dd4f60e08"
+  },
+  {
+   "bytes": 17058,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0054/independent-review.json",
+   "role": "supporting",
+   "sha256": "fdc341aa80e2726ba94a9c27f52666206ebf89ddb7db92f68d86b30af8dead1c"
   }
  ],
  "defects": [
   {
    "id": "AUD-0054-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Independent fresh-context Claude review unpaid; headline windows-only/posix-only/never-on-CI counts must be falsified by a reviewer who did not author this census."
+   "status": "resolved",
+   "summary": "Independent fresh-context Claude review PASS recorded at command-center/p2-wave/probes/AUD-0054/independent-review.json"
   },
   {
    "id": "AUD-0054-D-PLATFORM-DARK-TESTS",
    "severity": "P2",
    "status": "open",
-   "summary": "combined_never_on_current_ci_matrix=9 (declared=7, runtime-only=2); CI exercises only ['linux'] (AUD-0049)."
+   "summary": "combined_never_on_current_ci_matrix=9 (declared=7, runtime-only=2); CI exercises only ['linux']."
   }
  ],
  "downstream_consumers": [
@@ -179,7 +187,7 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-pending-independent-review-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-falsify-PASS",
   "by_required_platform": {
    "linux-case-sensitive-only": 1,
    "windows-only": 6,
@@ -229,38 +237,11 @@
   ],
   "wave": "p2-loop"
  },
- "failure": {
-  "blocked_on": "Dispatch one fresh-context Claude reviewer who has not seen this unit's transcript; the reviewer must try to FALSIFY the headline windows_only=6 posix_only=0 combined_never_on_current_ci_matrix=9 before PASS, not re-read the artifact.",
-  "classification": [
-   "scope-mismatch",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "windows_only=6 posix_only=0 windows_or_darwin_only=1 linux_case_sensitive_only=1 never_declared=7 runtime_only_hits=2 control_ok=True reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed with the required independence control (a runtime-only skip with no decorator, in both a hermetic fixture and a real production test, was found by probe 2 and missed by probe 1), but catalog reviewer_requirement is unmet (fresh-context Claude must falsify headline counts).",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0054/probe1_ast_platform_skips.py",
-    "exit_code": 0,
-    "fingerprint": "0ad9a379a34db149754ab812dedceab6",
-    "method": "command",
-    "raw_output": "windows_only=6 posix_only=0 never_declared=7",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
- },
  "manifest_registration": {
   "entry_id": "AUD-0054",
   "manifest_path": "command-center/p2-wave/probes/AUD-0054/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-07T23:57:39Z"
+  "registered_at": "2026-09-08T00:07:29Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -395,7 +376,7 @@
     "target": "test_case_is_preserved_on_a_case_sensitive_filesystem"
    }
   ],
-  "headline": "windows_only=6 posix_only=0 windows_or_darwin_only=1 linux_case_sensitive_only=1 declared_never_on_current_ci_matrix=7 runtime_only_skips_found=2 combined_never_on_current_ci_matrix=9. BLOCKED on independent fresh-context Claude review.",
+  "headline": "windows_only=6 posix_only=0 windows_or_darwin_only=1 linux_case_sensitive_only=1 declared_never_on_current_ci_matrix=7 runtime_only_skips_found=2 combined_never_on_current_ci_matrix=9. Independent falsify review PASS.",
   "kind": "audit-inventory",
   "observations": [
    {
@@ -475,17 +456,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires one fresh-context Claude reviewer who has not seen this unit's transcript and must try to FALSIFY the headline counts before PASS, not re-read the artifact. No independent-review.json is invented here; probes are measured and state is BLOCKED instead.",
-  "reviewer_id": "required-fresh-context-claude-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "All headline counts and the probe-independence control survived every falsification attempt made in this review. The one genuine issue found -- probe2's collect-vs-execute diff for tools/agentrail/tests/test_deploy.py silently depends on two in-repo sibling packages (agentspec, agentrail) being pip-installed editable, which is not stated in probe2's own docstring even though tools/agentrail/pyproject.toml documents the requirement -- is an environment-reproducibility gap, not a defect in the measured claim: once the documented setup is applied, probe2 reproduces the committed artifact's total_skipped_here=9/declared_hits=7/runtime_only_hits=2/control_ok=True exactly, with no count drift. A second minor, non-blocking observation: 4 of the 8 excluded_tool_presence_examples entries are heuristic false positives (unrelated module-level string/list literals matched on the substring 'is None', not actual skipif decorators), meaning that diagnostic sub-count is noisier than its name implies -- but this over-inclusion cannot hide a real platform-conditional test from the windows_only/posix_only/etc. counts, and I confirmed by direct inspection that none of the 8 excluded rows contain a genuine platform predicate. Neither finding changes the verdict on the audited headline claims. Per instructions, the receipt was left untouched at state=BLOCKED, reviewer.verdict=NOT-REVIEWED; no promotion, no _pack_receipt.py execution, and no edits to any probe script or the receipt itself.",
+  "reviewed_at": "2026-09-08T00:10:00Z",
+  "reviewer_id": "claude-fresh-context-independent-reviewer-aud0054",
   "vendor": "anthropic",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0054 AST platform-skip census + real Linux collect-vs-execute diff measured windows_only=6 posix_only=0 never_on_current_ci_matrix=9; blocked-on-independent-review",
+ "sentinel": "SUCCESS:AUD-0054",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0054",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 2,
@@ -513,7 +495,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T23:57:39Z",
+  "ended_at": "2026-09-08T00:07:29Z",
   "started_at": "2026-09-07T23:00:00Z"
  },
  "unit_id": "AUD-0054"
