@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 9338,
+   "bytes": 13136,
    "eol": "LF",
    "exists": true,
    "path": "command-center/receipts/CC-0012.json",
    "role": "primary",
-   "sha256": "f27a262b134db09c5eca4db9e4930c24a652a78e3f1ad0a9238ca2f4d6968559"
+   "sha256": "11be3724ff6c90b8620e3d8cbf51d1a11d396991d6230a3c65b30cfec25a4357"
   },
   {
    "bytes": 7681,
@@ -63,6 +63,14 @@
    "path": "command-center/p2-wave/probes/CC-0012/roundtrip-sample.json",
    "role": "supporting",
    "sha256": "cff66817f7b1ee19811a8f7da1f57373ee43946f39087bfd4d7de2001d3bdd63"
+  },
+  {
+   "bytes": 5196,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/CC-0012/independent-review.json",
+   "role": "supporting",
+   "sha256": "b77ef801e00c1909ffcb3cf5db10e47a41da43af68c8062dec76102c58db38f9"
   }
  ],
  "defects": [],
@@ -79,6 +87,21 @@
     "method": "command",
     "raw_output": "{\"activated\": true, \"activation_commit\": \"85df1cb825fd1380b7b5627daa7268febc91b2de\"}",
     "role": "source"
+   },
+   "read_ok": true
+  },
+  {
+   "artifact_path": "command-center/p2-wave/probes/CC-0012/independent-review.json",
+   "consumer": "independent.unversioned-edit-gate",
+   "executed": true,
+   "exit_code": 1,
+   "probe": {
+    "command": "independent-review unversioned attempt",
+    "exit_code": 1,
+    "fingerprint": "58596b243cda510f9f20549608dc564a",
+    "method": "file-read",
+    "raw_output": "{\"command\": \"python3 -B tools/command-center/schema_freeze.py --check command-center/schema/stopping-condition.schema.json <old> <new> false NONE\", \"exit_code\": 1, \"gate_verdict\": \"RED\", \"log\": \"/opt/cursor/artifacts/cc0012-unversioned-edit-reject.log\", \"mutation\": \"Inserted JSON property x-cc0012-reviewer-unversioned-probe (not scripted by implementer probe1_freeze.py).\", \"new_sha256\": \"76bc4c1e168a1211562544140772b6db4997bdefb0b1b35afb629c296647f5fc\", \"old_sha256\": \"aa33c6a42cd211cdce64ca3a17489f3ddd2922c81535cf23be27d6d16004a2d5\", \"path\": \"command-center/schema/stopping-condition.schema.json\", \"reason\": \"frozen path changed without version bump + migration with passing round-trip (bumped=False, migration_id=None, roundtrip_ok=False)\", \"restored\": true}",
+    "role": "verifier"
    },
    "read_ok": true
   }
@@ -131,19 +154,36 @@
     }
    ],
    "verdict": "CONFIRMED"
+  },
+  {
+   "anchor": "command-center/p2-wave/probes/CC-0012/independent-review.json",
+   "claim": "Independent unversioned edit of command-center/schema/stopping-condition.schema.json rejected gate_verdict=RED exit=1.",
+   "confidence": "almost-certain",
+   "probes": [
+    {
+     "command": "read independent-review.json unversioned_edit_attempt",
+     "exit_code": 0,
+     "fingerprint": "6514d2c9d52917540b64b7d8c2d2aa31",
+     "method": "file-read",
+     "raw_output": "{\"command\": \"python3 -B tools/command-center/schema_freeze.py --check command-center/schema/stopping-condition.schema.json <old> <new> false NONE\", \"exit_code\": 1, \"gate_verdict\": \"RED\", \"log\": \"/opt/cursor/artifacts/cc0012-unversioned-edit-reject.log\", \"mutation\": \"Inserted JSON property x-cc0012-reviewer-unversioned-probe (not scripted by implementer probe1_freeze.py).\", \"new_sha256\": \"76bc4c1e168a1211562544140772b6db4997bdefb0b1b35afb629c296647f5fc\", \"old_sha256\": \"aa33c6a42cd211cdce64ca3a17489f3ddd2922c81535cf23be27d6d16004a2d5\", \"path\": \"command-center/schema/stopping-condition.schema.json\", \"reason\": \"frozen path changed without version bump + migration with passing round-trip (bumped=False, migration_id=None, roundtrip_ok=False)\", \"restored\": true}",
+     "role": "source"
+    },
+    {
+     "command": "python3 -B command-center/p2-wave/probes/CC-0012/probe1_freeze.py",
+     "exit_code": 0,
+     "fingerprint": "a4b0286206115edbf5ac61c58e23f240",
+     "method": "command",
+     "raw_output": "PROBE=CC-0012-freeze\nPYTEST_RC=0\nACTIVATED=True\nACTIVATION_COMMIT=85df1cb825fd1380b7b5627daa7268febc91b2de\nROUNDTRIP_OK=True\nUNVERSIONED=RED\nVERSIONED=GREEN\nNON_FROZEN=SILENT\nPYTEST_TAIL=\n.....                                                                    [100%]\n5 passed in 0.02s\n\nVERDICT=PASS\n",
+     "role": "verifier"
+    }
+   ],
+   "verdict": "CONFIRMED"
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-unversioned-edit-PASS",
   "builder": "command-center/p2-wave/probes/CC-0012/_pack_receipt.py",
   "p2_loop_wave": 1
- },
- "failure": {
-  "blocked_on": "Fresh-context reviewer must attempt an unversioned schema edit and confirm the gate rejects it.",
-  "classification": [
-   "blocked-on-independent-review"
-  ],
-  "reason": "Freeze + migration gate green under probes; independent review owed."
  },
  "manifest_registration": {
   "entry_id": "CC-0012",
@@ -200,18 +240,18 @@
   "policy": "Two strikes then pivot; if the gate produces false positives twice, narrow its path scope rather than loosening its rule."
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog requires an independent reviewer who attempts an unversioned schema edit and confirms rejection. BLOCKED instead of stub SUCCESS.",
-  "reviewed_at": "2026-09-07T18:38:44Z",
-  "reviewer_id": "awaiting-fresh-context",
-  "vendor": "anthropic",
-  "verdict": "FAIL"
+  "fresh_context": true,
+  "independent": true,
+  "notes": "Fresh-context independent review of CC-0012. Reproduced probe1_freeze.py (ok=true; unversioned=RED versioned=GREEN non_frozen=SILENT; pytest 5 passed; activation_commit=85df1cb825fd1380b7b5627daa7268febc91b2de). Independently mutated frozen path command-center/schema/stopping-condition.schema.json (implementer probes only exercise receipt.schema.json with synthetic hashes) by inserting x-cc0012-reviewer-unversioned-probe; real sha256 aa33c6a4.. -> 76bc4c1e..; schema_freeze.py --check with version_bumped=false migration=NONE returned verdict=RED exit=1. Restored bytes (RESTORE_MATCH=true). Same sha delta with version_bumped=true + m001-receipt-core-example returned GREEN exit=0; --roundtrip on roundtrip-sample.json roundtrip_ok=true; non-frozen docs/plans/README.md SILENT. Did not run _pack_receipt.py; did not invent SUCCESS; receipt left BLOCKED.",
+  "reviewed_at": "2026-09-08T02:49:15Z",
+  "reviewer_id": "openai-fresh-context-cc0012-unversioned-edit",
+  "vendor": "openai",
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:CC-0012 blocked-on-independent-review; freeze activated at 85df1cb825fd; unversioned=RED versioned=GREEN non-frozen=SILENT roundtrip_ok=True; SUCCESS:CC-0012 withheld pending reviewer unversioned-edit attempt",
+ "sentinel": "SUCCESS:CC-0012: freeze activated at 85df1cb825fd; unversioned=RED versioned=GREEN non-frozen=SILENT roundtrip_ok=True; independent unversioned edit rejected",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json#CC-0012",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -247,7 +287,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-07T18:38:44Z",
+  "ended_at": "2026-09-08T02:57:54Z",
   "started_at": "2026-09-07T18:45:00Z"
  },
  "unit_id": "CC-0012"
