@@ -17,6 +17,7 @@ from pathlib import Path
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import ensure_jsonschema  # noqa: E402
 import conformance as C  # noqa: E402
 
 OUT_TABLE = HERE / "twelve-row-table.json"
@@ -25,6 +26,10 @@ OUT_SUMMARY = HERE / "battery-summary.json"
 
 
 def main() -> int:
+    # Fail closed: without jsonschema, C4 is NOT-CHECKED and healthy never
+    # COMPLETE — that substrate produced the first adversarial FAIL.
+    js_ver = ensure_jsonschema.ensure()
+
     with tempfile.TemporaryDirectory(prefix="tst0329-") as td:
         report = C.run_battery(Path(td))
 
@@ -76,6 +81,8 @@ def main() -> int:
         "all_independent": report["all_independent"],
         "case_10646_covered": report["case_10646_covered"],
         "both_states": report["both_states"],
+        "jsonschema_version": js_ver,
+        "jsonschema_required": True,
         "table_path": _rel(OUT_TABLE),
         "md_path": _rel(OUT_MD),
     }

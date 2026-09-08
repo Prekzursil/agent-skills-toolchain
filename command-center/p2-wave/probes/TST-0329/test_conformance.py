@@ -15,7 +15,11 @@ import pytest
 HERE = Path(__file__).resolve().parent
 sys.path.insert(0, str(HERE))
 
+import ensure_jsonschema  # noqa: E402
 import conformance as C  # noqa: E402
+
+# Fail closed at collection time if jsonschema cannot be made available.
+ensure_jsonschema.ensure()
 
 
 @pytest.fixture

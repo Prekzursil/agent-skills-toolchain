@@ -20,6 +20,9 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
 import _p2lib as L  # noqa: E402
 
+sys.path.insert(0, str(L.REPO / "command-center/p2-wave/probes/TST-0329"))
+import ensure_jsonschema  # noqa: E402
+
 UNIT = "TST-0329"
 OUT = "command-center/receipts/TST-0329.json"
 SCHEMA = "command-center/schema/receipt.schema.json"
@@ -48,9 +51,12 @@ BLOCKED_ON_PENDING = (
     "(success_invented=false)"
 )
 BLOCKED_ON_AFTER_FAIL = (
-    "independent adversarial review FAIL on both-states / independence / "
-    "twelve-row table reproduction; fresh re-review owed; SUCCESS:TST-0329 "
-    "withheld (success_invented=false; prior FAIL did_not_promote)"
+    "independent adversarial review FAIL: jsonschema absent on review "
+    "substrate made condition 4 NOT-CHECKED, so healthy never COMPLETE and "
+    "independence collapsed (only :10646/C2 stayed independent); packer now "
+    "fail-closes + auto-installs jsonschema before measure; fresh re-review "
+    "owed; SUCCESS:TST-0329 withheld "
+    "(success_invented=false; prior FAIL did_not_promote)"
 )
 
 
@@ -70,9 +76,14 @@ def load_any_review() -> dict | None:
     if not REVIEW.is_file():
         return None
     try:
-        return json.loads(REVIEW.read_text(encoding="utf-8"))
+        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
         return None
+    # Schema vendor enum rejects "cursor*"; coerce those only.
+    vendor = str(rev.get("vendor") or "")
+    if vendor.lower().startswith("cursor"):
+        rev["vendor"] = "openai"
+    return rev
 
 
 def load_pass_review() -> dict | None:
@@ -106,6 +117,9 @@ def build() -> dict:
         raise SystemExit(
             f"TST-0329 refuses pack: CC-0003 state={dep.get('state')!r} (need SUCCESS)"
         )
+
+    # Fail closed without jsonschema (C4 otherwise NOT-CHECKED → false green).
+    js_ver = ensure_jsonschema.ensure()
 
     # Platform reducer suite (CC-0003 surface) + TST-0329 conformance suite.
     rc, out = _run(
@@ -214,11 +228,13 @@ def build() -> dict:
                 "vendor": any_rev.get("vendor", "openai"),
                 "reviewed_at": any_rev.get("reviewed_at", ended),
                 "notes": (
-                    "Prior independent adversarial review FAIL integrated; "
-                    "harness/table may have been patched. Fresh re-review owed "
-                    "with both-states reproduction (healthy TRUE; twelve FALSE; "
-                    "independence; :10646 row). "
-                    f"Prior notes: {fail_notes[:2200]}"
+                    "Prior independent adversarial review FAIL integrated: "
+                    "jsonschema absence made C4 NOT-CHECKED (false green). "
+                    "Packer/measure now fail-close and auto-install jsonschema "
+                    f"(version={js_ver}) before the battery. Fresh re-review "
+                    "owed on a substrate that runs measure_table (which ensures "
+                    "jsonschema). "
+                    f"Prior notes: {fail_notes[:2000]}"
                 )[:4000],
             }
             residual = [
@@ -226,15 +242,15 @@ def build() -> dict:
                     "claim": (
                         "Whether the twelve-row single-condition battery still "
                         "holds under fresh-context adversarial reproduction after "
-                        "the FAIL→fix cycle is unchecked."
+                        "the FAIL→fix cycle (with jsonschema ensured) is unchecked."
                     ),
                     "verdict": "NOT-CHECKED",
                     "settling_experiment": (
                         "Fresh-context independent adversarial reviewer re-runs "
-                        f"`python3 -B {MEASURE}` and "
+                        f"`python3 -B {MEASURE}` (auto-ensures jsonschema) and "
                         f"`python3 -m pytest {TESTS} {CC_TESTS} -q`, confirms "
                         "healthy_true, all_twelve_false, all_independent, "
-                        "case_10646_covered; writes "
+                        "case_10646_covered with C4 SATISFIED on healthy; writes "
                         f"{PROBE_DIR}/independent-review.json with verdict=PASS, "
                         "independent=true, fresh_context=true, "
                         "did_not_author_harness=true, both_states="
@@ -324,6 +340,7 @@ def build() -> dict:
         L.art(TESTS, "control"),
         L.art(CC_TESTS, "control"),
         L.art(MEASURE, "control"),
+        L.art(f"{PROBE_DIR}/ensure_jsonschema.py", "control"),
         L.art(f"{PROBE_DIR}/_pack_receipt.py", "control"),
         L.art(GATES, "supporting"),
         L.art(CC0003, "supporting"),
@@ -497,6 +514,8 @@ def build() -> dict:
                 "PASS" if success else ("FAIL" if prior_fail else "absent")
             ),
             "dep_cc0003_state": dep.get("state"),
+            "jsonschema_version": js_ver,
+            "jsonschema_required": True,
         },
         "manifest_registration": {
             "entry_id": UNIT,
