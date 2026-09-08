@@ -30,11 +30,15 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Iterable, Sequence
 
+import forbidden as forbidden_mod
+
 #: Zip format minimum timestamp. Fixed so identical content → identical bytes.
 ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
 COMPRESS_LEVEL = 9
 DEFAULT_ALLOWLIST = Path(__file__).resolve().parent / "payload-allowlist.json"
 FIXED_MODE = 0o644
+#: Per-file ceiling for IMP-0003 pre-emit path-role scanner (not total budget).
+DEFAULT_MAX_FILE_BYTES = forbidden_mod.DEFAULT_MAX_FILE_BYTES
 
 
 class PackError(RuntimeError):
@@ -221,8 +225,14 @@ def pack(
     out: Path,
     prefix: str = "",
     use_real_mtimes: bool = False,
+    max_file_bytes: int | None = None,
+    skip_forbidden_scan: bool = False,
 ) -> PackResult:
-    """Expand allowlist against ``rev``, pack zip from ``git cat-file`` blob bytes."""
+    """Expand allowlist against ``rev``, pack zip from ``git cat-file`` blob bytes.
+
+    Pre-emit (IMP-0003): every selected member is classified by path role and
+    per-file byte ceiling before any archive bytes are written.
+    """
     repo = Path(repo).resolve()
     allowlist = Path(allowlist) if allowlist else DEFAULT_ALLOWLIST
     doc = load_allowlist(allowlist)
@@ -231,6 +241,10 @@ def pack(
     members = expand_members(candidates, rules)
     if not members:
         raise PackError("no allowlisted members at this revision")
+
+    ceiling = (
+        DEFAULT_MAX_FILE_BYTES if max_file_bytes is None else int(max_file_bytes)
+    )
 
     prefix_n = prefix.replace("\\", "/").rstrip("/")
     blobs: list[tuple[str, bytes]] = []
@@ -245,6 +259,15 @@ def pack(
                 mtimes[rel] = work.stat().st_mtime
             except OSError:
                 mtimes[rel] = time.time()
+
+    if not skip_forbidden_scan:
+        try:
+            forbidden_mod.assert_members_clean(
+                [(rel, len(blob)) for rel, blob in blobs],
+                max_file_bytes=ceiling,
+            )
+        except forbidden_mod.ForbiddenError as exc:
+            raise PackError(str(exc)) from exc
 
     raw = write_zip_bytes(blobs, use_real_mtimes=use_real_mtimes, mtime_lookup=mtimes)
     out = Path(out)
