@@ -31,6 +31,7 @@ from typing import Iterable, Sequence
 
 import casefold_paths as casefold_mod
 import forbidden as forbidden_mod
+import size_budget as size_budget_mod
 
 #: Zip format minimum timestamp. Fixed so identical content → identical bytes.
 ZIP_EPOCH = (1980, 1, 1, 0, 0, 0)
@@ -48,6 +49,7 @@ class PackError(RuntimeError):
 def nfc(path: str) -> str:
     """NFC path unify — delegates to IMP-0022 helper (separator + NFC only)."""
     return casefold_mod.nfc_path(path)
+
 
 def glob_to_re(pattern: str) -> re.Pattern[str]:
     """Map allowlist globs to regex. ``*`` is slash-segment (``[^/]*``); ``**`` refused."""
@@ -161,7 +163,11 @@ def git_cat_file(repo: Path, rev: str, path: str) -> bytes:
     if proc.returncode != 0:
         err = (proc.stderr or b"").decode("utf-8", errors="replace").strip()
         raise PackError(f"git cat-file -p {spec!r} failed: {err}")
-    return proc.stdout if isinstance(proc.stdout, (bytes, bytearray)) else proc.stdout.encode()
+    return (
+        proc.stdout
+        if isinstance(proc.stdout, (bytes, bytearray))
+        else proc.stdout.encode()
+    )
 
 
 def _zip_datetime_from_epoch(ts: float) -> tuple[int, int, int, int, int, int]:
@@ -205,9 +211,10 @@ class PackResult:
     size_bytes: int
     members: list[str]
     rev: str
+    budget: dict | None = None
 
     def as_dict(self) -> dict:
-        return {
+        d = {
             "archive": str(self.archive),
             "sha256": self.sha256,
             "size_bytes": self.size_bytes,
@@ -215,6 +222,9 @@ class PackResult:
             "members": list(self.members),
             "rev": self.rev,
         }
+        if self.budget is not None:
+            d["budget"] = self.budget
+        return d
 
 
 def pack(
@@ -227,11 +237,18 @@ def pack(
     use_real_mtimes: bool = False,
     max_file_bytes: int | None = None,
     skip_forbidden_scan: bool = False,
+    skip_budget_check: bool = False,
+    max_bytes: int | None = None,
+    max_files: int | None = None,
 ) -> PackResult:
     """Expand allowlist against ``rev``, pack zip from ``git cat-file`` blob bytes.
 
     Pre-emit (IMP-0003): every selected member is classified by path role and
     per-file byte ceiling before any archive bytes are written.
+
+    Post-emit (IMP-0005): declared max-bytes / max-file-count budget is enforced
+    against the written archive; totals come from the budget checker, not a
+    tautological copy of caller-supplied size.
     """
     repo = Path(repo).resolve()
     allowlist = Path(allowlist) if allowlist else DEFAULT_ALLOWLIST
@@ -248,9 +265,7 @@ def pack(
     except casefold_mod.CasefoldCollisionError as exc:
         raise PackError(str(exc)) from exc
 
-    ceiling = (
-        DEFAULT_MAX_FILE_BYTES if max_file_bytes is None else int(max_file_bytes)
-    )
+    ceiling = DEFAULT_MAX_FILE_BYTES if max_file_bytes is None else int(max_file_bytes)
 
     prefix_n = prefix.replace("\\", "/").rstrip("/")
     blobs: list[tuple[str, bytes]] = []
@@ -279,12 +294,34 @@ def pack(
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(raw)
+
+    budget_info: dict | None = None
+    if not skip_budget_check:
+        try:
+            if max_bytes is None or max_files is None:
+                mb, mf = size_budget_mod.load_budget(doc)
+                if max_bytes is None:
+                    max_bytes = mb
+                if max_files is None:
+                    max_files = mf
+            totals = size_budget_mod.check_budget(
+                out, max_bytes=int(max_bytes), max_files=int(max_files)
+            )
+        except size_budget_mod.BudgetError as exc:
+            try:
+                out.unlink()
+            except OSError:
+                pass
+            raise PackError(f"budget: {exc}") from exc
+        budget_info = totals.as_dict()
+
     return PackResult(
         archive=out,
         sha256=hashlib.sha256(raw).hexdigest(),
         size_bytes=len(raw),
         members=[m for m, _ in blobs],
         rev=rev,
+        budget=budget_info,
     )
 
 
