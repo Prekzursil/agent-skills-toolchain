@@ -84,6 +84,27 @@ SECTION_DISPOSITION = {
 
 UNKNOWN = "UNKNOWN - not yet determined"
 
+# The nine fields that live in catalog `defaults` and may be overridden per unit.
+# Measured: 0 of 103 legacy `items` override any of these; work_units may stamp
+# them per-row. Precedence is enforced by `resolve_field` (IMP-0436), not prose.
+OVERRIDEABLE_DEFAULT_FIELDS: tuple[str, ...] = (
+    "assignment",
+    "tool_permissions",
+    "execution_substrate",
+    "timeout_seconds",
+    "output_schema",
+    "tests_required",
+    "reviewer_requirement",
+    "retry_policy",
+    "failure_classification",
+)
+
+# Slice authors use question_or_target / assigned_model_vendor_role spellings.
+FIELD_KEY_ALIASES: dict[str, tuple[str, ...]] = {
+    "assignment": ("assignment", "assigned_model_vendor_role"),
+    "target": ("target", "question_or_target"),
+}
+
 
 def repo_root() -> Path:
     """The checkout root, derived from this file's location (tools/command-center/)."""
@@ -148,6 +169,124 @@ def open_items(catalog: dict[str, Any]) -> list[dict[str, Any]]:
 def dependencies(item: dict[str, Any]) -> list[str]:
     raw = item.get("dependencies")
     return [str(dep) for dep in raw] if isinstance(raw, list) else []
+
+
+def field_keys(field: str) -> tuple[str, ...]:
+    """JSON object keys that declare `field` on a unit (canonical + aliases)."""
+    return FIELD_KEY_ALIASES.get(field, (field,))
+
+
+def item_declares_field(item: dict[str, Any], field: str) -> bool:
+    """True iff the unit object contains the field key — even when value is JSON null.
+
+    Presence of the key is the override signal. A missing key falls through to
+    defaults; a present key with value `null` is explicit-null, not fall-through.
+    """
+    return any(key in item for key in field_keys(field))
+
+
+def item_field_value(item: dict[str, Any], field: str) -> Any:
+    """Return the unit's declared value for `field` (may be None). Raises KeyError."""
+    for key in field_keys(field):
+        if key in item:
+            return item[key]
+    raise KeyError(field)
+
+
+def resolve_field(
+    item: dict[str, Any],
+    defaults: dict[str, Any] | None,
+    field: str,
+) -> dict[str, Any]:
+    """Resolve one field with enforced precedence and provenance.
+
+    Precedence (enforced here, not merely described):
+      1. Unit declares the key (including explicit JSON null) → unit wins.
+      2. Else defaults declares the key → default wins.
+      3. Else provenance=`unset`, value=None.
+
+    Provenance values: `override` | `explicit-null` | `default` | `unset`.
+    """
+    if item_declares_field(item, field):
+        value = item_field_value(item, field)
+        if value is None:
+            return {"field": field, "value": None, "provenance": "explicit-null"}
+        return {"field": field, "value": value, "provenance": "override"}
+    if isinstance(defaults, dict) and field in defaults:
+        return {
+            "field": field,
+            "value": defaults[field],
+            "provenance": "default",
+        }
+    return {"field": field, "value": None, "provenance": "unset"}
+
+
+def resolve_unit(
+    item: dict[str, Any],
+    defaults: dict[str, Any] | None,
+    *,
+    fields: tuple[str, ...] | None = None,
+) -> dict[str, Any]:
+    """Resolved view for one unit: effective value + provenance per field."""
+    target_fields = fields or OVERRIDEABLE_DEFAULT_FIELDS
+    resolved = {
+        field: resolve_field(item, defaults, field) for field in target_fields
+    }
+    return {
+        "id": str(item.get("id", "")),
+        "fields": resolved,
+    }
+
+
+def defaults_block_violations(catalog: dict[str, Any]) -> list[dict[str, str]]:
+    """Fail closed when the global defaults block is missing or incomplete.
+
+    Deleting `defaults` (or a single overrideable default that items still rely
+    on) must not silently leave nine fields unset — that silence was measured
+    green under bare `validate.py` before IMP-0436.
+    """
+    findings: list[dict[str, str]] = []
+    item_list = items(catalog)
+    raw_defaults = catalog.get("defaults", None)
+
+    if not isinstance(raw_defaults, dict):
+        findings.append(
+            {
+                "check": "V-DEFAULTS",
+                "id": "-",
+                "detail": (
+                    "catalog `defaults` block is missing or not an object — "
+                    "overrideable fields cannot resolve; fail closed"
+                ),
+            }
+        )
+        return findings
+
+    for field in OVERRIDEABLE_DEFAULT_FIELDS:
+        if field in raw_defaults:
+            continue
+        reliant = [
+            str(item.get("id", ""))
+            for item in item_list
+            if not item_declares_field(item, field)
+        ]
+        if not reliant:
+            # Every item overrides this field; missing default is still a
+            # contract gap for future items, but not an immediate unset.
+            continue
+        sample = ", ".join(reliant[:5])
+        more = f" (+{len(reliant) - 5} more)" if len(reliant) > 5 else ""
+        findings.append(
+            {
+                "check": "V-DEFAULTS",
+                "id": "-",
+                "detail": (
+                    f"defaults.{field} missing while {len(reliant)} item(s) "
+                    f"rely on it (e.g. {sample}{more})"
+                ),
+            }
+        )
+    return findings
 
 
 def build_graph(catalog: dict[str, Any]) -> dict[str, Any]:
