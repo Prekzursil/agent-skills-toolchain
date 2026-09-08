@@ -12,18 +12,18 @@
 tools/mcp/*/accounts.json filter=git-crypt diff=git-crypt
 tools/mcp/**/accounts.json filter=git-crypt diff=git-crypt
 
-# Shell scripts MUST be LF (real WSL/Linux bash rejects CRLF); PS1 stays CRLF
+# IMP-0017 — line-ending policy enforced at build time (not developer discipline).
+# Shell / PS1 / Python / Markdown check out as LF. Packer additionally refuses any
+# shipped *.sh blob that contains CR (0x0D); the gate reads git cat-file / git show
+# blob bytes (never working-tree, never git archive).
 *.sh eol=lf
-*.ps1 eol=crlf
+*.ps1 eol=lf
+*.py eol=lf
+*.md eol=lf
 
-# CC-0005 / IMP-0439 — EXPLICIT EOL POLICY FOR MARKDOWN (recorded decision, not accident).
-# Deliberately NO `*.md eol=lf` here. Forcing Markdown to LF at checkout was considered as
-# the sole Windows-parity fix for REACH-6 / provenance hashing and rejected: a .gitattributes
-# change alone does not make every gate portable (retry_policy: two strikes then move the fix
-# into the hashing routine). Provenance gates MUST hash via `git cat-file -p <rev>:<path>`
-# (never working-tree bytes, never `git archive`). See tools/measure-guard/blobread.py and
-# tools/command-center/validate.py REACH-6. Shell/PS1 keep their eol rules above because
-# interpreters reject the wrong ending; Markdown is content hashed from the blob.
+# CC-0005 / IMP-0439 note (superseded for attributes by IMP-0017, still true for hashing):
+# Provenance gates MUST hash via `git cat-file -p <rev>:<path>` (never working-tree
+# bytes, never `git archive`). See tools/measure-guard/blobread.py.
 
 # Phone-extracted browser session cookie stores (chatgpt/databricks/aws) — real
 # session tokens; stored ENCRYPTED, decrypt only after `git-crypt unlock`.

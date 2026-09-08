@@ -30,6 +30,7 @@ from pathlib import Path
 from typing import Iterable, Sequence
 
 import casefold_paths as casefold_mod
+import eol_policy as eol_policy_mod
 import forbidden as forbidden_mod
 import size_budget as size_budget_mod
 
@@ -249,6 +250,9 @@ def pack(
     Post-emit (IMP-0005): declared max-bytes / max-file-count budget is enforced
     against the written archive; totals come from the budget checker, not a
     tautological copy of caller-supplied size.
+
+    EOL (IMP-0017): every shipped ``*.sh`` member must contain zero CR bytes in
+    the git blob and again in the packed zip (cat-file bytes, never archive).
     """
     repo = Path(repo).resolve()
     allowlist = Path(allowlist) if allowlist else DEFAULT_ALLOWLIST
@@ -290,10 +294,26 @@ def pack(
         except forbidden_mod.ForbiddenError as exc:
             raise PackError(str(exc)) from exc
 
+    # IMP-0017: refuse CRLF/CR shell blobs before any archive bytes exist.
+    try:
+        eol_policy_mod.assert_no_cr_in_shell_members(blobs, source="blob")
+    except eol_policy_mod.EolPolicyError as exc:
+        raise PackError(str(exc)) from exc
+
     raw = write_zip_bytes(blobs, use_real_mtimes=use_real_mtimes, mtime_lookup=mtimes)
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)
     out.write_bytes(raw)
+
+    # IMP-0017 signal (2): re-scan extracted packed .sh bytes (not worktree).
+    try:
+        eol_policy_mod.assert_no_cr_in_packed_shells(out)
+    except eol_policy_mod.EolPolicyError as exc:
+        try:
+            out.unlink()
+        except OSError:
+            pass
+        raise PackError(str(exc)) from exc
 
     budget_info: dict | None = None
     if not skip_budget_check:
