@@ -277,6 +277,41 @@ class TestResultKind:
         raw = '{"state": {"result_state": "TIMEDOUT"}}'
         assert _judge(raw, "TIMEDOUT", self.RESULT_CTX, "result")
 
+    def test_snake_identifier_prose_mention_is_silent(self):
+        """Unquoted ``user_cancelled_or_timedout`` in docs embeds timedout — MENTION."""
+        prose = "examples include user_cancelled_or_timedout and related fields"
+        assert not _judge(prose, "timedout", self.RESULT_CTX, "result")
+
+    def test_hyphenated_compound_embed_is_mention(self):
+        """timeout inside timeout-needle compound is identifier mention."""
+        prose = "blocked_on cites result-needle / timeout-needle compounds"
+        assert not _judge(prose, "timeout", self.RESULT_CTX, "result")
+
+
+    def test_etimedout_value_still_fires(self):
+        """ETIMEDOUT has no underscore; must not be silenced by snake-embed rule."""
+        raw = '{"error": "ETIMEDOUT"}'
+        # Needle matches the casefold of the embedded substring inside ETIMEDOUT.
+        assert _judge(raw, "TIMEDOUT", self.RESULT_CTX, "result")
+
+    def test_unit_sentinel_failed_vocabulary_is_mention(self):
+        """Receipt sentinel FAILED:TST-0341 is schema vocabulary, not a tool failure."""
+        raw = '{"sentinel": "FAILED:TST-0341 blocked-on-independent-review"}'
+        assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
+
+
+    def test_unit_template_sentinel_failed_unit_is_mention(self):
+        """FAILED:UNIT schema template (no digits) is vocabulary, not a report."""
+        raw = "docs name FAILED:UNIT sentinel vocabulary"
+        assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
+
+    def test_simple_quoted_needle_is_mention(self):
+        """ASCII-quoted needle in review notes is a token mention."""
+        raw = "hits on 'timedout' (user_cancelled_or_timedout example) and 'FAILED'"
+        assert not _judge(raw, "timedout", self.RESULT_CTX, "result")
+        assert not _judge(raw, "FAILED", self.RESULT_CTX, "result")
+
+
     def test_multiword_phrase_is_never_read_as_a_key(self):
         raw = '{"detail": "timed out waiting for the server"}'
         assert _judge(raw, "timed out", self.RESULT_CTX, "result")

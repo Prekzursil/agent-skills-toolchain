@@ -34,9 +34,18 @@ MANIFEST = f"{PROBE_DIR}/UNIT-ARTIFACT-MANIFEST.json"
 REVIEW = L.REPO / PROBE_DIR / "independent-review.json"
 TS0 = "2026-09-08T03:50:00Z"
 SENTINEL_OK = "SUCCESS:TST-0341"
-BLOCKED_ON = (
+BLOCKED_ON_PENDING = (
     "independent adversarial reviewer (fresh context; both-states: "
-    "role FP=0 and TP complete; raw FP>0; self-reference silent)"
+    "role FP=0 and TP complete; raw FP>0; self-reference silent including "
+    "live receipt command-center/receipts/TST-0341.json)"
+)
+BLOCKED_ON_AFTER_FAIL = (
+    "independent adversarial review FAIL on live-receipt self-reference "
+    "(result-needle inside user_cancelled_or_timedout prose; "
+    "status-token inside FAILED:TST-0341 sentinel) — snake/kebab-identifier + "
+    "unit-sentinel + quoted-token mention rules patched; fresh re-review "
+    "owed; SUCCESS:TST-0341 withheld "
+    "(success_invented=false; prior FAIL did_not_promote)"
 )
 
 
@@ -52,13 +61,19 @@ def _run(cmd: list[str]) -> tuple[int, str]:
     return proc.returncode, (proc.stdout or "") + (proc.stderr or "")
 
 
-def load_review() -> dict | None:
-    """Promote only when independent adversarial reviewer reproduces both-states."""
+def load_any_review() -> dict | None:
     if not REVIEW.is_file():
         return None
     try:
-        rev = json.loads(REVIEW.read_text(encoding="utf-8"))
+        return json.loads(REVIEW.read_text(encoding="utf-8"))
     except (OSError, json.JSONDecodeError):
+        return None
+
+
+def load_review() -> dict | None:
+    """Promote only when independent adversarial reviewer reproduces both-states."""
+    rev = load_any_review()
+    if rev is None:
         return None
     if rev.get("verdict") != "PASS":
         return None
@@ -118,7 +133,13 @@ def build() -> dict:
         raise SystemExit(f"TST-0341 corpus measure ok=false:\n{measure}")
 
     rev = load_review()
+    any_rev = load_any_review()
     success = rev is not None
+    prior_fail = (
+        any_rev is not None
+        and any_rev.get("verdict") == "FAIL"
+        and any_rev.get("independent") is True
+    )
 
     p_pytest = L.probe(
         "source",
@@ -145,6 +166,8 @@ def build() -> dict:
         for k, v in sorted(per.items())
     ]
     table_txt = "; ".join(table_bits)
+    live = measure.get("self_reference_live_receipt") or {}
+    live_silent = live.get("silent", measure["self_reference"]["silent"])
 
     if success:
         state = "SUCCESS"
@@ -168,57 +191,111 @@ def build() -> dict:
         anti = "SUCCESS-after-independent-both-states-reproduction"
     else:
         state = "BLOCKED"
+        blocked_on = BLOCKED_ON_AFTER_FAIL if prior_fail else BLOCKED_ON_PENDING
         sentinel = (
             f"FAILED:{UNIT} blocked-on-independent-review; "
+            f"prior_review={'FAIL' if prior_fail else 'absent'}; "
             f"role_fp={measure['role_fp_total']} "
             f"role_tp_missed={measure['role_tp_missed']} "
             f"raw_fp={measure['raw_fp_total']} "
-            f"self_ref_silent={measure['self_reference']['silent']}; "
+            f"self_ref_silent={measure['self_reference']['silent']} "
+            f"live_receipt_silent={live_silent}; "
             f"scanners=[{table_txt}]; "
-            f"{SENTINEL_OK} withheld pending independent adversarial reviewer "
-            f"reproduction of both-states control"
+            f"{SENTINEL_OK} withheld "
+            f"(success_invented=false)"
         )
-        reviewer = {
-            "reviewer_id": "awaiting-independent-adversarial-reviewer",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "reviewed_at": ended,
-            "notes": (
-                "Implementer emit only on Linux Cloud. Catalog "
-                "reviewer_requirement unmet: one independent adversarial reviewer "
-                "in a fresh context who did not author the harness must reproduce "
-                "the both-states control (role FP corpus -> 0 flags; TP corpus -> "
-                "every real instance flagged; raw baseline still noisy on FP; "
-                "self-reference document silent) before signing off. Self-review "
-                "banned; independent-review.json not invented; SUCCESS not invented."
-            ),
-        }
-        residual = [
-            {
-                "claim": (
-                    "Independent adversarial reviewer has not reproduced the "
-                    "both-states control on a fresh context."
+        if prior_fail:
+            fail_notes = any_rev.get("notes", "")
+            if not isinstance(fail_notes, str):
+                fail_notes = json.dumps(fail_notes)
+            reviewer = {
+                "reviewer_id": any_rev.get(
+                    "reviewer_id", "independent-adversarial-reviewer-FAIL"
                 ),
-                "verdict": "NOT-CHECKED",
-                "settling_experiment": (
-                    "Fresh-context independent adversarial reviewer re-runs "
-                    f"`python3 -B {PROBE1}` and "
-                    f"`python3 -m pytest {TESTS} {SHARED_TESTS} -q`, confirms "
-                    f"role_fp={measure['role_fp_total']}, "
-                    f"role_tp_missed={measure['role_tp_missed']}, "
-                    f"raw_fp={measure['raw_fp_total']}, "
-                    f"self_ref_silent={measure['self_reference']['silent']}; "
-                    f"writes {PROBE_DIR}/independent-review.json with "
-                    "verdict=PASS, independent=true, fresh_context=true, "
-                    "did_not_author_harness=true, both_states="
-                    "{role_fp_zero, role_tp_complete, raw_fp_still_noisy, "
-                    "self_reference_silent}=true; then re-pack may emit "
-                    f"{SENTINEL_OK}."
+                "verdict": "FAIL",
+                "independent": True,
+                "fresh_context": True,
+                "vendor": any_rev.get("vendor", "anthropic"),
+                "reviewed_at": any_rev.get("reviewed_at", ended),
+                "notes": (
+                    "Prior independent adversarial review FAIL integrated; "
+                    "result:snake-identifier-mention + "
+                    "result:unit-sentinel-vocabulary + "
+                    "result:quoted-token-mention silence live-receipt "
+                    "self-amp (user_cancelled_or_timedout prose; "
+                    "FAILED:TST-0341 / FAILED:UNIT sentinel forms). "
+                    "Fresh re-review owed with live receipt in scope. "
+                    f"Prior notes: {fail_notes[:2200]}"
+                )[:4000],
+            }
+            residual = [
+                {
+                    "claim": (
+                        "Whether role scanners stay silent on the live "
+                        "TST-0341 receipt AND keep both-states (role FP=0, "
+                        "TP complete, raw still noisy) is unchecked after the "
+                        "FAIL→fix cycle."
+                    ),
+                    "verdict": "NOT-CHECKED",
+                    "settling_experiment": (
+                        "Fresh-context independent adversarial reviewer re-runs "
+                        f"`python3 -B {PROBE1}` and "
+                        f"`python3 -m pytest {TESTS} {SHARED_TESTS} -q`, confirms "
+                        "role_fp=0, role_tp_missed=0, raw_fp>0, "
+                        "self_reference_silent on BOTH the sample doc AND "
+                        f"{OUT}; writes {PROBE_DIR}/independent-review.json with "
+                        "verdict=PASS and both_states.self_reference_silent=true "
+                        "covering the live receipt; then re-pack may emit "
+                        f"{SENTINEL_OK}."
+                    ),
+                }
+            ]
+            anti = "BLOCKED-after-adversarial-FAIL-fix-awaiting-rereview"
+        else:
+            reviewer = {
+                "reviewer_id": "awaiting-independent-adversarial-reviewer",
+                "verdict": "NOT-REVIEWED",
+                "independent": False,
+                "fresh_context": False,
+                "vendor": "anthropic",
+                "reviewed_at": ended,
+                "notes": (
+                    "Implementer emit only on Linux Cloud. Catalog "
+                    "reviewer_requirement unmet: one independent adversarial reviewer "
+                    "in a fresh context who did not author the harness must reproduce "
+                    "the both-states control (role FP corpus -> 0 flags; TP corpus -> "
+                    "every real instance flagged; raw baseline still noisy on FP; "
+                    "self-reference document AND live receipt silent) before signing "
+                    "off. Self-review banned; independent-review.json not invented; "
+                    "SUCCESS not invented."
                 ),
             }
-        ]
+            residual = [
+                {
+                    "claim": (
+                        "Independent adversarial reviewer has not reproduced the "
+                        "both-states control on a fresh context."
+                    ),
+                    "verdict": "NOT-CHECKED",
+                    "settling_experiment": (
+                        "Fresh-context independent adversarial reviewer re-runs "
+                        f"`python3 -B {PROBE1}` and "
+                        f"`python3 -m pytest {TESTS} {SHARED_TESTS} -q`, confirms "
+                        f"role_fp={measure['role_fp_total']}, "
+                        f"role_tp_missed={measure['role_tp_missed']}, "
+                        f"raw_fp={measure['raw_fp_total']}, "
+                        f"self_ref_silent={measure['self_reference']['silent']}, "
+                        f"live_receipt_silent={live_silent}; "
+                        f"writes {PROBE_DIR}/independent-review.json with "
+                        "verdict=PASS, independent=true, fresh_context=true, "
+                        "did_not_author_harness=true, both_states="
+                        "{role_fp_zero, role_tp_complete, raw_fp_still_noisy, "
+                        "self_reference_silent}=true covering live receipt; "
+                        f"then re-pack may emit {SENTINEL_OK}."
+                    ),
+                }
+            ]
+            anti = "BLOCKED-pending-independent-both-states-reproduction"
         failure = {
             "classification": ["blocked-on-independent-review"],
             "reason": (
@@ -226,16 +303,22 @@ def build() -> dict:
                 f"historical corpora (role_fp={measure['role_fp_total']}, "
                 f"role_tp_missed={measure['role_tp_missed']}, "
                 f"raw_fp={measure['raw_fp_total']}, "
-                f"self_ref_silent={measure['self_reference']['silent']}; "
+                f"self_ref_silent={measure['self_reference']['silent']}, "
+                f"live_receipt_silent={live_silent}; "
                 f"{table_txt}). Catalog reviewer_requirement demands an "
                 "independent adversarial reviewer reproduce the both-states "
                 "control; do not emit SUCCESS without that."
+                + (
+                    " Prior FAIL on live-receipt self-ref integrated; fix awaits "
+                    "fresh re-review."
+                    if prior_fail
+                    else ""
+                )
             ),
-            "blocked_on": BLOCKED_ON,
+            "blocked_on": blocked_on,
             "diagnostic_tail": (out + "\n" + p1_out)[-4000:],
             "two_signal_proof": [p_pytest, p_meas],
         }
-        anti = "BLOCKED-pending-independent-both-states-reproduction"
 
     arts = [
         L.art(ROLE_SCANNER, "primary"),
@@ -251,7 +334,7 @@ def build() -> dict:
         L.art(f"{TOOL}/measure_corpora.py", "supporting"),
         L.art(f"{TOOL}/README.md", "supporting"),
     ]
-    if success:
+    if success or prior_fail:
         arts.append(L.art(f"{PROBE_DIR}/independent-review.json", "supporting"))
 
     receipt: dict = {
@@ -288,9 +371,11 @@ def build() -> dict:
                 (
                     "Self-reference: a receipt-like document quoting Remove-Item / "
                     "git push --force / TODO / FIXME / NotImplementedError / "
-                    "user_cancelled_or_timedout / ghp_ FAKE / credential guard "
-                    f"path stays silent under role scanners "
-                    f"(silent={measure['self_reference']['silent']})."
+                    "user_cancelled_or_timedout (quoted JSON key AND unquoted snake "
+                    "prose) / FAILED:UNIT sentinel vocabulary / ghp_ FAKE / "
+                    "credential guard path stays silent under role scanners "
+                    f"(silent={measure['self_reference']['silent']}; "
+                    f"live_receipt_silent={live_silent})."
                 ),
                 "CONFIRMED",
                 f"file:{PROBE_DIR}/corpus-measure.json",
@@ -414,6 +499,7 @@ def build() -> dict:
                 "role_tp_missed": measure["role_tp_missed"],
                 "raw_fp_total": measure["raw_fp_total"],
                 "self_reference_silent": measure["self_reference"]["silent"],
+                "live_receipt_silent": live_silent,
                 "per_scanner": {
                     k: {
                         "role_fp_flags": v["role_fp_flags"],
@@ -426,7 +512,19 @@ def build() -> dict:
                 },
             },
             "anti_pattern_guard": anti,
-            "catalog_blocked_on": BLOCKED_ON if not success else None,
+            "catalog_blocked_on": (
+                (BLOCKED_ON_AFTER_FAIL if prior_fail else BLOCKED_ON_PENDING)
+                if not success
+                else None
+            ),
+            "success_invented": False,
+            "independent_review_invented": False,
+            "prior_review_verdict": (
+                "PASS"
+                if success
+                else ("FAIL" if prior_fail else "absent")
+            ),
+            "live_receipt_self_reference_silent": live_silent,
         },
         "manifest_registration": {
             "entry_id": UNIT,
