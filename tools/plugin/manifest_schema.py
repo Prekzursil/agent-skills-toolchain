@@ -1,9 +1,14 @@
-"""IMP-0006: validate `.claude-plugin/plugin.json` against its JSON Schema.
+"""IMP-0006 / IMP-0009: validate `.claude-plugin/plugin.json` against its JSON Schema.
 
 Two independent JSON-Schema libraries must agree on the same file:
 
 * ``jsonschema.Draft202012Validator`` (primary / wire-up)
 * ``fastjsonschema`` (second implementation — different code path)
+
+IMP-0009 adds a case-distinct JSON key collision guard at parse time via
+``object_pairs_hook``. Schema alone cannot see duplicate / case-folded keys.
+A plain ``dict`` load is not a second signal for exact duplicates (it collapses
+them); pair extraction is.
 
 The schema lives at ``.claude-plugin/plugin.schema.json`` (materialised from
 ``platform/plugin/schemas.py``). This module does **not** introduce a second
@@ -19,6 +24,7 @@ from typing import Any
 
 SCHEMA_RELPATH = ".claude-plugin/plugin.schema.json"
 MANIFEST_RELPATH = ".claude-plugin/plugin.json"
+DISPATCH_MANIFEST_RELPATH = "hooks/_dispatch/manifest.json"
 
 # Distinct error codes for the six negative-control mutants (catalog IMP-0006).
 ERR_MISSING_NAME = "missing-name"
@@ -27,6 +33,8 @@ ERR_UNKNOWN_TOP_LEVEL = "unknown-top-level-key"
 ERR_WRONG_TYPE = "wrong-type"
 ERR_EMPTY_KEYWORDS = "empty-keywords"
 ERR_DUPLICATE_KEY = "duplicate-key"
+# IMP-0009: keys that differ only by case (case-insensitive downstream collapse).
+ERR_CASE_COLLISION = "case-collision"
 ERR_SCHEMA = "schema-invalid"
 ERR_OTHER = "other"
 
@@ -67,6 +75,7 @@ def load_schema(repo: Path | None = None) -> dict[str, Any]:
 
 
 def _duplicate_key_hook(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+    """Reject exact duplicate keys and case-distinct collisions (IMP-0006 / IMP-0009)."""
     exact: set[str] = set()
     folded: dict[str, str] = {}
     for key, _ in pairs:
@@ -75,10 +84,10 @@ def _duplicate_key_hook(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
                 ERR_DUPLICATE_KEY,
                 f"duplicate object key {key!r} (also seen earlier in the same object)",
             )
-        low = key.lower()
+        low = key.casefold()
         if low in folded and folded[low] != key:
             raise ManifestSchemaError(
-                ERR_DUPLICATE_KEY,
+                ERR_CASE_COLLISION,
                 f"case-distinct duplicate keys {folded[low]!r} and {key!r}",
             )
         exact.add(key)
@@ -86,8 +95,69 @@ def _duplicate_key_hook(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return dict(pairs)
 
 
+def extract_object_key_occurrences(raw: str) -> list[list[str]]:
+    """Return every object's key list (innermost first, outermost last).
+
+    Uses ``json.loads(..., object_pairs_hook=...)`` so duplicate / case-distinct
+    keys are preserved in the occurrence lists. A naive ``dict`` load of an
+    *exact* duplicate key pair destroys that evidence before any check runs.
+    """
+    occurrences: list[list[str]] = []
+
+    def _capture(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
+        occurrences.append([key for key, _ in pairs])
+        # Collapse for nested structure only AFTER recording every key occurrence.
+        return {key: value for key, value in pairs}
+
+    try:
+        json.loads(raw, object_pairs_hook=_capture)
+    except json.JSONDecodeError as exc:
+        raise ManifestSchemaError(ERR_OTHER, f"manifest is not valid JSON: {exc}") from exc
+    return occurrences
+
+
+def top_level_key_occurrences(raw: str) -> list[str]:
+    """Outer-object key occurrences in source order (duplicates preserved)."""
+    occ = extract_object_key_occurrences(raw)
+    if not occ:
+        return []
+    return occ[-1]
+
+
+def find_case_collisions(keys: list[str]) -> list[tuple[str, str]]:
+    """Return (first, second) pairs of keys that differ only by case."""
+    folded: dict[str, str] = {}
+    hits: list[tuple[str, str]] = []
+    for key in keys:
+        low = key.casefold()
+        if low in folded and folded[low] != key:
+            hits.append((folded[low], key))
+        else:
+            folded[low] = key
+    return hits
+
+
+def find_exact_duplicate_keys(keys: list[str]) -> list[str]:
+    """Return keys that appear more than once (exact string match)."""
+    seen: set[str] = set()
+    dups: list[str] = []
+    for key in keys:
+        if key in seen and key not in dups:
+            dups.append(key)
+        seen.add(key)
+    return dups
+
+
+def lint_json_text_for_key_collisions(raw: str) -> None:
+    """Fail closed if any object has exact-duplicate or case-distinct keys.
+
+    Shared SSOT with ``parse_manifest_text`` (same ``object_pairs_hook``).
+    """
+    parse_manifest_text(raw)
+
+
 def parse_manifest_text(raw: str) -> dict[str, Any]:
-    """Parse JSON with duplicate-key rejection (schema alone cannot see duplicates)."""
+    """Parse JSON with duplicate-key / case-collision rejection."""
     try:
         doc = json.loads(raw, object_pairs_hook=_duplicate_key_hook)
     except ManifestSchemaError:
@@ -101,6 +171,11 @@ def parse_manifest_text(raw: str) -> dict[str, Any]:
 
 def load_manifest(path: Path) -> dict[str, Any]:
     return parse_manifest_text(path.read_text(encoding="utf-8"))
+
+
+def assert_path_free_of_key_collisions(path: Path) -> None:
+    """Parse *path* with the collision guard (plugin.json or dispatch manifest)."""
+    parse_manifest_text(path.read_text(encoding="utf-8"))
 
 
 def _classify_jsonschema_error(exc: BaseException, instance: dict[str, Any]) -> str:
@@ -313,6 +388,14 @@ def mutate_duplicate_key_text(raw: str) -> str:
     return '{\n  "name": "duplicate-injected",\n' + stripped[1:]
 
 
+def mutate_case_collision_text(raw: str) -> str:
+    """Inject a case-distinct twin of ``name`` as ``Name`` (IMP-0009 fixture)."""
+    stripped = raw.lstrip()
+    if not stripped.startswith("{"):
+        raise ValueError("expected object JSON")
+    return '{\n  "Name": "CaseCollisionPlant",\n' + stripped[1:]
+
+
 NEGATIVE_MUTATORS: dict[str, Any] = {
     ERR_MISSING_NAME: mutate_missing_name,
     ERR_BAD_SEMVER: mutate_bad_semver,
@@ -320,6 +403,7 @@ NEGATIVE_MUTATORS: dict[str, Any] = {
     ERR_WRONG_TYPE: mutate_wrong_type,
     ERR_EMPTY_KEYWORDS: mutate_empty_keywords,
     ERR_DUPLICATE_KEY: mutate_duplicate_key_text,
+    ERR_CASE_COLLISION: mutate_case_collision_text,
 }
 
 
