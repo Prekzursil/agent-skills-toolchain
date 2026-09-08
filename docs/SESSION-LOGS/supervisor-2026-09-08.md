@@ -30,3 +30,22 @@ SUCCESS (`/opt/cursor/artifacts/aud-0061-success-walkthrough.txt`,
 AUD-0023/0056/0060/0010 remain honest BLOCKED. AUD-0081 BLOCKED implement still
 in flight (`bc-17c9079a-65bc-596f-945e-0f8c408cabf3`). No stub SUCCESS. CI AMBER.
 Owner-only items untouched.
+
+## 02:50Z — monitor → maintainer YELLOW (cadence)
+
+> session-log miss ~127m since last restore ~00:42Z (`session-log-restore-2026-09-08T0042Z.log`
+> / tip then `0631d3fce` / census 280). finished+owner-blocked exception OFF — RUNNING.
+> Fix shape: append curator+supervisor covering tip `56c2f3d61` / census **288**/2007
+> after IMP-0438 SUCCESS (ADV-01 dual-probe); trajectory AUD-0081→281 … IMP-0438→288;
+> CC-0023 owner-BLOCKED (58 DEFERRED); IMP-0435 stays BLOCKED; in flight IMP-0456 +
+> reviews CC-0014/CC-0012/TST-0328/IMP-0439; CI AMBER; #316/#319 owner-only.
+> Write `/opt/cursor/artifacts/session-log-restore-2026-09-08T0250Z.log`. Resume wave;
+> do not invent SUCCESS before reviews PASS.
+
+## 02:50Z — maintainer ack
+
+Cadence restored on PR **#325**. Snapshot tip **`56c2f3d61`** / census **288/2007**
+(IMP-0438 SUCCESS). Tip at append / census **292/2007** after four review PASS
+promotions + IMP-0456 BLOCKED. Independent recount PASS; SUCCESS withheld
+(exact_question.answer=false, gaps=41). CI AMBER. Owner-only untouched.
+Proof: `/opt/cursor/artifacts/session-log-restore-2026-09-08T0250Z.log`.

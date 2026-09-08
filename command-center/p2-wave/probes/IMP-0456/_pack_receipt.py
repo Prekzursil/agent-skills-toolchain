@@ -183,83 +183,139 @@ def build() -> dict:
         ]
     else:
         state = "BLOCKED"
-        sentinel = (
-            f"FAILED:{UNIT} blocked-on-independent-review; "
-            f"unique={unique} declared={declared} gaps={gaps} dups={dups}; "
-            f"exact_question_answer={eq.get('answer')}; "
-            f"assert_refused={report.get('assert_merge_contiguous_refused')}; "
-            f"block_reasons={report.get('block_reasons')}; "
-            f"planted dup/gap/clean controls green; "
-            f"SUCCESS:{UNIT} withheld pending independent-claude-reviewer "
-            f"per-slice recount from disk; "
-            f"SENTINEL:IMP-0456:CATALOG-MERGE-CONTIGUOUS withheld"
-        )
-        reviewer = {
-            "reviewer_id": "awaiting-independent-claude-reviewer",
-            "verdict": "NOT-REVIEWED",
-            "independent": False,
-            "fresh_context": False,
-            "vendor": "anthropic",
-            "reviewed_at": ended,
-            "notes": (
-                "Implementer emit only on Linux Cloud single-checkout. Catalog "
-                "reviewer_requirement unmet: independent-claude-reviewer must "
-                "recount each catalog-slices/*.json independently from the "
-                "files on disk (per-slice count, id range, gaps, duplicates) "
-                "and confirm the merge report. Self-review banned; "
-                "independent-review.json not invented; SUCCESS not invented. "
-                f"Measured: unique={unique} declared={declared} gaps={gaps} "
-                f"dups={dups} merge_allowed={report.get('merge_allowed')} "
-                f"block_reasons={report.get('block_reasons')}. Live shortfall "
-                "means contiguous-unique-exact is currently FALSE — packing "
-                "BLOCKED is honest even after planted controls are green. "
-                f"Dependency IMP-0436 verified {dep['state']}. "
-                "Prompt-One Windows trees unmounted."
-            ),
-        }
-        residual = [
-            {
-                "claim": (
-                    "Independent Claude reviewer has not recounted each slice "
-                    "from disk against the merge report."
+        if rev is not None:
+            # Independent recount PASS, but live tree is not contiguous-unique-exact.
+            notes = rev.get("notes", "")
+            if not isinstance(notes, str):
+                notes = json.dumps(notes)
+            vendor = rev.get("vendor", "anthropic")
+            if vendor not in ("anthropic", "openai", "human", "codex", "claude"):
+                vendor = "anthropic"
+            reviewer = {
+                "reviewer_id": rev.get("reviewer_id", "independent-claude-reviewer"),
+                "verdict": "PASS",
+                "independent": True,
+                "fresh_context": True,
+                "vendor": vendor,
+                "reviewed_at": rev.get("reviewed_at", ended),
+                "notes": notes[:4000],
+            }
+            sentinel = (
+                f"FAILED:{UNIT} blocked-on-live-shortfall; "
+                f"unique={unique} declared={declared} gaps={gaps} dups={dups}; "
+                f"exact_question_answer={eq.get('answer')}; "
+                f"independent recount PASS; "
+                f"SUCCESS:{UNIT} withheld until ids contiguous/unique/exact "
+                f"(SENTINEL:IMP-0456:CATALOG-MERGE-CONTIGUOUS withheld)"
+            )
+            residual = [
+                {
+                    "claim": (
+                        "Live catalog slices are not contiguous-unique-exact "
+                        f"(unique={unique} declared={declared} gaps={gaps})."
+                    ),
+                    "verdict": "REFUTED",
+                    "settling_experiment": (
+                        "Slice authors fill the shortfall (or revise declared "
+                        "program count) so exact_question.answer becomes true; "
+                        "then re-pack may emit SENTINEL:IMP-0456:CATALOG-MERGE-CONTIGUOUS."
+                    ),
+                }
+            ]
+            failure = {
+                "classification": [
+                    "index-gap",
+                    "P1-blocking / classes: duplicate-unit-id, index-gap, count-claimed-not-read",
+                ],
+                "reason": (
+                    "Independent per-slice recount PASS confirms merge report "
+                    f"(unique={unique} declared={declared} gaps={gaps} dups={dups}). "
+                    "SUCCESS requires exact_question.answer=true; live shortfall "
+                    "keeps this unit BLOCKED. SUCCESS not invented."
                 ),
-                "verdict": "NOT-CHECKED",
-                "settling_experiment": (
-                    "Fresh-context independent-claude-reviewer re-reads every "
-                    "command-center/catalog-slices/*.json, recounts per-slice "
-                    f"counts/ranges/gaps/dups, compares to {REPORT}, and writes "
-                    f"{PROBE_DIR}/independent-review.json with verdict=PASS, "
-                    "independent=true, fresh_context=true, "
-                    "recounted_each_slice_from_disk=true. SUCCESS may emit "
-                    "only when that review PASSes AND exact_question.answer "
-                    "is true (ids contiguous, unique, equal to declared "
-                    "program count); until the live shortfall/gaps are closed, "
-                    "remain BLOCKED even with a PASS review of the refusal."
+                "blocked_on": "live catalog shortfall (gaps!=0 vs declared program count)",
+                "diagnostic_tail": (out + "\n" + m_out + "\n" + notes)[-4000:],
+                "two_signal_proof": [p_pytest, p_meas],
+            }
+            anti = "BLOCKED-after-recount-PASS-live-gaps"
+        else:
+            sentinel = (
+                f"FAILED:{UNIT} blocked-on-independent-review; "
+                f"unique={unique} declared={declared} gaps={gaps} dups={dups}; "
+                f"exact_question_answer={eq.get('answer')}; "
+                f"assert_refused={report.get('assert_merge_contiguous_refused')}; "
+                f"block_reasons={report.get('block_reasons')}; "
+                f"planted dup/gap/clean controls green; "
+                f"SUCCESS:{UNIT} withheld pending independent-claude-reviewer "
+                f"per-slice recount from disk; "
+                f"SENTINEL:IMP-0456:CATALOG-MERGE-CONTIGUOUS withheld"
+            )
+            reviewer = {
+                "reviewer_id": "awaiting-independent-claude-reviewer",
+                "verdict": "NOT-REVIEWED",
+                "independent": False,
+                "fresh_context": False,
+                "vendor": "anthropic",
+                "reviewed_at": ended,
+                "notes": (
+                    "Implementer emit only on Linux Cloud single-checkout. Catalog "
+                    "reviewer_requirement unmet: independent-claude-reviewer must "
+                    "recount each catalog-slices/*.json independently from the "
+                    "files on disk (per-slice count, id range, gaps, duplicates) "
+                    "and confirm the merge report. Self-review banned; "
+                    "independent-review.json not invented; SUCCESS not invented. "
+                    f"Measured: unique={unique} declared={declared} gaps={gaps} "
+                    f"dups={dups} merge_allowed={report.get('merge_allowed')} "
+                    f"block_reasons={report.get('block_reasons')}. Live shortfall "
+                    "means contiguous-unique-exact is currently FALSE — packing "
+                    "BLOCKED is honest even after planted controls are green. "
+                    f"Dependency IMP-0436 verified {dep['state']}. "
+                    "Prompt-One Windows trees unmounted."
                 ),
             }
-        ]
-        failure = {
-            "classification": [
-                "blocked-on-independent-review",
-                "P1-blocking / classes: duplicate-unit-id, index-gap, count-claimed-not-read",
-            ],
-            "reason": (
-                "Merger + gap/duplicate reporting + planted controls are green "
-                f"(pytest rc={rc}; measure rc={m_rc}; "
-                f"unique={unique} declared={declared} gaps={gaps} dups={dups}; "
-                f"assert_refused={report.get('assert_merge_contiguous_refused')}). "
-                "Catalog reviewer_requirement demands an independent per-slice "
-                "recount from disk; do not emit SUCCESS without that. Live "
-                "tree is not contiguous-unique-exact — refusing SUCCESS is "
-                "also required by the evidence rule (nonzero gap blocks merge)."
-            ),
-            "blocked_on": (
-                "independent-claude-reviewer (per-slice recount from disk)"
-            ),
-            "diagnostic_tail": (out + "\n" + m_out)[-4000:],
-            "two_signal_proof": [p_pytest, p_meas],
-        }
-        anti = "BLOCKED-pending-independent-slice-recount"
+            residual = [
+                {
+                    "claim": (
+                        "Independent Claude reviewer has not recounted each slice "
+                        "from disk against the merge report."
+                    ),
+                    "verdict": "NOT-CHECKED",
+                    "settling_experiment": (
+                        "Fresh-context independent-claude-reviewer re-reads every "
+                        "command-center/catalog-slices/*.json, recounts per-slice "
+                        f"counts/ranges/gaps/dups, compares to {REPORT}, and writes "
+                        f"{PROBE_DIR}/independent-review.json with verdict=PASS, "
+                        "independent=true, fresh_context=true, "
+                        "recounted_each_slice_from_disk=true. SUCCESS may emit "
+                        "only when that review PASSes AND exact_question.answer "
+                        "is true (ids contiguous, unique, equal to declared "
+                        "program count); until the live shortfall/gaps are closed, "
+                        "remain BLOCKED even with a PASS review of the refusal."
+                    ),
+                }
+            ]
+            failure = {
+                "classification": [
+                    "blocked-on-independent-review",
+                    "P1-blocking / classes: duplicate-unit-id, index-gap, count-claimed-not-read",
+                ],
+                "reason": (
+                    "Merger + gap/duplicate reporting + planted controls are green "
+                    f"(pytest rc={rc}; measure rc={m_rc}; "
+                    f"unique={unique} declared={declared} gaps={gaps} dups={dups}; "
+                    f"assert_refused={report.get('assert_merge_contiguous_refused')}). "
+                    "Catalog reviewer_requirement demands an independent per-slice "
+                    "recount from disk; do not emit SUCCESS without that. Live "
+                    "tree is not contiguous-unique-exact — refusing SUCCESS is "
+                    "also required by the evidence rule (nonzero gap blocks merge)."
+                ),
+                "blocked_on": (
+                    "independent-claude-reviewer (per-slice recount from disk)"
+                ),
+                "diagnostic_tail": (out + "\n" + m_out)[-4000:],
+                "two_signal_proof": [p_pytest, p_meas],
+            }
+            anti = "BLOCKED-pending-independent-slice-recount"
         downstream = [
             {
                 "consumer": "catalog_slice_merge.build_merge_report",
@@ -298,7 +354,7 @@ def build() -> dict:
         L.art(MEASURE, "control"),
         L.art(DEP, "supporting"),
     ]
-    if success:
+    if success or rev is not None:
         arts.append(L.art(f"{PROBE_DIR}/independent-review.json", "supporting"))
 
     # Per-prefix gap summary for report.observations (cap size).
