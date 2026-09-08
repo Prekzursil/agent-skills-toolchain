@@ -154,6 +154,27 @@ class TestRecordedFalsePositives:
         assert not _judge(msg, "TODO", ctx, "marker")
 
 
+    def test_fire10_stub_negated_absence_message_text_source(self):
+        """STUB-FP-negated-absence: source=message_text must be prose, not code.
+
+        Recorded live when the stub-ledger scanned an assistant final message that
+        asserted the ABSENCE of TODO/FIXME. The corpus labelled the source
+        ``message_text``; only ``assistant_message`` was treated as prose, so the
+        stub rule fell through to pending-work-in-code and fired.
+        """
+        msg = (
+            "zero TODO/FIXME/NotImplementedError exist in any code file "
+            "across this session's artifact roots"
+        )
+        ctx = Context(
+            tool_name="",
+            file_path="<assistant final message>",
+            source="message_text",
+        )
+        assert not _judge(msg, "TODO", ctx, "stub")
+        assert not _judge(msg, "FIXME", ctx, "stub")
+
+
 # --------------------------------------------------------------------------
 # TRUE POSITIVES — known-present controls. Every one MUST still be a USE.
 # --------------------------------------------------------------------------

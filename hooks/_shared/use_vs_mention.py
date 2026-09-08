@@ -118,7 +118,7 @@ _PROSE_EXT = {".md", ".markdown", ".txt", ".rst", ".adoc", ".org", ".mdx"}
 _FENCE = re.compile(r"^[ \t]{0,3}(`{3,}|~{3,})[^\n]*$", re.MULTILINE)
 _INLINE_CODE = re.compile(r"`[^`\n]+`")
 _NEGATION = re.compile(
-    r"\b(?:no|not|never|nothing|none|without|cannot|can't|won't|don't|doesn't|"
+    r"\b(?:no|not|never|nothing|none|zero|without|cannot|can't|won't|don't|doesn't|"
     r"isn't|aren't|nor|avoid|instead\s+of|rather\s+than|must\s+not|need\s+not)\b",
     re.IGNORECASE,
 )
@@ -133,7 +133,13 @@ class Context:
                separately from tool_input — verified against the CLI's own
                hook-input construction).
     file_path: tool_input.file_path — the write TARGET.
-    source:    "tool_input" | "assistant_message" | "file".
+    source:    "tool_input" | "assistant_message" | "message_text" | "file".
+               `message_text` is an alias of `assistant_message` (assistant final
+               prose that is not a tool_input write). Recorded as STUB-FP-negated-
+               absence in use-vs-mention-corpus.jsonl: a sentence asserting the
+               ABSENCE of TODO/FIXME was flagged because the source was recorded
+               as `message_text` and the prose rule only recognized
+               `assistant_message`.
     """
 
     tool_name: str = ""
@@ -194,8 +200,11 @@ def _unknown(rule: str, kind: str) -> Judgement:
     return Judgement(Verdict.UNKNOWN, rule, kind)
 
 
+_PROSE_SOURCES = frozenset({"assistant_message", "message_text"})
+
+
 def _is_prose(ctx: Context) -> bool:
-    if ctx.source == "assistant_message":
+    if ctx.source in _PROSE_SOURCES:
         return True
     return os.path.splitext(str(ctx.file_path or ""))[1].lower() in _PROSE_EXT
 
