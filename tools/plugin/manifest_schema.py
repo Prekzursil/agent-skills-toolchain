@@ -199,8 +199,27 @@ def validate_manifest(
 def assert_valid(
     instance: dict[str, Any], schema: dict[str, Any] | None = None
 ) -> None:
-    """Raise ManifestSchemaError unless both libraries accept *instance*."""
-    v1, v2 = validate_manifest(instance, schema)
+    """Raise ManifestSchemaError unless both libraries accept *instance*.
+
+    IMP-0007: after dual-library schema green, also run the strict unknown-field
+    / ``x-`` extension compatibility linter so a non-prefixed additive field
+    cannot warn-as-green.
+    """
+    sch = schema if schema is not None else load_schema()
+    # Policy frozen keys must stay aligned with this schema's properties.
+    try:
+        from strict_parser_policy import (  # noqa: WPS433
+            StrictParserPolicyError,
+            assert_frozen_matches_schema,
+            assert_policy,
+        )
+
+        assert_frozen_matches_schema(sch)
+        assert_policy(instance)
+    except StrictParserPolicyError as exc:
+        raise ManifestSchemaError(exc.code, str(exc)) from exc
+
+    v1, v2 = validate_manifest(instance, sch)
     if v1.ok and v2.ok:
         return
     # Prefer primary library's classification when both fail.
@@ -214,6 +233,18 @@ def assert_live_manifest_valid(repo: Path | None = None) -> tuple[Verdict, Verdi
     root = repo or repo_root_from()
     schema = load_schema(root)
     instance = load_manifest(root / MANIFEST_RELPATH)
+    # IMP-0007: fail closed on unknown fields / frozen-key drift before library pass.
+    try:
+        from strict_parser_policy import (  # noqa: WPS433
+            StrictParserPolicyError,
+            assert_frozen_matches_schema,
+            assert_policy,
+        )
+
+        assert_frozen_matches_schema(schema)
+        assert_policy(instance)
+    except StrictParserPolicyError as exc:
+        raise ManifestSchemaError(exc.code, str(exc)) from exc
     v1, v2 = validate_manifest(instance, schema)
     if not (v1.ok and v2.ok):
         raise ManifestSchemaError(
