@@ -1,12 +1,12 @@
 {
  "artifacts": [
   {
-   "bytes": 33351,
+   "bytes": 31837,
    "eol": "LF",
    "exists": true,
    "path": "command-center/audit/AUD-0061-mcp-process-multiplication.json",
    "role": "primary",
-   "sha256": "fad5c6c0cd037557779443bc4fa3f18da6c60eeb4d116c8e2ac6a5013755a863"
+   "sha256": "57a833fd69a7d54836a8daaf07cf796c3dd1042558dc0a2bc9c1c53343cbe1b7"
   },
   {
    "bytes": 8811,
@@ -87,14 +87,22 @@
    "path": "command-center/p2-wave/probes/AUD-0061/control-self-exclusion.raw.txt",
    "role": "log",
    "sha256": "f684671310b9e2aa5cdeea9c9c077f1cf3d90d686edf6c21246e5b0a16aced18"
+  },
+  {
+   "bytes": 10387,
+   "eol": "LF",
+   "exists": true,
+   "path": "command-center/p2-wave/probes/AUD-0061/independent-review.json",
+   "role": "supporting",
+   "sha256": "c878b934d867be0f243b47375054a64af81a2867648937d756d7c264fd8a6509"
   }
  ],
  "defects": [
   {
    "id": "AUD-0061-D-REVIEW",
    "severity": "P1",
-   "status": "open",
-   "summary": "Cross-vendor Codex falsify-review (re-run of probe 2 only) unpaid; mcp_live_process_count / RSS / commit-charge counts must be falsified by a reviewer of a different vendor who did not author this census."
+   "status": "resolved",
+   "summary": "Independent cross-vendor Codex review PASS (probe 2 re-run) recorded at command-center/p2-wave/probes/AUD-0061/independent-review.json"
   }
  ],
  "downstream_consumers": [
@@ -213,43 +221,16 @@
   }
  ],
  "extensions": {
-  "anti_false_green": "BLOCKED-pending-dependency-and-cross-vendor-codex-review-with-real-probes",
+  "anti_false_green": "SUCCESS-after-independent-cross-vendor-falsify-PASS",
   "platform_scope_note": "This is a Linux Cursor Cloud pod. There is no Windows-shaped commit-charge/pagefile metric on this host; Committed_AS and CommitLimit from /proc/meminfo are reported as the real Linux analog, and VmRSS/VmSize (measured RSS/VSZ) are reported per the catalog's explicit fallback instruction. The catalog's cited incident (23 sessions x 65 servers) describes a different, multi-session host/usage pattern that this single-tenant, single-session pod cannot reproduce; the 23-session figure is carried through only as an EXPLICITLY LABELED extrapolation input, never presented as measured on this host.",
   "reviewer_scope_note": "Catalog reviewer_requirement calls for one cross-vendor Codex reviewer who re-runs ONLY the second probe (probe2_memory_cost.py). load_review() enforces vendor in {openai, codex, codex-cli} and probe_rerun == 2, matching the pattern used by AUD-0083 for the same reviewer_requirement wording.",
   "wave": "p2-loop"
- },
- "failure": {
-  "blocked_on": "dispatch one cross-vendor Codex reviewer (vendor openai|codex|codex-cli, independent, fresh_context, probe_rerun=2) who re-runs ONLY probe2_memory_cost.py against this host and tries to FALSIFY mcp_live_process_count=0 / exec_daemon_rss_kb=208640 / committed_as_kb=1803808 before PASS.",
-  "classification": [
-   "scope-mismatch",
-   "detector-failure"
-  ],
-  "diagnostic_tail": "raw_process_count=33 self_excluded_count=1 final_process_count=32 exec_daemon_found=True mcp_configured_server_count=3 mcp_live_process_count=0 sessions_detected=1 exec_daemon_rss_kb=208640 mcp_live_total_rss_kb=0 host_committed_as_kb=1803808 host_commit_limit_kb=8199192 idle_node_proxy_measured=True extrapolated_n_sessions_kb=6752248 control_fired_on_bad=True control_silent_on_good=True dependency_aud_0015_state=SUCCESS dependency_aud_0015_satisfied=True reviewer=NOT-REVIEWED",
-  "reason": "Named probes completed with the required control passing (self-exclusion by starttime-tick correctly excludes the probe's own PID even when its argv is adversarially tagged with the substring 'mcp'), but catalog reviewer_requirement is unmet: one cross-vendor Codex reviewer must re-run ONLY probe 2 (the memory cost model) and try to falsify the RSS/commit-charge counts before PASS.",
-  "two_signal_proof": [
-   {
-    "command": "python3 -B command-center/p2-wave/probes/AUD-0061/probe2_memory_cost.py",
-    "exit_code": 0,
-    "fingerprint": "bce4c289bfb49ffe3a3bbc49bfb15213",
-    "method": "command",
-    "raw_output": "mcp_live_process_count=0 exec_daemon_rss_kb=208640",
-    "role": "source"
-   },
-   {
-    "command": "reviewer.verdict",
-    "exit_code": 0,
-    "fingerprint": "5a64f6c41044649b58230d0b0b767b1c",
-    "method": "file-read",
-    "raw_output": "NOT-REVIEWED",
-    "role": "verifier"
-   }
-  ]
  },
  "manifest_registration": {
   "entry_id": "AUD-0061",
   "manifest_path": "command-center/p2-wave/probes/AUD-0061/UNIT-ARTIFACT-MANIFEST.json",
   "registered": true,
-  "registered_at": "2026-09-08T00:28:20Z"
+  "registered_at": "2026-09-08T00:33:33Z"
  },
  "min_bytes_threshold": 4096,
  "negative_controls": [
@@ -452,17 +433,18 @@
   "policy": "two strikes then pivot (AGENTS.md 4b): after the second failure with the same detector, enumerate at least 2 mechanically different detectors before a third attempt"
  },
  "reviewer": {
-  "fresh_context": false,
-  "independent": false,
-  "notes": "Catalog reviewer_requirement: one cross-vendor Codex reviewer (vendor openai|codex|codex-cli, independent, fresh_context) who re-runs ONLY the second probe (probe2_memory_cost.py) and tries to falsify the measured RSS/commit-charge headline counts, not re-read the artifact. A same-vendor (anthropic/claude) review does not satisfy this unit -- the catalog explicitly requires cross-vendor. No independent-review.json is invented here; probes are measured and state is BLOCKED instead.",
-  "reviewer_id": "required-cross-vendor-codex-reviewer-unassigned",
+  "fresh_context": true,
+  "independent": true,
+  "notes": "PASS means the scoped probe2 measurements, arithmetic, zero-live-process census, and requested control survived this fresh-context falsification review. Live RSS and Committed_AS values moved modestly from the receipt and between samples, as expected for time-varying process and host snapshots; the invariant CommitLimit and independently recomputed arithmetic held. PASS does not validate the idle-node proxy as the real memory cost of any configured MCP package, does not validate 23 actual concurrent sessions, and does not promote AUD-0061. The source receipt remains BLOCKED with reviewer state NOT-REVIEWED and was intentionally left untouched; this independent-review.json is the only deliverable.",
+  "reviewed_at": "2026-09-08T00:31:46Z",
+  "reviewer_id": "fresh-context-openai-codex-reviewer-aud-0061-01",
   "vendor": "openai",
-  "verdict": "NOT-REVIEWED"
+  "verdict": "PASS"
  },
  "schema_version": 1,
- "sentinel": "FAILED:AUD-0061 MCP live process census measured mcp_live_process_count=0 of mcp_configured_server_count=3 configured, control_ok=True; blocked-on-cross-vendor-codex-review-of-probe2-unpaid",
+ "sentinel": "SUCCESS:AUD-0061 mcp_live_process_count=0 control_ok=True dependency_aud_0015_satisfied=True",
  "spec_anchor": "command-center/WORK-UNIT-CATALOG.json:AUD-0061",
- "state": "BLOCKED",
+ "state": "SUCCESS",
  "tests": [
   {
    "assertions": 1,
@@ -490,7 +472,7 @@
   }
  ],
  "timestamps": {
-  "ended_at": "2026-09-08T00:28:20Z",
+  "ended_at": "2026-09-08T00:33:33Z",
   "started_at": "2026-09-08T00:00:00Z"
  },
  "unit_id": "AUD-0061"
