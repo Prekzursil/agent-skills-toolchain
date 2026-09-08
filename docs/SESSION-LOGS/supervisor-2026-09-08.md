@@ -49,3 +49,22 @@ Cadence restored on PR **#325**. Snapshot tip **`56c2f3d61`** / census **288/200
 promotions + IMP-0456 BLOCKED. Independent recount PASS; SUCCESS withheld
 (exact_question.answer=false, gaps=41). CI AMBER. Owner-only untouched.
 Proof: `/opt/cursor/artifacts/session-log-restore-2026-09-08T0250Z.log`.
+
+## 2026-09-08T04:56Z — cadence restore (monitor YELLOW ~126m)
+
+monitor→maintainer YELLOW (cadence): session-log miss ~126m since last curator/supervisor restore ~02:50Z (`session-log-restore-2026-09-08T0250Z.log` / tip then ~`be2dadc81` / census then 292). finished+owner-blocked exception **OFF** — RUNNING on P2 ralph loop.
+
+| item | reading |
+|---|---|
+| Tip at restore request | **`04ee64b9c`** on `cursor/p2-loop-to-green-0db0` — **IMP-0002** honest BLOCKED pack (three-digest evidence; success_invented=false) |
+| Census at that tip | **green_SUCCESS=296 / 2007** — IMP-0002 BLOCKED counted in BLOCKED histogram |
+| Trajectory since 02:50Z (292) | CC-0017→293; CC-0018→294; TST-0341→295 (FAIL→remedi→re-PASS); TST-0329→296 (jsonschema FAIL→fix→re-PASS); tip SUCCESS then `20da6d5f1`; IMP-0002 BLOCKED pack `04ee64b9c` |
+| Tip now (this append) | post–digest-review PASS: **IMP-0002 SUCCESS**; census **297/2007**; packer promote commit + ADMIT |
+| Honest BLOCKED retained | **CC-0023** owner unpaid; **IMP-0435** CI Actions absent; **IMP-0456** catalog shortfall gaps=41; **CC-0019** missing corpus; AUD-0023/0056/0060/0010; **CC-0011** security |
+| Branch / PR | `cursor/p2-loop-to-green-0db0` → **https://github.com/Prekzursil/agent-skills-toolchain/pull/325** (OPEN) |
+| In flight | IMP-0003 BLOCKED implement `bc-62dcba88-26dc-5a71-8752-84605954c300` |
+| CI allocator | still **AMBER** (owner Actions spend untouched) |
+| #316 / #319 | still owner-only Close; curator did not touch |
+| Anti-false-green | Claim→artifact `/opt/cursor/artifacts/session-log-restore-2026-09-08T0456Z.log`. No stub SUCCESS. |
+
+Next: integrate IMP-0003 as honest BLOCKED → planted-path review → promote only on PASS; continue Linux-feasible MISSING wave.
