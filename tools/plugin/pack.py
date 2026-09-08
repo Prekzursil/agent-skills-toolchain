@@ -32,6 +32,7 @@ from typing import Iterable, Sequence
 import casefold_paths as casefold_mod
 import eol_policy as eol_policy_mod
 import forbidden as forbidden_mod
+import secret_gate as secret_gate_mod
 import size_budget as size_budget_mod
 
 #: Zip format minimum timestamp. Fixed so identical content → identical bytes.
@@ -238,6 +239,7 @@ def pack(
     use_real_mtimes: bool = False,
     max_file_bytes: int | None = None,
     skip_forbidden_scan: bool = False,
+    skip_secret_scan: bool = False,
     skip_budget_check: bool = False,
     max_bytes: int | None = None,
     max_files: int | None = None,
@@ -246,6 +248,9 @@ def pack(
 
     Pre-emit (IMP-0003): every selected member is classified by path role and
     per-file byte ceiling before any archive bytes are written.
+
+    Pre-emit (IMP-0004): credential / high-entropy secret scan blocks emit when
+    any blocking finding is present; reports never echo secret bodies.
 
     Post-emit (IMP-0005): declared max-bytes / max-file-count budget is enforced
     against the written archive; totals come from the budget checker, not a
@@ -292,6 +297,13 @@ def pack(
                 max_file_bytes=ceiling,
             )
         except forbidden_mod.ForbiddenError as exc:
+            raise PackError(str(exc)) from exc
+
+    # IMP-0004: refuse credential-shaped / high-entropy secrets before emit.
+    if not skip_secret_scan:
+        try:
+            secret_gate_mod.assert_members_clean(blobs)
+        except secret_gate_mod.SecretGateError as exc:
             raise PackError(str(exc)) from exc
 
     # IMP-0017: refuse CRLF/CR shell blobs before any archive bytes exist.
