@@ -115,7 +115,18 @@ class Violation(dict):
 
 
 def _resolved(item: dict[str, Any], defaults: dict[str, Any], field: str) -> bool:
-    value = item.get(field, defaults.get(field))
+    """Whether a work-unit field resolves to a usable value.
+
+    Uses catalog.resolve_field so unit-level JSON null is explicit-null
+    (does not fall through to defaults). Explicit null is unresolved for
+    completeness except for disposition.
+    """
+    resolved = cat.resolve_field(item, defaults, field)
+    if resolved["provenance"] == "explicit-null":
+        return field == "disposition"
+    if resolved["provenance"] == "unset":
+        return False
+    value = resolved["value"]
     if value is None:
         return field == "disposition"
     if isinstance(value, str):
@@ -138,6 +149,13 @@ def validate(
     defaults = (
         catalog.get("defaults", {}) if isinstance(catalog.get("defaults"), dict) else {}
     )
+
+    # V-DEFAULTS — always on (IMP-0436). Bare CLI must catch a deleted defaults
+    # block; requiring --require-complete for this was the measured silence hole.
+    for finding in cat.defaults_block_violations(catalog):
+        violations.append(
+            Violation(finding["check"], finding["id"], finding["detail"])
+        )
 
     if not items:
         violations.append(
@@ -334,15 +352,22 @@ def validate(
     # V-FIELDS
     unresolved: list[str] = []
     default_only = 0
+    override_count = 0
+    explicit_null_count = 0
     for node in sorted(index):
         item = index[node]
         for field in cat.WORK_UNIT_FIELDS:
             if field in ("dependencies", "inputs") and not item.get(field):
                 continue  # legitimately empty: a root item has neither
+            resolved = cat.resolve_field(item, defaults, field)
+            if resolved["provenance"] == "default":
+                default_only += 1
+            elif resolved["provenance"] == "override":
+                override_count += 1
+            elif resolved["provenance"] == "explicit-null":
+                explicit_null_count += 1
             if not _resolved(item, defaults, field):
                 unresolved.append(f"{node}.{field}")
-            elif field not in item and field in defaults:
-                default_only += 1
     if unresolved and require_complete:
         for entry in unresolved:
             node, _, field = entry.partition(".")
@@ -361,6 +386,8 @@ def validate(
         ),
         "work_unit_fields_unresolved": len(unresolved),
         "work_unit_fields_from_defaults": default_only,
+        "work_unit_fields_from_overrides": override_count,
+        "work_unit_fields_explicit_null": explicit_null_count,
         "by_program": _count(index, "program"),
         "by_status": _count(index, "status"),
     }
