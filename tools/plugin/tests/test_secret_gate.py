@@ -168,3 +168,51 @@ def test_reviewer_evasion_fixture_now_blocks() -> None:
     assert blocking, f"expected blocking on base64 evasion; got {findings!r}"
     with pytest.raises(S.SecretGateError):
         S.assert_members_clean([("encoded_secret.cfg", data)])
+
+
+def test_split_literal_adjacent_concat_blocks_emit() -> None:
+    """Regression for IMP-0004 r2 FAIL: adjacent string-literal splits must block."""
+    token = _synthetic()
+    mid = len(token) // 2
+    left, right = token[:mid], token[mid:]
+    src = (
+        "API_TOKEN = (\n"
+        f'    "{left}"\n'
+        f'    "{right}"\n'
+        ")\n"
+        f'_p1 = "{left}"\n'
+        f'_p2 = "{right}"\n'
+        "API_TOKEN_JOINED = _p1 + _p2\n"
+    )
+    members = [("readme.md", b"# clean\n"), ("split_secret.py", src.encode("utf-8"))]
+    report = S.scan_members(members)
+    assert report.blocking >= 1
+    assert any(f.rule.startswith("split_literal_") for f in report.findings)
+    body = S.secret_body(token)
+    text = report.render_named_report()
+    assert body not in text
+    assert token not in text
+    with pytest.raises(S.SecretGateError, match="split_literal_|credential-exposure"):
+        S.assert_members_clean(members)
+
+
+def test_reviewer_split_literal_fixture_now_blocks() -> None:
+    """The r2 FAIL-review split_literal fixture must no longer bypass."""
+    fixture = (
+        REPO
+        / "command-center"
+        / "p2-wave"
+        / "reviews"
+        / "IMP-0004"
+        / "evasion-fixture-r2-split"
+        / "split_secret.py"
+    )
+    if not fixture.is_file():
+        pytest.skip("split_literal evasion fixture not on tip yet")
+    data = fixture.read_bytes()
+    findings = S.scan_bytes(data, relpath="split_secret.py")
+    blocking = [f for f in findings if f.severity == "blocking"]
+    assert blocking, f"expected blocking on split_literal evasion; got {findings!r}"
+    assert any(f.rule.startswith("split_literal_") for f in blocking)
+    with pytest.raises(S.SecretGateError):
+        S.assert_members_clean([("split_secret.py", data)])

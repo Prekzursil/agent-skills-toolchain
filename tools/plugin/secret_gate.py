@@ -85,6 +85,28 @@ _HASH_CONTEXT_RE = re.compile(
 _B64_CANDIDATE_RE = re.compile(r"[A-Za-z0-9+/]{40,}={0,2}")
 _B64_MIN_DECODED_LEN = 16
 
+#: Adjacent / ``+``-joined string literals (split_literal evasion).
+#: Matches one pair of quoted strings separated only by whitespace and/or ``+``.
+_JOIN_PAIR_RE = re.compile(
+    r"""(?xs)
+    (?P<q1>["'])
+    (?P<body1>(?:\\.|(?!(?P=q1)).)*)
+    (?P=q1)
+    \s*(?:\+\s*)?
+    (?P<q2>["'])
+    (?P<body2>(?:\\.|(?!(?P=q2)).)*)
+    (?P=q2)
+    """
+)
+#: Simple ``NAME = "literal"`` assignments (single-line) for ident+ident joins.
+_LIT_ASSIGN_RE = re.compile(
+    r"""(?m)^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=\s*(["'])([^"'\\]*)\2\s*$"""
+)
+#: ``IDENT + IDENT`` (possibly chained later via repeated expansion).
+_IDENT_PLUS_RE = re.compile(
+    r"\b([A-Za-z_][A-Za-z0-9_]*)\s*\+\s*([A-Za-z_][A-Za-z0-9_]*)\b"
+)
+
 
 # Safe base64 decode (no binascii import required):
 def _b64_decode_safe(token: str) -> bytes | None:
@@ -257,6 +279,121 @@ def findings_from_decoded_b64(
     return out
 
 
+def join_adjacent_string_literals(text: str) -> str:
+    """Collapse adjacent / ``+``-joined quoted string literals into one literal.
+
+    Settles split_literal evasions such as::
+
+        API_TOKEN = (
+            "ghp_...."
+            "...."
+        )
+    """
+
+    def _repl(m: re.Match[str]) -> str:
+        body = m.group("body1") + m.group("body2")
+        # Prefer the first quote style for the reconstructed literal.
+        q = m.group("q1")
+        return f"{q}{body}{q}"
+
+    prev = None
+    cur = text
+    # Bound iterations so pathological inputs cannot hang the gate.
+    for _ in range(64):
+        if cur == prev:
+            break
+        prev = cur
+        cur = _JOIN_PAIR_RE.sub(_repl, cur)
+    return cur
+
+
+def expand_ident_string_concats(text: str) -> str:
+    """Append synthetic assignments for ``A + B`` when both are string literals.
+
+    Catches::
+
+        _p1 = "ghp_...."
+        _p2 = "...."
+        API_TOKEN_JOINED = _p1 + _p2
+    """
+    assigns: dict[str, str] = {
+        m.group(1): m.group(3) for m in _LIT_ASSIGN_RE.finditer(text)
+    }
+    if not assigns:
+        return text
+    extras: list[str] = []
+    seen: set[str] = set()
+    # Multi-pass so ``a + b + c`` shaped chains via temps still settle.
+    working = dict(assigns)
+    for _ in range(16):
+        grew = False
+        for m in _IDENT_PLUS_RE.finditer(text):
+            left, right = m.group(1), m.group(2)
+            if left not in working or right not in working:
+                continue
+            joined = working[left] + working[right]
+            key = f"_SPLIT_JOINED_{left}_{right}"
+            if key in seen:
+                continue
+            if any(v == joined for v in working.values()):
+                continue
+            seen.add(key)
+            working[key] = joined
+            extras.append(f'{key} = "{joined}"\n')
+            grew = True
+        if not grew:
+            break
+    if not extras:
+        return text
+    return text + "\n" + "".join(extras)
+
+
+def reconstruct_split_literals(text: str) -> str:
+    """Rebuild contiguous credential-shaped text from split_literal evasions."""
+    return expand_ident_string_concats(join_adjacent_string_literals(text))
+
+
+def findings_from_reconstructed_split(
+    text: str,
+    *,
+    relpath: str,
+) -> list[Finding]:
+    """Pattern-scan a split-literal reconstruction; emit ``split_literal_*`` rules."""
+    reconstructed = reconstruct_split_literals(text)
+    if reconstructed == text:
+        return []
+    out: list[Finding] = []
+    # Scan reconstruction as a single blob; line numbers refer to joined view.
+    offset = 0
+    for lineno, line in enumerate(reconstructed.splitlines(), start=1):
+        line_start = offset
+        raw_line = line
+        if len(line) > 4096:
+            line = line[:4096]
+        for name, rx in _SECRET_RES:
+            m = rx.search(line)
+            if not m:
+                continue
+            matched = m.group(0)
+            out.append(
+                Finding(
+                    path=relpath,
+                    rule=f"split_literal_{name}",
+                    line=lineno,
+                    severity="blocking",
+                    excerpt_shape=(
+                        f"split_joined len={len(matched)} "
+                        f"entropy={shannon_bits(matched):.2f}bits"
+                    ),
+                    variable_name=extract_variable_name(raw_line),
+                    byte_offset=line_start + m.start(),
+                    prefix=safe_prefix_of(matched),
+                )
+            )
+        offset += len(raw_line.encode("utf-8", errors="replace")) + 1
+    return out
+
+
 
 
 def safe_prefix_of(matched: str) -> str:
@@ -379,6 +516,19 @@ def scan_text(
             )
             break
         offset += len(raw_line.encode("utf-8", errors="replace")) + 1
+    # Split-literal reconstruction (adjacent / + joined fragments).
+    # Deduplicate against contiguous hits that already blocked on the same prefix.
+    existing_prefixes = {
+        (f.rule.split("split_literal_", 1)[-1], f.prefix)
+        for f in out
+        if f.severity == "blocking"
+    }
+    for f in findings_from_reconstructed_split(text, relpath=relpath):
+        base_rule = f.rule.removeprefix("split_literal_")
+        if (base_rule, f.prefix) in existing_prefixes:
+            continue
+        out.append(f)
+        existing_prefixes.add((base_rule, f.prefix))
     return out
 
 
