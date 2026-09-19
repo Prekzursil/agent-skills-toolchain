@@ -480,3 +480,15 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   defaults, exit criteria, gem-hunt parallel track. Next concrete steps: owner answers §6 (or "all defaults") + §3 prerequisites
   (token revocation, other-agent stop, resize, GitHub repo approval, fixture #1) → local setup → author the implementation
   Workflow script from design-v2 §13 → R0.
+
+## LAUNCH (2026-09-19, owner: "run it now with subagents since you have no cap")
+- Read as: proceed immediately, **ten defaults accepted** (vetoes still possible by number), executed through parallel Agent-tool
+  subagents instead of the Workflow tool's CPU cap. Still owner-only (unchanged): GitHub repo creation, fixture #1 metered call,
+   plan-hash approval, promotion.
+- Setup receipts (build root `/home/codespace/build/qwen38-space`): gate copied + sha pinned `c96ef05c…`; gate venv Python 3.12.3
+  (apt python3.12-venv; pytest 9.1.1 + pytest-socket; ruff 0.14.5; packaging); wheels extracted gradio 6.26.0 / spaces 0.51.3 /
+  transformers 5.16.1 / huggingface-hub (179 MB); Space cloned — **upstream HEAD still f88b120, 0 commits after** (other agent
+  stopped; matches the design precondition), base pinned at f88b120; remote URL cleaned of credentials.
+- ⚠ The pasted HF token is STILL VALID (clone succeeded) — revocation remains outstanding.
+- R0 grounding fan-out launched: findings symbolizer (with executed reproduction of critic-1..5) · API ledger from wheel source ·
+  catalog provenance (public anonymous Hub reads only — claude.ai connectors are disconnected in this session).
