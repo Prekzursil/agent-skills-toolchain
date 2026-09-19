@@ -461,3 +461,10 @@ Pending verification (finder claims only, do not act on them yet): openai-api-1�
   document-vs-artifacts, its own adversarial drive of the NEW v2 mechanisms, loop/termination, authorability, cost realism) →
   `design-v2-critique.md`. Only a `ready` verdict (or a closed gap list) unblocks writing the PLAN and the implementation
   workflow script.
+- **Final-critic verdict on v2 (2026-09-19): `revise`, narrowly** — 0 blocking · 3 major · 9 minor; closure audit **38/38** (34 clean,
+  4 with an attached V-gap: C-23→V-1, C-4→V-2, C-19→V-3, C-2→V-4); document byte-identical to the reviser's artifacts; the critic's
+  own drive 50/51 (the one failure = V-3, real) and its independent gate execution 10/10. Majors: V-1 receipt phrases still null the
+  card in `assertCommon` (drive-proven) vs the log-only claim; V-2 journeys conftest specified by name only — the critic validated
+  the correct path-scoped hook after two naive dead ends; V-3 plan-needs-repair emits `next_args.stage='build'` with empty defects
+  (owner loops). All three sub-ten-line fixes; **reviser resumed to patch in place (v2.1) + extend the drive; with these applied the
+  critic calls v2 ready to be the build standard.**
