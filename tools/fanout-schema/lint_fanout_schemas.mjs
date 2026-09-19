@@ -38,8 +38,8 @@ if (inputs.length === 0) {
     try {
       collectSourcePaths(input, paths)
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error(`${input}: ${message}`)
+      // node:fs only ever throws Error subclasses here; .message is the whole contract.
+      console.error(`${input}: ${error.message}`)
       inputError = true
     }
   }
@@ -53,8 +53,8 @@ if (inputs.length === 0) {
     try {
       source = readFileSync(path, 'utf8')
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error)
-      console.error(`${path}: ${message}`)
+      // node:fs only ever throws Error subclasses here; .message is the whole contract.
+      console.error(`${path}: ${error.message}`)
       inputError = true
       continue
     }

@@ -416,16 +416,18 @@ export function preflight(opts = {}) {
 
 function checkValue(p, value, path, errors) {
   if (p.type && !matchesType(p.type, value)) {
-    errors.push({ kind: 'wrong_type', property: path, expected: p.type, got: typeofOf(value) })
+    errors.push({ kind: 'wrong_type', property: path, expected: p.type, got: typeofOf(value) });
     return
   }
   if (Array.isArray(p.enum) && !p.enum.includes(value)) {
     errors.push({ kind: 'enum_mismatch', property: path, allowed: p.enum, got: value })
   }
-  if (p.type === 'array' && p.items && Array.isArray(value)) {
+  // A non-array/non-object value already returned at the wrong_type check above, so the
+  // recursions below need no re-validation of the container shape.
+  if (p.type === 'array' && p.items) {
     value.forEach((item, i) => checkValue(p.items, item, `${path}[${i}]`, errors))
   }
-  if (p.type === 'object' && p.properties && value && typeof value === 'object') {
+  if (p.type === 'object' && p.properties) {
     for (const [k, v] of Object.entries(value)) {
       if (p.properties[k]) checkValue(p.properties[k], v, `${path}.${k}`, errors)
     }

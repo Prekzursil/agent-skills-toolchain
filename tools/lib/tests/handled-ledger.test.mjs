@@ -147,3 +147,62 @@ test('readJson/writeJson round-trip and readJson honours its fallback', async ()
   await writeJson(target, { v: 42 });
   assert.deepEqual(await readJson(target, null), { v: 42 });
 });
+
+test('ledger: a rename onto a directory exhausts retries, cleans the tmp file and rethrows', async () => {
+  // The destination being a directory makes rename fail on every attempt: EPERM on Windows
+  // (a RENAME_RETRY_CODE -> full 10-attempt backoff), EISDIR on Linux (non-retryable -> first
+  // attempt). Either way atomicWriteJson must rethrow and leave NO tmp residue behind.
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'toolslib-ledger-rename-'));
+  try {
+    const dest = path.join(dir, 'handled.json');
+    await fs.mkdir(dest);
+    await assert.rejects(atomicWriteJson(dest, { keys: {} }));
+    const residue = (await fs.readdir(dir)).filter((e) => e.endsWith('.tmp'));
+    assert.deepEqual(residue, [], 'failed publish must not leave tmp files behind');
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('ledger: loadHandled normalises scalar and shape-less ledger contents', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'toolslib-ledger-shape-'));
+  try {
+    await fs.mkdir(handledLedgerDir(dir), { recursive: true });
+    // A JSON scalar is not a ledger object.
+    await fs.writeFile(handledPath(dir), '42', 'utf8');
+    assert.deepEqual(await loadHandled(dir), { keys: {} });
+    // An object whose `keys` is not an object gets a fresh keys map.
+    await fs.writeFile(handledPath(dir), '{"keys": 5}', 'utf8');
+    assert.deepEqual(await loadHandled(dir), { keys: {} });
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('ledger: markHandled rejects blank key/id and isHandled answers false for unknown ones', async () => {
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'toolslib-ledger-keys-'));
+  try {
+    await assert.rejects(markHandled(dir, { key: '', id: 'x' }), /missing_key_or_id/);
+    await assert.rejects(markHandled(dir, { key: 'x', id: '' }), /missing_key_or_id/);
+    await assert.rejects(markHandled(dir, {}), /missing_key_or_id/);
+    assert.equal(await isHandled(dir, { key: 'nope', id: 'nope' }), false);
+    assert.equal(await isHandled(dir, {}), false);
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
+
+test('ledger: atomicWriteJson creates missing parent directories on the way', async () => {
+  // path.dirname(filePath) is mkdir'd recursively before the tmp write, so a destination
+  // under a not-yet-existing directory is NOT an error - it is published. (The immediate
+  // non-retryable rename throw - EISDIR on Linux - is covered by the directory-destination
+  // test above on POSIX; on Windows that same scenario takes the EPERM retry path.)
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'toolslib-ledger-mkdir-'));
+  try {
+    const dest = path.join(dir, 'fresh', 'nested', 'handled.json');
+    await atomicWriteJson(dest, { keys: {} });
+    assert.deepEqual(await readJson(dest, null), { keys: {} });
+  } finally {
+    await fs.rm(dir, { recursive: true, force: true });
+  }
+});
