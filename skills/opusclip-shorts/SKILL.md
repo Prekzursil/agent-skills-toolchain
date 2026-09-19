@@ -95,9 +95,14 @@ inside ZCode, offline otherwise). One question, then proceed:
 Since the credential minter is the ZCode host itself, the relay brokers through it:
 - Any harness: `python speech_relay_client.py transcribe <audio> <out.json> [--language ro]`
   (drops `~/.agents/speech-relay/queue/<id>.job.json`, polls `results/<id>.result.json`).
-- A ZCode automation ("Speech relay queue worker", every 5 min) drains the queue through the
+- A ZCode automation ("Speech relay queue worker", every 2 min) drains the queue through the
   host-authenticated video-edit MCP and writes results. Fresh auth per run, plan-metered, works
-  from Claude/Codex/anything on this machine. Batch chunks together; latency ≤5 min per batch.
+  from Claude/Codex/anything on this machine. Batch chunks together; latency ≤2 min per batch
+  (fires between turns — worst case is while the ZCode session is mid-turn).
+- **Inside ZCode, skip the queue entirely**: call speech_transcribe directly (host-authenticated,
+  same latency as interactive). The queue exists for OTHER harnesses only.
+- The automation costs one tiny model turn per tick even when idle — delete it (CronDelete
+  'Speech relay queue worker') when not transcoding, recreate from the skill when needed.
 
 ## Portability & dependencies (any harness)
 - Registered harness-wide as stdio MCP **`video-agent-kit`** pointing at the LOCAL PATCHED COPY
