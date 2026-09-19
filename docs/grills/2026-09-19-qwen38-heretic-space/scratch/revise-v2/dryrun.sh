@@ -53,7 +53,7 @@ printf 'root = true\n[*]\nend_of_line = lf\n' > .editorconfig
 mkdir -p tools tests/journeys tests/fixtures/gate
 cp "$TOOLS/gate.sh" tools/gate.sh; echo "$GATE_SHA" > tools/gate.pin
 printf 'tests/test_constants_pin.py\ntests/test_import_contract.py\ntools/gate.sh\ntools/gate.pin\nruff.toml\npytest.ini\n.gitattributes\n' > tests/protected.txt
-printf 'import pathlib\n\ndef pytest_collection_modifyitems(items):\n    for it in items:\n        if it.path.is_relative_to(pathlib.Path(__file__).parent):\n            it.add_marker(pytest.mark.journey)\n' > tests/journeys/conftest.py
+printf 'import pathlib\nimport pytest\n\ndef pytest_collection_modifyitems(config, items):\n    for it in items:\n        if it.path.is_relative_to(pathlib.Path(__file__).parent):\n            it.add_marker(pytest.mark.journey)\n' > tests/journeys/conftest.py
 printf 'FALLBACK_TO_WORKER = False\nVIDEO_ENABLED = False\nIMAGES_ENABLED = True\n' > config.py
 printf 'import sys\n# owner-run: hashes 6-word shingles of the clause file; the workflow never sees the clause\nprint("ok", sys.argv[1:])\n' > tools/make_boundary_fixture.py
 printf '.gate/\n__pycache__/\n' > .gitignore

@@ -196,12 +196,13 @@ Every card's `out_of_scope[]` lists these defaults unless it is the card that ow
 | H3 | MCP `ask → poll → status → preflight` with `chat` hidden; listing = 4 typed tools | 11 |
 | H5 | catalog admission × `models.yaml` schema × harness zero-call × pending entries hidden | 13a |
 
-**The mechanics changed in v2 (C-4); v2.1 pins the bytes (V-2).** Card 01 delivers `tests/journeys/conftest.py` EXACTLY as follows — a path-scoped hook, because a bare `pytestmark = pytest.mark.journey` in a conftest is inert (pytest reads `pytestmark` only from test modules, so `--journeys` collects 0) and an unscoped hook marks every item in the session (so `-m "not journey"` deselects the whole default suite); both naive implementations are RED, and card 01's both-collections DoD catches them at card 01, never at the first seam wave:
+**The mechanics changed in v2 (C-4); v2.1 pins the bytes (V-2).** Card 01 delivers `tests/journeys/conftest.py` EXACTLY as follows — self-contained (it imports its own `pytest`: a conftest naming `pytest` without importing it is ruff F821 and NameErrors at collection, which the dry run proved on pytest 9.1.1) and path-scoped, because a bare `pytestmark = pytest.mark.journey` in a conftest is inert (pytest reads `pytestmark` only from test modules, so `--journeys` collects 0) and an unscoped hook marks every item in the session (so `-m "not journey"` deselects the whole default suite); both naive implementations are RED, and card 01's both-collections DoD catches them at card 01, never at the first seam wave:
 
 ```python
 import pathlib
+import pytest
 
-def pytest_collection_modifyitems(items):
+def pytest_collection_modifyitems(config, items):
     for it in items:
         if it.path.is_relative_to(pathlib.Path(__file__).parent):
             it.add_marker(pytest.mark.journey)
