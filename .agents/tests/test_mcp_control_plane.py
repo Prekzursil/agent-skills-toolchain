@@ -333,7 +333,7 @@ def test_live_registry_has_shared_basic_memory_and_no_retired_sidecar() -> None:
     config = json.loads((AGENTS_ROOT / "agents.json").read_text(encoding="utf-8"))
     servers = config["mcp"]["servers"]
 
-    assert servers["basic-memory"]["targets"] == ["codex", "claude"]
+    assert servers["basic-memory"]["targets"] == ["codex", "claude", "zcode", "hermes"]  # 2026-09-19: zcode+hermes targets added (audit-era SSOT expansion)
     assert "codex_consult" not in servers
     assert "memory" not in servers
 
@@ -600,7 +600,7 @@ CURSOR_STDIO_BRIDGE = {
     ],
 }
 
-BASIC_MEMORY_URL = "http://127.0.0.1:8765/mcp"
+BASIC_MEMORY_URL = "http://127.0.0.1:18765/mcp"  # 2026-09-19: 8765->18765 (D21 port family fix)
 BRIDGE_SCRIPT = r"C:\Users\Prekzursil\.agents\scripts\bm_cursor_http_session.py"
 
 

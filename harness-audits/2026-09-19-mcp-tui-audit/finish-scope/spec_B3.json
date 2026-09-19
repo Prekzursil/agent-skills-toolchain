@@ -1,0 +1,76 @@
+{
+ "evidence": [
+  "VERIFIED C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json: parses, size 15355 bytes, top keys ['$schema','theme','share','autoupdate','disabled_providers','model','small_model','default_agent','agent','provider','mcp','bolt','instructions','compaction','experimental','permission']; mcp block = 33 entries.",
+  "VERIFIED the 6 flag-only entries are IDENTICAL to {'enabled': true} \u2014 no flags, no description, no type/url/command/timeout \u2014 at lines 320 darknet, 323 dns-security, 326 supply-chain, 329 mcp-scanner, 332 steganography, 335 satellite.",
+  "VERIFIED sibling schema: 12 'remote' entries = {type:'remote', url:'http://127.0.0.1:311xx/mcp', enabled, timeout:300000}; 15+ 'local' entries = {type:'local', command:[...], enabled, timeout}. There is NO 'url' type in this file's vocabulary (task's 'type:url' phrasing maps to 'remote' here).",
+  "VERIFIED live band: netstat LISTENING on 127.0.0.1 for 31100, 31101, 31110-31119 exactly; 31102-31109 free. cyberstrike-mcp-lib.ps1 Service table assigns 31100 sliver, 31101 sliver-full, 31110 github-security, 31111 cve, 31112 osint, 31113 hexstrike-ai, 31114 firecrawl, 31115 hacktricks, 31116 metasploit, 31117 nuclei, 31118 cloud-audit, 31119 semgrep \u2014 NONE of the 6 names present => NO-FRONT for all 6.",
+  "VERIFIED all 6 services exist as stdio node servers: D:\\opt\\cyberstrike-mcp\\node_modules\\{darknet-mcp-server, dns-security-mcp, supply-chain-mcp-server, mcp-security-scanner, steganography-mcp, satellite-mcp}\\dist\\index.js all PRESENT; all six packages declared in D:\\opt\\cyberstrike-mcp\\package.json dependencies.",
+  "VERIFIED LIVE HANDSHAKE (class sample): printf MCP initialize | node darknet-mcp-server/dist/index.js -> valid JSON-RPC response serverInfo {name:'darknet-mcp', version:'0.1.0'}, exit 0.",
+  "VERIFIED historical: the 6 entries have been flag-only in every backup since cyberstrike.json.bak-20260907-002854 (2026-09-07) \u2014 never wired, not a recent regression.",
+  "AUDIT CROSS-REF: harness-audits/2026-09-19-mcp-tui-audit/AUDIT-SUMMARY.md line 88 ('6 flag-only no-type entries unverifiable statically') and line 125 ('fix 6 flag-only entries with explicit type/url'); scoreboard.json cyberstrike row: 'wired: own 12-front 311xx band ... 6 flag-only entries', plan_ready:true. The audit's 'type/url' wording predates the NO-FRONT measurement; primary spec uses the sibling-consistent local transport instead of inventing URLs.",
+  "RAM context: ~/.config/cyberstrike/config.md warns duplicate TUI stacks + full MCP army eat ~1.5-2 GB; primary spec keeps enabled:true (preserves current opt-in state) with conservative enabled:false variant stated."
+ ],
+ "item": "B3 \u2014 cyberstrike flag-only mcp entries (6): darknet, dns-security, supply-chain, mcp-scanner, steganography, satellite",
+ "open_questions": [
+  "UNVERIFIED (5 of 6): dns-security, supply-chain, mcp-scanner, steganography, satellite stdio initialize handshakes not individually tested (only darknet class-verified). Settling experiment: same 12s probe per package \u2014 printf '{\"jsonrpc\":\"2.0\",\"id\":1,\"method\":\"initialize\",\"params\":{\"protocolVersion\":\"2024-11-05\",\"capabilities\":{},\"clientInfo\":{\"name\":\"probe\",\"version\":\"0.0.1\"}}}\\n' | '/c/Program Files/nodejs/node.exe' D:/opt/cyberstrike-mcp/node_modules/<pkg>/dist/index.js \u2014 expect a serverInfo JSON-RPC result.",
+  "UNVERIFIED (inference, HIGH confidence): cyberstrike key 'mcp-scanner' maps to package mcp-security-scanner (name differs; it is the only scanner-family package/cmd in D:\\opt\\cyberstrike-mcp). Settling experiment: run the handshake probe and read serverInfo.name, or grep the CyberStrike TUI source for the 'mcp-scanner' key's expected server identity.",
+  "UNVERIFIED: timeout 60000 adequacy for mcp-security-scanner (scan-shaped workload may exceed 60s per call). Settling experiment: after wiring, observe first real scan invocation; raise that entry's timeout to 300000 if it times out (sibling hackbrowser precedent for 300000).",
+  "NOT DONE by design (out of READ-ONLY scope): building 31102-31109 fronts for these six in cyberstrike-mcp-lib.ps1 if the owner prefers 'remote' wiring. Settling experiment before any such build: confirm supervisor profile budget (Core/Full/Heavy) can carry 6 more fronts without tripping the config.md duplicate-stack RAM warning."
+ ],
+ "steps": [
+  {
+   "action": "SPEC STEP 0 \u2014 backup first (mandatory pre-edit convention)",
+   "detail": "Copy C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json to C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json.bak-b3-flagfix-20260919 before any edit. The folder's own convention (30+ .bak-* files) demands this; the file is 15355 bytes and self-contained.",
+   "risk": "None (copy only).",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json"
+  },
+  {
+   "action": "SPEC STEP 1 \u2014 replace entry \"darknet\" (lines 320-322) with typed local wiring",
+   "detail": "Current exact text (3 lines): \"darknet\": { \"enabled\": true },. Replace with (matching local-sibling key order type,command,enabled,timeout; 6-space field indent as in file): \"darknet\": { \"type\": \"local\", \"command\": [\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"D:\\\\opt\\\\cyberstrike-mcp\\\\node_modules\\\\darknet-mcp-server\\\\dist\\\\index.js\"], \"enabled\": true, \"timeout\": 60000 },. INFERENCE LABELS: intended type = local (stdio) because (a) NO 311xx front exists for this name \u2014 the band table in D:\\opt\\cyberstrike-mcp\\cyberstrike-mcp-lib.ps1 has no darknet row and 31102-31109 are free/unassigned; (b) a working stdio server is disk-verified at that exact path and LIVE-VERIFIED by MCP initialize handshake (serverInfo darknet-mcp 0.1.0, exit 0); (c) siblings mythic/jb-library/dbx-ai use exactly this shape for local D:\\opt\\cyberstrike-mcp python servers. FALLBACK per task rule (if owner rejects stdio wiring): \"darknet\": { \"enabled\": false }, \u2014 never invent a url. NOTE the task's suggested \"type:url\" does NOT exist in this file's schema \u2014 the http enum value is \"remote\"; had a front existed the edit would be \"type\": \"remote\", \"url\": \"http://127.0.0.1:311XX/mcp\".",
+   "risk": "Adds 1 node stdio process per TUI session when enabled. config.md warns the MCP army costs ~1.5-2 GB under duplicate TUI stacks. Conservative variant: keep \"enabled\": false and enable on demand.",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json -> mcp.darknet (line 320)"
+  },
+  {
+   "action": "SPEC STEP 2 \u2014 replace entry \"dns-security\" (lines 323-325)",
+   "detail": "Current: \"dns-security\": { \"enabled\": true },. Replace with: \"dns-security\": { \"type\": \"local\", \"command\": [\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"D:\\\\opt\\\\cyberstrike-mcp\\\\node_modules\\\\dns-security-mcp\\\\dist\\\\index.js\"], \"enabled\": true, \"timeout\": 60000 },. Same NO-FRONT + local-stdio inference as step 1; package dns-security-mcp disk-verified present (dist/index.js exists, declared in D:\\opt\\cyberstrike-mcp\\package.json deps). Handshake not individually tested (UNVERIFIED \u2014 see open_questions). Fallback: \"enabled\": false.",
+   "risk": "Same per-session node process cost; handshake untested for this one.",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json -> mcp.\"dns-security\" (line 323)"
+  },
+  {
+   "action": "SPEC STEP 3 \u2014 replace entry \"supply-chain\" (lines 326-328)",
+   "detail": "Current: \"supply-chain\": { \"enabled\": true },. Replace with: \"supply-chain\": { \"type\": \"local\", \"command\": [\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"D:\\\\opt\\\\cyberstrike-mcp\\\\node_modules\\\\supply-chain-mcp-server\\\\dist\\\\index.js\"], \"enabled\": true, \"timeout\": 60000 },. Same inference; package supply-chain-mcp-server disk-verified present + declared. Fallback: \"enabled\": false.",
+   "risk": "Same as step 2.",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json -> mcp.\"supply-chain\" (line 326)"
+  },
+  {
+   "action": "SPEC STEP 4 \u2014 replace entry \"mcp-scanner\" (lines 329-331)",
+   "detail": "Current: \"mcp-scanner\": { \"enabled\": true },. Replace with: \"mcp-scanner\": { \"type\": \"local\", \"command\": [\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"D:\\\\opt\\\\cyberstrike-mcp\\\\node_modules\\\\mcp-security-scanner\\\\dist\\\\index.js\"], \"enabled\": true, \"timeout\": 60000 },. CRITICAL INFERENCE LABEL: the config key 'mcp-scanner' maps to package mcp-security-scanner (name mismatch) \u2014 evidence: it is the ONLY scanner-family package in D:\\opt\\cyberstrike-mcp (package.json deps + mcp-security-scanner-local.cmd wrapper); no package literally named mcp-scanner exists. UNVERIFIED mapping (settling experiment: run the stdio initialize probe and read serverInfo.name, or grep the TUI source for the key). Same NO-FRONT inference. Fallback: \"enabled\": false. Consider timeout 300000 if scan calls prove long.",
+   "risk": "Name-mapping inference could be wrong (medium-low); scanner workload may need a longer timeout.",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json -> mcp.\"mcp-scanner\" (line 329)"
+  },
+  {
+   "action": "SPEC STEP 5 \u2014 replace entry \"steganography\" (lines 332-334)",
+   "detail": "Current: \"steganography\": { \"enabled\": true },. Replace with: \"steganography\": { \"type\": \"local\", \"command\": [\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"D:\\\\opt\\\\cyberstrike-mcp\\\\node_modules\\\\steganography-mcp\\\\dist\\\\index.js\"], \"enabled\": true, \"timeout\": 60000 },. Same inference; package steganography-mcp disk-verified present + declared. Fallback: \"enabled\": false.",
+   "risk": "Same as step 2.",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json -> mcp.steganography (line 332)"
+  },
+  {
+   "action": "SPEC STEP 6 \u2014 replace entry \"satellite\" (lines 335-337)",
+   "detail": "Current: \"satellite\": { \"enabled\": true },. Replace with: \"satellite\": { \"type\": \"local\", \"command\": [\"C:\\\\Program Files\\\\nodejs\\\\node.exe\", \"D:\\\\opt\\\\cyberstrike-mcp\\\\node_modules\\\\satellite-mcp\\\\dist\\\\index.js\"], \"enabled\": true, \"timeout\": 60000 },. Same inference; package satellite-mcp disk-verified present + declared. Fallback: \"enabled\": false.",
+   "risk": "Same as step 2.",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json -> mcp.satellite (line 335)"
+  },
+  {
+   "action": "SPEC STEP 7 \u2014 post-edit validation (fail-closed)",
+   "detail": "(1) python -c \"import json; d=json.load(open(r'C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json',encoding='utf-8')); m=d['mcp']; assert len(m)==33; assert all(m[n].get('type') in ('local','remote') for n in ('darknet','dns-security','supply-chain','mcp-scanner','steganography','satellite'))\" -> must exit 0. (2) Start ONE fresh TUI session (config.md: verify only one cyberstrike.exe tree) and confirm the MCP panel lists the 6 with a green stdio connect. (3) Do NOT touch C:\\Users\\Prekzursil\\.agents\\agents.json \u2014 cyberstrike.json is a self-managed band outside the SSOT sync (AUDIT-SUMMARY lines 88/125), so no sync_shared_state.ps1 run and no registry validator apply here.",
+   "risk": "Skipping (2) leaves a config-only green (defect-as-config class).",
+   "target": "C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json"
+  },
+  {
+   "action": "SPEC ALTERNATIVE (deferred, owner decision) \u2014 front-build path if 'remote' wiring is preferred",
+   "detail": "The audit's literal 'fix with explicit type/url' wording implies fronts. If the owner wants type:'remote' entries, the prerequisite is BUILDING six fronts (not a config edit): add six Service rows to D:\\opt\\cyberstrike-mcp\\cyberstrike-mcp-lib.ps1 on free ports 31102-31109 (e.g. 31102 darknet, 31103 dns-security, 31104 supply-chain, 31105 mcp-scanner, 31106 steganography, 31107 satellite \u2014 PROPOSED assignment, currently unclaimed), wrapping each node stdio server with the mcp-proxy stream pattern already proven at 31100 (node mcp-proxy --host 127.0.0.1 --port 311XX --server stream -- <node dist/index.js>); restart the supervisor (D:\\opt\\cyberstrike-mcp\\start-cyberstrike-mcp-http.ps1) with an appropriate profile; ONLY THEN set each entry to {\"type\":\"remote\",\"url\":\"http://127.0.0.1:311XX/mcp\",\"enabled\":true,\"timeout\":300000}. Until a lib row + listener exists, any such url would be INVENTED \u2014 do not write it.",
+   "risk": "6 more resident fronts = permanent RAM cost vs on-demand stdio; band documentation (config.md line ~127) would need updating.",
+   "target": "D:\\opt\\cyberstrike-mcp\\cyberstrike-mcp-lib.ps1 + C:\\Users\\Prekzursil\\.config\\cyberstrike\\cyberstrike.json"
+  }
+ ]
+}

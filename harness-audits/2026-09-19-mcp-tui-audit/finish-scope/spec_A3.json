@@ -1,0 +1,103 @@
+{
+ "item": "A3 \u2014 Vendor biomni-hub into repo tools/ (disposition local-impl-move, audit scoreboard /servers[8] health=LIVE-SESSION confirmed)",
+ "steps": [
+  {
+   "action": "backup-registry",
+   "detail": "Copy-Item 'C:\\Users\\Prekzursil\\.agents\\agents.json' 'C:\\Users\\Prekzursil\\.agents\\agents.json.bak-pre-biomni-vendor-20260919' (estate backup-first convention; never overwrite an existing backup).",
+   "risk": "none (read-only copy)",
+   "target": "C:\\Users\\Prekzursil\\.agents\\agents.json"
+  },
+  {
+   "action": "vendor-copy-hub",
+   "detail": "robocopy 'C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub' 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub' /E /XD .venv __pycache__ .pytest_cache .ruff_cache \u2014 copies server.py (268 ln), schema.py (309), backends.py (222), adapters/ (online.py 808, databricks.py, probe_online.py 216, online_mapping.md), features/ (12 files, 1448 ln), tests/ (7 files incl. golden_contract + fake_backend), INTERFACE.md, pyproject.toml, requirements.txt. Layout is preserved as hub/ subdir (NOT flattened) because INTERFACE.md requires adapters importable 'next to backends.py' \u2014 zero code changes needed.",
+   "risk": "robocopy exit codes 1-7 are success; only >=8 is failure.",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub\\"
+  },
+  {
+   "action": "vendor-copy-databricks-sibling",
+   "detail": "robocopy 'C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\databricks' 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\databricks' /E /XD __pycache__ .pytest_cache \u2014 Track B deploy assets (bootstrap.py, provision.py, probe_runner.py, deploy/, volume_layout.md, README.md). Verified zero import coupling from hub/ to this sibling (only 'from databricks.sdk import ...' = the pip package), so this is archival of the other unversioned component of the A1/A2/B1 system, not a runtime need.",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\databricks\\"
+  },
+  {
+   "action": "write-inner-gitignore",
+   "detail": "Create file with exact content (scholarly-access-mcp/.gitignore pattern + .ruff_cache which this impl also produces):\n.venv/\n__pycache__/\n*.pyc\n*.egg-info/\n.pytest_cache/\n.ruff_cache/",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\.gitignore"
+  },
+  {
+   "action": "write-tool-readme",
+   "detail": "New README.md recording: vendored 2026-09-19 from C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub (which had NO git origin \u2014 this repo copy is now the source of record); upstream Prekzursil/biomni-hub does not exist on GitHub (gh: Could not resolve, verified 2026-09-19); architecture = A1 hub/ + A2 adapters/online + B1 adapters/databricks per INTERFACE.md; registry row label 'biomni-hub' targets [zcode]; runtime env BIOMNI_API_BASE=http://127.0.0.1:18787 (external broker), BIOMNI_BACKEND=online; build = python -m venv .venv + pip install -e '.[dev]'.",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\README.md"
+  },
+  {
+   "action": "build-in-place-venv",
+   "detail": "cd 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub'; & 'C:\\Python314\\python.exe' -m venv .venv; & '.\\.venv\\Scripts\\python.exe' -m pip install -e \".[dev]\" \u2014 installs mcp>=1.23.0, httpx, pydantic, aiosqlite + pytest/ruff. C:\\Python314 chosen for parity: the live working venv at .local\\opt\\...\\hub\\.venv is Python 3.14.3 (pyproject floor is >=3.11), so wheel availability is already proven on this interpreter.",
+   "risk": "pip needs network for first install; if offline, copy the existing venv instead (robocopy .venv) and fix pyvenv.cfg home path \u2014 fallback only.",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub\\.venv"
+  },
+  {
+   "action": "gate-tests",
+   "detail": "& 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub\\.venv\\Scripts\\python.exe' -m pytest (cwd = the hub dir). Suite is offline (tests/fake_backend.py, test_golden_contract.py, test_server_tools.py, test_schema.py, test_selector.py, test_compose.py). MUST pass before the registry re-point \u2014 fail-closed doctrine: no green claim without this run.",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub\\tests\\"
+  },
+  {
+   "action": "registry-re-point",
+   "detail": "Field-level python edit of mcp.servers['biomni-hub'] (NOT blind string replace \u2014 'biomni-hub' occurs 4x in the file). Assert old values first, then set:\nOLD command: 'C:\\\\Users\\\\Prekzursil\\\\.local\\\\opt\\\\biomni-hub\\\\hub\\\\.venv\\\\Scripts\\\\python.exe'\nNEW command: 'C:\\\\Users\\\\Prekzursil\\\\source\\\\agent-skills-toolchain\\\\tools\\\\biomni-hub-mcp\\\\hub\\\\.venv\\\\Scripts\\\\python.exe'\nOLD args[0]: 'C:\\\\Users\\\\Prekzursil\\\\.local\\\\opt\\\\biomni-hub\\\\hub\\\\server.py'\nNEW args[0]: 'C:\\\\Users\\\\Prekzursil\\\\source\\\\agent-skills-toolchain\\\\tools\\\\biomni-hub-mcp\\\\hub\\\\server.py'\nLeave UNCHANGED: env {BIOMNI_API_BASE: http://127.0.0.1:18787, BIOMNI_BACKEND: online}, targets ['zcode'], enabled: true, tags ['approved','stdio','local','zcode-only','shared'], description. Write back with json.dump(indent=2, ensure_ascii=False).",
+   "risk": "Round-trip reformats the whole file \u2014 mitigated by the step-1 backup + step-9 validator; all consumers parse JSON, none are line-oriented (validator + merge scripts load via json).",
+   "target": "C:\\Users\\Prekzursil\\.agents\\agents.json"
+  },
+  {
+   "action": "validate",
+   "detail": "python 'C:\\Users\\Prekzursil\\.agents\\scripts\\validate_mcp_control_plane.py' \u2014 expect exit 0. If it path-checks commands it will also catch a bad re-point.",
+   "target": "C:\\Users\\Prekzursil\\.agents\\scripts\\validate_mcp_control_plane.py"
+  },
+  {
+   "action": "sync",
+   "detail": "powershell -File 'C:\\Users\\Prekzursil\\.agents\\scripts\\sync_shared_state.ps1' \u2014 line 188-189 runs merge_generated_zcode_mcp.py --write into 'C:\\Users\\Prekzursil\\.zcode\\cli\\config.json'. Settling check: that file's /mcp/servers/biomni-hub (verified today to carry the OLD command+args, materialized from the registry) must now show the NEW tools\\biomni-hub-mcp path; grep it. Also confirm the claude/codex/cursor merges stay clean (biomni-hub targets only zcode, so no other surface should change).",
+   "target": "C:\\Users\\Prekzursil\\.zcode\\cli\\config.json"
+  },
+  {
+   "action": "smoke",
+   "detail": "Run 'agents mcp test --runtime' for the biomni-hub row (control-plane workflow step 4), or manual stdio probe: echo an initialize request into 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub\\.venv\\Scripts\\python.exe' 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\biomni-hub-mcp\\hub\\server.py' and expect an MCP initialize response. Note the server needs the broker on 127.0.0.1:18787 reachable for full tool calls (description: 'local server.py talking to the online backend via broker').",
+   "target": "zcode runtime / stdio"
+  },
+  {
+   "action": "commit-owner-invoked",
+   "detail": "On branch feat/tool-registry-governance (verified current). Repo index is DIRTY (staged skills-claude-only deletions + modified CLAUDE.md) \u2014 therefore: git -C <repo> add tools/biomni-hub-mcp; git -C <repo> commit -m 'tools: vendor biomni-hub (A3 local-impl-move: only copy was unversioned .local/opt)' -- tools/biomni-hub-mcp (path-scoped commit is MANDATORY on this box: plain git commit would sweep the whole dirty index). Background/headless agents never commit (G-68) \u2014 owner-invoked or interactive session only.",
+   "risk": "Path-scoped commit with staged deletions in index; verify with git show --stat HEAD that ONLY tools/biomni-hub-mcp files are in the commit.",
+   "target": "C:\\Users\\Prekzursil\\source\\agent-skills-toolchain"
+  },
+  {
+   "action": "retire-old-copy-deferred",
+   "detail": "DO NOT delete 'C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub' during this change \u2014 it stays as live fallback until the vendored copy has run green in a real zcode session (grace window per verification doctrine; subagent transcript lag on this box). Retirement later = move to project trash per never-permanently-delete rule, after confirming nothing else references it.",
+   "target": "C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\"
+  },
+  {
+   "action": "alternative-note-bm-star",
+   "detail": "The bm_* MCP alternative is NOT applicable as a replacement: (a) the impl is NOT a thin script \u2014 3 components, ~4,000 source lines (hub 799 + adapters 1,768 + features 1,448) + 7-file offline test suite; (b) upstream 'Prekzursil/biomni-hub' does not exist on GitHub (gh verified 2026-09-19) and the local dir has no .git \u2014 there is no remote MCP variant to pull; (c) Claude sessions ALREADY have an aggregated MCP surface via McpHub (mcp__McpHub__biomni_hub__* \u2014 biomni_backends/cost/fetch_artifact/inject_mcp/run_history/tool_catalog + task tools, matching the pyproject '10 canonical tools' surface), and the drive-biomni-lab skill documents the hosted Biomni Lab bm_* lane. So: Claude-lane coverage exists independently; this vendor move protects the zcode-only stdio lane whose impl was unversioned. Registry row stays zcode-targeted; no row duplication needed.",
+   "target": "n/a (spec note)"
+  }
+ ],
+ "evidence": [
+  "agents.json (C:/Users/Prekzursil/.agents/agents.json): servers live at mcp.servers (93 servers; top keys schemaVersion/instructions/integrations/syncMode/mcp/workspace/lastSync/lastSyncSourceHash). Row 'biomni-hub': targets [zcode], enabled, stdio, command='C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\.venv\\Scripts\\python.exe', args=['C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\server.py'], env={BIOMNI_API_BASE:http://127.0.0.1:18787, BIOMNI_BACKEND:online}, tags [approved,stdio,local,zcode-only,shared]. (python json extract)",
+  "Audit scoreboard C:/Users/Prekzursil/source/agent-skills-toolchain/harness-audits/2026-09-19-mcp-tui-audit/scoreboard.json /servers[8] = {name: biomni-hub, health: LIVE-SESSION, disposition: local-impl-move} \u2014 matches the given disposition. (python walk)",
+  "Impl verified on disk at C:/Users/Prekzursil/.local/opt/biomni-hub/hub/: server.py 268 ln, schema.py 309, backends.py 222, adapters/ 1,768 ln (online.py 808, probe_online.py 216, databricks.py, online_mapping.md), features/ 1,448 ln across 12 files, tests/ 7 files (conftest, fake_backend, test_compose/golden_contract/schema/selector/server_tools), pyproject (name biomni-hub 0.1.0, requires-python >=3.11, deps mcp/httpx/pydantic/aiosqlite, optional databricks+dev), requirements.txt, INTERFACE.md (A1/A2/B1 contract; 'adapters must be on sys.path next to backends.py'). Sibling databricks/ = Track B deploy assets. (ls + wc -l + cat)",
+  "Impl has NO git provenance: no .git at .local/opt/biomni-hub, hub/, or databricks/ \u2014 the directory is the only copy, which is the rationale for local-impl-move. (test -d)",
+  "Reference vendoring pattern scholarly-access-mcp: repo dir tools/scholarly-access-mcp/ tracks README.md, pyproject.toml, package source, tests; inner .gitignore excludes .venv/, __pycache__/, *.pyc, *.egg-info/, oa_pdfs/, .pytest_cache/; .venv exists on disk (check-ignore confirms ignored) and registry row scholarly-access command points at 'C:\\Users\\Prekzursil\\source\\agent-skills-toolchain\\tools\\scholarly-access-mcp\\.venv\\Scripts\\scholarly-access-mcp.exe' (targets [claude, zcode]). (ls -a, cat .gitignore, git check-ignore, agents.json extract)",
+  "Recent precedent commit ac1820663 'tools: vendor cursor-bridge (D14-adjacent, #6 keep-and-improve)' \u2014 but note cursor-bridge's registry row still points at D:\\opt\\cursor-bridge (vendored-for-record, NOT re-pointed); scholarly-access is the re-pointed precedent, and this task explicitly requires re-point.",
+  "zcode is a real sync target: sync_shared_state.ps1 line 66 defines and lines 188-189 invoke merge_generated_zcode_mcp.py --write into .zcode\\cli\\config.json (grep). C:/Users/Prekzursil/.zcode/cli/config.json /mcp/servers/biomni-hub currently carries the OLD command/args/env (materialized copy of the registry row) \u2014 confirms the re-point propagates via sync. agent-mail row also uses targets [codex,claude,zcode,hermes].",
+  "Validator present: C:/Users/Prekzursil/.agents/scripts/validate_mcp_control_plane.py (Test-Path equivalent).",
+  "Hub live venv interpreter = Python 3.14.3 (matches C:\\Python314\\python.exe used by cursor-bridge row); pyproject floor >=3.11, ruff target py311 \u2014 parity build on 3.14 is proven safe.",
+  "No import coupling hub->databricks sibling (only 'from databricks.sdk import WorkspaceClient' = pip package in adapters/databricks.py:77-78).",
+  "Prekzursil/biomni-hub GitHub repo DOES NOT exist ('GraphQL: Could not resolve to a Repository' via gh, 2026-09-19); ~/.mcp.json has zero biomni references (2026-07-11 memory note about biomni-hub in ~/.mcp.json is stale).",
+  "Repo state: branch feat/tool-registry-governance (verified), working tree dirty (M CLAUDE.md, M command-center/ssot/drift-gate.json, staged deletions under skills-claude-only/) \u2014 hence path-scoped commit requirement.",
+  "Claude-lane MCP overlap already live in this session's deferred tool inventory: mcp__McpHub__biomni_hub__{biomni_backends, biomni_cost, biomni_fetch_artifact, biomni_inject_mcp, biomni_run_history, biomni_tool_catalog, create_project, list_projects, list_result_files, list_tasks, list_workspaces, send_message, start_new_task, switch_workspace, upload_file, wait_for_next_update}."
+ ],
+ "open_questions": [
+  "UNVERIFIED: what validate_mcp_control_plane.py actually checks (grep for def check/command/exists returned nothing \u2014 different structure; body not read to keep probes cheap). Settling experiment: run it against the pre-edit registry (expect exit 0) and post-edit (expect exit 0); if it validates command paths it doubles as the re-point checker.",
+  "UNVERIFIED: the 4th occurrence of 'biomni-hub' in agents.json (2 are the command/args paths, 1 the label; the 4th is somewhere else \u2014 possibly mcp.policy or supervision). Settling experiment: python walk printing every key-path whose value contains 'biomni-hub' before the field-level edit; the field-level edit is safe regardless because it only touches mcp.servers['biomni-hub'].command/.args[0].",
+  "UNVERIFIED: which process serves the broker at 127.0.0.1:18787 and where it lives (probably under .local/opt/biomni-hub/databricks/deploy or started separately \u2014 description says server.py talks 'to the online backend via broker'). Settling experiment: Get-NetTCPConnection -LocalPort 18787 | select OwningProcess + process path; vendoring hub/ does not move/kill it, but retirement of the old .local/opt dir (step 13, deferred) MUST wait until this is known.",
+  "UNVERIFIED: which upstream feeds McpHub's biomni_hub aggregation (it exposes the same 10+ tool surface in Claude sessions). Settling experiment: inspect the McpHub server's config/discovery output (mcp-scanner --check or cfg_auto_discover) \u2014 needed only if the owner ever wants the two lanes unified; not blocking this vendor move.",
+  "UNVERIFIED: repo-root .gitattributes CRLF policy for the new tools/biomni-hub-mcp tree (known estate trap: most cross-checkout drift is CRLF phantoms). Settling experiment: git -C repo check-attr text -- tools/scholarly-access-mcp/pyproject.toml and mirror whatever the existing vendored tool relies on before committing."
+ ],
+ "compacted_memory_md": "A3 (finish-scope batch 2026-09-19) SPEC \u2014 vendor biomni-hub, READ-ONLY spec delivered, no edits made. Facts disk-verified: registry row mcp.servers['biomni-hub'] in C:/Users/Prekzursil/.agents/agents.json (93 servers) = stdio python C:\\Users\\Prekzursil\\.local\\opt\\biomni-hub\\hub\\.venv\\Scripts\\python.exe + args [...hub\\server.py], env BIOMNI_API_BASE=http://127.0.0.1:18787 + BIOMNI_BACKEND=online, targets [zcode], tags zcode-only. Audit scoreboard /servers[8]: health LIVE-SESSION, disposition local-impl-move (confirmed). Impl = real package NOT thin script: hub/ 799 core ln + adapters 1768 + features 1448 + 7 offline tests, pyproject biomni-hub 0.1.0 (mcp/httpx/pydantic/aiosqlite, py>=3.11), venv py 3.14.3; NO .git anywhere in .local/opt/biomni-hub (only copy on disk = why move). Prekzursil/biomni-hub GitHub DOES NOT EXIST (gh). bm_* MCP alternative not applicable; Claude lane already covered by McpHub mcp__McpHub__biomni_hub__* (17 tools). Spec: robocopy hub/ + databricks/ sibling (zero import coupling) into C:/Users/Prekzursil/source/agent-skills-toolchain/tools/biomni-hub-mcp/ keeping hub/ subdir (INTERFACE.md sys.path contract), inner .gitignore (.venv/, __pycache__/, *.pyc, *.egg-info/, .pytest_cache/, .ruff_cache/), README provenance, build .venv with C:\\Python314\\python.exe -m venv + pip install -e \".[dev]\", pytest gate MUST pass, then field-level registry re-point of command+args[0] only (env/targets/tags unchanged; 'biomni-hub' occurs 4x in file so no blind string replace), backup agents.json.bak-pre-biomni-vendor-20260919 first, run validate_mcp_control_plane.py, run sync_shared_state.ps1 (line 188 merge_generated_zcode_mcp.py --write into .zcode/cli/config.json \u2014 verified it currently holds the OLD path and will pick up the new), smoke via agents mcp test --runtime, OWNER-invoked path-scoped commit 'tools: vendor biomni-hub (A3 local-impl-move...)' -- tools/biomni-hub-mcp on feat/tool-registry-governance (index is dirty with staged skills-claude-only deletions \u2014 path-scope mandatory), keep old .local/opt copy as fallback (never delete; broker on :18787 owner-process still unidentified). Reference pattern = tools/scholarly-access-mcp (re-pointed precedent); cursor-bridge ac1820663 vendored but NOT re-pointed."
+}

@@ -1,6 +1,5 @@
 #!/usr/bin/env python3
 """Validate the shared MCP registry without exposing credential values."""
-
 from __future__ import annotations
 
 import argparse
@@ -28,7 +27,6 @@ def main() -> int:
     config_path = pathlib.Path(args.agents_config)
     manifest_path = pathlib.Path(args.rotation_manifest)
     config = json.loads(config_path.read_text(encoding="utf-8"))
-
     control.validate_registry(config)
     claude_count = len(
         control.expected_target_names(
@@ -41,7 +39,7 @@ def main() -> int:
     server_count = len(config["mcp"]["servers"])
 
     # Owner 2026-08-28: never rotate. A missing manifest is the policy,
-    # not a broken control plane -- do not require the deleted file.
+    # not a broken control plane — do not require the deleted file.
     if not manifest_path.is_file():
         print(
             "SUCCESS:mcp-control-plane-validate "

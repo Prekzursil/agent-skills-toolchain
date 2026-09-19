@@ -12,7 +12,7 @@ from collections.abc import Iterable, Mapping
 from typing import Any
 
 
-VALID_TARGETS = frozenset({"claude", "codex"})
+VALID_TARGETS = frozenset({"claude", "codex", "zcode", "hermes", "gemini"})
 VALID_APPROVAL_MODES = frozenset({"native", "allow", "deny"})
 VALID_HEALTH_PROBES = frozenset({"mcp-tools-list", "http", "command", "none"})
 MAX_STARTUP_TIMEOUT_MS = 30_000
