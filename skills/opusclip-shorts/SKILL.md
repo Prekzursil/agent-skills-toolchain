@@ -55,6 +55,15 @@ UPPERCASE, extra-bold sans (**Arial Black** on Windows), white words + **exactly
 - Final list ordered by **source start time**: `#N Title — H:MM:SS–H:MM:SS (duration in "X minutes and Y seconds" prose)`, each row tagged opusclip/new, duplicate flags. Overlap check = per-adjacent-row `min(e,prev_e) − max(s,prev_s)`, not cumulative.
 - QC: ffprobe all outputs (1080×1920, dur matches); poster montage → vision check (speaker centered, one highlighted word, diacritics render, no glitch).
 
+## Offline whisper gotchas (measured on this box, 2026-09-19)
+- Run whisper ONLY in a subprocess (bundled pattern: local_asr_worker.py). In-process:
+  (1) DLL-loader deadlock risk (av imported twice), (2) decode hangs in the MCP executor thread.
+- ALWAYS `stdin=subprocess.DEVNULL` for python children of an MCP server — inherited
+  overlapped stdin handles from the harness exec layer block python grandchildren
+  (ffprobe children are unaffected). Symptom: child hangs at zero CPU until timeout.
+- CUDA is opt-in (`VE_ASR_LOCAL_DEVICE=cuda`): lazy CUDA init hangs without cuDNN DLLs.
+- Validated: 40s Romanian → 33s wall, 71 words, word timestamps, quality ≥ cloud channel.
+
 ## Gotchas log
 - Filenames with U+2019 ' or & break bash glob/ffmpeg on Git Bash → orchestrate file handling in Python.
 - Romanian „…" quotes inside Python double-quoted strings = SyntaxError; use plain text.
@@ -96,6 +105,15 @@ Since the credential minter is the ZCode host itself, the relay brokers through 
   Patch adds offline provider: `speech_transcribe(provider="local")` → faster-whisper
   large-v3-turbo (env: VE_ASR_LOCAL_MODEL / _DEVICE / _COMPUTE; VE_ASR_LOCAL=0 disables).
   `pip install faster-whisper` is the only extra dependency. Verified ✔ Connected via `claude mcp list`.
+  **Subprocess architecture (measured 2026-09-19, E2E PASS):** faster_whisper is NEVER imported
+  in the MCP server process (in-process import deadlocks the av DLL loader) and decode NEVER runs
+  in the threaded executor (observed GIL hang, zero CPU burn); `local_asr.py` probes import and
+  transcribes via `local_asr_worker.py` in plain subprocesses (worker: large-v3-turbo, cpu, int8,
+  hardcoded — the _MODEL/_DEVICE/_COMPUTE env vars affect status reporting only; known gap).
+  Model cached under `HF_HOME=D:\basic-memory\.hf\hub` (mobiuslabsgmbh/faster-whisper-large-v3-turbo)
+  → fully offline, zero downloads. CPU-int8 timing: 6 s audio ≈ 21 s wall cold (incl. model load).
+  CUDA path untested in the worker (the agents.json "CUDA" description predates the rewrite).
+  Receipt: `~/.agents/mcp-servers/video-agent-kit/receipts/asr-e2e_2026-09-19.md`.
 - Works everywhere with NO extra config: inspect/analyze media, shot detection, timeline
   build/validate/render, subtitle scout/build/render/QC, basic ops (all local ffmpeg).
 - **Cloud speech (speech_transcribe / speech_synthesize): inside ZCode the host injects
